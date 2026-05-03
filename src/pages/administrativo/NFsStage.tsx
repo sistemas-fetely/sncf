@@ -583,6 +583,15 @@ export default function NFsStage() {
             onClick={() => setFiltroPill("sem_categoria")}
             icon={<AlertCircle className="h-3 w-3" />}
           />
+          <KpiPill
+            label="Boletos avulsos"
+            count={totals.boletosAvulsos}
+            color="blue"
+            active={filtroPill === "boletos_avulsos"}
+            onClick={() => setFiltroPill("boletos_avulsos")}
+            icon={<FileText className="h-3 w-3" />}
+            description="Sem NF associada"
+          />
         </div>
 
         {/* Busca + Ações */}
