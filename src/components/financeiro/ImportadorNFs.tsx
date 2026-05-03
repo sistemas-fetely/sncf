@@ -65,13 +65,33 @@ async function parsePdfFile(file: File): Promise<NFParsed | null> {
     return null;
   }
   const tipoDoc = payload.tipo_documento || "nfe";
+  const isBoleto = tipoDoc === "boleto";
+
+  // Pra boleto, número da NF está em numero_documento_referencia (quando preenchido).
+  // numero_documento do boleto é "Nosso Número" do banco — não identifica a NF.
+  const nfNumeroResolvido =
+    isBoleto && payload.numero_documento_referencia
+      ? String(payload.numero_documento_referencia)
+      : String(payload.numero_documento || payload.numero || "");
+
+  // Defesa em profundidade: chave_acesso só pra NF-e/NFS-e e exatamente 44 dígitos numéricos.
+  // Edge function já filtra; redundância intencional pra blindar contra inconsistência futura.
+  const chaveAcessoLimpa = (() => {
+    if (isBoleto) return undefined;
+    const raw = payload.chave_acesso;
+    if (!raw) return undefined;
+    const digitsOnly = String(raw).replace(/\D/g, "");
+    if (digitsOnly.length !== 44) return undefined;
+    return digitsOnly;
+  })();
+
   const nf: NFParsed = {
-    nf_numero: String(payload.numero_documento || payload.numero || ""),
+    nf_numero: nfNumeroResolvido,
     nf_serie: payload.serie ? String(payload.serie) : "",
     nf_data_emissao:
       parseDataBR(payload.data_emissao) || payload.data_emissao || null,
     nf_natureza_operacao: payload.descricao || payload.natureza_operacao || "",
-    nf_chave_acesso: payload.chave_acesso || undefined,
+    nf_chave_acesso: chaveAcessoLimpa,
     fornecedor_nome:
       payload.fornecedor_razao_social ||
       payload.razao_social_prestador ||

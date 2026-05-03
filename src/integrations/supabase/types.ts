@@ -5009,6 +5009,7 @@ export type Database = {
           nf_data_emissao: string | null
           nf_numero: string | null
           nf_serie: string | null
+          numero_documento_referencia: string | null
           numero_parcela: number | null
           pais_emissor: string
           parceiro_id: string | null
@@ -5046,6 +5047,7 @@ export type Database = {
           nf_data_emissao?: string | null
           nf_numero?: string | null
           nf_serie?: string | null
+          numero_documento_referencia?: string | null
           numero_parcela?: number | null
           pais_emissor?: string
           parceiro_id?: string | null
@@ -5083,6 +5085,7 @@ export type Database = {
           nf_data_emissao?: string | null
           nf_numero?: string | null
           nf_serie?: string | null
+          numero_documento_referencia?: string | null
           numero_parcela?: number | null
           pais_emissor?: string
           parceiro_id?: string | null
@@ -10004,6 +10007,7 @@ export type Database = {
           nf_data_emissao: string | null
           nf_numero: string | null
           nf_serie: string | null
+          numero_documento_referencia: string | null
           numero_parcela: number | null
           pais_emissor: string | null
           parceiro_id: string | null
