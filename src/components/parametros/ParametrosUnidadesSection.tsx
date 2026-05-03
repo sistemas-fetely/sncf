@@ -196,12 +196,13 @@ export default function ParametrosUnidadesSection() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      // Checar vínculos (parceiros e contas a pagar)
-      const [parc, contas] = await Promise.all([
-        supabase.from("parceiros_comerciais").select("id", { count: "exact", head: true }).eq("unidade_id", deleteTarget.id),
-        supabase.from("contas_pagar").select("id", { count: "exact", head: true }).eq("unidade_id", deleteTarget.id),
+      // Checar vínculos (contas a pagar/receber, colaboradores CLT, contratos PJ)
+      const [contas, clts, pjs] = await Promise.all([
+        supabase.from("contas_pagar_receber").select("id", { count: "exact", head: true }).eq("unidade_id", deleteTarget.id),
+        supabase.from("colaboradores_clt").select("id", { count: "exact", head: true }).eq("unidade_id", deleteTarget.id),
+        supabase.from("contratos_pj").select("id", { count: "exact", head: true }).eq("unidade_id", deleteTarget.id),
       ]);
-      const totalVinculos = (parc.count || 0) + (contas.count || 0);
+      const totalVinculos = (contas.count || 0) + (clts.count || 0) + (pjs.count || 0);
 
       if (totalVinculos > 0) {
         // Inativar em vez de excluir
