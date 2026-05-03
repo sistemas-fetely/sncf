@@ -41,6 +41,7 @@ import {
   Clock,
   FileText,
   FileCheck,
+  FileCode,
   Eye,
   Sparkles,
   Calculator,
