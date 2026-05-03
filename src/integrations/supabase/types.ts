@@ -9981,20 +9981,105 @@ export type Database = {
       }
       vw_nfs_stage_completude: {
         Row: {
+          categoria_id: string | null
           completude: string | null
+          conta_pagar_id: string | null
+          created_at: string | null
+          criada_por: string | null
+          data_vencimento: string | null
+          descricao: string | null
           documentos: Json | null
+          fonte: string | null
+          fornecedor_cliente: string | null
+          fornecedor_cnpj: string | null
           fornecedor_razao_social: string | null
           id: string | null
+          importacao_lote_id: string | null
+          itens: Json | null
+          match_motivos: string | null
+          match_score: number | null
+          moeda: string | null
+          motivo_descarte: string | null
           nf_chave_acesso: string | null
+          nf_data_emissao: string | null
           nf_numero: string | null
+          nf_serie: string | null
+          numero_parcela: number | null
+          pais_emissor: string | null
+          parceiro_id: string | null
+          resumo_pdf_gerado_em: string | null
+          resumo_pdf_pendente: boolean | null
+          resumo_pdf_storage_path: string | null
           status: string | null
+          taxa_conversao: number | null
           tem_boleto: boolean | null
           tem_pdf: boolean | null
           tem_xml: boolean | null
           tem_xml_obrigatorio: boolean | null
           tipo_documento: string | null
+          total_parcelas: number | null
+          updated_at: string | null
+          valor: number | null
+          valor_origem: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nfs_stage_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_lancamentos_caixa_banco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
