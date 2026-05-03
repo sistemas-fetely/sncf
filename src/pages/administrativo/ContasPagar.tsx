@@ -67,7 +67,6 @@ type Conta = {
   plano_contas?: { codigo?: string | null; nome: string } | null;
   parceiros_comerciais?: { razao_social: string | null } | null;
   formas_pagamento?: { codigo: string | null; nome: string | null } | null;
-  forma_pagamento?: string | null;
   fornecedor_cliente?: string | null;
 };
 
@@ -729,7 +728,7 @@ export default function ContasPagar() {
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                               {(() => {
-                                const meioPagamento = c.formas_pagamento?.nome || c.forma_pagamento;
+                                const meioPagamento = c.formas_pagamento?.nome ?? null;
                                 const faturaInfo = faturaInfoMap.get(c.id);
                                 if (!meioPagamento) {
                                   return <span className="text-[10px] italic">—</span>;

@@ -29,7 +29,7 @@ export type ContaInput = {
   fornecedor_cliente: string | null;
   status?: string;
   nf_cnpj_emitente?: string | null;
-  forma_pagamento?: string | null;
+  is_cartao?: boolean | null;
 };
 
 export type AgrupamentoSugerido = {
@@ -91,8 +91,7 @@ function ehFaturaOuLote(mov: MovInput): boolean {
 }
 
 function ehContaCartao(c: ContaInput): boolean {
-  const f = (c.forma_pagamento || "").toUpperCase();
-  return f.includes("CARTAO") || f.includes("CARTÃO") || f.includes("CREDITO") || f.includes("CRÉDITO");
+  return c.is_cartao === true;
 }
 
 function chaveFornecedor(c: ContaInput): string {

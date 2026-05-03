@@ -25,7 +25,6 @@ type ContaPagar = {
   data_vencimento: string;
   fornecedor_cliente: string | null;
   status: string;
-  forma_pagamento: string | null;
   formas_pagamento: { nome: string } | null;
 };
 
@@ -70,7 +69,7 @@ export function BuscarMultiplosLancamentosDialog({
       const { data } = await (supabase as any)
         .from("contas_pagar_receber")
         .select(
-          "id, descricao, valor, data_vencimento, fornecedor_cliente, status, forma_pagamento, formas_pagamento:forma_pagamento_id(nome)",
+          "id, descricao, valor, data_vencimento, fornecedor_cliente, status, formas_pagamento:forma_pagamento_id(nome)",
         )
         .in("status", ["aprovado", "aguardando_pagamento"])
         .is("movimentacao_bancaria_id", null)
@@ -234,7 +233,7 @@ export function BuscarMultiplosLancamentosDialog({
               ) : (
                 contasFiltradas.map((c) => {
                   const sel = selecionadas.has(c.id);
-                  const meioPagamento = c.formas_pagamento?.nome || c.forma_pagamento;
+                  const meioPagamento = c.formas_pagamento?.nome ?? null;
                   const faturaInfo = faturaInfoMap.get(c.id);
                   return (
                     <tr
