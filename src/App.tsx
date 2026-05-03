@@ -80,10 +80,8 @@ import HistoricoImportacoesPDF from "@/pages/admin/HistoricoImportacoesPDF";
 import GestaoAVista from "@/pages/GestaoAVista";
 import DocumentacaoGeral from "@/pages/DocumentacaoGeral";
 import AdminFinanceiroLayout from "@/layouts/AdminFinanceiroLayout";
-import DashboardFinanceiro from "@/pages/administrativo/DashboardFinanceiro";
 import PlanoDeContas from "@/pages/administrativo/PlanoDeContas";
 
-import DRE from "@/pages/administrativo/DRE";
 import FluxoCaixa from "@/pages/administrativo/FluxoCaixa";
 import ContasPagar from "@/pages/administrativo/ContasPagar";
 import ContasReceber from "@/pages/administrativo/ContasReceber";
@@ -393,10 +391,9 @@ const App = () => (
                 Acesso restrito a super_admin (Fase 1)
                 ═══════════════════════════════════════════════ */}
             <Route path="/administrativo" element={<AdminFinanceiroLayout />}>
-              <Route index element={<DashboardFinanceiro />} />
+              <Route index element={<ContasPagar />} />
               <Route path="plano-contas" element={<PlanoDeContas />} />
-              
-              <Route path="dre" element={<DRE />} />
+
               <Route path="fluxo-caixa" element={<FluxoCaixa />} />
               <Route path="contas-pagar" element={<ContasPagar />} />
               <Route path="caixa-banco" element={<CaixaBanco />} />
