@@ -390,7 +390,7 @@ export function ContaPagarFormEdit({
         <Select
           value={formaPagamentoId}
           onValueChange={setFormaPagamentoId}
-          disabled={isReadOnly || salvando || readonlyPorFamilia("forma_pagamento")}
+          disabled={isReadOnly || salvando || readonlyPorFamilia("forma_pagamento_id")}
         >
           <SelectTrigger>
             <SelectValue placeholder="Definir..." />
@@ -402,7 +402,7 @@ export function ContaPagarFormEdit({
             ))}
           </SelectContent>
         </Select>
-        {readonlyPorFamilia("forma_pagamento") && familiaLabel && (
+        {readonlyPorFamilia("forma_pagamento_id") && familiaLabel && (
           <p className="text-[11px] text-muted-foreground">
             {familiaLabel === "Cartão"
               ? `Forma definida pela fatura${formaPagamentoNome ? `: ${formaPagamentoNome}` : ""}.`
