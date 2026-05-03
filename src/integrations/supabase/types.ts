@@ -2085,10 +2085,10 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por: string | null
           bling_id: string | null
-          canal: string | null
+          canal_venda_id: string | null
           categoria_confirmada: boolean | null
           categoria_sugerida_ia: boolean | null
-          centro_custo: string | null
+          centro_custo_id: string | null
           compromisso_parcelado_id: string | null
           compromisso_recorrente_id: string | null
           comprovante_url: string | null
@@ -2112,7 +2112,6 @@ export type Database = {
           email_pagamento_enviado: boolean | null
           enviado_pagamento_em: string | null
           enviado_pagamento_por: string | null
-          forma_pagamento: string | null
           forma_pagamento_id: string | null
           fornecedor_cliente: string | null
           fornecedor_id: string | null
@@ -2154,7 +2153,7 @@ export type Database = {
           tem_sugestao_nf: boolean
           tipo: string
           total_parcelas: number | null
-          unidade: string | null
+          unidade_id: string | null
           updated_at: string | null
           valor: number
           valor_original_item: number | null
@@ -2164,10 +2163,10 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           bling_id?: string | null
-          canal?: string | null
+          canal_venda_id?: string | null
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           compromisso_parcelado_id?: string | null
           compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
@@ -2191,7 +2190,6 @@ export type Database = {
           email_pagamento_enviado?: boolean | null
           enviado_pagamento_em?: string | null
           enviado_pagamento_por?: string | null
-          forma_pagamento?: string | null
           forma_pagamento_id?: string | null
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
@@ -2233,7 +2231,7 @@ export type Database = {
           tem_sugestao_nf?: boolean
           tipo?: string
           total_parcelas?: number | null
-          unidade?: string | null
+          unidade_id?: string | null
           updated_at?: string | null
           valor: number
           valor_original_item?: number | null
@@ -2243,10 +2241,10 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           bling_id?: string | null
-          canal?: string | null
+          canal_venda_id?: string | null
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           compromisso_parcelado_id?: string | null
           compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
@@ -2270,7 +2268,6 @@ export type Database = {
           email_pagamento_enviado?: boolean | null
           enviado_pagamento_em?: string | null
           enviado_pagamento_por?: string | null
-          forma_pagamento?: string | null
           forma_pagamento_id?: string | null
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
@@ -2312,13 +2309,27 @@ export type Database = {
           tem_sugestao_nf?: boolean
           tipo?: string
           total_parcelas?: number | null
-          unidade?: string | null
+          unidade_id?: string | null
           updated_at?: string | null
           valor?: number
           valor_original_item?: number | null
           valor_pago?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_canal_venda_id_fkey"
+            columns: ["canal_venda_id"]
+            isOneToOne: false
+            referencedRelation: "canais_venda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_receber_compromisso_parcelado_id_fkey"
             columns: ["compromisso_parcelado_id"]
@@ -2380,6 +2391,13 @@ export type Database = {
             columns: ["parceiro_id"]
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -5671,9 +5689,9 @@ export type Database = {
           ativo: boolean | null
           bairro: string | null
           bling_id: string | null
-          canal: string | null
+          canal_venda_id: string | null
           categoria_padrao_id: string | null
-          centro_custo_padrao: string | null
+          centro_custo_id: string | null
           cep: string | null
           cidade: string | null
           cnpj: string | null
@@ -5682,10 +5700,10 @@ export type Database = {
           dados_bancarios: Json | null
           data_nascimento: string | null
           email: string | null
+          forma_pagamento_padrao_id: string | null
           grupo_id: string | null
           id: string
           logradouro: string | null
-          meio_pagamento_padrao: string | null
           nome_fantasia: string | null
           numero: string | null
           observacao: string | null
@@ -5707,9 +5725,9 @@ export type Database = {
           ativo?: boolean | null
           bairro?: string | null
           bling_id?: string | null
-          canal?: string | null
+          canal_venda_id?: string | null
           categoria_padrao_id?: string | null
-          centro_custo_padrao?: string | null
+          centro_custo_id?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
@@ -5718,10 +5736,10 @@ export type Database = {
           dados_bancarios?: Json | null
           data_nascimento?: string | null
           email?: string | null
+          forma_pagamento_padrao_id?: string | null
           grupo_id?: string | null
           id?: string
           logradouro?: string | null
-          meio_pagamento_padrao?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           observacao?: string | null
@@ -5743,9 +5761,9 @@ export type Database = {
           ativo?: boolean | null
           bairro?: string | null
           bling_id?: string | null
-          canal?: string | null
+          canal_venda_id?: string | null
           categoria_padrao_id?: string | null
-          centro_custo_padrao?: string | null
+          centro_custo_id?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
@@ -5754,10 +5772,10 @@ export type Database = {
           dados_bancarios?: Json | null
           data_nascimento?: string | null
           email?: string | null
+          forma_pagamento_padrao_id?: string | null
           grupo_id?: string | null
           id?: string
           logradouro?: string | null
-          meio_pagamento_padrao?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           observacao?: string | null
@@ -5781,6 +5799,27 @@ export type Database = {
             columns: ["categoria_padrao_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiros_comerciais_canal_venda_id_fkey"
+            columns: ["canal_venda_id"]
+            isOneToOne: false
+            referencedRelation: "canais_venda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiros_comerciais_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiros_comerciais_forma_pagamento_padrao_id_fkey"
+            columns: ["forma_pagamento_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
             referencedColumns: ["id"]
           },
           {
@@ -8744,10 +8783,10 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por: string | null
           bling_id: string | null
-          canal: string | null
+          canal_venda_id: string | null
           categoria_confirmada: boolean | null
           categoria_sugerida_ia: boolean | null
-          centro_custo: string | null
+          centro_custo_id: string | null
           compromisso_parcelado_id: string | null
           compromisso_recorrente_id: string | null
           comprovante_url: string | null
@@ -8769,7 +8808,6 @@ export type Database = {
           email_pagamento_enviado: boolean | null
           enviado_pagamento_em: string | null
           enviado_pagamento_por: string | null
-          forma_pagamento: string | null
           forma_pagamento_id: string | null
           fornecedor_cliente: string | null
           fornecedor_id: string | null
@@ -8808,7 +8846,7 @@ export type Database = {
           tarefa_id: string | null
           tipo: string | null
           total_parcelas: number | null
-          unidade: string | null
+          unidade_id: string | null
           updated_at: string | null
           valor: number | null
           valor_pago: number | null
@@ -8817,10 +8855,10 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           bling_id?: string | null
-          canal?: string | null
+          canal_venda_id?: string | null
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           compromisso_parcelado_id?: string | null
           compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
@@ -8842,7 +8880,6 @@ export type Database = {
           email_pagamento_enviado?: boolean | null
           enviado_pagamento_em?: string | null
           enviado_pagamento_por?: string | null
-          forma_pagamento?: string | null
           forma_pagamento_id?: string | null
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
@@ -8881,7 +8918,7 @@ export type Database = {
           tarefa_id?: string | null
           tipo?: string | null
           total_parcelas?: number | null
-          unidade?: string | null
+          unidade_id?: string | null
           updated_at?: string | null
           valor?: number | null
           valor_pago?: number | null
@@ -8890,10 +8927,10 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           bling_id?: string | null
-          canal?: string | null
+          canal_venda_id?: string | null
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           compromisso_parcelado_id?: string | null
           compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
@@ -8915,7 +8952,6 @@ export type Database = {
           email_pagamento_enviado?: boolean | null
           enviado_pagamento_em?: string | null
           enviado_pagamento_por?: string | null
-          forma_pagamento?: string | null
           forma_pagamento_id?: string | null
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
@@ -8954,12 +8990,26 @@ export type Database = {
           tarefa_id?: string | null
           tipo?: string | null
           total_parcelas?: number | null
-          unidade?: string | null
+          unidade_id?: string | null
           updated_at?: string | null
           valor?: number | null
           valor_pago?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_canal_venda_id_fkey"
+            columns: ["canal_venda_id"]
+            isOneToOne: false
+            referencedRelation: "canais_venda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_receber_compromisso_parcelado_id_fkey"
             columns: ["compromisso_parcelado_id"]
@@ -9023,6 +9073,13 @@ export type Database = {
             referencedRelation: "parceiros_comerciais"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contas_pagar_receber_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contas_pagar_receber_ativas: {
@@ -9030,10 +9087,10 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por: string | null
           bling_id: string | null
-          canal: string | null
+          canal_venda_id: string | null
           categoria_confirmada: boolean | null
           categoria_sugerida_ia: boolean | null
-          centro_custo: string | null
+          centro_custo_id: string | null
           compromisso_parcelado_id: string | null
           compromisso_recorrente_id: string | null
           comprovante_url: string | null
@@ -9057,7 +9114,6 @@ export type Database = {
           email_pagamento_enviado: boolean | null
           enviado_pagamento_em: string | null
           enviado_pagamento_por: string | null
-          forma_pagamento: string | null
           forma_pagamento_id: string | null
           fornecedor_cliente: string | null
           fornecedor_id: string | null
@@ -9097,7 +9153,7 @@ export type Database = {
           tem_sugestao_nf: boolean | null
           tipo: string | null
           total_parcelas: number | null
-          unidade: string | null
+          unidade_id: string | null
           updated_at: string | null
           valor: number | null
           valor_original_item: number | null
@@ -9107,10 +9163,10 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           bling_id?: string | null
-          canal?: string | null
+          canal_venda_id?: string | null
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           compromisso_parcelado_id?: string | null
           compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
@@ -9134,7 +9190,6 @@ export type Database = {
           email_pagamento_enviado?: boolean | null
           enviado_pagamento_em?: string | null
           enviado_pagamento_por?: string | null
-          forma_pagamento?: string | null
           forma_pagamento_id?: string | null
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
@@ -9174,7 +9229,7 @@ export type Database = {
           tem_sugestao_nf?: boolean | null
           tipo?: string | null
           total_parcelas?: number | null
-          unidade?: string | null
+          unidade_id?: string | null
           updated_at?: string | null
           valor?: number | null
           valor_original_item?: number | null
@@ -9184,10 +9239,10 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           bling_id?: string | null
-          canal?: string | null
+          canal_venda_id?: string | null
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           compromisso_parcelado_id?: string | null
           compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
@@ -9211,7 +9266,6 @@ export type Database = {
           email_pagamento_enviado?: boolean | null
           enviado_pagamento_em?: string | null
           enviado_pagamento_por?: string | null
-          forma_pagamento?: string | null
           forma_pagamento_id?: string | null
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
@@ -9251,13 +9305,27 @@ export type Database = {
           tem_sugestao_nf?: boolean | null
           tipo?: string | null
           total_parcelas?: number | null
-          unidade?: string | null
+          unidade_id?: string | null
           updated_at?: string | null
           valor?: number | null
           valor_original_item?: number | null
           valor_pago?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_canal_venda_id_fkey"
+            columns: ["canal_venda_id"]
+            isOneToOne: false
+            referencedRelation: "canais_venda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_receber_compromisso_parcelado_id_fkey"
             columns: ["compromisso_parcelado_id"]
@@ -9319,6 +9387,13 @@ export type Database = {
             columns: ["parceiro_id"]
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -9560,7 +9635,7 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por: string | null
           atrasada: boolean | null
-          centro_custo: string | null
+          centro_custo_id: string | null
           comprovante_url: string | null
           conta_id: string | null
           created_at: string | null
@@ -9568,7 +9643,6 @@ export type Database = {
           data_pagamento: string | null
           data_vencimento: string | null
           descricao: string | null
-          forma_pagamento: string | null
           forma_pagamento_id: string | null
           fornecedor_id: string | null
           id: string | null
@@ -9596,6 +9670,13 @@ export type Database = {
           valor: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_receber_conta_id_fkey"
             columns: ["conta_id"]
@@ -9777,7 +9858,7 @@ export type Database = {
           status_caixa: string | null
           status_conta_pagar: string | null
           tipo: string | null
-          unidade: string | null
+          unidade_id: string | null
           valor: number | null
           vinculada_cartao: boolean | null
         }
@@ -9804,7 +9885,7 @@ export type Database = {
           status_caixa?: never
           status_conta_pagar?: string | null
           tipo?: string | null
-          unidade?: string | null
+          unidade_id?: string | null
           valor?: number | null
           vinculada_cartao?: never
         }
@@ -9831,7 +9912,7 @@ export type Database = {
           status_caixa?: never
           status_conta_pagar?: string | null
           tipo?: string | null
-          unidade?: string | null
+          unidade_id?: string | null
           valor?: number | null
           vinculada_cartao?: never
         }
@@ -9869,6 +9950,13 @@ export type Database = {
             columns: ["parceiro_id"]
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -10095,14 +10183,6 @@ export type Database = {
           conta_pagar_id: string
           erro: string
           ok: boolean
-        }[]
-      }
-      criar_parceiros_auto_cartao: {
-        Args: never
-        Returns: {
-          out_lancamentos_afetados: number
-          out_parceiro_id: string
-          out_token: string
         }[]
       }
       criar_tarefa_aprovacao_nf_pj: {
