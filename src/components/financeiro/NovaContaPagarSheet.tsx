@@ -46,9 +46,10 @@ import { ParceiroFormSheet, Parceiro } from "@/components/financeiro/ParceiroFor
 import { CategoriaFormDialog } from "@/components/financeiro/CategoriaFormDialog";
 import { formatBRL } from "@/lib/format-currency";
 import { addMonths } from "date-fns";
+import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
+import { useUnidades } from "@/hooks/useUnidades";
 
 type FormaPgto = { id: string; nome: string; codigo: string };
-const CENTROS = ["comercial", "administrativo", "rh", "ti", "fiscal", "financeiro", "fabrica", "geral"];
 
 interface Props {
   open: boolean;
@@ -69,8 +70,8 @@ export function NovaContaPagarSheet({ open, onOpenChange }: Props) {
   const [dataVenc, setDataVenc] = useState("");
   const [dataEmissao, setDataEmissao] = useState("");
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
-  const [centroCusto, setCentroCusto] = useState("");
-  const [unidade, setUnidade] = useState("matriz_sp");
+  const [centroCustoId, setCentroCustoId] = useState<string | null>(null);
+  const [unidadeId, setUnidadeId] = useState<string | null>(null);
   const [formaPgtoId, setFormaPgtoId] = useState<string>("");
   const [parcelas, setParcelas] = useState(1);
   const [nfStageId, setNfStageId] = useState<string | null>(null);
@@ -122,14 +123,17 @@ export function NovaContaPagarSheet({ open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("parceiros_comerciais")
-        .select("id,razao_social,nome_fantasia,cnpj,categoria_padrao_id,centro_custo_padrao,tipos,tipo,cpf,cep,logradouro,numero,bairro,cidade,uf,telefone,email,canal,segmento,tags,ativo,observacao,origem")
+        .select("id,razao_social,nome_fantasia,cnpj,categoria_padrao_id,centro_custo_id,canal_venda_id,forma_pagamento_padrao_id,tipos,tipo,cpf,cep,logradouro,numero,bairro,cidade,uf,telefone,email,segmento,tags,ativo,observacao,origem")
         .contains("tipos", ["fornecedor"])
         .eq("ativo", true)
         .order("razao_social");
       if (error) throw error;
-      return data as Parceiro[];
+      return data as unknown as Parceiro[];
     },
   });
+
+  const { data: centrosCusto = [] } = useCentrosCusto();
+  const { data: unidades = [] } = useUnidades();
 
   const { data: categorias } = useQuery({
     queryKey: ["plano-contas-flat"],
@@ -165,7 +169,8 @@ export function NovaContaPagarSheet({ open, onOpenChange }: Props) {
     const p = parceiros.find((x) => x.id === parceiroId);
     if (!p) return;
     if (p.categoria_padrao_id && !categoriaId) setCategoriaId(p.categoria_padrao_id);
-    if (p.centro_custo_padrao && !centroCusto) setCentroCusto(p.centro_custo_padrao);
+    if (p.centro_custo_id && !centroCustoId) setCentroCustoId(p.centro_custo_id);
+    if (p.forma_pagamento_padrao_id && !formaPgtoId) setFormaPgtoId(p.forma_pagamento_padrao_id);
   }, [parceiroId, parceiros]); // eslint-disable-line
 
   useEffect(() => {
@@ -177,8 +182,8 @@ export function NovaContaPagarSheet({ open, onOpenChange }: Props) {
       setDataVenc("");
       setDataEmissao("");
       setCategoriaId(null);
-      setCentroCusto("");
-      setUnidade("matriz_sp");
+      setCentroCustoId(null);
+      setUnidadeId(null);
       setFormaPgtoId("");
       setParcelas(1);
       setNfStageId(null);
@@ -236,8 +241,8 @@ export function NovaContaPagarSheet({ open, onOpenChange }: Props) {
           parceiro_id: parceiroId,
           fornecedor_id: parceiroId,
           fornecedor_cliente: fornecedorNome,
-          centro_custo: centroCusto || null,
-          unidade,
+          centro_custo_id: centroCustoId,
+          unidade_id: unidadeId,
           forma_pagamento_id: formaPgtoId || null,
           parcelas,
           parcela_atual: i + 1,
@@ -430,23 +435,31 @@ export function NovaContaPagarSheet({ open, onOpenChange }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Centro de custo</Label>
-                  <Select value={centroCusto || "_none"} onValueChange={(v) => setCentroCusto(v === "_none" ? "" : v)}>
+                  <Select
+                    value={centroCustoId ?? "_none"}
+                    onValueChange={(v) => setCentroCustoId(v === "_none" ? null : v)}
+                  >
                     <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">Nenhum</SelectItem>
-                      {CENTROS.map((c) => (
-                        <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                      <SelectItem value="_none">— Sem centro de custo —</SelectItem>
+                      {centrosCusto.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label>Unidade</Label>
-                  <Select value={unidade} onValueChange={setUnidade}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select
+                    value={unidadeId ?? "_none"}
+                    onValueChange={(v) => setUnidadeId(v === "_none" ? null : v)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="matriz_sp">Matriz SP</SelectItem>
-                      <SelectItem value="joinville">Joinville</SelectItem>
+                      <SelectItem value="_none">— Sem unidade —</SelectItem>
+                      {unidades.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
