@@ -856,10 +856,8 @@ export default function NFsStage() {
                             </Button>
                           )}
                           {(() => {
-                            const ehXml =
-                              !!nf.xml_storage_path ||
-                              (!!nf.arquivo_nome && /\.xml$/i.test(nf.arquivo_nome));
-                            if (!ehXml) return null;
+                            // Resumo NFe só faz sentido com XML disponível
+                            if (!nf.tem_xml) return null;
                             const jaTem = !!nf.resumo_pdf_gerado_em;
                             const loading = gerandoResumo.has(nf.id);
                             if (jaTem) {
