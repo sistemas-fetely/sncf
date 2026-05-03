@@ -81,10 +81,14 @@ export async function moverParaStage(
       // RPC vai decidir CRIAR ou ENRIQUECER por chave_acesso
       const status = "nao_vinculada"; // Stage virou repositório — vínculo é decisão futura
 
+      const tipoDoc = inferirTipoDoc(nf);
+
       const payload: Record<string, unknown> = {
         fonte: nf._source || "pdf_nfe",
+        tipo_doc: tipoDoc, // xml | pdf_danfe | pdf_boleto — RPC roteia pra nfs_stage_documentos
         arquivo_nome: arquivo?.name || null,
         arquivo_storage_path: storagePath,
+        linha_digitavel: nf.linha_digitavel || null,
         importacao_lote_id: loteId,
         fornecedor_cnpj: nf.fornecedor_cnpj || null,
         fornecedor_razao_social: nf.fornecedor_nome || null,
@@ -106,6 +110,8 @@ export async function moverParaStage(
         moeda: nf.moeda || "BRL",
         valor_origem: nf.valor_origem ?? null,
         taxa_conversao: nf.taxa_conversao ?? null,
+        numero_parcela: nf.numero_parcela ?? null,
+        total_parcelas: nf.total_parcelas ?? null,
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -197,15 +203,21 @@ export async function enviarStageParaContasPagar(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: stageInfo } = await (supabase as any)
         .from("nfs_stage")
-        .select("arquivo_storage_path, arquivo_nome")
+        .select(`
+          documentos:nfs_stage_documentos(tipo, storage_path, arquivo_nome)
+        `)
         .eq("id", r.stage_id)
         .maybeSingle();
 
-      if (stageInfo?.arquivo_storage_path && r.conta_pagar_id) {
+      // Pacote/anexo principal: PDF DANFE preferencialmente
+      const pdfDanfe = stageInfo?.documentos?.find(
+        (d: any) => d.tipo === "pdf_danfe",
+      );
+      if (pdfDanfe && r.conta_pagar_id) {
         await moverArquivoParaContasPagar(
-          stageInfo.arquivo_storage_path,
+          pdfDanfe.storage_path,
           r.conta_pagar_id,
-          stageInfo.arquivo_nome || "documento.pdf",
+          pdfDanfe.arquivo_nome || "documento.pdf",
         );
       }
     } catch (e) {
@@ -299,6 +311,19 @@ function chaveArquivo(nf: NFParsed): string {
 }
 
 /**
+ * Decide o tipo_doc canônico (alimenta nfs_stage_documentos via RPC):
+ *   xml         → arquivo XML de NF-e/NFS-e
+ *   pdf_boleto  → PDF identificado como boleto bancário
+ *   pdf_danfe   → demais PDFs fiscais (DANFE, NFS-e, recibo)
+ */
+function inferirTipoDoc(nf: NFParsed): "xml" | "pdf_danfe" | "pdf_boleto" {
+  const src = (nf as unknown as { _source?: string })._source || "";
+  if (src.includes("xml")) return "xml";
+  if (nf.tipo_documento === "boleto") return "pdf_boleto";
+  return "pdf_danfe";
+}
+
+/**
  * Descarta NFs do stage (apaga registros + arquivos).
  */
 export async function descartarStage(stageIds: string[]): Promise<number> {
@@ -306,13 +331,13 @@ export async function descartarStage(stageIds: string[]): Promise<number> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: nfs } = await (supabase as any)
     .from("nfs_stage")
-    .select("arquivo_storage_path")
+    .select("documentos:nfs_stage_documentos(storage_path)")
     .in("id", stageIds);
 
-  // Apaga arquivos
+  // Apaga arquivos (todos os tipos: xml, pdf_danfe, pdf_boleto)
   const paths = (nfs || [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((n: any) => n.arquivo_storage_path)
+    .flatMap((n: any) => (n.documentos || []).map((d: any) => d.storage_path))
     .filter(Boolean) as string[];
   if (paths.length > 0) {
     await supabase.storage.from(BUCKET).remove(paths);

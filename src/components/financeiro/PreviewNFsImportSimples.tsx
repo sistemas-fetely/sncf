@@ -111,6 +111,7 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
           <TableBody>
             {nfs.map((nf, i) => {
               const tipo = tipoArquivo(nf);
+              const ehBoleto = nf.tipo_documento === "boleto";
               return (
                 <TableRow key={i} className={cn(nf._duplicata && "opacity-60")}>
                   <TableCell>
@@ -130,16 +131,29 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        tipo === "XML"
-                          ? "border-admin text-admin"
-                          : "border-muted-foreground text-muted-foreground",
-                      )}
-                    >
-                      {tipo}
-                    </Badge>
+                    {ehBoleto ? (
+                      <div className="flex items-center gap-1.5">
+                        <Badge className="bg-blue-600 hover:bg-blue-600 text-white">
+                          BOLETO
+                        </Badge>
+                        {nf.numero_parcela && nf.total_parcelas && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {nf.numero_parcela}/{nf.total_parcelas}
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          tipo === "XML"
+                            ? "border-admin text-admin"
+                            : "border-muted-foreground text-muted-foreground",
+                        )}
+                      >
+                        {tipo}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="max-w-[220px] truncate">
                     {nf.fornecedor_nome || "—"}

@@ -4988,8 +4988,6 @@ export type Database = {
       }
       nfs_stage: {
         Row: {
-          arquivo_nome: string | null
-          arquivo_storage_path: string | null
           categoria_id: string | null
           conta_pagar_id: string | null
           created_at: string
@@ -5011,6 +5009,7 @@ export type Database = {
           nf_data_emissao: string | null
           nf_numero: string | null
           nf_serie: string | null
+          numero_parcela: number | null
           pais_emissor: string
           parceiro_id: string | null
           resumo_pdf_gerado_em: string | null
@@ -5020,14 +5019,12 @@ export type Database = {
           taxa_conversao: number | null
           tem_xml_obrigatorio: boolean
           tipo_documento: string
+          total_parcelas: number | null
           updated_at: string
           valor: number
           valor_origem: number | null
-          xml_storage_path: string | null
         }
         Insert: {
-          arquivo_nome?: string | null
-          arquivo_storage_path?: string | null
           categoria_id?: string | null
           conta_pagar_id?: string | null
           created_at?: string
@@ -5049,6 +5046,7 @@ export type Database = {
           nf_data_emissao?: string | null
           nf_numero?: string | null
           nf_serie?: string | null
+          numero_parcela?: number | null
           pais_emissor?: string
           parceiro_id?: string | null
           resumo_pdf_gerado_em?: string | null
@@ -5058,14 +5056,12 @@ export type Database = {
           taxa_conversao?: number | null
           tem_xml_obrigatorio?: boolean
           tipo_documento?: string
+          total_parcelas?: number | null
           updated_at?: string
           valor?: number
           valor_origem?: number | null
-          xml_storage_path?: string | null
         }
         Update: {
-          arquivo_nome?: string | null
-          arquivo_storage_path?: string | null
           categoria_id?: string | null
           conta_pagar_id?: string | null
           created_at?: string
@@ -5087,6 +5083,7 @@ export type Database = {
           nf_data_emissao?: string | null
           nf_numero?: string | null
           nf_serie?: string | null
+          numero_parcela?: number | null
           pais_emissor?: string
           parceiro_id?: string | null
           resumo_pdf_gerado_em?: string | null
@@ -5096,10 +5093,10 @@ export type Database = {
           taxa_conversao?: number | null
           tem_xml_obrigatorio?: boolean
           tipo_documento?: string
+          total_parcelas?: number | null
           updated_at?: string
           valor?: number
           valor_origem?: number | null
-          xml_storage_path?: string | null
         }
         Relationships: [
           {
@@ -5156,6 +5153,54 @@ export type Database = {
             columns: ["parceiro_id"]
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfs_stage_documentos: {
+        Row: {
+          arquivo_nome: string | null
+          criado_em: string
+          criado_por: string | null
+          id: string
+          linha_digitavel: string | null
+          nfs_stage_id: string
+          storage_path: string
+          tipo: string
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          linha_digitavel?: string | null
+          nfs_stage_id: string
+          storage_path: string
+          tipo: string
+        }
+        Update: {
+          arquivo_nome?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          linha_digitavel?: string | null
+          nfs_stage_id?: string
+          storage_path?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_completude"
             referencedColumns: ["id"]
           },
         ]
@@ -9937,39 +9982,17 @@ export type Database = {
       vw_nfs_stage_completude: {
         Row: {
           completude: string | null
+          documentos: Json | null
           fornecedor_razao_social: string | null
           id: string | null
           nf_chave_acesso: string | null
           nf_numero: string | null
           status: string | null
+          tem_boleto: boolean | null
           tem_pdf: boolean | null
           tem_xml: boolean | null
           tem_xml_obrigatorio: boolean | null
           tipo_documento: string | null
-        }
-        Insert: {
-          completude?: never
-          fornecedor_razao_social?: string | null
-          id?: string | null
-          nf_chave_acesso?: string | null
-          nf_numero?: string | null
-          status?: string | null
-          tem_pdf?: never
-          tem_xml?: never
-          tem_xml_obrigatorio?: boolean | null
-          tipo_documento?: string | null
-        }
-        Update: {
-          completude?: never
-          fornecedor_razao_social?: string | null
-          id?: string | null
-          nf_chave_acesso?: string | null
-          nf_numero?: string | null
-          status?: string | null
-          tem_pdf?: never
-          tem_xml?: never
-          tem_xml_obrigatorio?: boolean | null
-          tipo_documento?: string | null
         }
         Relationships: []
       }

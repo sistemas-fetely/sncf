@@ -62,11 +62,12 @@ TIPOS POSSÍVEIS:
 1. "nfe" — NF-e brasileira de PRODUTO (DANFE com chave de acesso de 44 dígitos, NCM, CFOP, ICMS)
 2. "nfse" — NFS-e brasileira de SERVIÇO (Nota Fiscal de Serviço Eletrônica, com prestador municipal, ISS, código de serviço)
 3. "recibo" — Recibo/Invoice de empresa estrangeira (Anthropic, Lovable, AWS, Microsoft, Google, etc.) ou recibo brasileiro genérico SEM ser NF formal
+4. "boleto" — Boleto bancário brasileiro (carnê, cobrança). Identificado pela LINHA DIGITÁVEL FEBRABAN (47 dígitos com pontos e espaços, ex: "23791.16003 02601.011110 65000.063307 7 89180000454279"). Pode mencionar "Boleto", "Beneficiário", "Pagador", "Vencimento", "Nosso Número", "Espécie DM/DS/Outros".
 
 Responda APENAS com JSON neste formato (sem markdown, sem explicações):
 
 {
-  "tipo_documento": "nfe" | "nfse" | "recibo",
+  "tipo_documento": "nfe" | "nfse" | "recibo" | "boleto",
   "pais_emissor": "BR" | "US" | "EU" | etc (código ISO 2 letras, default BR),
   "moeda": "BRL" | "USD" | "EUR" | etc (código ISO 3 letras, default BRL),
   "valor": number (valor total SEMPRE convertido pra BRL — se documento estrangeiro, use a taxa de conversão informada no próprio documento; se não tiver taxa, retorne valor original e null em valor_origem),
@@ -75,12 +76,24 @@ Responda APENAS com JSON neste formato (sem markdown, sem explicações):
   "data_emissao": string formato YYYY-MM-DD,
   "data_vencimento": string formato YYYY-MM-DD ou null,
   "descricao": string (descrição dos itens/serviços),
-  "numero_documento": string (número da NF, número do recibo, invoice number),
+  "numero_documento": string (número da NF para nfe/nfse, número do recibo/invoice, OU para boleto: "Nosso Número" ou "Número do Documento"),
   "serie": string ou null (série, só pra NF-e/NFS-e brasileiras),
-  "chave_acesso": string ou null (chave de acesso de 44 dígitos pra NF-e, ID do InfNfse pra NFS-e, null pra recibo),
-  "fornecedor_cnpj": string ou null (CNPJ do prestador/emissor, apenas números, null se estrangeiro sem CNPJ BR),
-  "fornecedor_razao_social": string (razão social do prestador/emissor)
+  "chave_acesso": string ou null (chave de acesso de 44 dígitos pra NF-e, ID do InfNfse pra NFS-e, null pra recibo e boleto),
+  "fornecedor_cnpj": string ou null (CNPJ do prestador/emissor — para boleto, é o CNPJ do BENEFICIÁRIO, apenas números, null se estrangeiro),
+  "fornecedor_razao_social": string (razão social do prestador/emissor — para boleto, é a razão social do BENEFICIÁRIO),
+  "linha_digitavel": string ou null (47 dígitos da linha digitável FEBRABAN, formato livre — só preencher se tipo_documento='boleto'),
+  "numero_parcela": number ou null (número da parcela atual, ex: 3 em "3/8" — só pra boleto parcelado),
+  "total_parcelas": number ou null (total de parcelas, ex: 8 em "3/8" — só pra boleto parcelado),
+  "numero_documento_referencia": string ou null (texto livre com referência à NF que o boleto cobra, se mencionado no histórico/demonstrativo do boleto, ex: "ref NF 11151" → preencher "11151" — só pra boleto)
 }
+
+REGRAS DE BOLETO:
+- Sinal mais forte de boleto: presença de LINHA DIGITÁVEL (47 dígitos com pontos e espaços padrão FEBRABAN)
+- Outro sinal forte: código de barras horizontal de 44 posições no rodapé
+- Se houver NF-e DANFE NA MESMA PÁGINA do boleto, classifique como "nfe" (DANFE manda) e NÃO preencha campos de boleto
+- Boleto avulso (sem DANFE junto): tipo_documento="boleto", chave_acesso=null
+- numero_parcela e total_parcelas: extrair de textos como "3/8", "Parcela 3 de 8", "3 de 8"
+- numero_documento_referencia: procurar "ref NF X", "Refere-se à NF X", "Histórico: NF X" no demonstrativo do boleto. Se não houver, deixar null.
 
 REGRAS DE MOEDA — LEIA COM ATENÇÃO:
 
@@ -180,6 +193,11 @@ REGRAS GERAIS:
       chave_acesso: parsed.chave_acesso || null,
       fornecedor_cnpj: parsed.fornecedor_cnpj || null,
       fornecedor_razao_social: parsed.fornecedor_razao_social || null,
+      // 🆕 Campos específicos de boleto (null pra outros tipos)
+      linha_digitavel: parsed.tipo_documento === "boleto" ? (parsed.linha_digitavel || null) : null,
+      numero_parcela: parsed.tipo_documento === "boleto" && typeof parsed.numero_parcela === "number" ? parsed.numero_parcela : null,
+      total_parcelas: parsed.tipo_documento === "boleto" && typeof parsed.total_parcelas === "number" ? parsed.total_parcelas : null,
+      numero_documento_referencia: parsed.tipo_documento === "boleto" ? (parsed.numero_documento_referencia || null) : null,
     };
 
     // ============================================

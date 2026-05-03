@@ -41,6 +41,7 @@ import {
   Clock,
   FileText,
   FileCheck,
+  FileCode,
   Eye,
   Sparkles,
   Calculator,
@@ -55,6 +56,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { cn } from "@/lib/utils";
 import { descartarStage } from "@/lib/financeiro/stage-handler";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
 import { CategoriaCombobox } from "@/components/financeiro/CategoriaCombobox";
@@ -71,12 +73,18 @@ import {
   type SortState,
 } from "@/components/shared/SortableTableHead";
 
+type StageDocumento = {
+  id: string;
+  tipo: "xml" | "pdf_danfe" | "pdf_boleto";
+  storage_path: string;
+  arquivo_nome: string | null;
+  linha_digitavel: string | null;
+  criado_em: string;
+};
+
 type NFStage = {
   id: string;
   fonte: string;
-  arquivo_nome: string | null;
-  arquivo_storage_path: string | null;
-  xml_storage_path: string | null;
   fornecedor_cnpj: string | null;
   fornecedor_razao_social: string | null;
   fornecedor_cliente: string | null;
@@ -95,6 +103,14 @@ type NFStage = {
   resumo_pdf_pendente?: boolean | null;
   resumo_pdf_gerado_em?: string | null;
   resumo_pdf_storage_path?: string | null;
+  tipo_documento?: string | null;
+  numero_parcela?: number | null;
+  total_parcelas?: number | null;
+  // Flags vindos da view vw_nfs_stage_completude
+  tem_xml: boolean;
+  tem_pdf: boolean;
+  tem_boleto: boolean;
+  documentos: StageDocumento[] | null;
   itens: Array<{
     codigo_produto?: string;
     descricao?: string;
@@ -123,16 +139,29 @@ const FONTE_LABELS: Record<string, string> = {
   csv_qive: "CSV Qive",
 };
 
-function calcularCompletude(nf: NFStage): "completo" | "sem_xml" | "sem_pdf" | "sem_documentos" {
-  const temPdf = !!nf.arquivo_storage_path;
-  const temXml = !!nf.xml_storage_path || (Array.isArray(nf.itens) && nf.itens.length > 0);
-  if (temPdf && temXml) return "completo";
-  if (temPdf) return "sem_xml";
-  if (temXml) return "sem_pdf";
-  return "sem_documentos";
+// DocIndicator: bolinha verde (tem) / rosa (não tem). Verde=ok, vermelho=não ok.
+function DocIndicator({ label, tem }: { label: string; tem: boolean }) {
+  return (
+    <div className="flex items-center gap-1 text-xs">
+      <div
+        className={cn(
+          "w-2 h-2 rounded-full",
+          tem ? "bg-emerald-500" : "bg-rose-500",
+        )}
+      />
+      <span className={tem ? "text-foreground" : "text-muted-foreground"}>
+        {label}
+      </span>
+    </div>
+  );
 }
 
-type FiltroPill = "todas" | "nao_vinculadas" | "vinculadas" | "sem_categoria";
+type FiltroPill =
+  | "todas"
+  | "nao_vinculadas"
+  | "vinculadas"
+  | "sem_categoria"
+  | "boletos_avulsos";
 
 export default function NFsStage() {
   const qc = useQueryClient();
@@ -189,7 +218,7 @@ export default function NFsStage() {
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
-        .from("nfs_stage")
+        .from("vw_nfs_stage_completude")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -206,6 +235,11 @@ export default function NFsStage() {
       list = list.filter((n) => n.status === "vinculada");
     } else if (filtroPill === "sem_categoria") {
       list = list.filter((n) => !n.categoria_id && n.status !== "descartada");
+    } else if (filtroPill === "boletos_avulsos") {
+      // Boletos sem NF associada (PDF DANFE ausente E XML ausente)
+      list = list.filter(
+        (n) => n.tem_boleto && !n.tem_pdf && !n.tem_xml,
+      );
     }
     // "todas" não filtra
     if (busca.trim()) {
@@ -239,6 +273,7 @@ export default function NFsStage() {
       naoVinculadas: all.filter((n) => n.status === "nao_vinculada").length,
       vinculadas: all.filter((n) => n.status === "vinculada").length,
       semCategoria: all.filter((n) => !n.categoria_id && n.status !== "descartada").length,
+      boletosAvulsos: all.filter((n) => n.tem_boleto && !n.tem_pdf && !n.tem_xml).length,
       total: all.length,
     };
   }, [nfs]);
@@ -431,14 +466,18 @@ export default function NFsStage() {
     }
   }
 
-  async function visualizarPDF(nf: NFStage) {
-    if (!nf.arquivo_storage_path) {
-      toast.error("Sem arquivo anexado");
+  async function abrirDocumento(
+    nf: NFStage,
+    tipo: "xml" | "pdf_danfe" | "pdf_boleto",
+  ) {
+    const doc = nf.documentos?.find((d) => d.tipo === tipo);
+    if (!doc) {
+      toast.error("Documento não disponível");
       return;
     }
     const { data } = await supabase.storage
       .from("nfs-stage")
-      .createSignedUrl(nf.arquivo_storage_path, 60 * 5);
+      .createSignedUrl(doc.storage_path, 60 * 5);
     if (data?.signedUrl) {
       window.open(data.signedUrl, "_blank");
     } else {
@@ -543,6 +582,15 @@ export default function NFsStage() {
             active={filtroPill === "sem_categoria"}
             onClick={() => setFiltroPill("sem_categoria")}
             icon={<AlertCircle className="h-3 w-3" />}
+          />
+          <KpiPill
+            label="Boletos avulsos"
+            count={totals.boletosAvulsos}
+            color="blue"
+            active={filtroPill === "boletos_avulsos"}
+            onClick={() => setFiltroPill("boletos_avulsos")}
+            icon={<FileText className="h-3 w-3" />}
+            description="Sem NF associada"
           />
         </div>
 
@@ -708,28 +756,21 @@ export default function NFsStage() {
                               {FONTE_LABELS[nf.fonte] || nf.fonte}
                             </Badge>
                           )}
-                          {(() => {
-                            const comp = calcularCompletude(nf);
-                            if (comp === "completo") return (
-                              <Badge variant="outline" className="text-[9px] py-0 px-1 h-4 font-normal border-emerald-300 text-emerald-700 bg-emerald-50 gap-1">
-                                <FileCheck className="h-2.5 w-2.5" />
-                                Completo
-                              </Badge>
-                            );
-                            if (comp === "sem_xml") return (
-                              <Badge variant="outline" className="text-[9px] py-0 px-1 h-4 font-normal border-amber-300 text-amber-700 bg-amber-50 gap-1" title="Falta XML — sem itens detalhados">
-                                <FileText className="h-2.5 w-2.5" />
-                                Sem XML
-                              </Badge>
-                            );
-                            if (comp === "sem_pdf") return (
-                              <Badge variant="outline" className="text-[9px] py-0 px-1 h-4 font-normal border-amber-300 text-amber-700 bg-amber-50 gap-1" title="Falta PDF — sem documento legal">
-                                <FileText className="h-2.5 w-2.5" />
-                                Sem PDF
-                              </Badge>
-                            );
-                            return null;
-                          })()}
+                          <div className="flex items-center gap-2 ml-1">
+                            <DocIndicator label="XML" tem={!!nf.tem_xml} />
+                            <DocIndicator label="PDF" tem={!!nf.tem_pdf} />
+                            <DocIndicator label="Boleto" tem={!!nf.tem_boleto} />
+                          </div>
+                          {nf.tipo_documento === "boleto" && (
+                            <Badge variant="outline" className="text-[9px] py-0 px-1 h-4 font-normal border-blue-300 text-blue-700 bg-blue-50">
+                              BOLETO
+                            </Badge>
+                          )}
+                          {nf.numero_parcela && nf.total_parcelas && (
+                            <Badge variant="outline" className="text-[9px] py-0 px-1 h-4 font-normal">
+                              {nf.numero_parcela}/{nf.total_parcelas}
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-xs">{nf.nf_numero || "—"}</TableCell>
@@ -791,22 +832,42 @@ export default function NFsStage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
-                          {nf.arquivo_storage_path && (
+                          {nf.tem_pdf && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
-                              onClick={() => visualizarPDF(nf)}
-                              title="Ver arquivo"
+                              onClick={() => abrirDocumento(nf, "pdf_danfe")}
+                              title="Ver PDF DANFE"
                             >
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
                           )}
+                          {nf.tem_xml && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => abrirDocumento(nf, "xml")}
+                              title="Ver XML"
+                            >
+                              <FileCode className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {nf.tem_boleto && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => abrirDocumento(nf, "pdf_boleto")}
+                              title="Ver Boleto"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                           {(() => {
-                            const ehXml =
-                              !!nf.xml_storage_path ||
-                              (!!nf.arquivo_nome && /\.xml$/i.test(nf.arquivo_nome));
-                            if (!ehXml) return null;
+                            // Resumo NFe só faz sentido com XML disponível
+                            if (!nf.tem_xml) return null;
                             const jaTem = !!nf.resumo_pdf_gerado_em;
                             const loading = gerandoResumo.has(nf.id);
                             if (jaTem) {

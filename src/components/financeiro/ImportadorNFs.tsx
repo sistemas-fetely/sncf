@@ -102,6 +102,11 @@ async function parsePdfFile(file: File): Promise<NFParsed | null> {
     moeda: payload.moeda || "BRL",
     valor_origem: payload.valor_origem ?? null,
     taxa_conversao: payload.taxa_conversao ?? null,
+    // Campos de boleto (Edge Function preenche quando tipo_documento === "boleto")
+    linha_digitavel: payload.linha_digitavel || null,
+    numero_parcela: payload.numero_parcela ?? null,
+    total_parcelas: payload.total_parcelas ?? null,
+    numero_documento_referencia: payload.numero_documento_referencia || null,
   } as NFParsed;
   return nf;
 }
