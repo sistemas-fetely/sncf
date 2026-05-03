@@ -239,7 +239,7 @@ export function NovaContaPagarSheet({ open, onOpenChange }: Props) {
           nf_data_emissao: dataEmissao || null,
           conta_id: categoriaId,
           parceiro_id: parceiroId,
-          fornecedor_id: parceiroId,
+          
           fornecedor_cliente: fornecedorNome,
           centro_custo_id: centroCustoId,
           unidade_id: unidadeId,
