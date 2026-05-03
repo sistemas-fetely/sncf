@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Save, X, Sparkles, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
+import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { CategoriaCombobox } from "./CategoriaCombobox";
 import { cn } from "@/lib/utils";
 import {
@@ -32,7 +33,7 @@ type ContaEditavel = {
   descricao: string;
   data_vencimento: string | null;
   conta_id: string | null;
-  centro_custo: string | null;
+  centro_custo_id: string | null;
   forma_pagamento_id: string | null;
   observacao: string | null;
   nf_numero: string | null;
@@ -104,7 +105,7 @@ export function ContaPagarFormEdit({
   const [descricao, setDescricao] = useState(conta.descricao || "");
   const [dataVencimento, setDataVencimento] = useState(conta.data_vencimento || "");
   const [contaId, setContaId] = useState(conta.conta_id || "__none__");
-  const [centroCusto, setCentroCusto] = useState(conta.centro_custo || "");
+  const [centroCustoId, setCentroCustoId] = useState<string | null>(conta.centro_custo_id ?? null);
   const [formaPagamentoId, setFormaPagamentoId] = useState(conta.forma_pagamento_id || "__none__");
   const [observacao, setObservacao] = useState(conta.observacao || "");
   const [nfNumero, setNfNumero] = useState(conta.nf_numero || "");
@@ -161,7 +162,7 @@ export function ContaPagarFormEdit({
     setDescricao(conta.descricao || "");
     setDataVencimento(conta.data_vencimento || "");
     setContaId(conta.conta_id || "__none__");
-    setCentroCusto(conta.centro_custo || "");
+    setCentroCustoId(conta.centro_custo_id ?? null);
     setFormaPagamentoId(conta.forma_pagamento_id || "__none__");
     setObservacao(conta.observacao || "");
     setNfNumero(conta.nf_numero || "");
@@ -202,24 +203,8 @@ export function ContaPagarFormEdit({
     },
   });
 
-  // Quando virar tabela própria, troca pra hook dedicado.
-  const { data: centrosCusto = [] } = useQuery({
-    queryKey: ["centros-custo-distinct"],
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contas_pagar_receber")
-        .select("centro_custo")
-        .not("centro_custo", "is", null)
-        .limit(500);
-      if (error) throw error;
-      const set = new Set<string>();
-      (data || []).forEach((r) => {
-        if (r.centro_custo) set.add(r.centro_custo);
-      });
-      return Array.from(set).sort();
-    },
-  });
+  // Centros de custo (tabela dimensão)
+  const { data: centrosCusto = [] } = useCentrosCusto();
 
   async function handleSalvar() {
     if (isReadOnly) {
