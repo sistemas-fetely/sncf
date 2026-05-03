@@ -589,13 +589,28 @@ export default function NFsStage() {
             icon={<AlertCircle className="h-3 w-3" />}
           />
           <KpiPill
-            label="Boletos avulsos"
-            count={totals.boletosAvulsos}
+            label="Com XML"
+            count={totals.comXml}
+            color="emerald"
+            active={filtroPill === "com_xml"}
+            onClick={() => setFiltroPill("com_xml")}
+            icon={<FileCode className="h-3 w-3" />}
+          />
+          <KpiPill
+            label="Com PDF"
+            count={totals.comPdf}
             color="blue"
-            active={filtroPill === "boletos_avulsos"}
-            onClick={() => setFiltroPill("boletos_avulsos")}
+            active={filtroPill === "com_pdf"}
+            onClick={() => setFiltroPill("com_pdf")}
+            icon={<FileCheck className="h-3 w-3" />}
+          />
+          <KpiPill
+            label="Com Boleto"
+            count={totals.comBoleto}
+            color="gray"
+            active={filtroPill === "com_boleto"}
+            onClick={() => setFiltroPill("com_boleto")}
             icon={<FileText className="h-3 w-3" />}
-            description="Sem NF associada"
           />
         </div>
 
