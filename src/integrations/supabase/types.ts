@@ -7043,33 +7043,6 @@ export type Database = {
           },
         ]
       }
-      rascunhos_importacao: {
-        Row: {
-          created_at: string
-          id: string
-          nfs_json: Json
-          tipo_importacao: string
-          updated_at: string
-          usuario_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          nfs_json: Json
-          tipo_importacao: string
-          updated_at?: string
-          usuario_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          nfs_json?: Json
-          tipo_importacao?: string
-          updated_at?: string
-          usuario_id?: string
-        }
-        Relationships: []
-      }
       regras_categorizacao: {
         Row: {
           aprendida_automaticamente: boolean
