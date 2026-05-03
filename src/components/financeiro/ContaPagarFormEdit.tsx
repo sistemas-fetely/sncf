@@ -220,7 +220,7 @@ export function ContaPagarFormEdit({
         p_descricao: descricao || null,
         p_data_vencimento: dataVencimento || null,
         p_conta_id: contaId === "__none__" ? null : contaId,
-        p_centro_custo: centroCusto || null,
+        p_centro_custo: null,
         p_forma_pagamento_id: formaPagamentoId === "__none__" ? null : formaPagamentoId,
         p_observacao: observacao || null,
         p_nf_numero: nfNumero || null,
@@ -234,17 +234,22 @@ export function ContaPagarFormEdit({
         return;
       }
 
-      // Atualiza pago_em_conta_id em paralelo (não está na RPC v2)
+      // Atualiza centro_custo_id e pago_em_conta_id em paralelo (não estão na RPC v2)
       const novoPagoEmContaId =
         pagoEmContaId === "__none__" ? null : pagoEmContaId;
+      const updatePayload: Record<string, unknown> = {};
+      if (centroCustoId !== (conta.centro_custo_id ?? null)) {
+        updatePayload.centro_custo_id = centroCustoId;
+      }
       if (novoPagoEmContaId !== (conta.pago_em_conta_id ?? null)) {
+        updatePayload.pago_em_conta_id = novoPagoEmContaId;
+      }
+      if (Object.keys(updatePayload).length > 0) {
+        updatePayload.updated_at = new Date().toISOString();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: errBanco } = await (supabase as any)
           .from("contas_pagar_receber")
-          .update({
-            pago_em_conta_id: novoPagoEmContaId,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .eq("id", conta.id);
         if (errBanco) throw errBanco;
       }
@@ -363,8 +368,8 @@ export function ContaPagarFormEdit({
       <div className="space-y-1">
         <Label>Centro de custo</Label>
         <Select
-          value={centroCusto || "__none__"}
-          onValueChange={(v) => setCentroCusto(v === "__none__" ? "" : v)}
+          value={centroCustoId ?? "__none__"}
+          onValueChange={(v) => setCentroCustoId(v === "__none__" ? null : v)}
           disabled={isReadOnly || salvando}
         >
           <SelectTrigger>
@@ -373,7 +378,7 @@ export function ContaPagarFormEdit({
           <SelectContent>
             <SelectItem value="__none__">— Sem centro de custo —</SelectItem>
             {centrosCusto.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>
