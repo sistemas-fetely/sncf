@@ -15,10 +15,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
-import { ImportadorCsvQive } from "@/components/financeiro/ImportadorCsvQive";
-import { ImportadorXmlNFe } from "@/components/financeiro/ImportadorXmlNFe";
-import { ImportadorPdfDanfe } from "@/components/financeiro/ImportadorPdfDanfe";
+import { ImportadorNFs } from "@/components/financeiro/ImportadorNFs";
 import { ImportadorOFX } from "@/components/financeiro/ImportadorOFX";
 import { ImportarFaturaCartaoDialog } from "@/components/financeiro/ImportarFaturaCartaoDialog";
 
@@ -27,7 +24,7 @@ export default function ImportarDados() {
   const [syncResult, setSyncResult] = useState<any>(null);
   const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const { data: categorias = [] } = useCategoriasPlano();
+  
 
   const { data: config, refetch } = useQuery({
     queryKey: ["integracao-bling-status"],
@@ -177,15 +174,10 @@ export default function ImportarDados() {
       <div>
         <h2 className="text-lg font-semibold mb-1">Importar NFs</h2>
         <p className="text-sm text-muted-foreground mb-3">
-          Importação no repositório fiscal. XML cobre NF-e (produto) e NFS-e ABRASF (serviço).
-          Recibos virão como próximo formato suportado.
+          Selecione XMLs ou PDFs. NFs vão para o stage onde poderão ser processadas,
+          classificadas e vinculadas a Contas a Pagar.
         </p>
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* CSV Qive ocultado — código preservado pra reativar quando necessário */}
-          {/* <ImportadorCsvQive categorias={categorias} /> */}
-          <ImportadorXmlNFe categorias={categorias} />
-          <ImportadorPdfDanfe categorias={categorias} />
-        </div>
+        <ImportadorNFs />
       </div>
 
       {/* Extratos & Faturas */}
