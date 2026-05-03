@@ -237,11 +237,12 @@ export default function NFsStage() {
       list = list.filter((n) => n.status === "vinculada");
     } else if (filtroPill === "sem_categoria") {
       list = list.filter((n) => !n.categoria_id && n.status !== "descartada");
-    } else if (filtroPill === "boletos_avulsos") {
-      // Boletos sem NF associada (PDF DANFE ausente E XML ausente)
-      list = list.filter(
-        (n) => n.tem_boleto && !n.tem_pdf && !n.tem_xml,
-      );
+    } else if (filtroPill === "com_xml") {
+      list = list.filter((n) => n.tem_xml);
+    } else if (filtroPill === "com_pdf") {
+      list = list.filter((n) => n.tem_pdf);
+    } else if (filtroPill === "com_boleto") {
+      list = list.filter((n) => n.tem_boleto);
     }
     // "todas" não filtra
     if (busca.trim()) {
