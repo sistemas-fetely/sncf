@@ -24,7 +24,7 @@ export default function ImportarDados() {
   const [syncResult, setSyncResult] = useState<any>(null);
   const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const { data: categorias = [] } = useCategoriasPlano();
+  
 
   const { data: config, refetch } = useQuery({
     queryKey: ["integracao-bling-status"],
