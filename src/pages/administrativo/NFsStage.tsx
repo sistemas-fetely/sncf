@@ -161,7 +161,9 @@ type FiltroPill =
   | "nao_vinculadas"
   | "vinculadas"
   | "sem_categoria"
-  | "boletos_avulsos";
+  | "com_xml"
+  | "com_pdf"
+  | "com_boleto";
 
 export default function NFsStage() {
   const qc = useQueryClient();
