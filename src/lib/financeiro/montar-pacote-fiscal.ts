@@ -55,7 +55,6 @@ interface StageFallback {
   valor: number;
   data_pagamento: string | null;
   arquivo_storage_path: string | null;
-  xml_storage_path: string | null;
   arquivo_nome: string | null;
   nf_aplicavel: boolean;
 }
@@ -139,7 +138,10 @@ export async function montarZipPacoteFiscal(
         `
         id, descricao, valor, data_pagamento, fornecedor_cliente, nf_aplicavel,
         nf_stage_id,
-        nfs_stage:nf_stage_id(arquivo_storage_path, xml_storage_path, arquivo_nome),
+        nfs_stage:nf_stage_id(
+          id,
+          documentos:nfs_stage_documentos(tipo, storage_path, arquivo_nome)
+        ),
         parceiros_comerciais:parceiro_id(razao_social)
       `,
       )
@@ -156,14 +158,21 @@ export async function montarZipPacoteFiscal(
       nf_aplicavel: boolean | null;
       nf_stage_id: string | null;
       nfs_stage: {
-        arquivo_storage_path: string | null;
-        xml_storage_path: string | null;
-        arquivo_nome: string | null;
+        id: string;
+        documentos: Array<{
+          tipo: string;
+          storage_path: string;
+          arquivo_nome: string | null;
+        }> | null;
       } | null;
       parceiros_comerciais: { razao_social: string | null } | null;
     }>) {
       if (!c.nfs_stage) continue;
-      if (!c.nfs_stage.arquivo_storage_path && !c.nfs_stage.xml_storage_path) {
+      // Doutrina #15: pacote ao contador = APENAS PDF DANFE. XML e Boleto fora.
+      const pdfDanfe = c.nfs_stage.documentos?.find(
+        (d) => d.tipo === "pdf_danfe",
+      );
+      if (!pdfDanfe) {
         continue;
       }
       fallbacks.push({
@@ -175,9 +184,8 @@ export async function montarZipPacoteFiscal(
         descricao: c.descricao || "",
         valor: c.valor,
         data_pagamento: c.data_pagamento,
-        arquivo_storage_path: c.nfs_stage.arquivo_storage_path,
-        xml_storage_path: c.nfs_stage.xml_storage_path,
-        arquivo_nome: c.nfs_stage.arquivo_nome,
+        arquivo_storage_path: pdfDanfe.storage_path,
+        arquivo_nome: pdfDanfe.arquivo_nome,
         nf_aplicavel: c.nf_aplicavel ?? true,
       });
     }
