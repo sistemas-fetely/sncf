@@ -75,11 +75,17 @@ export interface NFParsed {
   _source: "csv_qive" | "xml_nfe" | "xml_nfse" | "pdf_nfe";
 
   // Tipo de documento fiscal (preenchido pelo dispatcher xml-parser ou edge function de PDF)
-  tipo_documento?: "nfe" | "nfse" | "recibo" | string;
+  tipo_documento?: "nfe" | "nfse" | "recibo" | "boleto" | string;
   pais_emissor?: string;
   moeda?: string;
   valor_origem?: number | null;
   taxa_conversao?: number | null;
+
+  // Boleto (linha digitável FEBRABAN + parcelas)
+  linha_digitavel?: string | null;
+  numero_parcela?: number | null;
+  total_parcelas?: number | null;
+  numero_documento_referencia?: string | null;
 
   // Arquivo original (apenas PDFs - usado para anexar à conta criada)
   _arquivo?: File;
