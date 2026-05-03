@@ -751,21 +751,11 @@ export default function NFsStage() {
                               {nf.fornecedor_cnpj}
                             </span>
                           )}
-                          {nf.fonte && (
-                            <Badge variant="outline" className="text-[9px] py-0 px-1 h-4 font-normal">
-                              {FONTE_LABELS[nf.fonte] || nf.fonte}
-                            </Badge>
-                          )}
                           <div className="flex items-center gap-2 ml-1">
                             <DocIndicator label="XML" tem={!!nf.tem_xml} />
                             <DocIndicator label="PDF" tem={!!nf.tem_pdf} />
                             <DocIndicator label="Boleto" tem={!!nf.tem_boleto} />
                           </div>
-                          {nf.tipo_documento === "boleto" && (
-                            <Badge variant="outline" className="text-[9px] py-0 px-1 h-4 font-normal border-blue-300 text-blue-700 bg-blue-50">
-                              BOLETO
-                            </Badge>
-                          )}
                           {nf.numero_parcela && nf.total_parcelas && (
                             <Badge variant="outline" className="text-[9px] py-0 px-1 h-4 font-normal">
                               {nf.numero_parcela}/{nf.total_parcelas}
