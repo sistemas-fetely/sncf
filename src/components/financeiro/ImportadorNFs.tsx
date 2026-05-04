@@ -174,7 +174,10 @@ export function ImportadorNFs({ onImported }: Props) {
 
       let processadas = [...novas];
       processadas = await verificarDuplicatas(processadas);
-      processadas = processadas.map((n) => ({ ...n, _selecionada: !n._duplicata }));
+      processadas = processadas.map((n) => ({
+        ...n,
+        _selecionada: !n._duplicata && !n._ambigua,
+      }));
 
       if (processadas.length > 0) {
         setPreview((prev) => [...prev, ...processadas]);

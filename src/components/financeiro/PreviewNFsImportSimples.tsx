@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, Upload, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -138,6 +138,29 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
                   <TableCell>
                     {nf._duplicata ? (
                       <Badge variant="destructive">Duplicata</Badge>
+                    ) : nf._ambigua ? (
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 text-amber-600" />
+                          <Badge className="bg-amber-500 hover:bg-amber-500 text-white">Ambígua</Badge>
+                        </div>
+                        {nf._candidatos_match?.[0] && (
+                          <span
+                            className="text-[10px] text-amber-700 cursor-help"
+                            title={nf._candidatos_match
+                              .map(
+                                (c) =>
+                                  `Score ${c.score}/4 — ${c.fornecedor} · NF ${c.nf_numero}${c.parcela ? ` (${c.parcela})` : ""} · R$ ${c.valor.toFixed(2)}`,
+                              )
+                              .join("\n")}
+                          >
+                            já existe NF {nf._candidatos_match[0].nf_numero}
+                            {nf._candidatos_match[0].parcela
+                              ? ` (${nf._candidatos_match[0].parcela})`
+                              : ""}
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <Badge className="bg-success hover:bg-success text-success-foreground">
                         Novo

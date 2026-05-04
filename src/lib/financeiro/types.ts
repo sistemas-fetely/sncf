@@ -53,6 +53,17 @@ export interface NFParsed {
   // Campos calculados/internos
   _selecionada?: boolean;
   _duplicata?: boolean;
+  _ambigua?: boolean; // score 2 — pergunta no preview
+  _candidatos_match?: {
+    id: string;
+    score: number;
+    fornecedor: string;
+    nf_numero: string;
+    valor: number;
+    data_emissao: string | null;
+    tipo_documento: string;
+    parcela: string | null;
+  }[];
   _categoria_id?: string | null;
   _categoria_nome?: string | null;
   _centro_custo?: string | null;

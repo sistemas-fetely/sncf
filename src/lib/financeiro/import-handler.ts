@@ -60,50 +60,60 @@ async function anexarPdfNF(
 }
 
 export async function verificarDuplicatas(nfs: NFParsed[]): Promise<NFParsed[]> {
-  // Coleta chaves e pares cnpj+numero
-  const chaves = nfs
-    .map((n) => n.nf_chave_acesso)
-    .filter((c): c is string => !!c);
+  // Monta candidatos com 4 sinais
+  const candidatos = nfs.map((n) => ({
+    cnpj: n.fornecedor_cnpj || null,
+    valor: n.valor || 0,
+    data_emissao: n.nf_data_emissao || null,
+    nf_numero: n.nf_numero || null,
+  }));
 
-  const paresCnpjNumero = nfs
-    .filter((n) => !n.nf_chave_acesso && n.fornecedor_cnpj && n.nf_numero)
-    .map((n) => ({ cnpj: n.fornecedor_cnpj!, numero: n.nf_numero! }));
-
-  // Chama RPC que verifica em STAGE (ativas) E em CONTAS_PAGAR_RECEBER
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).rpc("detectar_duplicatas_nf", {
-    p_chaves: chaves.length > 0 ? chaves : null,
-    p_cnpj_numero: paresCnpjNumero.length > 0 ? paresCnpjNumero : [],
+  const { data, error } = await (supabase as any).rpc("detectar_match_score_nf", {
+    p_candidatos: candidatos,
   });
 
   if (error) {
-    console.warn("Falha na detecção de duplicatas (seguindo sem bloqueio):", error);
-    return nfs.map((n) => ({ ...n, _duplicata: false }));
+    console.warn("Falha na detecção de match (seguindo sem bloqueio):", error);
+    return nfs.map((n) => ({ ...n, _duplicata: false, _ambigua: false }));
   }
 
-  // Monta sets de existentes
-  const existentesChave = new Set<string>();
-  const existentesCnpjNum = new Set<string>();
+  // Mapa idx → candidatos (já vem ordenado por score desc na RPC)
+  const mapaCandidatos: Record<number, NonNullable<NFParsed["_candidatos_match"]>> = {};
+  for (const r of (data || []) as Array<{
+    idx: number;
+    match_id: string;
+    match_score: number;
+    match_fornecedor: string;
+    match_nf_numero: string;
+    match_valor: number;
+    match_data_emissao: string | null;
+    match_tipo_documento: string;
+    match_parcela: string | null;
+  }>) {
+    if (!mapaCandidatos[r.idx]) mapaCandidatos[r.idx] = [];
+    mapaCandidatos[r.idx].push({
+      id: r.match_id,
+      score: r.match_score,
+      fornecedor: r.match_fornecedor,
+      nf_numero: r.match_nf_numero,
+      valor: Number(r.match_valor),
+      data_emissao: r.match_data_emissao,
+      tipo_documento: r.match_tipo_documento,
+      parcela: r.match_parcela,
+    });
+  }
 
-  for (const r of (data || []) as { chave_ou_par: string; fonte: string }[]) {
-    if (chaves.includes(r.chave_ou_par)) {
-      existentesChave.add(r.chave_ou_par);
-    } else if (r.chave_ou_par.includes("|")) {
-      existentesCnpjNum.add(r.chave_ou_par);
+  return nfs.map((n, idx) => {
+    const cands = mapaCandidatos[idx] || [];
+    const melhor = cands[0];
+    if (!melhor) {
+      return { ...n, _duplicata: false, _ambigua: false };
     }
-  }
-
-  return nfs.map((n) => {
-    const dupChave = !!n.nf_chave_acesso && existentesChave.has(n.nf_chave_acesso);
-    const dupCnpjNum =
-      !n.nf_chave_acesso &&
-      !!n.fornecedor_cnpj &&
-      !!n.nf_numero &&
-      existentesCnpjNum.has(`${n.fornecedor_cnpj}|${n.nf_numero}`);
-    return {
-      ...n,
-      _duplicata: dupChave || dupCnpjNum,
-    };
+    if (melhor.score >= 3) {
+      return { ...n, _duplicata: false, _ambigua: false, _candidatos_match: cands };
+    }
+    return { ...n, _duplicata: false, _ambigua: true, _candidatos_match: cands };
   });
 }
 
