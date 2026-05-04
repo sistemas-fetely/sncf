@@ -26,6 +26,13 @@ export interface BoletoStageDoc {
   valor: number | null;
   data_vencimento: string | null;
   linha_digitavel: string | null;
+  // Campos adicionais para o caso multi-stage (batch import)
+  nf_stage_id?: string;
+  parceiro_id?: string | null;
+  categoria_id?: string | null;
+  descricao?: string | null;
+  fornecedor?: string | null;
+  data_emissao?: string | null;
 }
 
 interface Props {
@@ -35,6 +42,7 @@ interface Props {
   boletos: BoletoStageDoc[];
   onConfirmar: (boletosSelecionados: BoletoStageDoc[]) => void | Promise<void>;
   processando?: boolean;
+  mostrarFornecedor?: boolean;
 }
 
 export function SelecionarBoletosDialog({
