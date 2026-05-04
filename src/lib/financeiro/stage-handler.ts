@@ -71,11 +71,11 @@ export async function moverParaStage(
           .from(BUCKET)
           .upload(storagePath, arquivo, {
             contentType: arquivo.type || "application/pdf",
-            upsert: false,
+            upsert: true,
           });
         if (upErr) {
           result.erros.push(`Upload de ${arquivo.name}: ${upErr.message}`);
-          storagePath = null;
+          continue;
         }
       }
 
