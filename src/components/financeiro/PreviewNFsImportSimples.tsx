@@ -145,11 +145,23 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
                     )}
                   </TableCell>
                   <TableCell>
-                    {ehBoleto ? (
+                    {nf.confianca === "baixa" && !nf._duplicata ? (
+                      <div className="flex flex-col gap-1">
+                        <select
+                          value={nf.tipo_documento || "recibo"}
+                          onChange={(e) => setTipo(i, e.target.value)}
+                          className="text-xs border rounded px-1.5 py-0.5 bg-background text-amber-700 border-amber-400 cursor-pointer"
+                          title="Tipo não identificado com certeza — confirme"
+                        >
+                          {TIPO_DOC_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                        <span className="text-[10px] text-amber-600">confirme o tipo</span>
+                      </div>
+                    ) : ehBoleto ? (
                       <div className="flex items-center gap-1.5">
-                        <Badge className="bg-blue-600 hover:bg-blue-600 text-white">
-                          BOLETO
-                        </Badge>
+                        <Badge className="bg-blue-600 hover:bg-blue-600 text-white">BOLETO</Badge>
                         {nf.numero_parcela && nf.total_parcelas && (
                           <Badge variant="outline" className="text-[10px]">
                             {nf.numero_parcela}/{nf.total_parcelas}
