@@ -5032,7 +5032,7 @@ export type Database = {
           tipo_documento: string
           total_parcelas: number | null
           updated_at: string
-          valor: number
+          valor: number | null
           valor_origem: number | null
         }
         Insert: {
@@ -5070,7 +5070,7 @@ export type Database = {
           tipo_documento?: string
           total_parcelas?: number | null
           updated_at?: string
-          valor?: number
+          valor?: number | null
           valor_origem?: number | null
         }
         Update: {
@@ -5108,7 +5108,7 @@ export type Database = {
           tipo_documento?: string
           total_parcelas?: number | null
           updated_at?: string
-          valor?: number
+          valor?: number | null
           valor_origem?: number | null
         }
         Relationships: [

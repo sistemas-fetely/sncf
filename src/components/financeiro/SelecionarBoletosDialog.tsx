@@ -26,6 +26,13 @@ export interface BoletoStageDoc {
   valor: number | null;
   data_vencimento: string | null;
   linha_digitavel: string | null;
+  // Campos adicionais para o caso multi-stage (batch import)
+  nf_stage_id?: string;
+  parceiro_id?: string | null;
+  categoria_id?: string | null;
+  descricao?: string | null;
+  fornecedor?: string | null;
+  data_emissao?: string | null;
 }
 
 interface Props {
@@ -35,6 +42,7 @@ interface Props {
   boletos: BoletoStageDoc[];
   onConfirmar: (boletosSelecionados: BoletoStageDoc[]) => void | Promise<void>;
   processando?: boolean;
+  mostrarFornecedor?: boolean;
 }
 
 export function SelecionarBoletosDialog({
@@ -44,6 +52,7 @@ export function SelecionarBoletosDialog({
   boletos,
   onConfirmar,
   processando = false,
+  mostrarFornecedor = false,
 }: Props) {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(
     new Set(boletos.map((b) => b.id)),
@@ -100,6 +109,7 @@ export function SelecionarBoletosDialog({
                   />
                 </TableHead>
                 <TableHead>Arquivo</TableHead>
+                {mostrarFornecedor && <TableHead>Fornecedor</TableHead>}
                 <TableHead>Vencimento</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
               </TableRow>
@@ -116,6 +126,11 @@ export function SelecionarBoletosDialog({
                   <TableCell className="max-w-[280px] truncate">
                     {b.arquivo_nome || "—"}
                   </TableCell>
+                  {mostrarFornecedor && (
+                    <TableCell className="max-w-[160px] truncate text-sm text-muted-foreground">
+                      {b.fornecedor || "—"}
+                    </TableCell>
+                  )}
                   <TableCell>{formatDateBR(b.data_vencimento)}</TableCell>
                   <TableCell className="text-right">
                     {b.valor != null ? formatBRL(b.valor) : "—"}
