@@ -22,6 +22,13 @@ interface Props {
   importing: boolean;
 }
 
+const TIPO_DOC_OPTIONS = [
+  { value: "nfe", label: "NF-e" },
+  { value: "nfse", label: "NFS-e" },
+  { value: "recibo", label: "Recibo" },
+  { value: "boleto", label: "Boleto" },
+] as const;
+
 function tipoArquivo(nf: NFParsed): "XML" | "PDF" {
   const src = (nf as any)._source as string | undefined;
   if (src?.includes("pdf")) return "PDF";
