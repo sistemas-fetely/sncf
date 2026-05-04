@@ -277,6 +277,14 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       }
       const { error } = await supabase.from("contas_pagar_receber").insert(rows);
       if (error) throw error;
+
+      // Marca NF do Repositório como vinculada (se houver)
+      if (nfStageId) {
+        await supabase
+          .from("nfs_stage")
+          .update({ status: "vinculada" })
+          .eq("id", nfStageId);
+      }
     },
     onSuccess: () => {
       toast.success(parcelas > 1 ? `${parcelas} parcelas registradas!` : "Despesa registrada!");
