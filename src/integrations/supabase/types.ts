@@ -10776,6 +10776,10 @@ export type Database = {
         Args: { p_conta_pagar_id: string }
         Returns: undefined
       }
+      recalcular_status_nf_stage: {
+        Args: { p_stage_id: string }
+        Returns: undefined
+      }
       registrar_aceite_termo_uso: {
         Args: { _versao: string }
         Returns: undefined
