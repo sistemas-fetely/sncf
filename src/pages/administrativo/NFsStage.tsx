@@ -864,7 +864,9 @@ export default function NFsStage() {
                       </TableCell>
                       <TableCell>
                         <Badge className={STATUS_STYLES[nf.status]}>
-                          {STATUS_LABELS[nf.status] || nf.status}
+                          {nf.status === "parcial" && nf.qtd_boletos
+                            ? `Parcial (${despesasPorStage[nf.id] || 0}/${nf.qtd_boletos})`
+                            : STATUS_LABELS[nf.status] || nf.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
