@@ -87,6 +87,19 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
   const [nfStageId, setNfStageId] = useState<string | null>(null);
   const [nfStageBuscaOpen, setNfStageBuscaOpen] = useState(false);
 
+  // Pré-preenchimento via initialData (vindo do fluxo "Importar NF")
+  useEffect(() => {
+    if (open && initialData) {
+      setNfStageId(initialData.nfStageId);
+      if (initialData.parceiroId) setParceiroId(initialData.parceiroId);
+      if (initialData.valor != null) setValor(String(initialData.valor));
+      if (initialData.dataEmissao) setDataEmissao(initialData.dataEmissao);
+      if (initialData.dataVencimento) setDataVenc(initialData.dataVencimento);
+      if (initialData.categoriaId) setCategoriaId(initialData.categoriaId);
+      if (initialData.descricao) setDescricao(initialData.descricao);
+    }
+  }, [open, initialData]);
+
   // Debounce da descrição (não dispara IA a cada tecla)
   const [descricaoDebounced, setDescricaoDebounced] = useState("");
   useEffect(() => {
