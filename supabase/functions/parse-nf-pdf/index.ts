@@ -95,7 +95,7 @@ Responda APENAS com JSON neste formato (sem markdown, sem explicações):
   "tipo_documento": "nfe" | "nfse" | "recibo" | "boleto",
   "pais_emissor": "BR" | "US" | "EU" | etc (código ISO 2 letras, default BR),
   "moeda": "BRL" | "USD" | "EUR" | etc (código ISO 3 letras, default BRL),
-  "valor": number (valor total SEMPRE convertido pra BRL — se documento estrangeiro, use a taxa de conversão informada no próprio documento; se não tiver taxa, retorne valor original e null em valor_origem),
+  "valor": number (valor total SEMPRE convertido pra BRL — se documento estrangeiro, use a taxa de conversão informada no próprio documento; se não tiver taxa, retorne valor original e null em valor_origem). FORMATO BRASILEIRO: o ponto é separador de MILHAR e vírgula é separador DECIMAL. "R$ 4.542,79" = 4542.79 (NÃO 454279). "R$ 1.000,00" = 1000.00 (NÃO 100000). "R$ 12.345,67" = 12345.67. SEMPRE retornar com no máximo 2 casas decimais.,
   "valor_origem": number ou null (valor na moeda original — preencher SOMENTE se moeda != BRL),
   "taxa_conversao": number ou null (multiplicador moeda_origem → BRL — preencher SOMENTE se moeda != BRL),
   "data_emissao": string formato YYYY-MM-DD,
@@ -281,6 +281,15 @@ REGRAS GERAIS:
         console.warn(`chave_acesso de NF-e com tamanho inválido (${digitsOnly.length} dígitos). Limpando.`);
         data.chave_acesso = null;
       }
+    }
+
+    // Caso 5: valor suspeitosamente alto (provável erro de formato BR)
+    // Se valor > 1 milhão E valor_origem é null E moeda é BRL, e o número é
+    // exato múltiplo de 100, provável que a IA leu "1.234,56" como 123456
+    if (data.valor > 1000000 && data.moeda === "BRL" && Number.isInteger(data.valor) && data.valor % 100 === 0) {
+      const valorCorrigido = data.valor / 100;
+      console.warn(`Valor suspeito de erro de formato BR: ${data.valor} → ${valorCorrigido}`);
+      data.valor = valorCorrigido;
     }
 
     // Boleto sem linha digitável = confiança baixa (provavelmente recibo mal-classificado)
