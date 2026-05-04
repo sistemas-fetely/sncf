@@ -166,7 +166,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("parceiros_comerciais")
-        .select("id,razao_social,nome_fantasia,cnpj,categoria_padrao_id,centro_custo_id,canal_venda_id,forma_pagamento_padrao_id,tipos,tipo,cpf,cep,logradouro,numero,bairro,cidade,uf,telefone,email,segmento,tags,ativo,observacao,origem")
+        .select("id,razao_social,nome_fantasia,cnpj,categoria_padrao_id,centro_custo_id,canal_venda_id,forma_pagamento_padrao_id,tipos,tipo,cpf,cep,logradouro,numero,bairro,cidade,uf,telefone,email,segmento,tags,ativo,observacao,origem,dados_bancarios,pix_chave,pix_tipo")
         .contains("tipos", ["fornecedor"])
         .eq("ativo", true)
         .order("razao_social");
