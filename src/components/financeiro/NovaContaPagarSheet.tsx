@@ -348,6 +348,30 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       const { error } = await supabase.from("contas_pagar_receber").insert(rows);
       if (error) throw error;
 
+      // Auto-salva dados bancários no parceiro quando:
+      // - usuário preencheu E
+      // - parceiro não tinha (primeira vez) OU usuário editou explicitamente
+      if (parceiroId && (exigePix || exigeBanco) && (!parceiroJaTemDados || editandoDadosBancarios)) {
+        const update: Record<string, unknown> = {};
+        if (exigeBanco) {
+          update.dados_bancarios = {
+            banco: dadosBancariosBanco.trim() || null,
+            agencia: dadosBancariosAgencia.trim() || null,
+            conta: dadosBancariosConta.trim() || null,
+          };
+        }
+        if (exigePix) {
+          update.pix_chave = pixChave.trim() || null;
+          if (pixTipo) update.pix_tipo = pixTipo;
+        }
+        if (Object.keys(update).length > 0) {
+          await supabase
+            .from("parceiros_comerciais")
+            .update(update)
+            .eq("id", parceiroId);
+        }
+      }
+
       // Marca NF do Repositório como vinculada (se houver)
       if (nfStageId) {
         await supabase
