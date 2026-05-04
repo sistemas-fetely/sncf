@@ -92,7 +92,16 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
     if (open && initialData) {
       setNfStageId(initialData.nfStageId);
       if (initialData.parceiroId) setParceiroId(initialData.parceiroId);
-      if (initialData.valor != null) setValor(String(initialData.valor));
+      if (initialData.valor != null) {
+        // initialData.valor é number JS (ex: 4542.79). Formata como string BR
+        // (vírgula decimal) pra não conflitar com o parser BR do input.
+        setValor(
+          Number(initialData.valor).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        );
+      }
       if (initialData.dataEmissao) setDataEmissao(initialData.dataEmissao);
       if (initialData.dataVencimento) setDataVenc(initialData.dataVencimento);
       if (initialData.categoriaId) setCategoriaId(initialData.categoriaId);
