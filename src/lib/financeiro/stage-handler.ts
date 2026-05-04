@@ -103,7 +103,7 @@ export async function moverParaStage(
         valor: nf.valor || 0,
         descricao: nf._categoria_nome || null,
         categoria_id: nf._categoria_id || null,
-        data_vencimento: nf.nf_data_emissao || null,
+        data_vencimento: nf.nf_data_vencimento || nf.nf_data_emissao || null,
         status,
         itens: nf.itens || null,
         // Tipo de documento + moeda estrangeira

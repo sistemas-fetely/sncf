@@ -2133,6 +2133,7 @@ export type Database = {
           nf_valor_impostos: number | null
           nf_valor_produtos: number | null
           nf_xml_url: string | null
+          nfs_stage_documento_id: string | null
           numero_parcela: number | null
           observacao: string | null
           observacao_pagamento: string | null
@@ -2211,6 +2212,7 @@ export type Database = {
           nf_valor_impostos?: number | null
           nf_valor_produtos?: number | null
           nf_xml_url?: string | null
+          nfs_stage_documento_id?: string | null
           numero_parcela?: number | null
           observacao?: string | null
           observacao_pagamento?: string | null
@@ -2289,6 +2291,7 @@ export type Database = {
           nf_valor_impostos?: number | null
           nf_valor_produtos?: number | null
           nf_xml_url?: string | null
+          nfs_stage_documento_id?: string | null
           numero_parcela?: number | null
           observacao?: string | null
           observacao_pagamento?: string | null
@@ -2377,6 +2380,13 @@ export type Database = {
             columns: ["nf_stage_id"]
             isOneToOne: false
             referencedRelation: "vw_nfs_stage_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_nfs_stage_documento_id_fkey"
+            columns: ["nfs_stage_documento_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_stage_documentos"
             referencedColumns: ["id"]
           },
           {
@@ -5165,31 +5175,37 @@ export type Database = {
           arquivo_nome: string | null
           criado_em: string
           criado_por: string | null
+          data_vencimento: string | null
           id: string
           linha_digitavel: string | null
           nfs_stage_id: string
           storage_path: string
           tipo: string
+          valor: number | null
         }
         Insert: {
           arquivo_nome?: string | null
           criado_em?: string
           criado_por?: string | null
+          data_vencimento?: string | null
           id?: string
           linha_digitavel?: string | null
           nfs_stage_id: string
           storage_path: string
           tipo: string
+          valor?: number | null
         }
         Update: {
           arquivo_nome?: string | null
           criado_em?: string
           criado_por?: string | null
+          data_vencimento?: string | null
           id?: string
           linha_digitavel?: string | null
           nfs_stage_id?: string
           storage_path?: string
           tipo?: string
+          valor?: number | null
         }
         Relationships: [
           {
@@ -10011,9 +10027,11 @@ export type Database = {
           numero_parcela: number | null
           pais_emissor: string | null
           parceiro_id: string | null
+          qtd_boletos: number | null
           resumo_pdf_gerado_em: string | null
           resumo_pdf_pendente: boolean | null
           resumo_pdf_storage_path: string | null
+          soma_boletos: number | null
           status: string | null
           taxa_conversao: number | null
           tem_boleto: boolean | null
@@ -10024,6 +10042,7 @@ export type Database = {
           total_parcelas: number | null
           updated_at: string | null
           valor: number | null
+          valor_exibido: number | null
           valor_origem: number | null
         }
         Relationships: [

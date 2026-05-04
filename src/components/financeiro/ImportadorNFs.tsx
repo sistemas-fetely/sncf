@@ -90,6 +90,8 @@ async function parsePdfFile(file: File): Promise<NFParsed | null> {
     nf_serie: payload.serie ? String(payload.serie) : "",
     nf_data_emissao:
       parseDataBR(payload.data_emissao) || payload.data_emissao || null,
+    nf_data_vencimento:
+      parseDataBR(payload.data_vencimento) || payload.data_vencimento || null,
     nf_natureza_operacao: payload.descricao || payload.natureza_operacao || "",
     nf_chave_acesso: chaveAcessoLimpa,
     fornecedor_nome:

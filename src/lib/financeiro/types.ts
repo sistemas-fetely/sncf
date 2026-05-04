@@ -28,6 +28,7 @@ export interface NFParsed {
   nf_numero?: string;
   nf_serie?: string;
   nf_data_emissao?: string | null;
+  nf_data_vencimento?: string | null;
   nf_natureza_operacao?: string;
   nf_cfop?: string;
   nf_ncm?: string;
