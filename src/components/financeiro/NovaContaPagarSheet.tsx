@@ -56,6 +56,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   initialData?: {
     nfStageId: string;
+    nfStageDocumentoId?: string;
     parceiroId?: string | null;
     fornecedorNome?: string;
     valor?: number;
@@ -86,6 +87,16 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
   const [parcelas, setParcelas] = useState(1);
   const [nfStageId, setNfStageId] = useState<string | null>(null);
   const [nfStageBuscaOpen, setNfStageBuscaOpen] = useState(false);
+
+  // Dados bancários do fornecedor pra esta despesa
+  const [dadosBancariosBanco, setDadosBancariosBanco] = useState("");
+  const [dadosBancariosAgencia, setDadosBancariosAgencia] = useState("");
+  const [dadosBancariosConta, setDadosBancariosConta] = useState("");
+  const [pixChave, setPixChave] = useState("");
+  const [pixTipo, setPixTipo] = useState("");
+  // Controle: parceiro JÁ tinha dados (não precisa pedir) vs precisa preencher
+  const [parceiroJaTemDados, setParceiroJaTemDados] = useState(false);
+  const [editandoDadosBancarios, setEditandoDadosBancarios] = useState(false);
 
   // Pré-preenchimento via initialData (vindo do fluxo "Importar NF")
   useEffect(() => {
@@ -155,7 +166,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("parceiros_comerciais")
-        .select("id,razao_social,nome_fantasia,cnpj,categoria_padrao_id,centro_custo_id,canal_venda_id,forma_pagamento_padrao_id,tipos,tipo,cpf,cep,logradouro,numero,bairro,cidade,uf,telefone,email,segmento,tags,ativo,observacao,origem")
+        .select("id,razao_social,nome_fantasia,cnpj,categoria_padrao_id,centro_custo_id,canal_venda_id,forma_pagamento_padrao_id,tipos,tipo,cpf,cep,logradouro,numero,bairro,cidade,uf,telefone,email,segmento,tags,ativo,observacao,origem,dados_bancarios,pix_chave,pix_tipo")
         .contains("tipos", ["fornecedor"])
         .eq("ativo", true)
         .order("razao_social");
@@ -195,7 +206,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
     },
   });
 
-  // Auto preenche categoria/centro se parceiro tem padrão
+  // Auto preenche categoria/centro/dados bancários se parceiro tem
   useEffect(() => {
     if (!parceiroId || !parceiros) return;
     const p = parceiros.find((x) => x.id === parceiroId);
@@ -203,6 +214,24 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
     if (p.categoria_padrao_id && !categoriaId) setCategoriaId(p.categoria_padrao_id);
     if (p.centro_custo_id && !centroCustoId) setCentroCustoId(p.centro_custo_id);
     if (p.forma_pagamento_padrao_id && !formaPgtoId) setFormaPgtoId(p.forma_pagamento_padrao_id);
+
+    // Dados bancários
+    const db = (p as { dados_bancarios?: { banco?: string; agencia?: string; conta?: string } | null }).dados_bancarios;
+    const banco = db?.banco || "";
+    const agencia = db?.agencia || "";
+    const conta = db?.conta || "";
+    const pixCh = (p as { pix_chave?: string | null }).pix_chave || "";
+    const pixTp = (p as { pix_tipo?: string | null }).pix_tipo || "";
+
+    setDadosBancariosBanco(banco);
+    setDadosBancariosAgencia(agencia);
+    setDadosBancariosConta(conta);
+    setPixChave(pixCh);
+    setPixTipo(pixTp);
+
+    const temAlgum = !!(banco || agencia || conta || pixCh);
+    setParceiroJaTemDados(temAlgum);
+    setEditandoDadosBancarios(false);
   }, [parceiroId, parceiros]); // eslint-disable-line
 
   useEffect(() => {
@@ -221,6 +250,13 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       setNfStageId(null);
       setDescricaoDebounced("");
       setSugestaoAplicada(false);
+      setDadosBancariosBanco("");
+      setDadosBancariosAgencia("");
+      setDadosBancariosConta("");
+      setPixChave("");
+      setPixTipo("");
+      setParceiroJaTemDados(false);
+      setEditandoDadosBancarios(false);
     }
   }, [open]);
 
@@ -246,11 +282,36 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
   // Pra preview no UI (todas iguais menos a última quando há resto)
   const valorParcela = parcelas > 0 ? valorNum / parcelas : valorNum;
 
+  // Forma de pagamento ativa decide quais campos são obrigatórios
+  const formaSel = formasPgto?.find((f) => f.id === formaPgtoId);
+  const codFormaPgto = formaSel?.codigo?.toLowerCase() || "";
+  const exigePix = codFormaPgto === "pix";
+  const exigeBanco =
+    codFormaPgto === "ted" ||
+    codFormaPgto === "transferencia" ||
+    codFormaPgto === "transferencia_bancaria" ||
+    codFormaPgto === "doc";
+  const mostrarCamposBancarios =
+    !!parceiroId && (exigePix || exigeBanco) && (!parceiroJaTemDados || editandoDadosBancarios);
+
+  // Vindo de boleto via import: trava parcelas + bloqueia valor/vencimento
+  const veioDeBoleto = !!initialData?.nfStageDocumentoId;
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (!descricao.trim()) throw new Error("Descrição é obrigatória");
       if (!valorNum || valorNum <= 0) throw new Error("Valor inválido");
       if (!dataVenc) throw new Error("Data de vencimento obrigatória");
+
+      // Validações de dados bancários conforme forma de pagamento
+      if (exigePix && !pixChave.trim()) {
+        throw new Error("Chave PIX é obrigatória para pagamento via PIX");
+      }
+      if (exigeBanco) {
+        if (!dadosBancariosBanco.trim()) throw new Error("Banco é obrigatório para TED/Transferência");
+        if (!dadosBancariosAgencia.trim()) throw new Error("Agência é obrigatória para TED/Transferência");
+        if (!dadosBancariosConta.trim()) throw new Error("Conta é obrigatória para TED/Transferência");
+      }
 
       const parceiro = parceiros?.find((p) => p.id === parceiroId);
       const fornecedorNome = parceiro?.razao_social || null;
@@ -286,6 +347,30 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       }
       const { error } = await supabase.from("contas_pagar_receber").insert(rows);
       if (error) throw error;
+
+      // Auto-salva dados bancários no parceiro quando:
+      // - usuário preencheu E
+      // - parceiro não tinha (primeira vez) OU usuário editou explicitamente
+      if (parceiroId && (exigePix || exigeBanco) && (!parceiroJaTemDados || editandoDadosBancarios)) {
+        const update: Record<string, unknown> = {};
+        if (exigeBanco) {
+          update.dados_bancarios = {
+            banco: dadosBancariosBanco.trim() || null,
+            agencia: dadosBancariosAgencia.trim() || null,
+            conta: dadosBancariosConta.trim() || null,
+          };
+        }
+        if (exigePix) {
+          update.pix_chave = pixChave.trim() || null;
+          if (pixTipo) update.pix_tipo = pixTipo;
+        }
+        if (Object.keys(update).length > 0) {
+          await supabase
+            .from("parceiros_comerciais")
+            .update(update as never)
+            .eq("id", parceiroId);
+        }
+      }
 
       // Marca NF do Repositório como vinculada (se houver)
       if (nfStageId) {
@@ -404,17 +489,22 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>Valor *</Label>
-                <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+                <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" disabled={veioDeBoleto} />
               </div>
               <div>
                 <Label>Vencimento *</Label>
-                <Input type="date" value={dataVenc} onChange={(e) => setDataVenc(e.target.value)} />
+                <Input type="date" value={dataVenc} onChange={(e) => setDataVenc(e.target.value)} disabled={veioDeBoleto} />
               </div>
               <div>
                 <Label>Emissão</Label>
                 <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
               </div>
             </div>
+            {veioDeBoleto && (
+              <p className="text-[10px] text-muted-foreground -mt-2">
+                Valor e vencimento vêm do boleto importado.
+              </p>
+            )}
 
             <div className="border-t pt-4">
               <p className="text-sm font-medium mb-3">Classificação</p>
@@ -506,17 +596,21 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
               </div>
             </div>
 
-            <div className="border-t pt-4">
-              <p className="text-sm font-medium mb-3">Pagamento</p>
+            <div className="space-y-3 pt-2 border-t">
+              <h3 className="text-sm font-medium">Pagamento</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Forma de pagamento</Label>
                   <Select value={formaPgtoId || "_none"} onValueChange={(v) => setFormaPgtoId(v === "_none" ? "" : v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="_none">—</SelectItem>
-                      {(formasPgto || []).map((f) => (
-                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                      {formasPgto?.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.nome}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -526,16 +620,129 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
                   <Input
                     type="number"
                     min={1}
-                    max={36}
+                    max={veioDeBoleto ? 1 : 36}
                     value={parcelas}
-                    onChange={(e) => setParcelas(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => setParcelas(Math.max(1, Number(e.target.value) || 1))}
+                    disabled={veioDeBoleto}
                   />
+                  {veioDeBoleto && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Boleto importado — parcela única (cada boleto vira 1 despesa).
+                    </p>
+                  )}
                 </div>
               </div>
+
               {parcelas > 1 && valorNum > 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-muted-foreground">
                   {parcelas}× de <strong>{formatBRL(valorParcela)}</strong> mensais
                 </p>
+              )}
+
+              {/* Dados bancários — exibidos conforme forma de pagamento */}
+              {parceiroId && (exigePix || exigeBanco) && parceiroJaTemDados && !editandoDadosBancarios && (
+                <div className="rounded-md bg-muted/40 border px-3 py-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="space-y-0.5">
+                      {exigeBanco && (
+                        <div>
+                          <span className="text-muted-foreground">Banco:</span>{" "}
+                          {dadosBancariosBanco || "—"} · Ag {dadosBancariosAgencia || "—"} · CC{" "}
+                          {dadosBancariosConta || "—"}
+                        </div>
+                      )}
+                      {exigePix && (
+                        <div>
+                          <span className="text-muted-foreground">PIX:</span>{" "}
+                          {pixChave || "—"}
+                          {pixTipo && (
+                            <span className="text-muted-foreground"> ({pixTipo})</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditandoDadosBancarios(true)}
+                      className="text-admin hover:underline text-xs"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {mostrarCamposBancarios && (
+                <div className="space-y-3 rounded-md border-l-2 border-admin/50 pl-3 py-1">
+                  {!parceiroJaTemDados && (
+                    <p className="text-xs text-muted-foreground">
+                      Preencha os dados bancários do fornecedor — serão salvos automaticamente para próximos pagamentos.
+                    </p>
+                  )}
+                  {exigeBanco && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Banco *</Label>
+                        <Input
+                          value={dadosBancariosBanco}
+                          onChange={(e) => setDadosBancariosBanco(e.target.value)}
+                          placeholder="Ex: Itaú"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Agência *</Label>
+                        <Input
+                          value={dadosBancariosAgencia}
+                          onChange={(e) => setDadosBancariosAgencia(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Conta *</Label>
+                        <Input
+                          value={dadosBancariosConta}
+                          onChange={(e) => setDadosBancariosConta(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {exigePix && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="col-span-2">
+                        <Label className="text-xs">Chave PIX *</Label>
+                        <Input
+                          value={pixChave}
+                          onChange={(e) => setPixChave(e.target.value)}
+                          placeholder="CNPJ, e-mail, celular, etc."
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Tipo</Label>
+                        <Select value={pixTipo || "_none"} onValueChange={(v) => setPixTipo(v === "_none" ? "" : v)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="_none">—</SelectItem>
+                            <SelectItem value="cnpj">CNPJ</SelectItem>
+                            <SelectItem value="cpf">CPF</SelectItem>
+                            <SelectItem value="email">E-mail</SelectItem>
+                            <SelectItem value="celular">Celular</SelectItem>
+                            <SelectItem value="aleatoria">Aleatória</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                  {parceiroJaTemDados && (
+                    <button
+                      type="button"
+                      onClick={() => setEditandoDadosBancarios(false)}
+                      className="text-xs text-muted-foreground hover:underline"
+                    >
+                      Cancelar edição
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
