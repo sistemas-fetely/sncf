@@ -282,6 +282,21 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
   // Pra preview no UI (todas iguais menos a última quando há resto)
   const valorParcela = parcelas > 0 ? valorNum / parcelas : valorNum;
 
+  // Forma de pagamento ativa decide quais campos são obrigatórios
+  const formaSel = formasPgto?.find((f) => f.id === formaPgtoId);
+  const codFormaPgto = formaSel?.codigo?.toLowerCase() || "";
+  const exigePix = codFormaPgto === "pix";
+  const exigeBanco =
+    codFormaPgto === "ted" ||
+    codFormaPgto === "transferencia" ||
+    codFormaPgto === "transferencia_bancaria" ||
+    codFormaPgto === "doc";
+  const mostrarCamposBancarios =
+    !!parceiroId && (exigePix || exigeBanco) && (!parceiroJaTemDados || editandoDadosBancarios);
+
+  // Vindo de boleto via import: trava parcelas + bloqueia valor/vencimento
+  const veioDeBoleto = !!initialData?.nfStageDocumentoId;
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (!descricao.trim()) throw new Error("Descrição é obrigatória");
