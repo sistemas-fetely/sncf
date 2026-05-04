@@ -55,7 +55,7 @@ export function classBordaTemporal(
   status?: string | null,
 ): string {
   // Atrasada tem prioridade máxima
-  if (atrasada) return "border-l-4 border-l-red-500";
+  if (atrasada) return "shadow-[inset_4px_0_0_0_rgb(239_68_68)]";
   if (!dataVencimento) return "";
   const venc = new Date(
     dataVencimento.length === 10 ? dataVencimento + "T00:00:00" : dataVencimento
@@ -70,11 +70,11 @@ export function classBordaTemporal(
 
   if (venc.getTime() < inicioMesAtual.getTime()) {
     // Pago no passado → verde; cancelado/outros → cinza
-    if (status === "paga") return "border-l-4 border-l-emerald-500";
-    return "border-l-4 border-l-zinc-300";
+    if (status === "paga") return "shadow-[inset_4px_0_0_0_rgb(16_185_129)]";
+    return "shadow-[inset_4px_0_0_0_rgb(212_212_216)]";
   }
   if (venc.getTime() >= inicioProximoMes.getTime()) {
-    return "border-l-4 border-l-sky-400";
+    return "shadow-[inset_4px_0_0_0_rgb(56_189_248)]";
   }
-  return "border-l-4 border-l-amber-400";
+  return "shadow-[inset_4px_0_0_0_rgb(251_191_36)]";
 }
