@@ -49,6 +49,7 @@ export function ImportarNFDespesaDialog({
     descricao: string | null;
     dataEmissao: string | null;
     boletos: BoletoStageDoc[];
+    isMultiStage?: boolean;
   } | null>(null);
   const [criandoDespesas, setCriandoDespesas] = useState(false);
 
