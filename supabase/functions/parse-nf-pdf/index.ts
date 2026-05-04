@@ -95,7 +95,7 @@ Responda APENAS com JSON neste formato (sem markdown, sem explicações):
   "tipo_documento": "nfe" | "nfse" | "recibo" | "boleto",
   "pais_emissor": "BR" | "US" | "EU" | etc (código ISO 2 letras, default BR),
   "moeda": "BRL" | "USD" | "EUR" | etc (código ISO 3 letras, default BRL),
-  "valor": number (valor total SEMPRE convertido pra BRL — se documento estrangeiro, use a taxa de conversão informada no próprio documento; se não tiver taxa, retorne valor original e null em valor_origem),
+  "valor": number (valor total SEMPRE convertido pra BRL — se documento estrangeiro, use a taxa de conversão informada no próprio documento; se não tiver taxa, retorne valor original e null em valor_origem). FORMATO BRASILEIRO: o ponto é separador de MILHAR e vírgula é separador DECIMAL. "R$ 4.542,79" = 4542.79 (NÃO 454279). "R$ 1.000,00" = 1000.00 (NÃO 100000). "R$ 12.345,67" = 12345.67. SEMPRE retornar com no máximo 2 casas decimais.,
   "valor_origem": number ou null (valor na moeda original — preencher SOMENTE se moeda != BRL),
   "taxa_conversao": number ou null (multiplicador moeda_origem → BRL — preencher SOMENTE se moeda != BRL),
   "data_emissao": string formato YYYY-MM-DD,
