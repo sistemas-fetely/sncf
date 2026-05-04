@@ -489,17 +489,22 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>Valor *</Label>
-                <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+                <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" disabled={veioDeBoleto} />
               </div>
               <div>
                 <Label>Vencimento *</Label>
-                <Input type="date" value={dataVenc} onChange={(e) => setDataVenc(e.target.value)} />
+                <Input type="date" value={dataVenc} onChange={(e) => setDataVenc(e.target.value)} disabled={veioDeBoleto} />
               </div>
               <div>
                 <Label>Emissão</Label>
                 <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
               </div>
             </div>
+            {veioDeBoleto && (
+              <p className="text-[10px] text-muted-foreground -mt-2">
+                Valor e vencimento vêm do boleto importado.
+              </p>
+            )}
 
             <div className="border-t pt-4">
               <p className="text-sm font-medium mb-3">Classificação</p>
