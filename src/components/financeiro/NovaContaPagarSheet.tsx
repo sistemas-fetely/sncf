@@ -303,6 +303,16 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       if (!valorNum || valorNum <= 0) throw new Error("Valor inválido");
       if (!dataVenc) throw new Error("Data de vencimento obrigatória");
 
+      // Validações de dados bancários conforme forma de pagamento
+      if (exigePix && !pixChave.trim()) {
+        throw new Error("Chave PIX é obrigatória para pagamento via PIX");
+      }
+      if (exigeBanco) {
+        if (!dadosBancariosBanco.trim()) throw new Error("Banco é obrigatório para TED/Transferência");
+        if (!dadosBancariosAgencia.trim()) throw new Error("Agência é obrigatória para TED/Transferência");
+        if (!dadosBancariosConta.trim()) throw new Error("Conta é obrigatória para TED/Transferência");
+      }
+
       const parceiro = parceiros?.find((p) => p.id === parceiroId);
       const fornecedorNome = parceiro?.razao_social || null;
       const baseDate = new Date(dataVenc + "T00:00:00");
