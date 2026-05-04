@@ -87,6 +87,9 @@ export interface NFParsed {
   total_parcelas?: number | null;
   numero_documento_referencia?: string | null;
 
+  // Confiança da classificação pela IA (baixa = mostrar selector pro usuário)
+  confianca?: "alta" | "baixa";
+
   // Arquivo original (apenas PDFs - usado para anexar à conta criada)
   _arquivo?: File;
 

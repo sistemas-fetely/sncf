@@ -109,17 +109,33 @@ Responda APENAS com JSON neste formato (sem markdown, sem explicações):
   "linha_digitavel": string ou null (47 dígitos da linha digitável FEBRABAN, formato livre — só preencher se tipo_documento='boleto'),
   "numero_parcela": number ou null (número da parcela atual, ex: 3 em "3/8" — só pra boleto parcelado),
   "total_parcelas": number ou null (total de parcelas, ex: 8 em "3/8" — só pra boleto parcelado),
-  "numero_documento_referencia": string ou null (número da NF que o boleto cobra, se mencionado no histórico/demonstrativo, ex: "ref NF 11151" → "11151". Se boleto NÃO cita NF, deixar null. Só pra boleto.)
+  "numero_documento_referencia": string ou null (número da NF que o boleto cobra, se mencionado no histórico/demonstrativo, ex: "ref NF 11151" → "11151". Se boleto NÃO cita NF, deixar null. Só pra boleto.),
+  "confianca": "alta" se o tipo foi identificado com certeza (nfe com chave 44 dígitos confirmada, nfse com ID InfNfse, boleto com linha digitável FEBRABAN detectada). "baixa" em qualquer outro caso — recibo sem número formal, documento ambíguo, boleto sem linha digitável visível.
 }
 
-REGRAS DE BOLETO:
-- Sinal mais forte: LINHA DIGITÁVEL (47 dígitos com pontos e espaços padrão FEBRABAN)
-- Outro sinal forte: código de barras horizontal de 44 posições no rodapé
-- Se houver NF-e DANFE NA MESMA PÁGINA do boleto, classifique como "nfe" (DANFE manda) e NÃO preencha campos de boleto
-- Boleto avulso (sem DANFE junto): tipo_documento="boleto", chave_acesso=null SEMPRE
-- numero_parcela e total_parcelas: extrair de "3/8", "Parcela 3 de 8", "3 de 8"
-- numero_documento_referencia: procurar "ref NF X", "Refere-se à NF X", "Histórico: NF X" no demonstrativo. Se não achar, deixar null. NUNCA inventar.
-- linha_digitavel é o ÚNICO lugar onde a sequência de 47 dígitos do FEBRABAN aparece. NÃO copiar pra chave_acesso.
+REGRAS DE BOLETO — LEIA COM MÁXIMA ATENÇÃO:
+
+SINAL OBRIGATÓRIO: Para classificar como "boleto", o documento DEVE conter a LINHA DIGITÁVEL FEBRABAN
+(sequência de ~47 dígitos no formato "XXXXX.XXXXX XXXXX.XXXXXX XXXXX.XXXXXX X XXXXXXXXXXXXXXXX",
+com grupos separados por pontos e espaços, impressa no topo ou no corpo do boleto).
+SEM ESSA LINHA → NÃO É BOLETO.
+
+FALSO POSITIVO MAIS COMUM — "Nosso Número":
+O campo "Nosso Número" aparece em boletos, MAS TAMBÉM em Notas de Adiantamento, Faturas de
+Honorários e outros documentos administrativos que NÃO são boletos. "Nosso Número" sozinho NÃO
+classifica como boleto. Só classifica como boleto se tiver a LINHA DIGITÁVEL.
+
+EXEMPLOS DE RECIBO (não boleto):
+- "Nota de Adiantamento" com "Nosso Número" mas sem linha digitável → tipo_documento="recibo"
+- "Nota de Honorários" com valor e vencimento mas sem linha digitável → tipo_documento="recibo"
+- "Fatura de Serviços" sem CNPJ NFS-e municipal e sem linha digitável → tipo_documento="recibo"
+
+Outro sinal forte de boleto: código de barras bancário horizontal de 44 posições no rodapé.
+Se houver NF-e DANFE NA MESMA PÁGINA do boleto, classifique como "nfe" (DANFE manda).
+Boleto avulso (sem DANFE junto): tipo_documento="boleto", chave_acesso=null SEMPRE.
+numero_parcela e total_parcelas: extrair de "3/8", "Parcela 3 de 8", "3 de 8".
+numero_documento_referencia: procurar "ref NF X", "Refere-se à NF X", "Doc Fiscal X" no demonstrativo.
+linha_digitavel é o ÚNICO lugar onde a sequência FEBRABAN aparece. NÃO copiar pra chave_acesso.
 
 REGRAS DE MOEDA — LEIA COM ATENÇÃO:
 
@@ -228,6 +244,9 @@ REGRAS GERAIS:
       numero_parcela: parsed.tipo_documento === "boleto" && typeof parsed.numero_parcela === "number" ? parsed.numero_parcela : null,
       total_parcelas: parsed.tipo_documento === "boleto" && typeof parsed.total_parcelas === "number" ? parsed.total_parcelas : null,
       numero_documento_referencia: parsed.tipo_documento === "boleto" ? (parsed.numero_documento_referencia || null) : null,
+      confianca: (parsed.confianca === "alta" || parsed.confianca === "baixa")
+        ? parsed.confianca
+        : "baixa", // default conservador: se IA não retornou, assume baixa
     };
 
     // ============================================
@@ -262,6 +281,12 @@ REGRAS GERAIS:
         console.warn(`chave_acesso de NF-e com tamanho inválido (${digitsOnly.length} dígitos). Limpando.`);
         data.chave_acesso = null;
       }
+    }
+
+    // Boleto sem linha digitável = confiança baixa (provavelmente recibo mal-classificado)
+    if (data.tipo_documento === "boleto" && !data.linha_digitavel) {
+      console.warn("Boleto sem linha digitável — rebaixando confiança pra baixa.");
+      data.confianca = "baixa";
     }
 
     return new Response(JSON.stringify({ success: true, data }), {

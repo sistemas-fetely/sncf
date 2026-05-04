@@ -22,6 +22,13 @@ interface Props {
   importing: boolean;
 }
 
+const TIPO_DOC_OPTIONS = [
+  { value: "nfe", label: "NF-e" },
+  { value: "nfse", label: "NFS-e" },
+  { value: "recibo", label: "Recibo" },
+  { value: "boleto", label: "Boleto" },
+] as const;
+
 function tipoArquivo(nf: NFParsed): "XML" | "PDF" {
   const src = (nf as any)._source as string | undefined;
   if (src?.includes("pdf")) return "PDF";
@@ -53,6 +60,13 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
 
   function clearAll() {
     onChange([]);
+  }
+
+  function setTipo(idx: number, tipo: string) {
+    const next = nfs.map((nf, i) =>
+      i === idx ? { ...nf, tipo_documento: tipo, confianca: "alta" as const } : nf
+    );
+    onChange(next);
   }
 
   return (
@@ -131,11 +145,23 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
                     )}
                   </TableCell>
                   <TableCell>
-                    {ehBoleto ? (
+                    {nf.confianca === "baixa" && !nf._duplicata ? (
+                      <div className="flex flex-col gap-1">
+                        <select
+                          value={nf.tipo_documento || "recibo"}
+                          onChange={(e) => setTipo(i, e.target.value)}
+                          className="text-xs border rounded px-1.5 py-0.5 bg-background text-amber-700 border-amber-400 cursor-pointer"
+                          title="Tipo não identificado com certeza — confirme"
+                        >
+                          {TIPO_DOC_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                        <span className="text-[10px] text-amber-600">confirme o tipo</span>
+                      </div>
+                    ) : ehBoleto ? (
                       <div className="flex items-center gap-1.5">
-                        <Badge className="bg-blue-600 hover:bg-blue-600 text-white">
-                          BOLETO
-                        </Badge>
+                        <Badge className="bg-blue-600 hover:bg-blue-600 text-white">BOLETO</Badge>
                         {nf.numero_parcela && nf.total_parcelas && (
                           <Badge variant="outline" className="text-[10px]">
                             {nf.numero_parcela}/{nf.total_parcelas}

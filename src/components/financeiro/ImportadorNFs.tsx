@@ -127,6 +127,9 @@ async function parsePdfFile(file: File): Promise<NFParsed | null> {
     numero_parcela: payload.numero_parcela ?? null,
     total_parcelas: payload.total_parcelas ?? null,
     numero_documento_referencia: payload.numero_documento_referencia || null,
+    confianca: (payload.confianca === "alta" || payload.confianca === "baixa")
+      ? payload.confianca
+      : "baixa",
   } as NFParsed;
   return nf;
 }
