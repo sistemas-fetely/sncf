@@ -62,6 +62,13 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
     onChange([]);
   }
 
+  function setTipo(idx: number, tipo: string) {
+    const next = nfs.map((nf, i) =>
+      i === idx ? { ...nf, tipo_documento: tipo, confianca: "alta" as const } : nf
+    );
+    onChange(next);
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
