@@ -134,7 +134,7 @@ tipo_pessoa, tipo_controle, pix_tipo, status de workflow
 - Removido update manual de status nos componentes front (trigger assume)
 
 **Pendências urgentes:**
-- Testar Bateria Delta v10 (5 cenários mapeados na Arquitetura Seção 19)
+- Testar Bateria Delta v10 (cenários abaixo)
 - Sprint 1.2 — Tela de Regras de categorização
 - Sprint 4 — Compromissos Universais (boleto parcelado + recorrentes)
 - Dialog "É a mesma compra?" para score==2 (5 decisões pendentes do Flávio)
@@ -153,6 +153,34 @@ tipo_pessoa, tipo_controle, pix_tipo, status de workflow
 | Só TI | TI Fetely |
 | Quem precisa de KPI | Gestão à Vista |
 | Ninguém operacional (só config) | ADM SNCF |
+
+---
+
+## Bateria de Testes — Delta v10 (PENDENTE)
+
+Estes 5 cenários precisam ser testados em produção (people-fetely.lovable.app) antes de avançar qualquer sprint novo.
+
+### Bateria 1 — Status granular
+
+**Cenário 1:** Importar NF com 2+ boletos → lançar só 1 despesa
+- Esperado: badge azul **"Parcial (1/N)"** aparece na tela NFsStage
+
+**Cenário 2:** Lançar o boleto restante
+- Esperado: badge muda para verde **"Vinculada"**
+
+**Cenário 3:** Apagar uma das despesas vinculadas
+- Esperado: badge volta para azul **"Parcial"**
+
+### Bateria 2 — Backfill
+
+**Cenário 4:** Encontrar os 2 stages que foram corrigidos manualmente
+- Esperado: campos `valor` e `data_vencimento` não aparecem mais como "—"
+
+**Cenário 5:** Verificar status desses 2 stages
+- Esperado: status coerente com os boletos (vinculada ou parcial, não nao_vinculada)
+
+**Risco conhecido:** cache React Query pode atrasar atualização do badge.
+Fix preventivo: `qc.invalidateQueries({ queryKey: ["nfs-stage"] })` no `onSuccess` do Sheet e Dialog — não aplicado ainda, aguarda feedback do teste.
 
 ---
 
