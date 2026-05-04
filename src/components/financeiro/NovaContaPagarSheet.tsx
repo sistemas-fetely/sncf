@@ -299,6 +299,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!parceiroId) throw new Error("Parceiro / Fornecedor é obrigatório");
       if (!descricao.trim()) throw new Error("Descrição é obrigatória");
       if (!valorNum || valorNum <= 0) throw new Error("Valor inválido");
       if (!dataVenc) throw new Error("Data de vencimento obrigatória");
@@ -404,7 +405,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
             {/* Parceiro */}
             <div>
               <div className="flex items-center justify-between">
-                <Label>Parceiro / Fornecedor</Label>
+                <Label>Parceiro / Fornecedor *</Label>
                 <button
                   type="button"
                   onClick={() => setParceiroFormOpen(true)}
