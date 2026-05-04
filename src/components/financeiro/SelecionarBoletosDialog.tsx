@@ -52,6 +52,7 @@ export function SelecionarBoletosDialog({
   boletos,
   onConfirmar,
   processando = false,
+  mostrarFornecedor = false,
 }: Props) {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(
     new Set(boletos.map((b) => b.id)),
