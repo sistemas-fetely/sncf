@@ -289,6 +289,11 @@ REGRAS GERAIS:
       data.confianca = "baixa";
     }
 
+    // Recibo nunca tem sinal forte → sempre confiança baixa
+    if (data.tipo_documento === "recibo") {
+      data.confianca = "baixa";
+    }
+
     return new Response(JSON.stringify({ success: true, data }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
