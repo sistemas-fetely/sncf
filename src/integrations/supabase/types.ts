@@ -10333,6 +10333,20 @@ export type Database = {
           fonte: string
         }[]
       }
+      detectar_match_score_nf: {
+        Args: { p_candidatos: Json }
+        Returns: {
+          idx: number
+          match_data_emissao: string
+          match_fornecedor: string
+          match_id: string
+          match_nf_numero: string
+          match_parcela: string
+          match_score: number
+          match_tipo_documento: string
+          match_valor: number
+        }[]
+      }
       detectar_pares_provaveis_nf: {
         Args: { p_score_minimo?: number }
         Returns: {
@@ -10810,6 +10824,19 @@ export type Database = {
         Returns: Json
       }
       revogar_acessos_ex_colaboradores: { Args: never; Returns: number }
+      score_match_nf: {
+        Args: {
+          p_cnpj_a: string
+          p_cnpj_b: string
+          p_data_a: string
+          p_data_b: string
+          p_numero_a: string
+          p_numero_b: string
+          p_valor_a: number
+          p_valor_b: number
+        }
+        Returns: number
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       submit_convite_cadastro: {
