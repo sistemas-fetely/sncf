@@ -452,7 +452,7 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
           <SheetTitle>Novo Contrato</SheetTitle>
         </SheetHeader>
 
-        <div className={`mt-6 ${dadosIA ? "grid grid-cols-[1fr_320px_1fr] gap-4" : ""}`}>
+        <div className={`mt-6 ${dadosIA ? "grid grid-cols-[minmax(480px,1fr)_400px_minmax(450px,1.2fr)] gap-4" : ""}`}>
           {/* Coluna 1: Formulário */}
           <form onSubmit={handleSubmit(onSubmit)} className={`space-y-4 ${dadosIA ? "overflow-y-auto" : ""}`} style={dadosIA ? { maxHeight: "calc(100vh - 150px)" } : undefined}>
             {/* Upload PDF */}
