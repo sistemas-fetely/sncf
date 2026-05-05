@@ -118,6 +118,24 @@ interface Props {
   onAtualizado: () => void;
 }
 
+// ─── Cores dos badges por tipo de documento ──────────────────
+function tipoBadgeClass(tipo: string): string {
+  const map: Record<string, string> = {
+    contrato:    "bg-green-100 text-green-800 border-green-300",
+    aditivo:     "bg-emerald-100 text-emerald-800 border-emerald-300",
+    orcamento:   "bg-blue-100 text-blue-800 border-blue-300",
+    proposta:    "bg-sky-100 text-sky-800 border-sky-300",
+    nf:          "bg-purple-100 text-purple-800 border-purple-300",
+    boleto:      "bg-orange-100 text-orange-800 border-orange-300",
+    recibo:      "bg-teal-100 text-teal-800 border-teal-300",
+    comprovante: "bg-cyan-100 text-cyan-800 border-cyan-300",
+    invoice:     "bg-indigo-100 text-indigo-800 border-indigo-300",
+    certidao:    "bg-amber-100 text-amber-800 border-amber-300",
+    outro:       "bg-gray-100 text-gray-700 border-gray-300",
+  };
+  return map[tipo?.toLowerCase()] ?? map.outro;
+}
+
 export function PastaDetalhe({ pasta, onAtualizado }: Props) {
   const [aba, setAba] = useState("contrato");
 
@@ -1045,7 +1063,10 @@ function AbaDocumentos({ pastaId }: { pastaId: string }) {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-sm truncate">{d.nome}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-xs capitalize">
+                    <Badge
+                      variant="outline"
+                      className={`text-xs capitalize ${tipoBadgeClass(d.tipo_documento)}`}
+                    >
                       {d.tipo_documento}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
@@ -1165,7 +1186,10 @@ function DocumentoVisualizadorSheet({
               <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
                 {!editando ? (
                   <>
-                    <Badge variant="outline" className="capitalize">
+                    <Badge
+                      variant="outline"
+                      className={`capitalize ${tipoBadgeClass(documento.tipo_documento)}`}
+                    >
                       {documento.tipo_documento}
                     </Badge>
                     <button

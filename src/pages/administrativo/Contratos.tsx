@@ -191,7 +191,7 @@ export default function Contratos() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate("/administrativo/ged")}
+          onClick={() => navigate("/administrativo-fetely/ged")}
           className="shrink-0"
         >
           Ir para o GED
@@ -251,7 +251,7 @@ export default function Contratos() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate("/administrativo/ged")}
+                onClick={() => navigate("/administrativo-fetely/ged")}
                 className="mt-4"
               >
                 Criar primeiro contrato no GED
@@ -280,7 +280,7 @@ export default function Contratos() {
                 <TableRow
                   key={c.id}
                   className="cursor-pointer hover:bg-muted/40"
-                  onClick={() => navigate(`/administrativo/ged?pasta=${c.pasta_id}`)}
+                  onClick={() => navigate(`/administrativo-fetely/ged?pasta=${c.pasta_id}`)}
                 >
                   <TableCell className="font-mono text-xs">{c.numero}</TableCell>
                   <TableCell>
@@ -318,7 +318,7 @@ export default function Contratos() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/administrativo/ged?pasta=${c.pasta_id}`);
+                        navigate(`/administrativo-fetely/ged?pasta=${c.pasta_id}`);
                       }}
                       title="Abrir no GED"
                     >
