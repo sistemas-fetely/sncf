@@ -57,17 +57,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Busca documentos relevantes da pasta
-    const { data: documentos } = await supabase
+    // Busca documentos da pasta — prioriza contratuais, mas usa qualquer um como fallback
+    const { data: todosDocs } = await supabase
       .from("ged_documentos")
       .select("id, nome, tipo_documento, resumo_ia, classificacao_ia, created_at")
       .eq("pasta_id", pasta_id)
-      .in("tipo_documento", ["contrato", "orcamento", "proposta", "aditivo"])
       .order("created_at", { ascending: true });
 
-    if (!documentos || documentos.length === 0) {
+    const contratuais = (todosDocs ?? []).filter((d) =>
+      ["contrato", "orcamento", "proposta", "aditivo"].includes(d.tipo_documento ?? ""),
+    );
+    const documentos = contratuais.length > 0 ? contratuais : (todosDocs ?? []);
+
+    if (documentos.length === 0) {
       return new Response(JSON.stringify({
-        error: "Nenhum documento contratual encontrado na pasta. Adicione contratos, orçamentos ou propostas.",
+        error: "Nenhum documento encontrado na pasta. Adicione ao menos um documento.",
       }), {
         status: 422,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

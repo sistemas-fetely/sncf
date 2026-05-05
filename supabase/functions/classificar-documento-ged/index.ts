@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_PDF_BYTES = 8 * 1024 * 1024;
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
 function uint8ArrayToBase64(bytes: Uint8Array): string {
   const chunkSize = 0x8000;
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
 
     if (file.size > MAX_PDF_BYTES) {
       return new Response(JSON.stringify({
-        error: `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Limite: 8MB.`,
+        error: `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Limite: 20MB.`,
       }), {
         status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
