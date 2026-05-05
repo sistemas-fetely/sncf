@@ -18,6 +18,7 @@ import {
   Search,
   AlertTriangle,
   CheckCircle2,
+  FileUp,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
