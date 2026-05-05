@@ -76,7 +76,7 @@ const schema = z.object({
   numero: z.string().min(1, "Número obrigatório"),
   objeto: z.string().min(1, "Objeto obrigatório"),
   parceiro_id: z.string().optional(),
-  area: z.enum(["financeiro", "ti", "juridico", "outro"]),
+  area: z.string().min(1, "Área obrigatória"),
   data_inicio: z.string().min(1, "Data obrigatória"),
   data_fim: z.string().optional(),
   renova_automaticamente: z.boolean().default(false),
