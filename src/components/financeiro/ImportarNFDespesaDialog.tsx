@@ -225,7 +225,11 @@ export function ImportarNFDespesaDialog({
       setBoletosDialogOpen(false);
       setStageInfo(null);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg =
+        e instanceof Error
+          ? e.message
+          : (e as any)?.message ?? JSON.stringify(e);
+      console.error("[lancarBoletosSelecionados] erro completo:", e);
       toast.error("Falha ao criar despesas: " + msg);
     } finally {
       setCriandoDespesas(false);
