@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { useParametros } from "@/hooks/useParametros";
 import { formatDateBR } from "@/lib/format-currency";
+import { PastaDetalhe } from "@/components/ged/PastaDetalhe";
 
 interface Pasta {
   id: string;
@@ -251,6 +252,28 @@ export default function GED() {
       </aside>
 
       {/* Conteúdo principal */}
+      {pastaSelecionada !== PASTA_SOLTOS ? (
+        // Vista detalhada da pasta com 4 abas
+        (() => {
+          const pastaAtiva = pastas.find((p) => p.id === pastaSelecionada);
+          if (!pastaAtiva) {
+            return (
+              <main className="flex-1 flex items-center justify-center text-muted-foreground">
+                Pasta não encontrada
+              </main>
+            );
+          }
+          return (
+            <PastaDetalhe
+              pasta={pastaAtiva as any}
+              onAtualizado={() => {
+                qc.invalidateQueries({ queryKey: ["ged-pastas"] });
+                qc.invalidateQueries({ queryKey: ["ged-documentos"] });
+              }}
+            />
+          );
+        })()
+      ) : (
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Toolbar */}
         <div className="p-4 border-b flex items-center gap-3">
@@ -334,6 +357,7 @@ export default function GED() {
           )}
         </div>
       </main>
+      )}
 
       {/* Dialog: Nova Pasta */}
       <NovaPastaDialog
