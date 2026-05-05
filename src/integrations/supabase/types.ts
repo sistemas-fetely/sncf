@@ -2361,13 +2361,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "contas_pagar_receber_contrato_parcela_id_fkey"
-            columns: ["contrato_parcela_id"]
-            isOneToOne: false
-            referencedRelation: "contrato_parcelas"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "contas_pagar_receber_forma_pagamento_id_fkey"
             columns: ["forma_pagamento_id"]
             isOneToOne: false
@@ -2452,88 +2445,15 @@ export type Database = {
         }
         Relationships: []
       }
-      contrato_fases: {
-        Row: {
-          avanco_automatico: boolean
-          centro_custo_id: string | null
-          conta_id: string | null
-          contrato_id: string
-          created_at: string
-          data_fim: string | null
-          data_inicio: string
-          dia_vencimento: number
-          id: string
-          nome: string
-          ordem: number
-          status: string
-          tipo: string
-          valor: number
-        }
-        Insert: {
-          avanco_automatico?: boolean
-          centro_custo_id?: string | null
-          conta_id?: string | null
-          contrato_id: string
-          created_at?: string
-          data_fim?: string | null
-          data_inicio: string
-          dia_vencimento?: number
-          id?: string
-          nome: string
-          ordem?: number
-          status?: string
-          tipo: string
-          valor: number
-        }
-        Update: {
-          avanco_automatico?: boolean
-          centro_custo_id?: string | null
-          conta_id?: string | null
-          contrato_id?: string
-          created_at?: string
-          data_fim?: string | null
-          data_inicio?: string
-          dia_vencimento?: number
-          id?: string
-          nome?: string
-          ordem?: number
-          status?: string
-          tipo?: string
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contrato_fases_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "plano_contas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contrato_fases_contrato_id_fkey"
-            columns: ["contrato_id"]
-            isOneToOne: false
-            referencedRelation: "contratos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contrato_fases_contrato_id_fkey"
-            columns: ["contrato_id"]
-            isOneToOne: false
-            referencedRelation: "vw_contratos_kpis"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contrato_parcelas: {
         Row: {
           conta_pagar_id: string | null
           contrato_id: string
           created_at: string
           data_vencimento: string
-          fase_id: string
           id: string
           numero_parcela: number | null
+          origem: string
           status: string
           total_parcelas: number | null
           valor: number
@@ -2543,9 +2463,9 @@ export type Database = {
           contrato_id: string
           created_at?: string
           data_vencimento: string
-          fase_id: string
           id?: string
           numero_parcela?: number | null
+          origem?: string
           status?: string
           total_parcelas?: number | null
           valor: number
@@ -2555,9 +2475,9 @@ export type Database = {
           contrato_id?: string
           created_at?: string
           data_vencimento?: string
-          fase_id?: string
           id?: string
           numero_parcela?: number | null
+          origem?: string
           status?: string
           total_parcelas?: number | null
           valor?: number
@@ -2617,13 +2537,6 @@ export type Database = {
             columns: ["contrato_id"]
             isOneToOne: false
             referencedRelation: "vw_contratos_kpis"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contrato_parcelas_fase_id_fkey"
-            columns: ["fase_id"]
-            isOneToOne: false
-            referencedRelation: "contrato_fases"
             referencedColumns: ["id"]
           },
         ]
@@ -2735,64 +2648,116 @@ export type Database = {
         Row: {
           alerta_renovacao_dias: number
           area: string
+          ciclo_pagamento: string
           clausulas_extraidas: Json | null
           created_at: string
           criado_por: string | null
+          data_assinatura: string | null
           data_fim: string | null
           data_inicio: string
+          data_primeira_parcela: string
+          data_primeira_parcela_setup: string | null
+          dia_vencimento: number | null
           doc_pendente: boolean | null
           doc_storage_path: string | null
           id: string
+          meio_pagamento_id: string | null
           numero: string
+          numero_parcelas: number | null
           objeto: string
           parceiro_id: string | null
+          parcelas_setup: number | null
+          reajuste_data: string | null
+          reajuste_indice: string | null
           renova_automaticamente: boolean
           responsavel_id: string | null
           resumo_ia: string | null
           status: string
+          tem_setup: boolean
+          tipo_contrato: string
           updated_at: string
+          valor_parcela: number
+          valor_setup: number | null
+          valor_total: number
         }
         Insert: {
           alerta_renovacao_dias?: number
           area: string
+          ciclo_pagamento: string
           clausulas_extraidas?: Json | null
           created_at?: string
           criado_por?: string | null
+          data_assinatura?: string | null
           data_fim?: string | null
           data_inicio: string
+          data_primeira_parcela: string
+          data_primeira_parcela_setup?: string | null
+          dia_vencimento?: number | null
           doc_pendente?: boolean | null
           doc_storage_path?: string | null
           id?: string
+          meio_pagamento_id?: string | null
           numero: string
+          numero_parcelas?: number | null
           objeto: string
           parceiro_id?: string | null
+          parcelas_setup?: number | null
+          reajuste_data?: string | null
+          reajuste_indice?: string | null
           renova_automaticamente?: boolean
           responsavel_id?: string | null
           resumo_ia?: string | null
           status?: string
+          tem_setup?: boolean
+          tipo_contrato: string
           updated_at?: string
+          valor_parcela: number
+          valor_setup?: number | null
+          valor_total: number
         }
         Update: {
           alerta_renovacao_dias?: number
           area?: string
+          ciclo_pagamento?: string
           clausulas_extraidas?: Json | null
           created_at?: string
           criado_por?: string | null
+          data_assinatura?: string | null
           data_fim?: string | null
           data_inicio?: string
+          data_primeira_parcela?: string
+          data_primeira_parcela_setup?: string | null
+          dia_vencimento?: number | null
           doc_pendente?: boolean | null
           doc_storage_path?: string | null
           id?: string
+          meio_pagamento_id?: string | null
           numero?: string
+          numero_parcelas?: number | null
           objeto?: string
           parceiro_id?: string | null
+          parcelas_setup?: number | null
+          reajuste_data?: string | null
+          reajuste_indice?: string | null
           renova_automaticamente?: boolean
           responsavel_id?: string | null
           resumo_ia?: string | null
           status?: string
+          tem_setup?: boolean
+          tipo_contrato?: string
           updated_at?: string
+          valor_parcela?: number
+          valor_setup?: number | null
+          valor_total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "contratos_meio_pagamento_id_fkey"
+            columns: ["meio_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contratos_parceiro_id_fkey"
             columns: ["parceiro_id"]
@@ -10023,30 +9988,51 @@ export type Database = {
           alerta_renovacao_dias: number | null
           alerta_vencimento: string | null
           area: string | null
+          ciclo_pagamento: string | null
           clausulas_extraidas: Json | null
           created_at: string | null
           criado_por: string | null
+          data_assinatura: string | null
           data_fim: string | null
           data_inicio: string | null
+          data_primeira_parcela: string | null
+          data_primeira_parcela_setup: string | null
+          dia_vencimento: number | null
           doc_pendente: boolean | null
           doc_storage_path: string | null
           id: string | null
+          meio_pagamento_id: string | null
           numero: string | null
+          numero_parcelas: number | null
           objeto: string | null
           parceiro_id: string | null
           parceiro_nome: string | null
           parcelas_atrasadas: number | null
           parcelas_pendentes: number | null
+          parcelas_setup: number | null
+          reajuste_data: string | null
+          reajuste_indice: string | null
           renova_automaticamente: boolean | null
           responsavel_id: string | null
           resumo_ia: string | null
           status: string | null
-          total_fases: number | null
-          total_parcelas: number | null
+          tem_setup: boolean | null
+          tipo_contrato: string | null
+          total_parcelas_geradas: number | null
           updated_at: string | null
-          valor_mensal_recorrente: number | null
+          valor_mensal_estimado: number | null
+          valor_parcela: number | null
+          valor_setup: number | null
+          valor_total: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contratos_meio_pagamento_id_fkey"
+            columns: ["meio_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contratos_parceiro_id_fkey"
             columns: ["parceiro_id"]
@@ -10802,9 +10788,8 @@ export type Database = {
         Args: { p_conta_id: string }
         Returns: Json
       }
-      gerar_parcelas_contratos_mes: { Args: never; Returns: undefined }
-      gerar_parcelas_fase_unica: {
-        Args: { p_fase_id: string }
+      gerar_parcelas_contrato_inicial: {
+        Args: { p_contrato_id: string }
         Returns: undefined
       }
       gerar_parcelas_previstas: {
@@ -10820,6 +10805,7 @@ export type Database = {
         Returns: number
       }
       gerar_periodos_ferias_pendentes: { Args: never; Returns: undefined }
+      gerar_proximas_parcelas_recorrentes: { Args: never; Returns: undefined }
       get_convite_by_token: { Args: { _token: string }; Returns: Json }
       get_organograma_tree: {
         Args: never
