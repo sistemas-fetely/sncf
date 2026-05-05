@@ -55,6 +55,7 @@ interface Props {
 
 export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
   const [salvando, setSalvando] = useState(false);
+  const [extraindo, setExtraindo] = useState(false);
 
   const {
     register,
