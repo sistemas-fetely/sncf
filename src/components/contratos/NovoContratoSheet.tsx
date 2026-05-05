@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -88,6 +88,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSalvo: () => void;
+  iniciarComUpload?: boolean;
 }
 
 // ─── Painel IA ───────────────────────────────────────────────
@@ -215,11 +216,26 @@ function PainelIA({ dados, parceiroCadastrado }: { dados: DadosIA; parceiroCadas
 }
 
 // ─── Componente principal ─────────────────────────────────────
-export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
+export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUpload }: Props) {
   const [salvando, setSalvando] = useState(false);
   const [extraindo, setExtraindo] = useState(false);
   const [dadosIA, setDadosIA] = useState<DadosIA | null>(null);
   const [parceiroCadastrado, setParceiroCadastrado] = useState(true);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [storagePath, setStoragePath] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && iniciarComUpload) {
+      setTimeout(() => {
+        document.getElementById("contrato-pdf-input")?.click();
+      }, 200);
+    }
+    if (!open) {
+      setDadosIA(null);
+      setPdfUrl(null);
+      setStoragePath(null);
+    }
+  }, [open, iniciarComUpload]);
 
   const { register, control, handleSubmit, watch, setValue, formState: { errors }, reset } =
     useForm<FormData>({
@@ -258,6 +274,21 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
     setExtraindo(true);
     setDadosIA(null);
     try {
+      // 1. Upload para storage
+      const path = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("contratos")
+        .upload(path, file, { contentType: "application/pdf" });
+      if (uploadErr) throw new Error("Upload: " + uploadErr.message);
+      setStoragePath(path);
+
+      // 2. Signed URL para visualização
+      const { data: signedData } = await supabase.storage
+        .from("contratos")
+        .createSignedUrl(path, 3600);
+      if (signedData?.signedUrl) setPdfUrl(signedData.signedUrl);
+
+      // 3. Chama IA
       const formData = new FormData();
       formData.append("file", file);
 
@@ -334,6 +365,9 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
           data_fim: values.data_fim || null,
           renova_automaticamente: values.renova_automaticamente,
           status: "ativo",
+          doc_storage_path: storagePath,
+          clausulas_extraidas: dadosIA ? { clausulas: dadosIA.clausulas_principais ?? [] } : null,
+          resumo_ia: dadosIA?.resumo ?? null,
         })
         .select("id")
         .single();
@@ -382,14 +416,36 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className={`overflow-y-auto ${dadosIA ? "sm:max-w-5xl" : "sm:max-w-2xl"}`}>
+      <SheetContent className={`overflow-y-auto ${dadosIA ? "!max-w-[95vw] sm:!max-w-[95vw]" : "sm:max-w-2xl"}`}>
         <SheetHeader>
           <SheetTitle>Novo Contrato</SheetTitle>
         </SheetHeader>
 
-        <div className={`mt-6 grid gap-6 ${dadosIA ? "grid-cols-1 lg:grid-cols-[1fr_360px]" : "grid-cols-1"}`}>
-          {/* Formulário */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 order-2 lg:order-1">
+        <div className={`mt-6 ${dadosIA ? "grid grid-cols-[1fr_320px_1fr] gap-4" : ""}`}>
+          {/* Coluna 1: PDF original */}
+          {dadosIA && pdfUrl && (
+            <div className="border rounded-lg overflow-hidden bg-muted">
+              <div className="bg-background border-b px-3 py-2 text-xs font-medium text-muted-foreground">
+                Contrato original
+              </div>
+              <iframe
+                src={pdfUrl}
+                className="w-full"
+                style={{ height: "calc(100vh - 200px)" }}
+                title="PDF do contrato"
+              />
+            </div>
+          )}
+
+          {/* Coluna 2: Painel IA */}
+          {dadosIA && (
+            <div className="border-r pr-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 150px)" }}>
+              <PainelIA dados={dadosIA} parceiroCadastrado={parceiroCadastrado} />
+            </div>
+          )}
+
+          {/* Coluna 3: Formulário */}
+          <form onSubmit={handleSubmit(onSubmit)} className={`space-y-4 ${dadosIA ? "overflow-y-auto" : ""}`} style={dadosIA ? { maxHeight: "calc(100vh - 150px)" } : undefined}>
             {/* Upload PDF */}
             <div
               className="rounded-lg border-2 border-dashed p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
@@ -554,13 +610,6 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
               </Button>
             </div>
           </form>
-
-          {/* Painel IA lateral */}
-          {dadosIA && (
-            <aside className="order-1 lg:order-2 lg:sticky lg:top-0 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
-              <PainelIA dados={dadosIA} parceiroCadastrado={parceiroCadastrado} />
-            </aside>
-          )}
         </div>
       </SheetContent>
     </Sheet>

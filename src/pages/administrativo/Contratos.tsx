@@ -18,6 +18,7 @@ import {
   Search,
   AlertTriangle,
   CheckCircle2,
+  FileUp,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ export default function Contratos() {
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
   const [novoOpen, setNovoOpen] = useState(false);
+  const [iniciarComUpload, setIniciarComUpload] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["contratos"],
@@ -136,10 +138,16 @@ export default function Contratos() {
             Sem contrato cadastrado, pagamento recorrente não existe.
           </p>
         </div>
-        <Button onClick={() => setNovoOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Contrato
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { setIniciarComUpload(true); setNovoOpen(true); }}>
+            <FileUp className="h-4 w-4 mr-2" />
+            Importar PDF
+          </Button>
+          <Button onClick={() => { setIniciarComUpload(false); setNovoOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Contrato
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -253,9 +261,11 @@ export default function Contratos() {
       <NovoContratoSheet
         open={novoOpen}
         onOpenChange={setNovoOpen}
+        iniciarComUpload={iniciarComUpload}
         onSalvo={() => {
           qc.invalidateQueries({ queryKey: ["contratos"] });
           setNovoOpen(false);
+          setIniciarComUpload(false);
         }}
       />
     </div>
