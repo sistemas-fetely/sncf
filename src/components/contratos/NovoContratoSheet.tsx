@@ -421,9 +421,31 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
           <SheetTitle>Novo Contrato</SheetTitle>
         </SheetHeader>
 
-        <div className={`mt-6 grid gap-6 ${dadosIA ? "grid-cols-1 lg:grid-cols-[1fr_360px]" : "grid-cols-1"}`}>
-          {/* Formulário */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 order-2 lg:order-1">
+        <div className={`mt-6 ${dadosIA ? "grid grid-cols-[1fr_320px_1fr] gap-4" : ""}`}>
+          {/* Coluna 1: PDF original */}
+          {dadosIA && pdfUrl && (
+            <div className="border rounded-lg overflow-hidden bg-muted">
+              <div className="bg-background border-b px-3 py-2 text-xs font-medium text-muted-foreground">
+                Contrato original
+              </div>
+              <iframe
+                src={pdfUrl}
+                className="w-full"
+                style={{ height: "calc(100vh - 200px)" }}
+                title="PDF do contrato"
+              />
+            </div>
+          )}
+
+          {/* Coluna 2: Painel IA */}
+          {dadosIA && (
+            <div className="border-r pr-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 150px)" }}>
+              <PainelIA dados={dadosIA} parceiroCadastrado={parceiroCadastrado} />
+            </div>
+          )}
+
+          {/* Coluna 3: Formulário */}
+          <form onSubmit={handleSubmit(onSubmit)} className={`space-y-4 ${dadosIA ? "overflow-y-auto" : ""}`} style={dadosIA ? { maxHeight: "calc(100vh - 150px)" } : undefined}>
             {/* Upload PDF */}
             <div
               className="rounded-lg border-2 border-dashed p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
