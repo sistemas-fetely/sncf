@@ -36,10 +36,11 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useParametros } from "@/hooks/useParametros";
 import * as pdfjsLib from "pdfjs-dist";
+// Vite bundla o worker como asset local — não depende de CDN
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-// Worker do pdfjs — versão 4.0.379 fixa (estável, testada)
 if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.js";
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 }
 
 // ─── Tipos IA ────────────────────────────────────────────────
