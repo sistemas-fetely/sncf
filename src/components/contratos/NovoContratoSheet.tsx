@@ -610,13 +610,6 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
               </Button>
             </div>
           </form>
-
-          {/* Painel IA lateral */}
-          {dadosIA && (
-            <aside className="order-1 lg:order-2 lg:sticky lg:top-0 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
-              <PainelIA dados={dadosIA} parceiroCadastrado={parceiroCadastrado} />
-            </aside>
-          )}
         </div>
       </SheetContent>
     </Sheet>
