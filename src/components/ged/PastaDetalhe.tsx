@@ -751,12 +751,231 @@ function NovoContratoLogicoDialog({
 
 // ─── Aba Documentos (placeholder) ────────────────────────────
 function AbaDocumentos({ pastaId }: { pastaId: string }) {
-  // Por enquanto mensagem — upload e lista vão para Fase D quando integramos
+  const qc = useQueryClient();
+  const [arquivos, setArquivos] = useState<File[]>([]);
+  const [uploads, setUploads] = useState<Record<string, { status: string; erro?: string }>>({});
+
+  const { data: documentos = [], isLoading } = useQuery({
+    queryKey: ["pasta-documentos", pastaId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("ged_documentos")
+        .select("*")
+        .eq("pasta_id", pastaId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function processarArquivo(file: File) {
+    const key = file.name + "_" + file.size;
+    setUploads((u) => ({ ...u, [key]: { status: "subindo" } }));
+
+    try {
+      const path = `${pastaId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error: upErr } = await supabase.storage
+        .from("ged")
+        .upload(path, file, { contentType: file.type });
+      if (upErr) throw new Error("Upload: " + upErr.message);
+
+      setUploads((u) => ({ ...u, [key]: { status: "lendo_ia" } }));
+
+      // IA classifica (só PDF)
+      let dadosIA: any = null;
+      let nomeFinal = file.name.replace(/\.[^/.]+$/, "");
+      let tipoDoc = "outro";
+      let resumoIA: string | null = null;
+      let confianca: string | null = null;
+
+      if (file.type === "application/pdf") {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await supabase.functions.invoke("classificar-documento-ged", {
+          body: formData,
+        });
+        if (!res.error && res.data) {
+          dadosIA = res.data;
+          if (dadosIA.nome_sugerido) nomeFinal = dadosIA.nome_sugerido;
+          if (dadosIA.tipo_documento) tipoDoc = dadosIA.tipo_documento;
+          if (dadosIA.resumo) resumoIA = dadosIA.resumo;
+          if (dadosIA.confianca) confianca = dadosIA.confianca;
+        }
+      }
+
+      // Salva documento
+      const { error: errDoc } = await (supabase as any).from("ged_documentos").insert({
+        pasta_id: pastaId,
+        nome: nomeFinal,
+        arquivo_original: file.name,
+        tipo_documento: tipoDoc,
+        storage_path: path,
+        mime_type: file.type,
+        tamanho_bytes: file.size,
+        resumo_ia: resumoIA,
+        classificacao_ia: dadosIA,
+        confianca_ia: confianca,
+        tags: dadosIA?.tags_sugeridas ?? [],
+      });
+
+      if (errDoc) throw errDoc;
+
+      setUploads((u) => ({ ...u, [key]: { status: "salvo" } }));
+      qc.invalidateQueries({ queryKey: ["pasta-documentos", pastaId] });
+      qc.invalidateQueries({ queryKey: ["ged-pastas"] });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUploads((u) => ({ ...u, [key]: { status: "erro", erro: msg } }));
+    }
+  }
+
+  function handleArquivos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setArquivos((prev) => [...prev, ...files]);
+    // Processa em paralelo
+    files.forEach((f) => processarArquivo(f));
+    e.target.value = "";
+  }
+
+  async function excluir(doc: any) {
+    if (!confirm(`Excluir "${doc.nome}"?`)) return;
+    try {
+      await supabase.storage.from("ged").remove([doc.storage_path]);
+      const { error } = await (supabase as any)
+        .from("ged_documentos")
+        .delete()
+        .eq("id", doc.id);
+      if (error) throw error;
+      toast.success("Documento excluído");
+      qc.invalidateQueries({ queryKey: ["pasta-documentos", pastaId] });
+      qc.invalidateQueries({ queryKey: ["ged-pastas"] });
+    } catch (e) {
+      toast.error("Erro: " + (e instanceof Error ? e.message : String(e)));
+    }
+  }
+
+  function statusBadge(s: string) {
+    if (s === "subindo")
+      return (
+        <Badge variant="outline" className="gap-1">
+          <Loader2 className="h-3 w-3 animate-spin" /> Subindo
+        </Badge>
+      );
+    if (s === "lendo_ia")
+      return (
+        <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700">
+          <Loader2 className="h-3 w-3 animate-spin" /> Lendo IA
+        </Badge>
+      );
+    if (s === "salvo")
+      return <Badge className="bg-green-100 text-green-700">✓ Salvo</Badge>;
+    if (s === "erro") return <Badge variant="destructive">Erro</Badge>;
+    return null;
+  }
+
   return (
-    <div className="text-center py-12 text-muted-foreground">
-      <Files className="h-10 w-10 mx-auto mb-3 opacity-50" />
-      <p className="text-sm">Documentos da pasta — gerenciados na visão antiga.</p>
-      <p className="text-xs mt-2">Em breve: upload integrado nesta aba.</p>
+    <div className="space-y-4 max-w-5xl">
+      {/* Upload area */}
+      <div
+        className="rounded-lg border-2 border-dashed p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => document.getElementById(`upload-${pastaId}`)?.click()}
+      >
+        <input
+          id={`upload-${pastaId}`}
+          type="file"
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
+          className="hidden"
+          onChange={handleArquivos}
+        />
+        <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          Clique para selecionar 1 ou mais arquivos
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          PDF, imagem ou Office · IA classifica automaticamente
+        </p>
+      </div>
+
+      {/* Uploads em andamento */}
+      {arquivos.length > 0 && Object.keys(uploads).length > 0 && (
+        <div className="space-y-2">
+          {arquivos.map((f) => {
+            const key = f.name + "_" + f.size;
+            const u = uploads[key];
+            if (!u || u.status === "salvo") return null;
+            return (
+              <div
+                key={key}
+                className="border rounded-lg p-3 flex items-center gap-3 bg-muted/30"
+              >
+                <FileText className="h-5 w-5 text-primary" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm truncate">{f.name}</p>
+                  {u.erro && (
+                    <p className="text-xs text-destructive">{u.erro}</p>
+                  )}
+                </div>
+                {statusBadge(u.status)}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Lista de documentos da pasta */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      )}
+
+      {!isLoading && documentos.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          <Files className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          <p className="text-sm">Nenhum documento ainda. Suba o primeiro acima.</p>
+        </div>
+      )}
+
+      {!isLoading && documentos.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {documentos.map((d: any) => (
+            <div
+              key={d.id}
+              className="border rounded-lg p-4 hover:border-primary transition-colors bg-card"
+            >
+              <div className="flex items-start gap-3">
+                <FileText className="h-7 w-7 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-sm truncate">{d.nome}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {d.tipo_documento}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDateBR(d.created_at)}
+                    </span>
+                  </div>
+                  {d.resumo_ia && (
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                      {d.resumo_ia}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => excluir(d)}
+                  title="Excluir"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
