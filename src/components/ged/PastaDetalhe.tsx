@@ -754,6 +754,7 @@ function AbaDocumentos({ pastaId }: { pastaId: string }) {
   const qc = useQueryClient();
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [uploads, setUploads] = useState<Record<string, { status: string; erro?: string }>>({});
+  const [docVisualizando, setDocVisualizando] = useState<any | null>(null);
 
   const { data: documentos = [], isLoading } = useQuery({
     queryKey: ["pasta-documentos", pastaId],
@@ -943,7 +944,8 @@ function AbaDocumentos({ pastaId }: { pastaId: string }) {
           {documentos.map((d: any) => (
             <div
               key={d.id}
-              className="border rounded-lg p-4 hover:border-primary transition-colors bg-card"
+              className="border rounded-lg p-4 hover:border-primary cursor-pointer transition-colors bg-card"
+              onClick={() => setDocVisualizando(d)}
             >
               <div className="flex items-start gap-3">
                 <FileText className="h-7 w-7 text-primary shrink-0" />
@@ -966,7 +968,10 @@ function AbaDocumentos({ pastaId }: { pastaId: string }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => excluir(d)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    excluir(d);
+                  }}
                   title="Excluir"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -976,7 +981,226 @@ function AbaDocumentos({ pastaId }: { pastaId: string }) {
           ))}
         </div>
       )}
+
+      {/* Sheet de visualização do documento */}
+      <DocumentoVisualizadorSheet
+        documento={docVisualizando}
+        onClose={() => setDocVisualizando(null)}
+      />
     </div>
+  );
+}
+
+// ─── Sheet: Visualizador de documento ─────────────────────────
+function DocumentoVisualizadorSheet({
+  documento,
+  onClose,
+}: {
+  documento: any | null;
+  onClose: () => void;
+}) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  // Carrega URL assinada quando abre
+  useState(() => {
+    if (documento) {
+      supabase.storage
+        .from("ged")
+        .createSignedUrl(documento.storage_path, 3600)
+        .then(({ data }) => {
+          if (data?.signedUrl) setSignedUrl(data.signedUrl);
+        });
+    } else {
+      setSignedUrl(null);
+    }
+  });
+
+  const aberto = !!documento;
+  const isPdf = documento?.mime_type === "application/pdf";
+  const isImagem = documento?.mime_type?.startsWith("image/");
+
+  return (
+    <Dialog open={aberto} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-5xl max-h-[90vh] p-0 flex flex-col overflow-hidden">
+        {documento && (
+          <>
+            <DialogHeader className="px-6 py-4 border-b">
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                {documento.nome}
+              </DialogTitle>
+              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                <Badge variant="outline" className="capitalize">
+                  {documento.tipo_documento}
+                </Badge>
+                <span>·</span>
+                <span>{formatDateBR(documento.created_at)}</span>
+                {signedUrl && (
+                  <>
+                    <span>·</span>
+                    <a
+                      href={signedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Abrir em nova aba
+                    </a>
+                  </>
+                )}
+              </div>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-hidden grid grid-cols-[1fr_320px]">
+              {/* Preview */}
+              <div className="overflow-y-auto bg-muted">
+                {!signedUrl && (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                )}
+                {signedUrl && isPdf && (
+                  <iframe
+                    src={signedUrl}
+                    className="w-full h-full"
+                    title={documento.nome}
+                  />
+                )}
+                {signedUrl && isImagem && (
+                  <div className="p-4 flex items-center justify-center">
+                    <img
+                      src={signedUrl}
+                      alt={documento.nome}
+                      className="max-w-full max-h-[70vh] rounded"
+                    />
+                  </div>
+                )}
+                {signedUrl && !isPdf && !isImagem && (
+                  <div className="p-8 text-center">
+                    <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Preview não disponível para este formato
+                    </p>
+                    <a
+                      href={signedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block mt-3 text-sm text-primary hover:underline"
+                    >
+                      Abrir em nova aba
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Painel lateral com dados IA */}
+              <div className="overflow-y-auto border-l p-4 space-y-4 text-sm">
+                {documento.resumo_ia && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+                    <p className="font-medium text-blue-800 text-xs uppercase tracking-wide mb-1">
+                      Resumo IA
+                    </p>
+                    <p className="text-blue-700 text-xs leading-relaxed">
+                      {documento.resumo_ia}
+                    </p>
+                  </div>
+                )}
+
+                {documento.classificacao_ia?.pontos_principais?.length > 0 && (
+                  <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
+                    <p className="font-medium text-yellow-800 text-xs uppercase tracking-wide mb-2">
+                      Pontos principais
+                    </p>
+                    <ul className="space-y-1.5">
+                      {documento.classificacao_ia.pontos_principais.map(
+                        (p: string, i: number) => (
+                          <li
+                            key={i}
+                            className="text-yellow-700 text-xs flex gap-1.5"
+                          >
+                            <span>•</span>
+                            <span>{p}</span>
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="space-y-2 text-xs">
+                  {documento.classificacao_ia?.valor && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Valor</span>
+                      <span className="font-medium">
+                        R$ {Number(documento.classificacao_ia.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+                  {documento.classificacao_ia?.data_emissao && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Data emissão</span>
+                      <span className="font-medium">
+                        {formatDateBR(documento.classificacao_ia.data_emissao)}
+                      </span>
+                    </div>
+                  )}
+                  {documento.classificacao_ia?.data_validade && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Validade</span>
+                      <span className="font-medium">
+                        {formatDateBR(documento.classificacao_ia.data_validade)}
+                      </span>
+                    </div>
+                  )}
+                  {documento.classificacao_ia?.numero_documento && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Número</span>
+                      <span className="font-medium font-mono">
+                        {documento.classificacao_ia.numero_documento}
+                      </span>
+                    </div>
+                  )}
+                  {documento.tamanho_bytes && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tamanho</span>
+                      <span className="font-medium">
+                        {(documento.tamanho_bytes / 1024).toFixed(1)} KB
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {documento.tags && documento.tags.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1.5">
+                      Tags
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {documento.tags.map((t: string) => (
+                        <span
+                          key={t}
+                          className="text-xs bg-muted px-2 py-0.5 rounded"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {documento.confianca_ia && (
+                  <p className="text-xs text-center text-muted-foreground pt-2 border-t">
+                    {documento.confianca_ia === "alta"
+                      ? "✅ Alta confiança"
+                      : "⚠️ Baixa confiança"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
