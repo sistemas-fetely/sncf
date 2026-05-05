@@ -449,7 +449,21 @@ function NovaPastaDialog({
   );
 }
 
-// ─── Dialog: Upload ──────────────────────────────────────────
+// ─── Dialog: Upload (múltiplo) ───────────────────────────────
+interface ItemUpload {
+  id: string;                    // id local
+  file: File;
+  status: "subindo" | "lendo_ia" | "pronto" | "erro" | "salvando" | "salvo";
+  storagePath: string | null;
+  dadosIA: any;
+  // Campos editáveis
+  nome: string;
+  tipoDoc: string;
+  parceiroId: string;
+  tags: string;
+  erro: string | null;
+}
+
 function UploadDocumentoDialog({
   open,
   onOpenChange,
@@ -463,18 +477,9 @@ function UploadDocumentoDialog({
   pastas: Pasta[];
   onSalvo: () => void;
 }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [extraindo, setExtraindo] = useState(false);
-  const [salvando, setSalvando] = useState(false);
-  const [dadosIA, setDadosIA] = useState<any>(null);
-  const [storagePath, setStoragePath] = useState<string | null>(null);
-
-  // Campos editáveis
-  const [nome, setNome] = useState("");
-  const [tipoDoc, setTipoDoc] = useState("outro");
+  const [itens, setItens] = useState<ItemUpload[]>([]);
   const [pastaId, setPastaId] = useState<string>(pastaIdInicial ?? "");
-  const [parceiroId, setParceiroId] = useState<string>("");
-  const [tags, setTags] = useState<string>("");
+  const [salvandoTudo, setSalvandoTudo] = useState(false);
 
   const { data: tipos = [] } = useParametros("tipo_documento_ged");
   const { data: parceiros = [] } = useQuery({
@@ -489,106 +494,186 @@ function UploadDocumentoDialog({
   });
 
   function reset() {
-    setFile(null);
-    setDadosIA(null);
-    setStoragePath(null);
-    setNome("");
-    setTipoDoc("outro");
+    setItens([]);
     setPastaId(pastaIdInicial ?? "");
-    setParceiroId("");
-    setTags("");
   }
 
-  async function handleArquivo(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setFile(f);
-    setNome(f.name.replace(/\.[^/.]+$/, ""));
-
-    setExtraindo(true);
+  async function processarArquivo(item: ItemUpload) {
     try {
-      // Upload no storage
-      const path = `${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      // 1. Upload storage
+      const path = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${item.file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const { error: upErr } = await supabase.storage
         .from("ged")
-        .upload(path, f, { contentType: f.type });
+        .upload(path, item.file, { contentType: item.file.type });
       if (upErr) throw new Error("Upload: " + upErr.message);
-      setStoragePath(path);
 
-      // IA classifica (só PDF por enquanto)
-      if (f.type === "application/pdf") {
+      setItens((prev) =>
+        prev.map((i) =>
+          i.id === item.id
+            ? { ...i, status: "lendo_ia", storagePath: path }
+            : i
+        )
+      );
+
+      // 2. IA classifica (só PDF)
+      if (item.file.type === "application/pdf") {
         const formData = new FormData();
-        formData.append("file", f);
-        const res = await supabase.functions.invoke("classificar-documento-ged", {
-          body: formData,
-        });
+        formData.append("file", item.file);
+        const res = await supabase.functions.invoke(
+          "classificar-documento-ged",
+          { body: formData }
+        );
         if (!res.error && res.data) {
           const dados = res.data;
-          setDadosIA(dados);
-          if (dados.nome_sugerido) setNome(dados.nome_sugerido);
-          if (dados.tipo_documento) setTipoDoc(dados.tipo_documento);
-          if (dados.tags_sugeridas?.length) {
-            setTags(dados.tags_sugeridas.join(", "));
-          }
-
+          let parceiroIdEncontrado = "";
           if (dados.parceiro_cnpj) {
             const { data: p } = await (supabase as any)
               .from("parceiros_comerciais")
               .select("id")
               .eq("cnpj", String(dados.parceiro_cnpj).replace(/\D/g, ""))
               .maybeSingle();
-            if (p?.id) setParceiroId(p.id);
+            if (p?.id) parceiroIdEncontrado = p.id;
           }
+          setItens((prev) =>
+            prev.map((i) =>
+              i.id === item.id
+                ? {
+                    ...i,
+                    status: "pronto",
+                    dadosIA: dados,
+                    nome: dados.nome_sugerido ?? i.nome,
+                    tipoDoc: dados.tipo_documento ?? "outro",
+                    tags: dados.tags_sugeridas?.join(", ") ?? "",
+                    parceiroId: parceiroIdEncontrado || i.parceiroId,
+                  }
+                : i
+            )
+          );
+        } else {
+          setItens((prev) =>
+            prev.map((i) =>
+              i.id === item.id ? { ...i, status: "pronto" } : i
+            )
+          );
         }
+      } else {
+        setItens((prev) =>
+          prev.map((i) =>
+            i.id === item.id ? { ...i, status: "pronto" } : i
+          )
+        );
       }
     } catch (err) {
-      toast.error("Erro: " + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      setExtraindo(false);
+      const msg = err instanceof Error ? err.message : String(err);
+      setItens((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, status: "erro", erro: msg } : i
+        )
+      );
     }
   }
 
-  async function salvar() {
-    if (!file || !storagePath) {
-      toast.error("Suba um arquivo primeiro");
-      return;
-    }
-    if (!nome.trim()) {
-      toast.error("Nome obrigatório");
-      return;
-    }
-    setSalvando(true);
-    try {
-      const tagsArr = tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
+  async function handleArquivos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
 
-      const { error } = await (supabase as any).from("ged_documentos").insert({
-        pasta_id: pastaId || null,
-        nome: nome.trim(),
-        arquivo_original: file.name,
-        tipo_documento: tipoDoc,
-        parceiro_id: parceiroId || null,
-        storage_path: storagePath,
-        mime_type: file.type,
-        tamanho_bytes: file.size,
-        tags: tagsArr,
-        resumo_ia: dadosIA?.resumo ?? null,
-        classificacao_ia: dadosIA ?? null,
-        confianca_ia: dadosIA?.confianca ?? null,
-      });
+    const novos: ItemUpload[] = files.map((f) => ({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      file: f,
+      status: "subindo",
+      storagePath: null,
+      dadosIA: null,
+      nome: f.name.replace(/\.[^/.]+$/, ""),
+      tipoDoc: "outro",
+      parceiroId: "",
+      tags: "",
+      erro: null,
+    }));
 
-      if (error) throw error;
-      toast.success("Documento salvo no GED");
-      reset();
-      onSalvo();
-    } catch (e) {
-      toast.error("Erro: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setSalvando(false);
-    }
+    setItens((prev) => [...prev, ...novos]);
+
+    // Processa em paralelo
+    novos.forEach((item) => processarArquivo(item));
+
+    // Limpa input para permitir re-upload
+    e.target.value = "";
   }
+
+  function atualizarItem(id: string, campos: Partial<ItemUpload>) {
+    setItens((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, ...campos } : i))
+    );
+  }
+
+  function removerItem(id: string) {
+    setItens((prev) => prev.filter((i) => i.id !== id));
+  }
+
+  async function salvarTodos() {
+    const prontos = itens.filter((i) => i.status === "pronto");
+    if (prontos.length === 0) {
+      toast.error("Nenhum documento pronto para salvar");
+      return;
+    }
+
+    setSalvandoTudo(true);
+    let salvos = 0;
+    let erros = 0;
+
+    for (const item of prontos) {
+      atualizarItem(item.id, { status: "salvando" });
+      try {
+        if (!item.storagePath) throw new Error("storage_path ausente");
+        const tagsArr = item.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+
+        const { error } = await (supabase as any).from("ged_documentos").insert({
+          pasta_id: pastaId || null,
+          nome: item.nome.trim(),
+          arquivo_original: item.file.name,
+          tipo_documento: item.tipoDoc,
+          parceiro_id: item.parceiroId || null,
+          storage_path: item.storagePath,
+          mime_type: item.file.type,
+          tamanho_bytes: item.file.size,
+          tags: tagsArr,
+          resumo_ia: item.dadosIA?.resumo ?? null,
+          classificacao_ia: item.dadosIA ?? null,
+          confianca_ia: item.dadosIA?.confianca ?? null,
+        });
+
+        if (error) throw error;
+        atualizarItem(item.id, { status: "salvo" });
+        salvos++;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        atualizarItem(item.id, { status: "erro", erro: msg });
+        erros++;
+      }
+    }
+
+    setSalvandoTudo(false);
+
+    if (salvos > 0) {
+      toast.success(
+        `${salvos} documento${salvos > 1 ? "s" : ""} salvo${
+          salvos > 1 ? "s" : ""
+        }${erros > 0 ? ` · ${erros} com erro` : ""}`
+      );
+    }
+    if (erros > 0 && salvos === 0) {
+      toast.error(`${erros} erro${erros > 1 ? "s" : ""} ao salvar`);
+    }
+
+    if (salvos > 0) onSalvo();
+  }
+
+  const totalProntos = itens.filter((i) => i.status === "pronto").length;
+  const algumProcessando = itens.some(
+    (i) => i.status === "subindo" || i.status === "lendo_ia"
+  );
 
   return (
     <Dialog
@@ -598,154 +683,73 @@ function UploadDocumentoDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Upload de documento</DialogTitle>
+          <DialogTitle>Upload de documentos</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Upload */}
-          {!file ? (
-            <div
-              className="rounded-lg border-2 border-dashed p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => document.getElementById("ged-upload-input")?.click()}
-            >
-              <input
-                id="ged-upload-input"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
-                className="hidden"
-                onChange={handleArquivo}
-              />
-              <Upload className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Clique para subir um arquivo (PDF, imagem ou Office)
+          {/* Pasta destino comum */}
+          <div className="space-y-1">
+            <Label>Pasta destino para todos</Label>
+            <Select value={pastaId} onValueChange={setPastaId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sem pasta (avulso)" />
+              </SelectTrigger>
+              <SelectContent>
+                {pastas.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Upload area */}
+          <div
+            className="rounded-lg border-2 border-dashed p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => document.getElementById("ged-upload-input")?.click()}
+          >
+            <input
+              id="ged-upload-input"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
+              multiple
+              className="hidden"
+              onChange={handleArquivos}
+            />
+            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Clique para selecionar 1 ou mais arquivos
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              PDF, imagem ou Office · Máx 8MB cada · IA classifica em paralelo
+            </p>
+          </div>
+
+          {/* Lista de arquivos */}
+          {itens.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                {itens.length} arquivo{itens.length > 1 ? "s" : ""}
+                {algumProcessando && (
+                  <span className="text-muted-foreground ml-2 text-xs">
+                    (processando...)
+                  </span>
+                )}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">Máx 8MB</p>
-            </div>
-          ) : (
-            <div className="rounded-lg border p-3 flex items-center gap-3 bg-muted/30">
-              <FileText className="h-6 w-6 text-primary" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{file.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatBytes(file.size)}
-                </p>
-              </div>
-              {extraindo && (
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  reset();
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-
-          {/* IA insights */}
-          {dadosIA?.resumo && (
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-2">
-              <div className="flex items-center gap-2 font-medium text-blue-800 text-sm">
-                <Info className="h-4 w-4" />
-                Resumo IA
-              </div>
-              <p className="text-sm text-blue-700">{dadosIA.resumo}</p>
-              {dadosIA.pontos_principais?.length > 0 && (
-                <details>
-                  <summary className="text-xs text-blue-600 cursor-pointer">
-                    Pontos principais
-                  </summary>
-                  <ul className="mt-2 space-y-1">
-                    {dadosIA.pontos_principais.map((p: string, i: number) => (
-                      <li
-                        key={i}
-                        className="text-xs text-blue-700 flex gap-2"
-                      >
-                        <span>•</span>
-                        <span>{p}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </div>
-          )}
-
-          {/* Campos editáveis */}
-          {file && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>Nome *</Label>
-                  <Input
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>Tipo *</Label>
-                  <Select value={tipoDoc} onValueChange={setTipoDoc}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tipos.map((t) => (
-                        <SelectItem key={t.id} value={t.valor}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>Pasta</Label>
-                  <Select value={pastaId} onValueChange={setPastaId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sem pasta (avulso)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {pastas.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Parceiro</Label>
-                  <Select value={parceiroId} onValueChange={setParceiroId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Opcional" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(parceiros as any[]).map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.razao_social}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label>Tags (separadas por vírgula)</Label>
-                <Input
-                  placeholder="reforma, escritorio, sp"
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
+              {itens.map((item) => (
+                <ItemUploadCard
+                  key={item.id}
+                  item={item}
+                  tipos={tipos as any[]}
+                  parceiros={parceiros as any[]}
+                  onAtualizar={(c) => atualizarItem(item.id, c)}
+                  onRemover={() => removerItem(item.id)}
                 />
-              </div>
-            </>
+              ))}
+            </div>
           )}
         </div>
 
@@ -756,17 +760,174 @@ function UploadDocumentoDialog({
               reset();
               onOpenChange(false);
             }}
+            disabled={salvandoTudo}
           >
-            Cancelar
+            {itens.some((i) => i.status === "salvo") ? "Fechar" : "Cancelar"}
           </Button>
-          <Button onClick={salvar} disabled={!file || salvando || extraindo}>
-            {salvando ? "Salvando..." : "Salvar"}
+          <Button
+            onClick={salvarTodos}
+            disabled={totalProntos === 0 || salvandoTudo || algumProcessando}
+          >
+            {salvandoTudo
+              ? "Salvando..."
+              : totalProntos === 0
+                ? "Salvar"
+                : `Salvar ${totalProntos} documento${totalProntos > 1 ? "s" : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+// ─── Card de cada arquivo na lista ────────────────────────────
+function ItemUploadCard({
+  item,
+  tipos,
+  parceiros,
+  onAtualizar,
+  onRemover,
+}: {
+  item: ItemUpload;
+  tipos: any[];
+  parceiros: any[];
+  onAtualizar: (campos: Partial<ItemUpload>) => void;
+  onRemover: () => void;
+}) {
+  const [expandido, setExpandido] = useState(false);
+
+  const statusBadge = () => {
+    if (item.status === "subindo")
+      return (
+        <Badge variant="outline" className="gap-1">
+          <Loader2 className="h-3 w-3 animate-spin" /> Subindo
+        </Badge>
+      );
+    if (item.status === "lendo_ia")
+      return (
+        <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700">
+          <Loader2 className="h-3 w-3 animate-spin" /> Lendo com IA
+        </Badge>
+      );
+    if (item.status === "pronto")
+      return <Badge className="bg-green-100 text-green-700">Pronto</Badge>;
+    if (item.status === "salvando")
+      return (
+        <Badge variant="outline" className="gap-1">
+          <Loader2 className="h-3 w-3 animate-spin" /> Salvando
+        </Badge>
+      );
+    if (item.status === "salvo")
+      return <Badge className="bg-emerald-100 text-emerald-800">✓ Salvo</Badge>;
+    if (item.status === "erro")
+      return <Badge variant="destructive">Erro</Badge>;
+    return null;
+  };
+
+  const podeEditar = item.status === "pronto";
+
+  return (
+    <div className="rounded-lg border bg-card">
+      <div className="p-3 flex items-center gap-3">
+        <FileText className="h-5 w-5 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{item.file.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {formatBytes(item.file.size)}
+          </p>
+          {item.erro && (
+            <p className="text-xs text-destructive mt-1">{item.erro}</p>
+          )}
+        </div>
+        {statusBadge()}
+        {podeEditar && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpandido(!expandido)}
+          >
+            {expandido ? "Ocultar" : "Editar"}
+          </Button>
+        )}
+        {item.status !== "salvo" && item.status !== "salvando" && (
+          <Button variant="ghost" size="sm" onClick={onRemover}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      {expandido && podeEditar && (
+        <div className="border-t p-3 space-y-3 bg-muted/20">
+          {item.dadosIA?.resumo && (
+            <div className="text-xs bg-blue-50 border border-blue-200 rounded p-2 text-blue-700">
+              <strong>IA:</strong> {item.dadosIA.resumo}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Nome</Label>
+              <Input
+                className="h-8"
+                value={item.nome}
+                onChange={(e) => onAtualizar({ nome: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tipo</Label>
+              <Select
+                value={item.tipoDoc}
+                onValueChange={(v) => onAtualizar({ tipoDoc: v })}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {tipos.map((t) => (
+                    <SelectItem key={t.id} value={t.valor}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Parceiro</Label>
+              <Select
+                value={item.parceiroId}
+                onValueChange={(v) => onAtualizar({ parceiroId: v })}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Opcional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {parceiros.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.razao_social}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tags (vírgula)</Label>
+              <Input
+                className="h-8"
+                placeholder="reforma, escritorio"
+                value={item.tags}
+                onChange={(e) => onAtualizar({ tags: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // ─── Sheet: Detalhe do documento ─────────────────────────────
 function DocumentoDetalheSheet({
