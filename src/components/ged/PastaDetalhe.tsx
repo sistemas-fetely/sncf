@@ -1017,8 +1017,17 @@ function DocumentoVisualizadorSheet({
   }, [documento]);
 
   const aberto = !!documento;
-  const isPdf = documento?.mime_type === "application/pdf";
-  const isImagem = documento?.mime_type?.startsWith("image/");
+
+  // Detecta tipo por mime_type OR pela extensão do arquivo original
+  const ext = (documento?.arquivo_original ?? documento?.nome ?? "")
+    .toLowerCase()
+    .split(".")
+    .pop();
+  const isPdf =
+    documento?.mime_type === "application/pdf" || ext === "pdf";
+  const isImagem =
+    documento?.mime_type?.startsWith("image/") ||
+    ["jpg", "jpeg", "png", "gif", "webp", "bmp"].includes(ext ?? "");
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !v && onClose()}>
@@ -1061,19 +1070,56 @@ function DocumentoVisualizadorSheet({
                   </div>
                 )}
                 {signedUrl && isPdf && (
-                  <iframe
-                    src={signedUrl}
+                  <object
+                    data={signedUrl}
+                    type="application/pdf"
                     className="w-full h-full"
-                    title={documento.nome}
-                  />
+                  >
+                    <div className="p-8 text-center h-full flex flex-col items-center justify-center">
+                      <FileText className="h-12 w-12 mb-3 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Não foi possível pré-visualizar o PDF aqui.
+                      </p>
+                      <a
+                        href={signedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Abrir em nova aba
+                      </a>
+                    </div>
+                  </object>
                 )}
-                {signedUrl && isImagem && (
-                  <div className="p-4 flex items-center justify-center">
+                {signedUrl && !isPdf && isImagem && (
+                  <div className="p-4 flex items-center justify-center h-full">
                     <img
                       src={signedUrl}
                       alt={documento.nome}
-                      className="max-w-full max-h-[70vh] rounded"
+                      className="max-w-full max-h-full rounded"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = "flex";
+                      }}
                     />
+                    <div
+                      className="hidden flex-col items-center text-center"
+                      style={{ display: "none" }}
+                    >
+                      <FileText className="h-12 w-12 mb-3 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Imagem não pôde ser carregada
+                      </p>
+                      <a
+                        href={signedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Abrir em nova aba
+                      </a>
+                    </div>
                   </div>
                 )}
                 {signedUrl && !isPdf && !isImagem && (
