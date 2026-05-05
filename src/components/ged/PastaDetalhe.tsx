@@ -200,6 +200,7 @@ function AbaContrato({ pasta, onAtualizado }: { pasta: Pasta; onAtualizado: () =
   const [novoContratoOpen, setNovoContratoOpen] = useState(false);
   const [gerandoIA, setGerandoIA] = useState(false);
   const [dadosIA, setDadosIA] = useState<any>(null);
+  const [contratoEditando, setContratoEditando] = useState<ContratoLogico | null>(null);
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["pasta-contratos", pasta.id],
@@ -278,10 +279,20 @@ function AbaContrato({ pasta, onAtualizado }: { pasta: Pasta; onAtualizado: () =
           </h3>
           <div className="space-y-3">
             {vigentes.map((c) => (
-              <ContratoCard key={c.id} contrato={c} pasta={pasta} onAtualizado={() => {
-                qc.invalidateQueries({ queryKey: ["pasta-contratos", pasta.id] });
-                onAtualizado();
-              }} />
+              <ContratoCard
+                key={c.id}
+                contrato={c}
+                pasta={pasta}
+                onAtualizado={() => {
+                  qc.invalidateQueries({ queryKey: ["pasta-contratos", pasta.id] });
+                  onAtualizado();
+                }}
+                onEditar={() => {
+                  setDadosIA(null);
+                  setContratoEditando(c);
+                  setNovoContratoOpen(true);
+                }}
+              />
             ))}
           </div>
         </div>
@@ -335,15 +346,23 @@ function AbaContrato({ pasta, onAtualizado }: { pasta: Pasta; onAtualizado: () =
       {/* Dialog: Novo/Editar Contrato Lógico */}
       <NovoContratoLogicoDialog
         open={novoContratoOpen}
-        onOpenChange={setNovoContratoOpen}
+        onOpenChange={(v) => {
+          setNovoContratoOpen(v);
+          if (!v) {
+            setContratoEditando(null);
+            setDadosIA(null);
+          }
+        }}
         pasta={pasta}
         dadosIA={dadosIA}
+        contratoEditando={contratoEditando}
         onSalvo={() => {
           qc.invalidateQueries({ queryKey: ["pasta-contratos", pasta.id] });
           qc.invalidateQueries({ queryKey: ["pasta-parcelas", pasta.id] });
           qc.invalidateQueries({ queryKey: ["pasta-historico", pasta.id] });
           setNovoContratoOpen(false);
           setDadosIA(null);
+          setContratoEditando(null);
           onAtualizado();
         }}
       />
@@ -356,10 +375,12 @@ function ContratoCard({
   contrato,
   pasta,
   onAtualizado,
+  onEditar,
 }: {
   contrato: ContratoLogico;
   pasta: Pasta;
   onAtualizado: () => void;
+  onEditar: () => void;
 }) {
   const qc = useQueryClient();
 
@@ -447,6 +468,10 @@ function ContratoCard({
       )}
 
       <div className="flex justify-end gap-2 pt-2 border-t">
+        <Button variant="outline" size="sm" onClick={onEditar}>
+          <FileSignature className="h-3.5 w-3.5 mr-1.5" />
+          Editar
+        </Button>
         <Button variant="outline" size="sm" onClick={encerrar}>
           <Clock className="h-3.5 w-3.5 mr-1.5" />
           Encerrar
@@ -462,15 +487,18 @@ function NovoContratoLogicoDialog({
   onOpenChange,
   pasta,
   dadosIA,
+  contratoEditando,
   onSalvo,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   pasta: Pasta;
   dadosIA: any;
+  contratoEditando?: ContratoLogico | null;
   onSalvo: () => void;
 }) {
   const [salvando, setSalvando] = useState(false);
+  const isEditando = !!contratoEditando;
 
   // Estado dos campos (preenchido por IA ou manual)
   const [numero, setNumero] = useState("");
@@ -494,9 +522,29 @@ function NovoContratoLogicoDialog({
 
   const { data: formasPag = [] } = useFormasPagamento();
 
-  // Aplica dados da IA quando recebe
+  // Aplica dados da IA OU do contrato editando quando recebe
   useEffect(() => {
-    if (dadosIA && open) {
+    if (contratoEditando && open) {
+      // Modo edição: carrega dados existentes
+      setNumero(contratoEditando.numero ?? "");
+      setDataAssinatura(contratoEditando.data_assinatura ?? "");
+      setVigenciaInicio(contratoEditando.vigencia_inicio ?? "");
+      setVigenciaFim(contratoEditando.vigencia_fim ?? "");
+      setValorTotal(String(contratoEditando.valor_total ?? 0));
+      setValorParcela(String(contratoEditando.valor_parcela ?? 0));
+      setCiclo(contratoEditando.ciclo_pagamento ?? "mensal");
+      setNumParcelas(String(contratoEditando.numero_parcelas ?? 1));
+      setDiaVenc(String(contratoEditando.dia_vencimento ?? 1));
+      setDataPrimeiraParcela(contratoEditando.data_primeira_parcela ?? "");
+      setMeioPagId(contratoEditando.meio_pagamento_id ?? "");
+      setTemSetup(contratoEditando.tem_setup ?? false);
+      setValorSetup(String(contratoEditando.valor_setup ?? 0));
+      setParcelasSetup(String(contratoEditando.parcelas_setup ?? 1));
+      setReajuste(contratoEditando.reajuste_indice ?? "nenhum");
+      setReajusteData(contratoEditando.reajuste_data ?? "");
+      setRenovaAuto(contratoEditando.renova_automaticamente ?? false);
+      setPermiteVariavel(contratoEditando.permite_valor_variavel ?? false);
+    } else if (dadosIA && open) {
       if (dadosIA.numero_sugerido) setNumero(dadosIA.numero_sugerido);
       if (dadosIA.data_assinatura) setDataAssinatura(dadosIA.data_assinatura);
       if (dadosIA.vigencia_inicio) setVigenciaInicio(dadosIA.vigencia_inicio);
@@ -523,7 +571,7 @@ function NovoContratoLogicoDialog({
       setReajuste("nenhum"); setReajusteData(""); setRenovaAuto(false); setPermiteVariavel(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dadosIA, open]);
+  }, [dadosIA, contratoEditando, open]);
 
   async function salvar() {
     if (!numero.trim()) { toast.error("Número obrigatório"); return; }
@@ -532,28 +580,66 @@ function NovoContratoLogicoDialog({
 
     setSalvando(true);
     try {
+      const payload = {
+        pasta_id: pasta.id,
+        numero: numero.trim(),
+        data_assinatura: dataAssinatura || null,
+        vigencia_inicio: vigenciaInicio,
+        vigencia_fim: vigenciaFim || null,
+        valor_total: Number(valorTotal),
+        valor_parcela: Number(valorParcela),
+        ciclo_pagamento: ciclo,
+        numero_parcelas: ciclo === "parcelado" ? Number(numParcelas) : null,
+        dia_vencimento: ciclo !== "unico" ? Number(diaVenc) : null,
+        data_primeira_parcela: dataPrimeiraParcela,
+        meio_pagamento_id: meioPagId || null,
+        tem_setup: temSetup,
+        valor_setup: temSetup ? Number(valorSetup) : null,
+        parcelas_setup: temSetup ? Number(parcelasSetup) : null,
+        reajuste_indice: reajuste,
+        reajuste_data: reajusteData || null,
+        renova_automaticamente: renovaAuto,
+        permite_valor_variavel: permiteVariavel,
+      };
+
+      if (isEditando && contratoEditando) {
+        // ─── UPDATE ───
+        const { error } = await (supabase as any)
+          .from("pasta_contratos")
+          .update(payload)
+          .eq("id", contratoEditando.id);
+        if (error) throw error;
+
+        // Registra mudanças relevantes no histórico
+        const mudancas: string[] = [];
+        if (Number(valorTotal) !== Number(contratoEditando.valor_total))
+          mudancas.push(`valor total ${formatBRL(Number(contratoEditando.valor_total))} → ${formatBRL(Number(valorTotal))}`);
+        if ((vigenciaFim || null) !== (contratoEditando.vigencia_fim || null))
+          mudancas.push(`vigência fim ${contratoEditando.vigencia_fim ?? "—"} → ${vigenciaFim || "—"}`);
+        if (numero !== contratoEditando.numero)
+          mudancas.push(`número ${contratoEditando.numero} → ${numero}`);
+
+        if (mudancas.length > 0) {
+          await (supabase as any).from("pasta_historico").insert({
+            pasta_id: pasta.id,
+            contrato_id: contratoEditando.id,
+            tipo_evento: "mudanca_valor",
+            descricao: `Contrato ${numero} editado: ${mudancas.join("; ")}`,
+            valor_anterior: Number(contratoEditando.valor_total),
+            valor_novo: Number(valorTotal),
+          });
+        }
+
+        toast.success("Contrato atualizado");
+        onSalvo();
+        return;
+      }
+
+      // ─── INSERT (novo) ───
       const { data: contrato, error } = await (supabase as any)
         .from("pasta_contratos")
         .insert({
-          pasta_id: pasta.id,
-          numero: numero.trim(),
-          data_assinatura: dataAssinatura || null,
-          vigencia_inicio: vigenciaInicio,
-          vigencia_fim: vigenciaFim || null,
-          valor_total: Number(valorTotal),
-          valor_parcela: Number(valorParcela),
-          ciclo_pagamento: ciclo,
-          numero_parcelas: ciclo === "parcelado" ? Number(numParcelas) : null,
-          dia_vencimento: ciclo !== "unico" ? Number(diaVenc) : null,
-          data_primeira_parcela: dataPrimeiraParcela,
-          meio_pagamento_id: meioPagId || null,
-          tem_setup: temSetup,
-          valor_setup: temSetup ? Number(valorSetup) : null,
-          parcelas_setup: temSetup ? Number(parcelasSetup) : null,
-          reajuste_indice: reajuste,
-          reajuste_data: reajusteData || null,
-          renova_automaticamente: renovaAuto,
-          permite_valor_variavel: permiteVariavel,
+          ...payload,
           status: "vigente",
           resumo_ia: dadosIA?.resumo_ia ?? null,
           clausulas_extraidas: dadosIA ? { documentos_usados: dadosIA.documentos_usados ?? [] } : null,
@@ -563,10 +649,13 @@ function NovoContratoLogicoDialog({
 
       if (error) throw error;
 
-      // Gera parcelas
-      await (supabase as any).rpc("gerar_parcelas_pasta_contrato", {
+      // Gera parcelas (com error handling correto agora)
+      const { error: errRpc } = await (supabase as any).rpc("gerar_parcelas_pasta_contrato", {
         p_contrato_id: contrato.id,
       });
+      if (errRpc) {
+        toast.error("Contrato criado, mas erro ao gerar parcelas: " + errRpc.message);
+      }
 
       // Histórico
       await (supabase as any).from("pasta_historico").insert({
@@ -591,7 +680,11 @@ function NovoContratoLogicoDialog({
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {dadosIA ? "Revisar contrato gerado pela IA" : "Novo contrato"}
+            {isEditando
+              ? "Editar contrato"
+              : dadosIA
+                ? "Revisar contrato gerado pela IA"
+                : "Novo contrato"}
           </DialogTitle>
         </DialogHeader>
 
