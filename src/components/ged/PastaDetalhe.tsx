@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -495,7 +495,7 @@ function NovoContratoLogicoDialog({
   const { data: formasPag = [] } = useFormasPagamento();
 
   // Aplica dados da IA quando recebe
-  useState(() => {
+  useEffect(() => {
     if (dadosIA && open) {
       if (dadosIA.numero_sugerido) setNumero(dadosIA.numero_sugerido);
       if (dadosIA.data_assinatura) setDataAssinatura(dadosIA.data_assinatura);
@@ -516,14 +516,14 @@ function NovoContratoLogicoDialog({
       if (typeof dadosIA.permite_valor_variavel === "boolean") setPermiteVariavel(dadosIA.permite_valor_variavel);
     }
     if (!open) {
-      // Reset ao fechar
       setNumero(""); setDataAssinatura(""); setVigenciaInicio(""); setVigenciaFim("");
       setValorTotal("0"); setValorParcela("0"); setCiclo("mensal"); setNumParcelas("1");
       setDiaVenc("1"); setDataPrimeiraParcela(""); setMeioPagId("");
       setTemSetup(false); setValorSetup("0"); setParcelasSetup("1");
       setReajuste("nenhum"); setReajusteData(""); setRenovaAuto(false); setPermiteVariavel(false);
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dadosIA, open]);
 
   async function salvar() {
     if (!numero.trim()) { toast.error("Número obrigatório"); return; }
@@ -1002,8 +1002,9 @@ function DocumentoVisualizadorSheet({
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
   // Carrega URL assinada quando abre
-  useState(() => {
+  useEffect(() => {
     if (documento) {
+      setSignedUrl(null); // Reset enquanto carrega
       supabase.storage
         .from("ged")
         .createSignedUrl(documento.storage_path, 3600)
@@ -1013,7 +1014,7 @@ function DocumentoVisualizadorSheet({
     } else {
       setSignedUrl(null);
     }
-  });
+  }, [documento]);
 
   const aberto = !!documento;
   const isPdf = documento?.mime_type === "application/pdf";
@@ -1021,7 +1022,7 @@ function DocumentoVisualizadorSheet({
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0 flex flex-col overflow-hidden">
+      <DialogContent className="max-w-5xl h-[85vh] p-0 flex flex-col overflow-hidden">
         {documento && (
           <>
             <DialogHeader className="px-6 py-4 border-b">
