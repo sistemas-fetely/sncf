@@ -37,9 +37,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useParametros } from "@/hooks/useParametros";
 import * as pdfjsLib from "pdfjs-dist";
 
-// Worker do pdfjs — usa unpkg que serve qualquer versão de pacote npm
+// Worker do pdfjs — versão 4.0.379 fixa (estável, testada)
 if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.js";
 }
 
 // ─── Tipos IA ────────────────────────────────────────────────
@@ -300,8 +300,12 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
 
       // 2.1 Renderiza páginas como imagens (até 5 páginas)
       try {
+        console.log("[pdf-render] iniciando, versão pdfjs:", pdfjsLib.version);
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+        const pdf = await loadingTask.promise;
+        console.log("[pdf-render] pdf carregado, páginas:", pdf.numPages);
+
         const numPaginas = Math.min(pdf.numPages, 5);
         const imgs: string[] = [];
         for (let i = 1; i <= numPaginas; i++) {
@@ -310,14 +314,17 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
           const canvas = document.createElement("canvas");
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          const ctx = canvas.getContext("2d")!;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) continue;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+          await (page.render({ canvasContext: ctx, viewport } as any) as any).promise;
           imgs.push(canvas.toDataURL("image/jpeg", 0.85));
         }
+        console.log("[pdf-render] imagens geradas:", imgs.length);
         setPdfImages(imgs);
       } catch (renderErr) {
-        console.warn("Erro ao renderizar PDF:", renderErr);
+        console.error("[pdf-render] ERRO:", renderErr);
+        toast.error("Preview do PDF indisponível: " + (renderErr instanceof Error ? renderErr.message : String(renderErr)));
       }
 
       // 3. Chama IA
