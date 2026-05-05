@@ -34,6 +34,7 @@ import {
   Paperclip,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useParametros } from "@/hooks/useParametros";
 
 // ─── Tipos IA ────────────────────────────────────────────────
 interface DadosIA {
@@ -75,7 +76,7 @@ const schema = z.object({
   numero: z.string().min(1, "Número obrigatório"),
   objeto: z.string().min(1, "Objeto obrigatório"),
   parceiro_id: z.string().optional(),
-  area: z.enum(["financeiro", "ti", "juridico", "outro"]),
+  area: z.string().min(1, "Área obrigatória"),
   data_inicio: z.string().min(1, "Data obrigatória"),
   data_fim: z.string().optional(),
   renova_automaticamente: z.boolean().default(false),
@@ -255,6 +256,7 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
 
   const { fields, append, remove } = useFieldArray({ control, name: "fases" });
 
+  const { data: areas = [] } = useParametros("area_contrato");
   const { data: parceiros = [] } = useQuery({
     queryKey: ["parceiros-select"],
     queryFn: async () => {
@@ -300,7 +302,7 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
       setDadosIA(dados);
 
       if (dados.objeto) setValue("objeto", dados.objeto);
-      if (dados.area) setValue("area", dados.area as FormData["area"]);
+      if (dados.area) setValue("area", dados.area);
       if (dados.data_inicio) setValue("data_inicio", dados.data_inicio);
       if (dados.data_fim) setValue("data_fim", dados.data_fim);
 
@@ -480,13 +482,12 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
               </div>
               <div className="space-y-1">
                 <Label>Área *</Label>
-                <Select defaultValue="financeiro" onValueChange={(v) => setValue("area", v as FormData["area"])}>
+                <Select defaultValue="financeiro" onValueChange={(v) => setValue("area", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="financeiro">Financeiro</SelectItem>
-                    <SelectItem value="ti">TI</SelectItem>
-                    <SelectItem value="juridico">Jurídico</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
+                    {areas.map((a) => (
+                      <SelectItem key={a.id} value={a.valor}>{a.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
