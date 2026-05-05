@@ -88,6 +88,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSalvo: () => void;
+  iniciarComUpload?: boolean;
 }
 
 // ─── Painel IA ───────────────────────────────────────────────
