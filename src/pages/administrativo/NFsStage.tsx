@@ -166,7 +166,7 @@ type FiltroPill =
   | "sem_categoria"
   | "com_xml"
   | "com_pdf"
-  | "com_boleto";
+  ;
 
 export default function NFsStage() {
   const qc = useQueryClient();
@@ -631,14 +631,6 @@ export default function NFsStage() {
             onClick={() => setFiltroPill("com_pdf")}
             icon={<FileCheck className="h-3 w-3" />}
           />
-          <KpiPill
-            label="Com Boleto"
-            count={totals.comBoleto}
-            color="gray"
-            active={filtroPill === "com_boleto"}
-            onClick={() => setFiltroPill("com_boleto")}
-            icon={<FileText className="h-3 w-3" />}
-          />
         </div>
 
         {/* Busca + Ações */}
@@ -801,7 +793,7 @@ export default function NFsStage() {
                           <div className="flex items-center gap-2 ml-1">
                             <DocIndicator label="XML" tem={!!nf.tem_xml} />
                             <DocIndicator label="PDF" tem={!!nf.tem_pdf} />
-                            <DocIndicator label="Boleto" tem={!!nf.tem_boleto} />
+                            
                           </div>
                           {nf.numero_parcela && nf.total_parcelas && (
                             <Badge variant="outline" className="text-[9px] py-0 px-1 h-4 font-normal">
@@ -891,17 +883,6 @@ export default function NFsStage() {
                               title="Ver XML"
                             >
                               <FileCode className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          {nf.tem_boleto && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              onClick={() => abrirDocumento(nf, "pdf_boleto")}
-                              title="Ver Boleto"
-                            >
-                              <FileText className="h-3.5 w-3.5" />
                             </Button>
                           )}
                           {(() => {
