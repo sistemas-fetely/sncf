@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, FileUp, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 const faseSchema = z.object({
