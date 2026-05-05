@@ -87,10 +87,10 @@ export async function moverParaStage(
 
       const tipoDoc = inferirTipoDoc(nf);
 
-      // BOLETO: vai direto para Contas a Pagar, não entra no stage
+      // BOLETO: vai direto para Contas a Pagar com PDF anexado
       if (tipoDoc === "pdf_boleto") {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: cprErr } = await (supabase as any)
+        const { data: cprData, error: cprErr } = await (supabase as any)
           .from("contas_pagar_receber")
           .insert({
             tipo: "pagar",
@@ -105,11 +105,22 @@ export async function moverParaStage(
             parcela_atual: 1,
             status: "aberto",
             origem: "manual",
-          });
+          })
+          .select("id")
+          .single();
 
         if (cprErr) {
           result.erros.push(`Boleto CPR: ${cprErr.message}`);
         } else {
+          if (storagePath && cprData?.id) {
+            await supabase.from("contas_pagar_documentos").insert({
+              conta_id: cprData.id,
+              tipo: "boleto",
+              nome_arquivo: arquivo?.name || "boleto.pdf",
+              storage_path: storagePath,
+              tamanho_bytes: arquivo?.size || null,
+            });
+          }
           result.boletosCriados = (result.boletosCriados || 0) + 1;
         }
         continue;
