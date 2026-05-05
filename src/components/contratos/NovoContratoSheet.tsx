@@ -35,6 +35,11 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useParametros } from "@/hooks/useParametros";
+import * as pdfjsLib from "pdfjs-dist";
+
+if (typeof window !== "undefined") {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+}
 
 // ─── Tipos IA ────────────────────────────────────────────────
 interface DadosIA {
@@ -224,6 +229,7 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
   const [parceiroCadastrado, setParceiroCadastrado] = useState(true);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [storagePath, setStoragePath] = useState<string | null>(null);
+  const [pdfImages, setPdfImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (open && iniciarComUpload) {
@@ -235,6 +241,7 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
       setDadosIA(null);
       setPdfUrl(null);
       setStoragePath(null);
+      setPdfImages([]);
     }
   }, [open, iniciarComUpload]);
 
@@ -289,6 +296,28 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
         .from("contratos")
         .createSignedUrl(path, 3600);
       if (signedData?.signedUrl) setPdfUrl(signedData.signedUrl);
+
+      // 2.1 Renderiza páginas como imagens (até 5 páginas)
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const numPaginas = Math.min(pdf.numPages, 5);
+        const imgs: string[] = [];
+        for (let i = 1; i <= numPaginas; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d")!;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+          imgs.push(canvas.toDataURL("image/jpeg", 0.85));
+        }
+        setPdfImages(imgs);
+      } catch (renderErr) {
+        console.warn("Erro ao renderizar PDF:", renderErr);
+      }
 
       // 3. Chama IA
       const formData = new FormData();
@@ -424,29 +453,7 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
         </SheetHeader>
 
         <div className={`mt-6 ${dadosIA ? "grid grid-cols-[1fr_320px_1fr] gap-4" : ""}`}>
-          {/* Coluna 1: PDF original */}
-          {dadosIA && pdfUrl && (
-            <div className="border rounded-lg overflow-hidden bg-muted">
-              <div className="bg-background border-b px-3 py-2 text-xs font-medium text-muted-foreground">
-                Contrato original
-              </div>
-              <iframe
-                src={pdfUrl}
-                className="w-full"
-                style={{ height: "calc(100vh - 200px)" }}
-                title="PDF do contrato"
-              />
-            </div>
-          )}
-
-          {/* Coluna 2: Painel IA */}
-          {dadosIA && (
-            <div className="border-r pr-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 150px)" }}>
-              <PainelIA dados={dadosIA} parceiroCadastrado={parceiroCadastrado} />
-            </div>
-          )}
-
-          {/* Coluna 3: Formulário */}
+          {/* Coluna 1: Formulário */}
           <form onSubmit={handleSubmit(onSubmit)} className={`space-y-4 ${dadosIA ? "overflow-y-auto" : ""}`} style={dadosIA ? { maxHeight: "calc(100vh - 150px)" } : undefined}>
             {/* Upload PDF */}
             <div
@@ -611,6 +618,45 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo, iniciarComUploa
               </Button>
             </div>
           </form>
+
+          {/* Coluna 2: Painel IA */}
+          {dadosIA && (
+            <div className="border-l border-r px-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 150px)" }}>
+              <PainelIA dados={dadosIA} parceiroCadastrado={parceiroCadastrado} />
+            </div>
+          )}
+
+          {/* Coluna 3: Contrato original (imagens) */}
+          {dadosIA && (
+            <div className="border rounded-lg overflow-hidden bg-muted flex flex-col">
+              <div className="bg-background border-b px-3 py-2 text-xs font-medium text-muted-foreground flex items-center justify-between">
+                <span>Contrato original</span>
+                {pdfUrl && (
+                  <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                    Abrir completo
+                  </a>
+                )}
+              </div>
+              <div className="overflow-y-auto p-2 space-y-2" style={{ maxHeight: "calc(100vh - 200px)" }}>
+                {pdfImages.length > 0 ? (
+                  pdfImages.map((img, i) => (
+                    <img key={i} src={img} alt={`Página ${i + 1}`} className="w-full border rounded shadow-sm" />
+                  ))
+                ) : (
+                  <div className="flex items-center justify-center h-32 text-xs text-muted-foreground">
+                    Carregando preview...
+                  </div>
+                )}
+                {pdfImages.length === 5 && pdfUrl && (
+                  <div className="text-center py-2">
+                    <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                      Mostrando 5 primeiras páginas — abrir completo
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
