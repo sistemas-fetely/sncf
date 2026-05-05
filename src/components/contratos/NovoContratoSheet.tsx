@@ -112,6 +112,7 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
       if (res.error) throw new Error(res.error.message);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dados = res.data as any;
+      console.log("[parse-contrato-pdf] retorno IA:", JSON.stringify(dados, null, 2));
 
       if (dados.objeto) setValue("objeto", dados.objeto);
       if (dados.area) setValue("area", dados.area);
