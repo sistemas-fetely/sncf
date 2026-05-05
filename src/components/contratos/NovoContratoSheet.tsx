@@ -122,10 +122,14 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: parceiro } = await (supabase as any)
           .from("parceiros_comerciais")
-          .select("id")
+          .select("id, razao_social")
           .eq("cnpj", String(dados.fornecedor_cnpj).replace(/\D/g, ""))
           .maybeSingle();
-        if (parceiro?.id) setValue("parceiro_id", parceiro.id);
+        if (parceiro?.id) {
+          setValue("parceiro_id", parceiro.id);
+        } else if (dados.fornecedor_razao_social) {
+          toast.info(`Parceiro "${dados.fornecedor_razao_social}" não cadastrado — selecione manualmente.`);
+        }
       }
 
       if (dados.fases && Array.isArray(dados.fases) && dados.fases.length > 0) {
@@ -139,16 +143,23 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
           dia_vencimento: f.dia_vencimento ?? dados.dia_vencimento ?? 1,
         }));
         setValue("fases", fasesFormatadas);
-      } else if (dados.valor_parcela) {
+      } else {
+        // Fases vazias ou valor não extraído — cria 1 fase em branco para o operador preencher
         setValue("fases", [{
-          nome: "Mensalidade",
-          tipo: dados.tipo_contrato ?? "recorrente_sem_fim",
-          valor: dados.valor_parcela,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          nome: dados.tipo_contrato === "parcelado" ? "Parcela" : "Mensalidade",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          tipo: (dados.tipo_contrato as any) ?? "recorrente_sem_fim",
+          valor: dados.valor_parcela ?? 0,
           data_inicio: dados.data_inicio ?? new Date().toISOString().split("T")[0],
           data_fim: dados.data_fim ?? "",
           dia_vencimento: dados.dia_vencimento ?? 1,
         }]);
+        if (!dados.valor_parcela) {
+          toast.info("Valor não encontrado no PDF — preencha manualmente.");
+        }
       }
+
 
       if (dados.resumo) {
         toast.info(`IA: ${dados.resumo}`);
