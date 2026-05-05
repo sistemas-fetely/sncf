@@ -235,6 +235,32 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
         </SheetHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-6">
+          {/* Upload PDF */}
+          <div
+            className="rounded-lg border-2 border-dashed p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => !extraindo && document.getElementById("contrato-pdf-input")?.click()}
+          >
+            <input
+              id="contrato-pdf-input"
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleUploadPDF}
+              disabled={extraindo}
+            />
+            {extraindo ? (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Lendo contrato com IA...
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <FileUp className="h-4 w-4" />
+                Subir PDF do contrato para preencher automaticamente
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Número *</Label>
