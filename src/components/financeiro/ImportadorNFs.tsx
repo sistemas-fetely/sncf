@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { FileCode, Loader2, Upload } from "lucide-react";
 import {
   Card,
@@ -137,6 +138,7 @@ async function parsePdfFile(file: File): Promise<NFParsed | null> {
 }
 
 export function ImportadorNFs({ onImported }: Props) {
+  const qc = useQueryClient();
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [preview, setPreview] = useState<NFParsed[]>([]);
@@ -229,6 +231,11 @@ export function ImportadorNFs({ onImported }: Props) {
 
       if (result.sucesso + result.enriquecidas > 0) {
         setPreview([]);
+        qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      }
+
+      if (result.boletosCriados > 0) {
+        qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       }
 
       onImported?.(result);
