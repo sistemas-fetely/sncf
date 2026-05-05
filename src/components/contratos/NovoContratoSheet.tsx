@@ -22,13 +22,50 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, FileUp, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Plus,
+  Trash2,
+  FileUp,
+  Loader2,
+  AlertTriangle,
+  FileText,
+  Info,
+  Paperclip,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
+// ─── Tipos IA ────────────────────────────────────────────────
+interface DadosIA {
+  objeto?: string;
+  fornecedor_cnpj?: string;
+  fornecedor_razao_social?: string;
+  tipo_contrato?: string;
+  valor_parcela?: number | null;
+  valor_total?: number | null;
+  total_parcelas?: number | null;
+  data_inicio?: string | null;
+  data_fim?: string | null;
+  dia_vencimento?: number | null;
+  area?: string;
+  fases?: Array<{
+    nome: string;
+    tipo: string;
+    valor: number;
+    data_inicio?: string;
+    data_fim?: string;
+    dia_vencimento?: number;
+  }>;
+  clausulas_principais?: string[];
+  resumo?: string;
+  confianca?: string;
+}
+
+// ─── Schema ──────────────────────────────────────────────────
 const faseSchema = z.object({
   nome: z.string().min(1, "Nome obrigatório"),
   tipo: z.enum(["unico", "recorrente_com_fim", "recorrente_sem_fim"]),
-  valor: z.coerce.number().positive("Valor deve ser positivo"),
+  valor: z.coerce.number().min(0),
   data_inicio: z.string().min(1, "Data obrigatória"),
   data_fim: z.string().optional(),
   dia_vencimento: z.coerce.number().min(1).max(28).default(1),
@@ -53,34 +90,152 @@ interface Props {
   onSalvo: () => void;
 }
 
+// ─── Painel IA ───────────────────────────────────────────────
+function PainelIA({ dados, parceiroCadastrado }: { dados: DadosIA; parceiroCadastrado: boolean }) {
+  const temAlerta = dados.clausulas_principais && dados.clausulas_principais.length > 0;
+
+  return (
+    <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+      {/* Resumo */}
+      {dados.resumo && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Info className="h-4 w-4 text-primary" />
+            Resumo do contrato
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">{dados.resumo}</p>
+        </div>
+      )}
+
+      <Separator />
+
+      {/* Campos identificados */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-semibold">Identificado no PDF</h4>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Fornecedor</span>
+            <div className="font-medium flex flex-col gap-1">
+              <span>
+                {dados.fornecedor_razao_social
+                  ? dados.fornecedor_razao_social.split("–")[0].trim().split("-")[0].trim()
+                  : "—"}
+              </span>
+              {!parceiroCadastrado && dados.fornecedor_razao_social && (
+                <Badge variant="outline" className="w-fit text-xs">não cadastrado</Badge>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Tipo</span>
+            <div className="font-medium">
+              {dados.tipo_contrato === "parcelado" ? "Parcelado" :
+               dados.tipo_contrato === "recorrente_com_fim" ? "Recorrente c/ fim" :
+               dados.tipo_contrato === "recorrente_sem_fim" ? "Recorrente s/ fim" :
+               dados.tipo_contrato === "unico" ? "Único" : "—"}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Valor parcela</span>
+            <div className="font-medium">
+              {dados.valor_parcela
+                ? `R$ ${dados.valor_parcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                : <Badge variant="outline" className="text-xs">não encontrado no PDF</Badge>}
+            </div>
+          </div>
+
+          {dados.total_parcelas && (
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Parcelas</span>
+              <div className="font-medium">{dados.total_parcelas}x</div>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Início</span>
+            <div className="font-medium">
+              {dados.data_inicio
+                ? new Date(dados.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")
+                : "—"}
+            </div>
+          </div>
+
+          {dados.data_fim && (
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Fim</span>
+              <div className="font-medium">
+                {new Date(dados.data_fim + "T12:00:00").toLocaleDateString("pt-BR")}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Pontos de atenção */}
+      {temAlerta && dados.clausulas_principais && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              Pontos de atenção
+            </div>
+            <ul className="space-y-1.5">
+              {dados.clausulas_principais.map((c, i) => (
+                <li key={i} className="text-sm text-muted-foreground flex gap-2">
+                  <span className="text-warning">•</span>
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+
+      <Separator />
+
+      {/* Documentos sugeridos */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Paperclip className="h-4 w-4 text-primary" />
+          Documentos relacionados
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Anexe após salvar: contrato assinado, orçamento, manual do expositor e demais documentos vinculados.
+        </p>
+      </div>
+
+      <div className="pt-2 text-xs text-muted-foreground border-t">
+        {dados.confianca === "alta" ? "✅ Alta confiança" : "⚠️ Baixa confiança"} na extração
+      </div>
+    </div>
+  );
+}
+
+// ─── Componente principal ─────────────────────────────────────
 export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
   const [salvando, setSalvando] = useState(false);
   const [extraindo, setExtraindo] = useState(false);
+  const [dadosIA, setDadosIA] = useState<DadosIA | null>(null);
+  const [parceiroCadastrado, setParceiroCadastrado] = useState(true);
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-    reset,
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      area: "financeiro",
-      renova_automaticamente: false,
-      fases: [
-        {
+  const { register, control, handleSubmit, watch, setValue, formState: { errors }, reset } =
+    useForm<FormData>({
+      resolver: zodResolver(schema),
+      defaultValues: {
+        area: "financeiro",
+        renova_automaticamente: false,
+        fases: [{
           nome: "Mensalidade",
           tipo: "recorrente_sem_fim",
           valor: 0,
           data_inicio: new Date().toISOString().split("T")[0],
           dia_vencimento: 1,
-        },
-      ],
-    },
-  });
+        }],
+      },
+    });
 
   const { fields, append, remove } = useFieldArray({ control, name: "fases" });
 
@@ -101,52 +256,50 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
     if (!file) return;
 
     setExtraindo(true);
+    setDadosIA(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await supabase.functions.invoke("parse-contrato-pdf", {
-        body: formData,
-      });
-
+      const res = await supabase.functions.invoke("parse-contrato-pdf", { body: formData });
       if (res.error) throw new Error(res.error.message);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dados = res.data as any;
+
+      const dados = res.data as DadosIA;
       console.log("[parse-contrato-pdf] retorno IA:", JSON.stringify(dados, null, 2));
+      setDadosIA(dados);
 
       if (dados.objeto) setValue("objeto", dados.objeto);
-      if (dados.area) setValue("area", dados.area);
+      if (dados.area) setValue("area", dados.area as FormData["area"]);
       if (dados.data_inicio) setValue("data_inicio", dados.data_inicio);
-      if (dados.data_fim) setValue("data_fim", dados.data_fim ?? "");
+      if (dados.data_fim) setValue("data_fim", dados.data_fim);
+
       if (dados.fornecedor_cnpj) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: parceiro } = await (supabase as any)
           .from("parceiros_comerciais")
-          .select("id, razao_social")
+          .select("id")
           .eq("cnpj", String(dados.fornecedor_cnpj).replace(/\D/g, ""))
           .maybeSingle();
         if (parceiro?.id) {
           setValue("parceiro_id", parceiro.id);
-        } else if (dados.fornecedor_razao_social) {
-          toast.info(`Parceiro "${dados.fornecedor_razao_social}" não cadastrado — selecione manualmente.`);
+          setParceiroCadastrado(true);
+        } else {
+          setParceiroCadastrado(false);
         }
       }
 
-      if (dados.fases && Array.isArray(dados.fases) && dados.fases.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const fasesFormatadas = dados.fases.map((f: any) => ({
+      if (dados.fases && dados.fases.length > 0) {
+        setValue("fases", dados.fases.map((f) => ({
           nome: f.nome ?? "Fase",
-          tipo: f.tipo ?? "recorrente_sem_fim",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          tipo: (f.tipo as any) ?? "recorrente_sem_fim",
           valor: f.valor ?? 0,
           data_inicio: f.data_inicio ?? dados.data_inicio ?? new Date().toISOString().split("T")[0],
           data_fim: f.data_fim ?? "",
           dia_vencimento: f.dia_vencimento ?? dados.dia_vencimento ?? 1,
-        }));
-        setValue("fases", fasesFormatadas);
+        })));
       } else {
-        // Fases vazias ou valor não extraído — cria 1 fase em branco para o operador preencher
         setValue("fases", [{
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           nome: dados.tipo_contrato === "parcelado" ? "Parcela" : "Mensalidade",
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           tipo: (dados.tipo_contrato as any) ?? "recorrente_sem_fim",
@@ -155,14 +308,6 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
           data_fim: dados.data_fim ?? "",
           dia_vencimento: dados.dia_vencimento ?? 1,
         }]);
-        if (!dados.valor_parcela) {
-          toast.info("Valor não encontrado no PDF — preencha manualmente.");
-        }
-      }
-
-
-      if (dados.resumo) {
-        toast.info(`IA: ${dados.resumo}`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -218,21 +363,17 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
 
         if (fase.tipo === "unico") {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabase as any).rpc("gerar_parcelas_fase_unica", {
-            p_fase_id: faseData.id,
-          });
+          await (supabase as any).rpc("gerar_parcelas_fase_unica", { p_fase_id: faseData.id });
         }
       }
 
       toast.success("Contrato cadastrado com sucesso!");
       reset();
+      setDadosIA(null);
       onSalvo();
     } catch (e) {
-      const msg =
-        e instanceof Error
-          ? e.message
-          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (e as any)?.message ?? String(e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const msg = e instanceof Error ? e.message : (e as any)?.message ?? String(e);
       toast.error("Erro ao salvar: " + msg);
     } finally {
       setSalvando(false);
@@ -241,228 +382,186 @@ export function NovoContratoSheet({ open, onOpenChange, onSalvo }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-2xl overflow-y-auto">
+      <SheetContent className={`overflow-y-auto ${dadosIA ? "sm:max-w-5xl" : "sm:max-w-2xl"}`}>
         <SheetHeader>
           <SheetTitle>Novo Contrato</SheetTitle>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-6">
-          {/* Upload PDF */}
-          <div
-            className="rounded-lg border-2 border-dashed p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => !extraindo && document.getElementById("contrato-pdf-input")?.click()}
-          >
-            <input
-              id="contrato-pdf-input"
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={handleUploadPDF}
-              disabled={extraindo}
-            />
-            {extraindo ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Lendo contrato com IA...
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <FileUp className="h-4 w-4" />
-                Subir PDF do contrato para preencher automaticamente
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Número *</Label>
-              <Input {...register("numero")} placeholder="CTR-2026-001" />
-              {errors.numero && (
-                <p className="text-xs text-destructive">{errors.numero.message}</p>
+        <div className={`mt-6 grid gap-6 ${dadosIA ? "grid-cols-1 lg:grid-cols-[1fr_360px]" : "grid-cols-1"}`}>
+          {/* Formulário */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 order-2 lg:order-1">
+            {/* Upload PDF */}
+            <div
+              className="rounded-lg border-2 border-dashed p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => !extraindo && document.getElementById("contrato-pdf-input")?.click()}
+            >
+              <input
+                id="contrato-pdf-input"
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleUploadPDF}
+                disabled={extraindo}
+              />
+              {extraindo ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Lendo contrato com IA...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <FileUp className="h-4 w-4" />
+                  {dadosIA ? "Subir outro PDF" : "Subir PDF do contrato para preencher automaticamente"}
+                </div>
               )}
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Número *</Label>
+                <Input {...register("numero")} placeholder="CTR-2026-001" />
+                {errors.numero && <p className="text-xs text-destructive">{errors.numero.message}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label>Área *</Label>
+                <Select defaultValue="financeiro" onValueChange={(v) => setValue("area", v as FormData["area"])}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="financeiro">Financeiro</SelectItem>
+                    <SelectItem value="ti">TI</SelectItem>
+                    <SelectItem value="juridico">Jurídico</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-1">
-              <Label>Área *</Label>
-              <Select
-                defaultValue="financeiro"
-                onValueChange={(v) => setValue("area", v as FormData["area"])}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Label>Objeto *</Label>
+              <Input {...register("objeto")} placeholder="Descrição do contrato" />
+              {errors.objeto && <p className="text-xs text-destructive">{errors.objeto.message}</p>}
+            </div>
+
+            <div className="space-y-1">
+              <Label>Parceiro</Label>
+              <Select value={watch("parceiro_id") ?? ""} onValueChange={(v) => setValue("parceiro_id", v)}>
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="financeiro">Financeiro</SelectItem>
-                  <SelectItem value="ti">TI</SelectItem>
-                  <SelectItem value="juridico">Jurídico</SelectItem>
-                  <SelectItem value="outro">Outro</SelectItem>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {(parceiros as any[]).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.razao_social}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="space-y-1">
-            <Label>Objeto *</Label>
-            <Input {...register("objeto")} placeholder="Descrição do contrato" />
-            {errors.objeto && (
-              <p className="text-xs text-destructive">{errors.objeto.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <Label>Parceiro</Label>
-            <Select onValueChange={(v) => setValue("parceiro_id", v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {parceiros.map((p: any) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.razao_social}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Início *</Label>
-              <Input type="date" {...register("data_inicio")} />
-            </div>
-            <div className="space-y-1">
-              <Label>Fim (vazio = sem fim)</Label>
-              <Input type="date" {...register("data_fim")} />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Switch
-              onCheckedChange={(v) => setValue("renova_automaticamente", v)}
-            />
-            <Label>Renova automaticamente (alerta 60 dias antes)</Label>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Fases do contrato</h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  append({
-                    nome: "",
-                    tipo: "recorrente_sem_fim",
-                    valor: 0,
-                    data_inicio: new Date().toISOString().split("T")[0],
-                    dia_vencimento: 1,
-                  })
-                }
-              >
-                <Plus className="h-4 w-4 mr-1" /> Adicionar fase
-              </Button>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Início *</Label>
+                <Input type="date" {...register("data_inicio")} />
+              </div>
+              <div className="space-y-1">
+                <Label>Fim (vazio = sem fim)</Label>
+                <Input type="date" {...register("data_fim")} />
+              </div>
             </div>
 
-            {fields.map((field, idx) => (
-              <div key={field.id} className="rounded-lg border p-3 space-y-3 bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Fase {idx + 1}</span>
-                  {fields.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => remove(idx)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+            <div className="flex items-center gap-2">
+              <Switch onCheckedChange={(v) => setValue("renova_automaticamente", v)} />
+              <Label>Renova automaticamente (alerta 60 dias antes)</Label>
+            </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label>Nome *</Label>
-                    <Input {...register(`fases.${idx}.nome`)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Tipo *</Label>
-                    <Select
-                      defaultValue={watch(`fases.${idx}.tipo`)}
-                      onValueChange={(v) =>
-                        setValue(
-                          `fases.${idx}.tipo`,
-                          v as "unico" | "recorrente_com_fim" | "recorrente_sem_fim",
-                        )
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unico">Único (1 pagamento)</SelectItem>
-                        <SelectItem value="recorrente_com_fim">
-                          Recorrente com fim
-                        </SelectItem>
-                        <SelectItem value="recorrente_sem_fim">
-                          Recorrente sem fim
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+            <Separator />
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label>Valor (R$) *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      {...register(`fases.${idx}.valor`)}
-                    />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Fases do contrato</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append({ nome: "", tipo: "recorrente_sem_fim", valor: 0, data_inicio: new Date().toISOString().split("T")[0], dia_vencimento: 1 })}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar fase
+                </Button>
+              </div>
+
+              {fields.map((field, idx) => (
+                <div key={field.id} className="rounded-lg border p-3 space-y-3 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Fase {idx + 1}</span>
+                    {fields.length > 1 && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => remove(idx)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  <div className="space-y-1">
-                    <Label>Início *</Label>
-                    <Input type="date" {...register(`fases.${idx}.data_inicio`)} />
-                  </div>
-                  {watch(`fases.${idx}.tipo`) !== "recorrente_sem_fim" && (
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label>Fim</Label>
-                      <Input type="date" {...register(`fases.${idx}.data_fim`)} />
+                      <Label>Nome *</Label>
+                      <Input {...register(`fases.${idx}.nome`)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Tipo *</Label>
+                      <Select
+                        value={watch(`fases.${idx}.tipo`)}
+                        onValueChange={(v) => setValue(`fases.${idx}.tipo`, v as "unico" | "recorrente_com_fim" | "recorrente_sem_fim")}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unico">Único (1 pagamento)</SelectItem>
+                          <SelectItem value="recorrente_com_fim">Recorrente com fim</SelectItem>
+                          <SelectItem value="recorrente_sem_fim">Recorrente sem fim</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label>Valor (R$) *</Label>
+                      <Input type="number" step="0.01" {...register(`fases.${idx}.valor`)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Início *</Label>
+                      <Input type="date" {...register(`fases.${idx}.data_inicio`)} />
+                    </div>
+                    {watch(`fases.${idx}.tipo`) !== "recorrente_sem_fim" && (
+                      <div className="space-y-1">
+                        <Label>Fim</Label>
+                        <Input type="date" {...register(`fases.${idx}.data_fim`)} />
+                      </div>
+                    )}
+                  </div>
+
+                  {watch(`fases.${idx}.tipo`) !== "unico" && (
+                    <div className="space-y-1">
+                      <Label>Dia do vencimento</Label>
+                      <Input type="number" min={1} max={28} {...register(`fases.${idx}.dia_vencimento`)} />
                     </div>
                   )}
                 </div>
+              ))}
+            </div>
 
-                {watch(`fases.${idx}.tipo`) !== "unico" && (
-                  <div className="space-y-1">
-                    <Label>Dia do vencimento</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={28}
-                      {...register(`fases.${idx}.dia_vencimento`)}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => { onOpenChange(false); setDadosIA(null); }}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={salvando}>
+                {salvando ? "Salvando..." : "Salvar Contrato"}
+              </Button>
+            </div>
+          </form>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={salvando}>
-              {salvando ? "Salvando..." : "Salvar Contrato"}
-            </Button>
-          </div>
-        </form>
+          {/* Painel IA lateral */}
+          {dadosIA && (
+            <aside className="order-1 lg:order-2 lg:sticky lg:top-0 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
+              <PainelIA dados={dadosIA} parceiroCadastrado={parceiroCadastrado} />
+            </aside>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );
