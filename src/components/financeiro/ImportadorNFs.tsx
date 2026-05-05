@@ -209,8 +209,12 @@ export function ImportadorNFs({ onImported }: Props) {
       const result = await moverParaStage(selecionadas, arquivosOrigem);
 
       const resumo: string[] = [];
-      if (result.sucesso > 0) resumo.push(`${result.sucesso} criadas`);
+      if (result.sucesso > 0) resumo.push(`${result.sucesso} NFs no stage`);
       if (result.enriquecidas > 0) resumo.push(`${result.enriquecidas} enriquecidas`);
+      if (result.boletosCriados > 0)
+        resumo.push(
+          `${result.boletosCriados} boleto${result.boletosCriados === 1 ? "" : "s"} lançado${result.boletosCriados === 1 ? "" : "s"} em Contas a Pagar`,
+        );
       if (result.duplicatas > 0)
         resumo.push(`${result.duplicatas} duplicatas (ignoradas)`);
 

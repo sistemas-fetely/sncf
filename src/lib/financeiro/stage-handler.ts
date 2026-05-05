@@ -24,6 +24,7 @@ export interface StageResult {
   erros: string[];
   loteId: string;
   stageIds: string[];
+  boletosCriados: number;
 }
 
 /**
@@ -44,6 +45,7 @@ export async function moverParaStage(
     erros: [],
     loteId,
     stageIds: [],
+    boletosCriados: 0,
   };
 
   // Mapa NF -> arquivo (busca por chave única)
@@ -84,6 +86,34 @@ export async function moverParaStage(
       const status = "nao_vinculada"; // Stage virou repositório — vínculo é decisão futura
 
       const tipoDoc = inferirTipoDoc(nf);
+
+      // BOLETO: vai direto para Contas a Pagar, não entra no stage
+      if (tipoDoc === "pdf_boleto") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: cprErr } = await (supabase as any)
+          .from("contas_pagar_receber")
+          .insert({
+            tipo: "pagar",
+            descricao: nf._categoria_nome || nf.fornecedor_nome || "Boleto importado",
+            valor: nf.valor || 0,
+            data_vencimento: nf.nf_data_vencimento || null,
+            nf_data_emissao: nf.nf_data_emissao || null,
+            conta_id: nf._categoria_id || null,
+            parceiro_id: nf._parceiro_id_resolvido || null,
+            fornecedor_cliente: nf.fornecedor_nome || null,
+            parcelas: 1,
+            parcela_atual: 1,
+            status: "aberto",
+            origem: "manual",
+          });
+
+        if (cprErr) {
+          result.erros.push(`Boleto CPR: ${cprErr.message}`);
+        } else {
+          result.boletosCriados = (result.boletosCriados || 0) + 1;
+        }
+        continue;
+      }
 
       const payload: Record<string, unknown> = {
         fonte: nf._source || "pdf_nfe",
