@@ -250,6 +250,9 @@ export function ContaPagarFormEdit({
       if (novoPagoEmContaId !== (conta.pago_em_conta_id ?? null)) {
         updatePayload.pago_em_conta_id = novoPagoEmContaId;
       }
+      if (linhaInvestimentoId !== (conta.linha_investimento_id ?? null)) {
+        updatePayload.linha_investimento_id = linhaInvestimentoId;
+      }
       if (Object.keys(updatePayload).length > 0) {
         updatePayload.updated_at = new Date().toISOString();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
