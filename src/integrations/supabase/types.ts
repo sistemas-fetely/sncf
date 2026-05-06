@@ -10526,6 +10526,25 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_fluxo_futuro_investimento: {
+        Row: {
+          data_evento: string | null
+          evento_descricao: string | null
+          evento_id: string | null
+          frente_codigo: string | null
+          frente_id: string | null
+          frente_nome: string | null
+          frente_ordem: number | null
+          linha_descricao: string | null
+          linha_id: string | null
+          origem: string | null
+          status_cpr: string | null
+          tema_id: string | null
+          tema_nome: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_frentes_investimento_kpis: {
         Row: {
           ativa: boolean | null
