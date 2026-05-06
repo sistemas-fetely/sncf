@@ -462,17 +462,20 @@ export default function InvestimentoLancamento() {
                                           <th className="text-right px-2 py-1.5 font-medium">Pago</th>
                                           <th className="text-right px-2 py-1.5 font-medium">Saldo</th>
                                           <th className="text-right px-2 py-1.5 font-medium">Saving</th>
+                                          <th className="text-center px-2 py-1.5 font-medium">% Gasto</th>
                                           <th className="text-left px-2 py-1.5 font-medium">Prevista</th>
                                           <th className="text-right px-2 py-1.5 font-medium">Ações</th>
                                         </tr>
                                       </thead>
                                       <tbody>
-                                        {linhasT.map((l) => (
+                                        {linhasT.map((l) => {
+                                          const perc = calcPercGasto(l);
+                                          return (
                                           <tr
                                             key={l.linha_id}
                                             className={cn(
-                                              "border-b hover:bg-accent/40 cursor-pointer",
-                                              bgLinha(l),
+                                              "border-b cursor-pointer transition-colors",
+                                              getSaudeRowClass(l),
                                               !l.ativa && "opacity-60",
                                             )}
                                             onClick={() => openDrawer("linha", l, t.tema_id)}
@@ -506,6 +509,24 @@ export default function InvestimentoLancamento() {
                                             >
                                               {formatBRL(l.saving)}
                                             </td>
+                                            <td className="px-2 py-2 text-center">
+                                              {perc === null ? (
+                                                <span className="text-muted-foreground">—</span>
+                                              ) : (
+                                                <Badge
+                                                  variant="outline"
+                                                  className={cn(
+                                                    "tabular-nums",
+                                                    perc <= 50 && "text-muted-foreground",
+                                                    perc > 50 && perc <= 85 && "text-blue-700 border-blue-300",
+                                                    perc > 85 && perc <= 100 && "text-amber-700 border-amber-300 bg-amber-50",
+                                                    perc > 100 && "text-red-700 border-red-400 bg-red-50",
+                                                  )}
+                                                >
+                                                  {perc}%{perc > 100 && " ⚠️"}
+                                                </Badge>
+                                              )}
+                                            </td>
                                             <td className="px-2 py-2 text-xs text-muted-foreground">
                                               {formatDateBR(l.data_prevista_pagamento)}
                                             </td>
@@ -523,7 +544,8 @@ export default function InvestimentoLancamento() {
                                               </Button>
                                             </td>
                                           </tr>
-                                        ))}
+                                          );
+                                        })}
                                       </tbody>
                                     </table>
                                   </div>
