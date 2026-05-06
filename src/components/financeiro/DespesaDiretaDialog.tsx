@@ -127,6 +127,7 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
     setCategoriaId("");
     setDescricao("");
     setParceiroId("");
+    setLinhaInvestimentoId(null);
     onClose();
   }
 
