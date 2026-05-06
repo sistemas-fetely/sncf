@@ -50,6 +50,7 @@ const caixaBancoItems: MenuItem[] = [
 ];
 
 const configFinanceiroItems: MenuItem[] = [
+  { title: "Investimento de Lançamento", url: "/administrativo/investimento-lancamento", icon: Target },
   { title: "Plano de Contas", url: "/administrativo/plano-contas", icon: ListTree },
   { title: "Importar Dados", url: "/administrativo/importar", icon: Upload },
 ];
