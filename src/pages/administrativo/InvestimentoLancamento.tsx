@@ -326,7 +326,7 @@ export default function InvestimentoLancamento() {
 
       {/* Cards por Frente — atalho visual de filtro */}
       {frentes && frentes.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
           {frentes.map((f) => {
             const total = f.total_inicial;
             const base = Math.max(f.total_fechado, f.total_inicial);
@@ -366,7 +366,7 @@ export default function InvestimentoLancamento() {
                   }
                 }}
                 className={cn(
-                  "rounded-lg p-4 text-left transition-all duration-200",
+                  "rounded-lg p-3 text-left transition-all duration-200",
                   "hover:brightness-110 cursor-pointer",
                   isSelected && "ring-2 ring-white/60 scale-[1.02]",
                   dimmed && "opacity-50",
@@ -376,7 +376,7 @@ export default function InvestimentoLancamento() {
                 <div className="text-xs font-semibold uppercase tracking-wide opacity-90 truncate">
                   {f.nome}
                 </div>
-                <div className="text-lg font-bold tabular-nums mt-1">
+                <div className="text-base font-bold tabular-nums mt-1 truncate">
                   {formatBRL(total)}
                 </div>
                 {(() => {
@@ -396,7 +396,7 @@ export default function InvestimentoLancamento() {
 
                   return (
                     <>
-                      <div className="mt-2 space-y-0.5 text-xs">
+                      <div className="mt-1.5 space-y-0 text-[11px]">
                         <div className="flex items-center justify-between">
                           <span className="opacity-80">Realizado</span>
                           <span className="font-semibold tabular-nums">
@@ -412,7 +412,7 @@ export default function InvestimentoLancamento() {
                       </div>
 
                       <div
-                        className="mt-2 h-2 rounded-full overflow-hidden flex"
+                        className="mt-1.5 h-1.5 rounded-full overflow-hidden flex"
                         style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
                         title={`Pago: ${formatBRL(pago)} · Comprometido: ${formatBRL(fechado)} · Total: ${formatBRL(total)}`}
                       >
