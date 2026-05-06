@@ -221,9 +221,22 @@ export function ImportadorNFs({ onImported }: Props) {
         resumo.push(`${result.duplicatas} duplicatas (ignoradas)`);
 
       if (result.erros.length > 0) {
-        toast.error(
-          `Importação concluída com erros: ${resumo.join(", ")}. ${result.erros.slice(0, 3).join("; ")}`,
+        const ehTudoDuplicata = result.erros.every((e) =>
+          e.toLowerCase().includes("duplicate key") ||
+          e.toLowerCase().includes("uq_nfs_stage") ||
+          e.toLowerCase().includes("uniq_nfs_stage"),
         );
+
+        if (ehTudoDuplicata) {
+          toast.warning(
+            "Esta NF já está no repositório. Vá em 'Nova Despesa' → 'Anexar do Repositório de NFs' para vinculá-la a uma despesa.",
+            { duration: 6000 },
+          );
+        } else {
+          toast.error(
+            `Importação concluída com erros: ${resumo.join(", ")}. ${result.erros.slice(0, 3).join("; ")}`,
+          );
+        }
         console.error(result.erros);
       } else if (resumo.length > 0) {
         toast.success(`✅ ${resumo.join(", ")}`);

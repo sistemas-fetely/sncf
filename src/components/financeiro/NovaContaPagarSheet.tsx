@@ -770,9 +770,41 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
         valorEsperado={valorNum > 0 ? valorNum : undefined}
         fornecedorEsperado={parceiroSelected?.razao_social || undefined}
         parceiroId={parceiroId}
-        onSelecionar={(id) => {
+        onSelecionar={async (id) => {
           setNfStageId(id);
           setNfStageBuscaOpen(false);
+
+          // Busca dados da NF e preenche campos vazios
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: nf } = await (supabase as any)
+            .from("nfs_stage")
+            .select("valor, nf_data_emissao, data_vencimento, descricao, categoria_id, parceiro_id, fornecedor_razao_social, fornecedor_cliente")
+            .eq("id", id)
+            .maybeSingle();
+
+          if (!nf) return;
+
+          if (!parceiroId && nf.parceiro_id) setParceiroId(nf.parceiro_id);
+          if (!descricao) {
+            const fornecedor = nf.fornecedor_razao_social || nf.fornecedor_cliente;
+            const desc = nf.descricao || (fornecedor ? `Pagamento ${fornecedor}` : "");
+            if (desc) setDescricao(desc);
+          }
+          if (!valor && nf.valor) {
+            setValor(
+              Number(nf.valor).toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }),
+            );
+          }
+          if (!dataEmissao && nf.nf_data_emissao) setDataEmissao(nf.nf_data_emissao);
+          if (!dataVenc && (nf.data_vencimento || nf.nf_data_emissao)) {
+            setDataVenc(nf.data_vencimento || nf.nf_data_emissao);
+          }
+          if (!categoriaId && nf.categoria_id) setCategoriaId(nf.categoria_id);
+
+          toast.success("Dados da NF preenchidos automaticamente");
         }}
       />
     </>
