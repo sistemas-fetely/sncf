@@ -33,6 +33,7 @@ import {
 type FrenteKpi = {
   frente_id: string;
   nome: string;
+  codigo?: string | null;
   ordem: number;
   ativa: boolean;
   total_inicial: number;
