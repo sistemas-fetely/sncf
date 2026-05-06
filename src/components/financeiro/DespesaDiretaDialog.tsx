@@ -96,6 +96,22 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
       if (error) throw error;
       const r = Array.isArray(data) ? data[0] : data;
       if (!r?.ok) throw new Error(r?.erro || "Falha desconhecida");
+
+      // Vincular linha de investimento (UPDATE pós-RPC)
+      const cprId = r?.conta_pagar_id;
+      if (linhaInvestimentoId && cprId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: updErr } = await (supabase as any)
+          .from("contas_pagar_receber")
+          .update({ linha_investimento_id: linhaInvestimentoId })
+          .eq("id", cprId);
+        if (updErr) {
+          toast.warning(
+            "Despesa criada, mas vínculo com linha de investimento falhou: " + updErr.message,
+          );
+        }
+      }
+
       toast.success("Despesa direta criada e conciliada");
       onConciliado();
       handleClose();
