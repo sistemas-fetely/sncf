@@ -2118,6 +2118,7 @@ export type Database = {
           fornecedor_id: string | null
           id: string
           is_cartao: boolean | null
+          linha_investimento_id: string | null
           movimentacao_bancaria_id: string | null
           nf_aplicavel: boolean
           nf_aplicavel_motivo: string | null
@@ -2199,6 +2200,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           is_cartao?: boolean | null
+          linha_investimento_id?: string | null
           movimentacao_bancaria_id?: string | null
           nf_aplicavel?: boolean
           nf_aplicavel_motivo?: string | null
@@ -2280,6 +2282,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           is_cartao?: boolean | null
+          linha_investimento_id?: string | null
           movimentacao_bancaria_id?: string | null
           nf_aplicavel?: boolean
           nf_aplicavel_motivo?: string | null
@@ -2366,6 +2369,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formas_pagamento"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_linha_investimento_id_fkey"
+            columns: ["linha_investimento_id"]
+            isOneToOne: false
+            referencedRelation: "linhas_investimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_linha_investimento_id_fkey"
+            columns: ["linha_investimento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_linhas_investimento_kpis"
+            referencedColumns: ["linha_id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
@@ -4199,6 +4216,39 @@ export type Database = {
         }
         Relationships: []
       }
+      frentes_investimento: {
+        Row: {
+          ativa: boolean
+          codigo: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ged_documento_vinculos: {
         Row: {
           created_at: string
@@ -4825,6 +4875,66 @@ export type Database = {
           tipo?: string
         }
         Relationships: []
+      }
+      linhas_investimento: {
+        Row: {
+          ativa: boolean
+          created_at: string
+          created_by: string | null
+          data_prevista_pagamento: string | null
+          descricao: string
+          id: string
+          observacao: string | null
+          responsavel_id: string | null
+          tema_id: string
+          updated_at: string
+          valor_fechado: number | null
+          valor_inicial: number
+        }
+        Insert: {
+          ativa?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_prevista_pagamento?: string | null
+          descricao: string
+          id?: string
+          observacao?: string | null
+          responsavel_id?: string | null
+          tema_id: string
+          updated_at?: string
+          valor_fechado?: number | null
+          valor_inicial?: number
+        }
+        Update: {
+          ativa?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_prevista_pagamento?: string | null
+          descricao?: string
+          id?: string
+          observacao?: string | null
+          responsavel_id?: string | null
+          tema_id?: string
+          updated_at?: string
+          valor_fechado?: number | null
+          valor_inicial?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linhas_investimento_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas_investimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "linhas_investimento_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "vw_temas_investimento_kpis"
+            referencedColumns: ["tema_id"]
+          },
+        ]
       }
       movimentacoes: {
         Row: {
@@ -8715,6 +8825,57 @@ export type Database = {
         }
         Relationships: []
       }
+      temas_investimento: {
+        Row: {
+          ativa: boolean
+          codigo: string
+          created_at: string
+          descricao: string | null
+          frente_id: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          frente_id: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          frente_id?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temas_investimento_frente_id_fkey"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "frentes_investimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "temas_investimento_frente_id_fkey"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_frentes_investimento_kpis"
+            referencedColumns: ["frente_id"]
+          },
+        ]
+      }
       testes_tecnicos: {
         Row: {
           avaliado_em: string | null
@@ -10365,6 +10526,26 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_frentes_investimento_kpis: {
+        Row: {
+          ativa: boolean | null
+          codigo: string | null
+          descricao: string | null
+          frente_id: string | null
+          nome: string | null
+          ordem: number | null
+          qtd_cpr_pagos: number | null
+          qtd_linhas: number | null
+          qtd_temas_com_linhas: number | null
+          total_fechado: number | null
+          total_inicial: number | null
+          total_lancado: number | null
+          total_pago: number | null
+          total_saldo: number | null
+          total_saving: number | null
+        }
+        Relationships: []
+      }
       vw_ged_documentos_soltos: {
         Row: {
           tamanho_total_bytes: number | null
@@ -10532,6 +10713,56 @@ export type Database = {
           },
         ]
       }
+      vw_linhas_investimento_kpis: {
+        Row: {
+          ativa: boolean | null
+          data_prevista_pagamento: string | null
+          descricao: string | null
+          frente_id: string | null
+          linha_id: string | null
+          observacao: string | null
+          qtd_cpr: number | null
+          qtd_cpr_pagos: number | null
+          responsavel_id: string | null
+          saldo: number | null
+          saving: number | null
+          tema_id: string | null
+          valor_fechado: number | null
+          valor_inicial: number | null
+          valor_lancado: number | null
+          valor_pago: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linhas_investimento_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas_investimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "linhas_investimento_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "vw_temas_investimento_kpis"
+            referencedColumns: ["tema_id"]
+          },
+          {
+            foreignKeyName: "temas_investimento_frente_id_fkey"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "frentes_investimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "temas_investimento_frente_id_fkey"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_frentes_investimento_kpis"
+            referencedColumns: ["frente_id"]
+          },
+        ]
+      }
       vw_nfs_stage_completude: {
         Row: {
           categoria_id: string | null
@@ -10668,6 +10899,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_temas_investimento_kpis: {
+        Row: {
+          ativa: boolean | null
+          codigo: string | null
+          frente_id: string | null
+          nome: string | null
+          ordem: number | null
+          qtd_cpr: number | null
+          qtd_cpr_pagos: number | null
+          qtd_linhas: number | null
+          tema_id: string | null
+          total_fechado: number | null
+          total_inicial: number | null
+          total_lancado: number | null
+          total_pago: number | null
+          total_saldo: number | null
+          total_saving: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temas_investimento_frente_id_fkey"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "frentes_investimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "temas_investimento_frente_id_fkey"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_frentes_investimento_kpis"
+            referencedColumns: ["frente_id"]
           },
         ]
       }
