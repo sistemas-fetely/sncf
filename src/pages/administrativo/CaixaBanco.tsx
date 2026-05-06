@@ -64,7 +64,6 @@ import {
 import { toast } from "sonner";
 import { useFiltrosPersistentes } from "@/hooks/useFiltrosPersistentes";
 import ContaPagarDetalheDrawer from "@/components/financeiro/ContaPagarDetalheDrawer";
-import AcoesInlineConta from "@/components/financeiro/AcoesInlineConta";
 import SugestaoIADialog from "@/components/financeiro/SugestaoIADialog";
 import FilaRevisaoIADialog from "@/components/financeiro/FilaRevisaoIADialog";
 import {
@@ -124,7 +123,6 @@ export default function CaixaBanco() {
   );
   const [busca, setBusca] = useFiltrosPersistentes<string>("caixabanco_busca", "");
   const [contaIdDrawer, setContaIdDrawer] = useState<string | null>(null);
-  const [editandoBanco, setEditandoBanco] = useState(false);
   const [filtroContador, setFiltroContador] = useState<"todos" | "enviados" | "nao_enviados">("todos");
   const [mostrarSoInconsistentes, setMostrarSoInconsistentes] = useState(false);
   const [aplicandoIA, setAplicandoIA] = useState(false);
@@ -887,58 +885,127 @@ export default function CaixaBanco() {
                           {formatBRL(l.valor)}
                         </TableCell>
 
-                        {/* Ações inline — mesmo padrão de Contas a Pagar */}
-                        <TableCell
-                          className="min-w-[140px]"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {l.origem_view === "conta_pagar" ? (
-                            <AcoesInlineConta
-                              conta={{
-                                ...l,
-                                tem_doc_pendente: docPendente,
-                              } as any}
-                              onAbrirEditandoBanco={(id) => {
-                                setEditandoBanco(true);
-                                setContaIdDrawer(id);
-                              }}
-                            />
-                          ) : (
-                            <TooltipProvider>
-                              <div className="flex items-center gap-2">
+                        {/* Coluna única de ícones de qualidade no fim */}
+                        <TableCell className="min-w-[140px]">
+                          <TooltipProvider>
+                            <div className="flex items-center gap-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Receipt
+                                    className={cn(
+                                      "h-3.5 w-3.5 cursor-help",
+                                      corClass(qNF.cor),
+                                    )}
+                                    strokeWidth={2.2}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">📄 {qNF.motivo}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  {/* Categoria — IA habilitada apenas em realizadas */}
+                                  <FolderTree
+                                    className={cn(
+                                      "h-3.5 w-3.5",
+                                      corClass(qCat.cor),
+                                      isRealizado && qCat.temSugestaoIA
+                                        ? "cursor-pointer hover:scale-125 transition-transform"
+                                        : "cursor-help",
+                                    )}
+                                    strokeWidth={2.2}
+                                    onClick={
+                                      isRealizado && qCat.temSugestaoIA
+                                        ? (e) => {
+                                            e.stopPropagation();
+                                            setSugestaoMovId(l.id);
+                                          }
+                                        : undefined
+                                    }
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">🏷️ {qCat.motivo}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Paperclip
+                                    className={cn(
+                                      "h-3.5 w-3.5 cursor-help",
+                                      docPendente ? "text-red-500" : "text-emerald-600",
+                                    )}
+                                    strokeWidth={2.2}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">
+                                    {docPendente
+                                      ? "Documento pendente"
+                                      : "Documento anexado/OK"}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Link2
+                                    className={cn(
+                                      "h-3.5 w-3.5 cursor-help",
+                                      corClass(qVinc.cor),
+                                    )}
+                                    strokeWidth={2.2}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">🔗 {qVinc.motivo}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <CircleDollarSign
+                                    className={cn(
+                                      "h-3.5 w-3.5 cursor-help",
+                                      corClass(qConc.cor),
+                                    )}
+                                    strokeWidth={2.2}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">💰 {qConc.motivo}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              {/* Contador (só pra contas_pagar) */}
+                              {l.origem_view === "conta_pagar" && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Receipt
+                                    <MailCheck
                                       className={cn(
                                         "h-3.5 w-3.5 cursor-help",
-                                        corClass(qNF.cor),
-                                      )}
-                                      strokeWidth={2.2}
-                                    />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p className="text-xs">📄 {qNF.motivo}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Paperclip
-                                      className={cn(
-                                        "h-3.5 w-3.5 cursor-help",
-                                        docPendente ? "text-red-500" : "text-emerald-600",
+                                        enviadoContador
+                                          ? "text-emerald-600"
+                                          : "text-zinc-300",
                                       )}
                                       strokeWidth={2.2}
                                     />
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
                                     <p className="text-xs">
-                                      {docPendente ? "Documento pendente" : "Documento OK"}
+                                      {enviadoContador
+                                        ? `📨 Enviado em ${new Date(
+                                            remessa!.enviada_em,
+                                          ).toLocaleDateString("pt-BR")}${
+                                            remessa!.descricao
+                                              ? ` (${remessa!.descricao})`
+                                              : ""
+                                          }`
+                                        : "📭 Ainda não enviado ao contador"}
                                     </p>
                                   </TooltipContent>
                                 </Tooltip>
-                              </div>
-                            </TooltipProvider>
-                          )}
+                              )}
+                            </div>
+                          </TooltipProvider>
                         </TableCell>
                       </TableRow>
                     );
@@ -956,11 +1023,7 @@ export default function CaixaBanco() {
 
       <ContaPagarDetalheDrawer
         contaId={contaIdDrawer}
-        onClose={() => {
-          setContaIdDrawer(null);
-          setEditandoBanco(false);
-        }}
-        iniciarEditando={editandoBanco}
+        onClose={() => setContaIdDrawer(null)}
       />
 
       {sugestaoMovId && (
