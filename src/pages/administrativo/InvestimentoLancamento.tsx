@@ -212,8 +212,13 @@ export default function InvestimentoLancamento() {
     },
   });
 
+  const frentesFiltradas = useMemo(() => {
+    if (filtroFrenteId === "__all__") return frentes;
+    return frentes.filter((f) => f.frente_id === filtroFrenteId);
+  }, [frentes, filtroFrenteId]);
+
   const totais = useMemo(() => {
-    return frentes.reduce(
+    return frentesFiltradas.reduce(
       (acc, f) => ({
         inicial: acc.inicial + f.total_inicial,
         fechado: acc.fechado + f.total_fechado,
@@ -223,12 +228,7 @@ export default function InvestimentoLancamento() {
       }),
       { inicial: 0, fechado: 0, pago: 0, saldo: 0, saving: 0 },
     );
-  }, [frentes]);
-
-  const frentesFiltradas = useMemo(() => {
-    if (filtroFrenteId === "__all__") return frentes;
-    return frentes.filter((f) => f.frente_id === filtroFrenteId);
-  }, [frentes, filtroFrenteId]);
+  }, [frentesFiltradas]);
 
   function toggleFrente(id: string) {
     setExpandedFrentes((s) => {
@@ -351,24 +351,61 @@ export default function InvestimentoLancamento() {
                 <div className="text-lg font-bold tabular-nums mt-1">
                   {formatBRL(total)}
                 </div>
-                <div className="flex items-center justify-between mt-2 text-[11px] opacity-90">
-                  <span>Realizado</span>
-                  <span className="tabular-nums font-semibold">
-                    {percRealizado === null ? "—" : `${percRealizado}%`}
-                  </span>
-                </div>
-                <div
-                  className="mt-1.5 h-1 rounded-full overflow-hidden"
-                  style={{ backgroundColor: "rgba(255,255,255,0.25)" }}
-                >
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: codigo === "TI_TELECOM" ? "#1A4A3A" : "#FFFFFF",
-                    }}
-                  />
-                </div>
+                {(() => {
+                  const total = Number(f.total_inicial) || 0;
+                  const pago = Number(f.total_pago) || 0;
+                  const fechado = Number(f.total_fechado) || 0;
+                  const baseBar = Math.max(total, fechado, pago);
+
+                  const pctPago = baseBar > 0 ? (pago / baseBar) * 100 : 0;
+                  const pctComprometido =
+                    baseBar > 0 ? (Math.max(0, fechado - pago) / baseBar) * 100 : 0;
+
+                  const percRealizadoLocal =
+                    baseBar > 0 ? Math.round((pago / baseBar) * 100) : null;
+                  const percTotalComprometido =
+                    baseBar > 0 ? Math.round((Math.max(pago, fechado) / baseBar) * 100) : null;
+
+                  return (
+                    <>
+                      <div className="mt-2 space-y-0.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="opacity-80">Realizado</span>
+                          <span className="font-semibold tabular-nums">
+                            {percRealizadoLocal === null ? "—" : `${percRealizadoLocal}%`}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="opacity-80">Comprometido</span>
+                          <span className="font-semibold tabular-nums">
+                            {percTotalComprometido === null ? "—" : `${percTotalComprometido}%`}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        className="mt-2 h-2 rounded-full overflow-hidden flex"
+                        style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+                        title={`Pago: ${formatBRL(pago)} · Comprometido: ${formatBRL(fechado)} · Total: ${formatBRL(total)}`}
+                      >
+                        <div
+                          className="h-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min(pctPago, 100)}%`,
+                            backgroundColor: "rgba(255,255,255,0.95)",
+                          }}
+                        />
+                        <div
+                          className="h-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min(pctComprometido, Math.max(0, 100 - pctPago))}%`,
+                            backgroundColor: "rgba(255,255,255,0.55)",
+                          }}
+                        />
+                      </div>
+                    </>
+                  );
+                })()}
               </button>
             );
           })}
