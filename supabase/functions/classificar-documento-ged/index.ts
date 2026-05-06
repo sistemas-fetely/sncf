@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
 
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-    const base64 = uint8ArrayToBase64(bytes);
+    const base64 = encodeBase64(bytes);
 
     const systemPrompt = `Você é um classificador de documentos empresariais.
 
