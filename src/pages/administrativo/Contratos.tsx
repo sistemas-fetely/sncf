@@ -121,7 +121,44 @@ export default function Contratos() {
     },
   });
 
-  // Filtros
+  const excluirMutation = useMutation({
+    mutationFn: async (contrato: ContratoListagem) => {
+      const { data: parcelas } = await (supabase as any)
+        .from("pasta_contrato_parcelas")
+        .select("id")
+        .eq("pasta_contrato_id", contrato.id);
+
+      const parcelaIds = (parcelas ?? []).map((p: any) => p.id);
+
+      if (parcelaIds.length > 0) {
+        const { error: cprErr } = await (supabase as any)
+          .from("contas_pagar_receber")
+          .update({ pasta_contrato_parcela_id: null })
+          .in("pasta_contrato_parcela_id", parcelaIds);
+        if (cprErr) throw new Error(`Erro ao desvincular parcelas: ${cprErr.message}`);
+      }
+
+      const { error } = await (supabase as any)
+        .from("pasta_contratos")
+        .delete()
+        .eq("id", contrato.id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contratos-todos"] });
+      toast({ title: "Contrato excluído", description: "O contrato foi removido com sucesso." });
+      setContratoParaExcluir(null);
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Erro ao excluir",
+        description: err.message,
+        variant: "destructive",
+      });
+      setContratoParaExcluir(null);
+    },
+  });
+
   const contratosFiltrados = contratos.filter((c) => {
     if (filtroStatus !== "todos" && c.status !== filtroStatus) return false;
     if (busca.trim()) {
