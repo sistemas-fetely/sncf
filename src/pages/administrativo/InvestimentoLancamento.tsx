@@ -444,9 +444,27 @@ export default function InvestimentoLancamento() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Frente:</span>
-          <Select value={filtroFrenteId} onValueChange={setFiltroFrenteId}>
+          <Select
+            value={
+              filtroFrenteIds.length === 1
+                ? filtroFrenteIds[0]
+                : filtroFrenteIds.length === 0
+                  ? "__all__"
+                  : "__multi__"
+            }
+            onValueChange={(v) => {
+              if (v === "__all__") setFiltroFrenteIds([]);
+              else if (v !== "__multi__") setFiltroFrenteIds([v]);
+            }}
+          >
             <SelectTrigger className="w-[260px] h-9">
-              <SelectValue />
+              <SelectValue
+                placeholder={
+                  filtroFrenteIds.length > 1
+                    ? `Múltiplas (${filtroFrenteIds.length})`
+                    : "Selecionar..."
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Todas</SelectItem>
