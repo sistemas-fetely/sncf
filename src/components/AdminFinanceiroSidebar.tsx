@@ -45,6 +45,7 @@ const caixaBancoItems: MenuItem[] = [
   { title: "Movimentações", url: "/administrativo/caixa-banco", icon: Wallet },
   
   { title: "Fluxo de Caixa", url: "/administrativo/fluxo-caixa", icon: TrendingUp },
+  { title: "Fluxo Futuro Investimento", url: "/administrativo/fluxo-futuro-investimento", icon: Target },
   { title: "Fluxo Futuro", url: "/administrativo/fluxo-futuro", icon: Calendar },
   { title: "Contas Bancárias", url: "/administrativo/caixa-banco/contas", icon: Landmark },
 ];
