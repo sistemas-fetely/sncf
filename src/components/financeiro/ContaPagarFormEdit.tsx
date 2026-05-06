@@ -174,6 +174,7 @@ export function ContaPagarFormEdit({
     setNfSerie(conta.nf_serie || "");
     setNfChave(conta.nf_chave_acesso || "");
     setPagoEmContaId(conta.pago_em_conta_id || "__none__");
+    setLinhaInvestimentoId(conta.linha_investimento_id ?? null);
   }, [conta.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Categorias (plano de contas)
