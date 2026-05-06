@@ -94,8 +94,11 @@ function KpiCard({
 
 export default function Contratos() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  const [contratoParaExcluir, setContratoParaExcluir] = useState<ContratoListagem | null>(null);
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["contratos-todos"],
