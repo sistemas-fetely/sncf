@@ -226,9 +226,9 @@ export default function InvestimentoLancamento() {
   });
 
   const frentesFiltradas = useMemo(() => {
-    if (filtroFrenteId === "__all__") return frentes;
-    return frentes.filter((f) => f.frente_id === filtroFrenteId);
-  }, [frentes, filtroFrenteId]);
+    if (filtroFrenteIds.length === 0) return frentes;
+    return frentes.filter((f) => filtroFrenteIds.includes(f.frente_id));
+  }, [frentes, filtroFrenteIds]);
 
   const totais = useMemo(() => {
     return frentesFiltradas.reduce(
