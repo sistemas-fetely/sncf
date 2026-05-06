@@ -11398,7 +11398,7 @@ export type Database = {
         Returns: number
       }
       gerar_periodos_ferias_pendentes: { Args: never; Returns: undefined }
-      gerar_proximas_parcelas_pasta: { Args: never; Returns: undefined }
+      gerar_proximas_parcelas_pasta: { Args: never; Returns: number }
       get_convite_by_token: { Args: { _token: string }; Returns: Json }
       get_organograma_tree: {
         Args: never
