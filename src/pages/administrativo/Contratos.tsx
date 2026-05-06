@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import {
   FileSignature,
   Search,
   AlertTriangle,
@@ -29,6 +40,7 @@ import {
   FolderOpen,
   ArrowRight,
   Info,
+  Trash2,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
@@ -82,8 +94,11 @@ function KpiCard({
 
 export default function Contratos() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  const [contratoParaExcluir, setContratoParaExcluir] = useState<ContratoListagem | null>(null);
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["contratos-todos"],
@@ -106,7 +121,44 @@ export default function Contratos() {
     },
   });
 
-  // Filtros
+  const excluirMutation = useMutation({
+    mutationFn: async (contrato: ContratoListagem) => {
+      const { data: parcelas } = await (supabase as any)
+        .from("pasta_contrato_parcelas")
+        .select("id")
+        .eq("pasta_contrato_id", contrato.id);
+
+      const parcelaIds = (parcelas ?? []).map((p: any) => p.id);
+
+      if (parcelaIds.length > 0) {
+        const { error: cprErr } = await (supabase as any)
+          .from("contas_pagar_receber")
+          .update({ pasta_contrato_parcela_id: null })
+          .in("pasta_contrato_parcela_id", parcelaIds);
+        if (cprErr) throw new Error(`Erro ao desvincular parcelas: ${cprErr.message}`);
+      }
+
+      const { error } = await (supabase as any)
+        .from("pasta_contratos")
+        .delete()
+        .eq("id", contrato.id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contratos-todos"] });
+      toast({ title: "Contrato excluído", description: "O contrato foi removido com sucesso." });
+      setContratoParaExcluir(null);
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Erro ao excluir",
+        description: err.message,
+        variant: "destructive",
+      });
+      setContratoParaExcluir(null);
+    },
+  });
+
   const contratosFiltrados = contratos.filter((c) => {
     if (filtroStatus !== "todos" && c.status !== filtroStatus) return false;
     if (busca.trim()) {
@@ -313,17 +365,31 @@ export default function Contratos() {
                   </TableCell>
                   <TableCell>{statusBadge(c.status)}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/administrativo-fetely/ged?pasta=${c.pasta_id}`);
-                      }}
-                      title="Abrir no GED"
-                    >
-                      <FolderOpen className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/administrativo-fetely/ged?pasta=${c.pasta_id}`);
+                        }}
+                        title="Abrir no GED"
+                      >
+                        <FolderOpen className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setContratoParaExcluir(c);
+                        }}
+                        title="Excluir contrato"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -331,6 +397,41 @@ export default function Contratos() {
           </Table>
         )}
       </div>
+
+      <AlertDialog
+        open={!!contratoParaExcluir}
+        onOpenChange={(open) => { if (!open) setContratoParaExcluir(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir contrato?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Você está prestes a excluir o contrato{" "}
+                  <span className="font-mono font-medium">{contratoParaExcluir?.numero}</span> do projeto{" "}
+                  <span className="font-medium">{contratoParaExcluir?.pasta_nome}</span>.
+                </p>
+                <p className="text-amber-700">
+                  ⚠️ As parcelas do contrato serão removidas. Despesas já lançadas em Contas a Pagar
+                  serão mantidas, mas perderão o vínculo com este contrato.
+                </p>
+                <p className="font-medium">Esta ação não pode ser desfeita.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => contratoParaExcluir && excluirMutation.mutate(contratoParaExcluir)}
+              disabled={excluirMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluirMutation.isPending ? "Excluindo..." : "Excluir contrato"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
