@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CategoriaCombobox, CategoriaOption } from "./CategoriaCombobox";
+import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { toast } from "sonner";
 
 type Conta = {
@@ -30,36 +31,23 @@ type Conta = {
   nivel: number;
   tipo: string;
   natureza: string | null;
-  centro_custo: string | null;
+  centro_custo_id: string | null;
 };
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   options: CategoriaOption[];
-  /** Categoria pai pré-selecionada (para criação contextual) */
   defaultParentId?: string | null;
-  /** Categoria sendo editada */
   editing?: Conta | null;
   onSaved?: (id: string) => void;
 }
 
 const TIPOS = ["receita", "despesa", "investimento", "imposto"] as const;
 const NATUREZAS = ["operacional", "financeira", "nao_operacional", "deducao"] as const;
-const CENTROS = [
-  "comercial",
-  "administrativo",
-  "rh",
-  "ti",
-  "fiscal",
-  "financeiro",
-  "fabrica",
-  "geral",
-];
 
 function suggestNextCode(parent: Conta | undefined, allOptions: CategoriaOption[]): string {
   if (!parent) {
-    // Top-level: find next 2-digit code
     const tops = allOptions.filter((o) => o.nivel === 1).map((o) => parseInt(o.codigo, 10) || 0);
     const next = (Math.max(0, ...tops) + 1).toString().padStart(2, "0");
     return next;
@@ -83,12 +71,13 @@ export function CategoriaFormDialog({
 }: Props) {
   const qc = useQueryClient();
   const isEdit = !!editing;
+  const { data: centros = [] } = useCentrosCusto();
   const [codigo, setCodigo] = useState("");
   const [nome, setNome] = useState("");
   const [parentId, setParentId] = useState<string | null>(null);
   const [tipo, setTipo] = useState<string>("despesa");
   const [natureza, setNatureza] = useState<string>("operacional");
-  const [centroCusto, setCentroCusto] = useState<string>("");
+  const [centroCustoId, setCentroCustoId] = useState<string>("");
 
   useEffect(() => {
     if (!open) return;
@@ -98,7 +87,7 @@ export function CategoriaFormDialog({
       setParentId(editing.parent_id);
       setTipo(editing.tipo);
       setNatureza(editing.natureza ?? "operacional");
-      setCentroCusto(editing.centro_custo ?? "");
+      setCentroCustoId(editing.centro_custo_id ?? "");
     } else {
       setParentId(defaultParentId);
       const parentObj = defaultParentId
@@ -108,7 +97,7 @@ export function CategoriaFormDialog({
       setNome("");
       setTipo("despesa");
       setNatureza("operacional");
-      setCentroCusto("");
+      setCentroCustoId("");
     }
   }, [open, editing, defaultParentId, options]);
 
@@ -126,7 +115,7 @@ export function CategoriaFormDialog({
         nivel,
         tipo,
         natureza,
-        centro_custo: centroCusto || null,
+        centro_custo_id: centroCustoId || null,
         ativo: true,
       };
       if (isEdit && editing) {
@@ -136,7 +125,7 @@ export function CategoriaFormDialog({
             nome: payload.nome,
             tipo: payload.tipo,
             natureza: payload.natureza,
-            centro_custo: payload.centro_custo,
+            centro_custo_id: payload.centro_custo_id,
           })
           .eq("id", editing.id)
           .select("id")
@@ -239,15 +228,18 @@ export function CategoriaFormDialog({
             </div>
             <div>
               <Label>Centro de custo</Label>
-              <Select value={centroCusto || "_none"} onValueChange={(v) => setCentroCusto(v === "_none" ? "" : v)}>
+              <Select
+                value={centroCustoId || "_none"}
+                onValueChange={(v) => setCentroCustoId(v === "_none" ? "" : v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Nenhum" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">Nenhum</SelectItem>
-                  {CENTROS.map((c) => (
-                    <SelectItem key={c} value={c} className="capitalize">
-                      {c}
+                  {centros.map((c) => (
+                    <SelectItem key={c.id} value={c.id} className="capitalize">
+                      {c.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
