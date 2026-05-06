@@ -140,6 +140,19 @@ function MiniKpis({
   );
 }
 
+function PctBadge({ value, base }: { value: number; base: number }) {
+  if (!base || base <= 0) return null;
+  const pct = Math.round((value / base) * 100);
+  return (
+    <span
+      className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums bg-muted text-muted-foreground border border-border ml-2 align-middle"
+      title={`${pct}% do total do pai`}
+    >
+      {pct}%
+    </span>
+  );
+}
+
 export default function InvestimentoLancamento() {
   const [filtroFrenteId, setFiltroFrenteId] = useState<string>("__all__");
   const [expandedFrentes, setExpandedFrentes] = useState<Set<string>>(new Set());
