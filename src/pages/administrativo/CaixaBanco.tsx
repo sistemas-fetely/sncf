@@ -397,9 +397,15 @@ export default function CaixaBanco() {
       return v >= iniProx && v <= fimProx;
     });
 
-    // Conciliado / Sem conciliação — sobre pagas do mês atual
-    const semConc = pagosMesAtual.filter((l) => !l.conciliado_em && l.status_caixa !== "conciliado");
-    const conciliadas = pagosMesAtual.filter((l) => l.conciliado_em || l.status_caixa === "conciliado");
+    // Conciliado / Sem conciliação — sobre TODOS os pagos (qualquer mês)
+    // "Sem conciliação" = pagos mas sem movimentacao_bancaria_id e não são cartão
+    // Esse é o backlog real: saiu dinheiro mas não bateu no extrato
+    const semConc = listaRealizado.filter(
+      (l) => !l.movimentacao_bancaria_id && !l.vinculada_cartao && l.origem_view !== "cartao_lancamento"
+    );
+    const conciliadas = listaRealizado.filter(
+      (l) => l.movimentacao_bancaria_id || l.vinculada_cartao || l.origem_view === "cartao_lancamento"
+    );
 
     const sumValor = (arr: Lancamento[]) =>
       arr.reduce((s, l) => s + Number(l.valor || 0), 0);
