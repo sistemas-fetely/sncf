@@ -11,18 +11,19 @@ import {
 } from "recharts";
 import { formatBRL } from "@/lib/format-currency";
 
-const FRENTE_COLORS: Record<string, string> = {
-  "Marketing Lançamento": "#1A4A3A",
-  "Produto": "#E91E63",
-  "Fábrica": "#E8833A",
-  "TI e Telecom": "#4FC3D8",
-  "Show Room": "#8B1A2F",
-};
+// Paleta monocromática Verde Fetely — escala do escuro (frente principal)
+// ao claro (frente menor). Inclui sage Fetely (#8FB87A) da paleta oficial do DNA.
+const VERDE_FETELY_SCALE = [
+  "#1A4A3A", // 0 — Verde Fetely (cor base)
+  "#2D6B4F", // 1 — Verde médio-escuro
+  "#4F8A6A", // 2 — Verde médio
+  "#7AAA8E", // 3 — Verde médio-claro
+  "#8FB87A", // 4 — Sage Fetely (cor secundária oficial)
+  "#BCD9C8", // 5 — Verde claro
+];
 
-const FALLBACK_COLORS = ["#1A4A3A", "#E91E63", "#E8833A", "#4FC3D8", "#8B1A2F", "#6A4C93", "#999999"];
-
-function corFrente(nome: string, idx: number): string {
-  return FRENTE_COLORS[nome] ?? FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+function corFrente(_nome: string, idx: number): string {
+  return VERDE_FETELY_SCALE[idx % VERDE_FETELY_SCALE.length];
 }
 
 function formatK(v: number): string {
