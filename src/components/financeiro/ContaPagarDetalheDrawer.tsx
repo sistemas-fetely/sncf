@@ -70,6 +70,13 @@ type Conta = {
   conta_id: string | null;
   centro_custo_id: string | null;
   centros_custo?: { codigo: string; nome: string } | null;
+  linhas_investimento?: {
+    descricao: string | null;
+    temas_investimento?: {
+      nome: string | null;
+      frentes_investimento?: { nome: string | null } | null;
+    } | null;
+  } | null;
   forma_pagamento_id: string | null;
   origem: string | null;
   observacao?: string | null;
