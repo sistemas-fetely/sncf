@@ -243,6 +243,10 @@ export default function InvestimentoLancamento() {
     );
   }, [frentesFiltradas]);
 
+  const totalGeralInicial = useMemo(() => {
+    return frentes.reduce((sum, f) => sum + (Number(f.total_inicial) || 0), 0);
+  }, [frentes]);
+
   function toggleFrente(id: string) {
     setExpandedFrentes((s) => {
       const next = new Set(s);
