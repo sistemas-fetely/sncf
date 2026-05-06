@@ -1570,7 +1570,7 @@ function AbaParcelas({ pastaId }: { pastaId: string }) {
                   <Badge variant="outline" className="text-xs capitalize">{p.origem}</Badge>
                 </td>
                 <td className="px-3 py-2 text-xs">
-                  {p.numero_parcela}{p.total_parcelas ? ` / ${p.total_parcelas}` : ""}
+                  {p.numero_parcela}{p.total_parcelas ? ` / ${p.total_parcelas}` : " / ∞"}
                 </td>
                 <td className="px-3 py-2 text-xs">{formatDateBR(p.data_vencimento)}</td>
                 <td className="px-3 py-2 text-right font-medium">{formatBRL(p.valor)}</td>
