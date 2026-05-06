@@ -87,23 +87,42 @@ function KpiCard({
   label: string;
   valor: number;
   icon: any;
-  tone?: "default" | "saving";
+  tone?: "planejamento" | "comprometido" | "executado" | "saldo" | "saving";
 }) {
-  const isSaving = tone === "saving";
-  const color =
-    isSaving && valor < 0
-      ? "text-rose-600"
-      : isSaving && valor > 0
-        ? "text-emerald-700"
-        : "text-foreground";
+  const VERDE_FETELY = "#1A4A3A";
+  const AZUL_FETELY = "#4FC3D8";
+  const LARANJA_FETELY = "#E8743A";
+  const ROSA_FETELY = "#E91E63";
+
+  const config = (() => {
+    switch (tone) {
+      case "comprometido":
+        return { border: AZUL_FETELY, icon: AZUL_FETELY, text: "text-foreground" };
+      case "executado":
+        return { border: LARANJA_FETELY, icon: LARANJA_FETELY, text: "text-foreground" };
+      case "saldo":
+      case "saving": {
+        const negativo = valor < 0;
+        return {
+          border: negativo ? ROSA_FETELY : VERDE_FETELY,
+          icon: negativo ? ROSA_FETELY : VERDE_FETELY,
+          text: negativo ? "text-rose-600" : "text-emerald-700",
+        };
+      }
+      case "planejamento":
+      default:
+        return { border: VERDE_FETELY, icon: VERDE_FETELY, text: "text-foreground" };
+    }
+  })();
+
   return (
-    <Card className="flex-1">
+    <Card className="flex-1 border-l-4" style={{ borderLeftColor: config.border }}>
       <CardContent className="p-4">
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-          <Icon className="h-3.5 w-3.5" />
+          <Icon className="h-3.5 w-3.5" style={{ color: config.icon }} />
           {label}
         </div>
-        <div className={cn("text-xl font-bold tabular-nums", color)}>
+        <div className={cn("text-xl font-bold tabular-nums", config.text)}>
           {formatBRL(valor)}
         </div>
       </CardContent>
