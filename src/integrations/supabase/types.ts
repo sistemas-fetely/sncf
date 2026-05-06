@@ -11071,6 +11071,10 @@ export type Database = {
         Args: { p_conta_id: string }
         Returns: Json
       }
+      gerar_parcelas_contrato_inicial: {
+        Args: { p_contrato_id: string }
+        Returns: undefined
+      }
       gerar_parcelas_pasta_contrato: {
         Args: { p_contrato_id: string }
         Returns: undefined
