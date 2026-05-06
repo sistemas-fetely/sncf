@@ -174,12 +174,13 @@ export default function BuscarNFStageDialog({
             candidatos.map((c) => (
               <div
                 key={c.nf_id}
-                className="flex items-start justify-between gap-3 p-3 border rounded-md hover:bg-muted/30 transition-colors"
+                className="border rounded-lg overflow-hidden transition-colors hover:border-emerald-300"
               >
-                <div className="flex-1 min-w-0 space-y-1">
+                {/* Cabeçalho do card */}
+                <div className="p-3 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <FileText className="h-3.5 w-3.5 shrink-0" />
-                    <span className="text-sm font-medium truncate">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-sm font-medium">
                       {c.fornecedor_razao_social || c.fornecedor_cliente || "—"}
                     </span>
                     <Badge
@@ -194,11 +195,11 @@ export default function BuscarNFStageDialog({
                       {c.score}% match
                     </Badge>
                   </div>
+
                   <p className="text-xs text-muted-foreground">
                     NF nº {c.nf_numero || "—"} · {formatDate(c.nf_data_emissao)} ·{" "}
                     {formatBRL(c.valor_total)}
                     {(() => {
-                      // Match exato com valor do compromisso (ou da conta avulsa)
                       if (valorParaMatch > 0 && Math.abs(c.valor_total - valorParaMatch) < 0.01) {
                         return (
                           <span className="text-emerald-700 font-medium">
@@ -206,15 +207,10 @@ export default function BuscarNFStageDialog({
                           </span>
                         );
                       }
-                      // Detecção de parcelamento — usa valor da conta individual
                       if (!contaValor || contaValor <= 0) return null;
                       const ratio = c.valor_total / contaValor;
                       const ratioRounded = Math.round(ratio);
-                      if (
-                        ratioRounded >= 2 &&
-                        ratioRounded <= 36 &&
-                        Math.abs(ratio - ratioRounded) <= 0.02
-                      ) {
+                      if (ratioRounded >= 2 && ratioRounded <= 36 && Math.abs(ratio - ratioRounded) <= 0.02) {
                         return (
                           <span className="text-blue-700 font-medium">
                             {" "}({ratioRounded}x {formatBRL(contaValor)})
@@ -224,10 +220,9 @@ export default function BuscarNFStageDialog({
                       return null;
                     })()}
                   </p>
+
                   {c.fornecedor_cnpj && (
-                    <p className="text-xs text-muted-foreground">
-                      CNPJ {c.fornecedor_cnpj}
-                    </p>
+                    <p className="text-xs text-muted-foreground">CNPJ {c.fornecedor_cnpj}</p>
                   )}
                   {c.categoria_codigo && (
                     <p className="text-xs text-muted-foreground">
@@ -235,24 +230,29 @@ export default function BuscarNFStageDialog({
                     </p>
                   )}
                   {c.motivos && (
-                    <p className="text-[11px] text-blue-600">
-                      ✨ {c.motivos}
-                    </p>
+                    <p className="text-[11px] text-blue-600">✨ {c.motivos}</p>
                   )}
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => handleVincular(c.nf_id)}
-                  disabled={!!vinculando}
-                  className="gap-1 shrink-0"
-                >
-                  {vinculando === c.nf_id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Link2 className="h-3.5 w-3.5" />
-                  )}
-                  Vincular
-                </Button>
+
+                {/* Rodapé com botão — sempre visível */}
+                <div className="px-3 py-2 bg-muted/30 border-t border-dashed flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">
+                    Clique para vincular esta NF à conta
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={() => handleVincular(c.nf_id)}
+                    disabled={!!vinculando}
+                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {vinculando === c.nf_id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Link2 className="h-3.5 w-3.5" />
+                    )}
+                    Vincular
+                  </Button>
+                </div>
               </div>
             ))
           )}
