@@ -109,6 +109,7 @@ export default function FluxoFuturoInvestimento() {
   function bucketDe(e: EventoFluxo): string {
     if (e.origem === "linha_sem_data" || !e.data_evento) return "sem_data";
     const d = parseISO(e.data_evento);
+    if (!(d instanceof Date) || isNaN(d.getTime())) return "sem_data";
     if (isBefore(d, inicioMesAtual)) return "vencido";
     return format(startOfMonth(d), "yyyy-MM");
   }
