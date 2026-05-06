@@ -1,21 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_PDF_BYTES = 25 * 1024 * 1024;
-
-function uint8ArrayToBase64(bytes: Uint8Array): string {
-  const chunkSize = 0x8000;
-  const parts: string[] = [];
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    parts.push(String.fromCharCode(...chunk));
-  }
-  return btoa(parts.join(""));
-}
+// Reduzido para 10MB — PDFs maiores estouram o limite de CPU do edge runtime
+// na codificação base64 + envio para a IA.
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -57,7 +50,7 @@ Deno.serve(async (req) => {
 
     if (file.size > MAX_PDF_BYTES) {
       return new Response(JSON.stringify({
-        error: `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Limite: 25MB.`,
+        error: `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Limite: 10MB. PDFs maiores estouram o limite de processamento — comprima ou divida o arquivo.`,
       }), {
         status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -66,7 +59,7 @@ Deno.serve(async (req) => {
 
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-    const base64 = uint8ArrayToBase64(bytes);
+    const base64 = encodeBase64(bytes);
 
     const systemPrompt = `Você é um classificador de documentos empresariais.
 
