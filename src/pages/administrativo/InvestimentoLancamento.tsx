@@ -212,8 +212,13 @@ export default function InvestimentoLancamento() {
     },
   });
 
+  const frentesFiltradas = useMemo(() => {
+    if (filtroFrenteId === "__all__") return frentes;
+    return frentes.filter((f) => f.frente_id === filtroFrenteId);
+  }, [frentes, filtroFrenteId]);
+
   const totais = useMemo(() => {
-    return frentes.reduce(
+    return frentesFiltradas.reduce(
       (acc, f) => ({
         inicial: acc.inicial + f.total_inicial,
         fechado: acc.fechado + f.total_fechado,
@@ -223,12 +228,7 @@ export default function InvestimentoLancamento() {
       }),
       { inicial: 0, fechado: 0, pago: 0, saldo: 0, saving: 0 },
     );
-  }, [frentes]);
-
-  const frentesFiltradas = useMemo(() => {
-    if (filtroFrenteId === "__all__") return frentes;
-    return frentes.filter((f) => f.frente_id === filtroFrenteId);
-  }, [frentes, filtroFrenteId]);
+  }, [frentesFiltradas]);
 
   function toggleFrente(id: string) {
     setExpandedFrentes((s) => {
