@@ -29,6 +29,7 @@ type Regra = {
   id: string;
   nome: string;
   pattern: string;
+  acao: "lancar" | "ignorar";
   conta_bancaria_id: string | null;
   conta_plano_id: string;
   centro_custo_id: string | null;
@@ -43,6 +44,7 @@ type ContaBancaria = { id: string; nome_exibicao: string };
 type FormState = {
   nome: string;
   pattern: string;
+  acao: "lancar" | "ignorar";
   conta_bancaria_id: string | null;
   conta_plano_id: string;
   centro_custo_id: string | null;
@@ -51,7 +53,7 @@ type FormState = {
 };
 
 const EMPTY: FormState = {
-  nome: "", pattern: "", conta_bancaria_id: null,
+  nome: "", pattern: "", acao: "lancar", conta_bancaria_id: null,
   conta_plano_id: "", centro_custo_id: null, descricao_override: null, ativo: true,
 };
 
@@ -79,7 +81,7 @@ export function OFXRegrasPanel() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("ofx_regras_automaticas")
-        .select("id, nome, pattern, conta_bancaria_id, conta_plano_id, centro_custo_id, descricao_override, ativo, conta_plano:conta_plano_id(nome, codigo), centro_custo:centro_custo_id(nome)")
+        .select("id, nome, pattern, acao, conta_bancaria_id, conta_plano_id, centro_custo_id, descricao_override, ativo, conta_plano:conta_plano_id(nome, codigo), centro_custo:centro_custo_id(nome)")
         .order("nome");
       if (error) throw error;
       return (data || []) as Regra[];
@@ -95,7 +97,7 @@ export function OFXRegrasPanel() {
   function abrirEditar(r: Regra) {
     setEditing(r);
     setForm({
-      nome: r.nome, pattern: r.pattern,
+      nome: r.nome, pattern: r.pattern, acao: r.acao ?? "lancar",
       conta_bancaria_id: r.conta_bancaria_id,
       conta_plano_id: r.conta_plano_id,
       centro_custo_id: r.centro_custo_id,
@@ -109,13 +111,14 @@ export function OFXRegrasPanel() {
     mutationFn: async () => {
       if (!form.nome.trim()) throw new Error("Nome obrigatório");
       if (!form.pattern.trim()) throw new Error("Padrão obrigatório");
-      if (!form.conta_plano_id) throw new Error("Conta do plano obrigatória");
+      if (form.acao === "lancar" && !form.conta_plano_id) throw new Error("Conta do plano obrigatória para ação Lançar");
 
       const payload = {
         nome: form.nome.trim(),
         pattern: form.pattern.trim().toLowerCase(),
+        acao: form.acao,
         conta_bancaria_id: form.conta_bancaria_id || null,
-        conta_plano_id: form.conta_plano_id,
+        conta_plano_id: form.conta_plano_id || null,
         centro_custo_id: form.centro_custo_id || null,
         descricao_override: form.descricao_override?.trim() || null,
         ativo: form.ativo,
@@ -195,6 +198,9 @@ export function OFXRegrasPanel() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm">{r.nome}</span>
                   <Badge variant="outline" className="text-[10px] font-mono">{r.pattern}</Badge>
+                  {r.acao === "ignorar" && (
+                    <Badge variant="outline" className="text-[10px] text-zinc-500">Ignorar</Badge>
+                  )}
                   {!r.ativo && <Badge variant="secondary" className="text-[10px]">Inativa</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -252,6 +258,23 @@ export function OFXRegrasPanel() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Ação</Label>
+              <Select value={form.acao}
+                onValueChange={(v: "lancar" | "ignorar") => setForm({ ...form, acao: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lancar">⚡ Lançar movimentação — cria lançamento no DRE</SelectItem>
+                  <SelectItem value="ignorar">✕ Ignorar automaticamente — não cria lançamento</SelectItem>
+                </SelectContent>
+              </Select>
+              {form.acao === "ignorar" && (
+                <p className="text-[11px] text-muted-foreground">
+                  Use para APL/RES de aplicação financeira e outras transferências que não vão para o DRE.
+                </p>
+              )}
+            </div>
+            {form.acao === "lancar" && (
+            <div className="space-y-2">
               <Label>Conta do Plano de Contas *</Label>
               <CategoriaCombobox
                 options={categorias}
@@ -260,6 +283,7 @@ export function OFXRegrasPanel() {
                 placeholder="Selecione a conta..."
               />
             </div>
+            )}
             <div className="space-y-2">
               <Label>Centro de Custo (opcional)</Label>
               <Select
