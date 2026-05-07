@@ -146,6 +146,7 @@ export default function Contratos() {
   const { toast } = useToast();
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
   const [contratoParaExcluir, setContratoParaExcluir] = useState<ContratoListagem | null>(null);
   const [mostrarBanner, setMostrarBanner] = useState(false);
 
