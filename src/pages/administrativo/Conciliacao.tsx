@@ -489,6 +489,30 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
           )}
         </TabsContent>
 
+        {cprCriada.length > 0 && (
+          <TabsContent value="cprcriada" className="space-y-2 mt-3">
+            <p className="text-xs text-muted-foreground py-2">
+              Despesa criada em Contas a Pagar. Categorize e aprove — depois clique Re-processar para conciliar automaticamente.
+            </p>
+            {cprCriada.map((p) => (
+              <div
+                key={p.id}
+                className="border rounded-md p-3 flex items-start justify-between gap-3 bg-muted/20"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium text-sm truncate">{p.nome_favorecido}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
+                  </div>
+                </div>
+                <div className="text-sm font-semibold whitespace-nowrap">
+                  {formatBRL(p.valor_pago)}
+                </div>
+              </div>
+            ))}
+          </TabsContent>
+        )}
+
         {concluido.length > 0 && (
           <TabsContent value="concluido" className="space-y-2 mt-3">
             {concluido.map((p) => (
