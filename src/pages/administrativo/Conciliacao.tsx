@@ -606,7 +606,9 @@ export default function Conciliacao() {
                         <p className="text-muted-foreground text-[10px]">{p.cnpj_favorecido} — parceiro não cadastrado</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                        <span className="text-sm text-muted-foreground">{p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}</span>
+                        <span className="text-muted-foreground text-sm">·</span>
+                        <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => { setPagParaCadastrar(p); setParceiroSheetOpen(true); }}>
                           <Users className="h-3.5 w-3.5" /> Cadastrar
                         </Button>
