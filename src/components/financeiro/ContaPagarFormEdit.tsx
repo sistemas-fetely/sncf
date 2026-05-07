@@ -369,6 +369,26 @@ export function ContaPagarFormEdit({
         )}
       </div>
 
+      {/* Botão Buscar do Parceiro — doutrina "Parceiro é Verdade" */}
+      {conta.parceiro_id && !isReadOnly && (
+        <div className="rounded-md border border-dashed border-purple-300 bg-purple-50/40 p-2.5 flex items-center justify-between gap-3">
+          <p className="text-[11px] text-purple-800 leading-snug flex-1">
+            <strong>Parceiro é verdade.</strong> Buscar Categoria, Centro de custo e Forma de pagamento do cadastro.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 border-purple-300 text-purple-700 hover:bg-purple-100 shrink-0"
+            onClick={aplicarPadroesParceiro}
+            disabled={salvando}
+          >
+            <Sparkles className="h-3.5 w-3.5 mr-1" />
+            Buscar do Parceiro
+          </Button>
+        </div>
+      )}
+
       {/* Categoria (plano de contas) */}
       <div className="space-y-1">
         <Label>Categoria (plano de contas)</Label>
