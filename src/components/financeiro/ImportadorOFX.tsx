@@ -136,6 +136,57 @@ export function ImportadorOFX() {
           { duration: 6000 }
         );
         qc.invalidateQueries({ queryKey: ["ofx-stage"] });
+
+        // Aplicar regras automáticas na conta recém-importada
+        if (contaBancariaId) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const sb2 = supabase as any;
+            const { data: regras } = await sb2
+              .from("ofx_regras_automaticas")
+              .select("id, pattern, conta_plano_id, centro_custo_id, descricao_override")
+              .eq("ativo", true)
+              .or(`conta_bancaria_id.eq.${contaBancariaId},conta_bancaria_id.is.null`);
+
+            if (regras?.length) {
+              const { data: ofxPendentes } = await sb2
+                .from("ofx_transacoes_stage")
+                .select("id, descricao, valor, data_transacao, conta_bancaria_id, id_transacao_banco, hash_unico")
+                .eq("conta_bancaria_id", contaBancariaId)
+                .eq("status", "pendente");
+
+              let autoLancados = 0;
+              for (const ofx of (ofxPendentes || [])) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const regra = regras.find((r: any) =>
+                  ofx.descricao?.toLowerCase().includes(r.pattern.toLowerCase())
+                );
+                if (!regra) continue;
+                const { error } = await sb2.from("movimentacoes_bancarias").insert({
+                  conta_bancaria_id: ofx.conta_bancaria_id,
+                  data_transacao: ofx.data_transacao,
+                  valor: ofx.valor,
+                  descricao: regra.descricao_override || ofx.descricao,
+                  conta_plano_id: regra.conta_plano_id,
+                  centro_custo_id: regra.centro_custo_id ?? null,
+                  tipo: ofx.valor >= 0 ? "credito" : "debito",
+                  origem: "ofx",
+                  conciliado: true,
+                  conciliado_em: new Date().toISOString(),
+                  id_transacao_banco: ofx.id_transacao_banco ?? null,
+                  hash_unico: ofx.hash_unico ?? null,
+                });
+                if (!error) {
+                  await sb2.from("ofx_transacoes_stage").update({ status: "persistida" }).eq("id", ofx.id);
+                  autoLancados++;
+                }
+              }
+              if (autoLancados > 0) {
+                toast.success(`${autoLancados} lançamento${autoLancados !== 1 ? "s" : ""} automático${autoLancados !== 1 ? "s" : ""} aplicado${autoLancados !== 1 ? "s" : ""}`);
+              }
+            }
+          } catch { /* silencioso */ }
+        }
       }
     } finally {
       setEnviando(false);
