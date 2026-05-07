@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Monitor } from "lucide-react";
 import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
+import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 import { ReportarErroBotao } from "@/components/shared/ReportarErroBotao";
 import { LayoutHeader } from "@/components/shared/LayoutHeader";
@@ -15,6 +16,7 @@ export default function TILayout() {
   const [checking, setChecking] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   useTrackPageVisit();
+  usePrefetchTelas();
 
   useEffect(() => {
     if (!user) {

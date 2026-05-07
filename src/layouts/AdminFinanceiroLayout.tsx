@@ -4,6 +4,7 @@ import { AdminFinanceiroSidebar } from "@/components/AdminFinanceiroSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Wallet } from "lucide-react";
 import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
+import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 import { ReportarErroBotao } from "@/components/shared/ReportarErroBotao";
 import { LayoutHeader } from "@/components/shared/LayoutHeader";
@@ -11,6 +12,7 @@ import { LayoutHeader } from "@/components/shared/LayoutHeader";
 export default function AdminFinanceiroLayout() {
   const { user, roles, loading } = useAuth();
   useTrackPageVisit();
+  usePrefetchTelas();
 
   if (loading) {
     return (

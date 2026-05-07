@@ -4,11 +4,13 @@ import { Landmark } from "lucide-react";
 import { AdministrativoSidebar } from "@/components/AdministrativoSidebar";
 import { ReportarErroBotao } from "@/components/shared/ReportarErroBotao";
 import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
+import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 import { LayoutHeader } from "@/components/shared/LayoutHeader";
 
 export default function AdministrativoLayout() {
   useTrackPageVisit();
+  usePrefetchTelas();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">

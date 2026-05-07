@@ -4,11 +4,13 @@ import { Gift } from "lucide-react";
 import { ProdutoSidebar } from "@/components/ProdutoSidebar";
 import { ReportarErroBotao } from "@/components/shared/ReportarErroBotao";
 import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
+import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 import { LayoutHeader } from "@/components/shared/LayoutHeader";
 
 export default function ProdutoLayout() {
   useTrackPageVisit();
+  usePrefetchTelas();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
