@@ -7,50 +7,27 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Link2,
-  Plus,
-  X,
-  ArrowLeftRight,
-  FileSpreadsheet,
-  CheckSquare,
+  CheckCircle2, AlertCircle, XCircle, Loader2, Link2, Plus, X,
+  ArrowLeftRight, FileSpreadsheet, RefreshCw, RotateCcw, Users,
 } from "lucide-react";
+import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { ParceiroFormSheet } from "@/components/financeiro/ParceiroFormSheet";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
-import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import { useNavigate } from "react-router-dom";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
-type ContaBancaria = { id: string; nome_exibicao: string };
+// ─── Types ────────────────────────────────────────────────────────────────
 
-type Importacao = {
-  id: string;
-  arquivo_nome: string;
-  periodo_inicio: string | null;
-  periodo_fim: string | null;
-  total_linhas: number;
-  status: string;
-  created_at: string;
-  conta_bancaria_id: string | null;
-};
+type ContaBancaria = { id: string; nome_exibicao: string };
 
 type Pagamento = {
   id: string;
+  importacao_id: string;
   nome_favorecido: string;
   cnpj_favorecido: string;
   tipo_pagamento: string;
@@ -105,24 +82,24 @@ function ItemOperador({
   });
 
   return (
-    <div className="border rounded-md p-3 space-y-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="font-medium text-sm truncate">{pag.nome_favorecido}</div>
-          <div className="text-xs text-muted-foreground">{pag.cnpj_favorecido}</div>
+    <div className="p-3 border rounded text-xs space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium truncate">{pag.nome_favorecido}</p>
+          <p className="text-muted-foreground text-[10px]">{pag.cnpj_favorecido}</p>
           {pag.data_pagamento && (
-            <div className="text-xs mt-0.5">
+            <p className="text-[10px] mt-0.5">
               <span className="text-muted-foreground">Pago em: </span>
               <span className="font-medium text-foreground">{formatDateBR(pag.data_pagamento)}</span>
-            </div>
+            </p>
           )}
         </div>
-        <div className="text-sm font-semibold whitespace-nowrap">{formatBRL(pag.valor_pago)}</div>
+        <span className="font-mono font-semibold">{formatBRL(pag.valor_pago)}</span>
       </div>
       <div className="flex items-center gap-2">
         <Select value={cprSelecionada} onValueChange={setCprSelecionada}>
           <SelectTrigger className="h-8 text-xs flex-1">
-            <SelectValue placeholder={cprs.length === 0 ? "Nenhuma CPR candidata" : "Escolher CPR"} />
+            <SelectValue placeholder={cprs.length ? "Selecionar CPR" : "Nenhuma CPR disponível"} />
           </SelectTrigger>
           <SelectContent>
             {cprs.map((c) => (
@@ -138,479 +115,45 @@ function ItemOperador({
           onClick={() => onConfirmar(pag.id, cprSelecionada)}
           className="gap-1"
         >
-          <Link2 className="h-3.5 w-3.5" />
-          Confirmar
+          <Link2 className="h-3.5 w-3.5" /> Confirmar
         </Button>
       </div>
     </div>
   );
 }
 
-// ─── PainelImportacao ─────────────────────────────────────────────────────
-
-function PainelImportacao({ importacao }: { importacao: Importacao }) {
-  const qc = useQueryClient();
-  const navigate = useNavigate();
-  const [parceiroSheetOpen, setParceiroSheetOpen] = useState(false);
-  const [pagParaCadastrar, setPagParaCadastrar] = useState<Pagamento | null>(null);
-  const { data: categorias = [] } = useCategoriasPlano();
-
-  const { data: pagamentos = [], isLoading } = useQuery({
-    queryKey: ["itau-pagamentos", importacao.id],
-    queryFn: async () => {
-      const { data } = await sb
-        .from("itau_pagamentos_stage")
-        .select(
-          "id, nome_favorecido, cnpj_favorecido, tipo_pagamento, valor_pago, data_pagamento, status_conciliacao, parceiro_id, conta_pagar_id, movimentacao_id, conta_pagar:conta_pagar_id(descricao, data_vencimento)"
-        )
-        .eq("importacao_id", importacao.id)
-        .order("nome_favorecido");
-      return (data || []) as Pagamento[];
-    },
-  });
-
-  const auto = pagamentos.filter((p) => p.status_conciliacao === "conciliado_auto");
-  const operador = pagamentos.filter((p) => p.status_conciliacao === "aguardando_operador");
-  const semCpr = pagamentos.filter((p) => p.status_conciliacao === "sem_cpr");
-  const semParc = pagamentos.filter((p) => p.status_conciliacao === "sem_parceiro");
-  const cprCriada = pagamentos.filter((p) => p.status_conciliacao === "cpr_criada");
-  const concluido = pagamentos.filter((p) => p.status_conciliacao === "conciliado_manual");
-
-  const confirmarLoteMutation = useMutation({
-    mutationFn: async () => {
-      const pendentes = auto.filter((p) => !p.movimentacao_id && p.conta_pagar_id);
-      let confirmados = 0;
-      let erros = 0;
-
-      for (const pag of pendentes) {
-        try {
-          await sb.from("contas_pagar_receber").update({
-            pago_em_conta_id: importacao.conta_bancaria_id ?? null,
-            data_pagamento:   pag.data_pagamento ?? null,
-          }).eq("id", pag.conta_pagar_id);
-
-          const { data: res } = await sb.rpc("gerar_movimentacao_de_conta", {
-            p_conta_id: pag.conta_pagar_id,
-          });
-          if (!res?.ok) { erros++; continue; }
-
-          const { data: mov } = await sb.from("movimentacoes_bancarias")
-            .select("id")
-            .eq("conta_pagar_id", pag.conta_pagar_id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          await sb.from("itau_pagamentos_stage").update({
-            movimentacao_id:    mov?.id ?? null,
-            status_conciliacao: "conciliado_manual",
-          }).eq("id", pag.id);
-
-          confirmados++;
-        } catch {
-          erros++;
-        }
-      }
-      return { confirmados, erros };
-    },
-    onSuccess: (data) => {
-      toast.success(`${data.confirmados} pagamento${data.confirmados !== 1 ? "s" : ""} confirmado${data.confirmados !== 1 ? "s" : ""}${data.erros > 0 ? ` · ${data.erros} erro(s)` : ""}`);
-      qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
-      qc.invalidateQueries({ queryKey: ["itau-importacoes"] });
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (e: any) => toast.error("Erro: " + e.message),
-  });
-
-  const confirmarUnitarioMutation = useMutation({
-    mutationFn: async ({ pagId, cprId }: { pagId: string; cprId: string }) => {
-      const { data: pag } = await sb.from("itau_pagamentos_stage")
-        .select("conta_bancaria_id, data_pagamento")
-        .eq("id", pagId)
-        .maybeSingle();
-
-      await sb.from("itau_pagamentos_stage")
-        .update({ conta_pagar_id: cprId })
-        .eq("id", pagId);
-
-      await sb.from("contas_pagar_receber").update({
-        pago_em_conta_id: pag?.conta_bancaria_id ?? null,
-        data_pagamento:   pag?.data_pagamento ?? null,
-      }).eq("id", cprId);
-
-      const { data: res } = await sb.rpc("gerar_movimentacao_de_conta", {
-        p_conta_id: cprId,
-      });
-      if (!res?.ok) throw new Error(res?.erro || "Erro ao gerar movimentação");
-
-      const { data: mov } = await sb.from("movimentacoes_bancarias")
-        .select("id")
-        .eq("conta_pagar_id", cprId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      await sb.from("itau_pagamentos_stage").update({
-        movimentacao_id:    mov?.id ?? null,
-        status_conciliacao: "conciliado_manual",
-      }).eq("id", pagId);
-    },
-    onSuccess: () => {
-      toast.success("Pagamento confirmado");
-      qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
-      qc.invalidateQueries({ queryKey: ["itau-importacoes"] });
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (e: any) => toast.error("Erro: " + e.message),
-  });
-
-  const criarDespesaMutation = useMutation({
-    mutationFn: async (pag: Pagamento) => {
-      const { data: cpr, error: errCpr } = await sb
-        .from("contas_pagar_receber")
-        .insert({
-          descricao:          pag.nome_favorecido,
-          valor:              pag.valor_pago,
-          data_vencimento:    pag.data_pagamento,
-          parceiro_id:        pag.parceiro_id,
-          fornecedor_cliente: pag.nome_favorecido,
-          status:             "aberto",
-          origem:             "manual",
-        })
-        .select("id")
-        .single();
-      if (errCpr) throw errCpr;
-
-      const { error: errPag } = await sb
-        .from("itau_pagamentos_stage")
-        .update({ conta_pagar_id: cpr.id, status_conciliacao: "cpr_criada" })
-        .eq("id", pag.id);
-      if (errPag) throw errPag;
-    },
-    onSuccess: () => {
-      toast.success("Despesa criada em Contas a Pagar — categorize e aprove para conciliar");
-      qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
-      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (e: any) => toast.error("Erro: " + e.message),
-  });
-
-  const ignorarMutation = useMutation({
-    mutationFn: async (pagId: string) => {
-      const { error } = await sb
-        .from("itau_pagamentos_stage")
-        .update({ status_conciliacao: "ignorado" })
-        .eq("id", pagId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (e: any) => toast.error("Erro: " + e.message),
-  });
-
-  if (isLoading) {
-    return (
-      <div className="p-6 text-sm text-muted-foreground flex items-center gap-2">
-        <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
-      </div>
-    );
-  }
-
-  const banner = [
-    { label: "Automático", count: auto.length, color: "text-emerald-600", Icon: CheckCircle2 },
-    { label: "Operador", count: operador.length, color: "text-amber-500", Icon: AlertCircle },
-    { label: "Sem CPR", count: semCpr.length, color: "text-orange-500", Icon: AlertCircle },
-    { label: "Sem Parceiro", count: semParc.length, color: "text-red-500", Icon: XCircle },
-  ];
-
-  const initialTab = auto.length > 0 ? "auto" : operador.length > 0 ? "operador" : "semcpr";
-
-  return (
-    <div className="p-4 space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        {banner.map(({ label, count, color, Icon }) => (
-          <div key={label} className="flex items-center gap-2 text-sm">
-            <Icon className={`h-4 w-4 ${color}`} />
-            <span className="text-muted-foreground">{label}:</span>
-            <span className="font-semibold">{count}</span>
-          </div>
-        ))}
-      </div>
-
-      {auto.length > 0 && (
-        <Button
-          onClick={() => confirmarLoteMutation.mutate()}
-          disabled={confirmarLoteMutation.isPending}
-          className="gap-2"
-        >
-          {confirmarLoteMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4" />
-          )}
-          Confirmar {auto.length} pagamento{auto.length !== 1 ? "s" : ""} automático
-          {auto.length !== 1 ? "s" : ""}
-        </Button>
-      )}
-
-      <Tabs defaultValue={initialTab}>
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="auto" className="gap-1">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Automático ({auto.length})
-          </TabsTrigger>
-          <TabsTrigger value="operador" className="gap-1">
-            <AlertCircle className="h-3.5 w-3.5" /> Operador ({operador.length})
-          </TabsTrigger>
-          <TabsTrigger value="semcpr" className="gap-1">
-            <AlertCircle className="h-3.5 w-3.5" /> Sem CPR ({semCpr.length})
-          </TabsTrigger>
-          <TabsTrigger value="semparc" className="gap-1">
-            <XCircle className="h-3.5 w-3.5" /> Sem Parceiro ({semParc.length})
-          </TabsTrigger>
-          {cprCriada.length > 0 && (
-            <TabsTrigger value="cprcriada" className="gap-1">
-              <FileSpreadsheet className="h-3.5 w-3.5" /> CPR Criada ({cprCriada.length})
-            </TabsTrigger>
-          )}
-          {concluido.length > 0 && (
-            <TabsTrigger value="concluido" className="gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Concluído ({concluido.length})
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        <TabsContent value="auto" className="space-y-2 mt-3">
-          {auto.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4">
-              Nenhum. Use o botão acima para confirmar.
-            </p>
-          ) : (
-            auto.map((p) => (
-              <div
-                key={p.id}
-                className="border rounded-md p-3 flex items-start justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <div className="font-medium text-sm truncate">{p.nome_favorecido}</div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {p.conta_pagar?.descricao ?? "—"} · venc{" "}
-                    {p.conta_pagar?.data_vencimento
-                      ? formatDateBR(p.conta_pagar.data_vencimento)
-                      : "—"}
-                  </div>
-                </div>
-                <div className="text-sm font-semibold whitespace-nowrap">
-                  {formatBRL(p.valor_pago)}
-                </div>
-              </div>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="operador" className="space-y-2 mt-3">
-          {operador.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4">Nenhuma ambiguidade pendente.</p>
-          ) : (
-            operador.map((p) => (
-              <ItemOperador
-                key={p.id}
-                pag={p}
-                onConfirmar={(pagId, cprId) =>
-                  confirmarUnitarioMutation.mutate({ pagId, cprId })
-                }
-              />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="semcpr" className="space-y-2 mt-3">
-          {semCpr.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4">Nenhum pagamento sem CPR.</p>
-          ) : (
-            semCpr.map((p) => (
-              <div
-                key={p.id}
-                className="border rounded-md p-3 flex items-start justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <div className="font-medium text-sm truncate">{p.nome_favorecido}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold whitespace-nowrap">
-                    {formatBRL(p.valor_pago)}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => criarDespesaMutation.mutate(p)}
-                    disabled={criarDespesaMutation.isPending}
-                    className="gap-1"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Criar Despesa
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => ignorarMutation.mutate(p.id)}
-                    className="gap-1"
-                  >
-                    <X className="h-3.5 w-3.5" /> Ignorar
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="semparc" className="space-y-2 mt-3">
-          {semParc.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4">Todos os CNPJs foram identificados.</p>
-          ) : (
-            semParc.map((p) => (
-              <div
-                key={p.id}
-                className="border rounded-md p-3 flex items-start justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <div className="font-medium text-sm truncate">{p.nome_favorecido}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {p.cnpj_favorecido} — parceiro não cadastrado
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold whitespace-nowrap">
-                    {formatBRL(p.valor_pago)}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1 border-admin text-admin hover:bg-admin/10"
-                    onClick={() => { setPagParaCadastrar(p); setParceiroSheetOpen(true); }}
-                    title={`Cadastrar ${p.cnpj_favorecido}`}
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Cadastrar
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </TabsContent>
-
-        {cprCriada.length > 0 && (
-          <TabsContent value="cprcriada" className="space-y-2 mt-3">
-            <p className="text-xs text-muted-foreground py-2">
-              Despesa criada em Contas a Pagar. Categorize e aprove — depois clique Re-processar para conciliar automaticamente.
-            </p>
-            {cprCriada.map((p) => (
-              <div
-                key={p.id}
-                className="border rounded-md p-3 flex items-start justify-between gap-3 bg-muted/20"
-              >
-                <div className="min-w-0">
-                  <div className="font-medium text-sm truncate">{p.nome_favorecido}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
-                  </div>
-                </div>
-                <div className="text-sm font-semibold whitespace-nowrap">
-                  {formatBRL(p.valor_pago)}
-                </div>
-              </div>
-            ))}
-          </TabsContent>
-        )}
-
-        {concluido.length > 0 && (
-          <TabsContent value="concluido" className="space-y-2 mt-3">
-            {concluido.map((p) => (
-              <div
-                key={p.id}
-                className="border rounded-md p-3 flex items-start justify-between gap-3 bg-muted/30"
-              >
-                <div className="font-medium text-sm truncate">{p.nome_favorecido}</div>
-                <div className="text-sm font-semibold whitespace-nowrap">
-                  {formatBRL(p.valor_pago)}
-                </div>
-              </div>
-            ))}
-          </TabsContent>
-        )}
-      </Tabs>
-
-      <ParceiroFormSheet
-        open={parceiroSheetOpen}
-        onOpenChange={(v) => {
-          setParceiroSheetOpen(v);
-          if (!v) setPagParaCadastrar(null);
-        }}
-        categorias={categorias}
-        prefill={
-          pagParaCadastrar
-            ? {
-                razao_social: pagParaCadastrar.nome_favorecido,
-                cnpj: pagParaCadastrar.cnpj_favorecido,
-              }
-            : undefined
-        }
-        onSaved={async () => {
-          if (!pagParaCadastrar) return;
-          await sb
-            .from("itau_pagamentos_stage")
-            .update({ status_conciliacao: "pendente", parceiro_id: null })
-            .eq("importacao_id", importacao.id)
-            .eq("cnpj_favorecido", pagParaCadastrar.cnpj_favorecido)
-            .eq("status_conciliacao", "sem_parceiro");
-
-          await sb.rpc("processar_itau_pagamentos", { p_importacao_id: importacao.id });
-
-          setParceiroSheetOpen(false);
-          setPagParaCadastrar(null);
-          qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
-          toast.success("Parceiro cadastrado e conciliação atualizada");
-        }}
-      />
-    </div>
-  );
-}
-
-// ─── Página principal ────────────────────────────────────────────────────
+// ─── Componente principal ─────────────────────────────────────────────────
 
 export default function Conciliacao() {
   const qc = useQueryClient();
-  const [contaBancariaId, setContaBancariaId] = useState("");
-  const [importacaoAberta, setImportacaoAberta] = useState<string | null>(null);
+  const [contaBancariaId, setContaBancariaId] = useState<string>("");
   const [filtroOFX, setFiltroOFX] = useState("");
   const [acaoOFX, setAcaoOFX] = useState<string | null>(null);
+  const [parceiroSheetOpen, setParceiroSheetOpen] = useState(false);
+  const [pagParaCadastrar, setPagParaCadastrar] = useState<Pagamento | null>(null);
+
+  const { data: categorias = [] } = useCategoriasPlano();
 
   const { data: contas } = useQuery({
     queryKey: ["contas-bancarias-conciliacao"],
     queryFn: async () => {
-      const { data } = await sb
-        .from("contas_bancarias")
-        .select("id, nome_exibicao")
-        .eq("ativo", true)
-        .eq("tipo", "corrente")
-        .order("nome_exibicao");
+      const { data } = await sb.from("contas_bancarias")
+        .select("id, nome_exibicao").eq("ativo", true).eq("tipo", "corrente").order("nome_exibicao");
       return (data || []) as ContaBancaria[];
     },
   });
 
-  const { data: importacoes = [], isLoading: loadingImp } = useQuery({
-    queryKey: ["itau-importacoes", contaBancariaId],
+  // Query principal: todos os pagamentos da conta, independente da importação
+  const { data: pagamentos = [], isLoading: loadingPag } = useQuery({
+    queryKey: ["itau-pagamentos-conta", contaBancariaId],
     enabled: !!contaBancariaId,
     queryFn: async () => {
       const { data } = await sb
-        .from("itau_importacoes_stage")
-        .select("id, arquivo_nome, periodo_inicio, periodo_fim, total_linhas, status, created_at, conta_bancaria_id")
+        .from("itau_pagamentos_stage")
+        .select("id, importacao_id, nome_favorecido, cnpj_favorecido, tipo_pagamento, valor_pago, data_pagamento, status_conciliacao, parceiro_id, conta_pagar_id, movimentacao_id, conta_pagar:conta_pagar_id(descricao, data_vencimento)")
         .eq("conta_bancaria_id", contaBancariaId)
-        .order("created_at", { ascending: false });
-      return (data || []) as Importacao[];
+        .order("data_pagamento", { ascending: false });
+      return (data || []) as Pagamento[];
     },
   });
 
@@ -628,31 +171,157 @@ export default function Conciliacao() {
     },
   });
 
-  const ofxFiltrados = filtroOFX.trim()
-    ? ofxPendentes.filter((o) =>
-        o.descricao.toLowerCase().includes(filtroOFX.toLowerCase())
-      )
-    : ofxPendentes;
+  // ─── Agrupamentos ─────────────────────────────────────────────────────
+  const auto      = pagamentos.filter((p) => p.status_conciliacao === "conciliado_auto");
+  const operador  = pagamentos.filter((p) => p.status_conciliacao === "aguardando_operador");
+  const semCpr    = pagamentos.filter((p) => p.status_conciliacao === "sem_cpr");
+  const semParc   = pagamentos.filter((p) => p.status_conciliacao === "sem_parceiro");
+  const cprCriada = pagamentos.filter((p) => p.status_conciliacao === "cpr_criada");
+  const concluidos = pagamentos.filter((p) =>
+    p.status_conciliacao === "conciliado_manual" || p.status_conciliacao === "ignorado"
+  );
+
+  const invalidarPagamentos = () =>
+    qc.invalidateQueries({ queryKey: ["itau-pagamentos-conta", contaBancariaId] });
+
+  // ─── Mutations ────────────────────────────────────────────────────────
+
+  const confirmarLoteMutation = useMutation({
+    mutationFn: async () => {
+      const pendentes = auto.filter((p) => !p.movimentacao_id && p.conta_pagar_id);
+      let confirmados = 0, erros = 0;
+      for (const pag of pendentes) {
+        try {
+          await sb.from("contas_pagar_receber").update({
+            pago_em_conta_id: contaBancariaId,
+            data_pagamento: pag.data_pagamento ?? null,
+          }).eq("id", pag.conta_pagar_id);
+          const { data: res } = await sb.rpc("gerar_movimentacao_de_conta", { p_conta_id: pag.conta_pagar_id });
+          if (!res?.ok) { erros++; continue; }
+          const { data: mov } = await sb.from("movimentacoes_bancarias")
+            .select("id").eq("conta_pagar_id", pag.conta_pagar_id)
+            .order("created_at", { ascending: false }).limit(1).maybeSingle();
+          await sb.from("itau_pagamentos_stage").update({
+            movimentacao_id: mov?.id ?? null, status_conciliacao: "conciliado_manual",
+          }).eq("id", pag.id);
+          confirmados++;
+        } catch { erros++; }
+      }
+      return { confirmados, erros };
+    },
+    onSuccess: (d) => {
+      toast.success(`${d.confirmados} confirmado${d.confirmados !== 1 ? "s" : ""}${d.erros > 0 ? ` · ${d.erros} erro(s)` : ""}`);
+      invalidarPagamentos();
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const confirmarUnitarioMutation = useMutation({
+    mutationFn: async ({ pagId, cprId }: { pagId: string; cprId: string }) => {
+      const { data: pag } = await sb.from("itau_pagamentos_stage")
+        .select("data_pagamento").eq("id", pagId).maybeSingle();
+      await sb.from("itau_pagamentos_stage").update({ conta_pagar_id: cprId }).eq("id", pagId);
+      await sb.from("contas_pagar_receber").update({
+        pago_em_conta_id: contaBancariaId,
+        data_pagamento: pag?.data_pagamento ?? null,
+      }).eq("id", cprId);
+      const { data: res } = await sb.rpc("gerar_movimentacao_de_conta", { p_conta_id: cprId });
+      if (!res?.ok) throw new Error(res?.erro || "Erro ao gerar movimentação");
+      const { data: mov } = await sb.from("movimentacoes_bancarias")
+        .select("id").eq("conta_pagar_id", cprId)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      await sb.from("itau_pagamentos_stage").update({
+        movimentacao_id: mov?.id ?? null, status_conciliacao: "conciliado_manual",
+      }).eq("id", pagId);
+    },
+    onSuccess: () => { toast.success("Confirmado"); invalidarPagamentos(); },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const criarDespesaMutation = useMutation({
+    mutationFn: async (pag: Pagamento) => {
+      const { data: cpr, error } = await sb.from("contas_pagar_receber").insert({
+        descricao: pag.nome_favorecido, valor: pag.valor_pago,
+        data_vencimento: pag.data_pagamento, parceiro_id: pag.parceiro_id,
+        fornecedor_cliente: pag.nome_favorecido, status: "aberto", origem: "manual",
+      }).select("id").single();
+      if (error) throw error;
+      await sb.from("itau_pagamentos_stage").update({
+        conta_pagar_id: cpr.id, status_conciliacao: "cpr_criada",
+      }).eq("id", pag.id);
+    },
+    onSuccess: () => {
+      toast.success("Despesa criada em Contas a Pagar — categorize e aprove para conciliar");
+      invalidarPagamentos();
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const ignorarMutation = useMutation({
+    mutationFn: async (pagId: string) => {
+      const { error } = await sb.from("itau_pagamentos_stage")
+        .update({ status_conciliacao: "ignorado" }).eq("id", pagId);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Ignorado"); invalidarPagamentos(); },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const reverterMutation = useMutation({
+    mutationFn: async (pagId: string) => {
+      const { error } = await sb.from("itau_pagamentos_stage")
+        .update({ status_conciliacao: "pendente", parceiro_id: null, conta_pagar_id: null })
+        .eq("id", pagId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Revertido — clique Re-processar para tentar conciliar novamente");
+      invalidarPagamentos();
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const reprocessarMutation = useMutation({
+    mutationFn: async () => {
+      const { data: imps } = await sb.from("itau_importacoes_stage")
+        .select("id").eq("conta_bancaria_id", contaBancariaId);
+      const ids = (imps || []).map((i: any) => i.id);
+      if (!ids.length) return { totalAuto: 0 };
+
+      await sb.from("itau_pagamentos_stage")
+        .update({ status_conciliacao: "pendente", parceiro_id: null, conta_pagar_id: null })
+        .in("importacao_id", ids)
+        .is("movimentacao_id", null)
+        .not("status_conciliacao", "in", "(conciliado_manual,ignorado)");
+
+      let totalAuto = 0;
+      for (const id of ids) {
+        const { data } = await sb.rpc("processar_itau_pagamentos", { p_importacao_id: id });
+        if (data?.ok) totalAuto += data.conciliado_auto || 0;
+      }
+      return { totalAuto };
+    },
+    onSuccess: (d) => {
+      toast.success(`Re-processado${d.totalAuto > 0 ? ` — ${d.totalAuto} automático(s) detectado(s)` : ""}`);
+      invalidarPagamentos();
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  // ─── OFX handlers ─────────────────────────────────────────────────────
 
   async function handleLancarOFX(ofx: TransacaoOFX) {
-    if (!confirm(`Lançar como movimentação avulsa?\n\n${ofx.descricao} — ${formatBRL(ofx.valor)}`))
-      return;
+    if (!confirm(`Lançar como movimentação avulsa?\n\n${ofx.descricao} — ${formatBRL(ofx.valor)}`)) return;
     setAcaoOFX("lancar:" + ofx.id);
     try {
       const { data, error } = await sb.rpc("lancar_ofx_como_movimentacao", { p_ofx_id: ofx.id });
       if (error) throw error;
-      if (!data?.ok) {
-        toast.error(data?.erro || "Erro");
-        return;
-      }
+      if (!data?.ok) { toast.error(data?.erro || "Erro"); return; }
       toast.success("Lançado como movimentação");
       qc.invalidateQueries({ queryKey: ["ofx-residual"] });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      toast.error("Erro: " + e?.message);
-    } finally {
-      setAcaoOFX(null);
-    }
+    } catch (e: any) { toast.error("Erro: " + e?.message); }
+    finally { setAcaoOFX(null); }
   }
 
   async function handleIgnorarOFX(ofx: TransacaoOFX) {
@@ -660,44 +329,47 @@ export default function Conciliacao() {
     try {
       const { data, error } = await sb.rpc("ignorar_ofx", { p_ofx_id: ofx.id });
       if (error) throw error;
-      if (!data?.ok) {
-        toast.error(data?.erro || "Erro");
-        return;
-      }
+      if (!data?.ok) { toast.error(data?.erro || "Erro"); return; }
       toast.success("Ignorada");
       qc.invalidateQueries({ queryKey: ["ofx-residual"] });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      toast.error("Erro: " + e?.message);
-    } finally {
-      setAcaoOFX(null);
-    }
+    } catch (e: any) { toast.error("Erro: " + e?.message); }
+    finally { setAcaoOFX(null); }
   }
 
+  const ofxFiltrados = filtroOFX.trim()
+    ? ofxPendentes.filter((o) => o.descricao.toLowerCase().includes(filtroOFX.toLowerCase()))
+    : ofxPendentes;
+
+  const pendentesTotal = auto.length + operador.length + semCpr.length + semParc.length + cprCriada.length;
+  const defaultSubTab = auto.length > 0 ? "auto"
+    : operador.length > 0 ? "operador"
+    : semCpr.length > 0 ? "semcpr"
+    : semParc.length > 0 ? "semparc"
+    : "concluido";
+
+  // ─── Render ────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-4 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <CheckSquare className="h-6 w-6 text-admin" />
+        <h1 className="text-2xl font-semibold flex items-center gap-2">
+          <ArrowLeftRight className="h-6 w-6 text-primary" />
           Conciliação Bancária
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Concilie pagamentos via relatório Itaú. Transações sem correspondência ficam no OFX
-          Residual.
+          Fila contínua de trabalho. Importe a planilha Itaú quantas vezes quiser — itens novos entram, duplicatas são ignoradas.
         </p>
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="text-sm">Conta bancária:</span>
+        <span className="text-sm text-muted-foreground">Conta bancária:</span>
         <Select value={contaBancariaId} onValueChange={setContaBancariaId}>
-          <SelectTrigger className="w-[280px]">
-            <SelectValue placeholder="Selecione..." />
+          <SelectTrigger className="w-[280px] h-9">
+            <SelectValue placeholder="Selecione a conta" />
           </SelectTrigger>
           <SelectContent>
             {(contas ?? []).map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nome_exibicao}
-              </SelectItem>
+              <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -705,104 +377,252 @@ export default function Conciliacao() {
 
       {!contaBancariaId ? (
         <Card>
-          <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Selecione uma conta bancária para ver as conciliações.
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">
+            Selecione uma conta bancária para começar.
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue="planilha">
+        <Tabs defaultValue="itau">
           <TabsList>
-            <TabsTrigger value="planilha" className="gap-2">
+            <TabsTrigger value="itau" className="gap-2">
               <FileSpreadsheet className="h-4 w-4" />
               Planilha Itaú
-              {importacoes.length > 0 && (
-                <Badge variant="secondary" className="ml-1">
-                  {importacoes.length}
-                </Badge>
-              )}
+              {pendentesTotal > 0 && <Badge variant="secondary">{pendentesTotal}</Badge>}
             </TabsTrigger>
             <TabsTrigger value="ofx" className="gap-2">
               <ArrowLeftRight className="h-4 w-4" />
               OFX Residual
-              {ofxPendentes.length > 0 && (
-                <Badge variant="secondary" className="ml-1">
-                  {ofxPendentes.length}
-                </Badge>
-              )}
+              {ofxPendentes.length > 0 && <Badge variant="secondary">{ofxPendentes.length}</Badge>}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="planilha" className="space-y-3 mt-4">
-            {loadingImp ? (
-              <div className="p-6 text-sm text-muted-foreground flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Carregando importações...
+          {/* ── Tab Planilha Itaú ── */}
+          <TabsContent value="itau" className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2 p-3 border rounded-lg bg-muted/30">
+              {[
+                { label: "Auto", count: auto.length, color: "text-emerald-600", Icon: CheckCircle2 },
+                { label: "Operador", count: operador.length, color: "text-amber-500", Icon: AlertCircle },
+                { label: "Sem CPR", count: semCpr.length, color: "text-orange-500", Icon: AlertCircle },
+                { label: "Sem Parceiro", count: semParc.length, color: "text-red-500", Icon: XCircle },
+                { label: "CPR Criada", count: cprCriada.length, color: "text-blue-500", Icon: AlertCircle },
+              ].map(({ label, count, color, Icon }) => (
+                <div key={label} className="flex items-center gap-1.5 text-xs px-2 py-1 bg-background rounded border">
+                  <Icon className={`h-3.5 w-3.5 ${color}`} />
+                  <span className="text-muted-foreground">{label}:</span>
+                  <span className="font-semibold">{count}</span>
+                </div>
+              ))}
+              <div className="flex-1" />
+              {auto.length > 0 && (
+                <Button
+                  size="sm"
+                  className="gap-1"
+                  disabled={confirmarLoteMutation.isPending}
+                  onClick={() => confirmarLoteMutation.mutate()}
+                >
+                  {confirmarLoteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  Confirmar {auto.length} automático{auto.length !== 1 ? "s" : ""}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1"
+                disabled={reprocessarMutation.isPending}
+                onClick={() => reprocessarMutation.mutate()}
+                title="Reseta itens pendentes e roda o matching novamente"
+              >
+                {reprocessarMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                Re-processar
+              </Button>
+            </div>
+
+            {loadingPag ? (
+              <div className="p-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
               </div>
-            ) : importacoes.length === 0 ? (
+            ) : pendentesTotal === 0 && concluidos.length === 0 ? (
               <Card>
-                <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                  Nenhuma importação encontrada. Importe um relatório XLSX em{" "}
-                  <strong>Importar Dados</strong>.
+                <CardContent className="p-8 text-center text-sm text-muted-foreground">
+                  Nenhum pagamento ainda. Importe um relatório XLSX em{" "}
+                  <a href="/administrativo/importar" className="text-primary underline">Importar Dados</a>.
                 </CardContent>
               </Card>
             ) : (
-              importacoes.map((imp) => {
-                const aberta = importacaoAberta === imp.id;
-                return (
-                  <Card key={imp.id}>
-                    <CardHeader
-                      className="cursor-pointer py-3"
-                      onClick={() => setImportacaoAberta(aberta ? null : imp.id)}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <FileSpreadsheet className="h-5 w-5 text-admin shrink-0" />
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm truncate">{imp.arquivo_nome}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {imp.periodo_inicio && imp.periodo_fim
-                                ? `${formatDateBR(imp.periodo_inicio)} → ${formatDateBR(imp.periodo_fim)}`
-                                : "Período não identificado"}
-                              {" · "}
-                              {imp.total_linhas} pagamentos
-                            </div>
+              <Tabs defaultValue={defaultSubTab}>
+                <TabsList className="flex-wrap h-auto">
+                  <TabsTrigger value="auto" className="gap-1 text-xs">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Auto ({auto.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="operador" className="gap-1 text-xs">
+                    <AlertCircle className="h-3 w-3 text-amber-500" /> Operador ({operador.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="semcpr" className="gap-1 text-xs">
+                    <AlertCircle className="h-3 w-3 text-orange-500" /> Sem CPR ({semCpr.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="semparc" className="gap-1 text-xs">
+                    <XCircle className="h-3 w-3 text-red-500" /> Sem Parceiro ({semParc.length})
+                  </TabsTrigger>
+                  {cprCriada.length > 0 && (
+                    <TabsTrigger value="cprcriada" className="gap-1 text-xs">
+                      <FileSpreadsheet className="h-3 w-3 text-blue-500" /> CPR Criada ({cprCriada.length})
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="concluido" className="gap-1 text-xs">
+                    <CheckCircle2 className="h-3 w-3 text-muted-foreground" /> Concluído ({concluidos.length})
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Auto */}
+                <TabsContent value="auto" className="space-y-2">
+                  {auto.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3">Nenhum match automático pendente.</p>
+                  ) : auto.map((p) => (
+                    <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{p.nome_favorecido}</p>
+                        <p className="text-muted-foreground text-[10px]">
+                          {p.conta_pagar?.descricao ?? "—"} · venc {p.conta_pagar?.data_vencimento ? formatDateBR(p.conta_pagar.data_vencimento) : "—"}
+                        </p>
+                      </div>
+                      <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                    </div>
+                  ))}
+                </TabsContent>
+
+                {/* Operador */}
+                <TabsContent value="operador" className="space-y-2">
+                  {operador.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3">Nenhuma ambiguidade pendente.</p>
+                  ) : operador.map((p) => (
+                    <ItemOperador
+                      key={p.id}
+                      pag={p}
+                      onConfirmar={(pagId, cprId) => confirmarUnitarioMutation.mutate({ pagId, cprId })}
+                    />
+                  ))}
+                </TabsContent>
+
+                {/* Sem CPR */}
+                <TabsContent value="semcpr" className="space-y-2">
+                  {semCpr.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3">Nenhum pagamento sem CPR.</p>
+                  ) : semCpr.map((p) => (
+                    <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{p.nome_favorecido}</p>
+                        <p className="text-muted-foreground text-[10px]">
+                          {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => criarDespesaMutation.mutate(p)}>
+                          <Plus className="h-3.5 w-3.5" /> Criar Despesa
+                        </Button>
+                        <Button size="sm" variant="ghost" className="gap-1" onClick={() => ignorarMutation.mutate(p.id)}>
+                          <X className="h-3.5 w-3.5" /> Ignorar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </TabsContent>
+
+                {/* Sem Parceiro */}
+                <TabsContent value="semparc" className="space-y-2">
+                  {semParc.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3">Todos os CNPJs foram identificados.</p>
+                  ) : semParc.map((p) => (
+                    <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{p.nome_favorecido}</p>
+                        <p className="text-muted-foreground text-[10px]">{p.cnpj_favorecido} — parceiro não cadastrado</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => { setPagParaCadastrar(p); setParceiroSheetOpen(true); }}>
+                          <Users className="h-3.5 w-3.5" /> Cadastrar
+                        </Button>
+                        <Button size="sm" variant="ghost" className="gap-1" onClick={() => ignorarMutation.mutate(p.id)}>
+                          <X className="h-3.5 w-3.5" /> Ignorar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </TabsContent>
+
+                {/* CPR Criada */}
+                {cprCriada.length > 0 && (
+                  <TabsContent value="cprcriada" className="space-y-2">
+                    <p className="text-[11px] text-muted-foreground p-2 bg-muted/30 rounded">
+                      Despesa criada em Contas a Pagar. Categorize e aprove — depois clique <strong>Re-processar</strong>.
+                    </p>
+                    {cprCriada.map((p) => (
+                      <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{p.nome_favorecido}</p>
+                          <p className="text-muted-foreground text-[10px]">
+                            {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
+                          </p>
+                        </div>
+                        <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                      </div>
+                    ))}
+                  </TabsContent>
+                )}
+
+                {/* Concluído */}
+                <TabsContent value="concluido" className="space-y-2">
+                  {concluidos.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3">Nenhum item concluído ainda.</p>
+                  ) : concluidos.map((p) => {
+                    const ignorado = p.status_conciliacao === "ignorado";
+                    return (
+                      <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2 opacity-75">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate">{p.nome_favorecido}</p>
+                            <Badge variant={ignorado ? "outline" : "secondary"} className="text-[9px]">
+                              {ignorado ? "Ignorado" : "✓ Conciliado"}
+                            </Badge>
                           </div>
+                          <p className="text-muted-foreground text-[10px]">
+                            {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={imp.status === "processado" ? "default" : "outline"}>
-                            {imp.status === "processado" ? "Processado" : "Pendente"}
-                          </Badge>
-                          {aberta ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
+                          <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                          {ignorado && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="gap-1"
+                              onClick={() => reverterMutation.mutate(p.id)}
+                              title="Reverter para fila de trabalho"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" /> Reverter
+                            </Button>
                           )}
                         </div>
                       </div>
-                    </CardHeader>
-                    {aberta && (
-                      <CardContent className="border-t pt-0">
-                        <PainelImportacao importacao={imp} />
-                      </CardContent>
-                    )}
-                  </Card>
-                );
-              })
+                    );
+                  })}
+                </TabsContent>
+              </Tabs>
             )}
           </TabsContent>
 
-          <TabsContent value="ofx" className="space-y-3 mt-4">
+          {/* ── Tab OFX Residual ── */}
+          <TabsContent value="ofx">
             <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    <ArrowLeftRight className="h-4 w-4" />
-                    Transações sem correspondência na planilha
-                    <Badge variant="secondary">{ofxPendentes.length}</Badge>
-                  </div>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <ArrowLeftRight className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">Transações sem correspondência na planilha</p>
+                  <Badge variant="secondary">{ofxPendentes.length}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Tarifas bancárias, rendimentos de aplicação, TEDs recebidas e outras transações
-                  não iniciadas pela Fetely.
+                  Tarifas bancárias, rendimentos de aplicação, TEDs recebidas e outras transações não iniciadas pela Fetely.
                 </p>
                 <Input
                   placeholder="Filtrar por descrição..."
@@ -813,71 +633,72 @@ export default function Conciliacao() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {loadingOFX ? (
-                  <div className="p-6 text-sm text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
-                  </div>
+                  <div className="p-4 text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></div>
                 ) : ofxFiltrados.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-6 text-center">
-                    {ofxPendentes.length === 0
-                      ? "Nenhuma transação OFX pendente. Tudo conciliado! 🎉"
-                      : "Nenhuma transação com esse filtro."}
+                  <p className="text-xs text-muted-foreground text-center p-4">
+                    {ofxPendentes.length === 0 ? "Nenhuma transação OFX pendente. Tudo conciliado! 🎉" : "Nenhuma transação com esse filtro."}
                   </p>
-                ) : (
-                  ofxFiltrados.map((ofx) => {
-                    const isDebito = ofx.valor < 0;
-                    const acao = acaoOFX?.includes(ofx.id);
-                    return (
-                      <div
-                        key={ofx.id}
-                        className="border rounded-md p-3 flex items-start justify-between gap-3"
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-sm truncate">{ofx.descricao}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {formatDateBR(ofx.data_transacao)}
-                            </div>
-                          </div>
-                          <span
-                            className={`text-sm font-semibold whitespace-nowrap ${
-                              isDebito ? "text-red-600" : "text-emerald-600"
-                            }`}
-                          >
-                            {formatBRL(ofx.valor)}
-                          </span>
+                ) : ofxFiltrados.map((ofx) => {
+                  const isDebito = ofx.valor < 0;
+                  const acao = acaoOFX?.includes(ofx.id);
+                  return (
+                    <div key={ofx.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{ofx.descricao}</p>
+                          <p className="text-muted-foreground text-[10px] shrink-0">{formatDateBR(ofx.data_transacao)}</p>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={!!acao}
-                            onClick={() => handleLancarOFX(ofx)}
-                            className="gap-1"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            Lançar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={!!acao}
-                            onClick={() => handleIgnorarOFX(ofx)}
-                            className="gap-1"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                            Ignorar
-                          </Button>
-                        </div>
+                        <span className={`font-mono font-semibold ${isDebito ? "text-red-600" : "text-emerald-600"}`}>
+                          {formatBRL(ofx.valor)}
+                        </span>
                       </div>
-                    );
-                  })
-                )}
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" className="gap-1" disabled={acao} onClick={() => handleLancarOFX(ofx)}>
+                          <Plus className="h-3.5 w-3.5" /> Lançar como movimentação
+                        </Button>
+                        <Button size="sm" variant="ghost" className="gap-1" disabled={acao} onClick={() => handleIgnorarOFX(ofx)}>
+                          <X className="h-3.5 w-3.5" /> Ignorar
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       )}
 
+      {/* Sheet de cadastro de parceiro inline */}
+      <ParceiroFormSheet
+        open={parceiroSheetOpen}
+        onOpenChange={(v) => { setParceiroSheetOpen(v); if (!v) setPagParaCadastrar(null); }}
+        categorias={categorias}
+        prefill={pagParaCadastrar ? {
+          razao_social: pagParaCadastrar.nome_favorecido,
+          cnpj: pagParaCadastrar.cnpj_favorecido,
+        } : undefined}
+        onSaved={async () => {
+          if (!pagParaCadastrar) return;
+          const { data: imps } = await sb.from("itau_importacoes_stage")
+            .select("id").eq("conta_bancaria_id", contaBancariaId);
+          const ids = (imps || []).map((i: any) => i.id);
+          if (ids.length) {
+            await sb.from("itau_pagamentos_stage")
+              .update({ status_conciliacao: "pendente", parceiro_id: null })
+              .in("importacao_id", ids)
+              .eq("cnpj_favorecido", pagParaCadastrar.cnpj_favorecido)
+              .eq("status_conciliacao", "sem_parceiro");
+            for (const id of ids) {
+              await sb.rpc("processar_itau_pagamentos", { p_importacao_id: id });
+            }
+          }
+          setParceiroSheetOpen(false);
+          setPagParaCadastrar(null);
+          invalidarPagamentos();
+          toast.success("Parceiro cadastrado — conciliação atualizada");
+        }}
+      />
     </div>
   );
 }
