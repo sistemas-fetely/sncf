@@ -117,7 +117,7 @@ export interface RegraCategorizacao {
   ncm_prefixo: string | null;
   descricao_contem: string | null;
   conta_plano_id: string;
-  centro_custo: string | null;
+  centro_custo_id: string | null;
   prioridade: number;
   ativo: boolean;
   conta?: { id: string; codigo: string; nome: string } | null;
