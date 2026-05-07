@@ -29,6 +29,7 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { useNavigate } from "react-router-dom";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -147,6 +148,7 @@ function ItemOperador({
 
 function PainelImportacao({ importacao }: { importacao: Importacao }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: pagamentos = [], isLoading } = useQuery({
     queryKey: ["itau-pagamentos", importacao.id],
@@ -480,7 +482,13 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
                   <span className="text-sm font-semibold whitespace-nowrap">
                     {formatBRL(p.valor_pago)}
                   </span>
-                  <Button size="sm" variant="outline" className="gap-1" disabled>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => navigate("/administrativo/parceiros")}
+                    title={`Cadastrar ${p.cnpj_favorecido}`}
+                  >
                     <Plus className="h-3.5 w-3.5" /> Cadastrar
                   </Button>
                 </div>
