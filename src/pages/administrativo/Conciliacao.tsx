@@ -578,12 +578,12 @@ export default function Conciliacao() {
                     <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{p.nome_favorecido}</p>
-                        <p className="text-muted-foreground text-[10px]">
-                          {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
-                        </p>
+                        <p className="text-muted-foreground text-[10px]">{p.tipo_pagamento}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                        <span className="text-sm text-muted-foreground">{p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}</span>
+                        <span className="text-muted-foreground text-sm">·</span>
+                        <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => criarDespesaMutation.mutate(p)}>
                           <Plus className="h-3.5 w-3.5" /> Criar Despesa
                         </Button>
@@ -606,7 +606,9 @@ export default function Conciliacao() {
                         <p className="text-muted-foreground text-[10px]">{p.cnpj_favorecido} — parceiro não cadastrado</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                        <span className="text-sm text-muted-foreground">{p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}</span>
+                        <span className="text-muted-foreground text-sm">·</span>
+                        <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => { setPagParaCadastrar(p); setParceiroSheetOpen(true); }}>
                           <Users className="h-3.5 w-3.5" /> Cadastrar
                         </Button>
@@ -710,11 +712,10 @@ export default function Conciliacao() {
                   const acao = acaoOFX?.includes(ofx.id);
                   return (
                     <div key={ofx.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium truncate">{ofx.descricao}</p>
-                          <p className="text-muted-foreground text-[10px] shrink-0">{formatDateBR(ofx.data_transacao)}</p>
-                        </div>
+                      <p className="font-medium truncate flex-1 min-w-0">{ofx.descricao}</p>
+                      <div className="flex items-center gap-1.5 shrink-0 text-sm">
+                        <span className="text-muted-foreground">{formatDateBR(ofx.data_transacao)}</span>
+                        <span className="text-muted-foreground">·</span>
                         <span className={`font-mono font-semibold ${isDebito ? "text-red-600" : "text-emerald-600"}`}>
                           {formatBRL(ofx.valor)}
                         </span>
