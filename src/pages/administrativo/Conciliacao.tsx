@@ -363,6 +363,11 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
           <TabsTrigger value="semparc" className="gap-1">
             <XCircle className="h-3.5 w-3.5" /> Sem Parceiro ({semParc.length})
           </TabsTrigger>
+          {cprCriada.length > 0 && (
+            <TabsTrigger value="cprcriada" className="gap-1">
+              <FileSpreadsheet className="h-3.5 w-3.5" /> CPR Criada ({cprCriada.length})
+            </TabsTrigger>
+          )}
           {concluido.length > 0 && (
             <TabsTrigger value="concluido" className="gap-1">
               <CheckCircle2 className="h-3.5 w-3.5" /> Concluído ({concluido.length})
