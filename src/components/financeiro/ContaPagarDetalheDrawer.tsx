@@ -567,7 +567,25 @@ export default function ContaPagarDetalheDrawer({
                 </div>
                 <NfStageVinculadaCard
                   nfStageId={conta.nf_stage_id}
-                  onRemover={() => {}}
+                  onRemover={async () => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const { data, error } = await (supabase as any).rpc(
+                      "desvincular_nf_de_conta",
+                      { p_conta_id: conta.id }
+                    );
+                    if (error) {
+                      toast.error("Erro ao desvincular: " + error.message);
+                      return;
+                    }
+                    if (!data?.ok) {
+                      toast.error(data?.erro || "Erro ao desvincular");
+                      return;
+                    }
+                    toast.success("NF desvinculada");
+                    qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
+                    qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+                    qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+                  }}
                 />
               </div>
             ) : (
