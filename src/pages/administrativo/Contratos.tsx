@@ -500,6 +500,7 @@ export default function Contratos() {
                 <TableHead className="w-8"></TableHead>
                 <TableHead>Número</TableHead>
                 <TableHead>Projeto / Parceiro</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Ciclo</TableHead>
                 <TableHead className="text-right">Parcela</TableHead>
                 <TableHead>Próx. vencimento</TableHead>
