@@ -3582,7 +3582,7 @@ export type Database = {
       fatura_cartao_lancamentos: {
         Row: {
           categoria_id: string | null
-          centro_custo: string | null
+          centro_custo_id: string | null
           cnpj_estabelecimento: string | null
           compromisso_parcelado_id: string | null
           conta_pagar_id: string | null
@@ -3612,7 +3612,7 @@ export type Database = {
         }
         Insert: {
           categoria_id?: string | null
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           cnpj_estabelecimento?: string | null
           compromisso_parcelado_id?: string | null
           conta_pagar_id?: string | null
@@ -3642,7 +3642,7 @@ export type Database = {
         }
         Update: {
           categoria_id?: string | null
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           cnpj_estabelecimento?: string | null
           compromisso_parcelado_id?: string | null
           conta_pagar_id?: string | null
@@ -3676,6 +3676,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatura_cartao_lancamentos_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
             referencedColumns: ["id"]
           },
           {
@@ -6203,6 +6210,13 @@ export type Database = {
             columns: ["canal_venda_id"]
             isOneToOne: false
             referencedRelation: "canais_venda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiros_comerciais_categoria_padrao_id_fkey"
+            columns: ["categoria_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
