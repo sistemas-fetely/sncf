@@ -465,25 +465,12 @@ export default function Conciliacao() {
 
           {/* ── Tab Planilha Itaú ── */}
           <TabsContent value="itau" className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 p-3 border rounded-lg bg-muted/30">
-              {[
-                { label: "Auto", count: auto.length, color: "text-emerald-600", Icon: CheckCircle2 },
-                { label: "Operador", count: operador.length, color: "text-amber-500", Icon: AlertCircle },
-                { label: "Sem CPR", count: semCpr.length, color: "text-orange-500", Icon: AlertCircle },
-                { label: "Sem Parceiro", count: semParc.length, color: "text-red-500", Icon: XCircle },
-                { label: "CPR Criada", count: cprCriada.length, color: "text-blue-500", Icon: AlertCircle },
-              ].map(({ label, count, color, Icon }) => (
-                <div key={label} className="flex items-center gap-1.5 text-xs px-2 py-1 bg-background rounded border">
-                  <Icon className={`h-3.5 w-3.5 ${color}`} />
-                  <span className="text-muted-foreground">{label}:</span>
-                  <span className="font-semibold">{count}</span>
-                </div>
-              ))}
-              <div className="flex-1" />
+            {/* Ações */}
+            <div className="flex items-center justify-end gap-2">
               {auto.length > 0 && (
                 <Button
                   size="sm"
-                  className="gap-1"
+                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white h-8"
                   disabled={confirmarLoteMutation.isPending}
                   onClick={() => confirmarLoteMutation.mutate()}
                 >
@@ -492,9 +479,7 @@ export default function Conciliacao() {
                 </Button>
               )}
               <Button
-                size="sm"
-                variant="outline"
-                className="gap-1"
+                size="sm" variant="outline" className="gap-2 h-8"
                 disabled={reprocessarMutation.isPending}
                 onClick={() => reprocessarMutation.mutate()}
                 title="Reseta itens pendentes e roda o matching novamente"
