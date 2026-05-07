@@ -28,6 +28,8 @@ import {
   FileSpreadsheet,
   CheckSquare,
 } from "lucide-react";
+import { ParceiroFormSheet } from "@/components/financeiro/ParceiroFormSheet";
+import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useNavigate } from "react-router-dom";
 
@@ -149,6 +151,9 @@ function ItemOperador({
 function PainelImportacao({ importacao }: { importacao: Importacao }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [parceiroSheetOpen, setParceiroSheetOpen] = useState(false);
+  const [pagParaCadastrar, setPagParaCadastrar] = useState<Pagamento | null>(null);
+  const { data: categorias = [] } = useCategoriasPlano();
 
   const { data: pagamentos = [], isLoading } = useQuery({
     queryKey: ["itau-pagamentos", importacao.id],
@@ -485,8 +490,8 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="gap-1"
-                    onClick={() => navigate("/administrativo/parceiros")}
+                    className="gap-1 border-admin text-admin hover:bg-admin/10"
+                    onClick={() => { setPagParaCadastrar(p); setParceiroSheetOpen(true); }}
                     title={`Cadastrar ${p.cnpj_favorecido}`}
                   >
                     <Plus className="h-3.5 w-3.5" /> Cadastrar
@@ -537,6 +542,39 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
           </TabsContent>
         )}
       </Tabs>
+
+      <ParceiroFormSheet
+        open={parceiroSheetOpen}
+        onOpenChange={(v) => {
+          setParceiroSheetOpen(v);
+          if (!v) setPagParaCadastrar(null);
+        }}
+        categorias={categorias}
+        prefill={
+          pagParaCadastrar
+            ? {
+                razao_social: pagParaCadastrar.nome_favorecido,
+                cnpj: pagParaCadastrar.cnpj_favorecido,
+              }
+            : undefined
+        }
+        onSaved={async () => {
+          if (!pagParaCadastrar) return;
+          await sb
+            .from("itau_pagamentos_stage")
+            .update({ status_conciliacao: "pendente", parceiro_id: null })
+            .eq("importacao_id", importacao.id)
+            .eq("cnpj_favorecido", pagParaCadastrar.cnpj_favorecido)
+            .eq("status_conciliacao", "sem_parceiro");
+
+          await sb.rpc("processar_itau_pagamentos", { p_importacao_id: importacao.id });
+
+          setParceiroSheetOpen(false);
+          setPagParaCadastrar(null);
+          qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
+          toast.success("Parceiro cadastrado e conciliação atualizada");
+        }}
+      />
     </div>
   );
 }
