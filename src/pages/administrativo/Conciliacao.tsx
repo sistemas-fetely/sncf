@@ -440,6 +440,15 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
                   </span>
                   <Button
                     size="sm"
+                    variant="outline"
+                    onClick={() => criarDespesaMutation.mutate(p)}
+                    disabled={criarDespesaMutation.isPending}
+                    className="gap-1"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Criar Despesa
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="ghost"
                     onClick={() => ignorarMutation.mutate(p.id)}
                     className="gap-1"
