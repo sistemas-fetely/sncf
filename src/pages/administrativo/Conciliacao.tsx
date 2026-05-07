@@ -154,7 +154,7 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
       const { data } = await sb
         .from("itau_pagamentos_stage")
         .select(
-          "id, nome_favorecido, cnpj_favorecido, tipo_pagamento, valor_pago, data_pagamento, status_conciliacao, parceiro_id, conta_pagar_id, conta_pagar:conta_pagar_id(descricao, data_vencimento)"
+          "id, nome_favorecido, cnpj_favorecido, tipo_pagamento, valor_pago, data_pagamento, status_conciliacao, parceiro_id, conta_pagar_id, movimentacao_id, conta_pagar:conta_pagar_id(descricao, data_vencimento)"
         )
         .eq("importacao_id", importacao.id)
         .order("nome_favorecido");
