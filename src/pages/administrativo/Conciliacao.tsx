@@ -701,8 +701,6 @@ export default function Conciliacao() {
         </Tabs>
       )}
 
-      {/* unused imports guard */}
-      <Users className="hidden" />
     </div>
   );
 }
