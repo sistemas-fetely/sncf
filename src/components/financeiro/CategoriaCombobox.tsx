@@ -122,6 +122,17 @@ export function CategoriaCombobox({
     [options],
   );
 
+  // Doutrina #07.6 (07/05/2026): lançamento SOMENTE em nó folha.
+  // Nós intermediários (que aparecem como parent_id de algum outro) são
+  // cabeçalhos visuais — visíveis na árvore, mas não selecionáveis.
+  const idsComFilhos = useMemo(() => {
+    const set = new Set<string>();
+    options.forEach((o) => {
+      if (o.parent_id) set.add(o.parent_id);
+    });
+    return set;
+  }, [options]);
+
   const { visiveis, matchDireto } = useMemo(
     () => filtrarHierarquico(sorted, search),
     [sorted, search],
