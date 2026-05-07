@@ -43,6 +43,7 @@ type Importacao = {
   total_linhas: number;
   status: string;
   created_at: string;
+  conta_bancaria_id: string | null;
 };
 
 type Pagamento = {
@@ -55,6 +56,7 @@ type Pagamento = {
   status_conciliacao: string;
   parceiro_id: string | null;
   conta_pagar_id: string | null;
+  movimentacao_id: string | null;
   conta_pagar?: { descricao: string; data_vencimento: string } | null;
 };
 
@@ -152,7 +154,7 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
       const { data } = await sb
         .from("itau_pagamentos_stage")
         .select(
-          "id, nome_favorecido, cnpj_favorecido, tipo_pagamento, valor_pago, data_pagamento, status_conciliacao, parceiro_id, conta_pagar_id, conta_pagar:conta_pagar_id(descricao, data_vencimento)"
+          "id, nome_favorecido, cnpj_favorecido, tipo_pagamento, valor_pago, data_pagamento, status_conciliacao, parceiro_id, conta_pagar_id, movimentacao_id, conta_pagar:conta_pagar_id(descricao, data_vencimento)"
         )
         .eq("importacao_id", importacao.id)
         .order("nome_favorecido");
@@ -168,15 +170,43 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
 
   const confirmarLoteMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await sb.rpc("confirmar_itau_lote_auto", {
-        p_importacao_id: importacao.id,
-      });
-      if (error) throw error;
-      if (!data?.ok) throw new Error(data?.erro || "Erro ao confirmar");
-      return data;
+      const pendentes = auto.filter((p) => !p.movimentacao_id && p.conta_pagar_id);
+      let confirmados = 0;
+      let erros = 0;
+
+      for (const pag of pendentes) {
+        try {
+          await sb.from("contas_pagar_receber").update({
+            pago_em_conta_id: importacao.conta_bancaria_id ?? null,
+            data_pagamento:   pag.data_pagamento ?? null,
+          }).eq("id", pag.conta_pagar_id);
+
+          const { data: res } = await sb.rpc("gerar_movimentacao_de_conta", {
+            p_conta_id: pag.conta_pagar_id,
+          });
+          if (!res?.ok) { erros++; continue; }
+
+          const { data: mov } = await sb.from("movimentacoes_bancarias")
+            .select("id")
+            .eq("conta_pagar_id", pag.conta_pagar_id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          await sb.from("itau_pagamentos_stage").update({
+            movimentacao_id:    mov?.id ?? null,
+            status_conciliacao: "conciliado_manual",
+          }).eq("id", pag.id);
+
+          confirmados++;
+        } catch {
+          erros++;
+        }
+      }
+      return { confirmados, erros };
     },
     onSuccess: (data) => {
-      toast.success(`${data.confirmados} pagamentos confirmados`);
+      toast.success(`${data.confirmados} pagamento${data.confirmados !== 1 ? "s" : ""} confirmado${data.confirmados !== 1 ? "s" : ""}${data.erros > 0 ? ` · ${data.erros} erro(s)` : ""}`);
       qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
       qc.invalidateQueries({ queryKey: ["itau-importacoes"] });
     },
@@ -186,17 +216,41 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
 
   const confirmarUnitarioMutation = useMutation({
     mutationFn: async ({ pagId, cprId }: { pagId: string; cprId: string }) => {
-      const { data, error } = await sb.rpc("confirmar_itau_pagamento_unitario", {
-        p_pagamento_id: pagId,
-        p_conta_pagar_id: cprId,
+      const { data: pag } = await sb.from("itau_pagamentos_stage")
+        .select("conta_bancaria_id, data_pagamento")
+        .eq("id", pagId)
+        .maybeSingle();
+
+      await sb.from("itau_pagamentos_stage")
+        .update({ conta_pagar_id: cprId })
+        .eq("id", pagId);
+
+      await sb.from("contas_pagar_receber").update({
+        pago_em_conta_id: pag?.conta_bancaria_id ?? null,
+        data_pagamento:   pag?.data_pagamento ?? null,
+      }).eq("id", cprId);
+
+      const { data: res } = await sb.rpc("gerar_movimentacao_de_conta", {
+        p_conta_id: cprId,
       });
-      if (error) throw error;
-      if (!data?.ok) throw new Error(data?.erro || "Erro");
-      return data;
+      if (!res?.ok) throw new Error(res?.erro || "Erro ao gerar movimentação");
+
+      const { data: mov } = await sb.from("movimentacoes_bancarias")
+        .select("id")
+        .eq("conta_pagar_id", cprId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      await sb.from("itau_pagamentos_stage").update({
+        movimentacao_id:    mov?.id ?? null,
+        status_conciliacao: "conciliado_manual",
+      }).eq("id", pagId);
     },
     onSuccess: () => {
       toast.success("Pagamento confirmado");
       qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
+      qc.invalidateQueries({ queryKey: ["itau-importacoes"] });
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (e: any) => toast.error("Erro: " + e.message),
@@ -436,7 +490,7 @@ export default function Conciliacao() {
     queryFn: async () => {
       const { data } = await sb
         .from("itau_importacoes_stage")
-        .select("id, arquivo_nome, periodo_inicio, periodo_fim, total_linhas, status, created_at")
+        .select("id, arquivo_nome, periodo_inicio, periodo_fim, total_linhas, status, created_at, conta_bancaria_id")
         .eq("conta_bancaria_id", contaBancariaId)
         .order("created_at", { ascending: false });
       return (data || []) as Importacao[];
