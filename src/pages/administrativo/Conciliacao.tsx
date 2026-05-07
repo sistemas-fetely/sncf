@@ -710,11 +710,10 @@ export default function Conciliacao() {
                   const acao = acaoOFX?.includes(ofx.id);
                   return (
                     <div key={ofx.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium truncate">{ofx.descricao}</p>
-                          <p className="text-muted-foreground text-[10px] shrink-0">{formatDateBR(ofx.data_transacao)}</p>
-                        </div>
+                      <p className="font-medium truncate flex-1 min-w-0">{ofx.descricao}</p>
+                      <div className="flex items-center gap-1.5 shrink-0 text-sm">
+                        <span className="text-muted-foreground">{formatDateBR(ofx.data_transacao)}</span>
+                        <span className="text-muted-foreground">·</span>
                         <span className={`font-mono font-semibold ${isDebito ? "text-red-600" : "text-emerald-600"}`}>
                           {formatBRL(ofx.valor)}
                         </span>
