@@ -151,7 +151,7 @@ export default function Conciliacao() {
     queryFn: async () => {
       const { data } = await sb
         .from("itau_pagamentos_stage")
-        .select("id, importacao_id, nome_favorecido, cnpj_favorecido, tipo_pagamento, valor_pago, data_pagamento, status_conciliacao, parceiro_id, conta_pagar_id, movimentacao_id, conta_pagar:conta_pagar_id(descricao, data_vencimento)")
+        .select("id, importacao_id, numero_lote, nome_favorecido, cnpj_favorecido, tipo_pagamento, valor_pago, data_pagamento, status_conciliacao, parceiro_id, conta_pagar_id, movimentacao_id, conta_pagar:conta_pagar_id(descricao, data_vencimento)")
         .eq("conta_bancaria_id", contaBancariaId)
         .order("data_pagamento", { ascending: false });
       return (data || []) as Pagamento[];
