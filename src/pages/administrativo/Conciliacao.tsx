@@ -105,6 +105,12 @@ function ItemOperador({
         <div className="min-w-0">
           <div className="font-medium text-sm truncate">{pag.nome_favorecido}</div>
           <div className="text-xs text-muted-foreground">{pag.cnpj_favorecido}</div>
+          {pag.data_pagamento && (
+            <div className="text-xs mt-0.5">
+              <span className="text-muted-foreground">Pago em: </span>
+              <span className="font-medium text-foreground">{formatDateBR(pag.data_pagamento)}</span>
+            </div>
+          )}
         </div>
         <div className="text-sm font-semibold whitespace-nowrap">{formatBRL(pag.valor_pago)}</div>
       </div>
