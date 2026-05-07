@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ChevronDown,
   ChevronRight,
+  Eye,
+  EyeOff,
   Pencil,
   Plus,
   Target,
@@ -176,6 +178,7 @@ export default function InvestimentoLancamento() {
   const [filtroFrenteIds, setFiltroFrenteIds] = useState<string[]>([]);
   const [expandedFrentes, setExpandedFrentes] = useState<Set<string>>(new Set());
   const [expandedTemas, setExpandedTemas] = useState<Set<string>>(new Set());
+  const [showInativas, setShowInativas] = useState(false);
 
   const [drawerMode, setDrawerMode] = useState<EditMode>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -245,9 +248,11 @@ export default function InvestimentoLancamento() {
   });
 
   const frentesFiltradas = useMemo(() => {
-    if (filtroFrenteIds.length === 0) return frentes;
-    return frentes.filter((f) => filtroFrenteIds.includes(f.frente_id));
-  }, [frentes, filtroFrenteIds]);
+    let result = showInativas ? frentes : frentes.filter((f) => f.ativa);
+    if (filtroFrenteIds.length > 0)
+      result = result.filter((f) => filtroFrenteIds.includes(f.frente_id));
+    return result;
+  }, [frentes, filtroFrenteIds, showInativas]);
 
   const totais = useMemo(() => {
     return frentesFiltradas.reduce(
@@ -461,6 +466,15 @@ export default function InvestimentoLancamento() {
       {/* Filtros + Nova Frente */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowInativas((v) => !v)}
+            className={cn("gap-1.5 h-9 text-xs", showInativas && "border-admin text-admin")}
+          >
+            {showInativas ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {showInativas ? "Ocultar inativas" : "Mostrar inativas"}
+          </Button>
           <span className="text-xs text-muted-foreground">Frente:</span>
           <Select
             value={
@@ -512,7 +526,9 @@ export default function InvestimentoLancamento() {
       <div className="space-y-3">
         {frentesFiltradas.map((f) => {
           const expF = expandedFrentes.has(f.frente_id);
-          const temasF = temas.filter((t) => t.frente_id === f.frente_id);
+          const temasF = temas.filter(
+            (t) => t.frente_id === f.frente_id && (showInativas || t.ativa),
+          );
           return (
             <Card key={f.frente_id}>
               <CardContent className="p-0">
@@ -575,7 +591,9 @@ export default function InvestimentoLancamento() {
                     )}
                     {temasF.map((t) => {
                       const expT = expandedTemas.has(t.tema_id);
-                      const linhasT = linhas.filter((l) => l.tema_id === t.tema_id);
+                      const linhasT = linhas.filter(
+                        (l) => l.tema_id === t.tema_id && (showInativas || l.ativa),
+                      );
                       return (
                         <Card key={t.tema_id} className="border-muted">
                           <CardContent className="p-0">

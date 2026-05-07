@@ -4,6 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -43,6 +53,7 @@ export function InvestimentoEditDrawer({
 }: Props) {
   const qc = useQueryClient();
   const [salvando, setSalvando] = useState(false);
+  const [confirmDesativarOpen, setConfirmDesativarOpen] = useState(false);
 
   // Frente / Tema fields
   const [nome, setNome] = useState("");
@@ -193,6 +204,17 @@ export function InvestimentoEditDrawer({
       return;
     }
 
+    // Se está desativando um item que estava ativo: pede confirmação
+    const wasActive = entidade?.ativa ?? true;
+    if (isEdit && wasActive && !ativa) {
+      setConfirmDesativarOpen(true);
+      return;
+    }
+
+    await executarSave();
+  }
+
+  async function executarSave() {
     setSalvando(true);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -279,6 +301,7 @@ export function InvestimentoEditDrawer({
           : "";
 
   return (
+    <>
     <Sheet open={!!mode} onOpenChange={(o) => !o && close()}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
@@ -429,5 +452,32 @@ export function InvestimentoEditDrawer({
         </div>
       </SheetContent>
     </Sheet>
+
+    <AlertDialog open={confirmDesativarOpen} onOpenChange={setConfirmDesativarOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar desativação</AlertDialogTitle>
+          <AlertDialogDescription>
+            {mode === "frente" && "Esta frente ficará oculta em listas e comboboxes."}
+            {mode === "tema" && "Este tema ficará oculto em listas e comboboxes."}
+            {mode === "linha" && "Esta linha não aparecerá mais em comboboxes de novas despesas."}
+            {" "}Deseja continuar?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive hover:bg-destructive/90"
+            onClick={async () => {
+              setConfirmDesativarOpen(false);
+              await executarSave();
+            }}
+          >
+            Desativar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
