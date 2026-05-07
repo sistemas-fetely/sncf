@@ -24,7 +24,7 @@ import {
   CreditCard, FileText, Target, Store, TreePine, Users, Plus, Pencil, Trash2, Loader2,
 } from "lucide-react";
 
-type TabelaFin = "formas_pagamento" | "centros_custo" | "canais_venda";
+type TabelaFin = "formas_pagamento" | "centros_custo" | "canais_venda" | "tipos_contrato";
 
 interface CategoriaConfig {
   value: TabelaFin;
