@@ -115,7 +115,7 @@ export function ImportadorOFX() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { error: errLote } = await (supabase as any)
               .from("ofx_transacoes_stage")
-              .insert(lote);
+              .upsert(lote, { onConflict: "hash_unico", ignoreDuplicates: true });
             if (errLote) {
               toast.error(`Erro ao inserir transações: ${errLote.message}`);
               break;
