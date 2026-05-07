@@ -618,14 +618,14 @@ export default function CaixaBanco() {
           <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-medium mb-1.5 px-1">
             Qualidade
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <CardKPIDuplo
-              titulo="NF" icone={Receipt} cor="fetely"
-              total={kpisQualidade.NF.total}
-              qtdTem={kpisQualidade.NF.tem} qtdFalta={kpisQualidade.NF.falta}
-              ativoTem={filtroQual === "nf_tem"} ativoFalta={filtroQual === "nf_falta"}
-              onClickTem={() => setFiltroQual(filtroQual === "nf_tem" ? "todos" : "nf_tem")}
-              onClickFalta={() => setFiltroQual(filtroQual === "nf_falta" ? "todos" : "nf_falta")}
+              titulo="NF / Recibo" icone={Receipt} cor="fetely"
+              total={kpisQualidade.Documento.total}
+              qtdTem={kpisQualidade.Documento.tem} qtdFalta={kpisQualidade.Documento.falta}
+              ativoTem={filtroQual === "doc_tem"} ativoFalta={filtroQual === "doc_falta"}
+              onClickTem={() => setFiltroQual(filtroQual === "doc_tem" ? "todos" : "doc_tem")}
+              onClickFalta={() => setFiltroQual(filtroQual === "doc_falta" ? "todos" : "doc_falta")}
             />
             <CardKPIDuplo
               titulo="Categoria" icone={FolderTree} cor="fetely"
@@ -634,30 +634,6 @@ export default function CaixaBanco() {
               ativoTem={filtroQual === "categoria_tem"} ativoFalta={filtroQual === "categoria_falta"}
               onClickTem={() => setFiltroQual(filtroQual === "categoria_tem" ? "todos" : "categoria_tem")}
               onClickFalta={() => setFiltroQual(filtroQual === "categoria_falta" ? "todos" : "categoria_falta")}
-            />
-            <CardKPIDuplo
-              titulo="Documento" icone={Paperclip} cor="fetely"
-              total={kpisQualidade.Documento.total}
-              qtdTem={kpisQualidade.Documento.tem} qtdFalta={kpisQualidade.Documento.falta}
-              ativoTem={filtroQual === "doc_tem"} ativoFalta={filtroQual === "doc_falta"}
-              onClickTem={() => setFiltroQual(filtroQual === "doc_tem" ? "todos" : "doc_tem")}
-              onClickFalta={() => setFiltroQual(filtroQual === "doc_falta" ? "todos" : "doc_falta")}
-            />
-            <CardKPIDuplo
-              titulo="Vinculado" icone={Link2} cor="fetely"
-              total={kpisQualidade.Vinculado.total}
-              qtdTem={kpisQualidade.Vinculado.tem} qtdFalta={kpisQualidade.Vinculado.falta}
-              ativoTem={filtroQual === "vinculado_tem"} ativoFalta={filtroQual === "vinculado_falta"}
-              onClickTem={() => setFiltroQual(filtroQual === "vinculado_tem" ? "todos" : "vinculado_tem")}
-              onClickFalta={() => setFiltroQual(filtroQual === "vinculado_falta" ? "todos" : "vinculado_falta")}
-            />
-            <CardKPIDuplo
-              titulo="Conciliado" icone={CircleDollarSign} cor="fetely"
-              total={kpisQualidade.Conciliado.total}
-              qtdTem={kpisQualidade.Conciliado.tem} qtdFalta={kpisQualidade.Conciliado.falta}
-              ativoTem={filtroQual === "conciliado_tem"} ativoFalta={filtroQual === "conciliado_falta"}
-              onClickTem={() => setFiltroQual(filtroQual === "conciliado_tem" ? "todos" : "conciliado_tem")}
-              onClickFalta={() => setFiltroQual(filtroQual === "conciliado_falta" ? "todos" : "conciliado_falta")}
             />
           </div>
         </div>
