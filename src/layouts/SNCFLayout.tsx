@@ -5,9 +5,11 @@ import { ReportarErroBotao } from "@/components/shared/ReportarErroBotao";
 import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
 import { RecentesEFavoritos } from "@/components/navegacao/RecentesEFavoritos";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
+import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 
 export default function SNCFLayout() {
   useTrackPageVisit();
+  usePrefetchTelas();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
