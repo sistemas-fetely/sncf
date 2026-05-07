@@ -6366,6 +6366,7 @@ export type Database = {
           resumo_ia: string | null
           status: string
           tem_setup: boolean
+          tipo_contrato_id: string | null
           updated_at: string
           valor_parcela: number
           valor_setup: number | null
@@ -6397,6 +6398,7 @@ export type Database = {
           resumo_ia?: string | null
           status?: string
           tem_setup?: boolean
+          tipo_contrato_id?: string | null
           updated_at?: string
           valor_parcela: number
           valor_setup?: number | null
@@ -6428,6 +6430,7 @@ export type Database = {
           resumo_ia?: string | null
           status?: string
           tem_setup?: boolean
+          tipo_contrato_id?: string | null
           updated_at?: string
           valor_parcela?: number
           valor_setup?: number | null
@@ -6462,6 +6465,13 @@ export type Database = {
             columns: ["pasta_id"]
             isOneToOne: false
             referencedRelation: "vw_pastas_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pasta_contratos_tipo_contrato_id_fkey"
+            columns: ["tipo_contrato_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_contrato"
             referencedColumns: ["id"]
           },
         ]
@@ -9171,6 +9181,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tipos_contrato: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
       }
       unidades: {
         Row: {
