@@ -636,8 +636,7 @@ export default function CaixaBanco() {
             ativoTem={filtroQual === "categoria_tem"} ativoFalta={filtroQual === "categoria_falta"}
             onClickTem={() => setFiltroQual(filtroQual === "categoria_tem" ? "todos" : "categoria_tem")}
             onClickFalta={() => setFiltroQual(filtroQual === "categoria_falta" ? "todos" : "categoria_falta")}
-            />
-          </div>
+          />
         </div>
 
         {/* Filtros adicionais (Contador + Inconsistências + IA) */}
