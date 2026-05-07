@@ -10,7 +10,7 @@ export function useAplicarRegrasOFX() {
   async function aplicarRegras(contaBancariaId: string): Promise<{ aplicados: number }> {
     const { data: regras } = await sb
       .from("ofx_regras_automaticas")
-      .select("id, pattern, conta_plano_id, centro_custo_id, descricao_override")
+      .select("id, pattern, acao, conta_plano_id, centro_custo_id, descricao_override")
       .eq("ativo", true)
       .or(`conta_bancaria_id.eq.${contaBancariaId},conta_bancaria_id.is.null`);
 
@@ -32,6 +32,14 @@ export function useAplicarRegrasOFX() {
         ofx.descricao?.toLowerCase().includes(r.pattern.toLowerCase())
       );
       if (!regra) continue;
+
+      if (regra.acao === "ignorar") {
+        await sb.from("ofx_transacoes_stage")
+          .update({ status: "ignorado" })
+          .eq("id", ofx.id);
+        aplicados++;
+        continue;
+      }
 
       const { error } = await sb.from("movimentacoes_bancarias").insert({
         conta_bancaria_id: ofx.conta_bancaria_id,
