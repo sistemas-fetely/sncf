@@ -27,7 +27,7 @@ export default function StatusProgressBar({ statusAtual }: Props) {
   // Mapear status legados (de registros antigos) pro fluxo novo
   let statusEffective = statusAtual;
   if (statusAtual === "rascunho") statusEffective = "aberto";
-  if (["agendado", "pago", "conciliado"].includes(statusAtual)) statusEffective = "finalizado";
+  if (["agendado", "paga", "conciliado"].includes(statusAtual)) statusEffective = "finalizado";
 
   let idxAtual = FLOW.findIndex((s) => s.key === statusEffective);
   if (statusAtual === "atrasado") idxAtual = FLOW.findIndex((s) => s.key === "aberto");

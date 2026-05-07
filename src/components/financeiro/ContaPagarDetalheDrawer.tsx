@@ -806,7 +806,7 @@ export default function ContaPagarDetalheDrawer({
                   )}
 
                   {/* STATUS LEGADOS (registros antigos migrados manualmente) */}
-                  {(conta.status === "rascunho" || conta.status === "agendado" || conta.status === "pago" || conta.status === "conciliado") && (
+                  {(conta.status === "rascunho" || conta.status === "agendado" || conta.status === "paga" || conta.status === "conciliado") && (
                     <div className="space-y-2">
                       <div className="p-3 rounded-lg bg-blue-50 text-blue-700 text-xs">
                         Status legado: <strong>{conta.status}</strong>. Reabrir para novo fluxo.

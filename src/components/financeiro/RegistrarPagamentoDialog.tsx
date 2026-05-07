@@ -80,7 +80,7 @@ export default function RegistrarPagamentoDialog({ open, onOpenChange, conta, on
       const { error } = await supabase
         .from("contas_pagar_receber")
         .update({
-          status: "pago",
+          status: "paga",
           data_pagamento: dataPagamento,
           forma_pagamento_id: formaId,
           valor_pago: valorNum,
