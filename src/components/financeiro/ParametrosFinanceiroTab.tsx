@@ -56,6 +56,12 @@ const CATEGORIAS: CategoriaConfig[] = [
     icon: Store,
     description: "Canais de receita: B2B, B2C, marketplace, parceiros",
   },
+  {
+    value: "tipos_contrato",
+    label: "Tipos de Contrato",
+    icon: FileText,
+    description: "Categorias de contrato: Aluguel, SaaS, Serviço, Licença, Associação, etc.",
+  },
 ];
 
 interface RegistroFin {
