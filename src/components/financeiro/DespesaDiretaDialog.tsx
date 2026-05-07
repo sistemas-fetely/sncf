@@ -17,6 +17,8 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { toast } from "sonner";
 import { CategoriaCombobox, type CategoriaOption } from "./CategoriaCombobox";
 import { LinhaInvestimentoCombobox } from "./LinhaInvestimentoCombobox";
+import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Movimentacao = {
   id: string;
@@ -35,10 +37,12 @@ interface Props {
 export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado }: Props) {
   const { user } = useAuth();
   const [categoriaId, setCategoriaId] = useState<string>("");
+  const [centroCustoId, setCentroCustoId] = useState<string | null>(null);
   const [descricao, setDescricao] = useState<string>("");
   const [parceiroId, setParceiroId] = useState<string>("");
   const [enviando, setEnviando] = useState(false);
   const [linhaInvestimentoId, setLinhaInvestimentoId] = useState<string | null>(null);
+  const { data: centrosCusto = [] } = useCentrosCusto();
 
   // Carrega parceiros pra o select opcional
   const { data: parceiros } = useQuery({
@@ -97,17 +101,21 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
       const r = Array.isArray(data) ? data[0] : data;
       if (!r?.ok) throw new Error(r?.erro || "Falha desconhecida");
 
-      // Vincular linha de investimento (UPDATE pós-RPC)
+      // Vincular centro de custo + linha de investimento (UPDATE pós-RPC)
       const cprId = r?.conta_pagar_id;
-      if (linhaInvestimentoId && cprId) {
+      if (cprId && (linhaInvestimentoId || centroCustoId)) {
+        const updatePayload: Record<string, string | null> = {};
+        if (linhaInvestimentoId) updatePayload.linha_investimento_id = linhaInvestimentoId;
+        if (centroCustoId) updatePayload.centro_custo_id = centroCustoId;
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: updErr } = await (supabase as any)
           .from("contas_pagar_receber")
-          .update({ linha_investimento_id: linhaInvestimentoId })
+          .update(updatePayload)
           .eq("id", cprId);
         if (updErr) {
           toast.warning(
-            "Despesa criada, mas vínculo com linha de investimento falhou: " + updErr.message,
+            "Despesa criada, mas vínculo de dimensões falhou: " + updErr.message,
           );
         }
       }
@@ -125,6 +133,7 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
 
   function handleClose() {
     setCategoriaId("");
+    setCentroCustoId(null);
     setDescricao("");
     setParceiroId("");
     setLinhaInvestimentoId(null);
@@ -179,6 +188,25 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
             onChange={(id) => setCategoriaId(id || "")}
             placeholder="Selecione (Tarifas Bancárias, IOF, etc.)"
           />
+        </div>
+
+        {/* Centro de Custo (opcional) */}
+        <div className="space-y-1">
+          <Label className="text-xs">Centro de Custo (opcional)</Label>
+          <Select
+            value={centroCustoId ?? "__none__"}
+            onValueChange={(v) => setCentroCustoId(v === "__none__" ? null : v)}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">— Sem centro de custo —</SelectItem>
+              {centrosCusto.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Linha de Investimento (opcional) */}
