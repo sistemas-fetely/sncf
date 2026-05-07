@@ -23,6 +23,7 @@ import {
 import {
   CreditCard, FileText, Target, Store, TreePine, Users, Plus, Pencil, Trash2, Loader2,
 } from "lucide-react";
+import { OFXRegrasPanel } from "@/components/financeiro/OFXRegrasPanel";
 
 type TabelaFin = "formas_pagamento" | "centros_custo" | "canais_venda" | "tipos_contrato";
 
@@ -331,6 +332,12 @@ export default function ParametrosFinanceiroTab() {
           </TabsContent>
         ))}
       </Tabs>
+
+      <Card>
+        <CardContent className="pt-6">
+          <OFXRegrasPanel />
+        </CardContent>
+      </Card>
     </div>
   );
 }

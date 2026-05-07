@@ -5982,6 +5982,64 @@ export type Database = {
           },
         ]
       }
+      ofx_regras_automaticas: {
+        Row: {
+          ativo: boolean
+          centro_custo_id: string | null
+          conta_bancaria_id: string | null
+          conta_plano_id: string
+          created_at: string | null
+          descricao_override: string | null
+          id: string
+          nome: string
+          pattern: string
+        }
+        Insert: {
+          ativo?: boolean
+          centro_custo_id?: string | null
+          conta_bancaria_id?: string | null
+          conta_plano_id: string
+          created_at?: string | null
+          descricao_override?: string | null
+          id?: string
+          nome: string
+          pattern: string
+        }
+        Update: {
+          ativo?: boolean
+          centro_custo_id?: string | null
+          conta_bancaria_id?: string | null
+          conta_plano_id?: string
+          created_at?: string | null
+          descricao_override?: string | null
+          id?: string
+          nome?: string
+          pattern?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ofx_regras_automaticas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofx_regras_automaticas_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofx_regras_automaticas_conta_plano_id_fkey"
+            columns: ["conta_plano_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ofx_transacoes_stage: {
         Row: {
           conta_bancaria_id: string
