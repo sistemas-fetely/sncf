@@ -725,13 +725,10 @@ export default function CaixaBanco() {
                     const formaNome = l.forma_pagamento_id && mapFormas[l.forma_pagamento_id];
                     const categoriaNome = l.categoria_id && mapCategorias[l.categoria_id];
                     const flags = statusFlagsMap.get(l.id);
-                    const docPendente = !!flags?.tem_doc_pendente;
                     const remessa = contadorMap?.get(l.id);
                     const enviadoContador = !!remessa;
-                    const qNF = getQualidadeNF(l, nfMap);
-                    const qCat = getQualidadeCategoria(l, nfMap);
-                    const qVinc = getQualidadeVinculado(l);
-                    const qConc = getQualidadeConciliado(l);
+                    const qDoc = getQualidadeDocumento(l, nfMap);
+                    const qCat = getQualidadeCategoria(l);
                     const ci = compromissoInfoMap.get(l.id);
                     const ehCartao =
                       l.vinculada_cartao || l.origem_view === "cartao_lancamento";
