@@ -542,6 +542,39 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
           </TabsContent>
         )}
       </Tabs>
+
+      <ParceiroFormSheet
+        open={parceiroSheetOpen}
+        onOpenChange={(v) => {
+          setParceiroSheetOpen(v);
+          if (!v) setPagParaCadastrar(null);
+        }}
+        categorias={categorias}
+        prefill={
+          pagParaCadastrar
+            ? {
+                razao_social: pagParaCadastrar.nome_favorecido,
+                cnpj: pagParaCadastrar.cnpj_favorecido,
+              }
+            : undefined
+        }
+        onSaved={async () => {
+          if (!pagParaCadastrar) return;
+          await sb
+            .from("itau_pagamentos_stage")
+            .update({ status_conciliacao: "pendente", parceiro_id: null })
+            .eq("importacao_id", importacao.id)
+            .eq("cnpj_favorecido", pagParaCadastrar.cnpj_favorecido)
+            .eq("status_conciliacao", "sem_parceiro");
+
+          await sb.rpc("processar_itau_pagamentos", { p_importacao_id: importacao.id });
+
+          setParceiroSheetOpen(false);
+          setPagParaCadastrar(null);
+          qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
+          toast.success("Parceiro cadastrado e conciliação atualizada");
+        }}
+      />
     </div>
   );
 }
