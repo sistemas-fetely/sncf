@@ -46,8 +46,6 @@ import {
   Search,
   Receipt,
   FolderTree,
-  Paperclip,
-  Link2,
   CircleDollarSign,
   AlertTriangle,
   MailCheck,
@@ -66,6 +64,7 @@ import { useFiltrosPersistentes } from "@/hooks/useFiltrosPersistentes";
 import ContaPagarDetalheDrawer from "@/components/financeiro/ContaPagarDetalheDrawer";
 import SugestaoIADialog from "@/components/financeiro/SugestaoIADialog";
 import BuscarNFStageDialog from "@/components/financeiro/BuscarNFStageDialog";
+import VisualizarDocumentoModal from "@/components/financeiro/VisualizarDocumentoModal";
 import FilaRevisaoIADialog from "@/components/financeiro/FilaRevisaoIADialog";
 import {
   getCompromissoInfoMap,
@@ -87,10 +86,8 @@ import {
   statusVisual,
   isAtrasada,
   diasAtraso,
-  getQualidadeNF,
+  getQualidadeDocumento,
   getQualidadeCategoria,
-  getQualidadeVinculado,
-  getQualidadeConciliado,
   corClass,
 } from "./CaixaBanco/utils";
 
@@ -100,11 +97,8 @@ type CategoriaLite = { id: string; nome: string };
 type FiltroTipo = "tudo" | "apagar" | "realizado";
 type FiltroQualidade =
   | "todos"
-  | "nf_tem" | "nf_falta"
-  | "categoria_tem" | "categoria_falta"
   | "doc_tem" | "doc_falta"
-  | "vinculado_tem" | "vinculado_falta"
-  | "conciliado_tem" | "conciliado_falta";
+  | "categoria_tem" | "categoria_falta";
 
 export default function CaixaBanco() {
   const navigate = useNavigate();
@@ -133,6 +127,22 @@ export default function CaixaBanco() {
   const [buscarNFValor, setBuscarNFValor] = useState(0);
   const [filaIAOpen, setFilaIAOpen] = useState(false);
   const [filtroQual, setFiltroQual] = useState<FiltroQualidade>("todos");
+  const [modalDocNfId, setModalDocNfId] = useState<string | null>(null);
+  const [modalDocOpen, setModalDocOpen] = useState(false);
+
+  function handleClickIconeDocumento(
+    l: Lancamento,
+    qDoc: { cor: "verde" | "vermelho"; nfStageId: string | null },
+  ) {
+    if (qDoc.cor === "verde" && qDoc.nfStageId) {
+      setModalDocNfId(qDoc.nfStageId);
+      setModalDocOpen(true);
+    } else if (l.origem_view === "conta_pagar") {
+      setBuscarNFContaId(l.id);
+      setBuscarNFDescricao(l.descricao ?? "");
+      setBuscarNFValor(Number(l.valor ?? 0));
+    }
+  }
 
   // Query principal — view unificada
   const { data: lancamentos, isLoading } = useQuery({
@@ -245,6 +255,7 @@ export default function CaixaBanco() {
     [lancamentos],
   );
 
+  // Map lancamento.id → nf_stage_id (ou null se sem doc).
   const { data: nfMap } = useQuery({
     queryKey: ["nfs-vinculadas-mov", lancamentoIds.join(",")],
     enabled: lancamentoIds.length > 0,
@@ -252,32 +263,45 @@ export default function CaixaBanco() {
     queryFn: async () => {
       const map = new Map<string, string | null>();
 
-      // Lookup 1: NFs que apontam PRA CPR (conta_pagar_id → CPR)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: nfsPorConta } = await (supabase as any)
-        .from("nfs_stage")
-        .select("conta_pagar_id, categoria_id")
-        .in("conta_pagar_id", lancamentoIds);
-      (nfsPorConta || []).forEach(
-        (nf: { conta_pagar_id: string | null; categoria_id: string | null }) => {
-          if (nf.conta_pagar_id) map.set(nf.conta_pagar_id, nf.categoria_id);
-        },
-      );
-
-      // Lookup 2: CPRs que apontam PRA NF (nf_stage_id → NF)
-      // Cobre vinculação assimétrica (mesma NF Stage ligada a várias parcelas,
-      // mas conta_pagar_id aponta só pra uma delas)
+      // Lookup 1: CPRs com nf_stage_id preenchido
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: cprsComNF } = await (supabase as any)
         .from("contas_pagar_receber")
-        .select("id, conta_id")
+        .select("id, nf_stage_id")
         .in("id", lancamentoIds)
         .not("nf_stage_id", "is", null);
-      (cprsComNF || []).forEach(
-        (cpr: { id: string; conta_id: string | null }) => {
-          if (!map.has(cpr.id)) map.set(cpr.id, cpr.conta_id);
-        },
-      );
+      (cprsComNF || []).forEach((cpr: { id: string; nf_stage_id: string | null }) => {
+        if (cpr.nf_stage_id) map.set(cpr.id, cpr.nf_stage_id);
+      });
+
+      // Lookup 2: NFs que apontam pra CPR (conta_pagar_id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: nfsPorConta } = await (supabase as any)
+        .from("nfs_stage")
+        .select("id, conta_pagar_id")
+        .in("conta_pagar_id", lancamentoIds)
+        .not("conta_pagar_id", "is", null);
+      (nfsPorConta || []).forEach((nf: { id: string; conta_pagar_id: string | null }) => {
+        if (nf.conta_pagar_id && !map.has(nf.conta_pagar_id)) {
+          map.set(nf.conta_pagar_id, nf.id);
+        }
+      });
+
+      // Lookup 3: Lançamentos de cartão com NF vinculada
+      const idsCartao = (lancamentos || [])
+        .filter((l) => l.origem_view === "cartao_lancamento")
+        .map((l) => l.id);
+      if (idsCartao.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: cartaoComNF } = await (supabase as any)
+          .from("fatura_cartao_lancamentos")
+          .select("id, nf_stage_id")
+          .in("id", idsCartao)
+          .not("nf_stage_id", "is", null);
+        (cartaoComNF || []).forEach((lanc: { id: string; nf_stage_id: string | null }) => {
+          if (lanc.nf_stage_id) map.set(lanc.id, lanc.nf_stage_id);
+        });
+      }
 
       return map;
     },
@@ -443,27 +467,17 @@ export default function CaixaBanco() {
     return [...listaAPagar, ...listaRealizado];
   }, [tipoParam, listaAPagar, listaRealizado]);
 
-  // KPIs Qualidade — respeitam pill + filtros globais, NÃO respeitam filtroQual
+  // KPIs Qualidade — 2 ícones (Doc, Categoria)
   const kpisQualidade = useMemo(() => {
     const base = listaFiltradaPorPill;
     const total = base.length;
-    const comNF = base.filter((l) => getQualidadeNF(l, nfMap).cor === "verde").length;
-    const comCat = base.filter((l) => getQualidadeCategoria(l, nfMap).cor === "verde").length;
-    const comDoc = base.filter((l) => statusFlagsMap.get(l.id)?.tem_doc_pendente !== true).length;
-    const comVinc = base.filter((l) =>
-      l.vinculada_cartao || l.origem_view === "cartao_lancamento" || l.movimentacao_bancaria_id,
-    ).length;
-    const comConc = base.filter((l) =>
-      l.conciliado_em || l.status_caixa === "conciliado",
-    ).length;
+    const comDoc = base.filter((l) => getQualidadeDocumento(l, nfMap).cor === "verde").length;
+    const comCat = base.filter((l) => getQualidadeCategoria(l).cor === "verde").length;
     return {
-      NF: { tem: comNF, falta: total - comNF, total },
-      Categoria: { tem: comCat, falta: total - comCat, total },
       Documento: { tem: comDoc, falta: total - comDoc, total },
-      Vinculado: { tem: comVinc, falta: total - comVinc, total },
-      Conciliado: { tem: comConc, falta: total - comConc, total },
+      Categoria: { tem: comCat, falta: total - comCat, total },
     };
-  }, [listaFiltradaPorPill, nfMap, statusFlagsMap]);
+  }, [listaFiltradaPorPill, nfMap]);
 
   // Lista exibida na tabela = pill + filtros adicionais (contador / inconsistências / qualidade)
   const listaExibida = useMemo(() => {
@@ -482,26 +496,16 @@ export default function CaixaBanco() {
     if (filtroQual !== "todos") {
       list = list.filter((l) => {
         switch (filtroQual) {
-          case "nf_tem": return getQualidadeNF(l, nfMap).cor === "verde";
-          case "nf_falta": return getQualidadeNF(l, nfMap).cor !== "verde";
-          case "categoria_tem": return getQualidadeCategoria(l, nfMap).cor === "verde";
-          case "categoria_falta": return getQualidadeCategoria(l, nfMap).cor !== "verde";
-          case "doc_tem": return statusFlagsMap.get(l.id)?.tem_doc_pendente !== true;
-          case "doc_falta": return statusFlagsMap.get(l.id)?.tem_doc_pendente === true;
-          case "vinculado_tem":
-            return !!(l.vinculada_cartao || l.origem_view === "cartao_lancamento" || l.movimentacao_bancaria_id);
-          case "vinculado_falta":
-            return !(l.vinculada_cartao || l.origem_view === "cartao_lancamento" || l.movimentacao_bancaria_id);
-          case "conciliado_tem":
-            return !!(l.conciliado_em || l.status_caixa === "conciliado");
-          case "conciliado_falta":
-            return !(l.conciliado_em || l.status_caixa === "conciliado");
+          case "doc_tem": return getQualidadeDocumento(l, nfMap).cor === "verde";
+          case "doc_falta": return getQualidadeDocumento(l, nfMap).cor !== "verde";
+          case "categoria_tem": return getQualidadeCategoria(l).cor === "verde";
+          case "categoria_falta": return getQualidadeCategoria(l).cor !== "verde";
           default: return true;
         }
       });
     }
     return list;
-  }, [listaFiltradaPorPill, filtroContador, mostrarSoInconsistentes, contadorMap, filtroQual, nfMap, statusFlagsMap]);
+  }, [listaFiltradaPorPill, filtroContador, mostrarSoInconsistentes, contadorMap, filtroQual, nfMap]);
 
   async function handleAplicarIAEmMassa() {
     setAplicandoIA(true);
@@ -628,14 +632,14 @@ export default function CaixaBanco() {
           <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-medium mb-1.5 px-1">
             Qualidade
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <CardKPIDuplo
-              titulo="NF" icone={Receipt} cor="fetely"
-              total={kpisQualidade.NF.total}
-              qtdTem={kpisQualidade.NF.tem} qtdFalta={kpisQualidade.NF.falta}
-              ativoTem={filtroQual === "nf_tem"} ativoFalta={filtroQual === "nf_falta"}
-              onClickTem={() => setFiltroQual(filtroQual === "nf_tem" ? "todos" : "nf_tem")}
-              onClickFalta={() => setFiltroQual(filtroQual === "nf_falta" ? "todos" : "nf_falta")}
+              titulo="NF / Recibo" icone={Receipt} cor="fetely"
+              total={kpisQualidade.Documento.total}
+              qtdTem={kpisQualidade.Documento.tem} qtdFalta={kpisQualidade.Documento.falta}
+              ativoTem={filtroQual === "doc_tem"} ativoFalta={filtroQual === "doc_falta"}
+              onClickTem={() => setFiltroQual(filtroQual === "doc_tem" ? "todos" : "doc_tem")}
+              onClickFalta={() => setFiltroQual(filtroQual === "doc_falta" ? "todos" : "doc_falta")}
             />
             <CardKPIDuplo
               titulo="Categoria" icone={FolderTree} cor="fetely"
@@ -644,30 +648,6 @@ export default function CaixaBanco() {
               ativoTem={filtroQual === "categoria_tem"} ativoFalta={filtroQual === "categoria_falta"}
               onClickTem={() => setFiltroQual(filtroQual === "categoria_tem" ? "todos" : "categoria_tem")}
               onClickFalta={() => setFiltroQual(filtroQual === "categoria_falta" ? "todos" : "categoria_falta")}
-            />
-            <CardKPIDuplo
-              titulo="Documento" icone={Paperclip} cor="fetely"
-              total={kpisQualidade.Documento.total}
-              qtdTem={kpisQualidade.Documento.tem} qtdFalta={kpisQualidade.Documento.falta}
-              ativoTem={filtroQual === "doc_tem"} ativoFalta={filtroQual === "doc_falta"}
-              onClickTem={() => setFiltroQual(filtroQual === "doc_tem" ? "todos" : "doc_tem")}
-              onClickFalta={() => setFiltroQual(filtroQual === "doc_falta" ? "todos" : "doc_falta")}
-            />
-            <CardKPIDuplo
-              titulo="Vinculado" icone={Link2} cor="fetely"
-              total={kpisQualidade.Vinculado.total}
-              qtdTem={kpisQualidade.Vinculado.tem} qtdFalta={kpisQualidade.Vinculado.falta}
-              ativoTem={filtroQual === "vinculado_tem"} ativoFalta={filtroQual === "vinculado_falta"}
-              onClickTem={() => setFiltroQual(filtroQual === "vinculado_tem" ? "todos" : "vinculado_tem")}
-              onClickFalta={() => setFiltroQual(filtroQual === "vinculado_falta" ? "todos" : "vinculado_falta")}
-            />
-            <CardKPIDuplo
-              titulo="Conciliado" icone={CircleDollarSign} cor="fetely"
-              total={kpisQualidade.Conciliado.total}
-              qtdTem={kpisQualidade.Conciliado.tem} qtdFalta={kpisQualidade.Conciliado.falta}
-              ativoTem={filtroQual === "conciliado_tem"} ativoFalta={filtroQual === "conciliado_falta"}
-              onClickTem={() => setFiltroQual(filtroQual === "conciliado_tem" ? "todos" : "conciliado_tem")}
-              onClickFalta={() => setFiltroQual(filtroQual === "conciliado_falta" ? "todos" : "conciliado_falta")}
             />
           </div>
         </div>
@@ -759,13 +739,10 @@ export default function CaixaBanco() {
                     const formaNome = l.forma_pagamento_id && mapFormas[l.forma_pagamento_id];
                     const categoriaNome = l.categoria_id && mapCategorias[l.categoria_id];
                     const flags = statusFlagsMap.get(l.id);
-                    const docPendente = !!flags?.tem_doc_pendente;
                     const remessa = contadorMap?.get(l.id);
                     const enviadoContador = !!remessa;
-                    const qNF = getQualidadeNF(l, nfMap);
-                    const qCat = getQualidadeCategoria(l, nfMap);
-                    const qVinc = getQualidadeVinculado(l);
-                    const qConc = getQualidadeConciliado(l);
+                    const qDoc = getQualidadeDocumento(l, nfMap);
+                    const qCat = getQualidadeCategoria(l);
                     const ci = compromissoInfoMap.get(l.id);
                     const ehCartao =
                       l.vinculada_cartao || l.origem_view === "cartao_lancamento";
@@ -919,142 +896,69 @@ export default function CaixaBanco() {
                         >
                           <TooltipProvider>
                             <div className="flex items-center gap-2">
-                              {/* NF — abre BuscarNFStageDialog direto */}
+                              {/* ÍCONE 1: NF / Recibo */}
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Receipt
-                                    className={cn(
-                                      "h-3.5 w-3.5",
-                                      corClass(qNF.cor),
-                                      qNF.cor !== "verde" && l.origem_view === "conta_pagar"
-                                        ? "cursor-pointer hover:scale-125 transition-transform"
-                                        : "cursor-help",
-                                    )}
-                                    strokeWidth={2.2}
-                                    onClick={
-                                      qNF.cor !== "verde" && l.origem_view === "conta_pagar"
-                                        ? () => {
-                                            setBuscarNFContaId(l.id);
-                                            setBuscarNFDescricao(l.descricao ?? "");
-                                            setBuscarNFValor(Number(l.valor ?? 0));
-                                          }
-                                        : undefined
-                                    }
-                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleClickIconeDocumento(l, qDoc)}
+                                    className="focus:outline-none"
+                                  >
+                                    <Receipt
+                                      className={cn(
+                                        "h-3.5 w-3.5 cursor-pointer hover:scale-125 transition-transform",
+                                        corClass(qDoc.cor),
+                                      )}
+                                      strokeWidth={2.2}
+                                    />
+                                  </button>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">
-                                    📄 {qNF.motivo}
-                                    {qNF.cor !== "verde" && l.origem_view === "conta_pagar" && " — clique para vincular NF"}
-                                  </p>
+                                  <p className="text-xs">📄 {qDoc.motivo}</p>
+                                  {qDoc.cor !== "verde" && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      Clique para vincular NF
+                                    </p>
+                                  )}
+                                  {qDoc.cor === "verde" && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      Clique para visualizar
+                                    </p>
+                                  )}
                                 </TooltipContent>
                               </Tooltip>
 
-                              {/* Categoria */}
+                              {/* ÍCONE 2: Categoria */}
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <FolderTree
-                                    className={cn(
-                                      "h-3.5 w-3.5",
-                                      corClass(qCat.cor),
-                                      (isRealizado && qCat.temSugestaoIA) || qCat.cor !== "verde"
-                                        ? "cursor-pointer hover:scale-125 transition-transform"
-                                        : "cursor-help",
-                                    )}
-                                    strokeWidth={2.2}
-                                    onClick={
-                                      isRealizado && qCat.temSugestaoIA
-                                        ? () => setSugestaoMovId(l.id)
-                                        : qCat.cor !== "verde"
-                                          ? () => onOpenContaDrawer(l.id)
-                                          : undefined
-                                    }
-                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (qCat.cor !== "verde" && l.origem_view === "conta_pagar") {
+                                        onOpenContaDrawer(l.id);
+                                      }
+                                    }}
+                                    className="focus:outline-none"
+                                  >
+                                    <FolderTree
+                                      className={cn(
+                                        "h-3.5 w-3.5",
+                                        corClass(qCat.cor),
+                                        qCat.cor !== "verde" && l.origem_view === "conta_pagar"
+                                          ? "cursor-pointer hover:scale-125 transition-transform"
+                                          : "cursor-help",
+                                      )}
+                                      strokeWidth={2.2}
+                                    />
+                                  </button>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">
-                                    🏷️ {qCat.motivo}
-                                    {qCat.temSugestaoIA && " — clique para aplicar sugestão IA"}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-
-                              {/* Documento — abre drawer para anexar */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Paperclip
-                                    className={cn(
-                                      "h-3.5 w-3.5",
-                                      docPendente ? "text-red-500" : "text-emerald-600",
-                                      docPendente
-                                        ? "cursor-pointer hover:scale-125 transition-transform"
-                                        : "cursor-help",
-                                    )}
-                                    strokeWidth={2.2}
-                                    onClick={
-                                      docPendente
-                                        ? () => onOpenContaDrawer(l.id)
-                                        : undefined
-                                    }
-                                  />
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">
-                                    {docPendente
-                                      ? "📎 Documento pendente — clique para anexar"
-                                      : "📎 Documento OK"}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-
-                              {/* Vinculado OFX */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Link2
-                                    className={cn(
-                                      "h-3.5 w-3.5",
-                                      corClass(qVinc.cor),
-                                      qVinc.cor !== "verde"
-                                        ? "cursor-pointer hover:scale-125 transition-transform"
-                                        : "cursor-help",
-                                    )}
-                                    strokeWidth={2.2}
-                                    onClick={
-                                      qVinc.cor !== "verde"
-                                        ? () => onOpenContaDrawer(l.id)
-                                        : undefined
-                                    }
-                                  />
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">
-                                    🔗 {qVinc.motivo}
-                                    {qVinc.cor !== "verde" && " — clique para conciliar"}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-
-                              {/* Conciliado */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <CircleDollarSign
-                                    className={cn(
-                                      "h-3.5 w-3.5",
-                                      corClass(qConc.cor),
-                                      qConc.cor !== "verde"
-                                        ? "cursor-pointer hover:scale-125 transition-transform"
-                                        : "cursor-help",
-                                    )}
-                                    strokeWidth={2.2}
-                                    onClick={
-                                      qConc.cor !== "verde"
-                                        ? () => onOpenContaDrawer(l.id)
-                                        : undefined
-                                    }
-                                  />
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">💰 {qConc.motivo}</p>
+                                  <p className="text-xs">🏷️ {qCat.motivo}</p>
+                                  {qCat.cor !== "verde" && l.origem_view === "conta_pagar" && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      Clique para classificar
+                                    </p>
+                                  )}
                                 </TooltipContent>
                               </Tooltip>
 
@@ -1132,6 +1036,15 @@ export default function CaixaBanco() {
       )}
 
       <FilaRevisaoIADialog open={filaIAOpen} onClose={() => setFilaIAOpen(false)} />
+
+      <VisualizarDocumentoModal
+        nfStageId={modalDocNfId}
+        open={modalDocOpen}
+        onOpenChange={(o) => {
+          setModalDocOpen(o);
+          if (!o) setModalDocNfId(null);
+        }}
+      />
     </div>
   );
 
