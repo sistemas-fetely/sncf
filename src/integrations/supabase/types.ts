@@ -2148,6 +2148,7 @@ export type Database = {
           parcela_atual: number | null
           parcela_grupo_id: string | null
           parcelas: number | null
+          pasta_contrato_id: string | null
           pasta_contrato_parcela_id: string | null
           sla_aprovacao_dias: number | null
           sla_pagamento_dias: number | null
@@ -2230,6 +2231,7 @@ export type Database = {
           parcela_atual?: number | null
           parcela_grupo_id?: string | null
           parcelas?: number | null
+          pasta_contrato_id?: string | null
           pasta_contrato_parcela_id?: string | null
           sla_aprovacao_dias?: number | null
           sla_pagamento_dias?: number | null
@@ -2312,6 +2314,7 @@ export type Database = {
           parcela_atual?: number | null
           parcela_grupo_id?: string | null
           parcelas?: number | null
+          pasta_contrato_id?: string | null
           pasta_contrato_parcela_id?: string | null
           sla_aprovacao_dias?: number | null
           sla_pagamento_dias?: number | null
@@ -2424,6 +2427,13 @@ export type Database = {
             columns: ["parceiro_id"]
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_pasta_contrato_id_fkey"
+            columns: ["pasta_contrato_id"]
+            isOneToOne: false
+            referencedRelation: "pasta_contratos"
             referencedColumns: ["id"]
           },
           {
