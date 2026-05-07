@@ -185,10 +185,11 @@ export default function ImportarDados() {
       <div>
         <h2 className="text-lg font-semibold mb-1">Extratos & Faturas</h2>
         <p className="text-sm text-muted-foreground mb-3">
-          Importe arquivos OFX dos bancos e faturas (PDF/CSV) de cartões de crédito.
+          Importe arquivos OFX dos bancos, relatório de pagamentos Itaú e faturas de cartão.
         </p>
         <div className="grid gap-4 md:grid-cols-2">
           <ImportadorOFX />
+          <ImportadorItauPagamentos />
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between gap-4">
