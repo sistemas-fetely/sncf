@@ -212,6 +212,56 @@ export function ContaPagarFormEdit({
   // Centros de custo (tabela dimensão)
   const { data: centrosCusto = [] } = useCentrosCusto();
 
+  async function aplicarPadroesParceiro() {
+    if (!conta.parceiro_id) {
+      toast.error("Esta conta não tem parceiro vinculado");
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: parceiro, error } = await (supabase as any)
+      .from("parceiros_comerciais")
+      .select("categoria_padrao_id, centro_custo_id, forma_pagamento_padrao_id, razao_social")
+      .eq("id", conta.parceiro_id)
+      .single();
+
+    if (error || !parceiro) {
+      toast.error("Erro ao buscar parceiro: " + (error?.message || "não encontrado"));
+      return;
+    }
+
+    let camposAplicados = 0;
+    const detalhes: string[] = [];
+
+    if (parceiro.categoria_padrao_id) {
+      setContaId(parceiro.categoria_padrao_id);
+      camposAplicados++;
+      detalhes.push("Categoria");
+    }
+    if (parceiro.centro_custo_id) {
+      setCentroCustoId(parceiro.centro_custo_id);
+      camposAplicados++;
+      detalhes.push("Centro de custo");
+    }
+    if (parceiro.forma_pagamento_padrao_id) {
+      setFormaPagamentoId(parceiro.forma_pagamento_padrao_id);
+      camposAplicados++;
+      detalhes.push("Forma de pagamento");
+    }
+
+    if (camposAplicados === 0) {
+      toast.info(
+        `${parceiro.razao_social || "Parceiro"} não tem padrões cadastrados. ` +
+          `Cadastre os padrões na tela de Parceiros pra economizar trabalho.`
+      );
+      return;
+    }
+
+    toast.success(
+      `${camposAplicados} ${camposAplicados === 1 ? "campo aplicado" : "campos aplicados"}: ${detalhes.join(", ")}. Clique Salvar pra confirmar.`
+    );
+  }
+
   async function handleSalvar() {
     if (isReadOnly) {
       toast.error("Conta com status read-only — edição bloqueada");
@@ -318,6 +368,26 @@ export function ContaPagarFormEdit({
           </p>
         )}
       </div>
+
+      {/* Botão Buscar do Parceiro — doutrina "Parceiro é Verdade" */}
+      {conta.parceiro_id && !isReadOnly && (
+        <div className="rounded-md border border-dashed border-purple-300 bg-purple-50/40 p-2.5 flex items-center justify-between gap-3">
+          <p className="text-[11px] text-purple-800 leading-snug flex-1">
+            <strong>Parceiro é verdade.</strong> Buscar Categoria, Centro de custo e Forma de pagamento do cadastro.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 border-purple-300 text-purple-700 hover:bg-purple-100 shrink-0"
+            onClick={aplicarPadroesParceiro}
+            disabled={salvando}
+          >
+            <Sparkles className="h-3.5 w-3.5 mr-1" />
+            Buscar do Parceiro
+          </Button>
+        </div>
+      )}
 
       {/* Categoria (plano de contas) */}
       <div className="space-y-1">
