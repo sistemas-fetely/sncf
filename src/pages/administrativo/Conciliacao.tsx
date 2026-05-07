@@ -166,6 +166,7 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
   const operador = pagamentos.filter((p) => p.status_conciliacao === "aguardando_operador");
   const semCpr = pagamentos.filter((p) => p.status_conciliacao === "sem_cpr");
   const semParc = pagamentos.filter((p) => p.status_conciliacao === "sem_parceiro");
+  const cprCriada = pagamentos.filter((p) => p.status_conciliacao === "cpr_criada");
   const concluido = pagamentos.filter((p) => p.status_conciliacao === "conciliado_manual");
 
   const confirmarLoteMutation = useMutation({
