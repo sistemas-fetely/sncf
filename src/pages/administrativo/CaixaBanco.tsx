@@ -99,11 +99,8 @@ type CategoriaLite = { id: string; nome: string };
 type FiltroTipo = "tudo" | "apagar" | "realizado";
 type FiltroQualidade =
   | "todos"
-  | "nf_tem" | "nf_falta"
-  | "categoria_tem" | "categoria_falta"
   | "doc_tem" | "doc_falta"
-  | "vinculado_tem" | "vinculado_falta"
-  | "conciliado_tem" | "conciliado_falta";
+  | "categoria_tem" | "categoria_falta";
 
 export default function CaixaBanco() {
   const navigate = useNavigate();
