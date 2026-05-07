@@ -4893,6 +4893,197 @@ export type Database = {
         }
         Relationships: []
       }
+      itau_importacoes_stage: {
+        Row: {
+          arquivo_nome: string
+          conta_bancaria_id: string | null
+          created_at: string | null
+          criado_por: string | null
+          id: string
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          status: string
+          total_linhas: number | null
+        }
+        Insert: {
+          arquivo_nome: string
+          conta_bancaria_id?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          status?: string
+          total_linhas?: number | null
+        }
+        Update: {
+          arquivo_nome?: string
+          conta_bancaria_id?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          status?: string
+          total_linhas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itau_importacoes_stage_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itau_pagamentos_stage: {
+        Row: {
+          cnpj_favorecido: string | null
+          cnpj_pagador: string | null
+          conta_bancaria_id: string | null
+          conta_pagar_id: string | null
+          created_at: string | null
+          dados_pagamento: string | null
+          data_pagamento: string | null
+          hash_unico: string
+          id: string
+          importacao_id: string
+          movimentacao_id: string | null
+          nome_favorecido: string | null
+          numero_lote: string | null
+          ofx_transacao_id: string | null
+          parceiro_id: string | null
+          referencia_empresa: string | null
+          status_banco: string | null
+          status_conciliacao: string
+          tipo_pagamento: string | null
+          valor_pago: number | null
+        }
+        Insert: {
+          cnpj_favorecido?: string | null
+          cnpj_pagador?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          created_at?: string | null
+          dados_pagamento?: string | null
+          data_pagamento?: string | null
+          hash_unico: string
+          id?: string
+          importacao_id: string
+          movimentacao_id?: string | null
+          nome_favorecido?: string | null
+          numero_lote?: string | null
+          ofx_transacao_id?: string | null
+          parceiro_id?: string | null
+          referencia_empresa?: string | null
+          status_banco?: string | null
+          status_conciliacao?: string
+          tipo_pagamento?: string | null
+          valor_pago?: number | null
+        }
+        Update: {
+          cnpj_favorecido?: string | null
+          cnpj_pagador?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          created_at?: string | null
+          dados_pagamento?: string | null
+          data_pagamento?: string | null
+          hash_unico?: string
+          id?: string
+          importacao_id?: string
+          movimentacao_id?: string | null
+          nome_favorecido?: string | null
+          numero_lote?: string | null
+          ofx_transacao_id?: string | null
+          parceiro_id?: string | null
+          referencia_empresa?: string | null
+          status_banco?: string | null
+          status_conciliacao?: string
+          tipo_pagamento?: string | null
+          valor_pago?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itau_pagamentos_stage_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_lancamentos_caixa_banco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "itau_importacoes_stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_ofx_transacao_id_fkey"
+            columns: ["ofx_transacao_id"]
+            isOneToOne: false
+            referencedRelation: "ofx_transacoes_stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       linhas_investimento: {
         Row: {
           ativa: boolean
@@ -5046,6 +5237,7 @@ export type Database = {
           id: string
           id_transacao_banco: string | null
           inconsistencia_motivo: string | null
+          ofx_transacao_id: string | null
           origem: string | null
           saldo_pos_transacao: number | null
           tipo: string | null
@@ -5069,6 +5261,7 @@ export type Database = {
           id?: string
           id_transacao_banco?: string | null
           inconsistencia_motivo?: string | null
+          ofx_transacao_id?: string | null
           origem?: string | null
           saldo_pos_transacao?: number | null
           tipo?: string | null
@@ -5092,6 +5285,7 @@ export type Database = {
           id?: string
           id_transacao_banco?: string | null
           inconsistencia_motivo?: string | null
+          ofx_transacao_id?: string | null
           origem?: string | null
           saldo_pos_transacao?: number | null
           tipo?: string | null
@@ -5118,6 +5312,13 @@ export type Database = {
             columns: ["conta_plano_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_ofx_transacao_id_fkey"
+            columns: ["ofx_transacao_id"]
+            isOneToOne: false
+            referencedRelation: "ofx_transacoes_stage"
             referencedColumns: ["id"]
           },
         ]
@@ -11162,12 +11363,24 @@ export type Database = {
         Args: { p_conta_pagar_id: string; p_lancamento_id: string }
         Returns: Json
       }
+      conciliar_movimentacao_com_ofx: {
+        Args: { p_mov_id: string; p_ofx_id: string; p_user_id?: string }
+        Returns: Json
+      }
       conciliar_multiplas_contas_a_ofx: {
         Args: { p_contas_pagar_ids: string[]; p_ofx_id: string }
         Returns: Json
       }
       conciliar_transacao_ofx: {
         Args: { p_conta_pagar_id: string; p_ofx_id: string }
+        Returns: Json
+      }
+      confirmar_itau_lote_auto: {
+        Args: { p_importacao_id: string }
+        Returns: Json
+      }
+      confirmar_itau_pagamento_unitario: {
+        Args: { p_conta_pagar_id: string; p_pagamento_id: string }
         Returns: Json
       }
       contar_uso_template: { Args: { _template_id: string }; Returns: Json }
@@ -11274,6 +11487,7 @@ export type Database = {
         Args: { p_importacao_stage_id: string }
         Returns: Json
       }
+      desconciliar_movimentacao: { Args: { p_mov_id: string }; Returns: Json }
       desfazer_conciliacao_ofx: { Args: { p_ofx_id: string }; Returns: Json }
       desfazer_remessa: { Args: { p_remessa_id: string }; Returns: Json }
       desvincular_nf_de_conta: { Args: { p_conta_id: string }; Returns: Json }
@@ -11677,6 +11891,10 @@ export type Database = {
       }
       processar_exclusao_dados_usuario: {
         Args: { _user_id: string }
+        Returns: Json
+      }
+      processar_itau_pagamentos: {
+        Args: { p_importacao_id: string }
         Returns: Json
       }
       processar_mural_fetely_diario: { Args: never; Returns: Json }
