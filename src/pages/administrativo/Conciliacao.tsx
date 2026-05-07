@@ -263,6 +263,7 @@ export default function Conciliacao() {
           await sb.from("itau_pagamentos_stage").update({
             movimentacao_id: mov?.id ?? null, status_conciliacao: "conciliado_manual",
           }).eq("id", pag.id);
+          await vincularOFX(pag);
           confirmados++;
         } catch { erros++; }
       }
@@ -271,6 +272,7 @@ export default function Conciliacao() {
     onSuccess: (d) => {
       toast.success(`${d.confirmados} confirmado${d.confirmados !== 1 ? "s" : ""}${d.erros > 0 ? ` · ${d.erros} erro(s)` : ""}`);
       invalidarPagamentos();
+      invalidarOFX();
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
