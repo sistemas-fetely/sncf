@@ -257,6 +257,38 @@ function PainelImportacao({ importacao }: { importacao: Importacao }) {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
+  const criarDespesaMutation = useMutation({
+    mutationFn: async (pag: Pagamento) => {
+      const { data: cpr, error: errCpr } = await sb
+        .from("contas_pagar_receber")
+        .insert({
+          descricao:          pag.nome_favorecido,
+          valor:              pag.valor_pago,
+          data_vencimento:    pag.data_pagamento,
+          parceiro_id:        pag.parceiro_id,
+          fornecedor_cliente: pag.nome_favorecido,
+          status:             "aberto",
+          origem:             "manual",
+        })
+        .select("id")
+        .single();
+      if (errCpr) throw errCpr;
+
+      const { error: errPag } = await sb
+        .from("itau_pagamentos_stage")
+        .update({ conta_pagar_id: cpr.id, status_conciliacao: "cpr_criada" })
+        .eq("id", pag.id);
+      if (errPag) throw errPag;
+    },
+    onSuccess: () => {
+      toast.success("Despesa criada em Contas a Pagar — categorize e aprove para conciliar");
+      qc.invalidateQueries({ queryKey: ["itau-pagamentos", importacao.id] });
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
   const ignorarMutation = useMutation({
     mutationFn: async (pagId: string) => {
       const { error } = await sb
