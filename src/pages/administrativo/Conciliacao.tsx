@@ -43,6 +43,7 @@ type Importacao = {
   total_linhas: number;
   status: string;
   created_at: string;
+  conta_bancaria_id: string | null;
 };
 
 type Pagamento = {
