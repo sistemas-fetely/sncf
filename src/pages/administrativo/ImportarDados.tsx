@@ -17,6 +17,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ImportadorNFs } from "@/components/financeiro/ImportadorNFs";
 import { ImportadorOFX } from "@/components/financeiro/ImportadorOFX";
+import { ImportadorItauPagamentos } from "@/components/financeiro/ImportadorItauPagamentos";
 import { ImportarFaturaCartaoDialog } from "@/components/financeiro/ImportarFaturaCartaoDialog";
 
 export default function ImportarDados() {
