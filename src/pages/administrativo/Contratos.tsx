@@ -628,20 +628,6 @@ export default function Contratos() {
         )}
       </div>
 
-      {/* Alerta: campo faltando */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
-        <CircleDot className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-        <div className="text-xs text-amber-800">
-          <p className="font-medium mb-1">KPI em falta: Tipo de contrato</p>
-          <p className="text-amber-700">
-            Sem categorizar os contratos (aluguel, SaaS, serviço, licença, associação) não é possível
-            fazer análise por segmento — ex: "quanto pago de SaaS por mês?". Campo{" "}
-            <code className="bg-amber-100 px-1 rounded">tipo_contrato</code> não existe ainda na tabela.
-            Vale implementar na próxima sessão.
-          </p>
-        </div>
-      </div>
-
       {/* Dialog exclusão */}
       <AlertDialog
         open={!!contratoParaExcluir}
