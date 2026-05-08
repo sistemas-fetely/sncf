@@ -268,8 +268,7 @@ export default function BuscarNFStageDialog({
       if (onVinculado) onVinculado();
       onOpenChange(false);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error("Erro: " + msg);
+      toast.error("Erro ao vincular: " + formatError(e));
     } finally {
       setVinculando(null);
     }
