@@ -288,6 +288,41 @@ export function ContaPagarFormEdit({
     );
   }
 
+  function atribuirParceiroEAplicarPadroes(id: string) {
+    setParceiroIdAtribuir(id);
+    const parceiro = (parceirosLista || []).find((p) => p.id === id);
+    if (!parceiro) return;
+
+    let aplicados = 0;
+    const detalhes: string[] = [];
+
+    if (parceiro.categoria_padrao_id) {
+      setContaId(parceiro.categoria_padrao_id);
+      aplicados++;
+      detalhes.push("Categoria");
+    }
+    if (parceiro.centro_custo_id) {
+      setCentroCustoId(parceiro.centro_custo_id);
+      aplicados++;
+      detalhes.push("Centro de custo");
+    }
+    if (parceiro.forma_pagamento_padrao_id) {
+      setFormaPagamentoId(parceiro.forma_pagamento_padrao_id);
+      aplicados++;
+      detalhes.push("Forma de pagamento");
+    }
+
+    if (aplicados > 0) {
+      toast.success(
+        `${parceiro.razao_social} vinculado. ${aplicados} ${aplicados === 1 ? "campo aplicado" : "campos aplicados"}: ${detalhes.join(", ")}. Clique Salvar pra confirmar.`,
+      );
+    } else {
+      toast.info(
+        `${parceiro.razao_social} será vinculado. Sem padrões cadastrados no parceiro — preencha categoria/centro de custo manualmente.`,
+      );
+    }
+  }
+
   async function handleSalvar() {
     if (isReadOnly) {
       toast.error("Conta com status read-only — edição bloqueada");
