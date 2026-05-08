@@ -24,6 +24,7 @@ export interface StageResult {
   erros: string[];
   loteId: string;
   stageIds: string[];
+  stageIdsCriados: string[];
   boletosCriados: number;
 }
 
@@ -45,6 +46,7 @@ export async function moverParaStage(
     erros: [],
     loteId,
     stageIds: [],
+    stageIdsCriados: [],
     boletosCriados: 0,
   };
 
@@ -182,6 +184,9 @@ export async function moverParaStage(
 
       if (r?.stage_id && r.acao !== "duplicada_descartada" && r.acao !== "duplicada") {
         result.stageIds.push(r.stage_id);
+      }
+      if (r?.stage_id && r.acao === "criada") {
+        result.stageIdsCriados.push(r.stage_id);
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
