@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -57,6 +58,7 @@ export function ConfirmarMatchDialog({
   onSuccess,
 }: Props) {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [acao, setAcao] = useState<AcaoDivergencia>(null);
   const [observacao, setObservacao] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -138,6 +140,8 @@ export function ConfirmarMatchDialog({
         console.warn("Falha historico (nao bloqueante):", e);
       }
 
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+      qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
       toast.success(
         isMatchExato
           ? "Match confirmado"

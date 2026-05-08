@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -35,6 +35,7 @@ interface Props {
 }
 
 export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado }: Props) {
+  const qc = useQueryClient();
   const { user } = useAuth();
   const [categoriaId, setCategoriaId] = useState<string>("");
   const [centroCustoId, setCentroCustoId] = useState<string | null>(null);
@@ -120,6 +121,8 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
         }
       }
 
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+      qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
       toast.success("Despesa direta criada e conciliada");
       onConciliado();
       handleClose();

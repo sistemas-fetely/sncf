@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -52,6 +52,7 @@ interface Props {
 }
 
 export function ConciliarLoteDialog({ open, onClose, movimentacao, onConciliado }: Props) {
+  const qc = useQueryClient();
   const { user } = useAuth();
   const [busca, setBusca] = useState("");
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
@@ -116,6 +117,8 @@ export function ConciliarLoteDialog({ open, onClose, movimentacao, onConciliado 
       if (error) throw error;
       const r = Array.isArray(data) ? data[0] : data;
       if (!r?.ok) throw new Error(r?.erro || "Falha desconhecida");
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+      qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
       toast.success(`${r.contas_conciliadas} contas conciliadas em lote (${formatBRL(r.valor_total)})`);
       onConciliado();
       handleClose();

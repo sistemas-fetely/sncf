@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -46,6 +46,7 @@ export function AcaoMassaSuperAdminDialog({
   modo,
   onDone,
 }: Props) {
+  const qc = useQueryClient();
   const { user } = useAuth();
   const [formaPagamentoId, setFormaPagamentoId] = useState("");
   const [observacao, setObservacao] = useState("");
@@ -98,6 +99,7 @@ export function AcaoMassaSuperAdminDialog({
           .update({ forma_pagamento_id: formaPagamentoId })
           .in("id", ids);
         if (error) throw error;
+        qc.invalidateQueries({ queryKey: ["contas-pagar"] });
         toast.success(`${contas.length} contas atualizadas com forma de pagamento`);
       } else {
         // finalizar_legado: forma_pagamento + status='finalizado' + histórico
@@ -130,6 +132,8 @@ export function AcaoMassaSuperAdminDialog({
           console.warn("Falha no histórico (não bloqueante):", e);
         }
 
+        qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+        qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
         toast.success(`${contas.length} contas finalizadas (legado)`);
       }
 

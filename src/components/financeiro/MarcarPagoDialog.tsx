@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -42,6 +42,7 @@ interface Props {
 }
 
 export function MarcarPagoDialog({ open, onOpenChange, contas, onSuccess }: Props) {
+  const qc = useQueryClient();
   const { user } = useAuth();
   const [contaBancariaId, setContaBancariaId] = useState("");
   const [formaPgtoId, setFormaPgtoId] = useState("");
@@ -173,6 +174,8 @@ export function MarcarPagoDialog({ open, onOpenChange, contas, onSuccess }: Prop
         console.warn("Falha no histórico (não bloqueante):", e);
       }
 
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+      qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
       toast.success(
         isMassa
           ? `${contas.length} pagamentos registrados (${formatBRL(totalValor)})`

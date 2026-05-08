@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -76,6 +76,7 @@ interface Props {
 }
 
 export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDone }: Props) {
+  const qc = useQueryClient();
   const { user } = useAuth();
   const { mudarStatus } = useContaWorkflow();
   const [enviando, setEnviando] = useState(false);
@@ -416,6 +417,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       }
 
       if (emailOk) {
+        qc.invalidateQueries({ queryKey: ["contas-pagar"] });
         toast.success(`Enviado! Email para ${emailDestinatario}`);
       } else {
         toast.warning(

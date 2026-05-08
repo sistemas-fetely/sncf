@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ export function ImportarNFDespesaDialog({
   onOpenChange,
   onDespesaPronta,
 }: Props) {
+  const qc = useQueryClient();
   const [carregando, setCarregando] = useState(false);
   const [boletosDialogOpen, setBoletosDialogOpen] = useState(false);
   const [stageInfo, setStageInfo] = useState<{
@@ -215,6 +217,8 @@ export function ImportarNFDespesaDialog({
       // Status do stage é recalculado automaticamente por trigger no banco
       // (ver função recalcular_status_nf_stage / Fase E)
 
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       toast.success(
         `${boletosSelecionados.length} despesa${boletosSelecionados.length === 1 ? "" : "s"} criada${boletosSelecionados.length === 1 ? "" : "s"}!`,
       );
