@@ -481,20 +481,10 @@ export default function Parceiros() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                {temMeioPagamento(p) ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {p.pix_chave && (
-                                      <Badge variant="secondary" className="text-xs">PIX</Badge>
-                                    )}
-                                    {p.dados_bancarios?.banco && (
-                                      <Badge variant="secondary" className="text-xs">Banco</Badge>
-                                    )}
-                                    {p.forma_pagamento_padrao_id && (
-                                      <Badge variant="secondary" className="text-xs">Padrão</Badge>
-                                    )}
-                                  </div>
+                                {p.forma_pagamento_padrao_id && formaPgtoNomeMap.get(p.forma_pagamento_padrao_id) ? (
+                                  <span>{formaPgtoNomeMap.get(p.forma_pagamento_padrao_id)}</span>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground">— faltando</span>
+                                  <span className="text-xs text-amber-600">— faltando</span>
                                 )}
                               </TableCell>
                               <TableCell onClick={(e) => e.stopPropagation()}>
