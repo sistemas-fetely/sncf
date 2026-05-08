@@ -898,13 +898,26 @@ function CancelarButton({
           <AlertDialogAction
             className="bg-red-600 hover:bg-red-700 text-white"
             onClick={async () => {
-              await workflow.mudarStatus.mutateAsync({
-                contaId: conta.id,
-                statusAnterior: conta.status,
-                novoStatus: "cancelado" as ContaStatus,
-                observacao: "Cancelado manualmente",
-              });
-              onClose();
+              try {
+                const { data, error } = await supabase.rpc("cancelar_conta_pagar", {
+                  p_conta_id: conta.id,
+                });
+                if (error) throw error;
+                const result = data as { success: boolean; error?: string; nf_desvinculada?: boolean };
+                if (!result?.success) {
+                  toast.error(result?.error || "Erro ao cancelar conta");
+                  return;
+                }
+                toast.success(
+                  result.nf_desvinculada
+                    ? "Conta cancelada e NF desvinculada com sucesso!"
+                    : "Conta cancelada com sucesso!"
+                );
+                onClose();
+              } catch (e) {
+                console.error("Erro ao cancelar:", e);
+                toast.error("Erro ao cancelar conta");
+              }
             }}
           >
             Sim, cancelar
