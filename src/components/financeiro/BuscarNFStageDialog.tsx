@@ -180,6 +180,7 @@ export default function BuscarNFStageDialog({
         .select("id, descricao, valor, data_vencimento, nf_stage_id, parceiro_id")
         .is("nf_stage_id", null)
         .eq("parceiro_id", parceiroId)
+        .neq("status", "cancelado")
         .gte("valor", valorNF - 0.05)
         .lte("valor", valorNF + 0.05);
 
