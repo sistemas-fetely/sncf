@@ -436,6 +436,43 @@ export function ContaPagarFormEdit({
         )}
       </div>
 
+      {/* Seletor de parceiro — só aparece se conta é órfã (sem parceiro vinculado) */}
+      {!conta.parceiro_id && !isReadOnly && (
+        <div className="rounded-md border border-dashed border-amber-300 bg-amber-50/40 p-3 space-y-2">
+          <p className="text-[11px] text-amber-900 leading-snug">
+            <strong>Sem parceiro vinculado.</strong> Selecione abaixo para
+            classificar a despesa. Os padrões do parceiro (categoria, centro de
+            custo, forma de pagamento) serão aplicados automaticamente.
+          </p>
+          <Select
+            value={parceiroIdAtribuir ?? ""}
+            onValueChange={(v) => atribuirParceiroEAplicarPadroes(v)}
+            disabled={salvando}
+          >
+            <SelectTrigger className="h-9 bg-background">
+              <SelectValue placeholder="Selecionar parceiro..." />
+            </SelectTrigger>
+            <SelectContent>
+              {(parceirosLista || []).map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  <span className="font-medium">{p.razao_social}</span>
+                  {p.cnpj && (
+                    <span className="ml-2 text-[11px] text-muted-foreground">
+                      {p.cnpj}
+                    </span>
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {parceiroIdAtribuir && (
+            <p className="text-[11px] text-emerald-700 leading-snug">
+              ✓ Parceiro pronto pra ser vinculado. Confirme em Salvar.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Botão Buscar do Parceiro — doutrina "Parceiro é Verdade" */}
       {conta.parceiro_id && !isReadOnly && (
         <div className="rounded-md border border-dashed border-purple-300 bg-purple-50/40 p-2.5 flex items-center justify-between gap-3">
