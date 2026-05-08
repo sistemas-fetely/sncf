@@ -481,16 +481,6 @@ export default function CaixaBanco() {
   const listaExibida = useMemo(() => {
     let list: Lancamento[] = listaFiltradaPorPill;
 
-    if (filtroContador !== "todos") {
-      list = list.filter((l) => {
-        if (l.origem_view !== "conta_pagar") return false;
-        const enviado = contadorMap?.has(l.id) === true;
-        return filtroContador === "enviados" ? enviado : !enviado;
-      });
-    }
-    if (mostrarSoInconsistentes) {
-      list = list.filter((l) => l.categoria_inconsistente === true);
-    }
     if (filtroQual !== "todos") {
       list = list.filter((l) => {
         switch (filtroQual) {
@@ -503,7 +493,7 @@ export default function CaixaBanco() {
       });
     }
     return list;
-  }, [listaFiltradaPorPill, filtroContador, mostrarSoInconsistentes, contadorMap, filtroQual, nfMap]);
+  }, [listaFiltradaPorPill, filtroQual, nfMap]);
 
   async function handleAplicarIAEmMassa() {
     setAplicandoIA(true);
@@ -625,55 +615,22 @@ export default function CaixaBanco() {
           />
         </div>
 
-        {/* Filtros adicionais (Contador + Inconsistências + IA) */}
-        <div className="border border-zinc-200 bg-white/60 rounded-xl p-2">
-          <div className="flex gap-2 flex-wrap items-center">
-            <Select
-              value={filtroContador}
-              onValueChange={(v) =>
-                setFiltroContador(v as "todos" | "enviados" | "nao_enviados")
-              }
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Contador: todos</SelectItem>
-                <SelectItem value="enviados">Contador: enviados</SelectItem>
-                <SelectItem value="nao_enviados">Contador: pendentes</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setMostrarSoInconsistentes(!mostrarSoInconsistentes)}
-              className={cn(
-                "gap-1",
-                mostrarSoInconsistentes &&
-                  "bg-amber-600 hover:bg-amber-700 text-white border-amber-600",
-              )}
-            >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Inconsistências
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleAplicarIAEmMassa}
-              disabled={aplicandoIA}
-              className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 ml-auto"
-            >
-              {aplicandoIA ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              Resolver com IA
-            </Button>
-          </div>
+        {/* Botão IA */}
+        <div className="flex items-center justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleAplicarIAEmMassa}
+            disabled={aplicandoIA}
+            className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+          >
+            {aplicandoIA ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            Resolver com IA
+          </Button>
         </div>
 
         {/* Tabela única */}
