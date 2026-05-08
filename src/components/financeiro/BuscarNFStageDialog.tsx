@@ -19,7 +19,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowLeft,
+  Calendar,
+  Clock,
+  Info,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type CandidatoNF = {
@@ -72,7 +76,7 @@ function formatDate(d: string | null | undefined) {
 
 function extrairParcela(descricao: string | null): string | null {
   if (!descricao) return null;
-  const match = descricao.match(/\((\d+\/\d+)\)/);
+  const match = descricao.match(/(\d+\/\d+)/);
   return match ? match[1] : null;
 }
 
@@ -311,6 +315,21 @@ export default function BuscarNFStageDialog({
             </div>
           </div>
 
+          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-blue-900 space-y-1">
+              <div className="font-medium">Como escolher a parcela correta:</div>
+              <ul className="list-disc list-inside space-y-0.5 text-blue-800">
+                <li>
+                  NF emitida em:{" "}
+                  <strong>{formatDate(nfEscolhida.nf_data_emissao)}</strong>
+                </li>
+                <li>Verifique a data de vencimento mais próxima da emissão</li>
+                <li>Confira o número da parcela quando disponível</li>
+              </ul>
+            </div>
+          </div>
+
           <RadioGroup
             value={cprSelecionado}
             onValueChange={setCprSelecionado}
@@ -333,13 +352,18 @@ export default function BuscarNFStageDialog({
                     id={cand.cprId}
                     className="mt-1"
                   />
-                  <div className="flex-1 space-y-0.5">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <span className="font-medium text-sm">
-                        {cand.parcela
-                          ? `Parcela ${cand.parcela}`
-                          : "Parcela única"}{" "}
-                        — {formatBRL(cand.valor)}
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {cand.parcela && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-bold bg-slate-100 border-slate-300"
+                        >
+                          {cand.parcela}
+                        </Badge>
+                      )}
+                      <span className="font-semibold text-sm">
+                        {formatBRL(cand.valor)}
                       </span>
                       {isSugerido && (
                         <Badge
@@ -347,18 +371,36 @@ export default function BuscarNFStageDialog({
                           className="text-[10px] bg-blue-50 text-blue-700 border-blue-200"
                         >
                           <Sparkles className="h-3 w-3 mr-1" />
-                          IA sugere (mais próximo)
+                          IA sugere
                         </Badge>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground space-y-0.5">
-                      <div>
-                        Vencimento: {formatDate(cand.dataVencimento)} · Distância:{" "}
+                    <div className="flex items-center gap-3 text-xs flex-wrap">
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        Venc: {formatDate(cand.dataVencimento)}
+                      </span>
+                      <span
+                        className={cn(
+                          "flex items-center gap-1 font-medium",
+                          cand.distanciaDias === 999999 && "text-muted-foreground",
+                          cand.distanciaDias <= 7 && "text-emerald-600",
+                          cand.distanciaDias > 7 && cand.distanciaDias <= 30 && "text-blue-600",
+                          cand.distanciaDias > 30 && cand.distanciaDias < 999999 && "text-orange-600",
+                        )}
+                      >
+                        <Clock className="h-3 w-3" />
                         {cand.distanciaDias === 999999
                           ? "—"
-                          : `${cand.distanciaDias} dias`}
-                      </div>
-                      <div className="truncate">{cand.descricao}</div>
+                          : cand.distanciaDias === 0
+                            ? "Mesmo dia"
+                            : cand.distanciaDias === 1
+                              ? "1 dia de diferença"
+                              : `${cand.distanciaDias} dias de diferença`}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {cand.descricao}
                     </div>
                   </div>
                 </label>
