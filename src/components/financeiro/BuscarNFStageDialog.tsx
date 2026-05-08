@@ -76,7 +76,7 @@ function formatDate(d: string | null | undefined) {
 
 function extrairParcela(descricao: string | null): string | null {
   if (!descricao) return null;
-  const match = descricao.match(/\((\d+\/\d+)\)/);
+  const match = descricao.match(/(\d+\/\d+)/);
   return match ? match[1] : null;
 }
 
