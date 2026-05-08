@@ -11403,6 +11403,7 @@ export type Database = {
         }[]
       }
       calcular_docs_status: { Args: { p_conta_id: string }; Returns: string }
+      cancelar_conta_pagar: { Args: { p_conta_id: string }; Returns: Json }
       cancelar_parcelas_futuras_recorrente: {
         Args: { p_recorrente_id: string }
         Returns: number
