@@ -627,7 +627,7 @@ export default function CaixaBanco() {
             ) : (
               <Sparkles className="h-3.5 w-3.5" />
             )}
-            Resolver com IA
+            Classificar pendentes
           </Button>
         </div>
 
