@@ -19,7 +19,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowLeft,
+  Calendar,
+  Clock,
+  Info,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type CandidatoNF = {
