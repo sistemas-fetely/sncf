@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -10,7 +10,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2, Link2, FileText } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Sparkles,
+  Loader2,
+  Link2,
+  FileText,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowLeft,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type CandidatoNF = {
@@ -28,6 +37,15 @@ type CandidatoNF = {
   categoria_nome: string | null;
   score: number;
   motivos: string;
+};
+
+type CandidatoCPR = {
+  cprId: string;
+  descricao: string;
+  parcela: string | null;
+  dataVencimento: string | null;
+  distanciaDias: number;
+  valor: number;
 };
 
 interface Props {
@@ -52,6 +70,12 @@ function formatDate(d: string | null | undefined) {
   return `${dd}/${m}/${y}`;
 }
 
+function extrairParcela(descricao: string | null): string | null {
+  if (!descricao) return null;
+  const match = descricao.match(/\((\d+\/\d+)\)/);
+  return match ? match[1] : null;
+}
+
 export default function BuscarNFStageDialog({
   open,
   onOpenChange,
@@ -63,9 +87,21 @@ export default function BuscarNFStageDialog({
   const qc = useQueryClient();
   const [vinculando, setVinculando] = useState<string | null>(null);
 
-  // Busca info do compromisso parcelado (se houver) pra mostrar valor agregado.
-  // RPC `buscar_nfs_stage_para_conta` já detecta parcelamento via ratio valor_NF/valor_conta,
-  // então não precisa ser passado pra ela — é só pra contexto visual do usuário.
+  // Estado pra fluxo de múltiplos candidatos
+  const [nfEscolhida, setNfEscolhida] = useState<CandidatoNF | null>(null);
+  const [candidatosCPR, setCandidatosCPR] = useState<CandidatoCPR[] | null>(null);
+  const [carregandoCandidatos, setCarregandoCandidatos] = useState(false);
+  const [cprSelecionado, setCprSelecionado] = useState<string>("");
+
+  useEffect(() => {
+    if (!open) {
+      setNfEscolhida(null);
+      setCandidatosCPR(null);
+      setCprSelecionado("");
+    }
+  }, [open]);
+
+  // Busca info do compromisso parcelado (se houver)
   const { data: compromissoInfo } = useQuery({
     queryKey: ["compromisso-info-busca-nf", contaId],
     enabled: open && !!contaId,
@@ -104,13 +140,115 @@ export default function BuscarNFStageDialog({
     },
   });
 
-  async function handleVincular(nfId: string) {
+  // Pré-seleciona menor distância
+  useEffect(() => {
+    if (candidatosCPR && candidatosCPR.length > 0 && !cprSelecionado) {
+      setCprSelecionado(candidatosCPR[0].cprId);
+    }
+  }, [candidatosCPR, cprSelecionado]);
+
+  async function handleClickVincular(nf: CandidatoNF) {
+    // Antes de vincular, verifica se há múltiplos candidatos CPR pra essa NF
+    setCarregandoCandidatos(true);
+    setNfEscolhida(nf);
+    try {
+      // 1) Descobre parceiro_id da conta atual (pra usar como referência de parceiro)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: contaAtual } = await (supabase as any)
+        .from("contas_pagar_receber")
+        .select("parceiro_id")
+        .eq("id", contaId)
+        .maybeSingle();
+      const parceiroId = contaAtual?.parceiro_id;
+
+      if (!parceiroId) {
+        // Sem parceiro_id → vincula direto
+        await doVincular(nf.nf_id, contaId);
+        return;
+      }
+
+      const valorNF = Number(nf.valor_total || 0);
+      // 2) Busca CPRs não vinculadas do mesmo parceiro com valor próximo
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cprsNaoVinculadas } = await (supabase as any)
+        .from("contas_pagar_receber")
+        .select("id, descricao, valor, data_vencimento, nf_stage_id, parceiro_id")
+        .is("nf_stage_id", null)
+        .eq("parceiro_id", parceiroId)
+        .gte("valor", valorNF - 0.05)
+        .lte("valor", valorNF + 0.05);
+
+      const lista = (cprsNaoVinculadas || []) as Array<{
+        id: string;
+        descricao: string;
+        valor: number;
+        data_vencimento: string | null;
+      }>;
+
+      // Garante que a conta atual está na lista (caso valor difira ligeiramente)
+      const incluiAtual = lista.some((c) => c.id === contaId);
+      if (!incluiAtual) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: cAtual } = await (supabase as any)
+          .from("contas_pagar_receber")
+          .select("id, descricao, valor, data_vencimento")
+          .eq("id", contaId)
+          .maybeSingle();
+        if (cAtual) lista.push(cAtual);
+      }
+
+      if (lista.length <= 1) {
+        // Caso simples: vincula direto à conta atual
+        await doVincular(nf.nf_id, contaId);
+        return;
+      }
+
+      // 3) Calcula distância temporal
+      const dataNF = nf.nf_data_emissao
+        ? new Date(nf.nf_data_emissao.slice(0, 10) + "T00:00:00")
+        : null;
+      const ordenados: CandidatoCPR[] = lista
+        .map((cpr) => {
+          const dataVenc = cpr.data_vencimento
+            ? new Date(cpr.data_vencimento.slice(0, 10) + "T00:00:00")
+            : null;
+          const distanciaDias =
+            dataNF && dataVenc
+              ? Math.abs(
+                  Math.floor(
+                    (dataNF.getTime() - dataVenc.getTime()) / (1000 * 60 * 60 * 24),
+                  ),
+                )
+              : 999999;
+          return {
+            cprId: cpr.id,
+            descricao: cpr.descricao || "—",
+            parcela: extrairParcela(cpr.descricao),
+            dataVencimento: cpr.data_vencimento,
+            distanciaDias,
+            valor: Number(cpr.valor || 0),
+          };
+        })
+        .sort((a, b) => a.distanciaDias - b.distanciaDias);
+
+      setCandidatosCPR(ordenados);
+      setCprSelecionado(ordenados[0]?.cprId || "");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao buscar candidatos: " + msg);
+      setNfEscolhida(null);
+    } finally {
+      setCarregandoCandidatos(false);
+    }
+  }
+
+  async function doVincular(nfId: string, cprId: string) {
     setVinculando(nfId);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc("vincular_nf_a_conta", {
         p_nf_id: nfId,
-        p_conta_id: contaId,
+        p_conta_id: cprId,
       });
       if (error) throw error;
       if (!data?.ok) {
@@ -119,8 +257,9 @@ export default function BuscarNFStageDialog({
       }
       toast.success("NF vinculada — dados enriquecidos");
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-      qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", contaId] });
+      qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", cprId] });
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["nfs-vinculadas-mov"] });
       if (onVinculado) onVinculado();
       onOpenChange(false);
     } catch (e) {
@@ -131,6 +270,134 @@ export default function BuscarNFStageDialog({
     }
   }
 
+  const menorDistancia = useMemo(
+    () =>
+      candidatosCPR && candidatosCPR.length > 0
+        ? Math.min(...candidatosCPR.map((c) => c.distanciaDias))
+        : 0,
+    [candidatosCPR],
+  );
+
+  // ========== RENDER ==========
+  // Modo "escolher CPR entre múltiplos candidatos"
+  if (nfEscolhida && candidatosCPR && candidatosCPR.length > 1) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              Múltiplas parcelas encontradas
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-1">
+                <div className="text-sm">
+                  NF nº <strong>{nfEscolhida.nf_numero || "—"}</strong> ·{" "}
+                  {formatBRL(Number(nfEscolhida.valor_total))} · emitida em{" "}
+                  <strong>{formatDate(nfEscolhida.nf_data_emissao)}</strong>
+                </div>
+                <div className="text-xs">
+                  Confirme qual parcela corresponde a esta NF.
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+            <div className="text-sm text-amber-900">
+              {candidatosCPR.length} parcelas em aberto deste parceiro com mesmo valor.
+              IA sugeriu a mais próxima da data da NF.
+            </div>
+          </div>
+
+          <RadioGroup
+            value={cprSelecionado}
+            onValueChange={setCprSelecionado}
+            className="space-y-2"
+          >
+            {candidatosCPR.map((cand) => {
+              const isSugerido = cand.distanciaDias === menorDistancia;
+              return (
+                <label
+                  key={cand.cprId}
+                  htmlFor={cand.cprId}
+                  className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                    cprSelecionado === cand.cprId
+                      ? "border-emerald-400 bg-emerald-50/40"
+                      : "hover:bg-muted/50"
+                  }`}
+                >
+                  <RadioGroupItem
+                    value={cand.cprId}
+                    id={cand.cprId}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 space-y-0.5">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-medium text-sm">
+                        {cand.parcela
+                          ? `Parcela ${cand.parcela}`
+                          : "Parcela única"}{" "}
+                        — {formatBRL(cand.valor)}
+                      </span>
+                      {isSugerido && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-blue-50 text-blue-700 border-blue-200"
+                        >
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          IA sugere (mais próximo)
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-0.5">
+                      <div>
+                        Vencimento: {formatDate(cand.dataVencimento)} · Distância:{" "}
+                        {cand.distanciaDias === 999999
+                          ? "—"
+                          : `${cand.distanciaDias} dias`}
+                      </div>
+                      <div className="truncate">{cand.descricao}</div>
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </RadioGroup>
+
+          <div className="flex items-center justify-between gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setNfEscolhida(null);
+                setCandidatosCPR(null);
+                setCprSelecionado("");
+              }}
+              disabled={!!vinculando}
+            >
+              <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+              Voltar
+            </Button>
+            <Button
+              onClick={() => doVincular(nfEscolhida.nf_id, cprSelecionado)}
+              disabled={!cprSelecionado || !!vinculando}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {vinculando ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+              ) : (
+                <Link2 className="h-3.5 w-3.5 mr-1" />
+              )}
+              Confirmar Vínculo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -139,20 +406,25 @@ export default function BuscarNFStageDialog({
             <Sparkles className="h-4 w-4 text-blue-600" />
             Buscar NF em Stage
           </DialogTitle>
-          <DialogDescription className="space-y-1">
-            <div>
-              Conta: <span className="font-medium">{contaDescricao}</span> —{" "}
-              {formatBRL(contaValor)}
-            </div>
-            {compromissoInfo && (
-              <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
-                ✨ Buscando NF do compromisso completo (
-                {compromissoInfo.qtd_parcelas} parcelas) —{" "}
-                <span className="font-medium">{formatBRL(Number(compromissoInfo.valor_total))}</span>
+          <DialogDescription asChild>
+            <div className="space-y-1">
+              <div>
+                Conta: <span className="font-medium">{contaDescricao}</span> —{" "}
+                {formatBRL(contaValor)}
               </div>
-            )}
-            <div className="text-xs">
-              IA busca match por CNPJ, valor, razão social, nome fantasia e data de emissão.
+              {compromissoInfo && (
+                <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                  ✨ Buscando NF do compromisso completo (
+                  {compromissoInfo.qtd_parcelas} parcelas) —{" "}
+                  <span className="font-medium">
+                    {formatBRL(Number(compromissoInfo.valor_total))}
+                  </span>
+                </div>
+              )}
+              <div className="text-xs">
+                IA busca match por CNPJ, valor, razão social, nome fantasia e
+                data de emissão.
+              </div>
             </div>
           </DialogDescription>
         </DialogHeader>
@@ -176,12 +448,13 @@ export default function BuscarNFStageDialog({
                 key={c.nf_id}
                 className="border rounded-lg overflow-hidden transition-colors hover:border-emerald-300"
               >
-                {/* Cabeçalho do card */}
                 <div className="p-3 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
                     <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-sm font-medium">
-                      {c.fornecedor_razao_social || c.fornecedor_cliente || "—"}
+                      {c.fornecedor_razao_social ||
+                        c.fornecedor_cliente ||
+                        "—"}
                     </span>
                     <Badge
                       className={
@@ -197,23 +470,32 @@ export default function BuscarNFStageDialog({
                   </div>
 
                   <p className="text-xs text-muted-foreground">
-                    NF nº {c.nf_numero || "—"} · {formatDate(c.nf_data_emissao)} ·{" "}
-                    {formatBRL(c.valor_total)}
+                    NF nº {c.nf_numero || "—"} · {formatDate(c.nf_data_emissao)}{" "}
+                    · {formatBRL(c.valor_total)}
                     {(() => {
-                      if (valorParaMatch > 0 && Math.abs(c.valor_total - valorParaMatch) < 0.01) {
+                      if (
+                        valorParaMatch > 0 &&
+                        Math.abs(c.valor_total - valorParaMatch) < 0.01
+                      ) {
                         return (
                           <span className="text-emerald-700 font-medium">
-                            {" "}(= {formatBRL(valorParaMatch)})
+                            {" "}
+                            (= {formatBRL(valorParaMatch)})
                           </span>
                         );
                       }
                       if (!contaValor || contaValor <= 0) return null;
                       const ratio = c.valor_total / contaValor;
                       const ratioRounded = Math.round(ratio);
-                      if (ratioRounded >= 2 && ratioRounded <= 36 && Math.abs(ratio - ratioRounded) <= 0.02) {
+                      if (
+                        ratioRounded >= 2 &&
+                        ratioRounded <= 36 &&
+                        Math.abs(ratio - ratioRounded) <= 0.02
+                      ) {
                         return (
                           <span className="text-blue-700 font-medium">
-                            {" "}({ratioRounded}x {formatBRL(contaValor)})
+                            {" "}
+                            ({ratioRounded}x {formatBRL(contaValor)})
                           </span>
                         );
                       }
@@ -222,7 +504,9 @@ export default function BuscarNFStageDialog({
                   </p>
 
                   {c.fornecedor_cnpj && (
-                    <p className="text-xs text-muted-foreground">CNPJ {c.fornecedor_cnpj}</p>
+                    <p className="text-xs text-muted-foreground">
+                      CNPJ {c.fornecedor_cnpj}
+                    </p>
                   )}
                   {c.categoria_codigo && (
                     <p className="text-xs text-muted-foreground">
@@ -234,18 +518,20 @@ export default function BuscarNFStageDialog({
                   )}
                 </div>
 
-                {/* Rodapé com botão — sempre visível */}
                 <div className="px-3 py-2 bg-muted/30 border-t border-dashed flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">
-                    Clique para vincular esta NF à conta
+                  <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                    Verifica parcelas em aberto antes de vincular
                   </span>
                   <Button
                     size="sm"
-                    onClick={() => handleVincular(c.nf_id)}
-                    disabled={!!vinculando}
+                    onClick={() => handleClickVincular(c)}
+                    disabled={!!vinculando || carregandoCandidatos}
                     className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
-                    {vinculando === c.nf_id ? (
+                    {(vinculando === c.nf_id ||
+                      (carregandoCandidatos &&
+                        nfEscolhida?.nf_id === c.nf_id)) ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <Link2 className="h-3.5 w-3.5" />
