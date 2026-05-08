@@ -255,8 +255,9 @@ export default function BuscarNFStageDialog({
         p_conta_id: cprId,
       });
       if (error) throw error;
-      if (!data?.ok) {
-        toast.error(data?.erro || "Erro ao vincular");
+      if (!data?.ok && !data?.success) {
+        const errMsg = data?.erro || data?.error || data?.message;
+        toast.error(typeof errMsg === "string" ? errMsg : "Erro ao vincular NF");
         return;
       }
       toast.success("NF vinculada — dados enriquecidos");
