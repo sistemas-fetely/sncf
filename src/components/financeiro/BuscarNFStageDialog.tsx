@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 
 type CandidatoNF = {
   nf_id: string;
@@ -238,8 +239,7 @@ export default function BuscarNFStageDialog({
       setCandidatosCPR(ordenados);
       setCprSelecionado(ordenados[0]?.cprId || "");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error("Erro ao buscar candidatos: " + msg);
+      toast.error("Erro ao buscar candidatos: " + formatError(e));
       setNfEscolhida(null);
     } finally {
       setCarregandoCandidatos(false);
@@ -268,8 +268,7 @@ export default function BuscarNFStageDialog({
       if (onVinculado) onVinculado();
       onOpenChange(false);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error("Erro: " + msg);
+      toast.error("Erro ao vincular: " + formatError(e));
     } finally {
       setVinculando(null);
     }
