@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 
 type CandidatoNF = {
   nf_id: string;
