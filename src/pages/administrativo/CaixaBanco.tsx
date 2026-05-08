@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead, ordenarPor, type SortState } from "@/components/shared/SortableTableHead";
 import {
   Tooltip,
   TooltipContent,
