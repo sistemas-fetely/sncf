@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -10,181 +9,171 @@ import {
 import { Loader2 } from "lucide-react";
 import { ImportadorNFs } from "@/components/financeiro/ImportadorNFs";
 import {
-  SelecionarBoletosDialog,
-  BoletoStageDoc,
-} from "@/components/financeiro/SelecionarBoletosDialog";
+  CriarDespesaDeNFDialog,
+  type NFParaCriar,
+  type BoletoFisico,
+} from "@/components/financeiro/CriarDespesaDeNFDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { StageResult } from "@/lib/financeiro/stage-handler";
+import { useQueryClient } from "@tanstack/react-query";
+import { addMonths } from "date-fns";
+
+interface ItemFila {
+  nf: NFParaCriar;
+  boletos: BoletoFisico[];
+}
 
 interface DespesaInitialData {
   nfStageId: string;
-  nfStageDocumentoId?: string;
-  parceiroId?: string | null;
-  fornecedorNome?: string;
-  valor?: number;
-  dataEmissao?: string;
-  dataVencimento?: string;
-  categoriaId?: string | null;
-  descricao?: string | null;
 }
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Mantido para compatibilidade — não é mais chamado no fluxo normal */
   onDespesaPronta: (data: DespesaInitialData) => void;
+}
+
+function valorDaParcela(total: number, qtdParcelas: number, indice: number): number {
+  if (qtdParcelas <= 1) return total;
+  const totalCentavos = Math.round(total * 100);
+  const baseCentavos = Math.floor(totalCentavos / qtdParcelas);
+  const restoCentavos = totalCentavos - baseCentavos * qtdParcelas;
+  return (
+    indice === qtdParcelas - 1 ? baseCentavos + restoCentavos : baseCentavos
+  ) / 100;
 }
 
 export function ImportarNFDespesaDialog({
   open,
   onOpenChange,
-  onDespesaPronta,
 }: Props) {
   const qc = useQueryClient();
   const [carregando, setCarregando] = useState(false);
-  const [boletosDialogOpen, setBoletosDialogOpen] = useState(false);
-  const [stageInfo, setStageInfo] = useState<{
-    id: string;
-    fornecedor: string;
-    parceiroId: string | null;
-    categoriaId: string | null;
-    descricao: string | null;
-    dataEmissao: string | null;
-    boletos: BoletoStageDoc[];
-    isMultiStage?: boolean;
-  } | null>(null);
-  const [criandoDespesas, setCriandoDespesas] = useState(false);
+  const [fila, setFila] = useState<ItemFila[]>([]);
+  const [filaIndex, setFilaIndex] = useState(0);
+  const [criandoDespesa, setCriandoDespesa] = useState(false);
 
   async function handleImported(result: StageResult) {
-    if (result.stageIds.length === 0) {
+    if (!result.stageIdsCriados || result.stageIdsCriados.length === 0) {
       onOpenChange(false);
       return;
     }
 
     setCarregando(true);
     try {
-      // Consulta todos os stages do lote (não só o primeiro)
-      const stageQueries = await Promise.all(
-        result.stageIds.map((id) =>
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase as any)
-            .from("vw_nfs_stage_completude")
-            .select(
-              "id, fornecedor_razao_social, valor, valor_exibido, nf_data_emissao, data_vencimento, categoria_id, parceiro_id, descricao, qtd_boletos, documentos",
-            )
-            .eq("id", id)
-            .maybeSingle()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .then((r: any) => r.data),
-        ),
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: stages, error } = await (supabase as any)
+        .from("nfs_stage")
+        .select(
+          "id, fornecedor_razao_social, fornecedor_cliente, nf_numero, valor, nf_data_emissao, data_vencimento, parceiro_id, categoria_id, descricao",
+        )
+        .in("id", result.stageIdsCriados);
 
-      const stages = stageQueries.filter(Boolean);
-
-      if (stages.length === 0) {
-        onDespesaPronta({ nfStageId: result.stageIds[0] });
+      if (error) throw error;
+      if (!stages || stages.length === 0) {
+        onOpenChange(false);
         return;
       }
 
-      // Coleta todos os boletos de todos os stages
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const todosBoletos: BoletoStageDoc[] = stages.flatMap((stage: any) => {
-        const documentos =
-          (stage.documentos as Array<{
-            id: string;
-            tipo: string;
-            arquivo_nome: string | null;
-            valor: number | null;
-            data_vencimento: string | null;
-            linha_digitavel: string | null;
-          }>) || [];
-        const boletos = documentos.filter((d) => d.tipo === "pdf_boleto");
+      // Carrega boletos físicos (best-effort: se falhar, segue sem boletos)
+      const boletosPorStage = new Map<string, BoletoFisico[]>();
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: docs } = await (supabase as any)
+          .from("nfs_stage_documentos")
+          .select("id, nfs_stage_id, tipo, valor, data_vencimento")
+          .in("nfs_stage_id", result.stageIdsCriados)
+          .eq("tipo", "pdf_boleto");
 
-        if (boletos.length === 0) {
-          return [
-            {
-              id: `stage_${stage.id}`,
-              arquivo_nome: stage.descricao || stage.fornecedor_razao_social,
-              valor:
-                (stage.valor_exibido as number | null) ??
-                (stage.valor as number | null) ??
-                null,
-              data_vencimento: stage.data_vencimento ?? null,
-              linha_digitavel: null,
-              nf_stage_id: stage.id,
-              parceiro_id: stage.parceiro_id ?? null,
-              categoria_id: stage.categoria_id ?? null,
-              descricao: stage.descricao ?? null,
-              fornecedor: stage.fornecedor_razao_social ?? null,
-              data_emissao: stage.nf_data_emissao ?? null,
-            } as BoletoStageDoc,
-          ];
+        for (const d of docs || []) {
+          const arr = boletosPorStage.get(d.nfs_stage_id) || [];
+          arr.push({
+            id: d.id,
+            valor: d.valor,
+            data_vencimento: d.data_vencimento,
+          });
+          boletosPorStage.set(d.nfs_stage_id, arr);
         }
+      } catch (e) {
+        console.warn("[ImportarNFDespesaDialog] boletos não carregados:", e);
+      }
 
-        return boletos.map((b) => ({
-          id: b.id,
-          arquivo_nome: b.arquivo_nome,
-          valor:
-            b.valor ??
-            (stage.valor_exibido as number | null) ??
-            (stage.valor as number | null) ??
-            null,
-          data_vencimento: b.data_vencimento ?? stage.data_vencimento ?? null,
-          linha_digitavel: b.linha_digitavel,
-          nf_stage_id: stage.id,
-          parceiro_id: stage.parceiro_id ?? null,
-          categoria_id: stage.categoria_id ?? null,
-          descricao: stage.descricao ?? null,
-          fornecedor: stage.fornecedor_razao_social ?? null,
-          data_emissao: stage.nf_data_emissao ?? null,
-        }));
-      });
+      const novaFila: ItemFila[] = stages.map((s: Record<string, unknown>) => ({
+        nf: {
+          stageId: s.id as string,
+          fornecedor:
+            (s.fornecedor_razao_social as string | null) ||
+            (s.fornecedor_cliente as string | null) ||
+            "Fornecedor",
+          nfNumero: (s.nf_numero as string | null) ?? null,
+          valor: Number(s.valor) || 0,
+          dataEmissao: (s.nf_data_emissao as string | null) ?? null,
+          dataVencimento: (s.data_vencimento as string | null) ?? null,
+          parceiroId: (s.parceiro_id as string | null) ?? null,
+          categoriaId: (s.categoria_id as string | null) ?? null,
+          descricao: (s.descricao as string | null) ?? null,
+        },
+        boletos: boletosPorStage.get(s.id as string) || [],
+      }));
 
-      const isMultiStage = stages.length > 1;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const primeiroStage = stages[0] as any;
-
-      // Todos os casos (1 NF, multi-NF, multi-boleto): abre SelecionarBoletosDialog
-      // Criar direto — sem drawer intermediário. Usuário categoriza depois se precisar.
-      setStageInfo({
-        id: primeiroStage.id,
-        fornecedor: primeiroStage.fornecedor_razao_social || "Fornecedor",
-        parceiroId: primeiroStage.parceiro_id ?? null,
-        categoriaId: primeiroStage.categoria_id ?? null,
-        descricao: primeiroStage.descricao ?? null,
-        dataEmissao: primeiroStage.nf_data_emissao ?? null,
-        boletos: todosBoletos,
-        isMultiStage,
-      });
-      setBoletosDialogOpen(true);
+      setFila(novaFila);
+      setFilaIndex(0);
+      onOpenChange(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Falha ao carregar NFs do stage: " + msg);
       onOpenChange(false);
     } finally {
       setCarregando(false);
     }
   }
 
-  async function lancarBoletosSelecionados(
-    boletosSelecionados: BoletoStageDoc[],
-  ) {
-    if (!stageInfo) return;
-    setCriandoDespesas(true);
+  async function criarDespesa(data: {
+    formaPgtoId: string | null;
+    parcelas: number;
+    dataPrimeiraParcela: string;
+  }) {
+    const item = fila[filaIndex];
+    if (!item) return;
+
+    setCriandoDespesa(true);
     try {
-      const rows = boletosSelecionados.map((b, idx) => ({
-        tipo: "pagar" as const,
-        descricao: `${b.descricao || stageInfo.descricao || b.fornecedor || stageInfo.fornecedor} (${idx + 1}/${boletosSelecionados.length})`,
-        valor: b.valor || 0,
-        data_vencimento: b.data_vencimento,
-        nf_data_emissao: b.data_emissao ?? stageInfo.dataEmissao,
-        conta_id: b.categoria_id ?? stageInfo.categoriaId,
-        parceiro_id: b.parceiro_id ?? stageInfo.parceiroId,
-        fornecedor_cliente: b.fornecedor ?? stageInfo.fornecedor,
-        parcelas: 1,
-        parcela_atual: 1,
-        status: "aberto",
-        origem: "manual",
-        nf_stage_id: b.nf_stage_id ?? stageInfo.id,
-        nfs_stage_documento_id: b.id.startsWith("stage_") ? undefined : b.id,
-      }));
+      const { nf, boletos } = item;
+      const grupoId = data.parcelas > 1 ? crypto.randomUUID() : null;
+      const baseDate = new Date(data.dataPrimeiraParcela + "T00:00:00");
+      const temBoletos =
+        boletos.length === data.parcelas && boletos.length > 1;
+
+      const rows = [];
+      for (let i = 0; i < data.parcelas; i++) {
+        const venc =
+          temBoletos && boletos[i]?.data_vencimento
+            ? boletos[i].data_vencimento!
+            : addMonths(baseDate, i).toISOString().slice(0, 10);
+
+        rows.push({
+          tipo: "pagar",
+          descricao:
+            data.parcelas > 1
+              ? `${nf.descricao || nf.fornecedor} (${i + 1}/${data.parcelas})`
+              : nf.descricao || nf.fornecedor,
+          valor: valorDaParcela(nf.valor, data.parcelas, i),
+          data_vencimento: venc,
+          nf_data_emissao: nf.dataEmissao,
+          conta_id: nf.categoriaId,
+          parceiro_id: nf.parceiroId,
+          fornecedor_cliente: nf.fornecedor,
+          forma_pagamento_id: data.formaPgtoId,
+          parcelas: data.parcelas,
+          parcela_atual: i + 1,
+          parcela_grupo_id: grupoId,
+          status: "aberto",
+          origem: "manual",
+          nf_stage_id: nf.stageId,
+        });
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
@@ -192,44 +181,59 @@ export function ImportarNFDespesaDialog({
         .insert(rows);
       if (error) throw error;
 
-      // Status do stage é recalculado automaticamente por trigger no banco
-      // (ver função recalcular_status_nf_stage / Fase E)
-
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+
       toast.success(
-        `${boletosSelecionados.length} despesa${boletosSelecionados.length === 1 ? "" : "s"} criada${boletosSelecionados.length === 1 ? "" : "s"}!`,
+        data.parcelas > 1
+          ? `${data.parcelas} parcelas criadas para ${nf.fornecedor}`
+          : `Despesa criada para ${nf.fornecedor}`,
       );
-      setBoletosDialogOpen(false);
-      setStageInfo(null);
+
+      avancarFila();
     } catch (e) {
-      const msg =
-        e instanceof Error
-          ? e.message
-          : (e as any)?.message ?? JSON.stringify(e);
-      console.error("[lancarBoletosSelecionados] erro completo:", e);
-      toast.error("Falha ao criar despesas: " + msg);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[criarDespesa] erro:", e);
+      toast.error("Falha ao criar despesa: " + msg);
     } finally {
-      setCriandoDespesas(false);
+      setCriandoDespesa(false);
     }
   }
+
+  function avancarFila() {
+    const proximo = filaIndex + 1;
+    if (proximo >= fila.length) {
+      setFila([]);
+      setFilaIndex(0);
+    } else {
+      setFilaIndex(proximo);
+    }
+  }
+
+  function pularNF() {
+    if (criandoDespesa) return;
+    avancarFila();
+  }
+
+  const itemAtual = fila[filaIndex];
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Importar NF / Boleto / Recibo</DialogTitle>
+            <DialogTitle>Importar NFs</DialogTitle>
             <DialogDescription>
-              Faça upload do arquivo. Após a importação, a despesa será aberta
-              pré-preenchida.
+              Selecione XMLs ou PDFs (DANFEs ou boletos). Após o import, será
+              perguntado para cada NF nova como criar a despesa (forma de
+              pagamento e parcelas).
             </DialogDescription>
           </DialogHeader>
 
           {carregando ? (
             <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando dados da NF...
+              Preparando NFs para confirmação...
             </div>
           ) : (
             <ImportadorNFs onImported={handleImported} />
@@ -237,18 +241,15 @@ export function ImportarNFDespesaDialog({
         </DialogContent>
       </Dialog>
 
-      {stageInfo && (
-        <SelecionarBoletosDialog
-          open={boletosDialogOpen}
-          onOpenChange={(v) => {
-            setBoletosDialogOpen(v);
-            if (!v) setStageInfo(null);
-          }}
-          fornecedor={stageInfo.fornecedor}
-          boletos={stageInfo.boletos}
-          onConfirmar={lancarBoletosSelecionados}
-          processando={criandoDespesas}
-          mostrarFornecedor={stageInfo?.isMultiStage}
+      {itemAtual && (
+        <CriarDespesaDeNFDialog
+          open={true}
+          nf={itemAtual.nf}
+          boletos={itemAtual.boletos}
+          posicaoFila={{ atual: filaIndex + 1, total: fila.length }}
+          processando={criandoDespesa}
+          onConfirmar={criarDespesa}
+          onPular={pularNF}
         />
       )}
     </>
