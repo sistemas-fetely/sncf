@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/table";
 import { SortableTableHead, SortState } from "@/components/shared/SortableTableHead";
 import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
+import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 import {
   Select,
   SelectContent,
@@ -160,6 +161,12 @@ export default function Parceiros() {
     for (const c of centrosCustoAll) m.set(c.id, c.nome);
     return m;
   }, [centrosCustoAll]);
+  const { data: formasPgtoAll = [] } = useFormasPagamento(false);
+  const formaPgtoNomeMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const f of formasPgtoAll) m.set(f.id, f.nome);
+    return m;
+  }, [formasPgtoAll]);
   const categoriaNomeMap = useMemo(() => {
     const m = new Map<string, { codigo: string; nome: string }>();
     for (const c of categorias || []) m.set(c.id, { codigo: c.codigo, nome: c.nome });
@@ -171,11 +178,7 @@ export default function Parceiros() {
   );
 
   function temMeioPagamento(p: Parceiro): boolean {
-    if (p.pix_chave && p.pix_chave.trim() !== "") return true;
-    if (p.forma_pagamento_padrao_id) return true;
-    const db = p.dados_bancarios;
-    if (db && (db.banco || db.agencia || db.conta)) return true;
-    return false;
+    return !!p.forma_pagamento_padrao_id;
   }
 
   const kpis = useMemo(() => {
@@ -478,20 +481,10 @@ export default function Parceiros() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                {temMeioPagamento(p) ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {p.pix_chave && (
-                                      <Badge variant="secondary" className="text-xs">PIX</Badge>
-                                    )}
-                                    {p.dados_bancarios?.banco && (
-                                      <Badge variant="secondary" className="text-xs">Banco</Badge>
-                                    )}
-                                    {p.forma_pagamento_padrao_id && (
-                                      <Badge variant="secondary" className="text-xs">Padrão</Badge>
-                                    )}
-                                  </div>
+                                {p.forma_pagamento_padrao_id && formaPgtoNomeMap.get(p.forma_pagamento_padrao_id) ? (
+                                  <span>{formaPgtoNomeMap.get(p.forma_pagamento_padrao_id)}</span>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground">— faltando</span>
+                                  <span className="text-xs text-amber-600">— faltando</span>
                                 )}
                               </TableCell>
                               <TableCell onClick={(e) => e.stopPropagation()}>
