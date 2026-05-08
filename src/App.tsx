@@ -113,19 +113,22 @@ const FluxoFuturoInvestimento = lazy(() => import("@/pages/administrativo/FluxoF
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Dados ficam "frescos" por 1 minuto: durante esse tempo,
-      // navegar entre telas usa o cache em memória sem refetch.
-      staleTime: 60 * 1000,
+      // staleTime 0: dado é imediatamente stale após carregado.
+      // Combinado com refetchOnMount e refetchOnWindowFocus, garante que
+      // o usuário sempre vê dados atualizados sem precisar de refresh manual.
+      // Cache (gcTime) ainda é mantido em memória para navegação instantânea
+      // entre telas — o refetch acontece em background silenciosamente.
+      staleTime: 0,
 
       // Cache fica em memória por 10 minutos mesmo após sair da tela.
-      // Se voltar pra tela, dados aparecem instantâneos.
+      // Navegação entre telas continua instantânea (mostra cache + refetch bg).
       gcTime: 10 * 60 * 1000,
 
-      // Não refaz queries quando troca de aba e volta.
-      refetchOnWindowFocus: false,
+      // Refaz queries em background quando o usuário volta à aba/janela.
+      refetchOnWindowFocus: true,
 
-      // Se já tem dado válido em cache (não-stale), não refetcha no mount.
-      refetchOnMount: false,
+      // Refaz queries ao montar componente se dado está stale (sempre, dado staleTime 0).
+      refetchOnMount: true,
 
       // Limita retries em caso de erro (default era 3).
       retry: 1,
