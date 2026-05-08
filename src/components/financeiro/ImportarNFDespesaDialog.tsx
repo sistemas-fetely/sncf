@@ -144,30 +144,8 @@ export function ImportarNFDespesaDialog({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const primeiroStage = stages[0] as any;
 
-      // Stage único com 0–1 boleto: comportamento original (abre sheet direto)
-      if (!isMultiStage && todosBoletos.length <= 1) {
-        const unico = todosBoletos[0];
-        onDespesaPronta({
-          nfStageId: primeiroStage.id,
-          nfStageDocumentoId:
-            unico && !unico.id.startsWith("stage_") ? unico.id : undefined,
-          parceiroId: primeiroStage.parceiro_id ?? null,
-          fornecedorNome: primeiroStage.fornecedor_razao_social ?? undefined,
-          valor:
-            unico?.valor ??
-            (primeiroStage.valor_exibido as number | null) ??
-            (primeiroStage.valor as number | null) ??
-            undefined,
-          dataEmissao: primeiroStage.nf_data_emissao ?? undefined,
-          dataVencimento:
-            unico?.data_vencimento ?? primeiroStage.data_vencimento ?? undefined,
-          categoriaId: primeiroStage.categoria_id ?? null,
-          descricao: primeiroStage.descricao ?? null,
-        });
-        return;
-      }
-
-      // Stage único com 2+ boletos OU multi-stage: abre SelecionarBoletosDialog
+      // Todos os casos (1 NF, multi-NF, multi-boleto): abre SelecionarBoletosDialog
+      // Criar direto — sem drawer intermediário. Usuário categoriza depois se precisar.
       setStageInfo({
         id: primeiroStage.id,
         fornecedor: primeiroStage.fornecedor_razao_social || "Fornecedor",
