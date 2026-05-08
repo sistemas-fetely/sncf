@@ -239,8 +239,7 @@ export default function BuscarNFStageDialog({
       setCandidatosCPR(ordenados);
       setCprSelecionado(ordenados[0]?.cprId || "");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error("Erro ao buscar candidatos: " + msg);
+      toast.error("Erro ao buscar candidatos: " + formatError(e));
       setNfEscolhida(null);
     } finally {
       setCarregandoCandidatos(false);
