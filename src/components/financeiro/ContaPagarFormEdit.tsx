@@ -382,6 +382,8 @@ export function ContaPagarFormEdit({
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
       qc.invalidateQueries({ queryKey: ["qualidade-dado-map"] });
+      qc.invalidateQueries({ queryKey: ["parceiros"] });
+      qc.invalidateQueries({ queryKey: ["parceiros-para-atribuir"] });
       onSaved();
     } catch (e) {
       let msg = "Erro desconhecido";
