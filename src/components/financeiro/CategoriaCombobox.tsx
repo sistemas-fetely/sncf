@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
-  CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -43,14 +41,12 @@ function filtrarHierarquico(
   }
   const termo = search.toLowerCase();
 
-  // 1) IDs com match direto (texto bate em código ou nome)
   const matchDireto = new Set<string>();
   options.forEach((cat) => {
     const hay = (cat.codigo + " " + cat.nome).toLowerCase();
     if (hay.includes(termo)) matchDireto.add(cat.id);
   });
 
-  // 2) Incluir descendentes de cada match
   const comDescendentes = new Set(matchDireto);
   let changed = true;
   while (changed) {
@@ -67,7 +63,6 @@ function filtrarHierarquico(
     });
   }
 
-  // 3) Subir e incluir ancestrais (pra manter hierarquia visível)
   const idsFinal = new Set(comDescendentes);
   const byId = new Map(options.map((o) => [o.id, o]));
   comDescendentes.forEach((id) => {
@@ -109,6 +104,7 @@ export function CategoriaCombobox({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const selectedRef = useRef<HTMLDivElement | null>(null);
 
   const selected = options.find((o) => o.id === value);
@@ -122,9 +118,7 @@ export function CategoriaCombobox({
     [options],
   );
 
-  // Doutrina #07.6 (07/05/2026): lançamento SOMENTE em nó folha.
-  // Nós intermediários (que aparecem como parent_id de algum outro) são
-  // cabeçalhos visuais — visíveis na árvore, mas não selecionáveis.
+  // Doutrina #07.6: lançamento SOMENTE em nó folha.
   const idsComFilhos = useMemo(() => {
     const set = new Set<string>();
     options.forEach((o) => {
@@ -133,16 +127,67 @@ export function CategoriaCombobox({
     return set;
   }, [options]);
 
+  // Map id -> opção (para subir ancestrais rapidamente)
+  const byId = useMemo(
+    () => new Map(options.map((o) => [o.id, o])),
+    [options],
+  );
+
   const { visiveis, matchDireto } = useMemo(
     () => filtrarHierarquico(sorted, search),
     [sorted, search],
   );
 
-  // Scroll para o item selecionado quando abre.
-  // Usa interval porque o CommandList (cmdk) renderiza em duas etapas:
-  // primeiro o Popover, depois o sizer interno do cmdk. Tenta a cada 100ms
-  // até conseguir scrollar (máx ~1.5s). Faz scroll direto no container do
-  // cmdk porque scrollIntoView dentro de Popover pode mover a página inteira.
+  const buscando = search.trim().length > 0;
+
+  // Conjunto de nós efetivamente expandidos:
+  //  - Em modo busca: TUDO que está visível é considerado "expandido"
+  //  - Em modo normal: só o que está em `expanded`
+  const efetivamenteExpandidos = useMemo(() => {
+    if (buscando) {
+      return new Set(visiveis.map((v) => v.id));
+    }
+    return expanded;
+  }, [buscando, visiveis, expanded]);
+
+  // Determina se um nó deve ser renderizado (parent expandido ou raiz)
+  function nodeRenderizavel(opt: CategoriaOption): boolean {
+    if (opt.parent_id === null) return true;
+    if (!byId.has(opt.parent_id)) return true;
+    let parentId: string | null = opt.parent_id;
+    while (parentId) {
+      if (!efetivamenteExpandidos.has(parentId)) return false;
+      parentId = byId.get(parentId)?.parent_id ?? null;
+    }
+    return true;
+  }
+
+  function toggle(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Ao abrir o popover com um valor já selecionado, expandir os ancestrais
+  useEffect(() => {
+    if (!open || !value) return;
+    const selectedOpt = byId.get(value);
+    if (!selectedOpt) return;
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      let parentId: string | null = selectedOpt.parent_id;
+      while (parentId) {
+        next.add(parentId);
+        parentId = byId.get(parentId)?.parent_id ?? null;
+      }
+      return next;
+    });
+  }, [open, value, byId]);
+
+  // Scroll para o item selecionado quando abre
   useEffect(() => {
     if (!open || !value) return;
     let tentativas = 0;
@@ -150,7 +195,9 @@ export function CategoriaCombobox({
       tentativas++;
       const sizer = document.querySelector("[cmdk-list-sizer]") as HTMLElement | null;
       const container = sizer?.parentElement as HTMLElement | null;
-      const selectedEl = container?.querySelector<HTMLElement>("[data-selected-item='true']");
+      const selectedEl = container?.querySelector<HTMLElement>(
+        "[data-selected-item='true']",
+      );
       if (container && selectedEl) {
         const containerRect = container.getBoundingClientRect();
         const itemRect = selectedEl.getBoundingClientRect();
@@ -159,7 +206,6 @@ export function CategoriaCombobox({
         container.scrollTop = container.scrollTop + offset;
         clearInterval(interval);
       } else if (selectedRef.current) {
-        // Fallback: scrollIntoView caso o seletor cmdk mude
         selectedRef.current.scrollIntoView({ block: "center" });
         clearInterval(interval);
       }
@@ -172,6 +218,13 @@ export function CategoriaCombobox({
   useEffect(() => {
     if (!open) setSearch("");
   }, [open]);
+
+  // Filtra nós renderizáveis
+  const nodesRender = useMemo(
+    () => visiveis.filter((opt) => nodeRenderizavel(opt)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visiveis, efetivamenteExpandidos, byId],
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -207,14 +260,15 @@ export function CategoriaCombobox({
           />
           <CommandList>
             <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
-            <CommandGroup>
+            <div className="p-1">
               {allowNull && (
-                <CommandItem
-                  value="__null__"
-                  onSelect={() => {
+                <button
+                  type="button"
+                  onClick={() => {
                     onChange(null);
                     setOpen(false);
                   }}
+                  className="flex w-full items-center px-2 py-1.5 text-sm rounded-sm hover:bg-accent"
                 >
                   <Check
                     className={cn(
@@ -223,59 +277,94 @@ export function CategoriaCombobox({
                     )}
                   />
                   <span className="text-muted-foreground italic">Nenhum (raiz)</span>
-                </CommandItem>
+                </button>
               )}
-              {visiveis.map((opt) => {
+              {nodesRender.map((opt) => {
                 const isSelected = opt.id === value;
                 const isMatch = matchDireto.has(opt.id);
-                const isCabecalho = idsComFilhos.has(opt.id);
+                const temFilhos = idsComFilhos.has(opt.id);
+                const isExpandido = efetivamenteExpandidos.has(opt.id);
+
+                const handleClick = () => {
+                  if (temFilhos) {
+                    if (!buscando) toggle(opt.id);
+                    return;
+                  }
+                  onChange(opt.id);
+                  setOpen(false);
+                };
+
                 return (
-                  <CommandItem
+                  <div
                     key={opt.id}
-                    value={opt.id}
-                    disabled={isCabecalho}
-                    onSelect={() => {
-                      // Guarda defensiva: mesmo com disabled, garantir que cabeçalho não seleciona.
-                      if (isCabecalho) return;
-                      onChange(opt.id);
-                      setOpen(false);
+                    role="button"
+                    tabIndex={0}
+                    onClick={handleClick}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleClick();
+                      }
                     }}
                     className={cn(
+                      "flex items-center px-2 py-1.5 text-sm rounded-sm outline-none",
+                      temFilhos
+                        ? "cursor-pointer hover:bg-muted/60 font-semibold text-foreground/70"
+                        : "cursor-pointer hover:bg-accent",
                       isSelected && "bg-admin/10 font-medium",
-                      isCabecalho &&
-                        "!opacity-100 font-semibold text-foreground/70 cursor-default",
                     )}
+                    style={{ paddingLeft: `${8 + (opt.nivel - 1) * 12}px` }}
                   >
+                    {temFilhos ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!buscando) toggle(opt.id);
+                        }}
+                        className="p-0.5 hover:bg-muted rounded mr-1 shrink-0 disabled:opacity-50"
+                        aria-label={isExpandido ? "Recolher" : "Expandir"}
+                        disabled={buscando}
+                      >
+                        <ChevronRight
+                          className={cn(
+                            "h-3.5 w-3.5 transition-transform",
+                            isExpandido && "rotate-90",
+                          )}
+                        />
+                      </button>
+                    ) : (
+                      <span className="w-[22px] shrink-0" />
+                    )}
+
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4 shrink-0",
+                        isSelected ? "opacity-100 text-admin" : "opacity-0",
+                      )}
+                    />
+
                     <div
                       ref={isSelected ? selectedRef : undefined}
                       data-selected-item={isSelected ? "true" : undefined}
-                      className="flex items-center w-full"
+                      className="flex-1 truncate"
                     >
-                      <Check
+                      <span
                         className={cn(
-                          "mr-2 h-4 w-4 shrink-0",
-                          isSelected ? "opacity-100 text-admin" : "opacity-0",
+                          "font-mono text-xs mr-2",
+                          temFilhos ? "text-foreground/60" : "text-muted-foreground",
                         )}
-                      />
-                      <div
-                        className="flex-1 truncate"
-                        style={{ paddingLeft: `${(opt.nivel - 1) * 12}px` }}
                       >
-                        <span
-                          className={cn(
-                            "font-mono text-xs mr-2",
-                            isCabecalho ? "text-foreground/60" : "text-muted-foreground",
-                          )}
-                        >
-                          {isMatch ? highlightText(opt.codigo, search) : opt.codigo}
-                        </span>
+                        {isMatch ? highlightText(opt.codigo, search) : opt.codigo}
+                      </span>
+                      <span>
                         {isMatch ? highlightText(opt.nome, search) : opt.nome}
-                      </div>
+                      </span>
                     </div>
-                  </CommandItem>
+                  </div>
                 );
               })}
-            </CommandGroup>
+            </div>
           </CommandList>
         </Command>
       </PopoverContent>
