@@ -161,6 +161,12 @@ export default function Parceiros() {
     for (const c of centrosCustoAll) m.set(c.id, c.nome);
     return m;
   }, [centrosCustoAll]);
+  const { data: formasPgtoAll = [] } = useFormasPagamento(false);
+  const formaPgtoNomeMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const f of formasPgtoAll) m.set(f.id, f.nome);
+    return m;
+  }, [formasPgtoAll]);
   const categoriaNomeMap = useMemo(() => {
     const m = new Map<string, { codigo: string; nome: string }>();
     for (const c of categorias || []) m.set(c.id, { codigo: c.codigo, nome: c.nome });
