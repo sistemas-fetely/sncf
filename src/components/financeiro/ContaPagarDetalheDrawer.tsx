@@ -474,7 +474,7 @@ export default function ContaPagarDetalheDrawer({
             {isCartao && conta.status === "aberto" && (
               <div className="mt-3 p-2 rounded-md bg-blue-50 text-blue-700 text-[11px] flex items-center gap-2">
                 <CreditCard className="h-3 w-3" />
-                Cartão — pagamento já realizado, conciliação em Caixa e Banco
+                Cartão — pagamento via fatura mensal. Conciliação acontece em Caixa & Banco quando a fatura é paga.
               </div>
             )}
 
