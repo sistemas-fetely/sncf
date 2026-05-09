@@ -729,25 +729,57 @@ export default function ContaPagarDetalheDrawer({
                       </p>
                       <Button
                         className="w-full bg-purple-700 hover:bg-purple-800 text-white gap-2"
-                        onClick={() => avancar("aprovado")}
+                        onClick={() => {
+                          if (isCartao) {
+                            // Família B (cartão): pula etapa de email — vai direto pra aguardando.
+                            // Pagamento será via fatura mensal, não cabe envio de cobrança ao fornecedor.
+                            avancar(
+                              "aguardando_pagamento",
+                              "Aprovado e enviado ao financeiro — pagamento via fatura de cartão (sem cobrança ao fornecedor).",
+                            );
+                          } else {
+                            avancar("aprovado");
+                          }
+                        }}
                       >
                         <ThumbsUp className="h-4 w-4" /> Aprovar pagamento
                       </Button>
                     </div>
                   )}
 
-                  {/* APROVADO → enviar para pagamento */}
+                  {/* APROVADO → enviar para pagamento (Família A) ou pular pra aguardando (Família B) */}
                   {conta.status === "aprovado" && (
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Aprovado! Envie ao financeiro com os documentos.
-                      </p>
-                      <Button
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white gap-2"
-                        onClick={() => setShowEnviar(true)}
-                      >
-                        <Send className="h-4 w-4" /> Enviar para pagamento
-                      </Button>
+                      {isCartao ? (
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            Pagamento via fatura de cartão — não cabe envio de email ao fornecedor.
+                          </p>
+                          <Button
+                            className="w-full bg-amber-600 hover:bg-amber-700 text-white gap-2"
+                            onClick={() =>
+                              avancar(
+                                "aguardando_pagamento",
+                                "Marcado como aguardando — pagamento via fatura de cartão.",
+                              )
+                            }
+                          >
+                            <Send className="h-4 w-4" /> Marcar como aguardando pagamento
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            Aprovado! Envie ao financeiro com os documentos.
+                          </p>
+                          <Button
+                            className="w-full bg-amber-600 hover:bg-amber-700 text-white gap-2"
+                            onClick={() => setShowEnviar(true)}
+                          >
+                            <Send className="h-4 w-4" /> Enviar para pagamento
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
 
