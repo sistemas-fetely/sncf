@@ -2,20 +2,28 @@ import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const FLOW = [
+// Família A (não-cartão): fluxo completo com aprovação, doc pendente e aguardando pagamento
+const FLOW_PADRAO = [
   { key: "aberto", label: "Aberto" },
   { key: "aprovado", label: "Aprovado" },
   { key: "doc_pendente", label: "Doc. Pendente" },
+  { key: "aguardando_pagamento", label: "Aguardando" },
+  { key: "finalizado", label: "Finalizado" },
+] as const;
+
+// Família B (cartão): pula aprovação e doc pendente — paga via fatura mensal
+const FLOW_CARTAO = [
+  { key: "aberto", label: "Aberto" },
+  { key: "aguardando_pagamento", label: "Aguardando" },
   { key: "finalizado", label: "Finalizado" },
 ] as const;
 
 interface Props {
   statusAtual: string;
-  /** Mantido por compatibilidade — não influencia mais o fluxo (Pago/Conciliado saíram do escopo) */
   isCartao?: boolean;
 }
 
-export default function StatusProgressBar({ statusAtual }: Props) {
+export default function StatusProgressBar({ statusAtual, isCartao }: Props) {
   if (statusAtual === "cancelado") {
     return (
       <div className="flex justify-center py-2">
@@ -24,10 +32,13 @@ export default function StatusProgressBar({ statusAtual }: Props) {
     );
   }
 
-  // Mapear status legados (de registros antigos) pro fluxo novo
+  const FLOW = isCartao ? FLOW_CARTAO : FLOW_PADRAO;
+
+  // Mapear status legados (de registros antigos) pro fluxo atual
   let statusEffective = statusAtual;
   if (statusAtual === "rascunho") statusEffective = "aberto";
-  if (["agendado", "paga", "conciliado"].includes(statusAtual)) statusEffective = "finalizado";
+  if (statusAtual === "agendado") statusEffective = "aguardando_pagamento";
+  if (["paga", "conciliado"].includes(statusAtual)) statusEffective = "finalizado";
 
   let idxAtual = FLOW.findIndex((s) => s.key === statusEffective);
   if (statusAtual === "atrasado") idxAtual = FLOW.findIndex((s) => s.key === "aberto");
