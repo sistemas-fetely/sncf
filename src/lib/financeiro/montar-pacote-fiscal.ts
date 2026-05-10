@@ -128,65 +128,109 @@ export async function montarZipPacoteFiscal(
   const contasComDoc = new Set(docs.map((d) => d.conta_id));
   const contasSemDoc = contaIds.filter((id) => !contasComDoc.has(id));
 
-  // 3. Fallback Stage: pra contas órfãs com nf_stage_id, busca direto no Stage
+  // 3. Fallback Stage: pra contas órfãs, busca TODAS as NFs anexadas via conta_pagar_id.
+  //    Modelo N:1: 1 CPR pode ter N NFs anexadas (caso típico: 3 NFs do mesmo
+  //    fornecedor consolidadas em 1 lançamento de cartão).
   const fallbacks: StageFallback[] = [];
   if (contasSemDoc.length > 0) {
+    // 3a. Dados base das CPRs
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: stageData, error: errStage } = await (supabase as any)
+    const { data: cprData, error: errCpr } = await (supabase as any)
       .from("contas_pagar_receber")
       .select(
         `
         id, descricao, valor, data_pagamento, fornecedor_cliente, nf_aplicavel,
-        nf_stage_id,
-        nfs_stage:nf_stage_id(
-          id,
-          documentos:nfs_stage_documentos(tipo, storage_path, arquivo_nome)
-        ),
         parceiros_comerciais:parceiro_id(razao_social)
       `,
       )
       .in("id", contasSemDoc);
 
-    if (errStage) throw errStage;
+    if (errCpr) throw errCpr;
 
-    for (const c of (stageData || []) as Array<{
+    const cprMap = new Map<
+      string,
+      {
+        descricao: string | null;
+        valor: number;
+        data_pagamento: string | null;
+        fornecedor_cliente: string | null;
+        nf_aplicavel: boolean | null;
+        parceiros_comerciais: { razao_social: string | null } | null;
+      }
+    >();
+    for (const c of (cprData || []) as Array<{
       id: string;
       descricao: string | null;
       valor: number;
       data_pagamento: string | null;
       fornecedor_cliente: string | null;
       nf_aplicavel: boolean | null;
-      nf_stage_id: string | null;
-      nfs_stage: {
-        id: string;
-        documentos: Array<{
-          tipo: string;
-          storage_path: string;
-          arquivo_nome: string | null;
-        }> | null;
-      } | null;
       parceiros_comerciais: { razao_social: string | null } | null;
     }>) {
-      if (!c.nfs_stage) continue;
-      // Doutrina #15: pacote ao contador = APENAS PDF DANFE. XML e Boleto fora.
-      const pdfDanfe = c.nfs_stage.documentos?.find(
-        (d) => d.tipo === "pdf_danfe",
-      );
-      if (!pdfDanfe) {
-        continue;
-      }
-      fallbacks.push({
-        conta_id: c.id,
-        fornecedor:
-          c.parceiros_comerciais?.razao_social ||
-          c.fornecedor_cliente ||
-          "Sem-fornecedor",
-        descricao: c.descricao || "",
-        valor: c.valor,
-        data_pagamento: c.data_pagamento,
-        arquivo_storage_path: pdfDanfe.storage_path,
-        arquivo_nome: pdfDanfe.arquivo_nome,
-        nf_aplicavel: c.nf_aplicavel ?? true,
+      cprMap.set(c.id, c);
+    }
+
+    // 3b. Busca TODAS as NFs anexadas a essas CPRs
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: nfsData, error: errNfs } = await (supabase as any)
+      .from("nfs_stage")
+      .select(
+        `
+        id,
+        conta_pagar_id,
+        documentos:nfs_stage_documentos(tipo, storage_path, arquivo_nome)
+      `,
+      )
+      .in("conta_pagar_id", contasSemDoc);
+
+    if (errNfs) throw errNfs;
+
+    // 3c. Agrupa por conta_pagar_id
+    const nfsPorConta = new Map<
+      string,
+      Array<{
+        id: string;
+        pdfDanfe: { tipo: string; storage_path: string; arquivo_nome: string | null } | null;
+      }>
+    >();
+    for (const nf of (nfsData || []) as Array<{
+      id: string;
+      conta_pagar_id: string;
+      documentos: Array<{
+        tipo: string;
+        storage_path: string;
+        arquivo_nome: string | null;
+      }> | null;
+    }>) {
+      // Doutrina #15: pacote ao contador = APENAS PDF DANFE.
+      const pdfDanfe = nf.documentos?.find((d) => d.tipo === "pdf_danfe") || null;
+      const arr = nfsPorConta.get(nf.conta_pagar_id) || [];
+      arr.push({ id: nf.id, pdfDanfe });
+      nfsPorConta.set(nf.conta_pagar_id, arr);
+    }
+
+    // 3d. Monta fallbacks: 1 entrada por NF anexada com PDF DANFE
+    for (const [contaId, nfs] of nfsPorConta) {
+      const cpr = cprMap.get(contaId);
+      if (!cpr) continue;
+      const fornecedor =
+        cpr.parceiros_comerciais?.razao_social ||
+        cpr.fornecedor_cliente ||
+        "Sem-fornecedor";
+      const nfsComDanfe = nfs.filter((n) => n.pdfDanfe !== null);
+      const total = nfsComDanfe.length;
+      nfsComDanfe.forEach((nf, idx) => {
+        const sufixo = total > 1 ? ` (NF ${idx + 1} de ${total})` : "";
+        fallbacks.push({
+          conta_id: contaId,
+          fornecedor,
+          descricao: (cpr.descricao || "") + sufixo,
+          valor: cpr.valor,
+          data_pagamento: cpr.data_pagamento,
+          arquivo_storage_path: nf.pdfDanfe!.storage_path,
+          arquivo_nome: nf.pdfDanfe!.arquivo_nome,
+          nf_aplicavel: cpr.nf_aplicavel ?? true,
+        });
       });
     }
   }
