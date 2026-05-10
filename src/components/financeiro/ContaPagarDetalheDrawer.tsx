@@ -1056,3 +1056,148 @@ function NfAplicavelToggle({
     </div>
   );
 }
+
+// Lista de NFs anexadas a uma CPR (modelo N:1: 1 CPR pode ter múltiplas NFs anexadas)
+function NFsAnexadasSecao({
+  contaId,
+  nfStagePrincipalId,
+  onAnexarNova,
+}: {
+  contaId: string;
+  nfStagePrincipalId: string | null | undefined;
+  onAnexarNova: () => void;
+}) {
+  const qc = useQueryClient();
+
+  const { data: nfs = [] } = useQuery({
+    queryKey: ["nfs-anexadas-cpr", contaId],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("nfs_stage")
+        .select("id, tipo_documento, fornecedor_razao_social, nf_numero, valor, nf_data_emissao")
+        .eq("conta_pagar_id", contaId)
+        .order("nf_data_emissao", { ascending: true });
+      if (error) throw error;
+      return (data || []) as Array<{
+        id: string;
+        tipo_documento: string | null;
+        fornecedor_razao_social: string | null;
+        nf_numero: string | null;
+        valor: number | null;
+        nf_data_emissao: string | null;
+      }>;
+    },
+  });
+
+  async function desanexarNF(nfId: string, ehPrincipal: boolean) {
+    if (ehPrincipal) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc(
+        "desvincular_nf_de_conta",
+        { p_conta_id: contaId },
+      );
+      if (error || !data?.ok) {
+        toast.error(data?.erro || error?.message || "Erro ao desvincular");
+        return;
+      }
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update({ conta_pagar_id: null })
+        .eq("id", nfId);
+      if (error) {
+        toast.error("Erro ao desanexar: " + error.message);
+        return;
+      }
+    }
+    toast.success("NF desanexada");
+    qc.invalidateQueries({ queryKey: ["nfs-anexadas-cpr", contaId] });
+    qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", contaId] });
+    qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+  }
+
+  const totalNFs = nfs.length;
+
+  return (
+    <div className="mb-3">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+          NFs anexadas do Repositório
+          {totalNFs > 0 && (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+              {totalNFs}
+            </Badge>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onAnexarNova}
+          className="gap-1 border-blue-300 text-blue-700 hover:bg-blue-50 h-7 text-xs"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {totalNFs === 0 ? "Anexar NF" : "Anexar mais uma NF"}
+        </Button>
+      </div>
+
+      {totalNFs === 0 ? (
+        <div className="text-xs text-muted-foreground italic px-2 py-3 border border-dashed rounded">
+          Nenhuma NF anexada. Use o botão acima para vincular uma NF do Repositório.
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {nfs.map((nf) => {
+            const ehPrincipal = nf.id === nfStagePrincipalId;
+            return (
+              <div
+                key={nf.id}
+                className="flex items-center justify-between gap-2 p-2 rounded border border-emerald-200 bg-emerald-50/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <FileText className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+                    <span className="text-sm font-medium truncate">
+                      {nf.fornecedor_razao_social || "Fornecedor"}
+                    </span>
+                    {nf.nf_numero && (
+                      <span className="text-xs text-muted-foreground">
+                        · NF {nf.nf_numero}
+                      </span>
+                    )}
+                    {ehPrincipal && totalNFs > 1 && (
+                      <Badge variant="outline" className="text-[10px] px-1 py-0 border-emerald-400 text-emerald-700">
+                        Principal
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                    {nf.valor !== null && (
+                      <span>R$ {Number(nf.valor).toFixed(2).replace(".", ",")}</span>
+                    )}
+                    {nf.nf_data_emissao && (
+                      <span>
+                        {new Date(nf.nf_data_emissao + "T00:00:00").toLocaleDateString("pt-BR")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => desanexarNF(nf.id, ehPrincipal)}
+                  className="h-6 w-6 p-0 text-red-600 hover:bg-red-50 hover:text-red-700 shrink-0"
+                  title="Desanexar esta NF"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
