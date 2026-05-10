@@ -561,47 +561,11 @@ export default function ContaPagarDetalheDrawer({
             {/* Documentos */}
             <Separator className="my-4" />
 
-            {conta.nf_stage_id ? (
-              <div className="mb-3">
-                <div className="text-xs font-medium text-muted-foreground mb-1.5">
-                  NF vinculada do Repositório
-                </div>
-                <NfStageVinculadaCard
-                  nfStageId={conta.nf_stage_id}
-                  onRemover={async () => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const { data, error } = await (supabase as any).rpc(
-                      "desvincular_nf_de_conta",
-                      { p_conta_id: conta.id }
-                    );
-                    if (error) {
-                      toast.error("Erro ao desvincular: " + error.message);
-                      return;
-                    }
-                    if (!data?.ok) {
-                      toast.error(data?.erro || "Erro ao desvincular");
-                      return;
-                    }
-                    toast.success("NF desvinculada");
-                    qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
-                    qc.invalidateQueries({ queryKey: ["nfs-stage"] });
-                    qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-end mb-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setBuscarNFOpen(true)}
-                  className="gap-1 border-blue-300 text-blue-700 hover:bg-blue-50"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Buscar em NF Stage
-                </Button>
-              </div>
-            )}
+            <NFsAnexadasSecao
+              contaId={conta.id}
+              nfStagePrincipalId={conta.nf_stage_id}
+              onAnexarNova={() => setBuscarNFOpen(true)}
+            />
             <DocumentosCP
               contaId={conta.id}
               docsStatus={conta.docs_status || "pendente"}
