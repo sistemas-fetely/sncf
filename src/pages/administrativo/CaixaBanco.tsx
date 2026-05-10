@@ -636,7 +636,8 @@ export default function CaixaBanco() {
 
       {/* CONTEÚDO COM SCROLL */}
       <div className="flex-1 overflow-auto px-6 pb-6 pt-3 space-y-3">
-        {/* KPIs — 1 linha, 5 cards */}
+        {/* KPIs — escondidos no modo Receitas */}
+        {tipoParam !== "receitas" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
           <CardKPI
             titulo="Pago mês anterior"
