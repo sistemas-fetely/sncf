@@ -93,7 +93,18 @@ import {
 type FormaPgtoLite = { id: string; nome: string };
 type Parceiro = { id: string; razao_social: string | null };
 type CategoriaLite = { id: string; nome: string };
-type FiltroTipo = "tudo" | "apagar" | "realizado";
+type FiltroTipo = "tudo" | "apagar" | "realizado" | "receitas";
+
+type Receita = {
+  id: string;
+  data_transacao: string;
+  descricao: string | null;
+  valor: number;
+  conta_plano_id: string | null;
+  centro_custo_id: string | null;
+  conta_bancaria_id: string;
+  origem: string | null;
+};
 type FiltroQualidade =
   | "todos"
   | "doc_tem" | "doc_falta"
