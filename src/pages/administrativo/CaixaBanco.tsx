@@ -170,7 +170,36 @@ export default function CaixaBanco() {
     },
   });
 
-  const { data: contasBancarias } = useQuery({
+  // Receitas — direto de movimentacoes_bancarias (tipo=credito sem CPR vinculada)
+  const { data: receitas = [] } = useQuery<Receita[]>({
+    queryKey: ["receitas-caixa-banco", contaBancariaFilter],
+    enabled: tipoParam === "receitas",
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let q = (supabase as any)
+        .from("movimentacoes_bancarias")
+        .select(
+          "id, data_transacao, descricao, valor, conta_plano_id, centro_custo_id, conta_bancaria_id, origem",
+        )
+        .eq("tipo", "credito")
+        .is("conta_pagar_id", null);
+      if (contaBancariaFilter !== "todas") q = q.eq("conta_bancaria_id", contaBancariaFilter);
+      const { data, error } = await q.order("data_transacao", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Receita[];
+    },
+  });
+
+  const receitasFiltradas = useMemo(() => {
+    if (!busca.trim()) return receitas;
+    const t = busca.toLowerCase();
+    return receitas.filter((r) => (r.descricao || "").toLowerCase().includes(t));
+  }, [receitas, busca]);
+
+  const totalReceitas = useMemo(
+    () => receitasFiltradas.reduce((acc, r) => acc + Number(r.valor || 0), 0),
+    [receitasFiltradas],
+  );
     queryKey: ["contas-bancarias-lite"],
     queryFn: async () => {
       const { data } = await supabase
