@@ -93,7 +93,18 @@ import {
 type FormaPgtoLite = { id: string; nome: string };
 type Parceiro = { id: string; razao_social: string | null };
 type CategoriaLite = { id: string; nome: string };
-type FiltroTipo = "tudo" | "apagar" | "realizado";
+type FiltroTipo = "tudo" | "apagar" | "realizado" | "receitas";
+
+type Receita = {
+  id: string;
+  data_transacao: string;
+  descricao: string | null;
+  valor: number;
+  conta_plano_id: string | null;
+  centro_custo_id: string | null;
+  conta_bancaria_id: string;
+  origem: string | null;
+};
 type FiltroQualidade =
   | "todos"
   | "doc_tem" | "doc_falta"
@@ -158,6 +169,37 @@ export default function CaixaBanco() {
       return (data || []) as Lancamento[];
     },
   });
+
+  // Receitas — direto de movimentacoes_bancarias (tipo=credito sem CPR vinculada)
+  const { data: receitas = [] } = useQuery<Receita[]>({
+    queryKey: ["receitas-caixa-banco", contaBancariaFilter],
+    enabled: tipoParam === "receitas",
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let q = (supabase as any)
+        .from("movimentacoes_bancarias")
+        .select(
+          "id, data_transacao, descricao, valor, conta_plano_id, centro_custo_id, conta_bancaria_id, origem",
+        )
+        .eq("tipo", "credito")
+        .is("conta_pagar_id", null);
+      if (contaBancariaFilter !== "todas") q = q.eq("conta_bancaria_id", contaBancariaFilter);
+      const { data, error } = await q.order("data_transacao", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Receita[];
+    },
+  });
+
+  const receitasFiltradas = useMemo(() => {
+    if (!busca.trim()) return receitas;
+    const t = busca.toLowerCase();
+    return receitas.filter((r) => (r.descricao || "").toLowerCase().includes(t));
+  }, [receitas, busca]);
+
+  const totalReceitas = useMemo(
+    () => receitasFiltradas.reduce((acc, r) => acc + Number(r.valor || 0), 0),
+    [receitasFiltradas],
+  );
 
   const { data: contasBancarias } = useQuery({
     queryKey: ["contas-bancarias-lite"],
@@ -569,12 +611,33 @@ export default function CaixaBanco() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Pills de tipo */}
+          <div className="flex gap-1 ml-auto">
+            {([
+              { key: "tudo", label: "Tudo" },
+              { key: "apagar", label: "A pagar" },
+              { key: "realizado", label: "Realizado" },
+              { key: "receitas", label: "Receitas" },
+            ] as { key: FiltroTipo; label: string }[]).map((p) => (
+              <Button
+                key={p.key}
+                size="sm"
+                variant={tipoParam === p.key ? "default" : "outline"}
+                onClick={() => setTipo(p.key)}
+                className={tipoParam === p.key ? "bg-admin hover:bg-admin/90" : ""}
+              >
+                {p.label}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* CONTEÚDO COM SCROLL */}
       <div className="flex-1 overflow-auto px-6 pb-6 pt-3 space-y-3">
-        {/* KPIs — 1 linha, 5 cards */}
+        {/* KPIs — escondidos no modo Receitas */}
+        {tipoParam !== "receitas" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
           <CardKPI
             titulo="Pago mês anterior"
@@ -622,8 +685,10 @@ export default function CaixaBanco() {
             onClickFalta={() => setFiltroQual(filtroQual === "doc_falta" ? "todos" : "doc_falta")}
           />
         </div>
+        )}
 
-        {/* Botão IA */}
+        {/* Botão IA — escondido no modo Receitas */}
+        {tipoParam !== "receitas" && (
         <div className="flex items-center justify-end">
           <Button
             size="sm"
@@ -640,8 +705,69 @@ export default function CaixaBanco() {
             Classificar pendentes
           </Button>
         </div>
+        )}
 
-        {/* Tabela única */}
+        {/* Tabela de Receitas */}
+        {tipoParam === "receitas" && (
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm font-medium">
+                Receitas do período
+                <span className="ml-2 text-xs text-muted-foreground">
+                  ({receitasFiltradas.length} {receitasFiltradas.length === 1 ? "lançamento" : "lançamentos"})
+                </span>
+              </h2>
+              <div className="text-sm font-mono text-emerald-700">
+                Total: {formatBRL(totalReceitas)}
+              </div>
+            </div>
+
+            {receitasFiltradas.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                Nenhuma receita no período/filtros atuais.
+              </div>
+            ) : (
+              <div className="border rounded-md overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Conta Bancária</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {receitasFiltradas.map((r) => {
+                      const cat = (categorias || []).find((c) => c.id === r.conta_plano_id);
+                      const cb = (contasBancarias || []).find((b) => b.id === r.conta_bancaria_id);
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {new Date(r.data_transacao + "T00:00:00").toLocaleDateString("pt-BR")}
+                          </TableCell>
+                          <TableCell className="text-xs">{r.descricao || "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {cat ? cat.nome : <span className="text-muted-foreground">— sem categoria</span>}
+                          </TableCell>
+                          <TableCell className="text-xs">{cb?.nome_exibicao || "—"}</TableCell>
+                          <TableCell className="text-right font-mono whitespace-nowrap text-emerald-700">
+                            +{formatBRL(Number(r.valor))}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tabela única (despesas) */}
+        {tipoParam !== "receitas" && (
+        <>
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -943,6 +1069,8 @@ export default function CaixaBanco() {
               {listaExibida.length === 1 ? "lançamento" : "lançamentos"}
             </p>
           </>
+        )}
+        </>
         )}
       </div>
 
