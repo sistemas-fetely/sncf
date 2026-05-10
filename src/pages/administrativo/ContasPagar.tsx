@@ -600,7 +600,7 @@ export default function ContasPagar() {
       {/* /HEADER STICKY */}
 
       {/* CONTEÚDO COM SCROLL PRÓPRIO */}
-      <div className="flex-1 overflow-auto px-6 pb-6 pt-4 space-y-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pb-6 pt-4 space-y-6">
       <Card>
         <CardContent className="pt-6">
           {/* Barra de ações em massa */}

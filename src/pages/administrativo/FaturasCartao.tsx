@@ -922,7 +922,7 @@ export default function FaturasCartao() {
       </div>
 
       {/* TABELA */}
-      <div className="flex-1 overflow-auto px-6 pb-6 pt-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pb-6 pt-4">
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (

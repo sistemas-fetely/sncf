@@ -738,7 +738,7 @@ export default function DocumentosPendentes() {
       </div>
 
       {/* LISTA */}
-      <div className="flex-1 overflow-auto px-6 py-4 space-y-2 pb-24">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-2 pb-24">
         {/* ABA COBRAR / PRONTO */}
         {aba !== "enviado" && (
           <>
