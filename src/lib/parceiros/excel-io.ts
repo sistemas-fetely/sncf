@@ -232,12 +232,12 @@ export async function importarParceirosXlsx(
       if (id) {
         const { error } = await supabase
           .from("parceiros_comerciais")
-          .update(payload)
+          .update(payload as any)
           .eq("id", id);
         if (error) throw error;
         result.atualizados++;
       } else {
-        const { error } = await supabase.from("parceiros_comerciais").insert(payload);
+        const { error } = await supabase.from("parceiros_comerciais").insert(payload as any);
         if (error) throw error;
         result.criados++;
       }
