@@ -272,10 +272,10 @@ export default function Parceiros() {
   const [importando, setImportando] = useState(false);
 
   const buildLookupMaps = (): LookupMaps => {
-    const categorias = new Map<string, { codigo: string; nome: string }>();
+    const categoriasMap = new Map<string, { codigo: string; nome: string }>();
     const categoriasByNome = new Map<string, string>();
     for (const c of (categorias || [])) {
-      categorias.set(c.id, { codigo: c.codigo, nome: c.nome });
+      categoriasMap.set(c.id, { codigo: c.codigo, nome: c.nome });
       categoriasByNome.set(c.nome.toLowerCase(), c.id);
     }
     const centros = new Map<string, string>();
