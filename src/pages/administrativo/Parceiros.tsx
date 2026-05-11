@@ -267,8 +267,93 @@ export default function Parceiros() {
     setFormOpen(true);
   };
 
+  // ============ Export / Import Excel ============
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importando, setImportando] = useState(false);
+
+  const buildLookupMaps = (): LookupMaps => {
+    const categorias = new Map<string, { codigo: string; nome: string }>();
+    const categoriasByNome = new Map<string, string>();
+    for (const c of categorias_arr) {
+      categorias.set(c.id, { codigo: c.codigo, nome: c.nome });
+      categoriasByNome.set(c.nome.toLowerCase(), c.id);
+    }
+    const centros = new Map<string, string>();
+    const centrosByNome = new Map<string, string>();
+    for (const c of centrosCustoAll) {
+      centros.set(c.id, c.nome);
+      centrosByNome.set(c.nome.toLowerCase(), c.id);
+    }
+    const formas = new Map<string, string>();
+    const formasByNome = new Map<string, string>();
+    for (const f of formasPgtoAll) {
+      formas.set(f.id, f.nome);
+      formasByNome.set(f.nome.toLowerCase(), f.id);
+    }
+    const grupos = new Map<string, string>();
+    const gruposByNome = new Map<string, string>();
+    for (const g of gruposAll) {
+      grupos.set(g.id, g.nome);
+      gruposByNome.set(g.nome.toLowerCase(), g.id);
+    }
+    return { categorias, categoriasByNome, centros, centrosByNome, formas, formasByNome, grupos, gruposByNome };
+  };
+
+  const handleExportar = () => {
+    if (!filtered.length) {
+      toast.info("Nada para exportar");
+      return;
+    }
+    try {
+      const nome =
+        tabAtiva === "clientes" ? "clientes.xlsx" : "fornecedores.xlsx";
+      exportarParceirosXlsx(filtered, buildLookupMaps(), nome);
+      toast.success(`${filtered.length} parceiro${filtered.length === 1 ? "" : "s"} exportado${filtered.length === 1 ? "" : "s"}`);
+    } catch (e: any) {
+      toast.error("Erro ao exportar", { description: e.message });
+    }
+  };
+
+  const handleImportarClick = () => fileInputRef.current?.click();
+
+  const handleImportarArquivo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportando(true);
+    try {
+      const res = await importarParceirosXlsx(file, buildLookupMaps());
+      queryClient.invalidateQueries({ queryKey: ["parceiros"] });
+      queryClient.invalidateQueries({ queryKey: ["parceiros-fornecedores"] });
+      const partes = [
+        `${res.atualizados} atualizado${res.atualizados === 1 ? "" : "s"}`,
+        `${res.criados} criado${res.criados === 1 ? "" : "s"}`,
+      ];
+      if (res.erros.length) {
+        toast.warning(`Importação parcial: ${partes.join(", ")} • ${res.erros.length} erro(s)`, {
+          description: res.erros.slice(0, 3).map((e) => `Linha ${e.linha}: ${e.mensagem}`).join(" | "),
+          duration: 10000,
+        });
+        console.warn("[Parceiros][Import] erros:", res.erros);
+      } else {
+        toast.success(`Importação concluída: ${partes.join(", ")}`);
+      }
+    } catch (err: any) {
+      toast.error("Erro ao importar", { description: err.message });
+    } finally {
+      setImportando(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={handleImportarArquivo}
+      />
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -280,10 +365,32 @@ export default function Parceiros() {
           </p>
         </div>
         {tabAtiva !== "grupos" && (
-          <Button onClick={handleOpenNew} className="gap-2 bg-admin hover:bg-admin/90 text-admin-foreground">
-            <Plus className="h-4 w-4" />
-            Novo parceiro
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportar}
+              className="gap-2"
+              disabled={isLoading || !filtered.length}
+              title="Exporta os parceiros filtrados para Excel"
+            >
+              <Download className="h-4 w-4" />
+              Exportar Excel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleImportarClick}
+              className="gap-2"
+              disabled={importando}
+              title="Reimportar arquivo Excel (atualiza por id, cria novos sem id)"
+            >
+              {importando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Importar Excel
+            </Button>
+            <Button onClick={handleOpenNew} className="gap-2 bg-admin hover:bg-admin/90 text-admin-foreground">
+              <Plus className="h-4 w-4" />
+              Novo parceiro
+            </Button>
+          </div>
         )}
       </div>
 
