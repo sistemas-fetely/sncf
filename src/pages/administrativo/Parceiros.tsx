@@ -296,7 +296,7 @@ export default function Parceiros() {
       grupos.set(g.id, g.nome);
       gruposByNome.set(g.nome.toLowerCase(), g.id);
     }
-    return { categorias, categoriasByNome, centros, centrosByNome, formas, formasByNome, grupos, gruposByNome };
+    return { categorias: categoriasMap, categoriasByNome, centros, centrosByNome, formas, formasByNome, grupos, gruposByNome };
   };
 
   const handleExportar = () => {
