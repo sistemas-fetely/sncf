@@ -1448,6 +1448,50 @@ export type Database = {
           },
         ]
       }
+      comentarios_pedido: {
+        Row: {
+          autor_id: string
+          conteudo: string
+          created_at: string
+          editado_em: string | null
+          excluido_em: string | null
+          excluido_por: string | null
+          id: string
+          pedido_id: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id: string
+          conteudo: string
+          created_at?: string
+          editado_em?: string | null
+          excluido_em?: string | null
+          excluido_por?: string | null
+          id?: string
+          pedido_id: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string
+          conteudo?: string
+          created_at?: string
+          editado_em?: string | null
+          excluido_em?: string | null
+          excluido_por?: string | null
+          id?: string
+          pedido_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comentarios_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compras_registradas: {
         Row: {
           comprador_id: string
@@ -7207,6 +7251,41 @@ export type Database = {
           },
         ]
       }
+      pedidos_compra_eventos: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          pedido_id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          pedido_id: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          pedido_id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_compra_eventos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos_compra_itens: {
         Row: {
           cancelamento_motivo: string | null
@@ -11860,6 +11939,14 @@ export type Database = {
         Args: { p_recorrente_id: string }
         Returns: number
       }
+      cancelar_pedido_pedido: {
+        Args: { p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
+      comentar_pedido: {
+        Args: { p_conteudo: string; p_pedido_id: string }
+        Returns: Json
+      }
       conciliar_em_lote_ofx: {
         Args: {
           p_conta_ids: string[]
@@ -12113,6 +12200,10 @@ export type Database = {
           total_valor: number
         }[]
       }
+      editar_comentario_pedido: {
+        Args: { p_comentario_id: string; p_conteudo_novo: string }
+        Returns: Json
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -12150,6 +12241,10 @@ export type Database = {
         }[]
       }
       enviar_pedido_compra: { Args: { p_pedido_id: string }; Returns: Json }
+      excluir_comentario_pedido: {
+        Args: { p_comentario_id: string }
+        Returns: Json
+      }
       excluir_compra_registrada: {
         Args: { p_compra_id: string; p_motivo: string }
         Returns: Json
@@ -12173,6 +12268,15 @@ export type Database = {
         Returns: string
       }
       fix_lancamentos_origem_constraint: { Args: never; Returns: string }
+      fn_log_evento_pedido: {
+        Args: {
+          p_payload?: Json
+          p_pedido_id: string
+          p_tipo: string
+          p_usuario_id?: string
+        }
+        Returns: string
+      }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       gerar_celebracoes_aniversario_mural: { Args: never; Returns: number }
       gerar_celebracoes_tempo_casa_mural: { Args: never; Returns: number }
