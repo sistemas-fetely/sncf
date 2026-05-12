@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, Loader2, Trash2, X } from "lucide-react";
+import { Ban, ExternalLink, Loader2, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sheet,
@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -38,6 +39,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { PedidoStatusBadge } from "./PedidoStatusBadge";
 import { CancelarItemDialog } from "./CancelarItemDialog";
+import { CancelarPedidoDialog } from "./CancelarPedidoDialog";
+import { TimelinePedido } from "./TimelinePedido";
+import { useAuth } from "@/contexts/AuthContext";
 import { useIniciarCompraPedido } from "@/hooks/compras/useIniciarCompraPedido";
 import { useExcluirCompraRegistrada } from "@/hooks/compras/useExcluirCompraRegistrada";
 import { useAnexosPedidoCompra } from "@/hooks/compras/useAnexosPedidoCompra";
@@ -75,9 +79,13 @@ export function PedidoDetalheComprador({
   const excluirCompra = useExcluirCompraRegistrada();
   const { getSignedUrl } = useAnexosPedidoCompra(pedido?.id);
 
+  const { hasRole } = useAuth();
+  const isSuperAdmin = hasRole("super_admin");
+
   const [cancelarItem, setCancelarItem] = useState<PedidoCompraItemRow | null>(null);
   const [excluirCompraDialog, setExcluirCompraDialog] = useState<CompraRegistradaFull | null>(null);
   const [motivoExclusao, setMotivoExclusao] = useState("");
+  const [cancelarPedidoOpen, setCancelarPedidoOpen] = useState(false);
 
   const { data: comprasRegistradas = [] } = useQuery({
     queryKey: ["compras", "registradas-do-pedido", pedido?.id],
@@ -129,6 +137,9 @@ export function PedidoDetalheComprador({
 
   const ehMeu = pedido.status === "em_compra";
   const ehAberto = pedido.status === "aberto";
+  const podeCancelarPedido =
+    isSuperAdmin &&
+    (pedido.status === "rascunho" || pedido.status === "aberto" || pedido.status === "em_compra");
 
   return (
     <>
@@ -149,7 +160,12 @@ export function PedidoDetalheComprador({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-6 space-y-6">
+          <Tabs defaultValue="detalhes" className="mt-6">
+            <TabsList>
+              <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline e Comentários</TabsTrigger>
+            </TabsList>
+            <TabsContent value="detalhes" className="mt-4 space-y-6">
             {/* Detalhes */}
             <section className="space-y-2">
               <h4 className="text-sm font-semibold">Detalhes</h4>
@@ -317,9 +333,24 @@ export function PedidoDetalheComprador({
                 </div>
               </section>
             )}
-          </div>
+            </TabsContent>
+            <TabsContent value="timeline" className="mt-4">
+              <TimelinePedido pedidoId={pedido.id} />
+            </TabsContent>
+          </Tabs>
 
-          <SheetFooter className="mt-6 gap-2 sm:gap-2">
+          <SheetFooter className="mt-6 gap-2 sm:gap-2 flex-col sm:flex-row sm:justify-between">
+            {podeCancelarPedido ? (
+              <Button
+                variant="outline"
+                className="text-destructive border-destructive/40 hover:bg-destructive/10 sm:mr-auto"
+                onClick={() => setCancelarPedidoOpen(true)}
+              >
+                <Ban className="h-4 w-4 mr-1" />
+                Cancelar pedido
+              </Button>
+            ) : <span />}
+            <div className="flex gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Fechar
             </Button>
@@ -344,9 +375,17 @@ export function PedidoDetalheComprador({
                 Registrar compra
               </Button>
             )}
+            </div>
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <CancelarPedidoDialog
+        open={cancelarPedidoOpen}
+        onOpenChange={setCancelarPedidoOpen}
+        pedidoId={pedido.id}
+        onCancelado={() => onOpenChange(false)}
+      />
 
       <CancelarItemDialog
         open={!!cancelarItem}
