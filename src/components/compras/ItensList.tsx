@@ -140,17 +140,22 @@ function ItemCard({
   onRemove,
   readOnly,
   canRemove,
+  showStatus,
 }: {
   item: ItemEdit;
   onChange: (patch: Partial<ItemEdit>) => void;
   onRemove: () => void;
   readOnly?: boolean;
   canRemove: boolean;
+  showStatus?: boolean;
 }) {
   const [showSpec, setShowSpec] = useState(!!item.especificacao_tecnica);
   const [urlInput, setUrlInput] = useState("");
 
   const subtotal = Number(item.quantidade || 0) * Number(item.valor_estimado_unitario || 0);
+  const status = item.status;
+  const statusCfg = status ? itemStatusConfig[status] : null;
+  const isCancelado = status === "cancelado";
 
   const addUrl = () => {
     const v = urlInput.trim();
@@ -166,8 +171,28 @@ function ItemCard({
   };
 
   return (
-    <Card className="p-4 relative">
-      {canRemove && (
+    <Card className={cn("p-4 relative", isCancelado && showStatus && "opacity-70")}>
+      {showStatus && statusCfg && (
+        <div className="absolute top-2 right-2">
+          {isCancelado && item.cancelamento_motivo ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className={cn("border-0 cursor-help", statusCfg.className)}>
+                    {statusCfg.label}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs text-xs">{item.cancelamento_motivo}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Badge className={cn("border-0", statusCfg.className)}>{statusCfg.label}</Badge>
+          )}
+        </div>
+      )}
+      {canRemove && !showStatus && (
         <button
           type="button"
           onClick={onRemove}
@@ -178,7 +203,7 @@ function ItemCard({
         </button>
       )}
 
-      <div className="space-y-3">
+      <div className={cn("space-y-3", showStatus && statusCfg && "pr-24")}>
         <div>
           <Label>Descrição *</Label>
           <Input
@@ -195,10 +220,13 @@ function ItemCard({
             <Label>Quantidade *</Label>
             <Input
               type="number"
-              min={0}
-              step="0.0001"
+              min={1}
+              step="1"
               value={item.quantidade}
-              onChange={(e) => onChange({ quantidade: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                onChange({ quantidade: Math.max(1, isNaN(v) ? 1 : v) });
+              }}
               disabled={readOnly}
               aria-invalid={!(item.quantidade > 0)}
             />
