@@ -279,107 +279,68 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     }
     setEnviando(true);
     try {
-      // Doutrina nova: ao enviar, status SEMPRE vira aguardando_pagamento.
-      // Tag doc_pendente é calculada por trigger no banco (sem doc anexado → tag aparece).
-      const isReenvio = conta.status === "aguardando_pagamento";
-
-      // 1) Salvar dados bancários + atualizar status
-      await mudarStatus.mutateAsync({
-        contaId: conta.id,
-        statusAnterior: conta.status,
-        novoStatus: "aguardando_pagamento",
-        observacao: isReenvio
-          ? `Reenvio de e-mail para ${emailDestinatario}${obsEnvio ? ` — ${obsEnvio}` : ""}`
-          : `Enviado para pagamento: ${emailDestinatario}${obsEnvio ? ` — ${obsEnvio}` : ""}`,
-        extras: {
-          dados_pagamento_fornecedor: dadosPgto,
-          forma_pagamento_id: formaPagamentoId,
-          numero_parcela: parcelas,
-          enviado_pagamento_em: new Date().toISOString(),
-          enviado_pagamento_por: user?.id || null,
+      // 1) RPC executar_pagamento (B1) — encapsula:
+      //    - status → aguardando_pagamento + dados bancários + parcela + audit
+      //    - histórico (insert em contas_pagar_historico)
+      //    - enriquecimento silencioso do parceiro
+      //    - flag pagamento_com_pendencia + pendencias_no_envio
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rpcResult, error: rpcError } = await (supabase as any).rpc(
+        "executar_pagamento",
+        {
+          p_cpr_id: conta.id,
+          p_dados_pagamento: dadosPgto,
+          p_forma_pagamento_id: formaPagamentoId,
+          p_numero_parcela: parcelas,
+          p_observacao: obsEnvio || null,
+          p_email_destinatario: emailDestinatario,
         },
-      });
+      );
 
-      // Doutrina: ações no fluxo enriquecem cadastros silenciosamente
-      // Salva dados bancários no parceiro pra próxima vez
-      if (
-        conta.parceiro_id &&
-        (dadosPgto.banco || dadosPgto.agencia || dadosPgto.conta || dadosPgto.pix)
-      ) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: resultado } = await (supabase as any).rpc(
-            "enriquecer_parceiro_com_bancarios",
-            {
-              p_parceiro_id: conta.parceiro_id,
-              p_dados: {
-                banco: dadosPgto.banco || null,
-                agencia: dadosPgto.agencia || null,
-                conta: dadosPgto.conta || null,
-                pix: dadosPgto.pix || null,
-              },
-            },
-          );
-
-          if (resultado?.qtd_campos_atualizados > 0) {
-            toast.info(
-              `Dados bancários de ${fornecedorNome} salvos no cadastro. Não vamos pedir de novo.`,
-              { duration: 4000 },
-            );
-          }
-        } catch (e) {
-          // Falha silenciosa — não bloqueia envio do pagamento
-          console.warn("Não foi possível salvar dados bancários no parceiro:", e);
-        }
+      if (rpcError || !rpcResult?.ok) {
+        throw new Error(
+          rpcResult?.erro || rpcError?.message || "Falha ao executar pagamento",
+        );
       }
 
-      // 2) Gerar URLs assinadas dos documentos selecionados (válidas por 30 dias)
+      // Toast de pendência (informativo, não bloqueia)
+      if (rpcResult.pagamento_com_pendencia) {
+        toast.warning(
+          `Pagamento iniciado com pendência em: ${(rpcResult.pendencias || []).join(", ")}`,
+          { duration: 5000 },
+        );
+      }
+
+      // Toast silencioso de enriquecimento de parceiro
+      const qtdEnriquecido =
+        rpcResult.enriquecimento_parceiro?.qtd_campos_atualizados || 0;
+      if (qtdEnriquecido > 0) {
+        toast.info(
+          `Dados bancários de ${fornecedorNome} salvos no cadastro. Não vamos pedir de novo.`,
+          { duration: 4000 },
+        );
+      }
+
+      // 2) Edge Function enviar-email-pagamento (B2 — D-G Adapter) — encapsula:
+      //    - geração de URLs assinadas dos docs
+      //    - invocação de send-transactional-email com template + payload corretos
+      //    - update de email_pagamento_enviado (atomic)
       const docsParaEnviar = (documentos || []).filter((d) => docsSelecionados.has(d.id));
-      const linksDocs: { tipo: string; nome: string; url: string }[] = [];
-      for (const doc of docsParaEnviar) {
-        const { data: signed } = await supabase.storage
-          .from("financeiro-docs")
-          .createSignedUrl(doc.storage_path, 60 * 60 * 24 * 30); // 30 dias
-        if (signed?.signedUrl) {
-          linksDocs.push({
-            tipo: TIPO_DOC_LABEL[doc.tipo] || doc.tipo,
-            nome: doc.nome_arquivo,
-            url: signed.signedUrl,
-          });
-        }
-      }
-
-      // 3) Enviar email (best-effort)
-      const emailResult = await supabase.functions.invoke("send-transactional-email", {
+      const emailResult = await supabase.functions.invoke("enviar-email-pagamento", {
         body: {
-          templateName: "pagamento-solicitacao",
-          recipientEmail: emailDestinatario,
-          idempotencyKey: `pgto-${conta.id}-${Date.now()}`,
-          templateData: {
-            fornecedor: fornecedorNome,
-            valor: formatBRL(conta.valor),
-            vencimento: formatDateBR(conta.data_vencimento),
-            nf_numero: conta.nf_numero || "—",
-            categoria: categoriaTxt,
-            banco: dadosPgto.banco || "—",
-            agencia: dadosPgto.agencia || "—",
-            conta_bancaria: dadosPgto.conta || "—",
-            pix: dadosPgto.pix || "—",
-            observacao: obsEnvio || "—",
-            mensagem_personalizada: mensagemEmail || "",
-            documentos_links: linksDocs,
-            solicitante: user?.email || "",
-          },
+          cpr_id: conta.id,
+          email_destinatario: emailDestinatario,
+          mensagem_personalizada: mensagemEmail || "",
+          docs: docsParaEnviar.map((d) => ({
+            tipo: d.tipo,
+            nome_arquivo: d.nome_arquivo,
+            storage_path: d.storage_path,
+          })),
         },
       });
 
-      const emailOk = !emailResult.error;
-
-      await supabase
-        .from("contas_pagar_receber")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ email_pagamento_enviado: emailOk } as any)
-        .eq("id", conta.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const emailOk = !emailResult.error && Boolean((emailResult.data as any)?.ok);
 
       // 3) Criar tarefa Uauuu (best-effort)
       try {
