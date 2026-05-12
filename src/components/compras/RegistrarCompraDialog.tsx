@@ -40,6 +40,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CategoriaFolhaSelect } from "./CategoriaFolhaSelect";
 import { AnexosCompraList, type AnexoPendente } from "./AnexosCompraList";
+import { NovoFornecedorRapidoDialog } from "./NovoFornecedorRapidoDialog";
 import { useRegistrarCompraPedido } from "@/hooks/compras/useRegistrarCompraPedido";
 import { useAnexosCompraRegistrada } from "@/hooks/compras/useAnexosCompraRegistrada";
 import type { PedidoCompraFull, PedidoCompraItemRow } from "@/lib/compras/types";
