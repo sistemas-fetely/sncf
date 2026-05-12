@@ -65,7 +65,8 @@ export interface RegistrarCompraInput {
   parcelas_count: number;
   primeira_parcela_data: string;
   intervalo_dias: number;
-  meio_pagamento_id?: string | null;
+  periodicidade: "dias" | "meses";
+  meio_pagamento_id: string;
   observacao?: string | null;
   itens: ItemCobertoInput[];
 }

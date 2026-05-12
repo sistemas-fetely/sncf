@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format, addDays, parseISO } from "date-fns";
+import { format, addDays, addMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Check, ChevronsUpDown, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,7 +69,8 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
   const [valorTotal, setValorTotal] = useState<string>("0");
   const [parcelasCount, setParcelasCount] = useState<number>(1);
   const [primeiraParcelaData, setPrimeiraParcelaData] = useState<Date>(new Date());
-  const [intervaloDias, setIntervaloDias] = useState<number>(30);
+  const [intervaloDias, setIntervaloDias] = useState<number>(1);
+  const [periodicidade, setPeriodicidade] = useState<"dias" | "meses">("meses");
   const [meioPagamentoId, setMeioPagamentoId] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
   const [itensState, setItensState] = useState<Record<string, ItemEstado>>({});
@@ -98,7 +99,8 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
     setDataCompra(new Date());
     setPrimeiraParcelaData(new Date());
     setParcelasCount(1);
-    setIntervaloDias(30);
+    setIntervaloDias(1);
+    setPeriodicidade("meses");
     setMeioPagamentoId("");
     setObservacao("");
     setValorTotal(somaEstimada.toFixed(2));
@@ -158,18 +160,22 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
     return Array.from({ length: n }, (_, idx) => ({
       n: idx + 1,
       valor: idx === n - 1 ? ultima : valorParcela,
-      vencimento: addDays(primeiraParcelaData, idx * intervalo),
+      vencimento:
+        periodicidade === "meses"
+          ? addMonths(primeiraParcelaData, idx * intervalo)
+          : addDays(primeiraParcelaData, idx * intervalo),
     }));
-  }, [parcelasCount, valorTotalNum, primeiraParcelaData, intervaloDias]);
+  }, [parcelasCount, valorTotalNum, primeiraParcelaData, intervaloDias, periodicidade]);
 
   const validacao = (): string | null => {
     if (!parceiroId) return "Selecione o fornecedor";
     if (!contaId) return "Selecione a categoria contábil";
+    if (!meioPagamentoId) return "Selecione o meio de pagamento";
     if (!(valorTotalNum > 0)) return "Valor total deve ser maior que zero";
     if (!dataCompra) return "Data da compra é obrigatória";
     if (!(parcelasCount >= 1)) return "Nº de parcelas inválido";
     if (!primeiraParcelaData) return "Data da primeira parcela é obrigatória";
-    if (!(intervaloDias >= 1)) return "Intervalo deve ser ao menos 1 dia";
+    if (!(intervaloDias >= 1)) return "Intervalo deve ser ao menos 1";
     if (itensSelecionados.length === 0) return "Selecione ao menos 1 item";
     for (const i of itensSelecionados) {
       if (!(i.q > 0)) return `Item "${i.descricao}": quantidade real inválida`;
@@ -196,7 +202,8 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
         parcelas_count: Math.floor(parcelasCount),
         primeira_parcela_data: format(primeiraParcelaData, "yyyy-MM-dd"),
         intervalo_dias: Math.floor(intervaloDias),
-        meio_pagamento_id: meioPagamentoId || null,
+        periodicidade,
+        meio_pagamento_id: meioPagamentoId,
         observacao: observacao || null,
         itens: itensSelecionados.map((i) => ({
           pedido_item_id: i.id,
@@ -460,7 +467,7 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
           {/* SEÇÃO 3: Parcelamento */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold">Parcelamento</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <div>
                 <Label>Nº parcelas</Label>
                 <Input
@@ -492,13 +499,28 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
                 </Popover>
               </div>
               <div>
-                <Label>Intervalo (dias)</Label>
+                <Label>Intervalo</Label>
                 <Input
                   type="number"
                   min="1"
                   value={intervaloDias}
-                  onChange={(e) => setIntervaloDias(Number(e.target.value) || 30)}
+                  onChange={(e) => setIntervaloDias(Number(e.target.value) || 1)}
                 />
+              </div>
+              <div>
+                <Label>Periodicidade</Label>
+                <Select
+                  value={periodicidade}
+                  onValueChange={(v) => setPeriodicidade(v as "dias" | "meses")}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="meses">Meses</SelectItem>
+                    <SelectItem value="dias">Dias</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <Card className="p-3 bg-muted/30">
@@ -525,16 +547,15 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
           <section className="space-y-3">
             <h3 className="text-sm font-semibold">Meio de pagamento</h3>
             <div>
-              <Label>Forma de pagamento (opcional)</Label>
+              <Label>Forma de pagamento *</Label>
               <Select
-                value={meioPagamentoId || "none"}
-                onValueChange={(v) => setMeioPagamentoId(v === "none" ? "" : v)}
+                value={meioPagamentoId}
+                onValueChange={(v) => setMeioPagamentoId(v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="—" />
+                  <SelectValue placeholder="Selecione…" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">—</SelectItem>
                   {formas.map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       <div className="flex items-center gap-2">

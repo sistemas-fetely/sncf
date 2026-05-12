@@ -1451,7 +1451,7 @@ export type Database = {
       compras_registradas: {
         Row: {
           comprador_id: string
-          conta_id: string
+          conta_id: string | null
           created_at: string
           data_compra: string
           excluida_em: string | null
@@ -1472,7 +1472,7 @@ export type Database = {
         }
         Insert: {
           comprador_id: string
-          conta_id: string
+          conta_id?: string | null
           created_at?: string
           data_compra: string
           excluida_em?: string | null
@@ -1493,7 +1493,7 @@ export type Database = {
         }
         Update: {
           comprador_id?: string
-          conta_id?: string
+          conta_id?: string | null
           created_at?: string
           data_compra?: string
           excluida_em?: string | null
@@ -12523,15 +12523,16 @@ export type Database = {
       }
       registrar_compra_pedido: {
         Args: {
-          p_conta_id: string
+          p_conta_id?: string
           p_data_compra: string
           p_intervalo_dias?: number
           p_itens?: Json
-          p_meio_pagamento_id?: string
+          p_meio_pagamento_id: string
           p_observacao?: string
           p_parceiro_id: string
           p_parcelas_count?: number
           p_pedido_id: string
+          p_periodicidade?: string
           p_primeira_parcela_data?: string
           p_valor_total: number
         }

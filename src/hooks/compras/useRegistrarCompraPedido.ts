@@ -19,14 +19,15 @@ export function useRegistrarCompraPedido() {
     mutationFn: async (input: RegistrarCompraInput) => {
       const { data, error } = await supabase.rpc("registrar_compra_pedido", {
         p_pedido_id: input.pedido_id,
-        p_conta_id: input.conta_id,
         p_parceiro_id: input.parceiro_id,
         p_valor_total: input.valor_total,
         p_data_compra: input.data_compra,
+        p_meio_pagamento_id: input.meio_pagamento_id,
         p_parcelas_count: input.parcelas_count,
         p_primeira_parcela_data: input.primeira_parcela_data,
         p_intervalo_dias: input.intervalo_dias,
-        p_meio_pagamento_id: input.meio_pagamento_id ?? null,
+        p_periodicidade: input.periodicidade,
+        p_conta_id: input.conta_id,
         p_observacao: input.observacao ?? null,
         p_itens: input.itens as unknown as never,
       });
