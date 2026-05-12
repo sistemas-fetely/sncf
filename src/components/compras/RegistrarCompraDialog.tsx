@@ -106,6 +106,7 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
     setPeriodicidade("meses");
     setMeioPagamentoId("");
     setObservacao("");
+    setJaPago(false);
     setValorTotal(somaEstimada.toFixed(2));
     setPendentes([]);
   }, [open, pedido, itensPendentes]);
