@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, Loader2, Trash2, X } from "lucide-react";
+import { Ban, ExternalLink, Loader2, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sheet,
@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -38,6 +39,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { PedidoStatusBadge } from "./PedidoStatusBadge";
 import { CancelarItemDialog } from "./CancelarItemDialog";
+import { CancelarPedidoDialog } from "./CancelarPedidoDialog";
+import { TimelinePedido } from "./TimelinePedido";
+import { useAuth } from "@/contexts/AuthContext";
 import { useIniciarCompraPedido } from "@/hooks/compras/useIniciarCompraPedido";
 import { useExcluirCompraRegistrada } from "@/hooks/compras/useExcluirCompraRegistrada";
 import { useAnexosPedidoCompra } from "@/hooks/compras/useAnexosPedidoCompra";
