@@ -135,6 +135,9 @@ export default function ContasPagar() {
       const m = new Map<string, boolean>();
       (rows || []).forEach((r: { id: string; email_pagamento_enviado: boolean | null }) => {
         m.set(r.id, !!r.email_pagamento_enviado);
+      });
+      return m;
+    },
   });
 
   // Pendências de pagamento vêm da tabela base (não estão na view consolidada)
@@ -158,9 +161,6 @@ export default function ContasPagar() {
           });
         }
       });
-      return m;
-    },
-  });
       return m;
     },
   });
