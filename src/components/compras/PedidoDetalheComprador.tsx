@@ -160,7 +160,12 @@ export function PedidoDetalheComprador({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-6 space-y-6">
+          <Tabs defaultValue="detalhes" className="mt-6">
+            <TabsList>
+              <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline e Comentários</TabsTrigger>
+            </TabsList>
+            <TabsContent value="detalhes" className="mt-4 space-y-6">
             {/* Detalhes */}
             <section className="space-y-2">
               <h4 className="text-sm font-semibold">Detalhes</h4>
