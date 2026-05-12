@@ -1448,6 +1448,222 @@ export type Database = {
           },
         ]
       }
+      compras_registradas: {
+        Row: {
+          comprador_id: string
+          conta_id: string
+          created_at: string
+          data_compra: string
+          excluida_em: string | null
+          excluida_motivo: string | null
+          excluida_por: string | null
+          id: string
+          intervalo_dias: number
+          meio_pagamento_id: string | null
+          observacao: string | null
+          parceiro_id: string
+          parcela_grupo_id: string
+          parcelas_count: number
+          pedido_id: string
+          primeira_parcela_data: string
+          status: Database["public"]["Enums"]["compra_registrada_status_enum"]
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          comprador_id: string
+          conta_id: string
+          created_at?: string
+          data_compra: string
+          excluida_em?: string | null
+          excluida_motivo?: string | null
+          excluida_por?: string | null
+          id?: string
+          intervalo_dias?: number
+          meio_pagamento_id?: string | null
+          observacao?: string | null
+          parceiro_id: string
+          parcela_grupo_id?: string
+          parcelas_count?: number
+          pedido_id: string
+          primeira_parcela_data: string
+          status?: Database["public"]["Enums"]["compra_registrada_status_enum"]
+          updated_at?: string
+          valor_total: number
+        }
+        Update: {
+          comprador_id?: string
+          conta_id?: string
+          created_at?: string
+          data_compra?: string
+          excluida_em?: string | null
+          excluida_motivo?: string | null
+          excluida_por?: string | null
+          id?: string
+          intervalo_dias?: number
+          meio_pagamento_id?: string | null
+          observacao?: string | null
+          parceiro_id?: string
+          parcela_grupo_id?: string
+          parcelas_count?: number
+          pedido_id?: string
+          primeira_parcela_data?: string
+          status?: Database["public"]["Enums"]["compra_registrada_status_enum"]
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_registradas_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_registradas_meio_pagamento_id_fkey"
+            columns: ["meio_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_registradas_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_registradas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compras_registradas_anexos: {
+        Row: {
+          compra_registrada_id: string
+          id: string
+          mime_type: string
+          nome_original: string
+          storage_path: string
+          tamanho_bytes: number
+          tipo: Database["public"]["Enums"]["compra_anexo_tipo_enum"]
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          compra_registrada_id: string
+          id?: string
+          mime_type: string
+          nome_original: string
+          storage_path: string
+          tamanho_bytes: number
+          tipo: Database["public"]["Enums"]["compra_anexo_tipo_enum"]
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          compra_registrada_id?: string
+          id?: string
+          mime_type?: string
+          nome_original?: string
+          storage_path?: string
+          tamanho_bytes?: number
+          tipo?: Database["public"]["Enums"]["compra_anexo_tipo_enum"]
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_registradas_anexos_compra_registrada_id_fkey"
+            columns: ["compra_registrada_id"]
+            isOneToOne: false
+            referencedRelation: "compras_registradas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compras_registradas_audit_log: {
+        Row: {
+          acao: string
+          compra_registrada_id: string
+          created_at: string
+          id: string
+          payload: Json
+          usuario_id: string
+        }
+        Insert: {
+          acao: string
+          compra_registrada_id: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          usuario_id: string
+        }
+        Update: {
+          acao?: string
+          compra_registrada_id?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_registradas_audit_log_compra_registrada_id_fkey"
+            columns: ["compra_registrada_id"]
+            isOneToOne: false
+            referencedRelation: "compras_registradas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compras_registradas_itens: {
+        Row: {
+          compra_registrada_id: string
+          created_at: string
+          id: string
+          pedido_item_id: string
+          quantidade_real: number
+          valor_unitario_real: number
+        }
+        Insert: {
+          compra_registrada_id: string
+          created_at?: string
+          id?: string
+          pedido_item_id: string
+          quantidade_real: number
+          valor_unitario_real: number
+        }
+        Update: {
+          compra_registrada_id?: string
+          created_at?: string
+          id?: string
+          pedido_item_id?: string
+          quantidade_real?: number
+          valor_unitario_real?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_registradas_itens_compra_registrada_id_fkey"
+            columns: ["compra_registrada_id"]
+            isOneToOne: false
+            referencedRelation: "compras_registradas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_registradas_itens_pedido_item_id_fkey"
+            columns: ["pedido_item_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compromissos_parcelados: {
         Row: {
           categoria_id: string | null
@@ -2090,6 +2306,7 @@ export type Database = {
           categoria_confirmada: boolean | null
           categoria_sugerida_ia: boolean | null
           centro_custo_id: string | null
+          compra_registrada_id: string | null
           compromisso_parcelado_id: string | null
           compromisso_recorrente_id: string | null
           comprovante_url: string | null
@@ -2150,6 +2367,7 @@ export type Database = {
           parcelas: number | null
           pasta_contrato_id: string | null
           pasta_contrato_parcela_id: string | null
+          pedido_compra_id: string | null
           sla_aprovacao_dias: number | null
           sla_pagamento_dias: number | null
           status: string
@@ -2173,6 +2391,7 @@ export type Database = {
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
           centro_custo_id?: string | null
+          compra_registrada_id?: string | null
           compromisso_parcelado_id?: string | null
           compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
@@ -2233,6 +2452,7 @@ export type Database = {
           parcelas?: number | null
           pasta_contrato_id?: string | null
           pasta_contrato_parcela_id?: string | null
+          pedido_compra_id?: string | null
           sla_aprovacao_dias?: number | null
           sla_pagamento_dias?: number | null
           status?: string
@@ -2256,6 +2476,7 @@ export type Database = {
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
           centro_custo_id?: string | null
+          compra_registrada_id?: string | null
           compromisso_parcelado_id?: string | null
           compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
@@ -2316,6 +2537,7 @@ export type Database = {
           parcelas?: number | null
           pasta_contrato_id?: string | null
           pasta_contrato_parcela_id?: string | null
+          pedido_compra_id?: string | null
           sla_aprovacao_dias?: number | null
           sla_pagamento_dias?: number | null
           status?: string
@@ -2343,6 +2565,13 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_compra_registrada_id_fkey"
+            columns: ["compra_registrada_id"]
+            isOneToOne: false
+            referencedRelation: "compras_registradas"
             referencedColumns: ["id"]
           },
           {
@@ -2441,6 +2670,13 @@ export type Database = {
             columns: ["pasta_contrato_parcela_id"]
             isOneToOne: false
             referencedRelation: "pasta_contrato_parcelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_pedido_compra_id_fkey"
+            columns: ["pedido_compra_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra"
             referencedColumns: ["id"]
           },
           {
@@ -11616,6 +11852,10 @@ export type Database = {
       }
       calcular_docs_status: { Args: { p_conta_id: string }; Returns: string }
       cancelar_conta_pagar: { Args: { p_conta_id: string }; Returns: Json }
+      cancelar_item_pedido: {
+        Args: { p_item_id: string; p_motivo: string }
+        Returns: Json
+      }
       cancelar_parcelas_futuras_recorrente: {
         Args: { p_recorrente_id: string }
         Returns: number
@@ -11910,6 +12150,10 @@ export type Database = {
         }[]
       }
       enviar_pedido_compra: { Args: { p_pedido_id: string }; Returns: Json }
+      excluir_compra_registrada: {
+        Args: { p_compra_id: string; p_motivo: string }
+        Returns: Json
+      }
       exportar_pacote_documentos: {
         Args: { p_periodo_fim: string; p_periodo_inicio: string }
         Returns: {
@@ -12047,6 +12291,7 @@ export type Database = {
       }
       ignorar_lancamento: { Args: { p_lancamento_id: string }; Returns: Json }
       ignorar_ofx: { Args: { p_ofx_id: string }; Returns: Json }
+      iniciar_compra_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       lancar_ofx_como_movimentacao: {
         Args: { p_ofx_id: string }
         Returns: Json
@@ -12276,6 +12521,22 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_compra_pedido: {
+        Args: {
+          p_conta_id: string
+          p_data_compra: string
+          p_intervalo_dias?: number
+          p_itens?: Json
+          p_meio_pagamento_id?: string
+          p_observacao?: string
+          p_parceiro_id: string
+          p_parcelas_count?: number
+          p_pedido_id: string
+          p_primeira_parcela_data?: string
+          p_valor_total: number
+        }
+        Returns: Json
+      }
       registrar_consulta_processo: {
         Args: { _processo_id: string }
         Returns: undefined
@@ -12471,6 +12732,12 @@ export type Database = {
         | "gestao_direta"
         | "estagiario"
         | "diretoria_executiva"
+      compra_anexo_tipo_enum:
+        | "nf"
+        | "recibo"
+        | "comprovante_pagamento"
+        | "outro"
+      compra_registrada_status_enum: "ativa" | "excluida"
       contexto_acesso_salario:
         | "proprio"
         | "folha"
@@ -12650,6 +12917,13 @@ export const Constants = {
         "estagiario",
         "diretoria_executiva",
       ],
+      compra_anexo_tipo_enum: [
+        "nf",
+        "recibo",
+        "comprovante_pagamento",
+        "outro",
+      ],
+      compra_registrada_status_enum: ["ativa", "excluida"],
       contexto_acesso_salario: [
         "proprio",
         "folha",
