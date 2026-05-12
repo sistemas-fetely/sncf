@@ -206,7 +206,7 @@ export function PedidoDetalheComprador({
                           </TableCell>
                           <TableCell className="text-right">{fmtBRL(subtotal)}</TableCell>
                           <TableCell>
-                            <ItemStatusBadge status={i.status} motivo={i.motivo_cancelamento} />
+                            <ItemStatusBadge status={i.status} motivo={i.cancelamento_motivo} />
                           </TableCell>
                           <TableCell>
                             {i.status === "pendente" && ehMeu && podeAgir && (
