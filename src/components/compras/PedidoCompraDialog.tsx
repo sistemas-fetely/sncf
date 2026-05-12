@@ -403,7 +403,21 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
 
         <DialogFooter>
           {mode === "ver" ? (
-            <Button onClick={() => onOpenChange(false)}>Fechar</Button>
+            <div className="flex w-full justify-between gap-2">
+              <div>
+                {podeCancelar && (
+                  <Button
+                    variant="outline"
+                    className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                    onClick={() => setCancelarDialogOpen(true)}
+                  >
+                    <Ban className="h-4 w-4 mr-1" />
+                    Cancelar pedido
+                  </Button>
+                )}
+              </div>
+              <Button onClick={() => onOpenChange(false)}>Fechar</Button>
+            </div>
           ) : (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>
