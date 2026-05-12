@@ -289,19 +289,16 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
               <TabsTrigger value="timeline">Timeline e Comentários</TabsTrigger>
             </TabsList>
             <TabsContent value="detalhes" className="space-y-6 mt-4">
-              <PedidoDetalhesContent />
+              {detalhesContent}
             </TabsContent>
             <TabsContent value="timeline" className="mt-4">
               <TimelinePedido pedidoId={pedido.id} />
             </TabsContent>
           </Tabs>
         ) : (
-          <div className="space-y-6">
-            <PedidoDetalhesContent />
-          </div>
+          <div className="space-y-6">{detalhesContent}</div>
         )}
 
-        {/* helper rendered above as a function via closure */}
         {false && <div className="space-y-6">
           {/* SEÇÃO 1: CABEÇALHO */}
           <div className="space-y-3">
