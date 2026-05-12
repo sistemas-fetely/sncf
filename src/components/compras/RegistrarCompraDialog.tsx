@@ -223,6 +223,32 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
           toast.error(`Falha ao enviar ${a.file.name}: ${(e as Error).message}`);
         }
       }
+
+      // Fluxo B — "já paguei": marcar CPRs como realizadas
+      if (jaPago && res.compra_id) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: marcarRes, error: marcarErr } = await (supabase as any).rpc(
+            "marcar_compra_como_realizada",
+            {
+              p_compra_id: res.compra_id,
+              p_observacao: "Marcado como 'já paguei' no registro da compra",
+            },
+          );
+          if (marcarErr || !marcarRes?.ok) {
+            toast.warning(
+              `Compra registrada, mas falhou marcar como realizada: ${marcarRes?.erro || marcarErr?.message || "erro desconhecido"}`,
+            );
+          } else {
+            toast.success(
+              `${marcarRes.cprs_atualizadas} parcela(s) marcada(s) como realizadas (pagamento já efetuado)`,
+            );
+          }
+        } catch (e) {
+          toast.warning(`Compra registrada, mas falhou marcar como realizada: ${(e as Error).message}`);
+        }
+      }
+
       onOpenChange(false);
     } catch {
       // toast já mostrado pelo hook
