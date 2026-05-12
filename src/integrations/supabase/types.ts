@@ -6809,6 +6809,218 @@ export type Database = {
           },
         ]
       }
+      pedidos_compra: {
+        Row: {
+          cancelado_em: string | null
+          cancelado_por: string | null
+          cancelamento_motivo: string | null
+          centro_custo_id: string | null
+          comprador_id: string | null
+          created_at: string
+          departamento_id: string | null
+          descricao_geral: string | null
+          enviado_em: string | null
+          finalizado_em: string | null
+          id: string
+          iniciado_em: string | null
+          justificativa: string | null
+          linha_investimento_id: string | null
+          parceiro_preferencial_id: string | null
+          solicitante_id: string
+          status: Database["public"]["Enums"]["pedido_compra_status_enum"]
+          sub_estado:
+            | Database["public"]["Enums"]["pedido_compra_sub_estado_enum"]
+            | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          cancelamento_motivo?: string | null
+          centro_custo_id?: string | null
+          comprador_id?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          descricao_geral?: string | null
+          enviado_em?: string | null
+          finalizado_em?: string | null
+          id?: string
+          iniciado_em?: string | null
+          justificativa?: string | null
+          linha_investimento_id?: string | null
+          parceiro_preferencial_id?: string | null
+          solicitante_id: string
+          status?: Database["public"]["Enums"]["pedido_compra_status_enum"]
+          sub_estado?:
+            | Database["public"]["Enums"]["pedido_compra_sub_estado_enum"]
+            | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          cancelamento_motivo?: string | null
+          centro_custo_id?: string | null
+          comprador_id?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          descricao_geral?: string | null
+          enviado_em?: string | null
+          finalizado_em?: string | null
+          id?: string
+          iniciado_em?: string | null
+          justificativa?: string | null
+          linha_investimento_id?: string | null
+          parceiro_preferencial_id?: string | null
+          solicitante_id?: string
+          status?: Database["public"]["Enums"]["pedido_compra_status_enum"]
+          sub_estado?:
+            | Database["public"]["Enums"]["pedido_compra_sub_estado_enum"]
+            | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_compra_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "parametros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_linha_investimento_id_fkey"
+            columns: ["linha_investimento_id"]
+            isOneToOne: false
+            referencedRelation: "linhas_investimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_linha_investimento_id_fkey"
+            columns: ["linha_investimento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_linhas_investimento_kpis"
+            referencedColumns: ["linha_id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_parceiro_preferencial_id_fkey"
+            columns: ["parceiro_preferencial_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos_compra_anexos: {
+        Row: {
+          id: string
+          mime_type: string
+          nome_original: string
+          pedido_id: string
+          storage_path: string
+          tamanho_bytes: number
+          tipo: Database["public"]["Enums"]["pedido_compra_anexo_tipo_enum"]
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          id?: string
+          mime_type: string
+          nome_original: string
+          pedido_id: string
+          storage_path: string
+          tamanho_bytes: number
+          tipo: Database["public"]["Enums"]["pedido_compra_anexo_tipo_enum"]
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          id?: string
+          mime_type?: string
+          nome_original?: string
+          pedido_id?: string
+          storage_path?: string
+          tamanho_bytes?: number
+          tipo?: Database["public"]["Enums"]["pedido_compra_anexo_tipo_enum"]
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_compra_anexos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos_compra_itens: {
+        Row: {
+          cancelamento_motivo: string | null
+          created_at: string
+          descricao: string
+          especificacao_tecnica: string | null
+          id: string
+          ordem: number
+          pedido_id: string
+          quantidade: number
+          status: Database["public"]["Enums"]["pedido_compra_item_status_enum"]
+          urls: string[] | null
+          valor_estimado_unitario: number
+        }
+        Insert: {
+          cancelamento_motivo?: string | null
+          created_at?: string
+          descricao: string
+          especificacao_tecnica?: string | null
+          id?: string
+          ordem?: number
+          pedido_id: string
+          quantidade: number
+          status?: Database["public"]["Enums"]["pedido_compra_item_status_enum"]
+          urls?: string[] | null
+          valor_estimado_unitario: number
+        }
+        Update: {
+          cancelamento_motivo?: string | null
+          created_at?: string
+          descricao?: string
+          especificacao_tecnica?: string | null
+          id?: string
+          ordem?: number
+          pedido_id?: string
+          quantidade?: number
+          status?: Database["public"]["Enums"]["pedido_compra_item_status_enum"]
+          urls?: string[] | null
+          valor_estimado_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_compra_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos_venda: {
         Row: {
           bling_id: string | null
@@ -11495,6 +11707,17 @@ export type Database = {
           ok: boolean
         }[]
       }
+      criar_pedido_compra: {
+        Args: {
+          p_centro_custo_id?: string
+          p_descricao_geral?: string
+          p_itens?: Json
+          p_justificativa?: string
+          p_linha_investimento_id?: string
+          p_parceiro_preferencial_id?: string
+        }
+        Returns: Json
+      }
       criar_tarefa_aprovacao_nf_pj: {
         Args: { _nota_id: string }
         Returns: string
@@ -11686,6 +11909,7 @@ export type Database = {
           total_processados: number
         }[]
       }
+      enviar_pedido_compra: { Args: { p_pedido_id: string }; Returns: Json }
       exportar_pacote_documentos: {
         Args: { p_periodo_fim: string; p_periodo_inicio: string }
         Returns: {
@@ -11760,6 +11984,13 @@ export type Database = {
       get_user_colaborador_tipo: {
         Args: { _user_id: string }
         Returns: string[]
+      }
+      get_user_departamento_unidade: {
+        Args: { p_user_id: string }
+        Returns: {
+          departamento_id: string
+          unidade_id: string
+        }[]
       }
       get_user_id_from_profile: {
         Args: { _profile_id: string }
@@ -12259,6 +12490,20 @@ export type Database = {
         | "coordenador"
         | "gerente"
         | "diretor"
+      pedido_compra_anexo_tipo_enum:
+        | "cotacao"
+        | "orcamento"
+        | "proposta"
+        | "imagem_referencia"
+        | "outro"
+      pedido_compra_item_status_enum: "pendente" | "comprado" | "cancelado"
+      pedido_compra_status_enum:
+        | "rascunho"
+        | "aberto"
+        | "em_compra"
+        | "comprado"
+        | "cancelado"
+      pedido_compra_sub_estado_enum: "em_compra" | "aguardando_orcamento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -12426,6 +12671,22 @@ export const Constants = {
         "gerente",
         "diretor",
       ],
+      pedido_compra_anexo_tipo_enum: [
+        "cotacao",
+        "orcamento",
+        "proposta",
+        "imagem_referencia",
+        "outro",
+      ],
+      pedido_compra_item_status_enum: ["pendente", "comprado", "cancelado"],
+      pedido_compra_status_enum: [
+        "rascunho",
+        "aberto",
+        "em_compra",
+        "comprado",
+        "cancelado",
+      ],
+      pedido_compra_sub_estado_enum: ["em_compra", "aguardando_orcamento"],
     },
   },
 } as const
