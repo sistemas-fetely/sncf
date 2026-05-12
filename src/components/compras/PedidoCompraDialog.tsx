@@ -21,11 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { Loader2, Info } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Info, Ban } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { ItensList } from "./ItensList";
 import { AnexosList } from "./AnexosList";
+import { TimelinePedido } from "./TimelinePedido";
+import { CancelarPedidoDialog } from "./CancelarPedidoDialog";
 import { useDepartamentoUnidadeUsuario } from "@/hooks/compras/useDepartamentoUnidadeUsuario";
 import { useCriarPedidoCompra } from "@/hooks/compras/useCriarPedidoCompra";
 import { useEnviarPedidoCompra } from "@/hooks/compras/useEnviarPedidoCompra";
