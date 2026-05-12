@@ -104,6 +104,8 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             especificacao_tecnica: i.especificacao_tecnica || "",
             ordem: i.ordem ?? 0,
             _action: "keep",
+            status: i.status as "pendente" | "comprado" | "cancelado" | undefined,
+            cancelamento_motivo: i.cancelamento_motivo,
           })),
       );
       setAnexos(pedido.pedidos_compra_anexos || []);
