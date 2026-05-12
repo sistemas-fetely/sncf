@@ -622,6 +622,11 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
           </Button>
         </DialogFooter>
       </DialogContent>
+      <NovoFornecedorRapidoDialog
+        open={novoFornecedorOpen}
+        onOpenChange={setNovoFornecedorOpen}
+        onCriado={(id) => handleSelectParceiro(id)}
+      />
     </Dialog>
   );
 }
