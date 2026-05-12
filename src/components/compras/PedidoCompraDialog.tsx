@@ -104,6 +104,8 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             especificacao_tecnica: i.especificacao_tecnica || "",
             ordem: i.ordem ?? 0,
             _action: "keep",
+            status: i.status as "pendente" | "comprado" | "cancelado" | undefined,
+            cancelamento_motivo: i.cancelamento_motivo,
           })),
       );
       setAnexos(pedido.pedidos_compra_anexos || []);
@@ -377,7 +379,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           </div>
 
           {/* SEÇÃO 2: ITENS */}
-          <ItensList items={itens} onChange={setItens} readOnly={readOnly} />
+          <ItensList items={itens} onChange={setItens} readOnly={readOnly} showItemStatus={mode === "ver"} />
 
           {/* SEÇÃO 3: ANEXOS */}
           <AnexosList

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, addDays, addMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Check, ChevronsUpDown, Loader2, AlertTriangle } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown, Loader2, AlertTriangle, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
@@ -40,6 +40,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CategoriaFolhaSelect } from "./CategoriaFolhaSelect";
 import { AnexosCompraList, type AnexoPendente } from "./AnexosCompraList";
+import { NovoFornecedorRapidoDialog } from "./NovoFornecedorRapidoDialog";
 import { useRegistrarCompraPedido } from "@/hooks/compras/useRegistrarCompraPedido";
 import { useAnexosCompraRegistrada } from "@/hooks/compras/useAnexosCompraRegistrada";
 import type { PedidoCompraFull, PedidoCompraItemRow } from "@/lib/compras/types";
@@ -76,6 +77,7 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
   const [itensState, setItensState] = useState<Record<string, ItemEstado>>({});
   const [pendentes, setPendentes] = useState<AnexoPendente[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [novoFornecedorOpen, setNovoFornecedorOpen] = useState(false);
 
   const itensPendentes = useMemo<PedidoCompraItemRow[]>(
     () => (pedido?.pedidos_compra_itens || []).filter((i) => i.status === "pendente"),
@@ -113,7 +115,7 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("parceiros_comerciais")
-        .select("id, razao_social, nome_fantasia, cnpj")
+        .select("id, razao_social, nome_fantasia, cnpj, categoria_padrao_id")
         .eq("ativo", true)
         .order("razao_social");
       return data || [];
@@ -169,7 +171,6 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
 
   const validacao = (): string | null => {
     if (!parceiroId) return "Selecione o fornecedor";
-    if (!contaId) return "Selecione a categoria contábil";
     if (!meioPagamentoId) return "Selecione o meio de pagamento";
     if (!(valorTotalNum > 0)) return "Valor total deve ser maior que zero";
     if (!dataCompra) return "Data da compra é obrigatória";
@@ -195,7 +196,7 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
     try {
       const res = await registrar.mutateAsync({
         pedido_id: pedido.id,
-        conta_id: contaId,
+        conta_id: contaId || null,
         parceiro_id: parceiroId,
         valor_total: valorTotalNum,
         data_compra: format(dataCompra, "yyyy-MM-dd"),
@@ -229,6 +230,16 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
   };
 
   const parceiroSelecionado = parceiros.find((p) => p.id === parceiroId);
+
+  const handleSelectParceiro = (id: string) => {
+    setParceiroId(id);
+    const p = parceiros.find((x) => x.id === id);
+    if (p?.categoria_padrao_id && !contaId) {
+      setContaId(p.categoria_padrao_id);
+      toast.info("Categoria preenchida automaticamente do fornecedor");
+    }
+    setParceiroOpen(false);
+  };
 
   if (!pedido) return null;
 
@@ -279,16 +290,26 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
                     <Command>
                       <CommandInput placeholder="Buscar por razão social, fantasia ou CNPJ..." />
                       <CommandList className="max-h-[320px]">
+                        <CommandGroup>
+                          <CommandItem
+                            value="__novo__"
+                            onSelect={() => {
+                              setParceiroOpen(false);
+                              setNovoFornecedorOpen(true);
+                            }}
+                            className="border-b text-primary"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            <span className="font-medium">Cadastrar novo fornecedor…</span>
+                          </CommandItem>
+                        </CommandGroup>
                         <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
                         <CommandGroup>
                           {parceiros.map((p) => (
                             <CommandItem
                               key={p.id}
                               value={`${p.razao_social} ${p.nome_fantasia || ""} ${p.cnpj || ""}`}
-                              onSelect={() => {
-                                setParceiroId(p.id);
-                                setParceiroOpen(false);
-                              }}
+                              onSelect={() => handleSelectParceiro(p.id)}
                             >
                               <Check
                                 className={cn(
@@ -312,7 +333,7 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
               </div>
 
               <div>
-                <Label>Categoria contábil *</Label>
+                <Label>Categoria contábil</Label>
                 <CategoriaFolhaSelect value={contaId || null} onChange={setContaId} tipo="despesa" />
               </div>
 
@@ -399,18 +420,19 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
                             <Label className="text-xs">Qtde real</Label>
                             <Input
                               type="number"
-                              step="0.01"
-                              min="0"
+                              step="1"
+                              min="1"
                               value={st.quantidade_real}
-                              onChange={(e) =>
+                              onChange={(e) => {
+                                const v = parseInt(e.target.value, 10);
                                 setItensState((prev) => ({
                                   ...prev,
                                   [i.id]: {
                                     ...prev[i.id],
-                                    quantidade_real: Number(e.target.value),
+                                    quantidade_real: Math.max(1, isNaN(v) ? 1 : v),
                                   },
-                                }))
-                              }
+                                }));
+                              }}
                               className="h-8"
                             />
                           </div>
@@ -600,6 +622,11 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
           </Button>
         </DialogFooter>
       </DialogContent>
+      <NovoFornecedorRapidoDialog
+        open={novoFornecedorOpen}
+        onOpenChange={setNovoFornecedorOpen}
+        onCriado={(id) => handleSelectParceiro(id)}
+      />
     </Dialog>
   );
 }

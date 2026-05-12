@@ -16,6 +16,8 @@ export function useCancelarItemPedido() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["compras", "a-comprar"] });
       qc.invalidateQueries({ queryKey: ["compras", "meus-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["compras", "pedido-detalhe"] });
+      qc.invalidateQueries({ queryKey: ["compras", "registradas-do-pedido"] });
       toast.success("Item cancelado");
     },
     onError: (e: Error) => toast.error(e.message || "Erro ao cancelar item"),

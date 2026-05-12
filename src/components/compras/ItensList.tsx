@@ -5,24 +5,37 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { X, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { ItemEdit } from "@/lib/compras/types";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
+const itemStatusConfig: Record<string, { label: string; className: string }> = {
+  pendente: { label: "Pendente", className: "bg-muted text-muted-foreground" },
+  comprado: { label: "Comprado", className: "bg-success/15 text-success" },
+  cancelado: { label: "Cancelado", className: "bg-destructive/15 text-destructive" },
+};
+
 interface Props {
   items: ItemEdit[];
   onChange: (items: ItemEdit[]) => void;
   readOnly?: boolean;
+  showItemStatus?: boolean;
 }
 
-export function ItensList({ items, onChange, readOnly }: Props) {
+export function ItensList({ items, onChange, readOnly, showItemStatus }: Props) {
   const visiveis = items.filter((i) => i._action !== "delete");
-  const total = visiveis.reduce(
+  const temCancelados = visiveis.some((i) => i.status === "cancelado");
+  const totalOriginal = visiveis.reduce(
     (s, i) => s + Number(i.quantidade || 0) * Number(i.valor_estimado_unitario || 0),
     0,
   );
+  const totalEfetivo = visiveis
+    .filter((i) => i.status !== "cancelado")
+    .reduce((s, i) => s + Number(i.quantidade || 0) * Number(i.valor_estimado_unitario || 0), 0);
 
   const updateAt = (idx: number, patch: Partial<ItemEdit>) => {
     const visIdx = items.indexOf(visiveis[idx]);
@@ -89,15 +102,31 @@ export function ItensList({ items, onChange, readOnly }: Props) {
             onRemove={() => removeAt(idx)}
             readOnly={readOnly}
             canRemove={visiveis.length > 1 && !readOnly}
+            showStatus={showItemStatus}
           />
         ))}
       </div>
 
       {visiveis.length > 0 && (
         <div className="flex justify-end pt-2 border-t">
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">Total estimado</div>
-            <div className="text-xl font-semibold">{fmtBRL(total)}</div>
+          <div className="text-right space-y-1">
+            {temCancelados && showItemStatus ? (
+              <>
+                <div>
+                  <div className="text-xs text-muted-foreground">Total estimado original</div>
+                  <div className="text-sm line-through text-muted-foreground">{fmtBRL(totalOriginal)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Total efetivo (sem cancelados)</div>
+                  <div className="text-xl font-semibold">{fmtBRL(totalEfetivo)}</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-xs text-muted-foreground">Total estimado</div>
+                <div className="text-xl font-semibold">{fmtBRL(totalOriginal)}</div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -111,17 +140,22 @@ function ItemCard({
   onRemove,
   readOnly,
   canRemove,
+  showStatus,
 }: {
   item: ItemEdit;
   onChange: (patch: Partial<ItemEdit>) => void;
   onRemove: () => void;
   readOnly?: boolean;
   canRemove: boolean;
+  showStatus?: boolean;
 }) {
   const [showSpec, setShowSpec] = useState(!!item.especificacao_tecnica);
   const [urlInput, setUrlInput] = useState("");
 
   const subtotal = Number(item.quantidade || 0) * Number(item.valor_estimado_unitario || 0);
+  const status = item.status;
+  const statusCfg = status ? itemStatusConfig[status] : null;
+  const isCancelado = status === "cancelado";
 
   const addUrl = () => {
     const v = urlInput.trim();
@@ -137,8 +171,28 @@ function ItemCard({
   };
 
   return (
-    <Card className="p-4 relative">
-      {canRemove && (
+    <Card className={cn("p-4 relative", isCancelado && showStatus && "opacity-70")}>
+      {showStatus && statusCfg && (
+        <div className="absolute top-2 right-2">
+          {isCancelado && item.cancelamento_motivo ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className={cn("border-0 cursor-help", statusCfg.className)}>
+                    {statusCfg.label}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs text-xs">{item.cancelamento_motivo}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Badge className={cn("border-0", statusCfg.className)}>{statusCfg.label}</Badge>
+          )}
+        </div>
+      )}
+      {canRemove && !showStatus && (
         <button
           type="button"
           onClick={onRemove}
@@ -149,7 +203,7 @@ function ItemCard({
         </button>
       )}
 
-      <div className="space-y-3">
+      <div className={cn("space-y-3", showStatus && statusCfg && "pr-24")}>
         <div>
           <Label>Descrição *</Label>
           <Input
@@ -166,10 +220,13 @@ function ItemCard({
             <Label>Quantidade *</Label>
             <Input
               type="number"
-              min={0}
-              step="0.0001"
+              min={1}
+              step="1"
               value={item.quantidade}
-              onChange={(e) => onChange({ quantidade: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                onChange({ quantidade: Math.max(1, isNaN(v) ? 1 : v) });
+              }}
               disabled={readOnly}
               aria-invalid={!(item.quantidade > 0)}
             />

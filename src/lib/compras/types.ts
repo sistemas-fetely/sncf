@@ -48,6 +48,8 @@ export interface ItemEdit {
   especificacao_tecnica: string;
   ordem: number;
   _action?: "create" | "update" | "delete" | "keep";
+  status?: "pendente" | "comprado" | "cancelado";
+  cancelamento_motivo?: string | null;
 }
 
 export interface ItemCobertoInput {
@@ -58,7 +60,7 @@ export interface ItemCobertoInput {
 
 export interface RegistrarCompraInput {
   pedido_id: string;
-  conta_id: string;
+  conta_id: string | null;
   parceiro_id: string;
   valor_total: number;
   data_compra: string;
