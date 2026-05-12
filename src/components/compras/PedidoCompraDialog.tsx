@@ -379,7 +379,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           </div>
 
           {/* SEÇÃO 2: ITENS */}
-          <ItensList items={itens} onChange={setItens} readOnly={readOnly} />
+          <ItensList items={itens} onChange={setItens} readOnly={readOnly} showItemStatus={mode === "ver"} />
 
           {/* SEÇÃO 3: ANEXOS */}
           <AnexosList
