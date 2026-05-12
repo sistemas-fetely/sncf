@@ -27,17 +27,13 @@ export function useCategoriasFolha(tipo: CategoriaFolhaTipo = "despesa") {
       const folhas = rows.filter((c) => !idsComFilho.has(c.id));
       return folhas
         .map((folha) => {
-          const parts: string[] = [folha.nome];
-          let parent = folha.parent_id ? map.get(folha.parent_id) : null;
-          while (parent) {
-            parts.unshift(parent.nome);
-            parent = parent.parent_id ? map.get(parent.parent_id) : null;
-          }
+          const paiDireto = folha.parent_id ? map.get(folha.parent_id) : null;
+          const display = paiDireto ? `${folha.nome} (${paiDireto.nome})` : folha.nome;
           return {
             id: folha.id,
             nome: folha.nome,
             codigo: folha.codigo,
-            path: parts.join(" > "),
+            path: display,
           };
         })
         .sort((a, b) => a.path.localeCompare(b.path));
