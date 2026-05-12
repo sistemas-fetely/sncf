@@ -137,6 +137,9 @@ export function PedidoDetalheComprador({
 
   const ehMeu = pedido.status === "em_compra";
   const ehAberto = pedido.status === "aberto";
+  const podeCancelarPedido =
+    isSuperAdmin &&
+    (pedido.status === "rascunho" || pedido.status === "aberto" || pedido.status === "em_compra");
 
   return (
     <>
