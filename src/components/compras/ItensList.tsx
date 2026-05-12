@@ -102,15 +102,31 @@ export function ItensList({ items, onChange, readOnly, showItemStatus }: Props) 
             onRemove={() => removeAt(idx)}
             readOnly={readOnly}
             canRemove={visiveis.length > 1 && !readOnly}
+            showStatus={showItemStatus}
           />
         ))}
       </div>
 
       {visiveis.length > 0 && (
         <div className="flex justify-end pt-2 border-t">
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">Total estimado</div>
-            <div className="text-xl font-semibold">{fmtBRL(total)}</div>
+          <div className="text-right space-y-1">
+            {temCancelados && showItemStatus ? (
+              <>
+                <div>
+                  <div className="text-xs text-muted-foreground">Total estimado original</div>
+                  <div className="text-sm line-through text-muted-foreground">{fmtBRL(totalOriginal)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Total efetivo (sem cancelados)</div>
+                  <div className="text-xl font-semibold">{fmtBRL(totalEfetivo)}</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-xs text-muted-foreground">Total estimado</div>
+                <div className="text-xl font-semibold">{fmtBRL(totalOriginal)}</div>
+              </>
+            )}
           </div>
         </div>
       )}
