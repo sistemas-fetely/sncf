@@ -355,7 +355,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
             titulo: `Pagamento: ${fornecedorNome} — ${formatBRL(conta.valor)}`,
             descricao: `Vencimento: ${formatDateBR(conta.data_vencimento)}. NF: ${conta.nf_numero || "sem NF"}. Verificar pagamento e registrar no sistema.`,
             status: "pendente",
-            prioridade: urgente ? "alta" : "media",
+            prioridade: urgente ? "alta" : "normal",
             prazo_data: conta.data_vencimento,
             area_destino: "financeiro",
             tipo_processo: "pagamento_fornecedor",
