@@ -66,6 +66,14 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
   const [anexosARemover, setAnexosARemover] = useState<{ id: string; storage_path: string }[]>([]);
   const [pedidoIdLocal, setPedidoIdLocal] = useState<string | undefined>(pedido?.id);
   const [submitting, setSubmitting] = useState(false);
+  const [cancelarDialogOpen, setCancelarDialogOpen] = useState(false);
+  const { user } = useAuth();
+  const podeCancelar =
+    mode === "ver" &&
+    !!pedido &&
+    !!user &&
+    pedido.solicitante_id === user.id &&
+    (pedido.status === "rascunho" || pedido.status === "aberto");
 
   // Reset / load on open
   useEffect(() => {
