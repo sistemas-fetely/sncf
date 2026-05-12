@@ -171,7 +171,6 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
 
   const validacao = (): string | null => {
     if (!parceiroId) return "Selecione o fornecedor";
-    if (!contaId) return "Selecione a categoria contábil";
     if (!meioPagamentoId) return "Selecione o meio de pagamento";
     if (!(valorTotalNum > 0)) return "Valor total deve ser maior que zero";
     if (!dataCompra) return "Data da compra é obrigatória";
