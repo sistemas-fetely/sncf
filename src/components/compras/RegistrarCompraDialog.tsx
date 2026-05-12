@@ -77,6 +77,7 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
   const [itensState, setItensState] = useState<Record<string, ItemEstado>>({});
   const [pendentes, setPendentes] = useState<AnexoPendente[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [novoFornecedorOpen, setNovoFornecedorOpen] = useState(false);
 
   const itensPendentes = useMemo<PedidoCompraItemRow[]>(
     () => (pedido?.pedidos_compra_itens || []).filter((i) => i.status === "pendente"),
