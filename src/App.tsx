@@ -205,6 +205,7 @@ const App = () => (
               <Route path="/documentacao" element={<DocumentacaoGeral />} />
               <Route path="/documentacao/novo" element={<DocumentacaoForm />} />
               <Route path="/documentacao/:slug" element={<DocumentacaoDetalhe />} />
+              <Route path="/compras" element={<Compras />} />
             </Route>
 
             {/* TI Fetely */}
