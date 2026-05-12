@@ -246,7 +246,13 @@ export default function Compras() {
                       <TableCell>{fmtDate(p.created_at)}</TableCell>
                       <TableCell>{fmtDate(p.enviado_em)}</TableCell>
                       <TableCell>
-                        <PedidoStatusBadge status={p.status} />
+                        <div className="flex items-center gap-1.5">
+                          <PedidoStatusBadge status={p.status} />
+                          {p.status === "comprado" &&
+                            (p.pedidos_compra_itens || []).some((i) => i.status === "cancelado") && (
+                              <Badge variant="secondary" className="text-xs">Parcial</Badge>
+                            )}
+                        </div>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
