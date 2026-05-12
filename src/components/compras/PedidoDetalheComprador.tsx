@@ -333,9 +333,24 @@ export function PedidoDetalheComprador({
                 </div>
               </section>
             )}
-          </div>
+            </TabsContent>
+            <TabsContent value="timeline" className="mt-4">
+              <TimelinePedido pedidoId={pedido.id} />
+            </TabsContent>
+          </Tabs>
 
-          <SheetFooter className="mt-6 gap-2 sm:gap-2">
+          <SheetFooter className="mt-6 gap-2 sm:gap-2 flex-col sm:flex-row sm:justify-between">
+            {podeCancelarPedido ? (
+              <Button
+                variant="outline"
+                className="text-destructive border-destructive/40 hover:bg-destructive/10 sm:mr-auto"
+                onClick={() => setCancelarPedidoOpen(true)}
+              >
+                <Ban className="h-4 w-4 mr-1" />
+                Cancelar pedido
+              </Button>
+            ) : <span />}
+            <div className="flex gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Fechar
             </Button>
