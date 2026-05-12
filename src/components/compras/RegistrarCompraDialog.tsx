@@ -74,6 +74,7 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
   const [periodicidade, setPeriodicidade] = useState<"dias" | "meses">("meses");
   const [meioPagamentoId, setMeioPagamentoId] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
+  const [jaPago, setJaPago] = useState(false);
   const [itensState, setItensState] = useState<Record<string, ItemEstado>>({});
   const [pendentes, setPendentes] = useState<AnexoPendente[]>([]);
   const [submitting, setSubmitting] = useState(false);
