@@ -160,9 +160,12 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
     return Array.from({ length: n }, (_, idx) => ({
       n: idx + 1,
       valor: idx === n - 1 ? ultima : valorParcela,
-      vencimento: addDays(primeiraParcelaData, idx * intervalo),
+      vencimento:
+        periodicidade === "meses"
+          ? addMonths(primeiraParcelaData, idx * intervalo)
+          : addDays(primeiraParcelaData, idx * intervalo),
     }));
-  }, [parcelasCount, valorTotalNum, primeiraParcelaData, intervaloDias]);
+  }, [parcelasCount, valorTotalNum, primeiraParcelaData, intervaloDias, periodicidade]);
 
   const validacao = (): string | null => {
     if (!parceiroId) return "Selecione o fornecedor";
