@@ -57,6 +57,7 @@ const TILayout = lazy(() => import("@/layouts/TILayout"));
 const AdminLayout = lazy(() => import("@/layouts/AdminLayout"));
 const SNCFLayout = lazy(() => import("@/layouts/SNCFLayout"));
 const Compras = lazy(() => import("@/pages/Compras"));
+const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
 const AdministrativoLayout = lazy(() => import("@/layouts/AdministrativoLayout"));
 const GestaoVistaLayout = lazy(() => import("@/layouts/GestaoVistaLayout"));
 const ProdutoLayout = lazy(() => import("@/layouts/ProdutoLayout"));
@@ -206,6 +207,7 @@ const App = () => (
               <Route path="/documentacao/novo" element={<DocumentacaoForm />} />
               <Route path="/documentacao/:slug" element={<DocumentacaoDetalhe />} />
               <Route path="/compras" element={<Compras />} />
+              <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
             </Route>
 
             {/* TI Fetely */}

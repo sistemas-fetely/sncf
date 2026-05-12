@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { format, parseISO, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -12,6 +13,7 @@ import {
   MoreHorizontal,
   Search,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -71,6 +73,8 @@ export default function Compras() {
   const { data: pedidos = [], isLoading } = useMeusPedidosCompra();
   const enviar = useEnviarPedidoCompra();
   const excluir = useExcluirPedidoCompra();
+  const { roles } = useAuth();
+  const isCompradorV1 = roles.includes("super_admin");
 
   const [tab, setTab] = useState<TabValue>("todos");
   const [busca, setBusca] = useState("");
@@ -138,10 +142,21 @@ export default function Compras() {
             <p className="text-sm text-muted-foreground">Meus Pedidos de Compra</p>
           </div>
         </div>
-        <Button onClick={abrirCriar} style={{ backgroundColor: "#1A4A3A", color: "white" }}>
-          <Plus className="h-4 w-4 mr-1" />
-          Novo Pedido
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={abrirCriar} style={{ backgroundColor: "#1A4A3A", color: "white" }}>
+            <Plus className="h-4 w-4 mr-1" />
+            Novo Pedido
+          </Button>
+          {isCompradorV1 && (
+            <Link
+              to="/compras/a-comprar"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Truck className="h-4 w-4" />
+              Fila do Comprador
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
