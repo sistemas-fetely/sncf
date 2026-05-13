@@ -228,7 +228,6 @@ export default function ContaPagarDetalheDrawer({
       }
 
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-      qc.invalidateQueries({ queryKey: ["qualidade-dado-map"] });
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       onClose();
     } catch (e) {

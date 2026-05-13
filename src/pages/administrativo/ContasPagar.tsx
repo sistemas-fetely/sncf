@@ -35,6 +35,7 @@ import {
   AlertTriangle,
   Clock,
   AlertCircle,
+  CircleCheck,
   FileWarning,
   FileText,
   Receipt,
@@ -100,7 +101,7 @@ const diasAteVencer = (d: string | null) => {
   return Math.ceil((new Date(d + "T00:00:00").getTime() - Date.now()) / 86400000);
 };
 
-type KpiFilter = "para_agir" | "atrasadas" | "aguardando" | "pendencia" | null;
+type KpiFilter = "para_agir" | "atrasadas" | "aguardando" | "pendencia" | "bola_redonda" | null;
 
 export default function ContasPagar() {
   const qc = useQueryClient();
@@ -110,6 +111,7 @@ export default function ContasPagar() {
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [solicitanteFilter, setSolicitanteFilter] = useState<string>("todos");
 
   const [contaIdSelecionada, setContaIdSelecionada] = useState<string | null>(null);
   const [novaContaOpen, setNovaContaOpen] = useState(false);
@@ -172,6 +174,89 @@ export default function ContasPagar() {
     },
   });
 
+  // Bola redonda — CPRs com todos os dados de pagamento prontos
+  const { data: bolaRedondaSet = new Set<string>() } = useQuery({
+    queryKey: ["contas-pagar-bola-redonda-set", (data || []).map((c) => c.id).join(",")],
+    enabled: !!data && data.length > 0,
+    queryFn: async () => {
+      const ids = (data || []).map((c) => c.id);
+      if (ids.length === 0) return new Set<string>();
+      const { data: rows, error } = await supabase
+        .from("v_cpr_bola_redonda")
+        .select("cpr_id, bola_redonda")
+        .in("cpr_id", ids);
+      if (error) throw error;
+      const s = new Set<string>();
+      (rows || []).forEach((r: { cpr_id: string | null; bola_redonda: boolean | null }) => {
+        if (r.bola_redonda && r.cpr_id) s.add(r.cpr_id);
+      });
+      return s;
+    },
+  });
+
+  // Solicitante — via pedido_compra. Retorna Map (cpr_id -> user_id) + options ordenadas pelo nome.
+  const { data: solicitanteData = { map: new Map<string, string>(), options: [] as { id: string; nome: string }[] } } = useQuery({
+    queryKey: ["contas-pagar-solicitante-data", (data || []).map((c) => c.id).join(",")],
+    enabled: !!data && data.length > 0,
+    queryFn: async () => {
+      const ids = (data || []).map((c) => c.id);
+      if (ids.length === 0) return { map: new Map<string, string>(), options: [] as { id: string; nome: string }[] };
+
+      const { data: cprs, error: e1 } = await supabase
+        .from("contas_pagar_receber")
+        .select("id, pedido_compra_id")
+        .in("id", ids)
+        .not("pedido_compra_id", "is", null);
+      if (e1) throw e1;
+
+      const pedidoIds = Array.from(
+        new Set((cprs || []).map((c) => c.pedido_compra_id).filter(Boolean) as string[]),
+      );
+      if (pedidoIds.length === 0) return { map: new Map<string, string>(), options: [] as { id: string; nome: string }[] };
+
+      const { data: pedidos, error: e2 } = await supabase
+        .from("pedidos_compra")
+        .select("id, solicitante_id")
+        .in("id", pedidoIds);
+      if (e2) throw e2;
+
+      const pedidoSolMap = new Map<string, string>();
+      (pedidos || []).forEach((p) => pedidoSolMap.set(p.id, p.solicitante_id));
+
+      const cprToSol = new Map<string, string>();
+      (cprs || []).forEach((c) => {
+        if (c.pedido_compra_id && pedidoSolMap.has(c.pedido_compra_id)) {
+          cprToSol.set(c.id, pedidoSolMap.get(c.pedido_compra_id)!);
+        }
+      });
+
+      const userIds = Array.from(new Set(Array.from(cprToSol.values())));
+      if (userIds.length === 0) return { map: cprToSol, options: [] as { id: string; nome: string }[] };
+
+      const [profilesRes, clRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name").in("user_id", userIds),
+        supabase.from("colaboradores_clt").select("user_id, nome_completo").in("user_id", userIds),
+      ]);
+
+      const nomeMap = new Map<string, string>();
+      for (const p of profilesRes.data || []) {
+        if (p.full_name) nomeMap.set(p.user_id as string, p.full_name);
+      }
+      for (const c of clRes.data || []) {
+        if (c.nome_completo && c.user_id) nomeMap.set(c.user_id, c.nome_completo);
+      }
+
+      const options = userIds
+        .map((id) => ({ id, nome: nomeMap.get(id) || "—" }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+
+      return { map: cprToSol, options };
+    },
+  });
+
+  const solicitanteMap = solicitanteData.map;
+  const solicitantesOptions = solicitanteData.options;
+
   const kpis = useMemo(() => {
     const lista = data || [];
     const para_agir = lista.filter(
@@ -182,14 +267,16 @@ export default function ContasPagar() {
     );
     const aguardando = lista.filter((c) => c.status === "aguardando_pagamento");
     const pendencia = lista.filter((c) => pendenciaMap.has(c.id));
+    const bola_redonda = lista.filter((c) => bolaRedondaSet.has(c.id));
     const sumValor = (arr: Conta[]) => arr.reduce((s, c) => s + Number(c.valor || 0), 0);
     return {
       para_agir: { count: para_agir.length, valor: sumValor(para_agir) },
       atrasadas: { count: atrasadas.length, valor: sumValor(atrasadas) },
       aguardando: { count: aguardando.length, valor: sumValor(aguardando) },
       pendencia: { count: pendencia.length, valor: sumValor(pendencia) },
+      bola_redonda: { count: bola_redonda.length, valor: sumValor(bola_redonda) },
     };
-  }, [data, pendenciaMap]);
+  }, [data, pendenciaMap, bolaRedondaSet]);
 
   const filtrados = useMemo(() => {
     let lista = data || [];
@@ -205,6 +292,8 @@ export default function ContasPagar() {
       lista = lista.filter((c) => c.status === "aguardando_pagamento");
     } else if (kpiFilter === "pendencia") {
       lista = lista.filter((c) => pendenciaMap.has(c.id));
+    } else if (kpiFilter === "bola_redonda") {
+      lista = lista.filter((c) => bolaRedondaSet.has(c.id));
     }
     if (busca.trim()) {
       const b = busca.toLowerCase();
@@ -218,19 +307,28 @@ export default function ContasPagar() {
     if (statusFilter && statusFilter !== "todos") {
       lista = lista.filter((c) => c.status === statusFilter);
     }
+    if (solicitanteFilter && solicitanteFilter !== "todos") {
+      lista = lista.filter((c) => solicitanteMap.get(c.id) === solicitanteFilter);
+    }
     if (dataDe) lista = lista.filter((c) => (c.data_vencimento || "") >= dataDe);
     if (dataAte) lista = lista.filter((c) => (c.data_vencimento || "") <= dataAte);
     return lista;
-  }, [data, kpiFilter, busca, statusFilter, dataDe, dataAte, pendenciaMap]);
+  }, [data, kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte, pendenciaMap, bolaRedondaSet, solicitanteMap]);
 
   const temFiltroAtivo =
-    !!busca.trim() || !!dataDe || !!dataAte || statusFilter !== "todos" || kpiFilter !== null;
+    !!busca.trim() ||
+    !!dataDe ||
+    !!dataAte ||
+    statusFilter !== "todos" ||
+    solicitanteFilter !== "todos" ||
+    kpiFilter !== null;
 
   function limparFiltros() {
     setBusca("");
     setDataDe("");
     setDataAte("");
     setStatusFilter("todos");
+    setSolicitanteFilter("todos");
     setKpiFilter(null);
   }
 
@@ -238,15 +336,11 @@ export default function ContasPagar() {
     qc.invalidateQueries({ queryKey: ["contas-pagar"] });
     qc.invalidateQueries({ queryKey: ["contas-pagar-pendencia-map"] });
     qc.invalidateQueries({ queryKey: ["contas-pagar-email-map"] });
+    qc.invalidateQueries({ queryKey: ["contas-pagar-bola-redonda-set"] });
+    qc.invalidateQueries({ queryKey: ["contas-pagar-solicitante-data"] });
   }
 
   function abrirNovaAvulsa() {
-    setInitialDataNovaConta(undefined);
-    setNovaContaOpen(true);
-  }
-
-  function abrirNovoTributo() {
-    // NovaContaPagarSheet não aceita "tipo" como initialData hoje — abre vazio.
     setInitialDataNovaConta(undefined);
     setNovaContaOpen(true);
   }
@@ -290,16 +384,13 @@ export default function ContasPagar() {
                 <DropdownMenuItem onClick={() => setImportarNFOpen(true)} className="gap-2">
                   <Receipt className="h-4 w-4" /> Importar NF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={abrirNovoTributo} className="gap-2">
-                  <FileText className="h-4 w-4" /> Avulsa / Tributo
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
         {/* KPI cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <KpiCard
             icon={Flame}
             label="Para agir"
@@ -340,6 +431,16 @@ export default function ContasPagar() {
             active={kpiFilter === "pendencia"}
             onClick={() => setKpiFilter(kpiFilter === "pendencia" ? null : "pendencia")}
           />
+          <KpiCard
+            icon={CircleCheck}
+            label="Bola redonda"
+            count={kpis.bola_redonda.count}
+            valor={kpis.bola_redonda.valor}
+            color="text-emerald-600"
+            border="border-emerald-300"
+            active={kpiFilter === "bola_redonda"}
+            onClick={() => setKpiFilter(kpiFilter === "bola_redonda" ? null : "bola_redonda")}
+          />
         </div>
       </div>
 
@@ -379,6 +480,21 @@ export default function ContasPagar() {
             <SelectItem value="cancelado">Cancelada</SelectItem>
           </SelectContent>
         </Select>
+        {solicitantesOptions.length > 0 && (
+          <Select value={solicitanteFilter} onValueChange={setSolicitanteFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Solicitante" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os solicitantes</SelectItem>
+              {solicitantesOptions.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {temFiltroAtivo && (
           <Button variant="ghost" size="sm" onClick={limparFiltros} className="gap-1">
             <X className="h-3 w-3" /> Limpar filtros
