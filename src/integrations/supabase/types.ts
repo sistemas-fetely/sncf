@@ -4614,6 +4614,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ged_areas: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ged_documento_vinculos: {
         Row: {
           created_at: string
@@ -4754,6 +4787,7 @@ export type Database = {
       ged_pastas: {
         Row: {
           area: string | null
+          area_id: string | null
           ativa: boolean
           cor: string | null
           created_at: string
@@ -4769,6 +4803,7 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          area_id?: string | null
           ativa?: boolean
           cor?: string | null
           created_at?: string
@@ -4784,6 +4819,7 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          area_id?: string | null
           ativa?: boolean
           cor?: string | null
           created_at?: string
@@ -4798,6 +4834,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ged_pastas_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "ged_areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ged_pastas_parceiro_id_fkey"
             columns: ["parceiro_id"]

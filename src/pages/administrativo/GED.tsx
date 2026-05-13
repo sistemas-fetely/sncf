@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,14 +94,73 @@ export default function GED() {
   const { data: pastas = [], isLoading: loadingPastas } = useQuery({
     queryKey: ["ged-pastas"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data: rawPastas, error } = await (supabase as any)
         .from("vw_ged_pastas_kpis")
         .select("*")
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as Pasta[];
+
+      const lista = (rawPastas ?? []) as Pasta[];
+
+      const parceiroIds = Array.from(
+        new Set(lista.map((p) => p.parceiro_id).filter(Boolean) as string[])
+      );
+
+      if (parceiroIds.length === 0) return lista;
+
+      const { data: parceiros } = await (supabase as any)
+        .from("parceiros_comerciais")
+        .select("id, cnpj, nome_fantasia, grupo_id, grupos_empresariais:grupo_id(id, nome)")
+        .in("id", parceiroIds);
+
+      const mapaParceiro = new Map<string, {
+        cnpj: string | null;
+        nome_fantasia: string | null;
+        grupo_id: string | null;
+        grupo_nome: string | null;
+      }>();
+
+      (parceiros ?? []).forEach((p: any) => {
+        mapaParceiro.set(p.id, {
+          cnpj: p.cnpj,
+          nome_fantasia: p.nome_fantasia,
+          grupo_id: p.grupo_id,
+          grupo_nome: p.grupos_empresariais?.nome ?? null,
+        });
+      });
+
+      return lista.map((pasta) => {
+        const extra = pasta.parceiro_id ? mapaParceiro.get(pasta.parceiro_id) : null;
+        return {
+          ...pasta,
+          parceiro_cnpj: extra?.cnpj ?? null,
+          parceiro_nome_fantasia: extra?.nome_fantasia ?? null,
+          grupo_id: extra?.grupo_id ?? null,
+          grupo_nome: extra?.grupo_nome ?? null,
+        };
+      }) as (Pasta & {
+        parceiro_cnpj: string | null;
+        parceiro_nome_fantasia: string | null;
+        grupo_id: string | null;
+        grupo_nome: string | null;
+      })[];
     },
   });
+
+  const pastasFiltradas = useMemo(() => {
+    if (!busca || busca.trim().length === 0) return pastas;
+    const b = busca.toLowerCase().trim();
+    return pastas.filter((p: any) => {
+      return (
+        p.nome?.toLowerCase().includes(b) ||
+        p.parceiro_nome?.toLowerCase().includes(b) ||
+        p.parceiro_cnpj?.toLowerCase().includes(b) ||
+        p.parceiro_nome_fantasia?.toLowerCase().includes(b) ||
+        p.grupo_nome?.toLowerCase().includes(b) ||
+        p.descricao?.toLowerCase().includes(b)
+      );
+    });
+  }, [pastas, busca]);
 
   // Doutrina #34: useEffect (não useState) pra reagir a dados que chegam depois.
   // Cobre 3 cenários:
@@ -238,7 +297,7 @@ export default function GED() {
             <p className="text-xs text-muted-foreground p-2">Carregando...</p>
           )}
 
-          {pastas.map((p) => (
+          {pastasFiltradas.map((p) => (
             <div
               key={p.id}
               className={`group relative w-full px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors cursor-pointer ${
