@@ -111,6 +111,7 @@ export default function ContasPagar() {
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [solicitanteFilter, setSolicitanteFilter] = useState<string>("todos");
 
   const [contaIdSelecionada, setContaIdSelecionada] = useState<string | null>(null);
   const [novaContaOpen, setNovaContaOpen] = useState(false);
