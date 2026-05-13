@@ -61,6 +61,9 @@ interface Pasta {
   contratos_vigentes: number;
   valor_mensal_estimado: number;
   proximo_vencimento_contrato: string | null;
+  // NOVOS — vêm da consulta enriquecida em GED.tsx
+  grupo_id?: string | null;
+  grupo_nome?: string | null;
 }
 
 interface ContratoLogico {
