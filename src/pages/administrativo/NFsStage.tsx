@@ -172,8 +172,9 @@ type FiltroPill =
 
 export default function NFsStage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [busca, setBusca] = useState("");
-  const [filtroPill, setFiltroPill] = useState<FiltroPill>("todas");
+  const [filtroPill, setFiltroPill] = useState<FiltroPill>("nao_vinculadas");
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [paraDescartar, setParaDescartar] = useState<NFStage[]>([]);
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
