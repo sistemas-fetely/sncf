@@ -384,9 +384,6 @@ export default function ContasPagar() {
                 <DropdownMenuItem onClick={() => setImportarNFOpen(true)} className="gap-2">
                   <Receipt className="h-4 w-4" /> Importar NF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={abrirNovoTributo} className="gap-2">
-                  <FileText className="h-4 w-4" /> Avulsa / Tributo
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
