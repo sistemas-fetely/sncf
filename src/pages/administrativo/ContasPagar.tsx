@@ -480,6 +480,21 @@ export default function ContasPagar() {
             <SelectItem value="cancelado">Cancelada</SelectItem>
           </SelectContent>
         </Select>
+        {solicitantesOptions.length > 0 && (
+          <Select value={solicitanteFilter} onValueChange={setSolicitanteFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Solicitante" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os solicitantes</SelectItem>
+              {solicitantesOptions.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {temFiltroAtivo && (
           <Button variant="ghost" size="sm" onClick={limparFiltros} className="gap-1">
             <X className="h-3 w-3" /> Limpar filtros
