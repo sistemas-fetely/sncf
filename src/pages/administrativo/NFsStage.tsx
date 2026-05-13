@@ -234,6 +234,23 @@ export default function NFsStage() {
     },
   });
 
+  const { data: pastaIdPorParceiro = new Map<string, string>() } = useQuery({
+    queryKey: ["pastas-por-parceiro"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("ged_pastas")
+        .select("parceiro_id, id")
+        .eq("ativa", true)
+        .not("parceiro_id", "is", null);
+      const m = new Map<string, string>();
+      (data ?? []).forEach((p: { parceiro_id: string; id: string }) => {
+        m.set(p.parceiro_id, p.id);
+      });
+      return m;
+    },
+  });
+
   // Contagem de despesas por stage (para badge "Parcial M/N")
   const { data: despesasPorStage = {} } = useQuery({
     queryKey: ["despesas-por-stage", nfs?.length || 0],
