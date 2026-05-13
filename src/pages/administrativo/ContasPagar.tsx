@@ -246,7 +246,8 @@ export default function ContasPagar() {
   }
 
   function abrirNovoTributo() {
-    setInitialDataNovaConta({ tipo: "tributo" } as ComponentProps<typeof NovaContaPagarSheet>["initialData"]);
+    // NovaContaPagarSheet não aceita "tipo" como initialData hoje — abre vazio.
+    setInitialDataNovaConta(undefined);
     setNovaContaOpen(true);
   }
 
