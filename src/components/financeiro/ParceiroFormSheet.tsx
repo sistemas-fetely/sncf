@@ -808,7 +808,7 @@ function PastaGedSection({ parceiroId, parceiroNome: _parceiroNome }: { parceiro
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/administrativo/ged?pasta=${stats.pastaId}`)}
+          onClick={() => navigate(`/administrativo-fetely/ged?pasta=${stats.pastaId}`)}
         >
           Abrir no GED
         </Button>
