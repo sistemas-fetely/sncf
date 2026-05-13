@@ -35,6 +35,7 @@ import {
   AlertTriangle,
   Clock,
   AlertCircle,
+  CircleCheck,
   FileWarning,
   FileText,
   Receipt,
