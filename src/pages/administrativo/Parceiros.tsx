@@ -643,9 +643,9 @@ export default function Parceiros() {
             <AlertDialogTitle>Excluir parceiro?</AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a excluir <strong>{parceiroParaExcluir?.razao_social}</strong>.
-              Se este parceiro tiver contas a pagar/receber vinculadas, ele será apenas
-              inativado (não pode ser excluído de fato para preservar o histórico).
-              Caso contrário, será excluído permanentemente.
+              Se este parceiro tiver qualquer histórico no sistema (contas, NFs, documentos,
+              pedidos, etc.), ele será apenas inativado para preservar o registro. Caso não
+              tenha nenhum vínculo, será excluído permanentemente junto com sua pasta GED vazia.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
