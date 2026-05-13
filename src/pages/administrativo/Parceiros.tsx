@@ -215,11 +215,12 @@ export default function Parceiros() {
     }
     if (busca.trim()) {
       const t = busca.toLowerCase();
+      const tNumerico = t.replace(/\D/g, "");
       list = list.filter(
         (p) =>
           p.razao_social.toLowerCase().includes(t) ||
           (p.nome_fantasia || "").toLowerCase().includes(t) ||
-          (p.cnpj || "").includes(t.replace(/\D/g, "")),
+          (tNumerico !== "" && (p.cnpj || "").includes(tNumerico)),
       );
     }
 
