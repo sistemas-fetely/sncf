@@ -53,7 +53,9 @@ import {
   FilePlus2,
   RefreshCw,
   Loader2,
+  FolderOpen,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
