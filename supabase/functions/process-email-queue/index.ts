@@ -17,13 +17,13 @@ function isRateLimited(error: unknown): boolean {
   return error instanceof Error && error.message.includes('429')
 }
 
-// Check if an error is a forbidden (403) response, which means emails are
-// disabled for this project. Retrying won't help — move straight to DLQ.
+// Check if an error is auth-related (401/403) — retrying won't help.
 function isForbidden(error: unknown): boolean {
   if (error && typeof error === 'object' && 'status' in error) {
-    return (error as { status: number }).status === 403
+    const status = (error as { status: number }).status
+    return status === 401 || status === 403
   }
-  return error instanceof Error && error.message.includes('403')
+  return error instanceof Error && (error.message.includes('401') || error.message.includes('403'))
 }
 
 // Extract Retry-After seconds from a structured EmailAPIError, or default to 60s.
@@ -78,15 +78,118 @@ async function moveToDlq(
   }
 }
 
+// ─── Resend transport ─────────────────────────────────────────────
+class ResendEmailError extends Error {
+  status: number
+  retryAfterSeconds: number | null
+  constructor(message: string, status: number, retryAfterSeconds: number | null = null) {
+    super(message)
+    this.name = 'ResendEmailError'
+    this.status = status
+    this.retryAfterSeconds = retryAfterSeconds
+  }
+}
+
+interface ResendSendOptions {
+  apiKey: string
+  unsubscribeUrlBase: string
+}
+
+async function sendResendEmail(
+  payload: {
+    to: string
+    from: string
+    subject: string
+    html: string
+    text: string
+    label?: string
+    purpose?: string
+    idempotency_key?: string
+    unsubscribe_token?: string
+    message_id?: string
+  },
+  options: ResendSendOptions,
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    from: payload.from,
+    to: [payload.to],
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+  }
+
+  const tags: Array<{ name: string; value: string }> = []
+  if (payload.label) tags.push({ name: 'label', value: payload.label.slice(0, 256) })
+  if (payload.purpose) tags.push({ name: 'purpose', value: payload.purpose.slice(0, 256) })
+  if (payload.message_id) tags.push({ name: 'message_id', value: payload.message_id.slice(0, 256) })
+  if (tags.length > 0) body.tags = tags
+
+  if (payload.unsubscribe_token && options.unsubscribeUrlBase) {
+    const unsubUrl = `${options.unsubscribeUrlBase}?token=${encodeURIComponent(payload.unsubscribe_token)}`
+    body.headers = {
+      'List-Unsubscribe': `<${unsubUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    }
+  }
+
+  const httpHeaders: Record<string, string> = {
+    'Authorization': `Bearer ${options.apiKey}`,
+    'Content-Type': 'application/json',
+  }
+  if (payload.idempotency_key) {
+    httpHeaders['Idempotency-Key'] = payload.idempotency_key
+  }
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: httpHeaders,
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    let errMsg = `Resend API ${res.status}`
+    try {
+      const json = await res.json()
+      errMsg = (json?.message as string) || (json?.error as string) || JSON.stringify(json)
+    } catch {
+      // body não-JSON
+    }
+    const retryAfterHeader = res.headers.get('Retry-After')
+    let retryAfterSecs: number | null = null
+    if (retryAfterHeader) {
+      const parsed = parseInt(retryAfterHeader, 10)
+      retryAfterSecs = isNaN(parsed) ? null : parsed
+    }
+    throw new ResendEmailError(errMsg, res.status, retryAfterSecs)
+  }
+}
+
 Deno.serve(async (req) => {
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
+  const resendApiKey = Deno.env.get('RESEND_API_KEY')
+  const emailProvider = (Deno.env.get('EMAIL_PROVIDER') || 'resend').toLowerCase()
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing required environment variables')
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing required Supabase environment variables')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  if (emailProvider === 'resend' && !resendApiKey) {
+    console.error('EMAIL_PROVIDER=resend but RESEND_API_KEY missing')
+    return new Response(
+      JSON.stringify({ error: 'RESEND_API_KEY not configured' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+  if (emailProvider === 'lovable' && !apiKey) {
+    console.error('EMAIL_PROVIDER=lovable but LOVABLE_API_KEY missing')
+    return new Response(
+      JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
@@ -246,26 +349,44 @@ Deno.serve(async (req) => {
       }
 
       try {
-        await sendLovableEmail(
-          {
-            run_id: payload.run_id,
-            to: payload.to,
-            from: payload.from,
-            sender_domain: payload.sender_domain,
-            subject: payload.subject,
-            html: payload.html,
-            text: payload.text,
-            purpose: payload.purpose,
-            label: payload.label,
-            idempotency_key: payload.idempotency_key,
-            unsubscribe_token: payload.unsubscribe_token,
-            message_id: payload.message_id,
-          },
-          // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
-          // falls back to the default Lovable API endpoint (https://api.lovable.dev).
-          // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
-          { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
-        )
+        if (emailProvider === 'resend') {
+          await sendResendEmail(
+            {
+              to: payload.to,
+              from: payload.from,
+              subject: payload.subject,
+              html: payload.html,
+              text: payload.text,
+              purpose: payload.purpose,
+              label: payload.label,
+              idempotency_key: payload.idempotency_key,
+              unsubscribe_token: payload.unsubscribe_token,
+              message_id: payload.message_id,
+            },
+            {
+              apiKey: resendApiKey!,
+              unsubscribeUrlBase: `${supabaseUrl}/functions/v1/handle-email-unsubscribe`,
+            }
+          )
+        } else {
+          await sendLovableEmail(
+            {
+              run_id: payload.run_id,
+              to: payload.to,
+              from: payload.from,
+              sender_domain: payload.sender_domain,
+              subject: payload.subject,
+              html: payload.html,
+              text: payload.text,
+              purpose: payload.purpose,
+              label: payload.label,
+              idempotency_key: payload.idempotency_key,
+              unsubscribe_token: payload.unsubscribe_token,
+              message_id: payload.message_id,
+            },
+            { apiKey: apiKey!, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
+          )
+        }
 
         // Log success
         await supabase.from('email_send_log').insert({
@@ -273,6 +394,7 @@ Deno.serve(async (req) => {
           template_name: payload.label || queue,
           recipient_email: payload.to,
           status: 'sent',
+          metadata: { provider: emailProvider } as any,
         })
 
         // Delete from queue
