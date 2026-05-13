@@ -17,13 +17,13 @@ function isRateLimited(error: unknown): boolean {
   return error instanceof Error && error.message.includes('429')
 }
 
-// Check if an error is a forbidden (403) response, which means emails are
-// disabled for this project. Retrying won't help — move straight to DLQ.
+// Check if an error is auth-related (401/403) — retrying won't help.
 function isForbidden(error: unknown): boolean {
   if (error && typeof error === 'object' && 'status' in error) {
-    return (error as { status: number }).status === 403
+    const status = (error as { status: number }).status
+    return status === 401 || status === 403
   }
-  return error instanceof Error && error.message.includes('403')
+  return error instanceof Error && (error.message.includes('401') || error.message.includes('403'))
 }
 
 // Extract Retry-After seconds from a structured EmailAPIError, or default to 60s.
