@@ -12541,6 +12541,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
       }
+      get_vault_secret: { Args: { p_name: string }; Returns: string }
       has_permission: {
         Args: { _module: string; _permission: string; _user_id: string }
         Returns: boolean

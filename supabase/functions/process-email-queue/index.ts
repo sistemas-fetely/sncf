@@ -209,16 +209,12 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-  // Read RESEND_API_KEY from vault (Fetely standard for external credentials)
+  // Read RESEND_API_KEY from vault via SECURITY DEFINER RPC
+  // (supabase-js no edge runtime não suporta .schema('vault') — usar RPC)
   let resendApiKey: string | null = null
   if (emailProvider === 'resend') {
-    const { data: vaultRow, error: vaultErr } = await supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .schema('vault' as any)
-      .from('decrypted_secrets')
-      .select('decrypted_secret')
-      .eq('name', 'resend_api_key')
-      .maybeSingle()
+    const { data: vaultSecret, error: vaultErr } = await supabase
+      .rpc('get_vault_secret', { p_name: 'resend_api_key' })
 
     if (vaultErr) {
       console.error('Failed to read resend_api_key from vault', { error: vaultErr })
@@ -228,8 +224,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resendApiKey = (vaultRow as any)?.decrypted_secret ?? null
+    resendApiKey = (vaultSecret as string | null) ?? null
 
     if (!resendApiKey) {
       console.error('EMAIL_PROVIDER=resend but resend_api_key vault secret missing or empty')
