@@ -101,7 +101,7 @@ const diasAteVencer = (d: string | null) => {
   return Math.ceil((new Date(d + "T00:00:00").getTime() - Date.now()) / 86400000);
 };
 
-type KpiFilter = "para_agir" | "atrasadas" | "aguardando" | "pendencia" | null;
+type KpiFilter = "para_agir" | "atrasadas" | "aguardando" | "pendencia" | "bola_redonda" | null;
 
 export default function ContasPagar() {
   const qc = useQueryClient();
