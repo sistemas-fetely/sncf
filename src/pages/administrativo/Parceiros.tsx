@@ -98,27 +98,28 @@ export default function Parceiros() {
     if (!parceiroParaExcluir) return;
     setExcluindo(true);
     try {
-      const { count } = await supabase
-        .from("contas_pagar_receber")
-        .select("id", { count: "exact", head: true })
-        .eq("parceiro_id", parceiroParaExcluir.id);
+      const { data, error } = await supabase.rpc("excluir_parceiro_seguro", {
+        p_parceiro_id: parceiroParaExcluir.id,
+      });
+      if (error) throw error;
 
-      if (count && count > 0) {
-        const { error } = await supabase
-          .from("parceiros_comerciais")
-          .update({ ativo: false })
-          .eq("id", parceiroParaExcluir.id);
-        if (error) throw error;
+      const res = data as {
+        resultado: "inativado" | "excluido";
+        razao_social: string;
+        refs_count: number;
+        docs_count: number;
+      };
+
+      if (res.resultado === "inativado") {
+        const total = res.refs_count + res.docs_count;
         toast.success(
-          `Parceiro inativado (tem ${count} conta${count === 1 ? "" : "s"} vinculada${count === 1 ? "" : "s"} - não pode ser excluído)`,
+          `${res.razao_social} inativado`,
+          {
+            description: `Não foi excluído porque tem ${total} referência${total === 1 ? "" : "s"} no sistema (histórico preservado).`,
+          },
         );
       } else {
-        const { error } = await supabase
-          .from("parceiros_comerciais")
-          .delete()
-          .eq("id", parceiroParaExcluir.id);
-        if (error) throw error;
-        toast.success("Parceiro excluído");
+        toast.success(`${res.razao_social} excluído`);
       }
 
       queryClient.invalidateQueries({ queryKey: ["parceiros"] });
@@ -214,11 +215,12 @@ export default function Parceiros() {
     }
     if (busca.trim()) {
       const t = busca.toLowerCase();
+      const tNumerico = t.replace(/\D/g, "");
       list = list.filter(
         (p) =>
           p.razao_social.toLowerCase().includes(t) ||
           (p.nome_fantasia || "").toLowerCase().includes(t) ||
-          (p.cnpj || "").includes(t.replace(/\D/g, "")),
+          (tNumerico !== "" && (p.cnpj || "").includes(tNumerico)),
       );
     }
 
@@ -641,9 +643,9 @@ export default function Parceiros() {
             <AlertDialogTitle>Excluir parceiro?</AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a excluir <strong>{parceiroParaExcluir?.razao_social}</strong>.
-              Se este parceiro tiver contas a pagar/receber vinculadas, ele será apenas
-              inativado (não pode ser excluído de fato para preservar o histórico).
-              Caso contrário, será excluído permanentemente.
+              Se este parceiro tiver qualquer histórico no sistema (contas, NFs, documentos,
+              pedidos, etc.), ele será apenas inativado para preservar o registro. Caso não
+              tenha nenhum vínculo, será excluído permanentemente junto com sua pasta GED vazia.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
