@@ -297,7 +297,7 @@ export default function GED() {
             <p className="text-xs text-muted-foreground p-2">Carregando...</p>
           )}
 
-          {pastas.map((p) => (
+          {pastasFiltradas.map((p) => (
             <div
               key={p.id}
               className={`group relative w-full px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors cursor-pointer ${
