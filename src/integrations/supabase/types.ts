@@ -12427,6 +12427,10 @@ export type Database = {
         Args: { p_compra_id: string; p_motivo: string }
         Returns: Json
       }
+      excluir_parceiro_seguro: {
+        Args: { p_parceiro_id: string }
+        Returns: Json
+      }
       executar_pagamento: {
         Args: {
           p_cpr_id: string
