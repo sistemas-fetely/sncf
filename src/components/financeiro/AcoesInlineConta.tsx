@@ -1,26 +1,16 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
   ThumbsUp,
   Send,
   ArrowRightLeft,
-  FileSearch,
   Paperclip,
-  Upload,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import EnviarPagamentoDialog from "./EnviarPagamentoDialog";
-import BuscarNFStageDialog from "./BuscarNFStageDialog";
 import { useContaWorkflow, type ContaStatus } from "@/hooks/useContaWorkflow";
 import { cn } from "@/lib/utils";
 import {
@@ -37,7 +27,6 @@ type Conta = Record<string, any> & {
   valor: number;
   tem_doc_pendente?: boolean | null;
   movimentacao_bancaria_id?: string | null;
-  nf_stage_id?: string | null;
   nf_numero_repositorio?: string | null;
   email_pagamento_enviado?: boolean | null;
   // Campos pra regra do ícone email (família + forma de pagamento)
@@ -62,11 +51,9 @@ const COR_ICONE: Record<EstadoIcone, string> = {
 export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props) {
   const qc = useQueryClient();
   const workflow = useContaWorkflow();
-  const navigate = useNavigate();
   const [aprovando, setAprovando] = useState(false);
   const [lancandoMov, setLancandoMov] = useState(false);
   const [showEnviar, setShowEnviar] = useState(false);
-  const [showBuscar, setShowBuscar] = useState(false);
 
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -85,8 +72,8 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
   const status = conta.status;
   const statusEfetivo = conta.status_efetivo || status;
 
-  // NF: tem se tiver nf_stage_id OU nf_numero_repositorio
-  const temNF = !!conta.nf_stage_id || !!conta.nf_numero_repositorio;
+  // NF: tem se há referência no Repositório (Stage é validação pós-Movimentação — D-60/D-64)
+  const temNF = !!conta.nf_numero_repositorio;
 
   const aprovado =
     status === "aprovado" ||
@@ -101,10 +88,6 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
   const estadoNF: EstadoIcone = temNF ? "feito" : "pendente";
   const estadoAprovar: EstadoIcone = aprovado ? "feito" : "pendente";
 
-  // Ícone email: regra unificada via helper familia-conta-pagar.
-  // Família B (cartão) e C (OFX já saiu) → sempre cinza (não cobra).
-  // Família A → vermelho só quando forma cobra (PIX, boleto, transferência)
-  // E status está em fluxo. Caso contrário, cinza.
   const familia = getFamiliaContaPagar({
     is_cartao: conta.is_cartao ?? null,
     origem: conta.origem ?? null,
@@ -195,7 +178,9 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
     setShowEnviar(true);
   }
 
-  const tooltipNF = temNF ? "NF anexada" : "Sem NF — clique pra anexar";
+  const tooltipNF = temNF
+    ? "NF anexada"
+    : "Sem NF anexada — abra o detalhe pra anexar do Repositório";
   const tooltipAprovar = aprovado ? "Já aprovada" : "Aprovar pagamento";
   const tooltipEmail =
     estadoEmail === "feito"
@@ -212,42 +197,15 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
 
   return (
     <div className="flex items-center gap-1" onClick={stopVoid}>
-      {/* 1) NF — sempre visível */}
-      {estadoNF === "pendente" ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              className={cn("h-7 w-7", COR_ICONE[estadoNF])}
-              title={tooltipNF}
-              onClick={stopVoid}
-            >
-              <Paperclip className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={stopVoid}>
-            <DropdownMenuItem onClick={stop(() => setShowBuscar(true))}>
-              <FileSearch className="h-3.5 w-3.5 mr-2" />
-              Buscar no Stage
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={stop(() => navigate("/administrativo/importar"))}>
-              <Upload className="h-3.5 w-3.5 mr-2" />
-              Subir nova NF no Importador
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
-        <Button
-          size="icon"
-          variant="ghost"
-          className={cn("h-7 w-7", COR_ICONE[estadoNF])}
-          title={tooltipNF}
-          onClick={stopVoid}
-        >
-          <Paperclip className="h-3.5 w-3.5" />
-        </Button>
-      )}
+      {/* 1) NF — click propaga e abre o drawer (anexar NF é parte da edição da CPR — D-E). */}
+      <Button
+        size="icon"
+        variant="ghost"
+        className={cn("h-7 w-7", COR_ICONE[estadoNF])}
+        title={tooltipNF}
+      >
+        <Paperclip className="h-3.5 w-3.5" />
+      </Button>
 
       {/* 2) Aprovar */}
       <Button
@@ -301,19 +259,6 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
           conta={conta as any}
           onDone={() => {
             qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-          }}
-        />
-      )}
-      {showBuscar && (
-        <BuscarNFStageDialog
-          open={showBuscar}
-          onOpenChange={setShowBuscar}
-          contaId={conta.id}
-          contaDescricao={conta.descricao}
-          contaValor={conta.valor}
-          onVinculado={() => {
-            qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-            qc.invalidateQueries({ queryKey: ["nfs-stage"] });
           }}
         />
       )}

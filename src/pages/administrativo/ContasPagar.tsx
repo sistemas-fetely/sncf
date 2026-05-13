@@ -38,7 +38,6 @@ import {
   CircleCheck,
   FileWarning,
   FileText,
-  Receipt,
   PackageOpen,
   X,
   ChevronDown,
@@ -174,7 +173,7 @@ export default function ContasPagar() {
     },
   });
 
-  // Bola redonda — CPRs com todos os dados de pagamento prontos
+  // "Pronto pra pagar" (UI) ↔ bola_redonda (interno) — CPRs com todos os dados prontos
   const { data: bolaRedondaSet = new Set<string>() } = useQuery({
     queryKey: ["contas-pagar-bola-redonda-set", (data || []).map((c) => c.id).join(",")],
     enabled: !!data && data.length > 0,
@@ -381,9 +380,6 @@ export default function ContasPagar() {
                 <DropdownMenuItem onClick={abrirNovaAvulsa} className="gap-2">
                   <FileText className="h-4 w-4" /> Nova despesa avulsa
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setImportarNFOpen(true)} className="gap-2">
-                  <Receipt className="h-4 w-4" /> Importar NF
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -433,7 +429,7 @@ export default function ContasPagar() {
           />
           <KpiCard
             icon={CircleCheck}
-            label="Bola redonda"
+            label="Pronto pra pagar"
             count={kpis.bola_redonda.count}
             valor={kpis.bola_redonda.valor}
             color="text-emerald-600"
