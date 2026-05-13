@@ -151,6 +151,18 @@ export function PastaDetalhe({ pasta, onAtualizado }: Props) {
             <h1 className="text-xl font-semibold truncate">{pasta.nome}</h1>
             <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
               {pasta.parceiro_nome && <span>{pasta.parceiro_nome}</span>}
+              {pasta.grupo_nome && (
+                <>
+                  <span>·</span>
+                  <Badge
+                    variant="outline"
+                    className="bg-purple-50 text-purple-800 border-purple-300 cursor-pointer hover:bg-purple-100"
+                    title="Clique para ver outras pastas do mesmo grupo"
+                  >
+                    Grupo: {pasta.grupo_nome}
+                  </Badge>
+                </>
+              )}
               {pasta.tipo && (
                 <>
                   <span>·</span>
