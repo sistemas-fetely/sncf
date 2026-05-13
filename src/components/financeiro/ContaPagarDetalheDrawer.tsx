@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
+
 import {
   Select,
   SelectContent,
@@ -51,7 +51,7 @@ import StatusProgressBar from "./StatusProgressBar";
 import TimelineHistorico from "./TimelineHistorico";
 import EnviarPagamentoDialog from "./EnviarPagamentoDialog";
 import DocumentosCP from "./DocumentosCP";
-import BuscarNFStageDialog from "./BuscarNFStageDialog";
+
 import { NfStageVinculadaCard } from "@/components/financeiro/NfStageVinculadaCard";
 import ContaPagarFormEdit from "./ContaPagarFormEdit";
 import { useContaWorkflow, type ContaStatus } from "@/hooks/useContaWorkflow";
@@ -146,7 +146,7 @@ export default function ContaPagarDetalheDrawer({
   const [modoEdit, setModoEdit] = useState(false);
   const [apagando, setApagando] = useState(false);
   const [lancandoMov, setLancandoMov] = useState(false);
-  const [buscarNFOpen, setBuscarNFOpen] = useState(false);
+  
   const workflow = useContaWorkflow();
   const qc = useQueryClient();
 
@@ -560,40 +560,13 @@ export default function ContaPagarDetalheDrawer({
             {/* Documentos */}
             <Separator className="my-4" />
 
-            <NFsAnexadasSecao
-              contaId={conta.id}
-              nfStagePrincipalId={conta.nf_stage_id}
-              onAnexarNova={() => setBuscarNFOpen(true)}
-            />
+            <NFsAnexadasSecao contaId={conta.id} />
             <DocumentosCP
               contaId={conta.id}
               docsStatus={conta.docs_status || "pendente"}
               nfChaveAcesso={conta.nf_chave_acesso}
               nfNumero={conta.nf_numero}
               origem={conta.origem}
-            />
-
-            <NfAplicavelToggle
-              contaId={conta.id}
-              nfAplicavel={conta.nf_aplicavel ?? true}
-              motivo={conta.nf_aplicavel_motivo ?? null}
-              onSaved={() => {
-                qc.invalidateQueries({
-                  queryKey: ["conta-pagar-detalhe", conta.id],
-                });
-                qc.invalidateQueries({ queryKey: ["docs-envio-agrupados"] });
-              }}
-            />
-
-            <BuscarNFStageDialog
-              open={buscarNFOpen}
-              onOpenChange={setBuscarNFOpen}
-              contaId={conta.id}
-              contaDescricao={conta.descricao}
-              contaValor={conta.valor}
-              onVinculado={() => {
-                qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
-              }}
             />
 
             {/* NF vinculada (com PDF/XML, links) */}
@@ -933,128 +906,6 @@ function Linha({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-// -----------------------------------------------------------------------------
-// NfAplicavelToggle — controla nf_aplicavel + motivo na conta
-// -----------------------------------------------------------------------------
-const MOTIVOS_NF_NAO_APLICAVEL = [
-  { value: "tributo", label: "Tributo (IPVA, IPTU, etc)" },
-  { value: "tarifa_bancaria", label: "Tarifa bancária" },
-  { value: "multa", label: "Multa" },
-  { value: "doacao", label: "Doação" },
-  { value: "reembolso_interno", label: "Reembolso interno" },
-  { value: "outro", label: "Outro" },
-];
-
-function NfAplicavelToggle({
-  contaId,
-  nfAplicavel,
-  motivo,
-  onSaved,
-}: {
-  contaId: string;
-  nfAplicavel: boolean;
-  motivo: string | null;
-  onSaved: () => void;
-}) {
-  const [aplicavel, setAplicavel] = useState(nfAplicavel);
-  const [motivoLocal, setMotivoLocal] = useState<string | null>(motivo);
-  const [salvando, setSalvando] = useState(false);
-
-  useEffect(() => {
-    setAplicavel(nfAplicavel);
-    setMotivoLocal(motivo);
-  }, [nfAplicavel, motivo]);
-
-  const dirty = aplicavel !== nfAplicavel || (motivoLocal || null) !== (motivo || null);
-
-  async function salvar() {
-    if (!aplicavel && !motivoLocal) {
-      toast.error("Selecione um motivo quando NF não for aplicável.");
-      return;
-    }
-    setSalvando(true);
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from("contas_pagar_receber")
-        .update({
-          nf_aplicavel: aplicavel,
-          nf_aplicavel_motivo: aplicavel ? null : motivoLocal,
-        })
-        .eq("id", contaId);
-      if (error) throw error;
-      toast.success("Atualizado");
-      onSaved();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error("Erro: " + msg);
-    } finally {
-      setSalvando(false);
-    }
-  }
-
-  return (
-    <div className="mt-4 rounded-md border p-3 space-y-3 bg-muted/30">
-      <div className="flex items-center justify-between gap-3">
-        <div className="space-y-0.5">
-          <p className="text-xs font-medium">NF aplicável a este pagamento</p>
-          <p className="text-[11px] text-muted-foreground">
-            Desligue para contas que não exigem nota fiscal (tributos, tarifas, etc).
-          </p>
-        </div>
-        <Switch
-          checked={aplicavel}
-          onCheckedChange={(v) => {
-            setAplicavel(v);
-            if (v) setMotivoLocal(null);
-          }}
-          disabled={salvando}
-        />
-      </div>
-
-      {!aplicavel && (
-        <div className="space-y-1">
-          <p className="text-[11px] font-medium">Motivo (obrigatório)</p>
-          <Select
-            value={motivoLocal || ""}
-            onValueChange={(v) => setMotivoLocal(v)}
-            disabled={salvando}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Selecione um motivo..." />
-            </SelectTrigger>
-            <SelectContent>
-              {MOTIVOS_NF_NAO_APLICAVEL.map((m) => (
-                <SelectItem key={m.value} value={m.value} className="text-xs">
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-[10px] text-muted-foreground">
-            Quando aplicável, esta conta vai ao contador SEM exigir NF anexada.
-          </p>
-        </div>
-      )}
-
-      {dirty && (
-        <Button
-          size="sm"
-          onClick={salvar}
-          disabled={salvando}
-          className="gap-1"
-        >
-          {salvando ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Check className="h-3.5 w-3.5" />
-          )}
-          Salvar
-        </Button>
-      )}
-    </div>
-  );
-}
 
 // Lista de NFs anexadas a uma CPR (modelo N:1: 1 CPR pode ter múltiplas NFs anexadas)
 function NFsAnexadasSecao({
