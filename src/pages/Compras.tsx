@@ -30,13 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+// Imports de DropdownMenu removidos — agora usamos ícones inline
 import {
   AlertDialog,
   AlertDialogAction,
