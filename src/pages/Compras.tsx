@@ -11,8 +11,6 @@ import {
   Truck,
   CheckCircle2,
   Search,
-  Eye,
-  Pencil,
   Send,
   Trash2,
 } from "lucide-react";
@@ -232,7 +230,11 @@ export default function Compras() {
                   const podeEditar = p.status === "rascunho";
                   const desc = p.descricao_geral || "(sem descrição)";
                   return (
-                    <TableRow key={p.id} className="cursor-pointer" onClick={() => abrirVer(p)}>
+                    <TableRow
+                      key={p.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => (podeEditar ? abrirEditar(p) : abrirVer(p))}
+                    >
                       <TableCell className="max-w-[280px] truncate" title={desc}>
                         {desc.length > 60 ? desc.slice(0, 60) + "…" : desc}
                       </TableCell>
@@ -253,48 +255,30 @@ export default function Compras() {
                         </div>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Ver"
-                            onClick={() => abrirVer(p)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {podeEditar && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Editar"
-                                onClick={() => abrirEditar(p)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:text-green-600"
-                                title="Enviar"
-                                onClick={() => setConfirmarEnvio(p)}
-                              >
-                                <Send className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:text-destructive"
-                                title="Descartar"
-                                onClick={() => setConfirmarDescartar(p)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                        {podeEditar ? (
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
+                              title="Enviar para comprador"
+                              onClick={() => setConfirmarEnvio(p)}
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              title="Descartar"
+                              onClick={() => setConfirmarDescartar(p)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
