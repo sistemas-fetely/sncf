@@ -112,12 +112,23 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
     if (estadoAprovar !== "pendente") return;
     setAprovando(true);
     try {
-      await workflow.mudarStatus.mutateAsync({
-        contaId: conta.id,
-        statusAnterior: status,
-        novoStatus: "aprovado" as ContaStatus,
-      });
-      toast.success("Conta aprovada");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: result, error } = await (supabase as any).rpc(
+        "aprovar_cpr_em_cascata",
+        { p_cpr_id: conta.id },
+      );
+      if (error) throw error;
+      if (!result?.ok) {
+        throw new Error(result?.erro || "Falha ao aprovar");
+      }
+      const total = result.parcelas_aprovadas as number;
+      if (total > 1) {
+        toast.success(`${total} parcelas do pedido aprovadas`);
+      } else {
+        toast.success("Conta aprovada");
+      }
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+      qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
     } catch (e) {
       toast.error("Erro: " + extractMsg(e));
     } finally {
