@@ -419,6 +419,7 @@ export default function ContaPagarDetalheDrawer({
                     nf_chave_acesso: conta.nf_chave_acesso ?? null,
                     status: conta.status,
                     pago_em_conta_id: conta.pago_em_conta_id ?? null,
+                    parceiro_id: conta.parceiro_id ?? null,
                     // Campos pra família (visibilidade por origem)
                     is_cartao: conta.is_cartao ?? null,
                     origem: conta.origem ?? null,
