@@ -300,6 +300,33 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
   const semDadosBancariosCadastrados =
     !parceiroDadosBancarios || Object.keys(parceiroDadosBancarios).length === 0;
 
+  // Cadastro incompleto = invariante calculado pelo trigger (Doutrina #74 + Frente BIS)
+  const parceiroCadastroIncompleto = !!parceiroInfo?.cadastroIncompleto;
+
+  // Mesclar docs manuais (contas_pagar_documentos) + PDFs das NFs anexadas (nfs_stage_documentos)
+  // Filtro: apenas PDFs (DANFE/boleto). XML não vai pro email.
+  const documentosTodos = useMemo<DocAnexo[]>(() => {
+    const manuais = documentos || [];
+    const docsNfs: DocAnexo[] = [];
+    for (const nf of nfsStageAnexadas || []) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const stageDocs = (nf.nfs_stage_documentos || []) as Array<any>;
+      for (const sd of stageDocs) {
+        const tipoStr = String(sd.tipo || "").toLowerCase();
+        // Só pega PDFs (DANFE, boleto, recibo). XML não.
+        if (tipoStr.includes("pdf") || tipoStr.includes("danfe") || tipoStr.includes("recibo")) {
+          docsNfs.push({
+            id: `stage-${nf.id}-${sd.storage_path}`,
+            tipo: "nf",
+            nome_arquivo: sd.arquivo_nome || `NF ${nf.nf_numero || nf.id}.pdf`,
+            storage_path: sd.storage_path,
+          });
+        }
+      }
+    }
+    return [...manuais, ...docsNfs];
+  }, [documentos, nfsStageAnexadas]);
+
   async function handleEnviar() {
     if (!emailDestinatario) {
       toast.error("Selecione um destinatário");
