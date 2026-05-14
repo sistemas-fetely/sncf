@@ -392,7 +392,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       //    - geração de URLs assinadas dos docs
       //    - invocação de send-transactional-email com template + payload corretos
       //    - update de email_pagamento_enviado (atomic)
-      const docsParaEnviar = (documentos || []).filter((d) => docsSelecionados.has(d.id));
+      const docsParaEnviar = documentosTodos.filter((d) => docsSelecionados.has(d.id));
       const emailResult = await supabase.functions.invoke("enviar-email-pagamento", {
         body: {
           cpr_id: conta.id,
