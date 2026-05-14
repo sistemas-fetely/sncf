@@ -601,7 +601,7 @@ export function ContaPagarFormEdit({
         <Select
           value={formaPagamentoId}
           onValueChange={setFormaPagamentoId}
-          disabled={isReadOnly || salvando || readonlyPorFamilia("forma_pagamento_id")}
+          disabled={criticosTravados || salvando || readonlyPorFamilia("forma_pagamento_id")}
         >
           <SelectTrigger>
             <SelectValue placeholder="Definir..." />
