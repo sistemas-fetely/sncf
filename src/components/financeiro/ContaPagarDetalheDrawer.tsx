@@ -675,28 +675,23 @@ export default function ContaPagarDetalheDrawer({
                       <Button
                         className="w-full bg-purple-700 hover:bg-purple-800 text-white gap-2"
                         onClick={async () => {
-                          // 1. Cascata: aprova esta CPR + irmãs do mesmo grupo em status 'aberto'
+                          // Cartão vai direto pra aguardando_pagamento em cascata (sem email ao fornecedor)
+                          // Não-cartão vai pra aprovado em cascata (requer envio de email depois)
+                          const statusAlvo = isCartao ? "aguardando_pagamento" : "aprovado";
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           const { data: cascata } = await (supabase as any).rpc(
                             "aprovar_cpr_em_cascata",
-                            { p_cpr_id: conta.id },
+                            { p_cpr_id: conta.id, p_status_alvo: statusAlvo },
                           );
                           const totalAprovadas = (cascata?.parcelas_aprovadas as number) || 1;
                           if (totalAprovadas > 1) {
-                            toast.success(`${totalAprovadas} parcelas do grupo aprovadas`);
-                          }
-
-                          if (isCartao) {
-                            // 2. Cartão: avança esta CPR pra aguardando_pagamento
-                            // (irmãs ficam em 'aprovado' — cada uma segue seu ciclo de vencimento)
-                            avancar(
-                              "aguardando_pagamento",
-                              "Aprovado e enviado ao financeiro — pagamento via fatura de cartão (sem cobrança ao fornecedor).",
+                            toast.success(
+                              isCartao
+                                ? `${totalAprovadas} parcelas aguardando pagamento pela fatura`
+                                : `${totalAprovadas} parcelas do grupo aprovadas`,
                             );
-                          } else {
-                            // 2. Não cartão: esta CPR já virou 'aprovado' via cascata, só fechar
-                            onClose();
                           }
+                          onClose();
                         }}
                       >
                         <ThumbsUp className="h-4 w-4" /> Aprovar pagamento
