@@ -138,8 +138,8 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
 
   async function handleLancarMov() {
     if (estadoMov !== "pendente") {
-      if (estadoMov === "feito") toast.info("Já tem movimentação vinculada");
-      else toast.info("Aprove antes de lançar em Movimentação");
+      if (estadoMov === "feito") toast.info("Pagamento já confirmado");
+      else toast.info("Aprove antes de marcar como paga");
       return;
     }
     setLancandoMov(true);
@@ -154,7 +154,7 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         const erroMsg = (result?.erro as string) || "";
         if (erroMsg.includes("pago_em_conta_id") && onAbrirEditandoBanco) {
           toast.warning(
-            "Antes de lançar em Movimentação, escolha o banco onde a conta foi/será paga.",
+            "Antes de marcar como paga, escolha o banco onde foi/será paga.",
             { duration: 4000 },
           );
           onAbrirEditandoBanco(conta.id);
@@ -164,7 +164,7 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         return;
       }
       toast.success(
-        result?.ja_existia ? "Já tinha movimentação" : "Lançada em Movimentação",
+        result?.ja_existia ? "Pagamento já estava confirmado" : "Marcada como paga",
       );
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
