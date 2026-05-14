@@ -345,6 +345,31 @@ export default function ContaPagarDetalheDrawer({
     conta?.dados_bancarios_fornecedor || conta?.dados_pagamento_fornecedor || null;
   const isCartao = !!conta?.is_cartao;
 
+  // Fatura de cartão vinculada a esta CPR (via fatura_cartao_lancamentos)
+  const { data: faturaVinculada } = useQuery({
+    queryKey: ["fatura-da-cpr", conta?.id],
+    enabled: !!conta?.id && isCartao,
+    queryFn: async () => {
+      if (!conta?.id) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("fatura_cartao_lancamentos")
+        .select("fatura_id, faturas_cartao:fatura_id(data_vencimento, periodo_inicio, periodo_fim, valor_total, status)")
+        .eq("conta_pagar_id", conta.id)
+        .maybeSingle();
+      return data as {
+        fatura_id: string;
+        faturas_cartao: {
+          data_vencimento: string;
+          periodo_inicio: string | null;
+          periodo_fim: string | null;
+          valor_total: number;
+          status: string;
+        } | null;
+      } | null;
+    },
+  });
+
   return (
     <Sheet open={!!contaId} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
@@ -466,6 +491,24 @@ export default function ContaPagarDetalheDrawer({
                 return <Linha label="Linha de investimento" value={txt || "—"} />;
               })()}
               <Linha label="Forma de pagamento" value={conta.formas_pagamento?.nome || "—"} />
+              {isCartao && faturaVinculada?.faturas_cartao && (
+                <Linha
+                  label="Fatura vinculada"
+                  value={
+                    <span className="text-xs text-primary">
+                      vence {formatDateBR(faturaVinculada.faturas_cartao.data_vencimento)}
+                      {" · "}
+                      {formatBRL(faturaVinculada.faturas_cartao.valor_total)}
+                    </span>
+                  }
+                />
+              )}
+              {isCartao && !faturaVinculada?.faturas_cartao && conta?.status !== "cancelado" && (
+                <Linha
+                  label="Fatura vinculada"
+                  value={<span className="text-xs text-muted-foreground">não vinculada</span>}
+                />
+              )}
               <Linha label="Vencimento" value={formatDateBR(conta.data_vencimento)} />
               {conta.data_pagamento && (
                 <Linha label="Pago em" value={formatDateBR(conta.data_pagamento)} />
