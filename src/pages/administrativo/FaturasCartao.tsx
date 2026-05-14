@@ -445,6 +445,33 @@ export default function FaturasCartao() {
     }
   }
 
+  async function handlePagarFatura(faturaId: string) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: result, error } = await (supabase as any).rpc(
+        "pagar_fatura_cartao",
+        { p_fatura_id: faturaId },
+      );
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = result as any;
+      if (!res?.ok) {
+        toast.error(res?.erro || "Erro ao pagar fatura");
+        return;
+      }
+      const marcadas = (res.cprs_marcadas_pagas as number) || 0;
+      toast.success(
+        marcadas > 0
+          ? `Fatura paga! ${marcadas} despesa${marcadas > 1 ? "s marcadas" : " marcada"} como paga.`
+          : "Fatura marcada como paga.",
+      );
+      qc.invalidateQueries({ queryKey: ["faturas-cartao"] });
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+    } catch (e) {
+      toast.error("Erro: " + (e instanceof Error ? e.message : String(e)));
+    }
+  }
+
   async function visualizarPDF(fatura: FaturaRow) {
     if (!fatura.pdf_storage_path) {
       toast.error("Sem arquivo anexado");
@@ -1085,6 +1112,20 @@ export default function FaturasCartao() {
                                 title="Ver PDF"
                               >
                                 <Eye className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {f.status !== "paga" && f.status !== "cancelada" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePagarFatura(f.id);
+                                }}
+                                title="Pagar fatura"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
                               </Button>
                             )}
                             <Button

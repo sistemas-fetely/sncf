@@ -12705,6 +12705,14 @@ export type Database = {
         Returns: Json
       }
       org_sync_in_progress: { Args: never; Returns: boolean }
+      pagar_fatura_cartao: {
+        Args: {
+          p_conta_bancaria_id?: string
+          p_data_pagamento?: string
+          p_fatura_id: string
+        }
+        Returns: Json
+      }
       perfil_area_do_departamento: {
         Args: { _departamento_id: string }
         Returns: {
