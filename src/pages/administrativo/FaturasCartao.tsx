@@ -444,33 +444,6 @@ export default function FaturasCartao() {
     }
   }
 
-  async function handlePagarFatura(faturaId: string) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: result, error } = await (supabase as any).rpc(
-        "pagar_fatura_cartao",
-        { p_fatura_id: faturaId },
-      );
-      if (error) throw error;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const res = result as any;
-      if (!res?.ok) {
-        toast.error(res?.erro || "Erro ao pagar fatura");
-        return;
-      }
-      const marcadas = (res.cprs_marcadas_pagas as number) || 0;
-      toast.success(
-        marcadas > 0
-          ? `Fatura paga! ${marcadas} despesa${marcadas > 1 ? "s marcadas" : " marcada"} como paga.`
-          : "Fatura marcada como paga.",
-      );
-      qc.invalidateQueries({ queryKey: ["faturas-cartao"] });
-      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-    } catch (e) {
-      toast.error("Erro: " + (e instanceof Error ? e.message : String(e)));
-    }
-  }
-
   async function visualizarPDF(fatura: FaturaRow) {
     if (!fatura.pdf_storage_path) {
       toast.error("Sem arquivo anexado");
