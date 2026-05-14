@@ -97,6 +97,33 @@ export default function Parceiros() {
   });
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (!abrirParceiroId) return;
+    let cancelado = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("parceiros_comerciais")
+        .select("*")
+        .eq("id", abrirParceiroId)
+        .maybeSingle();
+      if (cancelado) return;
+      if (error || !data) {
+        toast.error("Parceiro não encontrado");
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setEditing(data as any);
+        setFormOpen(true);
+      }
+      const next = new URLSearchParams(searchParams);
+      next.delete("abrir");
+      setSearchParams(next, { replace: true });
+    })();
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirParceiroId]);
+
   async function handleConfirmarExcluir() {
     if (!parceiroParaExcluir) return;
     setExcluindo(true);
