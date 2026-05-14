@@ -201,10 +201,10 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         : "Email não se aplica (cartão, OFX, ou forma sem cobrança)";
   const tooltipMov =
     estadoMov === "feito"
-      ? "Já em Movimentação"
+      ? "Pagamento confirmado"
       : estadoMov === "pendente"
-        ? "Lançar em Movimentação"
-        : "Aprove antes de lançar em Movimentação";
+        ? "Marcar como paga"
+        : "Aprove antes de marcar como paga";
 
   return (
     <div className="flex items-center gap-1">
