@@ -238,20 +238,14 @@ export default function ContasPagar() {
     );
     const aguardando = lista.filter((c) => c.status === "aguardando_pagamento");
     const pendencia = lista.filter((c) => pendenciaMap.has(c.id));
-    // "Pronto pra pagar" = tem dados completos E está em status acionável
-    // (paga/cancelado/aguardando ficam fora — não exigem ação interna)
-    const bola_redonda = lista.filter(
-      (c) => bolaRedondaSet.has(c.id) && ["aberto", "aprovado"].includes(c.status),
-    );
     const sumValor = (arr: Conta[]) => arr.reduce((s, c) => s + Number(c.valor || 0), 0);
     return {
       para_agir: { count: para_agir.length, valor: sumValor(para_agir) },
       atrasadas: { count: atrasadas.length, valor: sumValor(atrasadas) },
       aguardando: { count: aguardando.length, valor: sumValor(aguardando) },
       pendencia: { count: pendencia.length, valor: sumValor(pendencia) },
-      bola_redonda: { count: bola_redonda.length, valor: sumValor(bola_redonda) },
     };
-  }, [data, pendenciaMap, bolaRedondaSet]);
+  }, [data, pendenciaMap]);
 
   const filtrados = useMemo(() => {
     let lista = data || [];
