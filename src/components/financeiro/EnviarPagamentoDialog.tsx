@@ -211,6 +211,10 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       return (data || []) as Array<any>;
     },
   });
+
+  useEffect(() => {
+    if (!open) return;
+    if (conta.dados_pagamento_fornecedor) {
       setDadosPgto({
         banco: conta.dados_pagamento_fornecedor.banco || "",
         agencia: conta.dados_pagamento_fornecedor.agencia || "",
