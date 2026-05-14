@@ -591,7 +591,7 @@ export function ContaPagarFormEdit({
         <LinhaInvestimentoCombobox
           value={linhaInvestimentoId}
           onChange={setLinhaInvestimentoId}
-          disabled={isReadOnly || salvando}
+          disabled={criticosTravados || salvando}
         />
       </div>
 
