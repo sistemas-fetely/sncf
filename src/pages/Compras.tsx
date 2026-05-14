@@ -10,8 +10,11 @@ import {
   Clock,
   Truck,
   CheckCircle2,
-  MoreHorizontal,
   Search,
+  Eye,
+  Pencil,
+  Send,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -27,13 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+// Imports de DropdownMenu removidos — agora usamos ícones inline
 import {
   AlertDialog,
   AlertDialogAction,
@@ -256,33 +253,48 @@ export default function Compras() {
                         </div>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => abrirVer(p)}>Ver</DropdownMenuItem>
-                            {podeEditar && (
-                              <>
-                                <DropdownMenuItem onClick={() => abrirEditar(p)}>
-                                  Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setConfirmarEnvio(p)}>
-                                  Enviar
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => setConfirmarDescartar(p)}
-                                  className="text-destructive"
-                                >
-                                  Descartar
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Ver"
+                            onClick={() => abrirVer(p)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {podeEditar && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                title="Editar"
+                                onClick={() => abrirEditar(p)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:text-green-600"
+                                title="Enviar"
+                                onClick={() => setConfirmarEnvio(p)}
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:text-destructive"
+                                title="Descartar"
+                                onClick={() => setConfirmarDescartar(p)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
