@@ -738,7 +738,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
           </Button>
           <Button
             onClick={handleEnviar}
-            disabled={enviando}
+            disabled={enviando || parceiroCadastroIncompleto}
             className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
           >
             {enviando ? (
