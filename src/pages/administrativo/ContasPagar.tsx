@@ -22,12 +22,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   ArrowUpFromLine,
   Plus,
   Upload,
@@ -37,10 +31,8 @@ import {
   AlertCircle,
   CircleCheck,
   FileWarning,
-  FileText,
   PackageOpen,
   X,
-  ChevronDown,
 } from "lucide-react";
 import AcoesInlineConta from "@/components/financeiro/AcoesInlineConta";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -374,20 +366,14 @@ export default function ContasPagar() {
               <Upload className="h-4 w-4" />
               Importar NF
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button style={{ backgroundColor: "#1A4A3A", color: "white" }} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Nova Despesa
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={abrirNovaAvulsa} className="gap-2">
-                  <FileText className="h-4 w-4" /> Nova despesa avulsa
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              onClick={abrirNovaAvulsa}
+              style={{ backgroundColor: "#1A4A3A", color: "white" }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Nova Despesa
+            </Button>
           </div>
         </div>
 
