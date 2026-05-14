@@ -445,7 +445,7 @@ export function ContaPagarFormEdit({
           type="date"
           value={dataVencimento}
           onChange={(e) => setDataVencimento(e.target.value)}
-          disabled={isReadOnly || salvando || readonlyPorFamilia("data_vencimento")}
+          disabled={criticosTravados || salvando || readonlyPorFamilia("data_vencimento")}
         />
         {readonlyPorFamilia("data_vencimento") && familiaLabel && (
           <p className="text-[11px] text-muted-foreground">
