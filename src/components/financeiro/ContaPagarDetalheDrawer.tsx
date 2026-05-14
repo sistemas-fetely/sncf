@@ -345,6 +345,31 @@ export default function ContaPagarDetalheDrawer({
     conta?.dados_bancarios_fornecedor || conta?.dados_pagamento_fornecedor || null;
   const isCartao = !!conta?.is_cartao;
 
+  // Fatura de cartão vinculada a esta CPR (via fatura_cartao_lancamentos)
+  const { data: faturaVinculada } = useQuery({
+    queryKey: ["fatura-da-cpr", conta?.id],
+    enabled: !!conta?.id && isCartao,
+    queryFn: async () => {
+      if (!conta?.id) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("fatura_cartao_lancamentos")
+        .select("fatura_id, faturas_cartao:fatura_id(data_vencimento, periodo_inicio, periodo_fim, valor_total, status)")
+        .eq("conta_pagar_id", conta.id)
+        .maybeSingle();
+      return data as {
+        fatura_id: string;
+        faturas_cartao: {
+          data_vencimento: string;
+          periodo_inicio: string | null;
+          periodo_fim: string | null;
+          valor_total: number;
+          status: string;
+        } | null;
+      } | null;
+    },
+  });
+
   return (
     <Sheet open={!!contaId} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
