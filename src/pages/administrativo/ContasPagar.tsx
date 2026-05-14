@@ -543,14 +543,21 @@ export default function ContasPagar() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {meio ? (
-                          ico ? (
-                            <span className="flex items-center gap-1.5" title={meio}>
-                              <ico.Icon className={cn("h-4 w-4 shrink-0", ico.cor)} />
+                          <div className="flex flex-col gap-0.5">
+                            {ico ? (
+                              <span className="flex items-center gap-1.5" title={meio}>
+                                <ico.Icon className={cn("h-4 w-4 shrink-0", ico.cor)} />
+                                <span>{meio}</span>
+                              </span>
+                            ) : (
                               <span>{meio}</span>
-                            </span>
-                          ) : (
-                            <span>{meio}</span>
-                          )
+                            )}
+                            {c.is_cartao && faturaMap.has(c.id) && (
+                              <span className="text-[10px] text-muted-foreground pl-5">
+                                fatura vence {formatDateBR(faturaMap.get(c.id)!)}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-muted-foreground italic">—</span>
                         )}
