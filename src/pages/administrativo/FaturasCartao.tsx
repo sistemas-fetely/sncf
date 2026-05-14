@@ -1114,6 +1114,20 @@ export default function FaturasCartao() {
                                 <Eye className="h-3.5 w-3.5" />
                               </Button>
                             )}
+                            {f.status !== "paga" && f.status !== "cancelada" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePagarFatura(f.id);
+                                }}
+                                title="Pagar fatura"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
