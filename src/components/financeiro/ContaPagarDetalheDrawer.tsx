@@ -683,6 +683,30 @@ export default function ContaPagarDetalheDrawer({
                     </div>
                   )}
 
+                  {/* AGUARDANDO_PAGAMENTO → permite marcar como paga manualmente (paga fora do sistema) */}
+                  {conta.status === "aguardando_pagamento" && !conta.movimentacao_bancaria_id && (
+                    <div className="space-y-2">
+                      <div className="p-3 rounded-lg bg-amber-50 text-amber-700 text-sm flex items-center gap-2">
+                        <Clock className="h-4 w-4" /> Aguardando pagamento — quando confirmar que foi paga, marque abaixo
+                      </div>
+                      <Button
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                        onClick={async () => {
+                          await handleLancarMov();
+                          onClose();
+                        }}
+                        disabled={lancandoMov}
+                      >
+                        {lancandoMov ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ArrowRightLeft className="h-4 w-4" />
+                        )}
+                        Marcar como paga
+                      </Button>
+                    </div>
+                  )}
+
                   {/* DOC_PENDENTE → reenviar email + opção finalizar manual */}
                   {conta.status === "doc_pendente" && (
                     <div className="space-y-2">
