@@ -59,6 +59,11 @@ interface Props {
 
 const STATUS_READONLY = ["paga", "cancelado"];
 
+// Status em que campos CRÍTICOS (categoria, centro custo, vencimento, meio, conta origem)
+// ficam travados. Inclui `aguardando_pagamento` porque o email já saiu pro financeiro —
+// D-E (bola redonda): pacote enviado é imutável sem novo envio. Pra alterar = cancelar e recriar.
+const STATUS_TRAVA_CRITICOS = ["aguardando_pagamento", "paga", "cancelado"];
+
 export function ContaPagarFormEdit({
   conta,
   onSaved,
@@ -79,6 +84,8 @@ export function ContaPagarFormEdit({
   }, [highlightCampo]);
 
   const isReadOnly = STATUS_READONLY.includes(conta.status);
+  const criticosTravados = STATUS_TRAVA_CRITICOS.includes(conta.status);
+  const enviadoAguardando = conta.status === "aguardando_pagamento";
 
   // Família + visibilidade dos campos por origem.
   // Família B (cartão) e C (OFX já saiu) deixam data_vencimento, forma de
@@ -408,6 +415,17 @@ export function ContaPagarFormEdit({
         </div>
       )}
 
+      {enviadoAguardando && (
+        <div className="p-3 rounded-md border border-amber-300 bg-amber-50 text-amber-900 text-xs space-y-1">
+          <p className="font-medium">📧 Email de pagamento já enviado</p>
+          <p>
+            Campos críticos (categoria, centro de custo, meio de pagamento, vencimento, conta origem)
+            estão travados. Descrição, observação e metadados fiscais permanecem editáveis.
+            Pra alterar campos críticos, cancele esta CPR e crie uma nova.
+          </p>
+        </div>
+      )}
+
       {/* Descrição */}
       <div className="space-y-1">
         <Label htmlFor="cp-edit-descricao">Descrição</Label>
@@ -427,7 +445,7 @@ export function ContaPagarFormEdit({
           type="date"
           value={dataVencimento}
           onChange={(e) => setDataVencimento(e.target.value)}
-          disabled={isReadOnly || salvando || readonlyPorFamilia("data_vencimento")}
+          disabled={criticosTravados || salvando || readonlyPorFamilia("data_vencimento")}
         />
         {readonlyPorFamilia("data_vencimento") && familiaLabel && (
           <p className="text-[11px] text-muted-foreground">
@@ -500,7 +518,7 @@ export function ContaPagarFormEdit({
           options={categorias}
           value={contaId === "__none__" ? null : contaId}
           onChange={(id) => setContaId(id || "__none__")}
-          disabled={isReadOnly || salvando}
+          disabled={criticosTravados || salvando}
           placeholder="Selecionar categoria..."
           allowNull
         />
@@ -553,7 +571,7 @@ export function ContaPagarFormEdit({
         <Select
           value={centroCustoId ?? "__none__"}
           onValueChange={(v) => setCentroCustoId(v === "__none__" ? null : v)}
-          disabled={isReadOnly || salvando}
+          disabled={criticosTravados || salvando}
         >
           <SelectTrigger>
             <SelectValue placeholder="Definir..." />
@@ -573,7 +591,7 @@ export function ContaPagarFormEdit({
         <LinhaInvestimentoCombobox
           value={linhaInvestimentoId}
           onChange={setLinhaInvestimentoId}
-          disabled={isReadOnly || salvando}
+          disabled={criticosTravados || salvando}
         />
       </div>
 
@@ -583,7 +601,7 @@ export function ContaPagarFormEdit({
         <Select
           value={formaPagamentoId}
           onValueChange={setFormaPagamentoId}
-          disabled={isReadOnly || salvando || readonlyPorFamilia("forma_pagamento_id")}
+          disabled={criticosTravados || salvando || readonlyPorFamilia("forma_pagamento_id")}
         >
           <SelectTrigger>
             <SelectValue placeholder="Definir..." />
@@ -625,7 +643,7 @@ export function ContaPagarFormEdit({
         <Select
           value={pagoEmContaId}
           onValueChange={setPagoEmContaId}
-          disabled={isReadOnly || salvando || readonlyPorFamilia("pago_em_conta")}
+          disabled={criticosTravados || salvando || readonlyPorFamilia("pago_em_conta")}
         >
           <SelectTrigger
             className={cn(
