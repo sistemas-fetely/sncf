@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, Loader2, Send, Info } from "lucide-react";
+import { FileText, Loader2, Send, Info, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useContaWorkflow } from "@/hooks/useContaWorkflow";
@@ -78,6 +79,7 @@ interface Props {
 export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDone }: Props) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { mudarStatus } = useContaWorkflow();
   const [enviando, setEnviando] = useState(false);
 
@@ -176,6 +178,40 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     },
   });
 
+  // Buscar flag cadastro_incompleto do parceiro (Doutrina #74 — invariante calculado por trigger)
+  const { data: parceiroInfo } = useQuery({
+    queryKey: ["parceiro-info-envio", conta.parceiro_id],
+    enabled: open && !!conta.parceiro_id,
+    queryFn: async () => {
+      if (!conta.parceiro_id) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("parceiros_comerciais")
+        .select("cadastro_incompleto")
+        .eq("id", conta.parceiro_id)
+        .maybeSingle();
+      return { cadastroIncompleto: !!data?.cadastro_incompleto };
+    },
+  });
+
+  // Buscar NFs anexadas à CPR via nfs_stage (Achado 11 — anexar PDFs ao email)
+  const { data: nfsStageAnexadas } = useQuery({
+    queryKey: ["nfs-stage-envio", conta.id],
+    enabled: open,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("nfs_stage")
+        .select(
+          "id, nf_numero, fornecedor_razao_social, tipo_documento, nfs_stage_documentos(tipo, storage_path, arquivo_nome)"
+        )
+        .eq("conta_pagar_id", conta.id);
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data || []) as Array<any>;
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
     if (conta.dados_pagamento_fornecedor) {
@@ -232,14 +268,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     setFormaPagamentoId(conta.forma_pagamento_id || "");
   }, [open, conta]);
 
-  // Selecionar todos os documentos por default quando carregam
-  useEffect(() => {
-    if (documentos && documentos.length > 0 && docsSelecionados.size === 0) {
-      setDocsSelecionados(new Set(documentos.map((d) => d.id)));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentos]);
-
   const fornecedorNome = useMemo(
     () =>
       conta.parceiros_comerciais?.razao_social ||
@@ -264,7 +292,46 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
   const semDadosBancariosCadastrados =
     !parceiroDadosBancarios || Object.keys(parceiroDadosBancarios).length === 0;
 
+  // Cadastro incompleto = invariante calculado pelo trigger (Doutrina #74 + Frente BIS)
+  const parceiroCadastroIncompleto = !!parceiroInfo?.cadastroIncompleto;
+
+  // Mesclar docs manuais (contas_pagar_documentos) + PDFs das NFs anexadas (nfs_stage_documentos)
+  // Filtro: apenas PDFs (DANFE/boleto). XML não vai pro email.
+  const documentosTodos = useMemo<DocAnexo[]>(() => {
+    const manuais = documentos || [];
+    const docsNfs: DocAnexo[] = [];
+    for (const nf of nfsStageAnexadas || []) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const stageDocs = (nf.nfs_stage_documentos || []) as Array<any>;
+      for (const sd of stageDocs) {
+        const tipoStr = String(sd.tipo || "").toLowerCase();
+        // Só pega PDFs (DANFE, boleto, recibo). XML não.
+        if (tipoStr.includes("pdf") || tipoStr.includes("danfe") || tipoStr.includes("recibo")) {
+          docsNfs.push({
+            id: `stage-${nf.id}-${sd.storage_path}`,
+            tipo: "nf",
+            nome_arquivo: sd.arquivo_nome || `NF ${nf.nf_numero || nf.id}.pdf`,
+            storage_path: sd.storage_path,
+          });
+        }
+      }
+    }
+    return [...manuais, ...docsNfs];
+  }, [documentos, nfsStageAnexadas]);
+
+  // Selecionar todos os documentos por default quando carregam (manuais + NFs do Stage)
+  useEffect(() => {
+    if (documentosTodos.length > 0 && docsSelecionados.size === 0) {
+      setDocsSelecionados(new Set(documentosTodos.map((d) => d.id)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentosTodos]);
+
   async function handleEnviar() {
+    if (parceiroCadastroIncompleto) {
+      toast.error("Cadastro do Parceiro incompleto. Complete os dados bancários antes de enviar.");
+      return;
+    }
     if (!emailDestinatario) {
       toast.error("Selecione um destinatário");
       return;
@@ -325,7 +392,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       //    - geração de URLs assinadas dos docs
       //    - invocação de send-transactional-email com template + payload corretos
       //    - update de email_pagamento_enviado (atomic)
-      const docsParaEnviar = (documentos || []).filter((d) => docsSelecionados.has(d.id));
+      const docsParaEnviar = documentosTodos.filter((d) => docsSelecionados.has(d.id));
       const emailResult = await supabase.functions.invoke("enviar-email-pagamento", {
         body: {
           cpr_id: conta.id,
@@ -508,51 +575,60 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
             </div>
           )}
 
-          {/* Dados bancários */}
+          {/* Dados bancários — D-E: bola redonda entre processos.
+              Se parceiro com cadastro_incompleto → bloqueia envio + link pra completar.
+              Se completo → exibe read-only do cadastro. */}
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">
               Dados bancários do fornecedor
             </Label>
-            {conta.parceiro_id && semDadosBancariosCadastrados && (
-              <div className="flex items-start gap-2 p-2 rounded-md border border-blue-200 bg-blue-50 text-xs text-blue-800">
-                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <span>
-                  Sem dados bancários cadastrados pra este fornecedor. Preencha aqui — vamos salvar no cadastro pra próxima vez.
-                </span>
+
+            {parceiroCadastroIncompleto ? (
+              <div className="flex items-start gap-3 p-3 rounded-md border border-amber-300 bg-amber-50">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-medium text-amber-900">
+                    Cadastro do Parceiro incompleto
+                  </p>
+                  <p className="text-xs text-amber-800">
+                    Antes de enviar pagamento, complete os dados bancários no cadastro do Parceiro.
+                    O envio só fica liberado quando o cadastro está completo.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 border-amber-400 text-amber-900 hover:bg-amber-100"
+                    onClick={() => {
+                      onOpenChange(false);
+                      navigate(`/administrativo/parceiros?abrir=${conta.parceiro_id}`);
+                    }}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Abrir cadastro do Parceiro
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Banco</Label>
+                  <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/40 border">{dadosPgto.banco || "—"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs">Agência</Label>
+                  <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/40 border">{dadosPgto.agencia || "—"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs">Conta</Label>
+                  <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/40 border">{dadosPgto.conta || "—"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs">PIX</Label>
+                  <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/40 border">{dadosPgto.pix || "—"}</p>
+                </div>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Banco</Label>
-                <Input
-                  value={dadosPgto.banco}
-                  onChange={(e) => setDadosPgto({ ...dadosPgto, banco: e.target.value })}
-                  placeholder="Ex: Itaú"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Agência</Label>
-                <Input
-                  value={dadosPgto.agencia}
-                  onChange={(e) => setDadosPgto({ ...dadosPgto, agencia: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Conta</Label>
-                <Input
-                  value={dadosPgto.conta}
-                  onChange={(e) => setDadosPgto({ ...dadosPgto, conta: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">PIX</Label>
-                <Input
-                  value={dadosPgto.pix}
-                  onChange={(e) => setDadosPgto({ ...dadosPgto, pix: e.target.value })}
-                  placeholder="CNPJ, email, etc"
-                />
-              </div>
-            </div>
           </div>
 
           {/* Destinatário */}
@@ -611,13 +687,13 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
           </div>
 
           {/* Documentos para anexar (selecionar quais) */}
-          {documentos && documentos.length > 0 && (
+          {documentosTodos.length > 0 && (
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Documentos para anexar ({docsSelecionados.size}/{documentos.length})
+                Documentos para anexar ({docsSelecionados.size}/{documentosTodos.length})
               </Label>
               <div className="space-y-1.5 border rounded-md p-2">
-                {documentos.map((doc) => (
+                {documentosTodos.map((doc) => (
                   <div key={doc.id} className="flex items-center gap-2 text-xs">
                     <Checkbox
                       id={`doc-${doc.id}`}
@@ -649,7 +725,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
             </div>
           )}
 
-          {!documentos?.length && (
+          {documentosTodos.length === 0 && (
             <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded-md border border-amber-200">
               ⚠ Nenhum documento anexado a esta conta. O envio será feito sem anexos.
             </div>
@@ -662,7 +738,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
           </Button>
           <Button
             onClick={handleEnviar}
-            disabled={enviando}
+            disabled={enviando || parceiroCadastroIncompleto}
             className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
           >
             {enviando ? (

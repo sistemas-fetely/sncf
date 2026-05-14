@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { exportarParceirosXlsx, importarParceirosXlsx, type LookupMaps } from "@/lib/parceiros/excel-io";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -81,6 +81,9 @@ export default function Parceiros() {
     setSearchParams(next, { replace: true });
   };
 
+  // Se URL contém ?abrir=, abre o Sheet do parceiro automaticamente
+  const abrirParceiroId = searchParams.get("abrir");
+
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("ativos");
   const [filtroGrupo, setFiltroGrupo] = useState<string>("todos");
@@ -93,6 +96,33 @@ export default function Parceiros() {
     direction: "asc",
   });
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!abrirParceiroId) return;
+    let cancelado = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("parceiros_comerciais")
+        .select("*")
+        .eq("id", abrirParceiroId)
+        .maybeSingle();
+      if (cancelado) return;
+      if (error || !data) {
+        toast.error("Parceiro não encontrado");
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setEditing(data as any);
+        setFormOpen(true);
+      }
+      const next = new URLSearchParams(searchParams);
+      next.delete("abrir");
+      setSearchParams(next, { replace: true });
+    })();
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirParceiroId]);
 
   async function handleConfirmarExcluir() {
     if (!parceiroParaExcluir) return;
