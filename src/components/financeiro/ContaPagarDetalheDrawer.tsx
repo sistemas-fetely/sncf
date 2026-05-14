@@ -730,7 +730,7 @@ export default function ContaPagarDetalheDrawer({
                       <Button
                         variant="outline"
                         className="w-full gap-2"
-                        onClick={() => avancar("aberto", "Reaberto após cancelamento")}
+                        onClick={() => avancar("aberto", "Reaberto após cancelamento", false)}
                       >
                         <RotateCcw className="h-4 w-4" /> Reabrir
                       </Button>
