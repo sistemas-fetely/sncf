@@ -12475,6 +12475,10 @@ export type Database = {
         }
         Returns: string
       }
+      fn_obter_ou_criar_pasta_parceiro: {
+        Args: { p_parceiro_id: string }
+        Returns: string
+      }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       gerar_celebracoes_aniversario_mural: { Args: never; Returns: number }
       gerar_celebracoes_tempo_casa_mural: { Args: never; Returns: number }
