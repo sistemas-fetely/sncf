@@ -389,16 +389,6 @@ export default function ContasPagar() {
             active={kpiFilter === "pendencia"}
             onClick={() => setKpiFilter(kpiFilter === "pendencia" ? null : "pendencia")}
           />
-          <KpiCard
-            icon={CircleCheck}
-            label="Pronto pra pagar"
-            count={kpis.bola_redonda.count}
-            valor={kpis.bola_redonda.valor}
-            color="text-emerald-600"
-            border="border-emerald-300"
-            active={kpiFilter === "bola_redonda"}
-            onClick={() => setKpiFilter(kpiFilter === "bola_redonda" ? null : "bola_redonda")}
-          />
         </div>
       </div>
 
