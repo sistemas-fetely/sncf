@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import EnviarPagamentoDialog from "./EnviarPagamentoDialog";
-import { useContaWorkflow, type ContaStatus } from "@/hooks/useContaWorkflow";
+
 import { cn } from "@/lib/utils";
 import {
   getFamiliaContaPagar,
@@ -50,7 +50,7 @@ const COR_ICONE: Record<EstadoIcone, string> = {
 
 export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props) {
   const qc = useQueryClient();
-  const workflow = useContaWorkflow();
+  
   const [aprovando, setAprovando] = useState(false);
   const [lancandoMov, setLancandoMov] = useState(false);
   const [showEnviar, setShowEnviar] = useState(false);
@@ -112,12 +112,23 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
     if (estadoAprovar !== "pendente") return;
     setAprovando(true);
     try {
-      await workflow.mudarStatus.mutateAsync({
-        contaId: conta.id,
-        statusAnterior: status,
-        novoStatus: "aprovado" as ContaStatus,
-      });
-      toast.success("Conta aprovada");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: result, error } = await (supabase as any).rpc(
+        "aprovar_cpr_em_cascata",
+        { p_cpr_id: conta.id },
+      );
+      if (error) throw error;
+      if (!result?.ok) {
+        throw new Error(result?.erro || "Falha ao aprovar");
+      }
+      const total = result.parcelas_aprovadas as number;
+      if (total > 1) {
+        toast.success(`${total} parcelas do pedido aprovadas`);
+      } else {
+        toast.success("Conta aprovada");
+      }
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+      qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
     } catch (e) {
       toast.error("Erro: " + extractMsg(e));
     } finally {
@@ -127,8 +138,8 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
 
   async function handleLancarMov() {
     if (estadoMov !== "pendente") {
-      if (estadoMov === "feito") toast.info("Já tem movimentação vinculada");
-      else toast.info("Aprove antes de lançar em Movimentação");
+      if (estadoMov === "feito") toast.info("Pagamento já confirmado");
+      else toast.info("Aprove antes de marcar como paga");
       return;
     }
     setLancandoMov(true);
@@ -143,7 +154,7 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         const erroMsg = (result?.erro as string) || "";
         if (erroMsg.includes("pago_em_conta_id") && onAbrirEditandoBanco) {
           toast.warning(
-            "Antes de lançar em Movimentação, escolha o banco onde a conta foi/será paga.",
+            "Antes de marcar como paga, escolha o banco onde foi/será paga.",
             { duration: 4000 },
           );
           onAbrirEditandoBanco(conta.id);
@@ -153,7 +164,7 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         return;
       }
       toast.success(
-        result?.ja_existia ? "Já tinha movimentação" : "Lançada em Movimentação",
+        result?.ja_existia ? "Pagamento já estava confirmado" : "Marcada como paga",
       );
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
@@ -190,10 +201,10 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         : "Email não se aplica (cartão, OFX, ou forma sem cobrança)";
   const tooltipMov =
     estadoMov === "feito"
-      ? "Já em Movimentação"
+      ? "Pagamento confirmado"
       : estadoMov === "pendente"
-        ? "Lançar em Movimentação"
-        : "Aprove antes de lançar em Movimentação";
+        ? "Marcar como paga"
+        : "Aprove antes de marcar como paga";
 
   return (
     <div className="flex items-center gap-1">
