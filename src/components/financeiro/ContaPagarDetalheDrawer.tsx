@@ -850,12 +850,14 @@ export default function ContaPagarDetalheDrawer({
 
 function CancelarButton({
   conta,
-  workflow,
+  workflow: _workflow,
   onClose,
+  temIrmasAtivas,
 }: {
   conta: { id: string; status: string };
   workflow: ReturnType<typeof useContaWorkflow>;
   onClose: () => void;
+  temIrmasAtivas: boolean;
 }) {
   return (
     <AlertDialog>
@@ -869,9 +871,22 @@ function CancelarButton({
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Cancelar esta conta?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {temIrmasAtivas ? "Cancelar parcela ou pedido inteiro?" : "Cancelar esta conta?"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            O status mudará para "cancelado" e qualquer NF/Recibo vinculado será desvinculado automaticamente (voltará pro Stage). Você poderá reverter depois se necessário.
+            {temIrmasAtivas ? (
+              <>
+                Este pedido tem outras parcelas ativas. Você pode cancelar apenas esta parcela
+                ou o pedido inteiro. NFs/Recibos vinculados são desvinculados automaticamente.
+                Parcelas já pagas ou canceladas não são afetadas.
+              </>
+            ) : (
+              <>
+                O status mudará para "cancelado" e qualquer NF/Recibo vinculado será desvinculado
+                automaticamente (voltará pro Stage). Você poderá reverter depois se necessário.
+              </>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -901,8 +916,42 @@ function CancelarButton({
               }
             }}
           >
-            Sim, cancelar
+            {temIrmasAtivas ? "Só esta parcela" : "Sim, cancelar"}
           </AlertDialogAction>
+          {temIrmasAtivas && (
+            <AlertDialogAction
+              className="bg-red-700 hover:bg-red-800 text-white"
+              onClick={async () => {
+                try {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const { data, error } = await (supabase as any).rpc(
+                    "cancelar_pedido_inteiro_via_cpr",
+                    { p_cpr_id: conta.id },
+                  );
+                  if (error) throw error;
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const result = data as any;
+                  if (!result?.ok) {
+                    toast.error(result?.erro || "Erro ao cancelar pedido");
+                    return;
+                  }
+                  const canceladas = result.parcelas_canceladas as number;
+                  const protegidas = result.parcelas_protegidas as number;
+                  toast.success(
+                    protegidas > 0
+                      ? `${canceladas} parcelas canceladas. ${protegidas} preservadas (já pagas ou canceladas).`
+                      : `${canceladas} parcelas canceladas — pedido inteiro.`,
+                  );
+                  onClose();
+                } catch (e) {
+                  console.error("Erro ao cancelar pedido:", e);
+                  toast.error("Erro: " + formatError(e));
+                }
+              }}
+            >
+              Pedido inteiro
+            </AlertDialogAction>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
