@@ -178,9 +178,39 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     },
   });
 
-  useEffect(() => {
-    if (!open) return;
-    if (conta.dados_pagamento_fornecedor) {
+  // Buscar flag cadastro_incompleto do parceiro (Doutrina #74 — invariante calculado por trigger)
+  const { data: parceiroInfo } = useQuery({
+    queryKey: ["parceiro-info-envio", conta.parceiro_id],
+    enabled: open && !!conta.parceiro_id,
+    queryFn: async () => {
+      if (!conta.parceiro_id) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("parceiros_comerciais")
+        .select("cadastro_incompleto")
+        .eq("id", conta.parceiro_id)
+        .maybeSingle();
+      return { cadastroIncompleto: !!data?.cadastro_incompleto };
+    },
+  });
+
+  // Buscar NFs anexadas à CPR via nfs_stage (Achado 11 — anexar PDFs ao email)
+  const { data: nfsStageAnexadas } = useQuery({
+    queryKey: ["nfs-stage-envio", conta.id],
+    enabled: open,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("nfs_stage")
+        .select(
+          "id, nf_numero, fornecedor_razao_social, tipo_documento, nfs_stage_documentos(tipo, storage_path, arquivo_nome)"
+        )
+        .eq("conta_pagar_id", conta.id);
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data || []) as Array<any>;
+    },
+  });
       setDadosPgto({
         banco: conta.dados_pagamento_fornecedor.banco || "",
         agencia: conta.dados_pagamento_fornecedor.agencia || "",
