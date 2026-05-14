@@ -79,6 +79,7 @@ interface Props {
 export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDone }: Props) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { mudarStatus } = useContaWorkflow();
   const [enviando, setEnviando] = useState(false);
 
