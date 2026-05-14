@@ -12047,6 +12047,7 @@ export type Database = {
         Args: { p_stage_id: string; p_user_id?: string }
         Returns: Json
       }
+      aprovar_cpr_em_cascata: { Args: { p_cpr_id: string }; Returns: Json }
       aprovar_nf_pj: {
         Args: { _nota_id: string; _observacao_rh?: string }
         Returns: Json
@@ -12116,6 +12117,10 @@ export type Database = {
       cancelar_parcelas_futuras_recorrente: {
         Args: { p_recorrente_id: string }
         Returns: number
+      }
+      cancelar_pedido_inteiro_via_cpr: {
+        Args: { p_cpr_id: string }
+        Returns: Json
       }
       cancelar_pedido_pedido: {
         Args: { p_motivo: string; p_pedido_id: string }
