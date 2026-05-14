@@ -165,26 +165,6 @@ export default function ContasPagar() {
     },
   });
 
-  // "Pronto pra pagar" (UI) ↔ bola_redonda (interno) — CPRs com todos os dados prontos
-  const { data: bolaRedondaSet = new Set<string>() } = useQuery({
-    queryKey: ["contas-pagar-bola-redonda-set", (data || []).map((c) => c.id).join(",")],
-    enabled: !!data && data.length > 0,
-    queryFn: async () => {
-      const ids = (data || []).map((c) => c.id);
-      if (ids.length === 0) return new Set<string>();
-      const { data: rows, error } = await supabase
-        .from("v_cpr_bola_redonda")
-        .select("cpr_id, bola_redonda")
-        .in("cpr_id", ids);
-      if (error) throw error;
-      const s = new Set<string>();
-      (rows || []).forEach((r: { cpr_id: string | null; bola_redonda: boolean | null }) => {
-        if (r.bola_redonda && r.cpr_id) s.add(r.cpr_id);
-      });
-      return s;
-    },
-  });
-
   // Solicitante — via pedido_compra. Retorna Map (cpr_id -> user_id) + options ordenadas pelo nome.
   const { data: solicitanteData = { map: new Map<string, string>(), options: [] as { id: string; nome: string }[] } } = useQuery({
     queryKey: ["contas-pagar-solicitante-data", (data || []).map((c) => c.id).join(",")],
