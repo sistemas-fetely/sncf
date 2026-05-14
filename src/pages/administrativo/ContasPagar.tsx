@@ -280,7 +280,7 @@ export default function ContasPagar() {
     if (dataDe) lista = lista.filter((c) => (c.data_vencimento || "") >= dataDe);
     if (dataAte) lista = lista.filter((c) => (c.data_vencimento || "") <= dataAte);
     return lista;
-  }, [data, kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte, pendenciaMap, bolaRedondaSet, solicitanteMap]);
+  }, [data, kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte, pendenciaMap, solicitanteMap]);
 
   const temFiltroAtivo =
     !!busca.trim() ||
