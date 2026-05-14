@@ -261,10 +261,6 @@ export default function ContasPagar() {
       lista = lista.filter((c) => c.status === "aguardando_pagamento");
     } else if (kpiFilter === "pendencia") {
       lista = lista.filter((c) => pendenciaMap.has(c.id));
-    } else if (kpiFilter === "bola_redonda") {
-      lista = lista.filter(
-        (c) => bolaRedondaSet.has(c.id) && ["aberto", "aprovado"].includes(c.status),
-      );
     }
     if (busca.trim()) {
       const b = busca.toLowerCase();
