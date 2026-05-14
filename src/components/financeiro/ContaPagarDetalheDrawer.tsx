@@ -746,7 +746,7 @@ export default function ContaPagarDetalheDrawer({
                       <Button
                         variant="outline"
                         className="w-full gap-2"
-                        onClick={() => avancar("aberto", "Migrado para novo fluxo")}
+                        onClick={() => avancar("aberto", "Migrado para novo fluxo", false)}
                       >
                         <RotateCcw className="h-4 w-4" /> Reabrir para novo fluxo
                       </Button>
