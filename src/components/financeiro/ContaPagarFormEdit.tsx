@@ -699,6 +699,41 @@ export function ContaPagarFormEdit({
         )}
       </div>
 
+      {/* NF aplicável (toggle + motivo) */}
+      <div className="space-y-2 rounded-md border border-zinc-200 px-3 py-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <Label htmlFor="cp-edit-nf-aplicavel" className="text-sm">
+              Esta despesa exige NF
+            </Label>
+            <p className="text-[11px] text-muted-foreground">
+              Desmarque para tributos, juros, despesas internas etc.
+            </p>
+          </div>
+          <Switch
+            id="cp-edit-nf-aplicavel"
+            checked={nfAplicavel}
+            onCheckedChange={setNfAplicavel}
+            disabled={isReadOnly || salvando}
+          />
+        </div>
+        {!nfAplicavel && (
+          <div className="space-y-1">
+            <Label htmlFor="cp-edit-nf-motivo" className="text-xs">
+              Motivo <span className="text-rose-600">*</span>
+            </Label>
+            <Input
+              id="cp-edit-nf-motivo"
+              value={nfAplicavelMotivo}
+              onChange={(e) => setNfAplicavelMotivo(e.target.value)}
+              disabled={isReadOnly || salvando}
+              placeholder="Ex: Tributo federal, juros bancários…"
+              maxLength={120}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Dados NF */}
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
