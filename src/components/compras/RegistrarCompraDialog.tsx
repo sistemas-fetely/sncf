@@ -129,7 +129,7 @@ export function RegistrarCompraDialog({ open, onOpenChange, pedido }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("formas_pagamento")
-        .select("id, nome, tipo")
+        .select("id, nome")
         .eq("ativo", true)
         .order("ordem");
       return data || [];
