@@ -277,8 +277,8 @@ export async function enviarStageParaContasPagar(
         `Falha ao mover arquivo para conta ${r.conta_pagar_id}:`,
         e,
       );
-      // Não bloqueia: a NF está anexada via nf_stage_id e o helper de envio
-      // tem fallback. Mas a falha agora SAI do escuro.
+      // Não bloqueia: a NF está vinculada via nfs_stage.conta_pagar_id (modelo N:1)
+      // e o helper de envio tem fallback. Mas a falha agora SAI do escuro.
       result.erros.push(
         `Conta ${r.conta_pagar_id}: arquivo da NF não foi movido pro bucket de docs (continua acessível via Stage). Erro: ${e instanceof Error ? e.message : String(e)}`,
       );
