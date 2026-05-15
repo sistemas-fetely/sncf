@@ -279,16 +279,15 @@ export default function NFsStage() {
     let list = nfs || [];
     if (filtroPill === "nao_vinculadas") {
       list = list.filter((n) => n.status === "nao_vinculada");
-    } else if (filtroPill === "vinculadas") {
-      list = list.filter((n) => n.status === "vinculada");
+    } else if (filtroPill === "descartadas") {
+      list = list.filter((n) => n.status === "descartada");
     } else if (filtroPill === "sem_categoria") {
       list = list.filter((n) => !n.categoria_id && n.status !== "descartada");
     } else if (filtroPill === "com_xml") {
-      list = list.filter((n) => n.tem_xml);
+      list = list.filter((n) => n.tem_xml && n.status !== "descartada");
     } else if (filtroPill === "com_pdf") {
-      list = list.filter((n) => n.tem_pdf);
+      list = list.filter((n) => n.tem_pdf && n.status !== "descartada");
     }
-    // "todas" não filtra
     if (busca.trim()) {
       const t = busca.toLowerCase();
       list = list.filter(
