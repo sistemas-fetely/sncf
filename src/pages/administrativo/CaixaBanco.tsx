@@ -297,7 +297,7 @@ export default function CaixaBanco() {
     [lancamentos],
   );
 
-  // Map lancamento.id → nf_stage_id (ou null se sem doc).
+  // Map lancamento.id → nf_stage_id (uma NF representativa por CPR).
   const { data: nfMap } = useQuery({
     queryKey: ["nfs-vinculadas-mov", lancamentoIds.join(",")],
     enabled: lancamentoIds.length > 0,
@@ -305,18 +305,7 @@ export default function CaixaBanco() {
     queryFn: async () => {
       const map = new Map<string, string | null>();
 
-      // Lookup 1: CPRs com nf_stage_id preenchido
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: cprsComNF } = await (supabase as any)
-        .from("contas_pagar_receber")
-        .select("id, nf_stage_id")
-        .in("id", lancamentoIds)
-        .not("nf_stage_id", "is", null);
-      (cprsComNF || []).forEach((cpr: { id: string; nf_stage_id: string | null }) => {
-        if (cpr.nf_stage_id) map.set(cpr.id, cpr.nf_stage_id);
-      });
-
-      // Lookup 2: NFs que apontam pra CPR (conta_pagar_id)
+      // Lookup 1: NFs que apontam pra CPR (nfs_stage.conta_pagar_id)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: nfsPorConta } = await (supabase as any)
         .from("nfs_stage")
@@ -329,7 +318,7 @@ export default function CaixaBanco() {
         }
       });
 
-      // Lookup 3: Lançamentos de cartão com NF vinculada
+      // Lookup 2: Lançamentos de cartão com NF vinculada (campo próprio do domínio cartão)
       const idsCartao = (lancamentos || [])
         .filter((l) => l.origem_view === "cartao_lancamento")
         .map((l) => l.id);
