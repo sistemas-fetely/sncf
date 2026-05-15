@@ -25,7 +25,7 @@ import {
  * Doutrina cravada por Flavio:
  * - Edição liberada em status: rascunho, aberto, aprovado, aguardando_pagamento
  * - Read-only automático em: paga, cancelado
- * - Campos NUNCA editáveis aqui: valor, parceiro_id, data_compra, status, is_cartao
+ * - Campos NUNCA editáveis aqui: valor, parceiro_id, data_compra, status, meio_pagamento_id
  *   (rastreio fiel: muda só por fluxo, não por edição manual)
  * - Auditoria mínima: gravado editado_por + editado_em via RPC
  */
