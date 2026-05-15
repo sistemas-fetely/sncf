@@ -7,15 +7,15 @@
  *
  * Por que existe
  *   Bug histórico: ZIP era montado lendo só de contas_pagar_documentos. Quando
- *   a NF estava via nf_stage_id mas o "move" Stage→Docs falhou (silencioso),
- *   o ZIP saía vazio e o envio quebrava.
+ *   a NF estava vinculada via nfs_stage.conta_pagar_id (modelo N:1) mas o
+ *   "move" Stage→Docs falhou (silencioso), o ZIP saía vazio e o envio quebrava.
  *
  * Resolução
  *   1. Lê de contas_pagar_documentos (canal direto)
  *   2. Detecta storage_path com prefixo "nfs-stage/" e roteia pro bucket certo
- *   3. Pra contas SEM doc registrado mas com nf_stage_id, faz fallback final:
- *      busca direto no nfs_stage (cinto + suspensório — depois do backfill,
- *      esse caminho deve quase nunca disparar)
+ *   3. Pra contas SEM doc registrado mas com NFs vinculadas em nfs_stage
+ *      (conta_pagar_id = cpr.id), faz fallback final: busca direto no nfs_stage
+ *      (cinto + suspensório — depois do backfill, esse caminho deve quase nunca disparar)
  *
  * Doutrina
  *   "NF cadastrada ≠ NF anexada." O envio só inclui evidência (arquivo).
