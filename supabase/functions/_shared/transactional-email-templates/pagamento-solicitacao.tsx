@@ -79,33 +79,76 @@ const PagamentoSolicitacaoEmail = ({
           </>
         )}
 
-        <Section style={card}>
-          <Heading as="h2" style={h2}>Resumo</Heading>
-          <Row>
-            <Column style={labelCol}><Text style={labelText}>Fornecedor</Text></Column>
-            <Column><Text style={valueText}>{fornecedor || '—'}</Text></Column>
-          </Row>
-          <Row>
-            <Column style={labelCol}><Text style={labelText}>Valor</Text></Column>
-            <Column><Text style={valueStrong}>{valor || '—'}</Text></Column>
-          </Row>
-          <Row>
-            <Column style={labelCol}><Text style={labelText}>Vencimento</Text></Column>
-            <Column><Text style={valueText}>{vencimento || '—'}</Text></Column>
-          </Row>
-          {nf_numero && nf_numero !== '—' && (
+        {parcelas && parcelas.length > 0 ? (
+          <Section style={card}>
+            <Heading as="h2" style={h2}>
+              Resumo — {forma_pagamento_nome || 'Parcelado'} ({parcelas.length}x)
+            </Heading>
             <Row>
-              <Column style={labelCol}><Text style={labelText}>NF</Text></Column>
-              <Column><Text style={valueText}>{nf_numero}</Text></Column>
+              <Column style={labelCol}><Text style={labelText}>Fornecedor</Text></Column>
+              <Column><Text style={valueText}>{fornecedor || '—'}</Text></Column>
             </Row>
-          )}
-          {categoria && categoria !== '—' && (
             <Row>
-              <Column style={labelCol}><Text style={labelText}>Categoria</Text></Column>
-              <Column><Text style={valueText}>{categoria}</Text></Column>
+              <Column style={labelCol}><Text style={labelText}>Valor total</Text></Column>
+              <Column><Text style={valueStrong}>{valor_total || '—'}</Text></Column>
             </Row>
-          )}
-        </Section>
+            {nf_numero && nf_numero !== '—' && (
+              <Row>
+                <Column style={labelCol}><Text style={labelText}>NF</Text></Column>
+                <Column><Text style={valueText}>{nf_numero}</Text></Column>
+              </Row>
+            )}
+            {categoria && categoria !== '—' && (
+              <Row>
+                <Column style={labelCol}><Text style={labelText}>Categoria</Text></Column>
+                <Column><Text style={valueText}>{categoria}</Text></Column>
+              </Row>
+            )}
+            <Hr style={hrInner} />
+            <Text style={labelText}>Parcelas</Text>
+            {parcelas.map((p, i) => (
+              <Row key={i} style={parcelaRow}>
+                <Column style={parcelaNumCol}><Text style={parcelaNum}>{p.numero || '—'}</Text></Column>
+                <Column style={parcelaVencCol}><Text style={parcelaText}>{p.vencimento || '—'}</Text></Column>
+                <Column style={parcelaValorCol}><Text style={parcelaValor}>{p.valor || '—'}</Text></Column>
+              </Row>
+            ))}
+          </Section>
+        ) : (
+          <Section style={card}>
+            <Heading as="h2" style={h2}>Resumo</Heading>
+            <Row>
+              <Column style={labelCol}><Text style={labelText}>Fornecedor</Text></Column>
+              <Column><Text style={valueText}>{fornecedor || '—'}</Text></Column>
+            </Row>
+            <Row>
+              <Column style={labelCol}><Text style={labelText}>Valor</Text></Column>
+              <Column><Text style={valueStrong}>{valor || '—'}</Text></Column>
+            </Row>
+            <Row>
+              <Column style={labelCol}><Text style={labelText}>Vencimento</Text></Column>
+              <Column><Text style={valueText}>{vencimento || '—'}</Text></Column>
+            </Row>
+            {forma_pagamento_nome && forma_pagamento_nome !== '—' && (
+              <Row>
+                <Column style={labelCol}><Text style={labelText}>Forma</Text></Column>
+                <Column><Text style={valueText}>{forma_pagamento_nome}</Text></Column>
+              </Row>
+            )}
+            {nf_numero && nf_numero !== '—' && (
+              <Row>
+                <Column style={labelCol}><Text style={labelText}>NF</Text></Column>
+                <Column><Text style={valueText}>{nf_numero}</Text></Column>
+              </Row>
+            )}
+            {categoria && categoria !== '—' && (
+              <Row>
+                <Column style={labelCol}><Text style={labelText}>Categoria</Text></Column>
+                <Column><Text style={valueText}>{categoria}</Text></Column>
+              </Row>
+            )}
+          </Section>
+        )}
 
         <Section style={card}>
           <Heading as="h2" style={h2}>Dados bancários do fornecedor</Heading>
