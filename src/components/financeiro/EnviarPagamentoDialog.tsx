@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,19 +15,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { FileText, Loader2, Send, Info, AlertCircle, ExternalLink } from "lucide-react";
+  FileText,
+  Loader2,
+  Send,
+  AlertCircle,
+  ExternalLink,
+  Paperclip,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import { useContaWorkflow } from "@/hooks/useContaWorkflow";
 
 const TIPO_DOC_LABEL: Record<string, string> = {
   nf: "NF",
@@ -39,11 +38,14 @@ const TIPO_DOC_LABEL: Record<string, string> = {
   outro: "Outro",
 };
 
+const TAMANHO_LIMITE_ANEXO = 18 * 1024 * 1024; // 18 MB total Resend Base64
+
 interface DocAnexo {
   id: string;
   tipo: string;
   nome_arquivo: string;
   storage_path: string;
+  tamanho_bytes?: number | null;
 }
 
 type Conta = {
@@ -54,11 +56,11 @@ type Conta = {
   data_vencimento: string | null;
   status: string;
   nf_numero?: string | null;
-  nf_chave_acesso?: string | null;
-  nf_pdf_url?: string | null;
-  nf_xml_url?: string | null;
   forma_pagamento_id?: string | null;
   numero_parcela?: number | null;
+  parcela_atual?: number | null;
+  parcelas?: number | null;
+  parcela_grupo_id?: string | null;
   plano_contas?: { codigo?: string | null; nome?: string | null } | null;
   parceiros_comerciais?: { razao_social?: string | null } | null;
   dados_pagamento_fornecedor?: {
@@ -80,8 +82,13 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
   const qc = useQueryClient();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { mudarStatus } = useContaWorkflow();
+
   const [enviando, setEnviando] = useState(false);
+  const [emailDestinatario, setEmailDestinatario] = useState("");
+  const [obsEnvio, setObsEnvio] = useState("");
+  const [docsSelecionados, setDocsSelecionados] = useState<Set<string>>(new Set());
+  const [uploadando, setUploadando] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [dadosPgto, setDadosPgto] = useState({
     banco: "",
@@ -89,35 +96,14 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     conta: "",
     pix: "",
   });
-  const [emailDestinatario, setEmailDestinatario] = useState("");
-  const [obsEnvio, setObsEnvio] = useState("");
-  const [mensagemEmail, setMensagemEmail] = useState("");
-  const [docsSelecionados, setDocsSelecionados] = useState<Set<string>>(new Set());
-  const [formaPagamentoId, setFormaPagamentoId] = useState<string>("");
-  const [editandoFormaPgto, setEditandoFormaPgto] = useState(false);
-  const [parcelas, setParcelas] = useState<number>(conta.numero_parcela || 1);
 
-  // Buscar formas de pagamento ativas
-  const { data: formasPagamento } = useQuery({
-    queryKey: ["formas-pagamento-ativas"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("formas_pagamento")
-        .select("id, nome, codigo")
-        .eq("ativo", true)
-        .order("nome");
-      return data || [];
-    },
-  });
-
-  // Buscar documentos anexados à conta
   const { data: documentos } = useQuery({
     queryKey: ["envio-pagto-docs", conta.id],
     enabled: open,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_pagar_documentos")
-        .select("id, tipo, nome_arquivo, storage_path")
+        .select("id, tipo, nome_arquivo, storage_path, tamanho_bytes")
         .eq("conta_id", conta.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -125,30 +111,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     },
   });
 
-  // Buscar últimos dados bancários usados pra esse parceiro
-  const { data: ultimosDados } = useQuery({
-    queryKey: ["ultimos-dados-pgto", conta.parceiro_id, conta.fornecedor_cliente],
-    enabled: open,
-    queryFn: async () => {
-      const query = supabase
-        .from("contas_pagar_receber")
-        .select("dados_pagamento_fornecedor")
-        .not("dados_pagamento_fornecedor", "is", null)
-        .order("enviado_pagamento_em", { ascending: false })
-        .limit(1);
-
-      if (conta.parceiro_id) {
-        query.eq("parceiro_id", conta.parceiro_id);
-      } else if (conta.fornecedor_cliente) {
-        query.eq("fornecedor_cliente", conta.fornecedor_cliente);
-      }
-
-      const { data } = await query.maybeSingle();
-      return (data?.dados_pagamento_fornecedor as typeof dadosPgto | null) || null;
-    },
-  });
-
-  // Destinatários financeiros
   const { data: destinatarios } = useQuery({
     queryKey: ["config-financeiro-externo"],
     enabled: open,
@@ -162,7 +124,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     },
   });
 
-  // Buscar dados bancários cadastrados no parceiro
   const { data: parceiroDadosBancarios } = useQuery({
     queryKey: ["parceiro-dados-bancarios", conta.parceiro_id],
     enabled: !!conta.parceiro_id && open,
@@ -178,7 +139,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     },
   });
 
-  // Buscar flag cadastro_incompleto do parceiro (Doutrina #74 — invariante calculado por trigger)
   const { data: parceiroInfo } = useQuery({
     queryKey: ["parceiro-info-envio", conta.parceiro_id],
     enabled: open && !!conta.parceiro_id,
@@ -194,7 +154,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     },
   });
 
-  // Buscar NFs anexadas à CPR via nfs_stage (Achado 11 — anexar PDFs ao email)
   const { data: nfsStageAnexadas } = useQuery({
     queryKey: ["nfs-stage-envio", conta.id],
     enabled: open,
@@ -212,6 +171,34 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     },
   });
 
+  const { data: dadosAgrupamento } = useQuery({
+    queryKey: ["envio-agrupamento", conta.parcela_grupo_id, conta.forma_pagamento_id],
+    enabled: open && !!conta.parcela_grupo_id && !!conta.forma_pagamento_id,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: forma } = await (supabase as any)
+        .from("formas_pagamento")
+        .select("envio_agrupa_parcelas, nome")
+        .eq("id", conta.forma_pagamento_id)
+        .maybeSingle();
+      if (!forma?.envio_agrupa_parcelas) return null;
+
+      const { data: parcelasGrupo } = await supabase
+        .from("contas_pagar_receber")
+        .select("id, parcela_atual, parcelas, valor, data_vencimento, status")
+        .eq("parcela_grupo_id", conta.parcela_grupo_id!)
+        .in("status", ["aberto", "aprovado"])
+        .order("parcela_atual", { ascending: true });
+
+      return {
+        formaNome: forma.nome as string,
+        parcelas: parcelasGrupo || [],
+      };
+    },
+  });
+
+  const ehEnvioAgrupado = !!dadosAgrupamento && dadosAgrupamento.parcelas.length > 1;
+
   useEffect(() => {
     if (!open) return;
     if (conta.dados_pagamento_fornecedor) {
@@ -221,17 +208,9 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
         conta: conta.dados_pagamento_fornecedor.conta || "",
         pix: conta.dados_pagamento_fornecedor.pix || "",
       });
-    } else if (ultimosDados) {
-      setDadosPgto({
-        banco: ultimosDados.banco || "",
-        agencia: ultimosDados.agencia || "",
-        conta: ultimosDados.conta || "",
-        pix: ultimosDados.pix || "",
-      });
     }
-  }, [open, ultimosDados, conta.dados_pagamento_fornecedor]);
+  }, [open, conta.dados_pagamento_fornecedor]);
 
-  // Auto-preencher dados bancários a partir do cadastro do parceiro
   useEffect(() => {
     if (parceiroDadosBancarios && Object.keys(parceiroDadosBancarios).length > 0) {
       setDadosPgto((prev) => ({
@@ -249,25 +228,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     }
   }, [destinatarios, emailDestinatario]);
 
-  // Inicializar mensagem padrão e selecionar todos os docs ao abrir
-  useEffect(() => {
-    if (!open) return;
-    const fornecedor =
-      conta.parceiros_comerciais?.razao_social ||
-      conta.fornecedor_cliente ||
-      "Fornecedor";
-    const msgPadrao =
-      `Olá,\n\n` +
-      `Segue solicitação de pagamento ao fornecedor ${fornecedor} no valor de ${formatBRL(conta.valor)}, ` +
-      `com vencimento em ${formatDateBR(conta.data_vencimento)}.\n\n` +
-      `${conta.nf_numero ? `Nota Fiscal nº ${conta.nf_numero}.\n\n` : ""}` +
-      `Os dados bancários e documentos relacionados seguem anexos abaixo.\n\n` +
-      `Qualquer dúvida, estou à disposição.\n\n` +
-      `Obrigado.`;
-    setMensagemEmail(msgPadrao);
-    setFormaPagamentoId(conta.forma_pagamento_id || "");
-  }, [open, conta]);
-
   const fornecedorNome = useMemo(
     () =>
       conta.parceiros_comerciais?.razao_social ||
@@ -280,23 +240,8 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     ? `${conta.plano_contas.codigo || ""} ${conta.plano_contas.nome || ""}`.trim()
     : "—";
 
-  const formaPagamentoLabel =
-    (formasPagamento || []).find((fp) => fp.id === formaPagamentoId)?.nome || "";
-
-  const formaEhCartao =
-    formaPagamentoLabel.toLowerCase().includes("cartão") ||
-    formaPagamentoLabel.toLowerCase().includes("cartao") ||
-    formaPagamentoLabel.toLowerCase().includes("crédito") ||
-    formaPagamentoLabel.toLowerCase().includes("credito");
-
-  const semDadosBancariosCadastrados =
-    !parceiroDadosBancarios || Object.keys(parceiroDadosBancarios).length === 0;
-
-  // Cadastro incompleto = invariante calculado pelo trigger (Doutrina #74 + Frente BIS)
   const parceiroCadastroIncompleto = !!parceiroInfo?.cadastroIncompleto;
 
-  // Mesclar docs manuais (contas_pagar_documentos) + PDFs das NFs anexadas (nfs_stage_documentos)
-  // Filtro: apenas PDFs (DANFE/boleto). XML não vai pro email.
   const documentosTodos = useMemo<DocAnexo[]>(() => {
     const manuais = documentos || [];
     const docsNfs: DocAnexo[] = [];
@@ -305,7 +250,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       const stageDocs = (nf.nfs_stage_documentos || []) as Array<any>;
       for (const sd of stageDocs) {
         const tipoStr = String(sd.tipo || "").toLowerCase();
-        // Só pega PDFs (DANFE, boleto, recibo). XML não.
         if (tipoStr.includes("pdf") || tipoStr.includes("danfe") || tipoStr.includes("recibo")) {
           docsNfs.push({
             id: `stage-${nf.id}-${sd.storage_path}`,
@@ -319,13 +263,77 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     return [...manuais, ...docsNfs];
   }, [documentos, nfsStageAnexadas]);
 
-  // Selecionar todos os documentos por default quando carregam (manuais + NFs do Stage)
   useEffect(() => {
     if (documentosTodos.length > 0 && docsSelecionados.size === 0) {
       setDocsSelecionados(new Set(documentosTodos.map((d) => d.id)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentosTodos]);
+
+  const tamanhoSelecionado = useMemo(() => {
+    let total = 0;
+    for (const doc of documentosTodos) {
+      if (docsSelecionados.has(doc.id) && doc.tamanho_bytes) {
+        total += doc.tamanho_bytes;
+      }
+    }
+    return total;
+  }, [documentosTodos, docsSelecionados]);
+
+  const tamanhoExcedeLimite = tamanhoSelecionado > 0 && tamanhoSelecionado > TAMANHO_LIMITE_ANEXO;
+
+  function formatMB(bytes: number): string {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function handleAnexarArquivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 30 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx 30MB por arquivo)");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    setUploadando(true);
+    try {
+      const timestamp = Date.now();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const storagePath = `${conta.id}/${timestamp}-${safeName}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("financeiro-docs")
+        .upload(storagePath, file);
+      if (upErr) throw upErr;
+
+      const { data: novo, error: dbErr } = await supabase
+        .from("contas_pagar_documentos")
+        .insert({
+          conta_id: conta.id,
+          tipo: "outro",
+          nome_arquivo: file.name,
+          storage_path: storagePath,
+          tamanho_bytes: file.size,
+          uploaded_por: user?.id || null,
+        })
+        .select("id")
+        .single();
+      if (dbErr) throw dbErr;
+
+      await qc.invalidateQueries({ queryKey: ["envio-pagto-docs", conta.id] });
+      if (novo?.id) {
+        setDocsSelecionados((prev) => new Set([...prev, novo.id]));
+      }
+      toast.success(`Anexo "${file.name}" adicionado`);
+    } catch (err) {
+      console.error("Erro no upload:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Falha no upload: " + msg);
+    } finally {
+      setUploadando(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   async function handleEnviar() {
     if (parceiroCadastroIncompleto) {
@@ -336,29 +344,21 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       toast.error("Selecione um destinatário");
       return;
     }
-    if (!formaPagamentoId) {
-      toast.error("Selecione a forma de pagamento");
+    if (!conta.forma_pagamento_id) {
+      toast.error("Esta conta não tem forma de pagamento definida. Defina antes de enviar.");
       return;
     }
-    if (formaEhCartao && (!parcelas || parcelas < 1)) {
-      toast.error("Informe o número de parcelas");
-      return;
-    }
+
     setEnviando(true);
     try {
-      // 1) RPC executar_pagamento (B1) — encapsula:
-      //    - status → aguardando_pagamento + dados bancários + parcela + audit
-      //    - histórico (insert em contas_pagar_historico)
-      //    - enriquecimento silencioso do parceiro
-      //    - flag pagamento_com_pendencia + pendencias_no_envio
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: rpcResult, error: rpcError } = await (supabase as any).rpc(
         "executar_pagamento",
         {
           p_cpr_id: conta.id,
           p_dados_pagamento: dadosPgto,
-          p_forma_pagamento_id: formaPagamentoId,
-          p_numero_parcela: parcelas,
+          p_forma_pagamento_id: conta.forma_pagamento_id,
+          p_numero_parcela: conta.parcela_atual || conta.numero_parcela || 1,
           p_observacao: obsEnvio || null,
           p_email_destinatario: emailDestinatario,
         },
@@ -370,7 +370,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
         );
       }
 
-      // Toast de pendência (informativo, não bloqueia)
       if (rpcResult.pagamento_com_pendencia) {
         toast.warning(
           `Pagamento iniciado com pendência em: ${(rpcResult.pendencias || []).join(", ")}`,
@@ -378,7 +377,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
         );
       }
 
-      // Toast silencioso de enriquecimento de parceiro
       const qtdEnriquecido =
         rpcResult.enriquecimento_parceiro?.qtd_campos_atualizados || 0;
       if (qtdEnriquecido > 0) {
@@ -388,16 +386,12 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
         );
       }
 
-      // 2) Edge Function enviar-email-pagamento (B2 — D-G Adapter) — encapsula:
-      //    - geração de URLs assinadas dos docs
-      //    - invocação de send-transactional-email com template + payload corretos
-      //    - update de email_pagamento_enviado (atomic)
       const docsParaEnviar = documentosTodos.filter((d) => docsSelecionados.has(d.id));
       const emailResult = await supabase.functions.invoke("enviar-email-pagamento", {
         body: {
           cpr_id: conta.id,
           email_destinatario: emailDestinatario,
-          mensagem_personalizada: mensagemEmail || "",
+          mensagem_personalizada: "",
           docs: docsParaEnviar.map((d) => ({
             tipo: d.tipo,
             nome_arquivo: d.nome_arquivo,
@@ -409,7 +403,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const emailOk = !emailResult.error && Boolean((emailResult.data as any)?.ok);
 
-      // 3) Criar tarefa Uauuu (best-effort)
       try {
         const venc = conta.data_vencimento ? new Date(conta.data_vencimento) : null;
         const urgente =
@@ -446,7 +439,15 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
 
       if (emailOk) {
         qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-        toast.success(`Enviado! Email para ${emailDestinatario}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const respData = emailResult.data as any;
+        if (respData?.agrupado && respData?.parcelas_enviadas > 1) {
+          toast.success(
+            `Enviado! ${respData.parcelas_enviadas} parcelas agrupadas para ${emailDestinatario}`,
+          );
+        } else {
+          toast.success(`Enviado! Email para ${emailDestinatario}`);
+        }
       } else {
         toast.warning(
           `Status atualizado, mas email falhou. Verifique a configuração.`,
@@ -455,7 +456,6 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       onDone();
       onOpenChange(false);
     } catch (e) {
-      // Tratamento robusto: extrai mensagem de Error, objetos Supabase, ou converte
       let msg = "Erro desconhecido";
       if (e instanceof Error) {
         msg = e.message;
@@ -484,160 +484,99 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Resumo */}
-          <div className="p-3 rounded-lg border bg-muted/30 text-sm space-y-1">
-            <p>
+          {/* Resumo (read-only) */}
+          <div className="rounded-md border bg-muted/30 p-3 space-y-1.5 text-sm">
+            <div>
               <span className="text-muted-foreground">Fornecedor:</span>{" "}
               <span className="font-medium">{fornecedorNome}</span>
-            </p>
-            <p>
+            </div>
+            <div>
               <span className="text-muted-foreground">Valor:</span>{" "}
-              <span className="font-mono font-semibold text-admin">
-                {formatBRL(conta.valor)}
-              </span>
-            </p>
-            <p>
+              <span className="font-semibold text-foreground">{formatBRL(conta.valor)}</span>
+            </div>
+            <div>
               <span className="text-muted-foreground">Vencimento:</span>{" "}
-              {formatDateBR(conta.data_vencimento)}
-            </p>
+              <span className="font-medium">{formatDateBR(conta.data_vencimento)}</span>
+            </div>
             {conta.nf_numero && (
-              <p>
-                <span className="text-muted-foreground">NF:</span> {conta.nf_numero}
-              </p>
+              <div>
+                <span className="text-muted-foreground">NF:</span>{" "}
+                <span className="font-medium">{conta.nf_numero}</span>
+              </div>
             )}
             {categoriaTxt !== "—" && (
-              <p>
+              <div>
                 <span className="text-muted-foreground">Categoria:</span>{" "}
-                {categoriaTxt}
-              </p>
+                <span className="font-medium">{categoriaTxt}</span>
+              </div>
             )}
-            {formaPagamentoLabel && (
-              <p className="flex items-center gap-2">
+            {dadosAgrupamento?.formaNome && (
+              <div>
                 <span className="text-muted-foreground">Forma de pagamento:</span>{" "}
-                <span className="font-medium">{formaPagamentoLabel}</span>
-                <button
-                  type="button"
-                  onClick={() => setEditandoFormaPgto(true)}
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  alterar
-                </button>
-              </p>
-            )}
-            {formaEhCartao && (
-              <p>
-                <span className="text-muted-foreground">Parcelas:</span>{" "}
-                <span className="font-medium">{parcelas}x</span>
-              </p>
+                <span className="font-medium">{dadosAgrupamento.formaNome}</span>
+              </div>
             )}
           </div>
 
-          {/* Forma de Pagamento - editável só se usuário clicou "alterar" no resumo */}
-          {editandoFormaPgto && (
-            <div className="space-y-2 p-3 rounded-lg border border-blue-200 bg-blue-50/50">
-              <Label className="text-xs uppercase tracking-wide text-blue-700">
-                Alterar forma de pagamento
-              </Label>
-              <div className="flex items-center gap-2">
-                <Select value={formaPagamentoId} onValueChange={setFormaPagamentoId}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Selecione (PIX, Boleto, Transferência...)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(formasPagamento || []).map((fp) => (
-                      <SelectItem key={fp.id} value={fp.id}>
-                        {fp.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {/* Pré-validação cadastro_incompleto */}
+          {parceiroCadastroIncompleto && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 flex gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-2 text-sm">
+                <div className="font-semibold text-amber-900">
+                  Cadastro do Parceiro incompleto
+                </div>
+                <div className="text-amber-800">
+                  Antes de enviar pagamento, complete os dados bancários no cadastro do Parceiro.
+                  O envio só fica liberado quando o cadastro está completo.
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setEditandoFormaPgto(false)}
+                  className="gap-1"
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate(`/administrativo/parceiros?abrir=${conta.parceiro_id}`);
+                  }}
                 >
-                  Confirmar
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Abrir cadastro do Parceiro
                 </Button>
               </div>
-              {formaEhCartao && (
-                <div className="space-y-1">
-                  <Label className="text-xs">Parcelas</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={48}
-                    value={parcelas}
-                    onChange={(e) => setParcelas(parseInt(e.target.value) || 1)}
-                    className="w-32 bg-background"
-                  />
-                </div>
-              )}
             </div>
           )}
 
-          {/* Dados bancários — D-E: bola redonda entre processos.
-              Se parceiro com cadastro_incompleto → bloqueia envio + link pra completar.
-              Se completo → exibe read-only do cadastro. */}
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Dados bancários do fornecedor
-            </Label>
-
-            {parceiroCadastroIncompleto ? (
-              <div className="flex items-start gap-3 p-3 rounded-md border border-amber-300 bg-amber-50">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
-                <div className="flex-1 space-y-2">
-                  <p className="text-sm font-medium text-amber-900">
-                    Cadastro do Parceiro incompleto
-                  </p>
-                  <p className="text-xs text-amber-800">
-                    Antes de enviar pagamento, complete os dados bancários no cadastro do Parceiro.
-                    O envio só fica liberado quando o cadastro está completo.
-                  </p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="gap-2 border-amber-400 text-amber-900 hover:bg-amber-100"
-                    onClick={() => {
-                      onOpenChange(false);
-                      navigate(`/administrativo/parceiros?abrir=${conta.parceiro_id}`);
-                    }}
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    Abrir cadastro do Parceiro
-                  </Button>
-                </div>
+          {/* Envio agrupado */}
+          {ehEnvioAgrupado && dadosAgrupamento && (
+            <div className="rounded-md border border-blue-300 bg-blue-50 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
+                <Users className="h-4 w-4" />
+                Envio agrupado: {dadosAgrupamento.parcelas.length} parcelas serão enviadas juntas
               </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">Banco</Label>
-                  <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/40 border">{dadosPgto.banco || "—"}</p>
-                </div>
-                <div>
-                  <Label className="text-xs">Agência</Label>
-                  <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/40 border">{dadosPgto.agencia || "—"}</p>
-                </div>
-                <div>
-                  <Label className="text-xs">Conta</Label>
-                  <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/40 border">{dadosPgto.conta || "—"}</p>
-                </div>
-                <div>
-                  <Label className="text-xs">PIX</Label>
-                  <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/40 border">{dadosPgto.pix || "—"}</p>
-                </div>
+              <div className="text-xs text-blue-800">
+                Como o pagamento é {dadosAgrupamento.formaNome.toLowerCase()}, o financeiro recebe
+                todas as parcelas pendentes do grupo no mesmo email para pré-agendar no banco.
               </div>
-            )}
-          </div>
+              <div className="space-y-1">
+                {dadosAgrupamento.parcelas.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between text-xs bg-white/60 rounded px-2 py-1">
+                    <span className="font-medium text-blue-900">
+                      {p.parcela_atual}/{p.parcelas}
+                    </span>
+                    <span className="text-blue-800">{formatDateBR(p.data_vencimento)}</span>
+                    <span className="font-semibold text-blue-900">{formatBRL(p.valor)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Destinatário */}
-          <div className="space-y-1">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Enviar para
-            </Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="email-dest">Enviar para</Label>
             {destinatarios && destinatarios.length > 0 ? (
               <select
+                id="email-dest"
                 value={emailDestinatario}
                 onChange={(e) => setEmailDestinatario(e.target.value)}
                 className="w-full h-9 px-3 rounded-md border bg-background text-sm"
@@ -650,6 +589,8 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
               </select>
             ) : (
               <Input
+                id="email-dest"
+                type="email"
                 value={emailDestinatario}
                 onChange={(e) => setEmailDestinatario(e.target.value)}
                 placeholder="financeiro@empresa.com"
@@ -657,79 +598,94 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
             )}
           </div>
 
-          {/* Mensagem do email - EDITÁVEL */}
-          <div className="space-y-1">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Mensagem do e-mail
-            </Label>
-            <Textarea
-              value={mensagemEmail}
-              onChange={(e) => setMensagemEmail(e.target.value)}
-              rows={8}
-              className="font-mono text-xs"
-            />
-            <p className="text-[10px] text-muted-foreground">
-              Edite o texto que será enviado ao financeiro. Os dados estruturados (valor, banco, etc) aparecem em tabela separada.
-            </p>
+          {/* Documentos */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>
+                Documentos ({docsSelecionados.size}/{documentosTodos.length})
+              </Label>
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleAnexarArquivo}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadando}
+                >
+                  {uploadando ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-3.5 w-3.5" />
+                  )}
+                  Adicionar anexo
+                </Button>
+              </div>
+            </div>
+
+            {documentosTodos.length > 0 ? (
+              <>
+                <div className="space-y-1 max-h-48 overflow-y-auto border rounded-md p-2">
+                  {documentosTodos.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-2 text-sm py-1 px-1 hover:bg-muted/50 rounded"
+                    >
+                      <Checkbox
+                        checked={docsSelecionados.has(doc.id)}
+                        onCheckedChange={(checked) => {
+                          const next = new Set(docsSelecionados);
+                          if (checked) next.add(doc.id);
+                          else next.delete(doc.id);
+                          setDocsSelecionados(next);
+                        }}
+                      />
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs uppercase font-semibold text-muted-foreground shrink-0">
+                        {TIPO_DOC_LABEL[doc.tipo] || doc.tipo}
+                      </span>
+                      <span className="truncate flex-1">{doc.nome_arquivo}</span>
+                      {doc.tamanho_bytes && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {formatMB(doc.tamanho_bytes)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {tamanhoSelecionado > 0 && (
+                  <div className={`text-xs ${tamanhoExcedeLimite ? "text-amber-700" : "text-muted-foreground"}`}>
+                    Total selecionado: {formatMB(tamanhoSelecionado)}
+                    {tamanhoExcedeLimite
+                      ? ` (excede 18MB — alguns docs virão como link assinado 30 dias)`
+                      : ` (anexados ao email)`}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground italic px-2 py-3 border rounded-md">
+                ⚠ Nenhum documento anexado. O envio será feito sem anexos.
+              </div>
+            )}
           </div>
 
           {/* Observação adicional */}
-          <div className="space-y-1">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Observação interna
-            </Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="obs-envio">Observação adicional</Label>
             <Textarea
+              id="obs-envio"
               value={obsEnvio}
               onChange={(e) => setObsEnvio(e.target.value)}
-              placeholder="Opcional - aparece destacado no email"
+              placeholder="Opcional — aparece destacada no email"
               rows={2}
             />
           </div>
-
-          {/* Documentos para anexar (selecionar quais) */}
-          {documentosTodos.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Documentos para anexar ({docsSelecionados.size}/{documentosTodos.length})
-              </Label>
-              <div className="space-y-1.5 border rounded-md p-2">
-                {documentosTodos.map((doc) => (
-                  <div key={doc.id} className="flex items-center gap-2 text-xs">
-                    <Checkbox
-                      id={`doc-${doc.id}`}
-                      checked={docsSelecionados.has(doc.id)}
-                      onCheckedChange={(checked) => {
-                        const next = new Set(docsSelecionados);
-                        if (checked) next.add(doc.id);
-                        else next.delete(doc.id);
-                        setDocsSelecionados(next);
-                      }}
-                    />
-                    <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <Badge variant="outline" className="text-[9px] py-0 px-1.5">
-                      {TIPO_DOC_LABEL[doc.tipo] || doc.tipo}
-                    </Badge>
-                    <label
-                      htmlFor={`doc-${doc.id}`}
-                      className="truncate flex-1 cursor-pointer"
-                      title={doc.nome_arquivo}
-                    >
-                      {doc.nome_arquivo}
-                    </label>
-                  </div>
-                ))}
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Os documentos selecionados serão enviados como links seguros (válidos por 30 dias) no e-mail.
-              </p>
-            </div>
-          )}
-
-          {documentosTodos.length === 0 && (
-            <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded-md border border-amber-200">
-              ⚠ Nenhum documento anexado a esta conta. O envio será feito sem anexos.
-            </div>
-          )}
         </div>
 
         <DialogFooter>
@@ -738,7 +694,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
           </Button>
           <Button
             onClick={handleEnviar}
-            disabled={enviando || parceiroCadastroIncompleto}
+            disabled={enviando || parceiroCadastroIncompleto || uploadando}
             className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
           >
             {enviando ? (
