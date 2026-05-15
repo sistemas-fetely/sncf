@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   FileText,
@@ -646,11 +647,17 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
                           setDocsSelecionados(next);
                         }}
                       />
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="text-xs uppercase font-semibold text-muted-foreground shrink-0">
+                      <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <Badge variant="outline" className="text-[9px] py-0 px-1.5">
                         {TIPO_DOC_LABEL[doc.tipo] || doc.tipo}
-                      </span>
-                      <span className="truncate flex-1">{doc.nome_arquivo}</span>
+                      </Badge>
+                      <label
+                        htmlFor={`doc-${doc.id}`}
+                        className="truncate flex-1 cursor-pointer"
+                        title={doc.nome_arquivo}
+                      >
+                        {doc.nome_arquivo}
+                      </label>
                       {doc.tamanho_bytes && (
                         <span className="text-xs text-muted-foreground shrink-0">
                           {formatMB(doc.tamanho_bytes)}
