@@ -197,9 +197,9 @@ export default function ContasPagar() {
   // Mapa: conta_id → data_vencimento da fatura de cartão vinculada
   const { data: faturaMap = new Map<string, string>() } = useQuery({
     queryKey: ["contas-pagar-fatura-map", (data || []).map((c) => c.id).join(",")],
-    enabled: !!data && data.some((c) => c.is_cartao),
+    enabled: !!data && data.some((c) => c.meios_pagamento?.codigo === "fatura_cartao"),
     queryFn: async () => {
-      const ids = (data || []).filter((c) => c.is_cartao).map((c) => c.id);
+      const ids = (data || []).filter((c) => c.meios_pagamento?.codigo === "fatura_cartao").map((c) => c.id);
       if (ids.length === 0) return new Map<string, string>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: rows } = await (supabase as any)
