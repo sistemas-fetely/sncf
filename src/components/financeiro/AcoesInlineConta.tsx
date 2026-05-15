@@ -90,12 +90,12 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
   const estadoAprovar: EstadoIcone = aprovado ? "feito" : "pendente";
 
   const familia = getFamiliaContaPagar({
-    is_cartao: conta.is_cartao ?? null,
+    meio_codigo: conta.meios_pagamento?.codigo ?? null,
     origem: conta.origem ?? null,
   });
   const regraEmail = getRegraIconeEmail({
     familia,
-    forma_pagamento_codigo: conta.formas_pagamento?.codigo ?? null,
+    forma_cobra_email: conta.formas_pagamento?.cobra_email ?? null,
     status,
     email_pagamento_enviado: conta.email_pagamento_enviado ?? null,
   });
