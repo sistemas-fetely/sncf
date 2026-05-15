@@ -173,18 +173,17 @@ export default function BuscarNFStageDialog({
       }
 
       const valorNF = Number(nf.valor_total || 0);
-      // 2) Busca CPRs não vinculadas do mesmo parceiro com valor próximo
+      // 2) Busca CPRs do mesmo parceiro com valor próximo
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: cprsNaoVinculadas } = await (supabase as any)
+      const { data: cprsCandidatas } = await (supabase as any)
         .from("contas_pagar_receber")
-        .select("id, descricao, valor, data_vencimento, nf_stage_id, parceiro_id")
-        .is("nf_stage_id", null)
+        .select("id, descricao, valor, data_vencimento, parceiro_id")
         .eq("parceiro_id", parceiroId)
         .neq("status", "cancelado")
         .gte("valor", valorNF - 0.05)
         .lte("valor", valorNF + 0.05);
 
-      const lista = (cprsNaoVinculadas || []) as Array<{
+      const lista = (cprsCandidatas || []) as Array<{
         id: string;
         descricao: string;
         valor: number;
