@@ -96,7 +96,7 @@ export function ContaPagarFormEdit({
   // pagamento e pago_em_conta como readonly (vêm da fatura/transação).
   // Família A em pré-pagamento marca pago_em_conta como obrigatório.
   const familia = getFamiliaContaPagar({
-    is_cartao: conta.is_cartao ?? null,
+    meio_codigo: conta.meios_pagamento?.codigo ?? null,
     origem: conta.origem ?? null,
   });
   const campos = getCamposVisiveis(familia, conta.status);
