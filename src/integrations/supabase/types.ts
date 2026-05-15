@@ -2420,8 +2420,8 @@ export type Database = {
           fornecedor_cliente: string | null
           fornecedor_id: string | null
           id: string
-          is_cartao: boolean | null
           linha_investimento_id: string | null
+          meio_pagamento_id: string
           movimentacao_bancaria_id: string | null
           nf_aplicavel: boolean
           nf_aplicavel_motivo: string | null
@@ -2509,8 +2509,8 @@ export type Database = {
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
           id?: string
-          is_cartao?: boolean | null
           linha_investimento_id?: string | null
+          meio_pagamento_id: string
           movimentacao_bancaria_id?: string | null
           nf_aplicavel?: boolean
           nf_aplicavel_motivo?: string | null
@@ -2598,8 +2598,8 @@ export type Database = {
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
           id?: string
-          is_cartao?: boolean | null
           linha_investimento_id?: string | null
+          meio_pagamento_id?: string
           movimentacao_bancaria_id?: string | null
           nf_aplicavel?: boolean
           nf_aplicavel_motivo?: string | null
@@ -2713,6 +2713,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_linhas_investimento_kpis"
             referencedColumns: ["linha_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_meio_pagamento_id_fkey"
+            columns: ["meio_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "meios_pagamento"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
@@ -4560,32 +4567,52 @@ export type Database = {
       formas_pagamento: {
         Row: {
           ativo: boolean | null
+          cobra_email: boolean
           codigo: string
           envio_agrupa_parcelas: boolean
+          gera_fatura: boolean
           id: string
+          meio_default_id: string
           nome: string
           ordem: number | null
-          tipo: string
+          pula_aprovacao: boolean
+          requer_dados_bancarios_destinatario: boolean
         }
         Insert: {
           ativo?: boolean | null
+          cobra_email?: boolean
           codigo: string
           envio_agrupa_parcelas?: boolean
+          gera_fatura?: boolean
           id?: string
+          meio_default_id: string
           nome: string
           ordem?: number | null
-          tipo: string
+          pula_aprovacao?: boolean
+          requer_dados_bancarios_destinatario?: boolean
         }
         Update: {
           ativo?: boolean | null
+          cobra_email?: boolean
           codigo?: string
           envio_agrupa_parcelas?: boolean
+          gera_fatura?: boolean
           id?: string
+          meio_default_id?: string
           nome?: string
           ordem?: number | null
-          tipo?: string
+          pula_aprovacao?: boolean
+          requer_dados_bancarios_destinatario?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "formas_pagamento_meio_default_id_fkey"
+            columns: ["meio_default_id"]
+            isOneToOne: false
+            referencedRelation: "meios_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       frentes_investimento: {
         Row: {
@@ -5578,6 +5605,36 @@ export type Database = {
             referencedColumns: ["tema_id"]
           },
         ]
+      }
+      meios_pagamento: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
       }
       movimentacoes: {
         Row: {
@@ -10561,6 +10618,7 @@ export type Database = {
           docs_status: string | null
           editado_em: string | null
           editado_por: string | null
+          eh_cartao: boolean | null
           email_pagamento_enviado: boolean | null
           enviado_pagamento_em: string | null
           enviado_pagamento_por: string | null
@@ -10568,7 +10626,8 @@ export type Database = {
           fornecedor_cliente: string | null
           fornecedor_id: string | null
           id: string | null
-          is_cartao: boolean | null
+          meio_codigo: string | null
+          meio_pagamento_id: string | null
           movimentacao_bancaria_id: string | null
           nf_cfop: string | null
           nf_chave_acesso: string | null
@@ -10605,148 +10664,6 @@ export type Database = {
           updated_at: string | null
           valor: number | null
           valor_pago: number | null
-        }
-        Insert: {
-          aprovado_em?: string | null
-          aprovado_por?: string | null
-          bling_id?: string | null
-          canal_venda_id?: string | null
-          categoria_confirmada?: boolean | null
-          categoria_sugerida_ia?: boolean | null
-          centro_custo_id?: string | null
-          compromisso_parcelado_id?: string | null
-          compromisso_recorrente_id?: string | null
-          comprovante_url?: string | null
-          conciliado_em?: string | null
-          conciliado_por?: string | null
-          conta_id?: string | null
-          created_at?: string | null
-          criado_por?: string | null
-          dados_bancarios_fornecedor?: Json | null
-          dados_enriquecidos_qive?: boolean | null
-          dados_pagamento_fornecedor?: Json | null
-          data_compra?: string | null
-          data_pagamento?: string | null
-          data_vencimento?: string | null
-          descricao?: string | null
-          docs_status?: string | null
-          editado_em?: string | null
-          editado_por?: string | null
-          email_pagamento_enviado?: boolean | null
-          enviado_pagamento_em?: string | null
-          enviado_pagamento_por?: string | null
-          forma_pagamento_id?: string | null
-          fornecedor_cliente?: string | null
-          fornecedor_id?: string | null
-          id?: string | null
-          is_cartao?: boolean | null
-          movimentacao_bancaria_id?: string | null
-          nf_cfop?: string | null
-          nf_chave_acesso?: string | null
-          nf_cnpj_emitente?: string | null
-          nf_data_emissao?: string | null
-          nf_natureza_operacao?: string | null
-          nf_ncm?: string | null
-          nf_numero?: string | null
-          nf_pdf_url?: string | null
-          nf_serie?: string | null
-          nf_valor_impostos?: number | null
-          nf_valor_produtos?: number | null
-          nf_xml_url?: string | null
-          numero_parcela?: number | null
-          observacao?: string | null
-          observacao_pagamento?: string | null
-          observacao_pagamento_manual?: string | null
-          origem?: string | null
-          pago_em?: string | null
-          pago_em_conta_id?: string | null
-          pago_por?: string | null
-          parceiro_id?: string | null
-          parcela_atual?: number | null
-          parcela_grupo_id?: string | null
-          parcelas?: number | null
-          sla_aprovacao_dias?: number | null
-          sla_pagamento_dias?: number | null
-          status?: string | null
-          tags?: Json | null
-          tarefa_id?: string | null
-          tipo?: string | null
-          total_parcelas?: number | null
-          unidade_id?: string | null
-          updated_at?: string | null
-          valor?: number | null
-          valor_pago?: number | null
-        }
-        Update: {
-          aprovado_em?: string | null
-          aprovado_por?: string | null
-          bling_id?: string | null
-          canal_venda_id?: string | null
-          categoria_confirmada?: boolean | null
-          categoria_sugerida_ia?: boolean | null
-          centro_custo_id?: string | null
-          compromisso_parcelado_id?: string | null
-          compromisso_recorrente_id?: string | null
-          comprovante_url?: string | null
-          conciliado_em?: string | null
-          conciliado_por?: string | null
-          conta_id?: string | null
-          created_at?: string | null
-          criado_por?: string | null
-          dados_bancarios_fornecedor?: Json | null
-          dados_enriquecidos_qive?: boolean | null
-          dados_pagamento_fornecedor?: Json | null
-          data_compra?: string | null
-          data_pagamento?: string | null
-          data_vencimento?: string | null
-          descricao?: string | null
-          docs_status?: string | null
-          editado_em?: string | null
-          editado_por?: string | null
-          email_pagamento_enviado?: boolean | null
-          enviado_pagamento_em?: string | null
-          enviado_pagamento_por?: string | null
-          forma_pagamento_id?: string | null
-          fornecedor_cliente?: string | null
-          fornecedor_id?: string | null
-          id?: string | null
-          is_cartao?: boolean | null
-          movimentacao_bancaria_id?: string | null
-          nf_cfop?: string | null
-          nf_chave_acesso?: string | null
-          nf_cnpj_emitente?: string | null
-          nf_data_emissao?: string | null
-          nf_natureza_operacao?: string | null
-          nf_ncm?: string | null
-          nf_numero?: string | null
-          nf_pdf_url?: string | null
-          nf_serie?: string | null
-          nf_valor_impostos?: number | null
-          nf_valor_produtos?: number | null
-          nf_xml_url?: string | null
-          numero_parcela?: number | null
-          observacao?: string | null
-          observacao_pagamento?: string | null
-          observacao_pagamento_manual?: string | null
-          origem?: string | null
-          pago_em?: string | null
-          pago_em_conta_id?: string | null
-          pago_por?: string | null
-          parceiro_id?: string | null
-          parcela_atual?: number | null
-          parcela_grupo_id?: string | null
-          parcelas?: number | null
-          sla_aprovacao_dias?: number | null
-          sla_pagamento_dias?: number | null
-          status?: string | null
-          tags?: Json | null
-          tarefa_id?: string | null
-          tipo?: string | null
-          total_parcelas?: number | null
-          unidade_id?: string | null
-          updated_at?: string | null
-          valor?: number | null
-          valor_pago?: number | null
         }
         Relationships: [
           {
@@ -10789,6 +10706,13 @@ export type Database = {
             columns: ["forma_pagamento_id"]
             isOneToOne: false
             referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_meio_pagamento_id_fkey"
+            columns: ["meio_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "meios_pagamento"
             referencedColumns: ["id"]
           },
           {
@@ -10850,6 +10774,7 @@ export type Database = {
           docs_status: string | null
           editado_em: string | null
           editado_por: string | null
+          eh_cartao: boolean | null
           email_pagamento_enviado: boolean | null
           enviado_pagamento_em: string | null
           enviado_pagamento_por: string | null
@@ -10857,7 +10782,8 @@ export type Database = {
           fornecedor_cliente: string | null
           fornecedor_id: string | null
           id: string | null
-          is_cartao: boolean | null
+          meio_codigo: string | null
+          meio_pagamento_id: string | null
           movimentacao_bancaria_id: string | null
           nf_cfop: string | null
           nf_chave_acesso: string | null
@@ -10896,156 +10822,6 @@ export type Database = {
           valor: number | null
           valor_original_item: number | null
           valor_pago: number | null
-        }
-        Insert: {
-          aprovado_em?: string | null
-          aprovado_por?: string | null
-          bling_id?: string | null
-          canal_venda_id?: string | null
-          categoria_confirmada?: boolean | null
-          categoria_sugerida_ia?: boolean | null
-          centro_custo_id?: string | null
-          compromisso_parcelado_id?: string | null
-          compromisso_recorrente_id?: string | null
-          comprovante_url?: string | null
-          conciliado_em?: string | null
-          conciliado_por?: string | null
-          conta_id?: string | null
-          created_at?: string | null
-          criado_por?: string | null
-          dados_bancarios_fornecedor?: Json | null
-          dados_enriquecidos_qive?: boolean | null
-          dados_pagamento_fornecedor?: Json | null
-          data_compra?: string | null
-          data_pagamento?: string | null
-          data_vencimento?: string | null
-          deleted_at?: string | null
-          deleted_por?: string | null
-          descricao?: string | null
-          docs_status?: string | null
-          editado_em?: string | null
-          editado_por?: string | null
-          email_pagamento_enviado?: boolean | null
-          enviado_pagamento_em?: string | null
-          enviado_pagamento_por?: string | null
-          forma_pagamento_id?: string | null
-          fornecedor_cliente?: string | null
-          fornecedor_id?: string | null
-          id?: string | null
-          is_cartao?: boolean | null
-          movimentacao_bancaria_id?: string | null
-          nf_cfop?: string | null
-          nf_chave_acesso?: string | null
-          nf_cnpj_emitente?: string | null
-          nf_data_emissao?: string | null
-          nf_natureza_operacao?: string | null
-          nf_ncm?: string | null
-          nf_numero?: string | null
-          nf_pdf_url?: string | null
-          nf_serie?: string | null
-          nf_valor_impostos?: number | null
-          nf_valor_produtos?: number | null
-          nf_xml_url?: string | null
-          numero_parcela?: number | null
-          observacao?: string | null
-          observacao_pagamento?: string | null
-          observacao_pagamento_manual?: string | null
-          origem?: string | null
-          pago_em?: string | null
-          pago_em_conta_id?: string | null
-          pago_por?: string | null
-          parceiro_id?: string | null
-          parcela_atual?: number | null
-          parcela_grupo_id?: string | null
-          parcelas?: number | null
-          sla_aprovacao_dias?: number | null
-          sla_pagamento_dias?: number | null
-          status?: string | null
-          tags?: Json | null
-          tarefa_id?: string | null
-          tem_sugestao_nf?: boolean | null
-          tipo?: string | null
-          total_parcelas?: number | null
-          unidade_id?: string | null
-          updated_at?: string | null
-          valor?: number | null
-          valor_original_item?: number | null
-          valor_pago?: number | null
-        }
-        Update: {
-          aprovado_em?: string | null
-          aprovado_por?: string | null
-          bling_id?: string | null
-          canal_venda_id?: string | null
-          categoria_confirmada?: boolean | null
-          categoria_sugerida_ia?: boolean | null
-          centro_custo_id?: string | null
-          compromisso_parcelado_id?: string | null
-          compromisso_recorrente_id?: string | null
-          comprovante_url?: string | null
-          conciliado_em?: string | null
-          conciliado_por?: string | null
-          conta_id?: string | null
-          created_at?: string | null
-          criado_por?: string | null
-          dados_bancarios_fornecedor?: Json | null
-          dados_enriquecidos_qive?: boolean | null
-          dados_pagamento_fornecedor?: Json | null
-          data_compra?: string | null
-          data_pagamento?: string | null
-          data_vencimento?: string | null
-          deleted_at?: string | null
-          deleted_por?: string | null
-          descricao?: string | null
-          docs_status?: string | null
-          editado_em?: string | null
-          editado_por?: string | null
-          email_pagamento_enviado?: boolean | null
-          enviado_pagamento_em?: string | null
-          enviado_pagamento_por?: string | null
-          forma_pagamento_id?: string | null
-          fornecedor_cliente?: string | null
-          fornecedor_id?: string | null
-          id?: string | null
-          is_cartao?: boolean | null
-          movimentacao_bancaria_id?: string | null
-          nf_cfop?: string | null
-          nf_chave_acesso?: string | null
-          nf_cnpj_emitente?: string | null
-          nf_data_emissao?: string | null
-          nf_natureza_operacao?: string | null
-          nf_ncm?: string | null
-          nf_numero?: string | null
-          nf_pdf_url?: string | null
-          nf_serie?: string | null
-          nf_valor_impostos?: number | null
-          nf_valor_produtos?: number | null
-          nf_xml_url?: string | null
-          numero_parcela?: number | null
-          observacao?: string | null
-          observacao_pagamento?: string | null
-          observacao_pagamento_manual?: string | null
-          origem?: string | null
-          pago_em?: string | null
-          pago_em_conta_id?: string | null
-          pago_por?: string | null
-          parceiro_id?: string | null
-          parcela_atual?: number | null
-          parcela_grupo_id?: string | null
-          parcelas?: number | null
-          sla_aprovacao_dias?: number | null
-          sla_pagamento_dias?: number | null
-          status?: string | null
-          tags?: Json | null
-          tarefa_id?: string | null
-          tem_sugestao_nf?: boolean | null
-          tipo?: string | null
-          total_parcelas?: number | null
-          unidade_id?: string | null
-          updated_at?: string | null
-          valor?: number | null
-          valor_original_item?: number | null
-          valor_pago?: number | null
         }
         Relationships: [
           {
@@ -11088,6 +10864,13 @@ export type Database = {
             columns: ["forma_pagamento_id"]
             isOneToOne: false
             referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_meio_pagamento_id_fkey"
+            columns: ["meio_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "meios_pagamento"
             referencedColumns: ["id"]
           },
           {
@@ -11374,10 +11157,12 @@ export type Database = {
           data_pagamento: string | null
           data_vencimento: string | null
           descricao: string | null
+          eh_cartao: boolean | null
           forma_pagamento_id: string | null
           fornecedor_id: string | null
           id: string | null
-          is_cartao: boolean | null
+          meio_codigo: string | null
+          meio_pagamento_id: string | null
           mov_conciliada: boolean | null
           mov_data: string | null
           mov_descricao: string | null
@@ -11420,6 +11205,13 @@ export type Database = {
             columns: ["forma_pagamento_id"]
             isOneToOne: false
             referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_meio_pagamento_id_fkey"
+            columns: ["meio_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "meios_pagamento"
             referencedColumns: ["id"]
           },
           {
