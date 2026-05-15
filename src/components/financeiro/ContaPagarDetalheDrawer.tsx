@@ -447,6 +447,8 @@ export default function ContaPagarDetalheDrawer({
                     nf_numero: conta.nf_numero ?? null,
                     nf_serie: conta.nf_serie ?? null,
                     nf_chave_acesso: conta.nf_chave_acesso ?? null,
+                    nf_aplicavel: conta.nf_aplicavel ?? true,
+                    nf_aplicavel_motivo: conta.nf_aplicavel_motivo ?? null,
                     status: conta.status,
                     pago_em_conta_id: conta.pago_em_conta_id ?? null,
                     parceiro_id: conta.parceiro_id ?? null,
