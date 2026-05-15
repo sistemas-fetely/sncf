@@ -175,11 +175,7 @@ Deno.serve(async (req) => {
 
   // Append simple unsubscribe footer
   const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-email-unsubscribe?token=${unsubscribeToken}`
-  const htmlWithFooter = html + `
-
-Para deixar de receber estes e-mails, clique aqui.
-
-`
+  const htmlWithFooter = html + `<hr/><p style="font-size:12px;color:#888;text-align:center;font-family:Arial,sans-serif;">Para deixar de receber estes e-mails, <a href="${unsubscribeUrl}">clique aqui</a>.</p>`
   const textWithFooter = plainText + `\n\nPara deixar de receber: ${unsubscribeUrl}`
 
   // Log pending
