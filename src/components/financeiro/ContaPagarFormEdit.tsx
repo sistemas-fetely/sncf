@@ -41,6 +41,8 @@ type ContaEditavel = {
   nf_numero: string | null;
   nf_serie: string | null;
   nf_chave_acesso: string | null;
+  nf_aplicavel?: boolean | null;
+  nf_aplicavel_motivo?: string | null;
   status: string;
   parceiro_id?: string | null;
   pago_em_conta_id?: string | null;
