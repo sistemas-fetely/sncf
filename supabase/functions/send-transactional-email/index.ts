@@ -3,11 +3,11 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
-// Resend via Lovable connector gateway.
+// Resend via direct API. Credential lives in vault as 'RESEND_API_KEY' (Doutrina #77).
 const SITE_NAME = 'people-fetely'
 const FROM_DOMAIN = 'notify.fetelycorp.com.br'
 const FROM_ADDRESS = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`
-const GATEWAY_URL = 'https://connector-gateway.lovable.dev/resend'
+const RESEND_API_URL = 'https://api.resend.com/emails'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,19 +28,11 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')
-  const resendApiKey = Deno.env.get('RESEND_API_KEY')
 
   if (!supabaseUrl || !supabaseServiceKey) {
     return new Response(JSON.stringify({ error: 'Server configuration error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-  }
-  if (!lovableApiKey || !resendApiKey) {
-    return new Response(
-      JSON.stringify({ error: 'Resend connector not configured' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
   }
 
   const authHeader = req.headers.get('Authorization')
@@ -155,6 +147,23 @@ Deno.serve(async (req) => {
     )
   }
 
+  // Fetch Resend API key from vault (Doutrina #77)
+  const { data: resendApiKey, error: vaultError } = await supabase
+    .rpc('get_vault_secret', { p_name: 'RESEND_API_KEY' })
+
+  if (vaultError || !resendApiKey) {
+    console.error('Failed to retrieve RESEND_API_KEY from vault', vaultError)
+    await supabase.from('email_send_log').insert({
+      message_id: messageId, template_name: templateName,
+      recipient_email: effectiveRecipient, status: 'failed', metadata: emailMetadata,
+      error_message: `Vault error: ${vaultError?.message || 'RESEND_API_KEY not found in vault'}`,
+    })
+    return new Response(
+      JSON.stringify({ error: 'Resend credential not configured' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  }
+
   // Render templates
   const html = await renderAsync(React.createElement(template.component, templateData))
   const plainText = await renderAsync(
@@ -166,7 +175,11 @@ Deno.serve(async (req) => {
 
   // Append simple unsubscribe footer
   const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-email-unsubscribe?token=${unsubscribeToken}`
-  const htmlWithFooter = html + `<hr/><p style="font-size:12px;color:#888;text-align:center;font-family:Arial,sans-serif;">Para deixar de receber estes e-mails, <a href="${unsubscribeUrl}">clique aqui</a>.</p>`
+  const htmlWithFooter = html + `
+
+Para deixar de receber estes e-mails, clique aqui.
+
+`
   const textWithFooter = plainText + `\n\nPara deixar de receber: ${unsubscribeUrl}`
 
   // Log pending
@@ -175,14 +188,13 @@ Deno.serve(async (req) => {
     recipient_email: effectiveRecipient, status: 'pending', metadata: emailMetadata,
   })
 
-  // Send via Resend gateway
+  // Send via Resend direct API
   try {
-    const resp = await fetch(`${GATEWAY_URL}/emails`, {
+    const resp = await fetch(RESEND_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${lovableApiKey}`,
-        'X-Connection-Api-Key': resendApiKey,
+        Authorization: `Bearer ${resendApiKey}`,
         'Idempotency-Key': idempotencyKey,
       },
       body: JSON.stringify({
