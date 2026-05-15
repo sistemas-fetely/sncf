@@ -25,6 +25,9 @@ import {
   ArrowRightLeft,
   Loader2,
   ExternalLink,
+  Ban,
+  CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -84,6 +87,8 @@ type Conta = {
   nf_xml_url?: string | null;
   nf_aplicavel?: boolean | null;
   nf_aplicavel_motivo?: string | null;
+  vinculo_nf_completo?: boolean | null;
+  valor_nf_vinculado?: number | null;
   parcela_atual?: number | null;
   parcelas?: number | null;
   email_pagamento_enviado?: boolean | null;
@@ -442,6 +447,8 @@ export default function ContaPagarDetalheDrawer({
                     nf_numero: conta.nf_numero ?? null,
                     nf_serie: conta.nf_serie ?? null,
                     nf_chave_acesso: conta.nf_chave_acesso ?? null,
+                    nf_aplicavel: conta.nf_aplicavel ?? true,
+                    nf_aplicavel_motivo: conta.nf_aplicavel_motivo ?? null,
                     status: conta.status,
                     pago_em_conta_id: conta.pago_em_conta_id ?? null,
                     parceiro_id: conta.parceiro_id ?? null,
@@ -569,6 +576,7 @@ export default function ContaPagarDetalheDrawer({
             {/* Documentos */}
             <Separator className="my-4" />
 
+            <VinculoNFStatusBadge conta={conta} />
             <NFsAnexadasSecao contaId={conta.id} />
             <DocumentosCP
               contaId={conta.id}
@@ -1133,6 +1141,53 @@ function NFsAnexadasSecao({ contaId }: { contaId: string }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// =====================================================
+// Status do vínculo NF (badge + subtítulo)
+// =====================================================
+function VinculoNFStatusBadge({ conta }: { conta: Conta }) {
+  const valor = Number(conta.valor || 0);
+  const vinculado = Number(conta.valor_nf_vinculado || 0);
+  const aplicavel = conta.nf_aplicavel !== false;
+  const completo = conta.vinculo_nf_completo === true;
+
+  let icon: React.ReactNode;
+  let titulo: string;
+  let subtitulo: React.ReactNode;
+  let cls: string;
+
+  if (!aplicavel) {
+    icon = <Ban className="h-4 w-4" />;
+    titulo = "NF não aplicável";
+    subtitulo = conta.nf_aplicavel_motivo || "Despesa sem exigência fiscal.";
+    cls = "border-zinc-300 bg-zinc-50 text-zinc-700";
+  } else if (completo) {
+    icon = <CheckCircle className="h-4 w-4" />;
+    titulo = "Vínculo NF completo";
+    subtitulo = `${formatBRL(vinculado)} de ${formatBRL(valor)}`;
+    cls = "border-emerald-300 bg-emerald-50 text-emerald-800";
+  } else if (vinculado <= 0) {
+    icon = <AlertTriangle className="h-4 w-4" />;
+    titulo = "Sem NF vinculada";
+    subtitulo = "Esta despesa exige nota fiscal.";
+    cls = "border-amber-300 bg-amber-50 text-amber-800";
+  } else {
+    icon = <AlertTriangle className="h-4 w-4" />;
+    titulo = "Vínculo NF parcial";
+    subtitulo = `${formatBRL(vinculado)} de ${formatBRL(valor)} — faltam ${formatBRL(valor - vinculado)}`;
+    cls = "border-amber-300 bg-amber-50 text-amber-800";
+  }
+
+  return (
+    <div className={`mb-3 flex items-start gap-2 rounded-md border px-3 py-2 ${cls}`}>
+      <div className="mt-0.5 shrink-0">{icon}</div>
+      <div className="min-w-0">
+        <div className="text-sm font-medium leading-tight">{titulo}</div>
+        <div className="text-xs opacity-80 mt-0.5">{subtitulo}</div>
+      </div>
     </div>
   );
 }

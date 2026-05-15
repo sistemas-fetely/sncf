@@ -162,9 +162,8 @@ function DocIndicator({ label, tem }: { label: string; tem: boolean }) {
 }
 
 type FiltroPill =
-  | "todas"
   | "nao_vinculadas"
-  | "vinculadas"
+  | "descartadas"
   | "sem_categoria"
   | "com_xml"
   | "com_pdf"
@@ -280,16 +279,15 @@ export default function NFsStage() {
     let list = nfs || [];
     if (filtroPill === "nao_vinculadas") {
       list = list.filter((n) => n.status === "nao_vinculada");
-    } else if (filtroPill === "vinculadas") {
-      list = list.filter((n) => n.status === "vinculada");
+    } else if (filtroPill === "descartadas") {
+      list = list.filter((n) => n.status === "descartada");
     } else if (filtroPill === "sem_categoria") {
       list = list.filter((n) => !n.categoria_id && n.status !== "descartada");
     } else if (filtroPill === "com_xml") {
-      list = list.filter((n) => n.tem_xml);
+      list = list.filter((n) => n.tem_xml && n.status !== "descartada");
     } else if (filtroPill === "com_pdf") {
-      list = list.filter((n) => n.tem_pdf);
+      list = list.filter((n) => n.tem_pdf && n.status !== "descartada");
     }
-    // "todas" não filtra
     if (busca.trim()) {
       const t = busca.toLowerCase();
       list = list.filter(
@@ -319,10 +317,10 @@ export default function NFsStage() {
     const all = nfs || [];
     return {
       naoVinculadas: all.filter((n) => n.status === "nao_vinculada").length,
-      vinculadas: all.filter((n) => n.status === "vinculada").length,
+      descartadas: all.filter((n) => n.status === "descartada").length,
       semCategoria: all.filter((n) => !n.categoria_id && n.status !== "descartada").length,
-      comXml: all.filter((n) => n.tem_xml).length,
-      comPdf: all.filter((n) => n.tem_pdf).length,
+      comXml: all.filter((n) => n.tem_xml && n.status !== "descartada").length,
+      comPdf: all.filter((n) => n.tem_pdf && n.status !== "descartada").length,
       comBoleto: all.filter((n) => n.tem_boleto).length,
       total: all.length,
     };
@@ -576,10 +574,10 @@ export default function NFsStage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <Layers className="h-6 w-6 text-admin" />
-              NFs aguardando vínculo a CPR
+              NFs aguardando vínculo
             </h1>
             <p className="text-muted-foreground text-sm mt-0.5">
-              Notas fiscais recebidas que ainda não têm conta a pagar vinculada. Use auto-match ou vincule manualmente.{" "}
+              Notas fiscais importadas que ainda não foram vinculadas a uma despesa.{" "}
               <span className="text-[11px] opacity-70">
                 Atalhos: <kbd className="px-1 py-0.5 border rounded text-[10px]">/</kbd> buscar ·{" "}
                 <kbd className="px-1 py-0.5 border rounded text-[10px]">Del</kbd> remover ·{" "}
@@ -602,28 +600,12 @@ export default function NFsStage() {
         {/* KPI pills (clicáveis = filtros) */}
         <div className="flex flex-wrap gap-2">
           <KpiPill
-            label="Todas"
-            count={totals.total}
-            color="admin"
-            active={filtroPill === "todas"}
-            onClick={() => setFiltroPill("todas")}
-            icon={<Package className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Não vinculadas"
+            label="Aguardando vínculo"
             count={totals.naoVinculadas}
             color="amber"
             active={filtroPill === "nao_vinculadas"}
             onClick={() => setFiltroPill("nao_vinculadas")}
             icon={<Clock className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Vinculadas"
-            count={totals.vinculadas}
-            color="emerald"
-            active={filtroPill === "vinculadas"}
-            onClick={() => setFiltroPill("vinculadas")}
-            icon={<CheckCircle2 className="h-3 w-3" />}
           />
           <KpiPill
             label="Sem categoria"
@@ -648,6 +630,14 @@ export default function NFsStage() {
             active={filtroPill === "com_pdf"}
             onClick={() => setFiltroPill("com_pdf")}
             icon={<FileCheck className="h-3 w-3" />}
+          />
+          <KpiPill
+            label="Descartadas"
+            count={totals.descartadas}
+            color="gray"
+            active={filtroPill === "descartadas"}
+            onClick={() => setFiltroPill("descartadas")}
+            icon={<Trash2 className="h-3 w-3" />}
           />
         </div>
 

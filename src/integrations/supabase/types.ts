@@ -2454,8 +2454,10 @@ export type Database = {
           unidade_id: string | null
           updated_at: string | null
           valor: number
+          valor_nf_vinculado: number
           valor_original_item: number | null
           valor_pago: number | null
+          vinculo_nf_completo: boolean
         }
         Insert: {
           aprovado_em?: string | null
@@ -2542,8 +2544,10 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string | null
           valor: number
+          valor_nf_vinculado?: number
           valor_original_item?: number | null
           valor_pago?: number | null
+          vinculo_nf_completo?: boolean
         }
         Update: {
           aprovado_em?: string | null
@@ -2630,8 +2634,10 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string | null
           valor?: number
+          valor_nf_vinculado?: number
           valor_original_item?: number | null
           valor_pago?: number | null
+          vinculo_nf_completo?: boolean
         }
         Relationships: [
           {
@@ -12481,6 +12487,10 @@ export type Database = {
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }
         Returns: string
+      }
+      fn_recalcular_vinculo_nf_cpr: {
+        Args: { p_cpr_id: string }
+        Returns: undefined
       }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       gerar_celebracoes_aniversario_mural: { Args: never; Returns: number }

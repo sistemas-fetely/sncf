@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, X, Sparkles, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -40,6 +41,8 @@ type ContaEditavel = {
   nf_numero: string | null;
   nf_serie: string | null;
   nf_chave_acesso: string | null;
+  nf_aplicavel?: boolean | null;
+  nf_aplicavel_motivo?: string | null;
   status: string;
   parceiro_id?: string | null;
   pago_em_conta_id?: string | null;
@@ -120,6 +123,12 @@ export function ContaPagarFormEdit({
   const [nfNumero, setNfNumero] = useState(conta.nf_numero || "");
   const [nfSerie, setNfSerie] = useState(conta.nf_serie || "");
   const [nfChave, setNfChave] = useState(conta.nf_chave_acesso || "");
+  const [nfAplicavel, setNfAplicavel] = useState<boolean>(
+    conta.nf_aplicavel === false ? false : true,
+  );
+  const [nfAplicavelMotivo, setNfAplicavelMotivo] = useState(
+    conta.nf_aplicavel_motivo || "",
+  );
   const [pagoEmContaId, setPagoEmContaId] = useState(conta.pago_em_conta_id || "__none__");
   const [parceiroIdAtribuir, setParceiroIdAtribuir] = useState<string | null>(null);
   const [linhaInvestimentoId, setLinhaInvestimentoId] = useState<string | null>(
@@ -181,6 +190,8 @@ export function ContaPagarFormEdit({
     setNfNumero(conta.nf_numero || "");
     setNfSerie(conta.nf_serie || "");
     setNfChave(conta.nf_chave_acesso || "");
+    setNfAplicavel(conta.nf_aplicavel === false ? false : true);
+    setNfAplicavelMotivo(conta.nf_aplicavel_motivo || "");
     setPagoEmContaId(conta.pago_em_conta_id || "__none__");
     setLinhaInvestimentoId(conta.linha_investimento_id ?? null);
   }, [conta.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -336,6 +347,11 @@ export function ContaPagarFormEdit({
       return;
     }
 
+    if (!nfAplicavel && !nfAplicavelMotivo.trim()) {
+      toast.error("Informe o motivo de a NF não ser aplicável");
+      return;
+    }
+
     setSalvando(true);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -374,6 +390,14 @@ export function ContaPagarFormEdit({
       // Atribuição de parceiro — apenas se a conta era órfã e o operador escolheu um
       if (!conta.parceiro_id && parceiroIdAtribuir) {
         updatePayload.parceiro_id = parceiroIdAtribuir;
+      }
+      const novoNfAplicavel = nfAplicavel;
+      const novoMotivo = nfAplicavel ? null : (nfAplicavelMotivo.trim() || null);
+      if (novoNfAplicavel !== (conta.nf_aplicavel ?? true)) {
+        updatePayload.nf_aplicavel = novoNfAplicavel;
+      }
+      if (novoMotivo !== (conta.nf_aplicavel_motivo ?? null)) {
+        updatePayload.nf_aplicavel_motivo = novoMotivo;
       }
       if (Object.keys(updatePayload).length > 0) {
         updatePayload.updated_at = new Date().toISOString();
@@ -672,6 +696,41 @@ export function ContaPagarFormEdit({
           <p className="text-[11px] text-muted-foreground">
             Banco usado pra pagar essa conta. Necessário pra lançar em Movimentação.
           </p>
+        )}
+      </div>
+
+      {/* NF aplicável (toggle + motivo) */}
+      <div className="space-y-2 rounded-md border border-zinc-200 px-3 py-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <Label htmlFor="cp-edit-nf-aplicavel" className="text-sm">
+              Esta despesa exige NF
+            </Label>
+            <p className="text-[11px] text-muted-foreground">
+              Desmarque para tributos, juros, despesas internas etc.
+            </p>
+          </div>
+          <Switch
+            id="cp-edit-nf-aplicavel"
+            checked={nfAplicavel}
+            onCheckedChange={setNfAplicavel}
+            disabled={isReadOnly || salvando}
+          />
+        </div>
+        {!nfAplicavel && (
+          <div className="space-y-1">
+            <Label htmlFor="cp-edit-nf-motivo" className="text-xs">
+              Motivo <span className="text-rose-600">*</span>
+            </Label>
+            <Input
+              id="cp-edit-nf-motivo"
+              value={nfAplicavelMotivo}
+              onChange={(e) => setNfAplicavelMotivo(e.target.value)}
+              disabled={isReadOnly || salvando}
+              placeholder="Ex: Tributo federal, juros bancários…"
+              maxLength={120}
+            />
+          </div>
         )}
       </div>
 

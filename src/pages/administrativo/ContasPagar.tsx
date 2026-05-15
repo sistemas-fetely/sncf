@@ -63,6 +63,9 @@ type Conta = {
   mov_conciliada: boolean | null;
   movimentacao_bancaria_id: string | null;
   nf_numero_repositorio: string | null;
+  nf_aplicavel?: boolean | null;
+  vinculo_nf_completo?: boolean | null;
+  valor_nf_vinculado?: number | null;
   plano_contas?: { codigo?: string | null; nome: string } | null;
   parceiros_comerciais?: { razao_social: string | null } | null;
   formas_pagamento?: { codigo: string | null; nome: string | null } | null;
@@ -165,6 +168,31 @@ export default function ContasPagar() {
     },
   });
 
+  // Estado do vínculo NF por CPR (vw_contas_pagar_consolidado não expõe esses campos)
+  const { data: nfStatusMap = new Map<string, { nf_aplicavel: boolean; vinculo_nf_completo: boolean; valor_nf_vinculado: number }>() } = useQuery({
+    queryKey: ["contas-pagar-nf-status-map", (data || []).map((c) => c.id).join(",")],
+    enabled: !!data && data.length > 0,
+    queryFn: async () => {
+      const ids = (data || []).map((c) => c.id);
+      const m = new Map<string, { nf_aplicavel: boolean; vinculo_nf_completo: boolean; valor_nf_vinculado: number }>();
+      if (ids.length === 0) return m;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error } = await (supabase as any)
+        .from("contas_pagar_receber")
+        .select("id, nf_aplicavel, vinculo_nf_completo, valor_nf_vinculado")
+        .in("id", ids);
+      if (error) throw error;
+      (rows || []).forEach((r: { id: string; nf_aplicavel: boolean | null; vinculo_nf_completo: boolean | null; valor_nf_vinculado: number | null }) => {
+        m.set(r.id, {
+          nf_aplicavel: r.nf_aplicavel !== false,
+          vinculo_nf_completo: r.vinculo_nf_completo === true,
+          valor_nf_vinculado: Number(r.valor_nf_vinculado || 0),
+        });
+      });
+      return m;
+    },
+  });
+
   // Mapa: conta_id → data_vencimento da fatura de cartão vinculada
   const { data: faturaMap = new Map<string, string>() } = useQuery({
     queryKey: ["contas-pagar-fatura-map", (data || []).map((c) => c.id).join(",")],
@@ -250,6 +278,11 @@ export default function ContasPagar() {
   const solicitanteMap = solicitanteData.map;
   const solicitantesOptions = solicitanteData.options;
 
+  const temPendenciaNF = (id: string) => {
+    const s = nfStatusMap.get(id);
+    return !!s && s.nf_aplicavel && !s.vinculo_nf_completo;
+  };
+
   const kpis = useMemo(() => {
     const lista = data || [];
     const para_agir = lista.filter(
@@ -259,7 +292,9 @@ export default function ContasPagar() {
       (c) => c.atrasada && !["paga", "realizada", "cancelado"].includes(c.status),
     );
     const aguardando = lista.filter((c) => c.status === "aguardando_pagamento");
-    const pendencia = lista.filter((c) => pendenciaMap.has(c.id));
+    const pendencia = lista.filter(
+      (c) => pendenciaMap.has(c.id) || temPendenciaNF(c.id),
+    );
     const sumValor = (arr: Conta[]) => arr.reduce((s, c) => s + Number(c.valor || 0), 0);
     return {
       para_agir: { count: para_agir.length, valor: sumValor(para_agir) },
@@ -267,7 +302,8 @@ export default function ContasPagar() {
       aguardando: { count: aguardando.length, valor: sumValor(aguardando) },
       pendencia: { count: pendencia.length, valor: sumValor(pendencia) },
     };
-  }, [data, pendenciaMap]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, pendenciaMap, nfStatusMap]);
 
   const filtrados = useMemo(() => {
     let lista = data || [];
@@ -282,7 +318,7 @@ export default function ContasPagar() {
     } else if (kpiFilter === "aguardando") {
       lista = lista.filter((c) => c.status === "aguardando_pagamento");
     } else if (kpiFilter === "pendencia") {
-      lista = lista.filter((c) => pendenciaMap.has(c.id));
+      lista = lista.filter((c) => pendenciaMap.has(c.id) || temPendenciaNF(c.id));
     }
     if (busca.trim()) {
       const b = busca.toLowerCase();
@@ -293,7 +329,9 @@ export default function ContasPagar() {
           c.fornecedor_cliente?.toLowerCase().includes(b),
       );
     }
-    if (statusFilter && statusFilter !== "todos") {
+    if (statusFilter === "pendencia_nf") {
+      lista = lista.filter((c) => temPendenciaNF(c.id));
+    } else if (statusFilter && statusFilter !== "todos") {
       lista = lista.filter((c) => c.status === statusFilter);
     }
     if (solicitanteFilter && solicitanteFilter !== "todos") {
@@ -302,7 +340,8 @@ export default function ContasPagar() {
     if (dataDe) lista = lista.filter((c) => (c.data_vencimento || "") >= dataDe);
     if (dataAte) lista = lista.filter((c) => (c.data_vencimento || "") <= dataAte);
     return lista;
-  }, [data, kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte, pendenciaMap, solicitanteMap]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte, pendenciaMap, solicitanteMap, nfStatusMap]);
 
   const temFiltroAtivo =
     !!busca.trim() ||
@@ -448,6 +487,7 @@ export default function ContasPagar() {
             <SelectItem value="paga">Paga</SelectItem>
             <SelectItem value="realizada">Realizada (já paga)</SelectItem>
             <SelectItem value="cancelado">Cancelada</SelectItem>
+            <SelectItem value="pendencia_nf">Pendência NF</SelectItem>
           </SelectContent>
         </Select>
         {solicitantesOptions.length > 0 && (
