@@ -593,7 +593,7 @@ export default function ContasPagar() {
                             ) : (
                               <span>{meio}</span>
                             )}
-                            {c.is_cartao && faturaMap.has(c.id) && (
+                            {c.meios_pagamento?.codigo === "fatura_cartao" && faturaMap.has(c.id) && (
                               <span className="text-[10px] text-muted-foreground pl-5">
                                 fatura vence {formatDateBR(faturaMap.get(c.id)!)}
                               </span>
