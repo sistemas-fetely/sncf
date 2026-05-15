@@ -349,7 +349,7 @@ export default function ContaPagarDetalheDrawer({
 
   const dadosBancarios =
     conta?.dados_bancarios_fornecedor || conta?.dados_pagamento_fornecedor || null;
-  const isCartao = !!conta?.is_cartao;
+  const isCartao = conta?.meios_pagamento?.codigo === "fatura_cartao";
 
   // Fatura de cartão vinculada a esta CPR (via fatura_cartao_lancamentos)
   const { data: faturaVinculada } = useQuery({
