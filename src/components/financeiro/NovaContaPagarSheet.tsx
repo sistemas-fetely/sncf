@@ -349,11 +349,30 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
           parcela_grupo_id: grupoId,
           status: "aberto",
           origem: "manual",
-          nf_stage_id: nfStageId,
         });
       }
-      const { error } = await supabase.from("contas_pagar_receber").insert(rows);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: inseridas, error } = await (supabase as any)
+        .from("contas_pagar_receber")
+        .insert(rows)
+        .select("id, parcela_atual");
       if (error) throw error;
+
+      // Vincula NF do Repositório à primeira parcela (modelo N:1).
+      if (nfStageId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const primeira = (inseridas || []).find((r: any) => r.parcela_atual === 1);
+        if (primeira) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: vincErr } = await (supabase as any).rpc("vincular_nf_a_conta", {
+            p_nf_id: nfStageId,
+            p_conta_id: primeira.id,
+          });
+          if (vincErr) {
+            console.warn("Falha ao vincular NF à CPR recém-criada:", vincErr);
+          }
+        }
+      }
 
       // Auto-salva dados bancários no parceiro quando:
       // - usuário preencheu E
