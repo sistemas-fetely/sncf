@@ -250,7 +250,8 @@ export default function NFsStage() {
     },
   });
 
-  // Contagem de despesas por stage (para badge "Parcial M/N")
+  // Contagem de despesas vinculadas por stage (modelo N:1: nfs_stage.conta_pagar_id).
+  // Como cada NF aponta no máximo para 1 CPR, a contagem aqui é 0 ou 1.
   const { data: despesasPorStage = {} } = useQuery({
     queryKey: ["despesas-por-stage", nfs?.length || 0],
     enabled: (nfs?.length || 0) > 0,
@@ -261,13 +262,14 @@ export default function NFsStage() {
       if (ids.length === 0) return {} as Record<string, number>;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
-        .from("contas_pagar_receber")
-        .select("nf_stage_id")
-        .in("nf_stage_id", ids);
+        .from("nfs_stage")
+        .select("id, conta_pagar_id")
+        .in("id", ids)
+        .not("conta_pagar_id", "is", null);
       if (error) throw error;
       const counts: Record<string, number> = {};
       for (const row of data || []) {
-        const k = (row as { nf_stage_id: string }).nf_stage_id;
+        const k = (row as { id: string }).id;
         counts[k] = (counts[k] || 0) + 1;
       }
       return counts;
