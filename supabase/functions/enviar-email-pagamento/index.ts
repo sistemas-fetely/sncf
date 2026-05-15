@@ -150,6 +150,7 @@ serve(async (req) => {
         status: "aguardando_pagamento",
         enviado_pagamento_em: agora,
         enviado_pagamento_por: callerId,
+        email_pagamento_enviado: true,
       })
       .in("id", idsAtualizar);
 
