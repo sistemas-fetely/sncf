@@ -81,7 +81,7 @@ type Conta = {
   comprovante_url?: string | null;
   nf_chave_acesso?: string | null;
   nf_numero?: string | null;
-  nf_stage_id?: string | null;
+  
   nf_serie?: string | null;
   nf_pdf_url?: string | null;
   nf_xml_url?: string | null;
