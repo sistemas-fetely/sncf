@@ -162,9 +162,8 @@ function DocIndicator({ label, tem }: { label: string; tem: boolean }) {
 }
 
 type FiltroPill =
-  | "todas"
   | "nao_vinculadas"
-  | "vinculadas"
+  | "descartadas"
   | "sem_categoria"
   | "com_xml"
   | "com_pdf"
