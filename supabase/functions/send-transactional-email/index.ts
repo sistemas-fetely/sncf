@@ -5,7 +5,7 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 // Resend via Lovable connector gateway.
 const SITE_NAME = 'people-fetely'
-const FROM_DOMAIN = 'mail.fetelycorp.com.br'
+const FROM_DOMAIN = 'notify.fetelycorp.com.br'
 const FROM_ADDRESS = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/resend'
 
