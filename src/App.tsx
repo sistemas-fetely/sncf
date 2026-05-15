@@ -215,6 +215,7 @@ const App = () => (
             <Route path="/ti" element={<ProtectedRoute><TILayout /></ProtectedRoute>}>
               <Route index element={<TIDashboard />} />
               <Route path="ativos" element={<TIAtivos />} />
+              <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
               {/* Redirects legados — documentação migrou pra SNCF */}
               <Route path="documentacao" element={<Navigate to="/documentacao" replace />} />
               <Route path="documentacao/novo" element={<Navigate to="/documentacao/novo" replace />} />
