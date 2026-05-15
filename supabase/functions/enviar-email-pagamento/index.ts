@@ -18,6 +18,12 @@ interface DocInput {
   storage_path: string;
 }
 
+interface ParcelaItem {
+  numero: string;
+  valor: string;
+  vencimento: string;
+}
+
 const TIPO_DOC_LABEL: Record<string, string> = {
   nf: "NF",
   recibo: "Recibo",
@@ -27,6 +33,9 @@ const TIPO_DOC_LABEL: Record<string, string> = {
   contrato: "Contrato",
   outro: "Outro",
 };
+
+const LIMITE_TOTAL_BYTES_BASE64 = 18 * 1024 * 1024; // 18 MB
+const SIGNED_URL_DURACAO_SEG = 60 * 60 * 24 * 30; // 30 dias
 
 function formatBRL(valor: number | null | undefined): string {
   if (valor == null) return "—";
@@ -40,6 +49,15 @@ function formatDateBR(data: string | null | undefined): string {
   return d.toLocaleDateString("pt-BR");
 }
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -49,28 +67,28 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
     const authHeader = req.headers.get("Authorization") ?? "";
-
-    const supabaseUser = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseUser.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ ok: false, erro: "Nao autorizado" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ ok: false, erro: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabaseService = createClient(supabaseUrl, serviceKey);
+    const supabaseAsUser = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: userData, error: userErr } = await supabaseAsUser.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ ok: false, erro: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = userData.user.id;
 
     const body = await req.json();
     const cprId: string = body.cpr_id;
@@ -81,54 +99,179 @@ serve(async (req) => {
     if (!cprId || !emailDestinatario) {
       return new Response(
         JSON.stringify({ ok: false, erro: "cpr_id e email_destinatario sao obrigatorios" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const { data: cpr, error: cprError } = await supabaseService
       .from("contas_pagar_receber")
-      .select(
-        `id, valor, data_vencimento, nf_numero,
-         dados_pagamento_fornecedor, observacao_pagamento,
-         plano_contas:conta_id(codigo, nome),
-         parceiros_comerciais:parceiro_id(razao_social)`,
-      )
+      .select(`
+        id, valor, data_vencimento, status, nf_numero, descricao,
+        fornecedor_cliente, parceiro_id, observacao_pagamento,
+        parcelas, parcela_atual, parcela_grupo_id,
+        forma_pagamento:formas_pagamento (id, codigo, nome, envio_agrupa_parcelas),
+        plano_contas (codigo, nome),
+        parceiros_comerciais (razao_social, dados_bancarios)
+      `)
       .eq("id", cprId)
       .single();
 
     if (cprError || !cpr) {
       return new Response(
-        JSON.stringify({ ok: false, erro: "CPR nao encontrada" }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        JSON.stringify({ ok: false, erro: "CPR não encontrada", detalhe: cprError?.message }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cprAny = cpr as any;
-    const fornecedorNome = cprAny.parceiros_comerciais?.razao_social ?? "—";
-    const categoriaTxt = cprAny.plano_contas
-      ? `${cprAny.plano_contas.codigo ?? ""} ${cprAny.plano_contas.nome ?? ""}`.trim()
-      : "—";
-    const dadosPgto = cprAny.dados_pagamento_fornecedor ?? {};
 
+    const formaAgrupa = cprAny.forma_pagamento?.envio_agrupa_parcelas === true;
+    const temGrupo = !!cprAny.parcela_grupo_id;
+    const ehAgrupado = formaAgrupa && temGrupo;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parcelasCPRs: any[] = [cprAny];
+    if (ehAgrupado) {
+      const { data: irmas } = await supabaseService
+        .from("contas_pagar_receber")
+        .select("id, valor, data_vencimento, parcela_atual, parcelas, status")
+        .eq("parcela_grupo_id", cprAny.parcela_grupo_id)
+        .in("status", ["aberto", "aprovado"])
+        .order("parcela_atual", { ascending: true });
+      if (irmas && irmas.length > 0) parcelasCPRs = irmas;
+    }
+
+    const idsAtualizar = parcelasCPRs.map((p) => p.id);
+    const agora = new Date().toISOString();
+    const { error: updateErr } = await supabaseService
+      .from("contas_pagar_receber")
+      .update({
+        status: "aguardando_pagamento",
+        enviado_pagamento_em: agora,
+        enviado_pagamento_por: callerId,
+      })
+      .in("id", idsAtualizar);
+
+    if (updateErr) {
+      return new Response(
+        JSON.stringify({ ok: false, erro: "Falha ao atualizar status", detalhe: updateErr.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const attachments: Array<{ filename: string; content: string }> = [];
     const linksDocs: DocLink[] = [];
+    let tamanhoTotalBase64 = 0;
+
     for (const doc of docs) {
-      const { data: signed } = await supabaseService.storage
-        .from("financeiro-docs")
-        .createSignedUrl(doc.storage_path, 60 * 60 * 24 * 30);
-      if (signed?.signedUrl) {
-        linksDocs.push({
-          tipo: TIPO_DOC_LABEL[doc.tipo] ?? doc.tipo,
-          nome: doc.nome_arquivo,
-          url: signed.signedUrl,
-        });
+      try {
+        const { data: blob, error: dlErr } = await supabaseService.storage
+          .from("financeiro-docs")
+          .download(doc.storage_path);
+
+        if (dlErr || !blob) {
+          const { data: signed } = await supabaseService.storage
+            .from("financeiro-docs")
+            .createSignedUrl(doc.storage_path, SIGNED_URL_DURACAO_SEG);
+          if (signed?.signedUrl) {
+            linksDocs.push({
+              tipo: TIPO_DOC_LABEL[doc.tipo] ?? doc.tipo,
+              nome: doc.nome_arquivo,
+              url: signed.signedUrl,
+            });
+          }
+          continue;
+        }
+
+        const arrayBuffer = await blob.arrayBuffer();
+        const tamanhoRaw = arrayBuffer.byteLength;
+        const tamanhoBase64Est = Math.ceil(tamanhoRaw * 1.37);
+
+        if (tamanhoTotalBase64 + tamanhoBase64Est <= LIMITE_TOTAL_BYTES_BASE64) {
+          const base64 = arrayBufferToBase64(arrayBuffer);
+          attachments.push({
+            filename: doc.nome_arquivo,
+            content: base64,
+          });
+          tamanhoTotalBase64 += tamanhoBase64Est;
+        } else {
+          const { data: signed } = await supabaseService.storage
+            .from("financeiro-docs")
+            .createSignedUrl(doc.storage_path, SIGNED_URL_DURACAO_SEG);
+          if (signed?.signedUrl) {
+            linksDocs.push({
+              tipo: TIPO_DOC_LABEL[doc.tipo] ?? doc.tipo,
+              nome: doc.nome_arquivo,
+              url: signed.signedUrl,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Falha ao processar doc", doc.nome_arquivo, e);
+        const { data: signed } = await supabaseService.storage
+          .from("financeiro-docs")
+          .createSignedUrl(doc.storage_path, SIGNED_URL_DURACAO_SEG);
+        if (signed?.signedUrl) {
+          linksDocs.push({
+            tipo: TIPO_DOC_LABEL[doc.tipo] ?? doc.tipo,
+            nome: doc.nome_arquivo,
+            url: signed.signedUrl,
+          });
+        }
       }
+    }
+
+    const fornecedorNome =
+      cprAny.parceiros_comerciais?.razao_social || cprAny.fornecedor_cliente || "—";
+    const dadosBancarios = (cprAny.parceiros_comerciais?.dados_bancarios as any) || {};
+    const categoriaTxt = cprAny.plano_contas
+      ? `${cprAny.plano_contas.codigo || ""} ${cprAny.plano_contas.nome || ""}`.trim() || "—"
+      : "—";
+    const formaPagamentoNome = cprAny.forma_pagamento?.nome ?? "—";
+
+    let templateData: Record<string, any>;
+
+    if (ehAgrupado && parcelasCPRs.length > 1) {
+      const valorTotal = parcelasCPRs.reduce((sum, p) => sum + (Number(p.valor) || 0), 0);
+      const totalParcelasGrupo = cprAny.parcelas || parcelasCPRs.length;
+      const parcelasList: ParcelaItem[] = parcelasCPRs.map((p) => ({
+        numero: `${p.parcela_atual}/${totalParcelasGrupo}`,
+        valor: formatBRL(p.valor),
+        vencimento: formatDateBR(p.data_vencimento),
+      }));
+
+      templateData = {
+        fornecedor: fornecedorNome,
+        valor_total: formatBRL(valorTotal),
+        forma_pagamento_nome: formaPagamentoNome,
+        parcelas: parcelasList,
+        nf_numero: cprAny.nf_numero || "—",
+        categoria: categoriaTxt,
+        banco: dadosBancarios.banco || "—",
+        agencia: dadosBancarios.agencia || "—",
+        conta_bancaria: dadosBancarios.conta || "—",
+        pix: dadosBancarios.pix || "—",
+        observacao: cprAny.observacao_pagamento || "—",
+        mensagem_personalizada: mensagemPersonalizada,
+        documentos_links: linksDocs,
+      };
+    } else {
+      templateData = {
+        fornecedor: fornecedorNome,
+        valor: formatBRL(cprAny.valor),
+        vencimento: formatDateBR(cprAny.data_vencimento),
+        forma_pagamento_nome: formaPagamentoNome,
+        nf_numero: cprAny.nf_numero || "—",
+        categoria: categoriaTxt,
+        banco: dadosBancarios.banco || "—",
+        agencia: dadosBancarios.agencia || "—",
+        conta_bancaria: dadosBancarios.conta || "—",
+        pix: dadosBancarios.pix || "—",
+        observacao: cprAny.observacao_pagamento || "—",
+        mensagem_personalizada: mensagemPersonalizada,
+        documentos_links: linksDocs,
+      };
     }
 
     const emailResp = await fetch(
@@ -144,71 +287,47 @@ serve(async (req) => {
           templateName: "pagamento-solicitacao",
           recipientEmail: emailDestinatario,
           idempotencyKey: `pgto-${cprId}-${Date.now()}`,
-          templateData: {
-            fornecedor: fornecedorNome,
-            valor: formatBRL(cprAny.valor),
-            vencimento: formatDateBR(cprAny.data_vencimento),
-            nf_numero: cprAny.nf_numero || "—",
-            categoria: categoriaTxt,
-            banco: dadosPgto.banco || "—",
-            agencia: dadosPgto.agencia || "—",
-            conta_bancaria: dadosPgto.conta || "—",
-            pix: dadosPgto.pix || "—",
-            observacao: cprAny.observacao_pagamento || "—",
-            mensagem_personalizada: mensagemPersonalizada,
-            documentos_links: linksDocs,
-            solicitante: user.email ?? "",
+          templateData,
+          attachments,
+          metadata: {
+            cpr_id: cprId,
+            agrupado: ehAgrupado,
+            num_parcelas_enviadas: parcelasCPRs.length,
+            num_attachments: attachments.length,
+            num_links: linksDocs.length,
           },
         }),
-      },
+      }
     );
 
-    const emailOk = emailResp.ok;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let emailJson: any = null;
-    try {
-      emailJson = await emailResp.json();
-    } catch {
-      // ignore
-    }
-
-    await supabaseService
-      .from("contas_pagar_receber")
-      .update({ email_pagamento_enviado: emailOk })
-      .eq("id", cprId);
-
-    if (!emailOk) {
+    if (!emailResp.ok) {
+      const errBody = await emailResp.text().catch(() => "");
       return new Response(
         JSON.stringify({
           ok: false,
-          erro: emailJson?.error ?? "Falha ao enviar email",
+          erro: "Falha ao enviar email",
           status: emailResp.status,
+          detalhe: errBody,
         }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
       JSON.stringify({
         ok: true,
-        email_id: emailJson?.messageId ?? null,
-        recipient: emailDestinatario,
-        docs_anexados: linksDocs.length,
+        agrupado: ehAgrupado,
+        parcelas_enviadas: parcelasCPRs.length,
+        num_attachments: attachments.length,
+        num_links: linksDocs.length,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error("Erro em enviar-email-pagamento:", e);
-    const msg = e instanceof Error ? e.message : String(e);
-    return new Response(JSON.stringify({ ok: false, erro: msg }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("enviar-email-pagamento erro fatal", e);
+    return new Response(
+      JSON.stringify({ ok: false, erro: e instanceof Error ? e.message : String(e) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });

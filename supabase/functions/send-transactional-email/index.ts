@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
   let messageId: string
   let templateData: Record<string, any> = {}
   let emailMetadata: Record<string, any> | null = null
+  let attachments: Array<{ filename: string; content: string }> = []
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -65,6 +66,11 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') templateData = body.templateData
     if (body.metadata && typeof body.metadata === 'object') emailMetadata = body.metadata
+    if (Array.isArray(body.attachments)) {
+      attachments = body.attachments.filter((a: any) =>
+        a && typeof a.filename === 'string' && typeof a.content === 'string'
+      )
+    }
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -203,6 +209,7 @@ Deno.serve(async (req) => {
           'List-Unsubscribe': `<${unsubscribeUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         },
+        ...(attachments.length > 0 && { attachments }),
       }),
     })
 

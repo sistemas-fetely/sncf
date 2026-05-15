@@ -4561,6 +4561,7 @@ export type Database = {
         Row: {
           ativo: boolean | null
           codigo: string
+          envio_agrupa_parcelas: boolean
           id: string
           nome: string
           ordem: number | null
@@ -4569,6 +4570,7 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           codigo: string
+          envio_agrupa_parcelas?: boolean
           id?: string
           nome: string
           ordem?: number | null
@@ -4577,6 +4579,7 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           codigo?: string
+          envio_agrupa_parcelas?: boolean
           id?: string
           nome?: string
           ordem?: number | null
