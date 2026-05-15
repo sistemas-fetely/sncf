@@ -168,6 +168,31 @@ export default function ContasPagar() {
     },
   });
 
+  // Estado do vínculo NF por CPR (vw_contas_pagar_consolidado não expõe esses campos)
+  const { data: nfStatusMap = new Map<string, { nf_aplicavel: boolean; vinculo_nf_completo: boolean; valor_nf_vinculado: number }>() } = useQuery({
+    queryKey: ["contas-pagar-nf-status-map", (data || []).map((c) => c.id).join(",")],
+    enabled: !!data && data.length > 0,
+    queryFn: async () => {
+      const ids = (data || []).map((c) => c.id);
+      const m = new Map<string, { nf_aplicavel: boolean; vinculo_nf_completo: boolean; valor_nf_vinculado: number }>();
+      if (ids.length === 0) return m;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error } = await (supabase as any)
+        .from("contas_pagar_receber")
+        .select("id, nf_aplicavel, vinculo_nf_completo, valor_nf_vinculado")
+        .in("id", ids);
+      if (error) throw error;
+      (rows || []).forEach((r: { id: string; nf_aplicavel: boolean | null; vinculo_nf_completo: boolean | null; valor_nf_vinculado: number | null }) => {
+        m.set(r.id, {
+          nf_aplicavel: r.nf_aplicavel !== false,
+          vinculo_nf_completo: r.vinculo_nf_completo === true,
+          valor_nf_vinculado: Number(r.valor_nf_vinculado || 0),
+        });
+      });
+      return m;
+    },
+  });
+
   // Mapa: conta_id → data_vencimento da fatura de cartão vinculada
   const { data: faturaMap = new Map<string, string>() } = useQuery({
     queryKey: ["contas-pagar-fatura-map", (data || []).map((c) => c.id).join(",")],
