@@ -391,6 +391,14 @@ export function ContaPagarFormEdit({
       if (!conta.parceiro_id && parceiroIdAtribuir) {
         updatePayload.parceiro_id = parceiroIdAtribuir;
       }
+      const novoNfAplicavel = nfAplicavel;
+      const novoMotivo = nfAplicavel ? null : (nfAplicavelMotivo.trim() || null);
+      if (novoNfAplicavel !== (conta.nf_aplicavel ?? true)) {
+        updatePayload.nf_aplicavel = novoNfAplicavel;
+      }
+      if (novoMotivo !== (conta.nf_aplicavel_motivo ?? null)) {
+        updatePayload.nf_aplicavel_motivo = novoMotivo;
+      }
       if (Object.keys(updatePayload).length > 0) {
         updatePayload.updated_at = new Date().toISOString();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
