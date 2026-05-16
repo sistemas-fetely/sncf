@@ -11820,6 +11820,10 @@ export type Database = {
           unidade_nome: string
         }[]
       }
+      apontar_matches_conciliacao: {
+        Args: { p_conta_bancaria_id: string }
+        Returns: Json
+      }
       apontar_matches_stage_1: {
         Args: { p_planilha_id: string }
         Returns: {
@@ -12875,6 +12879,22 @@ export type Database = {
       validar_nf_pj: { Args: { _nota_id: string }; Returns: Json }
       validar_prontidao_sistema: { Args: never; Returns: Json }
       verificar_user_orfao: { Args: { _user_id: string }; Returns: boolean }
+      vincular_conciliacao: {
+        Args: {
+          p_movimentacao_id: string
+          p_ofx_id?: string
+          p_planilha_id: string
+        }
+        Returns: Json
+      }
+      vincular_lote_conciliacao: {
+        Args: {
+          p_movimentacao_ids: string[]
+          p_ofx_id: string
+          p_planilha_ids: string[]
+        }
+        Returns: Json
+      }
       vincular_nf_a_conta: {
         Args: { p_conta_id: string; p_nf_id: string }
         Returns: Json
