@@ -600,168 +600,161 @@ export default function Conciliacao() {
               </Card>
             ) : (
               <Tabs defaultValue={defaultSubTab}>
-                <TabsList className="flex-wrap h-auto">
-                  <TabsTrigger value="auto" className="gap-1 text-xs">
-                    <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Auto ({auto.length})
+                <TabsList>
+                  <TabsTrigger value="pendentes" className="gap-1 text-xs">
+                    {pendentesReais > 0 && (
+                      <span className="h-4 w-4 rounded-full bg-amber-500 text-white text-[9px] flex items-center justify-center font-bold">
+                        {pendentesReais}
+                      </span>
+                    )}
+                    Pendentes
                   </TabsTrigger>
-                  <TabsTrigger value="operador" className="gap-1 text-xs">
-                    <AlertCircle className="h-3 w-3 text-amber-500" /> Operador ({operador.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="semcpr" className="gap-1 text-xs">
-                    <AlertCircle className="h-3 w-3 text-orange-500" /> Sem CPR / CNPJ ({semCpr.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="semparc" className="gap-1 text-xs">
-                    <XCircle className="h-3 w-3 text-red-500" /> Sem Parceiro ({semParc.length})
-                  </TabsTrigger>
-                  {cprCriada.length > 0 && (
-                    <TabsTrigger value="cprcriada" className="gap-1 text-xs">
-                      <FileSpreadsheet className="h-3 w-3 text-blue-500" /> CPR Criada ({cprCriada.length})
-                    </TabsTrigger>
-                  )}
-                  <TabsTrigger value="concluido" className="gap-1 text-xs">
-                    <CheckCircle2 className="h-3 w-3 text-muted-foreground" /> Concluído ({concluidos.length})
+                  <TabsTrigger value="concluidos" className="gap-1 text-xs">
+                    <CheckCircle2 className="h-3 w-3 text-muted-foreground" />
+                    Concluídos ({todosOsConcluidos.length})
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Auto */}
-                <TabsContent value="auto" className="space-y-2">
-                  {auto.length === 0 ? (
-                    <p className="text-xs text-muted-foreground p-3">Nenhum match automático pendente.</p>
-                  ) : auto.map((p) => (
-                    <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{p.nome_favorecido}</p>
-                        <p className="text-muted-foreground text-[10px]">
-                          {p.conta_pagar?.descricao ?? "—"} · venc {p.conta_pagar?.data_vencimento ? formatDateBR(p.conta_pagar.data_vencimento) : "—"}
-                        </p>
-                      </div>
-                      <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
-                    </div>
-                  ))}
-                </TabsContent>
-
-                {/* Operador */}
-                <TabsContent value="operador" className="space-y-2">
-                  {operador.length === 0 ? (
-                    <p className="text-xs text-muted-foreground p-3">Nenhuma ambiguidade pendente.</p>
-                  ) : operador.map((p) => (
-                    <ItemOperador
-                      key={p.id}
-                      pag={p}
-                      onConfirmar={(pagId, cprId) => confirmarUnitarioMutation.mutate({ pagId, cprId })}
-                    />
-                  ))}
-                </TabsContent>
-
-                {/* Sem CPR */}
-                <TabsContent value="semcpr" className="space-y-2">
-                  {semCpr.length === 0 ? (
-                    <p className="text-xs text-muted-foreground p-3">Nenhum pagamento sem CPR.</p>
-                  ) : semCpr.map((p) => (
-                    <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{p.nome_favorecido}</p>
-                        <p className="text-muted-foreground text-[10px]">
-                          {p.status_conciliacao === "sem_cnpj"
-                            ? "Sem CNPJ — vincule manualmente"
-                            : p.tipo_pagamento}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">{p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}</span>
-                        <span className="text-muted-foreground text-sm">·</span>
-                        <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
-                        <Button size="sm" variant="outline" className="gap-1" onClick={() => setBuscarCPRPag(p)}>
-                          <Search className="h-3.5 w-3.5" /> Vincular CPR
-                        </Button>
-                        <Button size="sm" variant="outline" className="gap-1" onClick={() => criarDespesaMutation.mutate(p)}>
-                          <Plus className="h-3.5 w-3.5" /> Criar Despesa
-                        </Button>
-                        <Button size="sm" variant="ghost" className="gap-1" onClick={() => ignorarMutation.mutate(p.id)}>
-                          <X className="h-3.5 w-3.5" /> Ignorar
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </TabsContent>
-
-                {/* Sem Parceiro */}
-                <TabsContent value="semparc" className="space-y-2">
-                  {semParc.length === 0 ? (
-                    <p className="text-xs text-muted-foreground p-3">Todos os CNPJs foram identificados.</p>
-                  ) : semParc.map((p) => (
-                    <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{p.nome_favorecido}</p>
-                        <p className="text-muted-foreground text-[10px]">{p.cnpj_favorecido} — parceiro não cadastrado</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">{p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}</span>
-                        <span className="text-muted-foreground text-sm">·</span>
-                        <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
-                        <Button size="sm" variant="outline" className="gap-1" onClick={() => setBuscarCPRPag(p)}>
-                          <Search className="h-3.5 w-3.5" /> Vincular CPR
-                        </Button>
-                        <Button size="sm" variant="outline" className="gap-1" onClick={() => { setPagParaCadastrar(p); setParceiroSheetOpen(true); }}>
-                          <Users className="h-3.5 w-3.5" /> Cadastrar
-                        </Button>
-                        <Button size="sm" variant="ghost" className="gap-1" onClick={() => ignorarMutation.mutate(p.id)}>
-                          <X className="h-3.5 w-3.5" /> Ignorar
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </TabsContent>
-
-                {/* CPR Criada */}
-                {cprCriada.length > 0 && (
-                  <TabsContent value="cprcriada" className="space-y-2">
-                    <p className="text-[11px] text-muted-foreground p-2 bg-muted/30 rounded">
-                      Despesa criada em Contas a Pagar. Categorize e aprove — depois clique <strong>Re-processar</strong>.
+                {/* ── Pendentes ── */}
+                <TabsContent value="pendentes" className="space-y-2">
+                  {todosOsPendentes.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3 text-center">
+                      ✓ Nenhum item pendente. Tudo resolvido!
                     </p>
-                    {cprCriada.map((p) => (
-                      <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{p.nome_favorecido}</p>
-                          <p className="text-muted-foreground text-[10px]">
-                            {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
-                          </p>
-                        </div>
-                        <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
-                      </div>
-                    ))}
-                  </TabsContent>
-                )}
+                  ) : (
+                    <>
+                      {cprCriada.length > 0 && (
+                        <p className="text-[11px] text-muted-foreground p-2 bg-muted/30 rounded">
+                          Há despesas criadas em Contas a Pagar aguardando categorização.
+                          Categorize e aprove lá, depois clique <strong>Re-processar</strong>.
+                        </p>
+                      )}
+                      {todosOsPendentes.map((p) => {
+                        const statusLabel =
+                          p.status_conciliacao === "aguardando_operador" ? "Selecionar CPR" :
+                          p.status_conciliacao === "sem_cnpj"            ? "Sem CNPJ" :
+                          p.status_conciliacao === "sem_cpr"             ? "Sem CPR" :
+                          p.status_conciliacao === "sem_parceiro"        ? "Sem parceiro" :
+                          p.status_conciliacao === "cpr_criada"          ? "CPR criada" :
+                          p.status_conciliacao;
 
-                {/* Concluído */}
-                <TabsContent value="concluido" className="space-y-2">
-                  {concluidos.length === 0 ? (
-                    <p className="text-xs text-muted-foreground p-3">Nenhum item concluído ainda.</p>
-                  ) : concluidos.map((p) => {
-                    const ignorado = p.status_conciliacao === "ignorado";
+                        const statusColor =
+                          p.status_conciliacao === "aguardando_operador" ? "bg-amber-100 text-amber-800" :
+                          p.status_conciliacao === "sem_parceiro"        ? "bg-red-100 text-red-800" :
+                          p.status_conciliacao === "cpr_criada"          ? "bg-blue-100 text-blue-800" :
+                          "bg-orange-100 text-orange-800";
+
+                        if (p.status_conciliacao === "aguardando_operador") {
+                          return (
+                            <div key={p.id} className="space-y-1">
+                              <div className="flex items-center gap-2 px-1">
+                                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${statusColor}`}>
+                                  {statusLabel}
+                                </span>
+                              </div>
+                              <ItemOperador
+                                pag={p}
+                                onConfirmar={(pagId, cprId) => confirmarUnitarioMutation.mutate({ pagId, cprId })}
+                              />
+                            </div>
+                          );
+                        }
+
+                        if (p.status_conciliacao === "cpr_criada") {
+                          return (
+                            <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${statusColor}`}>
+                                    {statusLabel}
+                                  </span>
+                                </div>
+                                <p className="font-medium truncate">{p.nome_favorecido}</p>
+                                <p className="text-muted-foreground text-[10px]">
+                                  {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
+                                </p>
+                              </div>
+                              <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                            </div>
+                          );
+                        }
+
+                        // sem_cpr, sem_cnpj, sem_parceiro
+                        return (
+                          <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${statusColor}`}>
+                                  {statusLabel}
+                                </span>
+                              </div>
+                              <p className="font-medium truncate">{p.nome_favorecido}</p>
+                              <p className="text-muted-foreground text-[10px]">
+                                {p.status_conciliacao === "sem_cnpj"
+                                  ? "Sem CNPJ — vincule manualmente"
+                                  : p.status_conciliacao === "sem_parceiro"
+                                  ? `${p.cnpj_favorecido} — parceiro não cadastrado`
+                                  : p.tipo_pagamento}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">
+                                {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
+                              </span>
+                              <span className="text-muted-foreground text-sm">·</span>
+                              <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
+                              <Button size="sm" variant="outline" className="gap-1" onClick={() => setBuscarCPRPag(p)}>
+                                <Search className="h-3.5 w-3.5" /> Vincular CPR
+                              </Button>
+                              {p.status_conciliacao !== "sem_cnpj" && p.status_conciliacao !== "sem_parceiro" && (
+                                <Button size="sm" variant="outline" className="gap-1" onClick={() => criarDespesaMutation.mutate(p)}>
+                                  <Plus className="h-3.5 w-3.5" /> Criar Despesa
+                                </Button>
+                              )}
+                              {p.status_conciliacao === "sem_parceiro" && (
+                                <Button size="sm" variant="outline" className="gap-1" onClick={() => { setPagParaCadastrar(p); setParceiroSheetOpen(true); }}>
+                                  <Users className="h-3.5 w-3.5" /> Cadastrar
+                                </Button>
+                              )}
+                              <Button size="sm" variant="ghost" className="gap-1" onClick={() => ignorarMutation.mutate(p.id)}>
+                                <X className="h-3.5 w-3.5" /> Ignorar
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </TabsContent>
+
+                {/* ── Concluídos ── */}
+                <TabsContent value="concluidos" className="space-y-2">
+                  {todosOsConcluidos.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3 text-center">Nenhum item concluído ainda.</p>
+                  ) : todosOsConcluidos.map((p) => {
+                    const isAuto     = p.status_conciliacao === "conciliado_auto";
+                    const isIgnorado = p.status_conciliacao === "ignorado";
+                    const badgeLabel = isAuto ? "✓ Auto" : isIgnorado ? "Ignorado" : "✓ Manual";
+                    const badgeClass = isIgnorado ? "bg-muted text-muted-foreground" : "bg-emerald-100 text-emerald-800";
                     return (
                       <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2 opacity-75">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium truncate">{p.nome_favorecido}</p>
-                            <Badge variant={ignorado ? "outline" : "secondary"} className="text-[9px]">
-                              {ignorado ? "Ignorado" : "✓ Conciliado"}
-                            </Badge>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${badgeClass}`}>
+                              {badgeLabel}
+                            </span>
                           </div>
+                          <p className="font-medium truncate">{p.nome_favorecido}</p>
                           <p className="text-muted-foreground text-[10px]">
-                            {p.tipo_pagamento} · {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
+                            {isAuto
+                              ? `${p.conta_pagar?.descricao ?? "—"} · venc ${p.conta_pagar?.data_vencimento ? formatDateBR(p.conta_pagar.data_vencimento) : "—"}`
+                              : `${p.tipo_pagamento} · ${p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}`}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
-                          {ignorado && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="gap-1"
-                              onClick={() => reverterMutation.mutate(p.id)}
-                              title="Reverter para fila de trabalho"
-                            >
+                          {isIgnorado && (
+                            <Button size="sm" variant="ghost" className="gap-1" onClick={() => reverterMutation.mutate(p.id)}>
                               <RotateCcw className="h-3.5 w-3.5" /> Reverter
                             </Button>
                           )}
