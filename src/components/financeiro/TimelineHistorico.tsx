@@ -13,6 +13,8 @@ const STATUS_LABEL: Record<string, string> = {
   atrasado: "Atrasado",
   aprovado: "Aprovado",
   agendado: "Enviado",
+  enviado_para_pagamento: "Enviado para Pagamento",
+  aguardando_pagamento: "Enviado para Pagamento",
   pago: "Pago",
   cancelado: "Cancelado",
   conciliado: "Conciliado",
