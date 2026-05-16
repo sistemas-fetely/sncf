@@ -170,6 +170,28 @@ export default function CaixaBanco() {
     },
   });
 
+  // Map conta_pagar_id -> meio_pagamento_id (não está na vw_lancamentos_caixa_banco)
+  const { data: cprMeioMap } = useQuery({
+    queryKey: ["cpr-meio-pagamento-map", (lancamentos || []).map((l) => l.id).join(",")],
+    enabled: !!lancamentos && lancamentos.length > 0,
+    queryFn: async () => {
+      const ids = (lancamentos || [])
+        .filter((l) => l.origem_view === "conta_pagar")
+        .map((l) => l.id);
+      const m: Record<string, string> = {};
+      if (!ids.length) return m;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("contas_pagar_receber")
+        .select("id, meio_pagamento_id")
+        .in("id", ids);
+      (data || []).forEach((r: { id: string; meio_pagamento_id: string | null }) => {
+        if (r.meio_pagamento_id) m[r.id] = r.meio_pagamento_id;
+      });
+      return m;
+    },
+  });
+
   // Receitas — direto de movimentacoes_bancarias (tipo=credito sem CPR vinculada)
   const { data: receitas = [] } = useQuery<Receita[]>({
     queryKey: ["receitas-caixa-banco", contaBancariaFilter],
@@ -217,6 +239,16 @@ export default function CaixaBanco() {
     queryFn: async () => {
       const { data } = await supabase.from("formas_pagamento").select("id, nome");
       return (data || []) as FormaPgtoLite[];
+    },
+  });
+
+  // Meios de Pagamento (dimensão silenciosa: a_vista, parcelado_fornecedor, fatura_cartao, recorrente, nascida_paga)
+  const { data: meiosPagamento } = useQuery({
+    queryKey: ["meios-pagamento-lite"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any).from("meios_pagamento").select("id, nome");
+      return (data || []) as { id: string; nome: string }[];
     },
   });
 
@@ -383,6 +415,12 @@ export default function CaixaBanco() {
     (formasPagamento || []).forEach((f) => (m[f.id] = f.nome));
     return m;
   }, [formasPagamento]);
+
+  const mapMeios = useMemo(() => {
+    const m: Record<string, string> = {};
+    (meiosPagamento || []).forEach((f) => (m[f.id] = f.nome));
+    return m;
+  }, [meiosPagamento]);
 
   const mapParceiros = useMemo(() => {
     const m: Record<string, string> = {};
@@ -781,7 +819,7 @@ export default function CaixaBanco() {
                     <SortableTableHead column="vencimento" sort={sort} onSort={setSort}>Vencimento</SortableTableHead>
                     <SortableTableHead column="pago_em" sort={sort} onSort={setSort}>Pago em</SortableTableHead>
                     <TableHead>Categoria</TableHead>
-                    <TableHead>Forma PG</TableHead>
+                    <TableHead>Meio de Pagamento</TableHead>
                     <SortableTableHead column="valor" sort={sort} onSort={setSort} align="right" className="text-right">Valor</SortableTableHead>
                     <TableHead>Tags</TableHead>
                   </TableRow>
@@ -795,7 +833,8 @@ export default function CaixaBanco() {
                       l.status_caixa === "conciliado";
                     const atrasada = isAtrasada(l);
                     const dias = diasAtraso(l);
-                    const formaNome = l.forma_pagamento_id && mapFormas[l.forma_pagamento_id];
+                    const meioId = cprMeioMap?.[l.id];
+                    const formaNome = meioId ? mapMeios[meioId] : null;
                     const categoriaNome = l.categoria_id && mapCategorias[l.categoria_id];
                     const flags = statusFlagsMap.get(l.id);
                     const remessa = contadorMap?.get(l.id);
