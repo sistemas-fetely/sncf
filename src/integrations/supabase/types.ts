@@ -12219,6 +12219,14 @@ export type Database = {
         Args: { p_descricao: string }
         Returns: string
       }
+      finalizar_conciliacao_v2: {
+        Args: {
+          p_itau_pag_id: string
+          p_movimentacao_id: string
+          p_usuario_id?: string
+        }
+        Returns: Json
+      }
       fix_lancamentos_origem_constraint: { Args: never; Returns: string }
       fn_log_evento_pedido: {
         Args: {
