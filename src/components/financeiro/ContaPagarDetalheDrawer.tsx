@@ -768,7 +768,7 @@ export default function ContaPagarDetalheDrawer({
                       ) : (
                         <>
                           <div className="p-3 rounded-lg bg-amber-50 text-amber-700 text-sm flex items-center gap-2">
-                            <Clock className="h-4 w-4" /> Aguardando pagamento — quando confirmar que foi paga, marque abaixo
+                            <Clock className="h-4 w-4" /> Enviado para pagamento — quando confirmar que foi pago, marque abaixo
                           </div>
                           <Button
                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
