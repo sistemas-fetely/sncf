@@ -11768,6 +11768,7 @@ export type Database = {
       }
     }
     Functions: {
+      _meio_pagamento_nascida_paga: { Args: never; Returns: string }
       apagar_conta_pagar: {
         Args: { p_apagar_grupo_inteiro?: boolean; p_id: string }
         Returns: Json
@@ -11965,6 +11966,36 @@ export type Database = {
           status: string
           valor: number
         }[]
+      }
+      criar_cpr_e_vincular_stage_1: {
+        Args: {
+          p_categoria_id: string
+          p_descricao: string
+          p_parceiro_id?: string
+          p_planilha_id: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
+      criar_cpr_e_vincular_stage_2_debito: {
+        Args: {
+          p_categoria_id: string
+          p_descricao: string
+          p_ofx_id: string
+          p_parceiro_id?: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
+      criar_cpr_receita_stage_2_credito: {
+        Args: {
+          p_categoria_id: string
+          p_descricao: string
+          p_ofx_id: string
+          p_parceiro_id?: string
+          p_user_id?: string
+        }
+        Returns: Json
       }
       criar_despesa_agrupada: {
         Args: { p_lancamento_ids: string[] }
