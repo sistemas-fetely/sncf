@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft, Banknote, Loader2, Link2, Search, AlertCircle, CheckCircle2, Layers,
+  ArrowLeft, Banknote, Loader2, Link2, Search, AlertCircle, CheckCircle2, Layers, Zap,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
