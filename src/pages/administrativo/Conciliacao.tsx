@@ -410,14 +410,78 @@ export default function Conciliacao() {
                                 {pl.cnpj_favorecido ?? "—"} · {pl.data_pagamento ? formatDateBR(pl.data_pagamento) : "—"}
                               </p>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                               <span>{formatBRL(pl.valor_pago)}</span>
                               {pl.mov_sugerida ? (
-                                <Badge className={`${nivelBadge(pl.mov_sugerida.nivel)} text-[10px]`}>
-                                  Match {pl.mov_sugerida.nivel}
-                                </Badge>
+                                <>
+                                  <Badge className={`${nivelBadge(pl.mov_sugerida.nivel)} text-[10px]`}>
+                                    Match {pl.mov_sugerida.nivel}
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-[10px] gap-1"
+                                    disabled={vincularMutation.isPending}
+                                    onClick={() =>
+                                      vincularMutation.mutate({
+                                        planilhaId: pl.planilha_id,
+                                        movId: pl.mov_sugerida!.id,
+                                      })
+                                    }
+                                  >
+                                    {vincularMutation.isPending ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Link2 className="h-3 w-3" />
+                                    )}
+                                    Vincular
+                                  </Button>
+                                </>
                               ) : (
-                                <Badge variant="outline" className="text-[10px]">Sem mov</Badge>
+                                <>
+                                  <Badge variant="outline" className="text-[10px]">Sem mov</Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-[10px] gap-1"
+                                    onClick={() => {
+                                      setMultiVinculoAberto({
+                                        planilha_id: pl.planilha_id,
+                                        nome_favorecido: pl.nome_favorecido,
+                                        cnpj_favorecido: pl.cnpj_favorecido,
+                                        valor_pago: pl.valor_pago,
+                                        data_pagamento: pl.data_pagamento,
+                                        tipo_pagamento: null,
+                                        mov_sugerida: null,
+                                        ofx_sugerido: null,
+                                        tipo: "sem_mov",
+                                      });
+                                      setMovsSelecionadas([]);
+                                    }}
+                                  >
+                                    <Layers className="h-3 w-3" /> Selecionar movs
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-[10px] gap-1"
+                                    onClick={() =>
+                                      setCriarCPRPlanilha({
+                                        planilha_id: pl.planilha_id,
+                                        nome_favorecido: pl.nome_favorecido,
+                                        cnpj_favorecido: pl.cnpj_favorecido,
+                                        valor_pago: pl.valor_pago,
+                                        data_pagamento: pl.data_pagamento,
+                                        tipo_pagamento: null,
+                                        mov_sugerida: null,
+                                        ofx_sugerido: null,
+                                        tipo: "sem_mov",
+                                      })
+                                    }
+                                  >
+                                    <Plus className="h-3 w-3" /> Criar CPR
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </div>
