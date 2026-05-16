@@ -549,11 +549,27 @@ export default function Conciliacao() {
                           </Button>
                         )}
                         {item.tipo === "parcialmente_conciliado" && (
-                          <Button size="sm" variant="outline"
-                            className="gap-1 border-blue-300 text-blue-800 hover:bg-blue-50"
-                            onClick={() => { setMultiVinculoAberto(item); setMovsSelecionadas([]); }}>
-                            <Layers className="h-3.5 w-3.5" /> Selecionar movs
-                          </Button>
+                          <>
+                            <Button size="sm" variant="outline"
+                              className="gap-1 border-blue-300 text-blue-800 hover:bg-blue-50"
+                              onClick={() => { setMultiVinculoAberto(item); setMovsSelecionadas([]); }}>
+                              <Layers className="h-3.5 w-3.5" /> Selecionar movs
+                            </Button>
+                            <button
+                              onClick={() => {
+                                const s = new Set(parciaisExpandidos);
+                                if (s.has(item.planilha_id)) s.delete(item.planilha_id);
+                                else s.add(item.planilha_id);
+                                setParciaisExpandidos(s);
+                              }}
+                              className="text-muted-foreground hover:text-foreground p-1"
+                              title="Ver movimentações vinculadas"
+                            >
+                              {parciaisExpandidos.has(item.planilha_id)
+                                ? <ChevronUp className="h-4 w-4" />
+                                : <ChevronDown className="h-4 w-4" />}
+                            </button>
+                          </>
                         )}
                         {item.tipo === "sem_mov" && (
                           <>
