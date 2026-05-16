@@ -22,6 +22,7 @@ import { ParceiroFormSheet } from "@/components/financeiro/ParceiroFormSheet";
 import { BuscarMatchManualDialog } from "@/components/financeiro/BuscarMatchManualDialog";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
 import { useAplicarRegrasOFX } from "@/hooks/financeiro/useAplicarRegrasOFX";
+import { useAuth } from "@/contexts/AuthContext";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
