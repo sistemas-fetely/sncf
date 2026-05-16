@@ -12,10 +12,11 @@ import {
 import { Input } from "@/components/ui/input";
 import {
   CheckCircle2, AlertCircle, XCircle, Loader2, Link2, Plus, X,
-  ArrowLeftRight, FileSpreadsheet, RefreshCw, RotateCcw, Users, Zap,
+  ArrowLeftRight, FileSpreadsheet, RefreshCw, RotateCcw, Users, Zap, Search,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { ParceiroFormSheet } from "@/components/financeiro/ParceiroFormSheet";
+import { BuscarMatchManualDialog } from "@/components/financeiro/BuscarMatchManualDialog";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
 import { useAplicarRegrasOFX } from "@/hooks/financeiro/useAplicarRegrasOFX";
 
@@ -133,6 +134,27 @@ export default function Conciliacao() {
   const [acaoOFX, setAcaoOFX] = useState<string | null>(null);
   const [parceiroSheetOpen, setParceiroSheetOpen] = useState(false);
   const [pagParaCadastrar, setPagParaCadastrar] = useState<Pagamento | null>(null);
+  const [buscarCPRPag, setBuscarCPRPag] = useState<Pagamento | null>(null);
+
+  const { data: cprsParaBusca = [] } = useQuery({
+    queryKey: ["cprs-busca-livre", buscarCPRPag?.id, buscarCPRPag?.parceiro_id],
+    enabled: !!buscarCPRPag,
+    queryFn: async () => {
+      if (!buscarCPRPag) return [];
+      let q = sb
+        .from("contas_pagar_receber")
+        .select("id, descricao, valor, data_vencimento, data_pagamento, fornecedor_cliente, nf_numero, parceiros_comerciais(razao_social)")
+        .in("status", ["aberto", "aprovado", "aguardando_pagamento"])
+        .is("movimentacao_bancaria_id", null)
+        .order("data_vencimento", { ascending: false })
+        .limit(200);
+      if (buscarCPRPag.parceiro_id) {
+        q = q.eq("parceiro_id", buscarCPRPag.parceiro_id);
+      }
+      const { data } = await q;
+      return data || [];
+    },
+  });
 
   const { data: categorias = [] } = useCategoriasPlano();
   const { aplicarRegras } = useAplicarRegrasOFX();
@@ -396,6 +418,22 @@ export default function Conciliacao() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
+  const vincularManualMutation = useMutation({
+    mutationFn: async ({ pagId, cprId }: { pagId: string; cprId: string }) => {
+      const { error } = await sb
+        .from("itau_pagamentos_stage")
+        .update({ conta_pagar_id: cprId, status_conciliacao: "conciliado_manual" })
+        .eq("id", pagId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("CPR vinculada com sucesso");
+      setBuscarCPRPag(null);
+      qc.invalidateQueries({ queryKey: ["itau-pagamentos-conta", contaBancariaId] });
+    },
+    onError: () => toast.error("Erro ao vincular CPR"),
+  });
+
   const reprocessarMutation = useMutation({
     mutationFn: async () => {
       const { data: imps } = await sb.from("itau_importacoes_stage")
@@ -616,6 +654,9 @@ export default function Conciliacao() {
                         <span className="text-sm text-muted-foreground">{p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}</span>
                         <span className="text-muted-foreground text-sm">·</span>
                         <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => setBuscarCPRPag(p)}>
+                          <Search className="h-3.5 w-3.5" /> Vincular CPR
+                        </Button>
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => criarDespesaMutation.mutate(p)}>
                           <Plus className="h-3.5 w-3.5" /> Criar Despesa
                         </Button>
@@ -641,6 +682,9 @@ export default function Conciliacao() {
                         <span className="text-sm text-muted-foreground">{p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}</span>
                         <span className="text-muted-foreground text-sm">·</span>
                         <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => setBuscarCPRPag(p)}>
+                          <Search className="h-3.5 w-3.5" /> Vincular CPR
+                        </Button>
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => { setPagParaCadastrar(p); setParceiroSheetOpen(true); }}>
                           <Users className="h-3.5 w-3.5" /> Cadastrar
                         </Button>
@@ -813,6 +857,26 @@ export default function Conciliacao() {
           invalidarPagamentos();
           toast.success("Parceiro cadastrado — conciliação atualizada");
         }}
+      />
+
+      <BuscarMatchManualDialog
+        open={!!buscarCPRPag}
+        onOpenChange={(v) => { if (!v) setBuscarCPRPag(null); }}
+        movimentacao={
+          buscarCPRPag
+            ? {
+                id: buscarCPRPag.id,
+                data_transacao: buscarCPRPag.data_pagamento ?? new Date().toISOString().split("T")[0],
+                descricao: buscarCPRPag.nome_favorecido ?? "",
+                valor: -(buscarCPRPag.valor_pago ?? 0),
+              }
+            : null
+        }
+        contas={cprsParaBusca}
+        onMatch={(cprId) =>
+          buscarCPRPag &&
+          vincularManualMutation.mutate({ pagId: buscarCPRPag.id, cprId })
+        }
       />
     </div>
   );

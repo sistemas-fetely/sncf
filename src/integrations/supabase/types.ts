@@ -11954,14 +11954,6 @@ export type Database = {
         Args: { p_lancamento_ids: string[] }
         Returns: Json
       }
-      criar_despesa_de_lancamento: {
-        Args: {
-          p_gerar_todas?: boolean
-          p_lancamento_id: string
-          p_total_parcelas?: number
-        }
-        Returns: Json
-      }
       criar_despesa_de_lancamento_v2: {
         Args: {
           p_gerar_todas?: boolean
@@ -12008,10 +12000,6 @@ export type Database = {
         Returns: string
       }
       criar_tarefas_emissao_nf_pj_mensal: { Args: never; Returns: number }
-      dados_lancamento_para_despesa: {
-        Args: { p_lancamento_id: string }
-        Returns: Json
-      }
       debug_kalunga: {
         Args: never
         Returns: {
