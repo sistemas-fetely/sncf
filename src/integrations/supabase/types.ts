@@ -5765,6 +5765,7 @@ export type Database = {
           id: string
           id_transacao_banco: string | null
           inconsistencia_motivo: string | null
+          itau_planilha_id: string | null
           ofx_transacao_id: string | null
           origem: string | null
           pg_em: string | null
@@ -5789,6 +5790,7 @@ export type Database = {
           id?: string
           id_transacao_banco?: string | null
           inconsistencia_motivo?: string | null
+          itau_planilha_id?: string | null
           ofx_transacao_id?: string | null
           origem?: string | null
           pg_em?: string | null
@@ -5813,6 +5815,7 @@ export type Database = {
           id?: string
           id_transacao_banco?: string | null
           inconsistencia_motivo?: string | null
+          itau_planilha_id?: string | null
           ofx_transacao_id?: string | null
           origem?: string | null
           pg_em?: string | null
@@ -5841,6 +5844,13 @@ export type Database = {
             columns: ["conta_plano_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_itau_planilha_id_fkey"
+            columns: ["itau_planilha_id"]
+            isOneToOne: false
+            referencedRelation: "itau_pagamentos_stage"
             referencedColumns: ["id"]
           },
           {
@@ -12953,6 +12963,10 @@ export type Database = {
       }
       vincular_nf_a_parceiro: {
         Args: { p_nf_stage_id: string; p_parceiro_id: string }
+        Returns: Json
+      }
+      vincular_planilha_multiplas_movs: {
+        Args: { p_movimentacao_ids: string[]; p_planilha_id: string }
         Returns: Json
       }
       vincular_stage_1: {
