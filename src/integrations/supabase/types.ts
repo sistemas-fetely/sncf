@@ -11522,6 +11522,7 @@ export type Database = {
           categoria_id: string | null
           conciliado_em: string | null
           conciliado_por: string | null
+          conta_bancaria_nome: string | null
           conta_pagar_id: string | null
           created_at: string | null
           data_enviada_para_pagamento: string | null
