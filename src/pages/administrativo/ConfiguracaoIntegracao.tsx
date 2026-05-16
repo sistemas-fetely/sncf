@@ -22,6 +22,16 @@ import { ptBR } from "date-fns/locale";
 
 const CALLBACK_URL = "https://people-fetely.lovable.app/administrativo/bling-callback";
 
+type EntidadeBling = "contatos" | "produtos" | "contas_receber" | "pedidos" | "nfe";
+
+const ENTIDADES: Array<{ id: EntidadeBling; label: string }> = [
+  { id: "contatos", label: "Contatos / Clientes" },
+  { id: "produtos", label: "Produtos" },
+  { id: "contas_receber", label: "Contas a Receber" },
+  { id: "pedidos", label: "Pedidos de Venda" },
+  { id: "nfe", label: "Notas Fiscais (NFe)" },
+];
+
 export default function ConfiguracaoIntegracao() {
   const qc = useQueryClient();
   const [showSecret, setShowSecret] = useState(false);
