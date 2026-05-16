@@ -12417,6 +12417,11 @@ export type Database = {
         Returns: Json
       }
       fix_lancamentos_origem_constraint: { Args: never; Returns: string }
+      fn_cron_rolling_contratos: { Args: never; Returns: number }
+      fn_gerar_cprs_de_contrato: {
+        Args: { p_contrato_id: string }
+        Returns: number
+      }
       fn_log_evento_pedido: {
         Args: {
           p_payload?: Json
