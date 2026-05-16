@@ -602,12 +602,11 @@ export default function FaturasCartao() {
           {/* CARDS DOS CARTÕES — clique filtra (oculta Safra) */}
           {cartoes
             .filter(
-              (c) => !(c.banco || "").toLowerCase().includes("safra") &&
-                     !(c.nome_exibicao || "").toLowerCase().includes("safra"),
+              (c) => !(c.nome || "").toLowerCase().includes("safra"),
             )
             .map((cartao) => {
               const comprometido = comprometidoMap.get(cartao.id) || 0;
-              const limite = cartao.limite_credito || 0;
+              const limite = 0;
               const disponivel = limite - comprometido;
               const percentUsado = limite > 0 ? (comprometido / limite) * 100 : 0;
               const ativo = filtroCartao === cartao.id;
@@ -620,14 +619,12 @@ export default function FaturasCartao() {
                       <CreditCard className="h-4 w-4 text-admin shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold truncate">
-                          {cartao.nome_exibicao}
+                          {cartao.nome}
                         </div>
                         <div className="text-[10px] text-muted-foreground truncate">
-                          {cartao.banco}
-                          {cartao.dia_fechamento &&
-                            ` · Fecha dia ${cartao.dia_fechamento}`}
-                          {cartao.dia_vencimento &&
-                            ` · Vence dia ${cartao.dia_vencimento}`}
+                          {cartao.bandeira}
+                          {cartao.ultimos_digitos &&
+                            ` · ****${cartao.ultimos_digitos}`}
                         </div>
                       </div>
                     </div>
