@@ -74,7 +74,7 @@ import {
 
 type FaturaRow = {
   id: string;
-  conta_bancaria_id: string;
+  cartao_id: string;
   data_vencimento: string;
   data_emissao: string | null;
   periodo_inicio: string | null;
@@ -85,7 +85,7 @@ type FaturaRow = {
   pdf_storage_path: string | null;
   observacao: string | null;
   created_at: string;
-  conta_bancaria?: { nome_exibicao: string; banco: string | null } | null;
+  cartao?: { id: string; nome: string; bandeira: string | null; ultimos_digitos: string | null } | null;
   qtd_lancamentos?: number;
   qtd_pendentes?: number;
   qtd_conciliados?: number;
