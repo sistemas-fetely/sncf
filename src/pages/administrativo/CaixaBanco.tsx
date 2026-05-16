@@ -809,8 +809,7 @@ export default function CaixaBanco() {
                     const qDoc = getQualidadeDocumento(l, nfMap);
                     const qCat = getQualidadeCategoria(l);
                     const ci = compromissoInfoMap.get(l.id);
-                    const ehCartao =
-                      l.vinculada_cartao || l.origem_view === "cartao_lancamento";
+
 
                     return (
                       <TableRow
