@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
   CheckCircle2, AlertCircle, XCircle, Loader2, Link2, Plus, X,
   ArrowLeftRight, FileSpreadsheet, RefreshCw, RotateCcw, Users, Zap, Search,
 } from "lucide-react";
@@ -149,6 +152,33 @@ export default function Conciliacao() {
   const [parceiroSheetOpen, setParceiroSheetOpen] = useState(false);
   const [pagParaCadastrar, setPagParaCadastrar] = useState<Pagamento | null>(null);
   const [buscarCPRPag, setBuscarCPRPag] = useState<Pagamento | null>(null);
+  const [vincularOFXPag, setVincularOFXPag] = useState<Pagamento | null>(null);
+
+  const { data: candidatosOFX = [] } = useQuery({
+    queryKey: ["ofx-candidatos-vinculo", vincularOFXPag?.id, contaBancariaId],
+    enabled: !!vincularOFXPag && !!contaBancariaId,
+    queryFn: async () => {
+      if (!vincularOFXPag || !contaBancariaId) return [];
+      const valor = vincularOFXPag.valor_pago ?? 0;
+      const tol   = Math.max(valor * 0.02, 0.50);
+      const { data } = await sb
+        .from("ofx_transacoes_stage")
+        .select("id, data_transacao, descricao, valor")
+        .eq("conta_bancaria_id", contaBancariaId)
+        .eq("status", "pendente")
+        .lt("valor", 0)
+        .gte("valor", -(valor + tol))
+        .lte("valor", -(valor - tol))
+        .order("data_transacao", { ascending: false })
+        .limit(20);
+      return (data || []) as Array<{
+        id: string;
+        data_transacao: string;
+        descricao: string;
+        valor: number;
+      }>;
+    },
+  });
 
   const { data: cprsParaBusca = [] } = useQuery({
     queryKey: ["cprs-busca-livre", buscarCPRPag?.id, buscarCPRPag?.parceiro_id],
@@ -448,6 +478,28 @@ export default function Conciliacao() {
     onError: () => toast.error("Erro ao vincular CPR"),
   });
 
+  const confirmarVinculoOFXMutation = useMutation({
+    mutationFn: async ({ pagId, ofxId }: { pagId: string; ofxId: string }) => {
+      const { error: e1 } = await sb
+        .from("ofx_transacoes_stage")
+        .update({ status: "persistida" })
+        .eq("id", ofxId);
+      if (e1) throw e1;
+      const { error: e2 } = await sb
+        .from("itau_pagamentos_stage")
+        .update({ movimentacao_id: ofxId })
+        .eq("id", pagId);
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      toast.success("Vinculado ao extrato");
+      setVincularOFXPag(null);
+      qc.invalidateQueries({ queryKey: ["itau-pagamentos-conta", contaBancariaId] });
+      qc.invalidateQueries({ queryKey: ["ofx-residual", contaBancariaId] });
+    },
+    onError: () => toast.error("Erro ao vincular ao extrato"),
+  });
+
   const reprocessarMutation = useMutation({
     mutationFn: async () => {
       const { data: imps } = await sb.from("itau_importacoes_stage")
@@ -511,6 +563,12 @@ export default function Conciliacao() {
   const defaultSubTab = pendentesReais > 0 ? "pendentes" : "concluidos";
   const todosOsPendentes = [...operador, ...semCpr, ...semParc, ...cprCriada];
   const todosOsConcluidos = [...auto, ...concluidos];
+  const aguardandoOFX = todosOsConcluidos.filter(
+    (p) => !p.movimentacao_id && p.status_conciliacao !== "ignorado" && !!p.conta_pagar_id
+  );
+  const resolvidos = todosOsConcluidos.filter(
+    (p) => !!p.movimentacao_id || p.status_conciliacao === "ignorado"
+  );
 
   // ─── Render ────────────────────────────────────────────────────────────
 
@@ -729,39 +787,88 @@ export default function Conciliacao() {
 
                 {/* ── Concluídos ── */}
                 <TabsContent value="concluidos" className="space-y-2">
-                  {todosOsConcluidos.length === 0 ? (
-                    <p className="text-xs text-muted-foreground p-3 text-center">Nenhum item concluído ainda.</p>
-                  ) : todosOsConcluidos.map((p) => {
-                    const isAuto     = p.status_conciliacao === "conciliado_auto";
-                    const isIgnorado = p.status_conciliacao === "ignorado";
-                    const badgeLabel = isAuto ? "✓ Auto" : isIgnorado ? "Ignorado" : "✓ Manual";
-                    const badgeClass = isIgnorado ? "bg-muted text-muted-foreground" : "bg-emerald-100 text-emerald-800";
-                    return (
-                      <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2 opacity-75">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${badgeClass}`}>
-                              {badgeLabel}
-                            </span>
+                  {aguardandoOFX.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold text-amber-700 flex items-center gap-1.5 px-1">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        Aguardando vínculo com extrato ({aguardandoOFX.length})
+                      </p>
+                      {aguardandoOFX.map((p) => (
+                        <div key={p.id} className="p-3 border border-amber-200 bg-amber-50/40 rounded text-xs flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                                ⏳ Aguardando OFX
+                              </span>
+                            </div>
+                            <p className="font-medium truncate">{p.nome_favorecido}</p>
+                            <p className="text-muted-foreground text-[10px]">
+                              CPR: {p.conta_pagar?.descricao ?? "—"} · venc {p.conta_pagar?.data_vencimento ? formatDateBR(p.conta_pagar.data_vencimento) : "—"}
+                            </p>
                           </div>
-                          <p className="font-medium truncate">{p.nome_favorecido}</p>
-                          <p className="text-muted-foreground text-[10px]">
-                            {isAuto
-                              ? `${p.conta_pagar?.descricao ?? "—"} · venc ${p.conta_pagar?.data_vencimento ? formatDateBR(p.conta_pagar.data_vencimento) : "—"}`
-                              : `${p.tipo_pagamento} · ${p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
-                          {isIgnorado && (
-                            <Button size="sm" variant="ghost" className="gap-1" onClick={() => reverterMutation.mutate(p.id)}>
-                              <RotateCcw className="h-3.5 w-3.5" /> Reverter
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                              {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
+                            </span>
+                            <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 border-amber-300 text-amber-800 hover:bg-amber-50"
+                              onClick={() => setVincularOFXPag(p)}
+                            >
+                              <ArrowLeftRight className="h-3.5 w-3.5" /> Vincular ao Extrato
                             </Button>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      ))}
+                    </div>
+                  )}
+
+                  {resolvidos.length === 0 && aguardandoOFX.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3 text-center">Nenhum item concluído ainda.</p>
+                  ) : resolvidos.length > 0 && (
+                    <div className="space-y-2">
+                      {aguardandoOFX.length > 0 && (
+                        <p className="text-[11px] font-semibold text-muted-foreground px-1">
+                          Concluídos ({resolvidos.length})
+                        </p>
+                      )}
+                      {resolvidos.map((p) => {
+                        const isAuto     = p.status_conciliacao === "conciliado_auto";
+                        const isIgnorado = p.status_conciliacao === "ignorado";
+                        const badgeLabel = isAuto ? "✓ Auto" : isIgnorado ? "Ignorado" : "✓ Manual";
+                        const badgeClass = isIgnorado
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-emerald-100 text-emerald-800";
+                        return (
+                          <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2 opacity-75">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${badgeClass}`}>
+                                  {badgeLabel}
+                                </span>
+                              </div>
+                              <p className="font-medium truncate">{p.nome_favorecido}</p>
+                              <p className="text-muted-foreground text-[10px]">
+                                {isAuto
+                                  ? `${p.conta_pagar?.descricao ?? "—"} · venc ${p.conta_pagar?.data_vencimento ? formatDateBR(p.conta_pagar.data_vencimento) : "—"}`
+                                  : `${p.tipo_pagamento} · ${p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-semibold">{formatBRL(p.valor_pago)}</span>
+                              {isIgnorado && (
+                                <Button size="sm" variant="ghost" className="gap-1" onClick={() => reverterMutation.mutate(p.id)}>
+                                  <RotateCcw className="h-3.5 w-3.5" /> Reverter
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             )}
@@ -868,6 +975,59 @@ export default function Conciliacao() {
           toast.success("Parceiro cadastrado — conciliação atualizada");
         }}
       />
+
+      {vincularOFXPag && (
+        <Dialog open={!!vincularOFXPag} onOpenChange={(v) => { if (!v) setVincularOFXPag(null); }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Vincular ao Extrato</DialogTitle>
+              <DialogDescription>
+                Selecione a transação do extrato bancário que corresponde a este pagamento.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-1">
+                <div><span className="text-muted-foreground text-xs">Favorecido:</span> <span className="font-medium">{vincularOFXPag.nome_favorecido}</span></div>
+                <div><span className="text-muted-foreground text-xs">Valor:</span> <span className="font-semibold">{formatBRL(vincularOFXPag.valor_pago)}</span></div>
+                <div><span className="text-muted-foreground text-xs">Data:</span> <span className="font-medium">{vincularOFXPag.data_pagamento ? formatDateBR(vincularOFXPag.data_pagamento) : "—"}</span></div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Candidatos no extrato (±2% do valor):</p>
+                {candidatosOFX.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic p-2 border rounded">
+                    Nenhuma transação pendente com valor próximo encontrada no extrato.
+                  </p>
+                ) : (
+                  <div className="space-y-1 max-h-60 overflow-y-auto">
+                    {candidatosOFX.map((ofx) => (
+                      <button
+                        key={ofx.id}
+                        type="button"
+                        className="w-full text-left p-2.5 border rounded hover:bg-muted/50 text-xs transition-colors"
+                        onClick={() => confirmarVinculoOFXMutation.mutate({
+                          pagId: vincularOFXPag.id,
+                          ofxId: ofx.id,
+                        })}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium truncate">{ofx.descricao}</span>
+                          <span className="font-mono font-semibold shrink-0">{formatBRL(Math.abs(ofx.valor))}</span>
+                        </div>
+                        <p className="text-muted-foreground text-[10px] mt-0.5">
+                          {formatDateBR(ofx.data_transacao)}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setVincularOFXPag(null)}>Cancelar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <BuscarMatchManualDialog
         open={!!buscarCPRPag}
