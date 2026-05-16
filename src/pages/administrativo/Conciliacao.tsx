@@ -51,7 +51,9 @@ type ItemConciliacao = {
   tipo_pagamento: string | null;
   mov_sugerida: MovSugerida | null;
   ofx_sugerido: OfxSugerido | null;
-  tipo: "completo" | "parcial" | "sem_mov";
+  tipo: "completo" | "parcial" | "sem_mov" | "parcialmente_conciliado";
+  valor_ja_vinculado?: number;
+  faltam?: number;
 };
 
 type LoteConciliacao = {
