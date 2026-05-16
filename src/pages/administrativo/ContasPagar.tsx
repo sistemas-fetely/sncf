@@ -290,9 +290,9 @@ export default function ContasPagar() {
       (c) => ["aberto", "aprovado"].includes(c.status) && diasAteVencer(c.data_vencimento) <= 7,
     );
     const atrasadas = lista.filter(
-      (c) => c.atrasada && !["paga", "realizada", "cancelado"].includes(c.status),
+      (c) => c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status),
     );
-    const aguardando = lista.filter((c) => c.status === "aguardando_pagamento");
+    const aguardando = lista.filter((c) => c.status === "enviado_para_pagamento");
     const pendencia = lista.filter(
       (c) => pendenciaMap.has(c.id) || temPendenciaNF(c.id),
     );
@@ -314,10 +314,10 @@ export default function ContasPagar() {
       );
     } else if (kpiFilter === "atrasadas") {
       lista = lista.filter(
-        (c) => c.atrasada && !["paga", "realizada", "cancelado"].includes(c.status),
+        (c) => c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status),
       );
     } else if (kpiFilter === "aguardando") {
-      lista = lista.filter((c) => c.status === "aguardando_pagamento");
+      lista = lista.filter((c) => c.status === "enviado_para_pagamento");
     } else if (kpiFilter === "pendencia") {
       lista = lista.filter((c) => pendenciaMap.has(c.id) || temPendenciaNF(c.id));
     }
@@ -484,8 +484,8 @@ export default function ContasPagar() {
             <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="aberto">Aberto</SelectItem>
             <SelectItem value="aprovado">Aprovado</SelectItem>
-            <SelectItem value="aguardando_pagamento">Aguardando pagamento</SelectItem>
-            <SelectItem value="paga">Paga</SelectItem>
+            <SelectItem value="enviado_para_pagamento">Aguardando pagamento</SelectItem>
+            <SelectItem value="enviado_para_pagamento">Paga</SelectItem>
             <SelectItem value="realizada">Realizada (já paga)</SelectItem>
             <SelectItem value="cancelado">Cancelada</SelectItem>
             <SelectItem value="pendencia_nf">Pendência NF</SelectItem>
@@ -557,7 +557,7 @@ export default function ContasPagar() {
                   const ico = meio ? getMeioPagamentoIcon(meio) : null;
                   const pend = pendenciaMap.get(c.id);
                   const atrasada =
-                    c.atrasada && !["paga", "realizada", "cancelado"].includes(c.status);
+                    c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status);
                   return (
                     <TableRow
                       key={c.id}

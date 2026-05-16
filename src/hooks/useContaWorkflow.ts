@@ -6,13 +6,13 @@ import { toast } from "sonner";
 export const STATUS_FLOW = [
   { key: "aberto", label: "Aberto" },
   { key: "aprovado", label: "Aprovado" },
-  { key: "aguardando_pagamento", label: "Aguardando pagamento" },
+  { key: "enviado_para_pagamento", label: "Aguardando pagamento" },
 ] as const;
 
 export type ContaStatus =
   | "aberto"
   | "aprovado"
-  | "aguardando_pagamento"
+  | "enviado_para_pagamento"
   | "cancelado";
 
 export function useContaWorkflow() {

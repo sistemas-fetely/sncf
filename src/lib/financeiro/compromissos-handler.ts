@@ -7,7 +7,7 @@
  * Fluxo principal:
  * 1. Ao importar fatura de cartão, identifica linhas com "X/Y" (parcela atual / total)
  * 2. Pra cada compra parcelada inédita, cria 1 compromisso_parcelado + N parcelas previstas (futuras)
- * 3. Pra cada compra parcelada que já tem compromisso, marca a parcela atual como "paga"
+ * 3. Pra cada compra parcelada que já tem compromisso, marca a parcela atual como "enviado_para_pagamento"
  * 4. Resultado: você importa fatura mês 2 → vê parcelas 3..10 já no fluxo de caixa
  */
 import { supabase } from "@/integrations/supabase/client";
@@ -134,7 +134,7 @@ export async function processarParcelasDaFatura(
         const { error: errUpd } = await (supabase as any)
           .from("contas_pagar_receber")
           .update({
-            status: "pago",
+            status: "enviado_para_pagamento",
             data_pagamento: l.data_compra,
             // Não vou mexer em compromisso_parcelado_id porque já está vinculado
           })

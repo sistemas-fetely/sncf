@@ -418,7 +418,7 @@ export default function ContaPagarDetalheDrawer({
                     onClick={() => setModoEdit(true)}
                   >
                     <Pencil className="h-3.5 w-3.5 mr-1" />
-                    {conta.status === "paga" ? "Ver dados" : "Editar"}
+                    {conta.status === "enviado_para_pagamento" ? "Ver dados" : "Editar"}
                   </Button>
                 )}
                 {/* Botão de Lançar em Mov movido pra área de ações por status (footer) — bloco aguardando_pagamento */}
@@ -687,7 +687,7 @@ export default function ContaPagarDetalheDrawer({
                         onClick={async () => {
                           // Cartão vai direto pra aguardando_pagamento em cascata (sem email ao fornecedor)
                           // Não-cartão vai pra aprovado em cascata (requer envio de email depois)
-                          const statusAlvo = isCartao ? "aguardando_pagamento" : "aprovado";
+                          const statusAlvo = isCartao ? "enviado_para_pagamento" : "aprovado";
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           const { data: cascata } = await (supabase as any).rpc(
                             "aprovar_cpr_em_cascata",
@@ -721,7 +721,7 @@ export default function ContaPagarDetalheDrawer({
                             className="w-full bg-amber-600 hover:bg-amber-700 text-white gap-2"
                             onClick={() =>
                               avancar(
-                                "aguardando_pagamento",
+                                "enviado_para_pagamento",
                                 "Marcado como aguardando — pagamento via fatura de cartão.",
                               )
                             }
@@ -746,7 +746,7 @@ export default function ContaPagarDetalheDrawer({
                   )}
 
                   {/* AGUARDANDO_PAGAMENTO → pagar via fatura (cartão c/ fatura) ou manualmente */}
-                  {conta.status === "aguardando_pagamento" && !conta.movimentacao_bancaria_id && (
+                  {conta.status === "enviado_para_pagamento" && !conta.movimentacao_bancaria_id && (
                     <div className="space-y-2">
                       {isCartao && faturaVinculada?.faturas_cartao ? (
                         <div className="space-y-2">
@@ -804,7 +804,7 @@ export default function ContaPagarDetalheDrawer({
                       </Button>
                       <button
                         className="text-[11px] text-muted-foreground hover:text-foreground underline w-full text-center"
-                        onClick={() => avancar("aguardando_pagamento", "Marcado como aguardando pagamento (documentação OK)")}
+                        onClick={() => avancar("enviado_para_pagamento", "Marcado como aguardando pagamento (documentação OK)")}
                       >
                         Finalizar manualmente (NF entregue fora do sistema)
                       </button>
@@ -845,7 +845,7 @@ export default function ContaPagarDetalheDrawer({
                   )}
 
                   {/* STATUS LEGADOS (registros antigos migrados manualmente) */}
-                  {(conta.status === "rascunho" || conta.status === "agendado" || conta.status === "paga" || conta.status === "conciliado") && (
+                  {(conta.status === "rascunho" || conta.status === "agendado" || conta.status === "enviado_para_pagamento" || conta.status === "conciliado") && (
                     <div className="space-y-2">
                       <div className="p-3 rounded-lg bg-blue-50 text-blue-700 text-xs">
                         Status legado: <strong>{conta.status}</strong>. Reabrir para novo fluxo.
@@ -861,7 +861,7 @@ export default function ContaPagarDetalheDrawer({
                   )}
 
                   {/* Botão Cancelar — disponível em qualquer status antes de pagar */}
-                  {conta.status !== "paga" &&
+                  {conta.status !== "enviado_para_pagamento" &&
                     conta.status !== "cancelado" &&
                     conta.status !== "finalizado" &&
                     conta.status !== "conciliado" && (

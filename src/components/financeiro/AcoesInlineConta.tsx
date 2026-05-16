@@ -78,10 +78,10 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
 
   const aprovado =
     status === "aprovado" ||
-    status === "aguardando_pagamento" ||
+    status === "enviado_para_pagamento" ||
     status === "doc_pendente" ||
-    status === "paga" ||
-    statusEfetivo === "paga" ||
+    status === "enviado_para_pagamento" ||
+    statusEfetivo === "enviado_para_pagamento" ||
     statusEfetivo === "conciliado";
 
   const temMov = !!conta.movimentacao_bancaria_id;
@@ -106,7 +106,7 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
 
   const estadoMov: EstadoIcone =
     temMov ? "feito"
-    : (status === "aprovado" || status === "aguardando_pagamento") ? "pendente"
+    : (status === "aprovado" || status === "enviado_para_pagamento") ? "pendente"
     : "na";
 
   async function handleAprovar() {
@@ -114,7 +114,7 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
     setAprovando(true);
     try {
       // Cartão vai direto pra aguardando_pagamento (sem etapa de envio de email)
-      const statusAlvo = conta.meios_pagamento?.codigo === "fatura_cartao" ? "aguardando_pagamento" : "aprovado";
+      const statusAlvo = conta.meios_pagamento?.codigo === "fatura_cartao" ? "enviado_para_pagamento" : "aprovado";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: result, error } = await (supabase as any).rpc(
         "aprovar_cpr_em_cascata",

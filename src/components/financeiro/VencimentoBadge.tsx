@@ -7,7 +7,7 @@ interface Props {
 }
 
 export default function VencimentoBadge({ dataVencimento, status }: Props) {
-  if (status === "finalizado" || status === "cancelado" || status === "paga" || status === "conciliado") return null;
+  if (status === "finalizado" || status === "cancelado" || status === "enviado_para_pagamento" || status === "conciliado") return null;
   const diff = calcularDiasVencimento(dataVencimento);
   if (diff === null) return null;
 

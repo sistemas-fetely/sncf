@@ -61,12 +61,12 @@ interface Props {
   highlightCampo?: "pago_em_conta_id" | null;
 }
 
-const STATUS_READONLY = ["paga", "cancelado"];
+const STATUS_READONLY = ["enviado_para_pagamento", "cancelado"];
 
 // Status em que campos CRÍTICOS (categoria, centro custo, vencimento, meio, conta origem)
 // ficam travados. Inclui `aguardando_pagamento` porque o email já saiu pro financeiro —
 // D-E (bola redonda): pacote enviado é imutável sem novo envio. Pra alterar = cancelar e recriar.
-const STATUS_TRAVA_CRITICOS = ["aguardando_pagamento", "paga", "cancelado"];
+const STATUS_TRAVA_CRITICOS = ["enviado_para_pagamento", "enviado_para_pagamento", "cancelado"];
 
 export function ContaPagarFormEdit({
   conta,
@@ -89,7 +89,7 @@ export function ContaPagarFormEdit({
 
   const isReadOnly = STATUS_READONLY.includes(conta.status);
   const criticosTravados = STATUS_TRAVA_CRITICOS.includes(conta.status);
-  const enviadoAguardando = conta.status === "aguardando_pagamento";
+  const enviadoAguardando = conta.status === "enviado_para_pagamento";
 
   // Família + visibilidade dos campos por origem.
   // Família B (cartão) e C (OFX já saiu) deixam data_vencimento, forma de
