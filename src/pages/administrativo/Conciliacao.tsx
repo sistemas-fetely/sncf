@@ -15,6 +15,9 @@ import {
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { CriarCPRAvulsaDialog } from "@/components/financeiro/CriarCPRAvulsaDialog";
 import { Link } from "react-router-dom";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
