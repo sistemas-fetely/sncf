@@ -176,14 +176,20 @@ export default function FaturasCartao() {
   const { data: cartoes = [] } = useQuery({
     queryKey: ["cartoes-credito-listagem"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contas_bancarias")
-        .select("id, nome_exibicao, banco, dia_fechamento, dia_vencimento, limite_credito")
-        .eq("tipo", "cartao_credito")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("cartoes_credito")
+        .select("id, nome, bandeira, ultimos_digitos, ativo")
         .eq("ativo", true)
-        .order("nome_exibicao");
+        .order("nome");
       if (error) throw error;
-      return data || [];
+      return (data || []) as Array<{
+        id: string;
+        nome: string;
+        bandeira: string | null;
+        ultimos_digitos: string | null;
+        ativo: boolean;
+      }>;
     },
   });
 
