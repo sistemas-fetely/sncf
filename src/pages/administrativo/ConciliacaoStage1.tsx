@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  FileSpreadsheet, Loader2, Link2, Search, AlertCircle, CheckCircle2, Plus,
+  FileSpreadsheet, Loader2, Link2, Search, AlertCircle, CheckCircle2, Plus, Sparkles,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { CriarCPRAvulsaDialog } from "@/components/financeiro/CriarCPRAvulsaDialog";
@@ -33,6 +33,24 @@ type PlanilhaItem = {
   status_conciliacao: string;
 };
 
+type SugestaoLote = {
+  planilha_id: string;
+  sugestao_movimentacao_id: string | null;
+  sugestao_data_transacao: string | null;
+  sugestao_descricao: string | null;
+  sugestao_valor: number | null;
+  sugestao_conta_pagar_id: string | null;
+  sugestao_conta_pagar_descricao: string | null;
+  sugestao_parceiro_nome: string | null;
+  melhor_nivel: number | null;
+  melhor_nivel_descricao: string | null;
+  qtd_no_melhor_nivel: number;
+  qtd_total: number;
+  pode_auto_sugerir: boolean;
+};
+
+type LinhaCombinada = PlanilhaItem & { sugestao: SugestaoLote | null };
+
 type Candidato = {
   movimentacao_id: string;
   data_transacao: string;
@@ -46,11 +64,20 @@ type Candidato = {
   match_descricao: string;
 };
 
+function nivelBadgeClass(nivel: number | null): string {
+  if (nivel === 1) return "bg-emerald-100 text-emerald-800";
+  if (nivel === 2) return "bg-emerald-50 text-emerald-700";
+  if (nivel === 3) return "bg-amber-100 text-amber-800";
+  if (nivel === 4) return "bg-muted text-muted-foreground";
+  return "bg-muted text-muted-foreground";
+}
+
 export default function ConciliacaoStage1() {
   const qc = useQueryClient();
   const [contaBancariaId, setContaBancariaId] = useState("");
   const [drawerPlanilha, setDrawerPlanilha] = useState<PlanilhaItem | null>(null);
   const [criarCPROpen, setCriarCPROpen] = useState(false);
+  const [criarCPRPlanilha, setCriarCPRPlanilha] = useState<PlanilhaItem | null>(null);
 
   const { data: contas } = useQuery({
     queryKey: ["contas-bancarias-stage1"],
@@ -65,18 +92,31 @@ export default function ConciliacaoStage1() {
     },
   });
 
-  const { data: pendentes = [], isLoading: loadingPend } = useQuery({
-    queryKey: ["stage1-planilhas-pendentes", contaBancariaId],
+  const { data: linhas = [], isLoading: loadingLinhas } = useQuery({
+    queryKey: ["stage1-linhas-combinadas", contaBancariaId],
     enabled: !!contaBancariaId,
-    queryFn: async () => {
-      const { data } = await sb
+    queryFn: async (): Promise<LinhaCombinada[]> => {
+      const { data: pendentes } = await sb
         .from("itau_pagamentos_stage")
         .select("id, nome_favorecido, cnpj_favorecido, tipo_pagamento, valor_pago, data_pagamento, status_conciliacao")
         .eq("conta_bancaria_id", contaBancariaId)
         .is("movimentacao_id", null)
         .not("status_conciliacao", "in", "(ignorado)")
         .order("data_pagamento", { ascending: false });
-      return (data || []) as PlanilhaItem[];
+
+      const planilhas = (pendentes || []) as PlanilhaItem[];
+      if (planilhas.length === 0) return [];
+
+      const { data: sugestoes, error: errSug } = await sb.rpc(
+        "apontar_matches_stage_1_em_lote",
+        { p_conta_bancaria_id: contaBancariaId }
+      );
+      if (errSug) throw errSug;
+
+      const mapaSug = new Map<string, SugestaoLote>();
+      (sugestoes || []).forEach((s: SugestaoLote) => mapaSug.set(s.planilha_id, s));
+
+      return planilhas.map((p) => ({ ...p, sugestao: mapaSug.get(p.id) ?? null }));
     },
   });
 
@@ -105,12 +145,18 @@ export default function ConciliacaoStage1() {
     onSuccess: () => {
       toast.success("Vínculo Stage 1 criado — aguarda Stage 2");
       setDrawerPlanilha(null);
-      qc.invalidateQueries({ queryKey: ["stage1-planilhas-pendentes", contaBancariaId] });
+      qc.invalidateQueries({ queryKey: ["stage1-linhas-combinadas", contaBancariaId] });
       qc.invalidateQueries({ queryKey: ["conciliacao-hub-stage1-count"] });
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
+  const totalSugestoesAuto = linhas.filter((l) => l.sugestao?.pode_auto_sugerir).length;
+  const totalComCandidatos = linhas.filter(
+    (l) => (l.sugestao?.qtd_total ?? 0) > 0 && !l.sugestao?.pode_auto_sugerir
+  ).length;
+  const totalSemMatch = linhas.filter((l) => !l.sugestao || l.sugestao.qtd_total === 0).length;
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
@@ -128,8 +174,9 @@ export default function ConciliacaoStage1() {
           Stage 1 — Planilha ↔ Movimentação
         </h1>
         <p className="text-sm text-muted-foreground">
-          Cada linha da planilha Itaú corresponde a uma movimentação do sistema (criada quando uma CPR foi marcada como paga).
-          A IA aponta matches por CNPJ, Data e Valor — você confirma.
+          A IA cruza cada linha da planilha Itaú com as movimentações pendentes da conta em 4 níveis
+          (CNPJ+Data+Valor, CNPJ+Valor, Data+Valor, Valor). Onde encontra evidência forte e única — sugere
+          direto. Onde tem ambiguidade — abre opções.
         </p>
       </div>
 
@@ -153,60 +200,149 @@ export default function ConciliacaoStage1() {
             Selecione uma conta bancária para começar.
           </CardContent>
         </Card>
-      ) : loadingPend ? (
+      ) : loadingLinhas ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
-          <Loader2 className="h-4 w-4 animate-spin" /> Carregando pendentes…
+          <Loader2 className="h-4 w-4 animate-spin" /> Cruzando dados com a IA…
         </div>
-      ) : pendentes.length === 0 ? (
+      ) : linhas.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center space-y-2">
             <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
             <p className="font-medium">Nenhuma linha pendente nesta conta.</p>
             <p className="text-sm text-muted-foreground">
               Importe uma planilha em{" "}
-              <Link to="/administrativo/importar-dados" className="underline">
-                Importar Dados
-              </Link>
-              .
+              <Link to="/administrativo/importar-dados" className="underline">Importar Dados</Link>.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          <div className="text-sm text-muted-foreground">
-            {pendentes.length} linha{pendentes.length !== 1 ? "s" : ""} pendente{pendentes.length !== 1 ? "s" : ""}
+        <>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {totalSugestoesAuto > 0 && (
+              <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 gap-1">
+                <Sparkles className="h-3 w-3" />
+                {totalSugestoesAuto} sugestã{totalSugestoesAuto !== 1 ? "ões" : "o"} pronta{totalSugestoesAuto !== 1 ? "s" : ""}
+              </Badge>
+            )}
+            {totalComCandidatos > 0 && (
+              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                {totalComCandidatos} com candidatos
+              </Badge>
+            )}
+            {totalSemMatch > 0 && (
+              <Badge variant="outline">{totalSemMatch} sem match</Badge>
+            )}
           </div>
-          {pendentes.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center justify-between gap-4 p-4 border rounded-md bg-card hover:bg-accent/30 transition-colors"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="font-medium truncate">{p.nome_favorecido ?? "—"}</div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {p.cnpj_favorecido ?? "Sem CNPJ"} · {p.tipo_pagamento ?? "—"}
-                </div>
-              </div>
-              <div className="flex items-center gap-4 shrink-0">
-                <div className="text-xs text-muted-foreground">
-                  {p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}
-                </div>
-                <div className="font-medium tabular-nums">
-                  {formatBRL(p.valor_pago ?? 0)}
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1"
-                  onClick={() => setDrawerPlanilha(p)}
+
+          <div className="space-y-2">
+            {linhas.map((l) => {
+              const s = l.sugestao;
+              const sugereAuto = !!s?.pode_auto_sugerir;
+              const temCandidatos = (s?.qtd_total ?? 0) > 0 && !sugereAuto;
+              const semMatch = !s || s.qtd_total === 0;
+
+              return (
+                <div
+                  key={l.id}
+                  className={`p-4 border rounded-md transition-colors ${
+                    sugereAuto ? "bg-emerald-50/30 hover:bg-emerald-50/50" : "bg-card hover:bg-accent/30"
+                  }`}
                 >
-                  <Search className="h-3.5 w-3.5" />
-                  Buscar matches
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{l.nome_favorecido ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {l.cnpj_favorecido ?? "Sem CNPJ"} · {l.tipo_pagamento ?? "—"}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="text-xs text-muted-foreground">
+                        {l.data_pagamento ? formatDateBR(l.data_pagamento) : "—"}
+                      </div>
+                      <div className="font-medium tabular-nums">
+                        {formatBRL(l.valor_pago ?? 0)}
+                      </div>
+
+                      {sugereAuto && s && (
+                        <Button
+                          size="sm"
+                          className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          disabled={vincularMutation.isPending}
+                          onClick={() => vincularMutation.mutate({
+                            planilhaId: l.id,
+                            movimentacaoId: s.sugestao_movimentacao_id!,
+                          })}
+                        >
+                          {vincularMutation.isPending
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <CheckCircle2 className="h-3.5 w-3.5" />}
+                          Vincular
+                        </Button>
+                      )}
+
+                      {temCandidatos && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => setDrawerPlanilha(l)}
+                        >
+                          <Search className="h-3.5 w-3.5" />
+                          Ver {s!.qtd_total} candidato{s!.qtd_total !== 1 ? "s" : ""}
+                        </Button>
+                      )}
+
+                      {semMatch && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => {
+                            setCriarCPRPlanilha(l);
+                            setCriarCPROpen(true);
+                          }}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Criar CPR
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {sugereAuto && s && (
+                    <div className="mt-2 flex items-center gap-2 text-xs flex-wrap pl-1">
+                      <Badge className={`${nivelBadgeClass(s.melhor_nivel)} hover:${nivelBadgeClass(s.melhor_nivel)}`}>
+                        Match {s.melhor_nivel} · {s.melhor_nivel_descricao}
+                      </Badge>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-medium truncate">
+                        {s.sugestao_parceiro_nome ?? s.sugestao_descricao ?? "—"}
+                      </span>
+                      {s.sugestao_conta_pagar_descricao && (
+                        <span className="text-muted-foreground truncate">
+                          · {s.sugestao_conta_pagar_descricao}
+                        </span>
+                      )}
+                      {s.sugestao_data_transacao && (
+                        <span className="text-muted-foreground">
+                          · {formatDateBR(s.sugestao_data_transacao)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {temCandidatos && s?.melhor_nivel_descricao && (
+                    <div className="mt-2 text-xs pl-1">
+                      <Badge variant="outline" className={nivelBadgeClass(s.melhor_nivel)}>
+                        Melhor nível: {s.melhor_nivel} ({s.melhor_nivel_descricao}) · {s.qtd_no_melhor_nivel} no nível
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {drawerPlanilha && (
@@ -215,7 +351,7 @@ export default function ConciliacaoStage1() {
             <DialogHeader>
               <DialogTitle>Candidatos para vínculo Stage 1</DialogTitle>
               <DialogDescription>
-                Selecione a movimentação do sistema que corresponde a esta linha da planilha.
+                Selecione a movimentação que corresponde a esta linha da planilha.
               </DialogDescription>
             </DialogHeader>
 
@@ -244,14 +380,14 @@ export default function ConciliacaoStage1() {
                     <div className="space-y-1">
                       <p className="font-medium">Nenhuma movimentação candidata encontrada.</p>
                       <p className="text-xs">
-                        A CPR pode não estar registrada ainda — você pode criá-la avulsa agora e já vincular este pagamento.
+                        A CPR pode não estar registrada ainda — você pode criá-la avulsa agora e já vincular.
                       </p>
                     </div>
                   </div>
                   <Button
                     size="sm"
                     className="gap-1.5 w-full"
-                    onClick={() => setCriarCPROpen(true)}
+                    onClick={() => { setCriarCPRPlanilha(drawerPlanilha); setCriarCPROpen(true); }}
                   >
                     <Plus className="h-4 w-4" />
                     Criar CPR avulsa e vincular
@@ -259,82 +395,79 @@ export default function ConciliacaoStage1() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {candidatos.map((c) => {
-                    const nivelClass =
-                      c.match_nivel === 1 ? "bg-emerald-100 text-emerald-800" :
-                      c.match_nivel === 2 ? "bg-amber-100 text-amber-800" :
-                                            "bg-muted text-muted-foreground";
-                    return (
-                      <div
-                        key={c.movimentacao_id}
-                        className="flex items-start justify-between gap-3 p-3 border rounded-md hover:bg-accent/30 transition-colors"
-                      >
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <div>
-                            <Badge className={`${nivelClass} hover:${nivelClass}`}>
-                              Match {c.match_nivel} · {c.match_descricao}
-                            </Badge>
-                          </div>
-                          <div className="font-medium truncate">
-                            {c.parceiro_nome ?? c.descricao ?? "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {c.conta_pagar_descricao ?? c.descricao}
-                            {c.parceiro_cnpj ? ` · CNPJ ${c.parceiro_cnpj}` : ""}
-                          </div>
+                  {candidatos.map((c) => (
+                    <div
+                      key={c.movimentacao_id}
+                      className="flex items-start justify-between gap-3 p-3 border rounded-md hover:bg-accent/30 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div>
+                          <Badge className={`${nivelBadgeClass(c.match_nivel)} hover:${nivelBadgeClass(c.match_nivel)}`}>
+                            Match {c.match_nivel} · {c.match_descricao}
+                          </Badge>
                         </div>
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          <div className="font-medium tabular-nums">{formatBRL(c.valor)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatDateBR(c.data_transacao)}
-                          </div>
-                          <Button
-                            size="sm"
-                            className="gap-1 mt-1"
-                            disabled={vincularMutation.isPending}
-                            onClick={() => vincularMutation.mutate({
-                              planilhaId: drawerPlanilha.id,
-                              movimentacaoId: c.movimentacao_id,
-                            })}
-                          >
-                            {vincularMutation.isPending
-                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              : <Link2 className="h-3.5 w-3.5" />}
-                            Vincular
-                          </Button>
+                        <div className="font-medium truncate">
+                          {c.parceiro_nome ?? c.descricao ?? "—"}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {c.conta_pagar_descricao ?? c.descricao}
+                          {c.parceiro_cnpj ? ` · CNPJ ${c.parceiro_cnpj}` : ""}
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <div className="font-medium tabular-nums">{formatBRL(c.valor)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDateBR(c.data_transacao)}
+                        </div>
+                        <Button
+                          size="sm"
+                          className="gap-1 mt-1"
+                          disabled={vincularMutation.isPending}
+                          onClick={() => vincularMutation.mutate({
+                            planilhaId: drawerPlanilha.id,
+                            movimentacaoId: c.movimentacao_id,
+                          })}
+                        >
+                          {vincularMutation.isPending
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Link2 className="h-3.5 w-3.5" />}
+                          Vincular
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDrawerPlanilha(null)}>
-                Cancelar
-              </Button>
+              <Button variant="outline" onClick={() => setDrawerPlanilha(null)}>Cancelar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      {drawerPlanilha && (
+      {criarCPRPlanilha && (
         <CriarCPRAvulsaDialog
           open={criarCPROpen}
-          onOpenChange={setCriarCPROpen}
-          origem="stage_1"
-          fonteId={drawerPlanilha.id}
-          resumo={{
-            titulo: drawerPlanilha.nome_favorecido ?? "—",
-            valor: drawerPlanilha.valor_pago ?? 0,
-            data: drawerPlanilha.data_pagamento,
-            info: drawerPlanilha.cnpj_favorecido ?? undefined,
+          onOpenChange={(v) => {
+            setCriarCPROpen(v);
+            if (!v) setCriarCPRPlanilha(null);
           }}
-          descricaoInicial={drawerPlanilha.nome_favorecido ?? ""}
+          origem="stage_1"
+          fonteId={criarCPRPlanilha.id}
+          resumo={{
+            titulo: criarCPRPlanilha.nome_favorecido ?? "—",
+            valor: criarCPRPlanilha.valor_pago ?? 0,
+            data: criarCPRPlanilha.data_pagamento,
+            info: criarCPRPlanilha.cnpj_favorecido ?? undefined,
+          }}
+          descricaoInicial={criarCPRPlanilha.nome_favorecido ?? ""}
           onSucesso={() => {
+            setCriarCPROpen(false);
+            setCriarCPRPlanilha(null);
             setDrawerPlanilha(null);
-            qc.invalidateQueries({ queryKey: ["stage1-planilhas-pendentes", contaBancariaId] });
+            qc.invalidateQueries({ queryKey: ["stage1-linhas-combinadas", contaBancariaId] });
             qc.invalidateQueries({ queryKey: ["conciliacao-hub-stage1-count"] });
           }}
         />
