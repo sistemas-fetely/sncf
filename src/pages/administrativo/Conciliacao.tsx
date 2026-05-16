@@ -359,6 +359,9 @@ export default function Conciliacao() {
                         <p className="font-medium text-sm truncate">{item.nome_favorecido ?? "—"}</p>
                         <p className="text-xs text-muted-foreground truncate">
                           {item.cnpj_favorecido ?? "Sem CNPJ"} · {item.tipo_pagamento ?? "—"}
+                          {item.data_pagamento && (
+                            <> · {formatDateBR(item.data_pagamento)}</>
+                          )}
                         </p>
                       </div>
 
