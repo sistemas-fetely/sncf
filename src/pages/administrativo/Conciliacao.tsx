@@ -858,6 +858,26 @@ export default function Conciliacao() {
           toast.success("Parceiro cadastrado — conciliação atualizada");
         }}
       />
+
+      <BuscarMatchManualDialog
+        open={!!buscarCPRPag}
+        onOpenChange={(v) => { if (!v) setBuscarCPRPag(null); }}
+        movimentacao={
+          buscarCPRPag
+            ? {
+                id: buscarCPRPag.id,
+                data_transacao: buscarCPRPag.data_pagamento ?? new Date().toISOString().split("T")[0],
+                descricao: buscarCPRPag.nome_favorecido ?? "",
+                valor: -(buscarCPRPag.valor_pago ?? 0),
+              }
+            : null
+        }
+        contas={cprsParaBusca}
+        onMatch={(cprId) =>
+          buscarCPRPag &&
+          vincularManualMutation.mutate({ pagId: buscarCPRPag.id, cprId })
+        }
+      />
     </div>
   );
 }
