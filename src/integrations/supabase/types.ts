@@ -5732,7 +5732,7 @@ export type Database = {
           conciliado: boolean | null
           conciliado_em: string | null
           conciliado_por: string | null
-          conta_bancaria_id: string
+          conta_bancaria_id: string | null
           conta_pagar_id: string | null
           conta_plano_id: string | null
           created_at: string | null
@@ -5756,7 +5756,7 @@ export type Database = {
           conciliado?: boolean | null
           conciliado_em?: string | null
           conciliado_por?: string | null
-          conta_bancaria_id: string
+          conta_bancaria_id?: string | null
           conta_pagar_id?: string | null
           conta_plano_id?: string | null
           created_at?: string | null
@@ -5780,7 +5780,7 @@ export type Database = {
           conciliado?: boolean | null
           conciliado_em?: string | null
           conciliado_por?: string | null
-          conta_bancaria_id?: string
+          conta_bancaria_id?: string | null
           conta_pagar_id?: string | null
           conta_plano_id?: string | null
           created_at?: string | null
