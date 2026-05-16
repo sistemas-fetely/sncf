@@ -134,6 +134,27 @@ export default function Conciliacao() {
   const [acaoOFX, setAcaoOFX] = useState<string | null>(null);
   const [parceiroSheetOpen, setParceiroSheetOpen] = useState(false);
   const [pagParaCadastrar, setPagParaCadastrar] = useState<Pagamento | null>(null);
+  const [buscarCPRPag, setBuscarCPRPag] = useState<Pagamento | null>(null);
+
+  const { data: cprsParaBusca = [] } = useQuery({
+    queryKey: ["cprs-busca-livre", buscarCPRPag?.id, buscarCPRPag?.parceiro_id],
+    enabled: !!buscarCPRPag,
+    queryFn: async () => {
+      if (!buscarCPRPag) return [];
+      let q = sb
+        .from("contas_pagar_receber")
+        .select("id, descricao, valor, data_vencimento, data_pagamento, fornecedor_cliente, nf_numero, parceiros_comerciais(razao_social)")
+        .in("status", ["aberto", "aprovado", "aguardando_pagamento"])
+        .is("movimentacao_bancaria_id", null)
+        .order("data_vencimento", { ascending: false })
+        .limit(200);
+      if (buscarCPRPag.parceiro_id) {
+        q = q.eq("parceiro_id", buscarCPRPag.parceiro_id);
+      }
+      const { data } = await q;
+      return data || [];
+    },
+  });
 
   const { data: categorias = [] } = useCategoriasPlano();
   const { aplicarRegras } = useAplicarRegrasOFX();
