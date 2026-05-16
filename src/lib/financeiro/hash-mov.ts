@@ -7,9 +7,14 @@ export async function gerarHashMov(
   contaId: string,
   data: string,
   valor: number,
-  descricao: string
+  descricao: string,
+  fitid?: string
 ): Promise<string> {
-  const base = `${contaId}|${data}|${valor.toFixed(2)}|${descricao.trim().toLowerCase()}`;
+  // Se tem FITID, usar como chave principal — elimina duplicatas do Itaú
+  // (mesmo evento, descrições diferentes em arquivos consecutivos)
+  const base = fitid
+    ? `${contaId}|${fitid}`
+    : `${contaId}|${data}|${valor.toFixed(2)}|${descricao.trim().toLowerCase()}`;
   if (typeof crypto !== "undefined" && crypto.subtle) {
     const buf = new TextEncoder().encode(base);
     const hash = await crypto.subtle.digest("SHA-256", buf);

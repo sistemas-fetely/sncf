@@ -105,7 +105,7 @@ export function ImportadorOFX() {
               descricao: t.descricao,
               tipo: t.tipo,
               id_transacao_banco: t.fitid,
-              hash_unico: await gerarHashMov(contaBancariaId, t.data, t.valor, t.descricao),
+              hash_unico: await gerarHashMov(contaBancariaId, t.data, t.valor, t.descricao, t.fitid),
               status: "pendente",
             }))
           );
