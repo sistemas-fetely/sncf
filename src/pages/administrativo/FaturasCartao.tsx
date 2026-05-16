@@ -577,7 +577,7 @@ export default function FaturasCartao() {
             <div className="text-amber-700 font-medium">
               📌 Mostrando dados de:{" "}
               <span className="font-semibold">
-                {totals.faturaFocada.conta_bancaria?.nome_exibicao || "fatura"}
+                {totals.faturaFocada.cartao?.nome || "fatura"}
               </span>
               {" — venc "}
               {formatDateBR(totals.faturaFocada.data_vencimento)}
