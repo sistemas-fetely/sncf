@@ -12570,6 +12570,7 @@ export type Database = {
           data_vencimento: string
           fatura_id: string
           ja_vinculada: boolean
+          parceiros: string
           qtd_lancamentos: number
           valor_total: number
         }[]
