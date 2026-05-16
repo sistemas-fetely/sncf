@@ -247,21 +247,23 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         <Send className="h-3.5 w-3.5" />
       </Button>
 
-      {/* 4) Movimentação */}
-      <Button
-        size="icon"
-        variant="ghost"
-        className={cn("h-7 w-7", COR_ICONE[estadoMov])}
-        title={tooltipMov}
-        disabled={lancandoMov}
-        onClick={stop(handleLancarMov)}
-      >
-        {lancandoMov ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <ArrowRightLeft className="h-3.5 w-3.5" />
-        )}
-      </Button>
+      {/* 4) Movimentação — oculto em enviado_para_pagamento (conciliação automática) */}
+      {status !== "enviado_para_pagamento" && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className={cn("h-7 w-7", COR_ICONE[estadoMov])}
+          title={tooltipMov}
+          disabled={lancandoMov}
+          onClick={stop(handleLancarMov)}
+        >
+          {lancandoMov ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <ArrowRightLeft className="h-3.5 w-3.5" />
+          )}
+        </Button>
+      )}
 
       {/* Modais */}
       {showEnviar && (
