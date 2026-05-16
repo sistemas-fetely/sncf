@@ -111,7 +111,7 @@ const STATUS_LABEL: Record<string, string> = {
   atrasado: "Atrasado",
   aprovado: "Aprovado",
   agendado: "Enviado",
-  pago: "Pago",
+  enviado_para_pagamento: "Enviado para Pagamento",
   cancelado: "Cancelado",
   conciliado: "Conciliado",
 };
@@ -122,7 +122,7 @@ const STATUS_STYLE: Record<string, string> = {
   atrasado: "bg-red-100 text-red-800 hover:bg-red-100",
   aprovado: "bg-purple-100 text-purple-800 hover:bg-purple-100",
   agendado: "bg-amber-100 text-amber-800 hover:bg-amber-100",
-  pago: "bg-green-100 text-green-800 hover:bg-green-100",
+  enviado_para_pagamento: "bg-green-100 text-green-800 hover:bg-green-100",
   cancelado: "bg-gray-100 text-gray-700 hover:bg-gray-100",
   conciliado: "bg-teal-100 text-teal-800 hover:bg-teal-100",
 };
