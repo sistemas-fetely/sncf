@@ -394,6 +394,12 @@ export default function CaixaBanco() {
     return m;
   }, [formasPagamento]);
 
+  const mapMeios = useMemo(() => {
+    const m: Record<string, string> = {};
+    (meiosPagamento || []).forEach((f) => (m[f.id] = f.nome));
+    return m;
+  }, [meiosPagamento]);
+
   const mapParceiros = useMemo(() => {
     const m: Record<string, string> = {};
     (parceiros || []).forEach((p) => {
