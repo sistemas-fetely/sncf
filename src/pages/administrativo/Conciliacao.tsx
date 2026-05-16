@@ -111,6 +111,35 @@ export default function Conciliacao() {
     },
   });
 
+  const { data: movsVinculadasMap } = useQuery({
+    queryKey: ["movs-vinculadas-parciais", Array.from(parciaisExpandidos).sort().join(",")],
+    enabled: parciaisExpandidos.size > 0,
+    queryFn: async () => {
+      const { data } = await sb
+        .from("movimentacoes_bancarias")
+        .select("id, itau_planilha_id, descricao, valor, data_transacao, pg_em")
+        .in("itau_planilha_id", Array.from(parciaisExpandidos))
+        .order("data_transacao", { ascending: true });
+      const map = new Map<
+        string,
+        Array<{
+          id: string;
+          descricao: string;
+          valor: number;
+          data_transacao: string;
+          pg_em: string | null;
+        }>
+      >();
+      (data || []).forEach((m: { itau_planilha_id: string | null; id: string; descricao: string; valor: number; data_transacao: string; pg_em: string | null }) => {
+        if (!m.itau_planilha_id) return;
+        const arr = map.get(m.itau_planilha_id) || [];
+        arr.push({ id: m.id, descricao: m.descricao, valor: m.valor, data_transacao: m.data_transacao, pg_em: m.pg_em });
+        map.set(m.itau_planilha_id, arr);
+      });
+      return map;
+    },
+  });
+
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["conciliacao-unificada", contaBancariaId] });
   };
