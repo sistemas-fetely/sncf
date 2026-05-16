@@ -264,6 +264,7 @@ async function syncPedidos(supabase: any, accessToken: string, ultimaSync: any) 
 // === SYNC: PRODUTOS ===
 async function syncProdutos(supabase: any, accessToken: string) {
   var criados = 0, atualizados = 0, erros = 0;
+  var ultimoErro = "";
   var pagina = 1;
   var temMais = true;
 
@@ -312,13 +313,22 @@ async function syncProdutos(supabase: any, accessToken: string) {
             await supabase.from("produtos").insert(registro);
             criados++;
           }
-        } catch (e) { erros++; }
+        } catch (e) {
+          erros++;
+          ultimoErro = "item: " + ((e instanceof Error) ? e.message : String(e));
+          console.error("[syncProdutos][item]", ultimoErro);
+        }
       }
       pagina++;
       await sleep(400);
-    } catch (e) { erros++; temMais = false; }
+    } catch (e) {
+      erros++;
+      ultimoErro = "pagina " + pagina + ": " + ((e instanceof Error) ? e.message : String(e));
+      console.error("[syncProdutos][page]", ultimoErro);
+      temMais = false;
+    }
   }
-  return { criados: criados, atualizados: atualizados, erros: erros };
+  return { criados: criados, atualizados: atualizados, erros: erros, ultimoErro: ultimoErro };
 }
 
 // === MAIN HANDLER ===
