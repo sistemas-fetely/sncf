@@ -261,13 +261,15 @@ export default function Conciliacao() {
   });
 
   // ─── Agrupamentos ─────────────────────────────────────────────────────
-  const auto      = pagamentos.filter((p) => p.status_conciliacao === "conciliado_auto");
+  const auto      = pagamentos.filter((p) => p.status_conciliacao === "aguardando_ofx");
   const operador  = pagamentos.filter((p) => p.status_conciliacao === "aguardando_operador");
   const semCpr    = pagamentos.filter((p) => p.status_conciliacao === "sem_cpr" || p.status_conciliacao === "sem_cnpj");
   const semParc   = pagamentos.filter((p) => p.status_conciliacao === "sem_parceiro");
   const cprCriada = pagamentos.filter((p) => p.status_conciliacao === "cpr_criada");
   const concluidos = pagamentos.filter((p) =>
-    p.status_conciliacao === "conciliado_manual" || p.status_conciliacao === "ignorado"
+    p.status_conciliacao === "conciliado" ||
+    p.status_conciliacao === "conciliado_manual" ||
+    p.status_conciliacao === "ignorado"
   );
 
   const invalidarPagamentos = () =>
