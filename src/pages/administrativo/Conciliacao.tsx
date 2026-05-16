@@ -170,6 +170,8 @@ export default function Conciliacao() {
         conta_pagar_id: string | null;
         cpr_descricao: string | null;
         fornecedor_cliente: string | null;
+        forma_pagamento_nome: string | null;
+        fatura_vencimento: string | null;
       }>;
     },
   });
