@@ -56,6 +56,8 @@ type CPRCandidato = {
   descricao: string;
   data_vencimento: string;
   valor: number;
+  parcela_atual?: number | null;
+  parcelas?: number | null;
 };
 
 // ─── ItemOperador ─────────────────────────────────────────────────────────
@@ -73,13 +75,19 @@ function ItemOperador({
     queryKey: ["cprs-operador", pag.parceiro_id, pag.valor_pago],
     enabled: !!pag.parceiro_id,
     queryFn: async () => {
+      if (!pag.parceiro_id) return [];
+      const tolerancia = (pag.valor_pago ?? 0) * 0.02;
+      const minVal = (pag.valor_pago ?? 0) - Math.max(tolerancia, 0.01);
+      const maxVal = (pag.valor_pago ?? 0) + Math.max(tolerancia, 0.01);
       const { data } = await sb
         .from("contas_pagar_receber")
-        .select("id, descricao, data_vencimento, valor")
+        .select("id, descricao, data_vencimento, valor, parcela_atual, parcelas")
         .eq("parceiro_id", pag.parceiro_id)
-        .eq("valor", pag.valor_pago)
-        .in("status", ["aprovado", "aguardando_pagamento"])
-        .is("movimentacao_bancaria_id", null);
+        .gte("valor", minVal)
+        .lte("valor", maxVal)
+        .in("status", ["aberto", "aprovado", "aguardando_pagamento"])
+        .is("movimentacao_bancaria_id", null)
+        .order("data_vencimento", { ascending: true });
       return (data || []) as CPRCandidato[];
     },
   });
@@ -107,7 +115,13 @@ function ItemOperador({
           <SelectContent>
             {cprs.map((c) => (
               <SelectItem key={c.id} value={c.id}>
-                {c.descricao} · venc {formatDateBR(c.data_vencimento)} · {formatBRL(c.valor)}
+                {c.descricao}
+                {c.parcela_atual && c.parcelas ? ` (${c.parcela_atual}/${c.parcelas})` : ""}
+                {" · "}venc {c.data_vencimento ? formatDateBR(c.data_vencimento) : "—"}
+                {" · "}{formatBRL(c.valor)}
+                {Math.abs(c.valor - (pag.valor_pago ?? 0)) > 0.01
+                  ? ` · dif ${formatBRL(Math.abs(c.valor - (pag.valor_pago ?? 0)))}`
+                  : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -218,7 +232,7 @@ export default function Conciliacao() {
   // ─── Agrupamentos ─────────────────────────────────────────────────────
   const auto      = pagamentos.filter((p) => p.status_conciliacao === "conciliado_auto");
   const operador  = pagamentos.filter((p) => p.status_conciliacao === "aguardando_operador");
-  const semCpr    = pagamentos.filter((p) => p.status_conciliacao === "sem_cpr");
+  const semCpr    = pagamentos.filter((p) => p.status_conciliacao === "sem_cpr" || p.status_conciliacao === "sem_cnpj");
   const semParc   = pagamentos.filter((p) => p.status_conciliacao === "sem_parceiro");
   const cprCriada = pagamentos.filter((p) => p.status_conciliacao === "cpr_criada");
   const concluidos = pagamentos.filter((p) =>
@@ -595,7 +609,7 @@ export default function Conciliacao() {
                     <AlertCircle className="h-3 w-3 text-amber-500" /> Operador ({operador.length})
                   </TabsTrigger>
                   <TabsTrigger value="semcpr" className="gap-1 text-xs">
-                    <AlertCircle className="h-3 w-3 text-orange-500" /> Sem CPR ({semCpr.length})
+                    <AlertCircle className="h-3 w-3 text-orange-500" /> Sem CPR / CNPJ ({semCpr.length})
                   </TabsTrigger>
                   <TabsTrigger value="semparc" className="gap-1 text-xs">
                     <XCircle className="h-3 w-3 text-red-500" /> Sem Parceiro ({semParc.length})
@@ -648,7 +662,11 @@ export default function Conciliacao() {
                     <div key={p.id} className="p-3 border rounded text-xs flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{p.nome_favorecido}</p>
-                        <p className="text-muted-foreground text-[10px]">{p.tipo_pagamento}</p>
+                        <p className="text-muted-foreground text-[10px]">
+                          {p.status_conciliacao === "sem_cnpj"
+                            ? "Sem CNPJ — vincule manualmente"
+                            : p.tipo_pagamento}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">{p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}</span>
