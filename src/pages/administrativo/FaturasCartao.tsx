@@ -1304,7 +1304,7 @@ export default function FaturasCartao() {
             <AlertDialogTitle>Descartar fatura?</AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a descartar a fatura de{" "}
-              <strong>{paraDescartar?.conta_bancaria?.nome_exibicao}</strong> com vencimento em{" "}
+              <strong>{paraDescartar?.cartao?.nome}</strong> com vencimento em{" "}
               <strong>{paraDescartar && formatDateBR(paraDescartar.data_vencimento)}</strong>.
               <br /><br />
               Isso vai remover:
