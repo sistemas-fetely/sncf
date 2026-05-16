@@ -163,7 +163,7 @@ export default function CaixaBanco() {
       const { data, error } = await (supabase as any)
         .from("vw_lancamentos_caixa_banco")
         .select("*")
-        .in("status_conta_pagar", ["enviado_para_pagamento", "enviado_para_pagamento"])
+        .in("status_conta_pagar", ["enviado_para_pagamento"])
         .order("data_vencimento", { ascending: true });
       if (error) throw error;
       return (data || []) as Lancamento[];
