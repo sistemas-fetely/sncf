@@ -606,6 +606,11 @@ export default function Conciliacao() {
                     <p className="text-muted-foreground text-[10px]">
                       Venc. {formatDateBR(fatura.data_vencimento)} · {fatura.qtd_lancamentos} lançamentos
                     </p>
+                    {fatura.parceiros && (
+                      <p className="text-[10px] text-muted-foreground truncate mt-0.5 max-w-[320px]">
+                        {fatura.parceiros}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="font-mono font-bold">{formatBRL(fatura.valor_total)}</span>
