@@ -70,7 +70,7 @@ export function classBordaTemporal(
 
   if (venc.getTime() < inicioMesAtual.getTime()) {
     // Pago no passado → verde; cancelado/outros → cinza
-    if (status === "paga") return "shadow-[inset_4px_0_0_0_rgb(16_185_129)]";
+    if (status === "enviado_para_pagamento") return "shadow-[inset_4px_0_0_0_rgb(16_185_129)]";
     return "shadow-[inset_4px_0_0_0_rgb(212_212_216)]";
   }
   if (venc.getTime() >= inicioProximoMes.getTime()) {

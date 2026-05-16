@@ -261,7 +261,7 @@ export function useDashboardData() {
       const totalAtual = Math.max(pagTotalAtual, totalContratosAtivos);
       const totalAnterior = pagTotalAnterior > 0 ? pagTotalAnterior : totalContratosAtivos;
 
-      const pagosAtual = (pagAtual || []).filter((p) => ["paga", "pago"].includes(p.status)).reduce((s, p) => s + Number(p.valor), 0);
+      const pagosAtual = (pagAtual || []).filter((p) => ["enviado_para_pagamento", "enviado_para_pagamento"].includes(p.status)).reduce((s, p) => s + Number(p.valor), 0);
       const pendentesAtual = (pagAtual || []).filter((p) => ["pendente", "aprovada", "enviada_pagamento"].includes(p.status)).reduce((s, p) => s + Number(p.valor), 0);
 
       return { totalAtual, totalAnterior, pagosAtual, pendentesAtual };

@@ -304,18 +304,16 @@ type Remessa = {
 };
 
 const STATUS_CONTA_BG: Record<string, string> = {
-  paga: "",
+  enviado_para_pagamento: "bg-amber-50/40",
   cancelado: "bg-rose-50/40",
   aprovado: "bg-amber-50/40",
-  aguardando_pagamento: "bg-amber-50/40",
   aberto: "bg-blue-50/40",
 };
 
 const STATUS_CONTA_LABEL: Record<string, string> = {
-  paga: "Paga",
+  enviado_para_pagamento: "Enviado para Pagamento",
   cancelado: "Cancelada",
   aprovado: "Aprovada",
-  aguardando_pagamento: "Aguard. pagamento",
   aberto: "Aberta",
   rascunho: "Rascunho",
 };

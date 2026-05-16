@@ -71,7 +71,7 @@ export function BuscarMultiplosLancamentosDialog({
         .select(
           "id, descricao, valor, data_vencimento, fornecedor_cliente, status, formas_pagamento:forma_pagamento_id(nome)",
         )
-        .in("status", ["aprovado", "aguardando_pagamento"])
+        .in("status", ["aprovado", "enviado_para_pagamento"])
         .is("movimentacao_bancaria_id", null)
         .order("data_vencimento", { ascending: true });
       return (data || []) as ContaPagar[];

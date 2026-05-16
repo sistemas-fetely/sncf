@@ -163,7 +163,7 @@ export default function CaixaBanco() {
       const { data, error } = await (supabase as any)
         .from("vw_lancamentos_caixa_banco")
         .select("*")
-        .in("status_conta_pagar", ["aguardando_pagamento", "paga"])
+        .in("status_conta_pagar", ["enviado_para_pagamento"])
         .order("data_vencimento", { ascending: true });
       if (error) throw error;
       return (data || []) as Lancamento[];
@@ -427,9 +427,12 @@ export default function CaixaBanco() {
     const aPagar: Lancamento[] = [];
     const realizado: Lancamento[] = [];
     for (const l of filteredGlobal) {
-      const sv = statusVisual(l);
-      if (sv === "aguardando_pagamento") aPagar.push(l);
-      else if (sv === "paga") realizado.push(l);
+      const jaPago =
+        !!l.movimentacao_bancaria_id ||
+        l.status_caixa === "pago" ||
+        l.status_caixa === "conciliado";
+      if (jaPago) realizado.push(l);
+      else aPagar.push(l);
     }
     return { listaAPagar: aPagar, listaRealizado: realizado };
   }, [filteredGlobal]);
@@ -786,7 +789,10 @@ export default function CaixaBanco() {
                 <TableBody>
                   {listaExibida.map((l) => {
                     const sv = statusVisual(l);
-                    const isRealizado = sv === "paga";
+                    const isRealizado =
+                      !!l.movimentacao_bancaria_id ||
+                      l.status_caixa === "pago" ||
+                      l.status_caixa === "conciliado";
                     const atrasada = isAtrasada(l);
                     const dias = diasAtraso(l);
                     const formaNome = l.forma_pagamento_id && mapFormas[l.forma_pagamento_id];

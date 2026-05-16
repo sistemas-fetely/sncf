@@ -54,8 +54,8 @@ export function getFamiliaContaPagar(conta: ContaParaFamilia): FamiliaContaPagar
   return "A_a_pagar";
 }
 
-const STATUS_TERMINAIS = ["paga", "cancelado"];
-const STATUS_PRE_PAGAMENTO = ["aprovado", "aguardando_pagamento"];
+const STATUS_TERMINAIS = ["enviado_para_pagamento", "cancelado"];
+const STATUS_PRE_PAGAMENTO = ["aprovado", "enviado_para_pagamento"];
 
 export function getCamposVisiveis(
   familia: FamiliaContaPagar,

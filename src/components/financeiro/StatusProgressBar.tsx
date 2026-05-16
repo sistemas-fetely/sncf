@@ -7,14 +7,14 @@ const FLOW_PADRAO = [
   { key: "aberto", label: "Aberto" },
   { key: "aprovado", label: "Aprovado" },
   { key: "doc_pendente", label: "Doc. Pendente" },
-  { key: "aguardando_pagamento", label: "Aguardando" },
+  { key: "enviado_para_pagamento", label: "Enviado p/ Pagamento" },
   { key: "finalizado", label: "Finalizado" },
 ] as const;
 
 // Família B (cartão): pula aprovação e doc pendente — paga via fatura mensal
 const FLOW_CARTAO = [
   { key: "aberto", label: "Aberto" },
-  { key: "aguardando_pagamento", label: "Aguardando" },
+  { key: "enviado_para_pagamento", label: "Enviado p/ Pagamento" },
   { key: "finalizado", label: "Finalizado" },
 ] as const;
 
@@ -37,8 +37,8 @@ export default function StatusProgressBar({ statusAtual, isCartao }: Props) {
   // Mapear status legados (de registros antigos) pro fluxo atual
   let statusEffective = statusAtual;
   if (statusAtual === "rascunho") statusEffective = "aberto";
-  if (statusAtual === "agendado") statusEffective = "aguardando_pagamento";
-  if (["paga", "conciliado"].includes(statusAtual)) statusEffective = "finalizado";
+  if (statusAtual === "agendado") statusEffective = "enviado_para_pagamento";
+  if (["conciliado"].includes(statusAtual)) statusEffective = "finalizado";
 
   let idxAtual = FLOW.findIndex((s) => s.key === statusEffective);
   if (statusAtual === "atrasado") idxAtual = FLOW.findIndex((s) => s.key === "aberto");

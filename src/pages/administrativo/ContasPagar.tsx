@@ -76,17 +76,15 @@ type Conta = {
 const STATUS_LABELS: Record<string, string> = {
   aberto: "Aberto",
   aprovado: "Aprovado",
-  aguardando_pagamento: "Aguardando pagamento",
-  paga: "Paga",
-  realizada: "Realizada (já paga)",
+  enviado_para_pagamento: "Enviado para Pagamento",
+  realizada: "Realizada",
   cancelado: "Cancelado",
 };
 
 const STATUS_STYLES: Record<string, string> = {
   aberto: "bg-blue-100 text-blue-800 hover:bg-blue-100",
   aprovado: "bg-purple-100 text-purple-800 hover:bg-purple-100",
-  aguardando_pagamento: "bg-teal-100 text-teal-800 hover:bg-teal-100",
-  paga: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
+  enviado_para_pagamento: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
   realizada: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
   cancelado: "bg-red-100 text-red-800 hover:bg-red-100",
 };
@@ -290,9 +288,9 @@ export default function ContasPagar() {
       (c) => ["aberto", "aprovado"].includes(c.status) && diasAteVencer(c.data_vencimento) <= 7,
     );
     const atrasadas = lista.filter(
-      (c) => c.atrasada && !["paga", "realizada", "cancelado"].includes(c.status),
+      (c) => c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status),
     );
-    const aguardando = lista.filter((c) => c.status === "aguardando_pagamento");
+    const aguardando = lista.filter((c) => c.status === "enviado_para_pagamento");
     const pendencia = lista.filter(
       (c) => pendenciaMap.has(c.id) || temPendenciaNF(c.id),
     );
@@ -314,10 +312,10 @@ export default function ContasPagar() {
       );
     } else if (kpiFilter === "atrasadas") {
       lista = lista.filter(
-        (c) => c.atrasada && !["paga", "realizada", "cancelado"].includes(c.status),
+        (c) => c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status),
       );
     } else if (kpiFilter === "aguardando") {
-      lista = lista.filter((c) => c.status === "aguardando_pagamento");
+      lista = lista.filter((c) => c.status === "enviado_para_pagamento");
     } else if (kpiFilter === "pendencia") {
       lista = lista.filter((c) => pendenciaMap.has(c.id) || temPendenciaNF(c.id));
     }
@@ -433,7 +431,7 @@ export default function ContasPagar() {
           />
           <KpiCard
             icon={Clock}
-            label="Aguardando pagamento"
+            label="Enviado para Pagamento"
             count={kpis.aguardando.count}
             valor={kpis.aguardando.valor}
             color="text-teal-600"
@@ -484,9 +482,8 @@ export default function ContasPagar() {
             <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="aberto">Aberto</SelectItem>
             <SelectItem value="aprovado">Aprovado</SelectItem>
-            <SelectItem value="aguardando_pagamento">Aguardando pagamento</SelectItem>
-            <SelectItem value="paga">Paga</SelectItem>
-            <SelectItem value="realizada">Realizada (já paga)</SelectItem>
+            <SelectItem value="enviado_para_pagamento">Enviado para Pagamento</SelectItem>
+            <SelectItem value="realizada">Realizada</SelectItem>
             <SelectItem value="cancelado">Cancelada</SelectItem>
             <SelectItem value="pendencia_nf">Pendência NF</SelectItem>
           </SelectContent>
@@ -557,7 +554,7 @@ export default function ContasPagar() {
                   const ico = meio ? getMeioPagamentoIcon(meio) : null;
                   const pend = pendenciaMap.get(c.id);
                   const atrasada =
-                    c.atrasada && !["paga", "realizada", "cancelado"].includes(c.status);
+                    c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status);
                   return (
                     <TableRow
                       key={c.id}

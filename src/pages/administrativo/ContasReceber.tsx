@@ -42,7 +42,7 @@ type Conta = {
 const STATUS_STYLES: Record<string, string> = {
   aberto: "bg-blue-100 text-blue-800 hover:bg-blue-100",
   atrasado: "bg-red-100 text-red-800 hover:bg-red-100",
-  pago: "bg-green-100 text-green-800 hover:bg-green-100",
+  enviado_para_pagamento: "bg-green-100 text-green-800 hover:bg-green-100",
   cancelado: "bg-gray-100 text-gray-700 hover:bg-gray-100",
 };
 
@@ -94,7 +94,7 @@ export default function ContasReceber() {
       .filter((c) => c.status === "atrasado")
       .reduce((s, c) => s + Number(c.valor || 0), 0);
     const recebidoPeriodo = (filtered || [])
-      .filter((c) => c.status === "pago")
+      .filter((c) => c.status === "enviado_para_pagamento")
       .reduce((s, c) => s + Number(c.valor || 0), 0);
     return { aReceber, atrasado, recebidoPeriodo };
   }, [data, filtered]);
@@ -175,7 +175,7 @@ export default function ContasReceber() {
               className="w-full lg:w-44"
             />
             <div className="flex flex-wrap gap-1">
-              {(["todos", "aberto", "atrasado", "pago", "cancelado"] as const).map((s) => (
+              {(["todos", "aberto", "atrasado", "enviado_para_pagamento", "cancelado"] as const).map((s) => (
                 <Button
                   key={s}
                   size="sm"
