@@ -1021,6 +1021,47 @@ export type Database = {
           },
         ]
       }
+      cartoes_credito: {
+        Row: {
+          ativo: boolean
+          bandeira: string | null
+          conta_pagamento_id: string | null
+          created_at: string
+          id: string
+          nome: string
+          ultimos_digitos: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          bandeira?: string | null
+          conta_pagamento_id?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          ultimos_digitos?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          bandeira?: string | null
+          conta_pagamento_id?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          ultimos_digitos?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartoes_credito_conta_pagamento_id_fkey"
+            columns: ["conta_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       centros_custo: {
         Row: {
           ativo: boolean | null
@@ -4103,7 +4144,8 @@ export type Database = {
       }
       faturas_cartao: {
         Row: {
-          conta_bancaria_id: string
+          cartao_id: string | null
+          conta_bancaria_id: string | null
           conta_pagar_id: string | null
           created_at: string
           criado_por: string | null
@@ -4126,7 +4168,8 @@ export type Database = {
           valor_total_calculado: number | null
         }
         Insert: {
-          conta_bancaria_id: string
+          cartao_id?: string | null
+          conta_bancaria_id?: string | null
           conta_pagar_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -4149,7 +4192,8 @@ export type Database = {
           valor_total_calculado?: number | null
         }
         Update: {
-          conta_bancaria_id?: string
+          cartao_id?: string | null
+          conta_bancaria_id?: string | null
           conta_pagar_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -4172,6 +4216,13 @@ export type Database = {
           valor_total_calculado?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "faturas_cartao_cartao_id_fkey"
+            columns: ["cartao_id"]
+            isOneToOne: false
+            referencedRelation: "cartoes_credito"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "faturas_cartao_conta_bancaria_id_fkey"
             columns: ["conta_bancaria_id"]

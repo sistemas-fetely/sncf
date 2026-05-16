@@ -74,7 +74,7 @@ import {
 
 type FaturaRow = {
   id: string;
-  conta_bancaria_id: string;
+  cartao_id: string;
   data_vencimento: string;
   data_emissao: string | null;
   periodo_inicio: string | null;
@@ -85,7 +85,7 @@ type FaturaRow = {
   pdf_storage_path: string | null;
   observacao: string | null;
   created_at: string;
-  conta_bancaria?: { nome_exibicao: string; banco: string | null } | null;
+  cartao?: { id: string; nome: string; bandeira: string | null; ultimos_digitos: string | null } | null;
   qtd_lancamentos?: number;
   qtd_pendentes?: number;
   qtd_conciliados?: number;
@@ -177,11 +177,10 @@ export default function FaturasCartao() {
     queryKey: ["cartoes-credito-listagem"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("contas_bancarias")
-        .select("id, nome_exibicao, banco, dia_fechamento, dia_vencimento, limite_credito")
-        .eq("tipo", "cartao_credito")
+        .from("cartoes_credito")
+        .select("id, nome, bandeira, ultimos_digitos, ativo")
         .eq("ativo", true)
-        .order("nome_exibicao");
+        .order("nome");
       if (error) throw error;
       return data || [];
     },
@@ -218,18 +217,18 @@ export default function FaturasCartao() {
         }
       });
 
-      // 3) Faturas → conta_bancaria_id
+      // 3) Faturas → cartao_id
       const faturaIds = Array.from(new Set(contaToFatura.values()));
       const faturaToConta = new Map<string, string>();
       if (faturaIds.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: fats } = await (supabase as any)
           .from("faturas_cartao")
-          .select("id, conta_bancaria_id")
+          .select("id, cartao_id")
           .in("id", faturaIds);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (fats || []).forEach((f: any) => {
-          if (f.conta_bancaria_id) faturaToConta.set(f.id, f.conta_bancaria_id);
+          if (f.cartao_id) faturaToConta.set(f.id, f.cartao_id);
         });
       }
 
@@ -283,7 +282,7 @@ export default function FaturasCartao() {
         .from("vw_faturas_cartao_resumo")
         .select(`
           *,
-          conta_bancaria:conta_bancaria_id ( nome_exibicao, banco )
+          cartao:cartao_id ( id, nome, bandeira, ultimos_digitos )
         `)
         .order("data_vencimento", { ascending: false });
       if (error) throw error;
@@ -350,7 +349,7 @@ export default function FaturasCartao() {
     const all = faturas || [];
     const filtradas =
       filtroCartao !== "__todos__"
-        ? all.filter((f) => f.conta_bancaria_id === filtroCartao)
+        ? all.filter((f) => f.cartao_id === filtroCartao)
         : all;
 
     const hoje = new Date();
@@ -409,20 +408,20 @@ export default function FaturasCartao() {
       list = list.filter((f) => f.status === filtroPill);
     }
     if (filtroCartao !== "__todos__") {
-      list = list.filter((f) => f.conta_bancaria_id === filtroCartao);
+      list = list.filter((f) => f.cartao_id === filtroCartao);
     }
     if (busca.trim()) {
       const t = busca.toLowerCase();
       list = list.filter(
         (f) =>
-          f.conta_bancaria?.nome_exibicao?.toLowerCase().includes(t) ||
+          f.cartao?.nome?.toLowerCase().includes(t) ||
           f.observacao?.toLowerCase().includes(t),
       );
     }
 
     list = ordenarPor(list, sort, {
       vencimento: (f) => f.data_vencimento || "",
-      cartao: (f) => f.conta_bancaria?.nome_exibicao || "",
+      cartao: (f) => f.cartao?.nome || "",
       valor: (f) => f.valor_total || 0,
       status: (f) => f.status || "",
       lancamentos: (f) => f.qtd_lancamentos || 0,
@@ -578,7 +577,7 @@ export default function FaturasCartao() {
             <div className="text-amber-700 font-medium">
               📌 Mostrando dados de:{" "}
               <span className="font-semibold">
-                {totals.faturaFocada.conta_bancaria?.nome_exibicao || "fatura"}
+                {totals.faturaFocada.cartao?.nome || "fatura"}
               </span>
               {" — venc "}
               {formatDateBR(totals.faturaFocada.data_vencimento)}
@@ -596,12 +595,12 @@ export default function FaturasCartao() {
           {/* CARDS DOS CARTÕES — clique filtra (oculta Safra) */}
           {cartoes
             .filter(
-              (c) => !(c.banco || "").toLowerCase().includes("safra") &&
-                     !(c.nome_exibicao || "").toLowerCase().includes("safra"),
+              (c) => !(c.bandeira || "").toLowerCase().includes("safra") &&
+                     !(c.nome || "").toLowerCase().includes("safra"),
             )
             .map((cartao) => {
               const comprometido = comprometidoMap.get(cartao.id) || 0;
-              const limite = cartao.limite_credito || 0;
+              const limite = 0;
               const disponivel = limite - comprometido;
               const percentUsado = limite > 0 ? (comprometido / limite) * 100 : 0;
               const ativo = filtroCartao === cartao.id;
@@ -614,14 +613,11 @@ export default function FaturasCartao() {
                       <CreditCard className="h-4 w-4 text-admin shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold truncate">
-                          {cartao.nome_exibicao}
+                          {cartao.nome}
                         </div>
                         <div className="text-[10px] text-muted-foreground truncate">
-                          {cartao.banco}
-                          {cartao.dia_fechamento &&
-                            ` · Fecha dia ${cartao.dia_fechamento}`}
-                          {cartao.dia_vencimento &&
-                            ` · Vence dia ${cartao.dia_vencimento}`}
+                          {cartao.bandeira}
+                          {cartao.ultimos_digitos && ` · ****${cartao.ultimos_digitos}`}
                         </div>
                       </div>
                     </div>
@@ -1004,11 +1000,12 @@ export default function FaturasCartao() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm font-medium">
-                            {f.conta_bancaria?.nome_exibicao || "—"}
+                            {f.cartao?.nome || "—"}
                           </div>
-                          {f.conta_bancaria?.banco && (
+                          {f.cartao?.bandeira && (
                             <div className="text-[10px] text-muted-foreground">
-                              {f.conta_bancaria.banco}
+                              {f.cartao.bandeira}
+                              {f.cartao.ultimos_digitos && ` · ****${f.cartao.ultimos_digitos}`}
                             </div>
                           )}
                         </TableCell>
@@ -1300,7 +1297,7 @@ export default function FaturasCartao() {
             <AlertDialogTitle>Descartar fatura?</AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a descartar a fatura de{" "}
-              <strong>{paraDescartar?.conta_bancaria?.nome_exibicao}</strong> com vencimento em{" "}
+              <strong>{paraDescartar?.cartao?.nome}</strong> com vencimento em{" "}
               <strong>{paraDescartar && formatDateBR(paraDescartar.data_vencimento)}</strong>.
               <br /><br />
               Isso vai remover:
