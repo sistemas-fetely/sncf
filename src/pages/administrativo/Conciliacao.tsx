@@ -78,28 +78,36 @@ export default function Conciliacao() {
           </Card>
         </Link>
 
-        {/* Card Stage 2 — placeholder */}
-        <Card className="opacity-60 h-full">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-md bg-muted text-muted-foreground">
-                  <Banknote className="h-5 w-5" />
+        {/* Card Stage 2 */}
+        <Link to="/administrativo/conciliacao/stage-2" className="block">
+          <Card className="hover:border-primary hover:shadow-md transition-all cursor-pointer h-full">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-md bg-primary/10 text-primary">
+                    <Banknote className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <Badge variant="secondary" className="mb-1">STAGE 2</Badge>
+                    <h3 className="font-semibold">Planilha ↔ Extrato OFX</h3>
+                  </div>
                 </div>
-                <div>
-                  <Badge variant="outline" className="mb-1">STAGE 2</Badge>
-                  <h3 className="font-semibold">Planilha ↔ Extrato OFX</h3>
-                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </div>
-              <Badge variant="outline" className="text-xs">Em breve · Fase 2</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Confirma cada vínculo Stage 1 com o extrato bancário. Preenche a data de pagamento efetivo (pg_em).
-            </p>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Confirma os vínculos Stage 1 contra o extrato bancário. Preenche a data efetiva de pagamento.
+              </p>
+              {(stage2Pendentes ?? 0) > 0 && (
+                <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 gap-1">
+                  <Clock className="h-3 w-3" />
+                  {stage2Pendentes} pendente{stage2Pendentes !== 1 ? "s" : ""}
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="pt-4 border-t">
