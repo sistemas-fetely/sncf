@@ -552,68 +552,115 @@ export default function ConfiguracaoIntegracao() {
             </CardContent>
           </Card>
 
-          {/* Sincronização */}
+          {/* Sincronização por entidade */}
           <Card>
             <CardHeader>
-              <CardTitle>Sincronização</CardTitle>
-              <CardDescription>
-                {config?.ultima_sync_at
-                  ? `Última sincronização ${formatDistanceToNow(new Date(config.ultima_sync_at), { addSuffix: true, locale: ptBR })}`
-                  : "Nunca sincronizado"}
-                {config?.ultima_sync_detalhes && (
-                  <span className="block mt-1 text-xs">{config.ultima_sync_detalhes}</span>
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="lg"
-                  className="bg-admin hover:bg-admin/90 text-admin-foreground"
-                  onClick={handleSyncFull}
-                  disabled={!!syncing || !form.access_token}
-                >
-                  {syncing === "full" ? (
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-5 w-5 mr-2" />
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <CardTitle>Sincronização</CardTitle>
+                  <CardDescription>
+                    {config?.ultima_sync_at
+                      ? `Última sincronização ${formatDistanceToNow(new Date(config.ultima_sync_at), { addSuffix: true, locale: ptBR })}`
+                      : "Nunca sincronizado"}
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleSyncFull}
+                    disabled={!!syncing || !config?.access_token}
+                    className="bg-admin hover:bg-admin/90 text-admin-foreground"
+                  >
+                    {syncing === "full"
+                      ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      : <RefreshCw className="h-4 w-4 mr-2" />}
+                    Sincronizar tudo
+                  </Button>
+                  {config?.access_token && (
+                    <Button variant="outline" onClick={desconectarBling}>
+                      Desconectar
+                    </Button>
                   )}
-                  Sincronizar tudo
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => sincronizar("contas_receber")}
-                  disabled={!!syncing || !form.access_token}
-                >
-                  Contas a receber
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => sincronizar("pedidos")}
-                  disabled={!!syncing || !form.access_token}
-                >
-                  Pedidos de venda
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => sincronizar("produtos")}
-                  disabled={!!syncing || !form.access_token}
-                >
-                  Produtos
-                </Button>
+                </div>
               </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Entidade</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Página atual</TableHead>
+                    <TableHead className="text-right">Total processado</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ENTIDADES.map((ent) => {
+                    const cur: any = cursores.find((c: any) => c.entidade === ent.id) || {};
+                    const emExec = cur.em_execucao || syncing === ent.id;
+                    return (
+                      <TableRow key={ent.id}>
+                        <TableCell className="font-medium">{ent.label}</TableCell>
+                        <TableCell>
+                          {emExec ? (
+                            <Badge variant="outline"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Sincronizando</Badge>
+                          ) : cur.ultima_data_corte ? (
+                            <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              {formatDistanceToNow(new Date(cur.ultima_data_corte), { addSuffix: true, locale: ptBR })}
+                            </Badge>
+                          ) : cur.ultima_pagina > 0 ? (
+                            <Badge className="bg-amber-500 hover:bg-amber-500">
+                              <AlertCircle className="h-3 w-3 mr-1" />Pausada
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">Nunca</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">
+                          {cur.ultima_pagina || 0}
+                        </TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">
+                          {cur.total_processado || 0}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-1 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => sincronizar(ent.id)}
+                              disabled={!!syncing || !config?.access_token}
+                            >
+                              {syncing === ent.id
+                                ? <Loader2 className="h-3 w-3 animate-spin" />
+                                : <RefreshCw className="h-3 w-3" />}
+                            </Button>
+                            {cur.ultima_pagina > 0 && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => resetarCursor(ent.id)}
+                                disabled={!!syncing}
+                                title="Resetar cursor"
+                              >
+                                ↺
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
 
               {syncResult && (
-                <div className="p-4 rounded-lg border bg-emerald-50 dark:bg-emerald-950/30 text-sm">
-                  <div className="font-medium text-emerald-900 dark:text-emerald-200 mb-1">
-                    ✅ Sincronização concluída
-                  </div>
-                  <div className="text-emerald-800 dark:text-emerald-300">
-                    {syncResult.criados} novos | {syncResult.atualizados} atualizados |{" "}
-                    {syncResult.erros} erros | {syncResult.duracao_ms}ms
+                <div className="p-3 rounded-lg border bg-emerald-50 dark:bg-emerald-950/30 text-sm">
+                  <div className="font-medium text-emerald-900 dark:text-emerald-200">
+                    ✅ {syncResult.criados} novos | {syncResult.atualizados} atualizados | {syncResult.erros} erros · {syncResult.duracao_ms}ms
                   </div>
                   {syncResult.detalhes && (
-                    <div className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
+                    <div className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 font-mono">
                       {syncResult.detalhes}
                     </div>
                   )}
