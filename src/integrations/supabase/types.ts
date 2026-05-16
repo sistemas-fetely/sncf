@@ -8014,6 +8014,52 @@ export type Database = {
         }
         Relationships: []
       }
+      planilha_fatura_vinculo: {
+        Row: {
+          created_at: string
+          fatura_id: string
+          id: string
+          planilha_id: string
+          valor_vinculado: number
+        }
+        Insert: {
+          created_at?: string
+          fatura_id: string
+          id?: string
+          planilha_id: string
+          valor_vinculado: number
+        }
+        Update: {
+          created_at?: string
+          fatura_id?: string
+          id?: string
+          planilha_id?: string
+          valor_vinculado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planilha_fatura_vinculo_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas_cartao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planilha_fatura_vinculo_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "vw_faturas_cartao_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planilha_fatura_vinculo_planilha_id_fkey"
+            columns: ["planilha_id"]
+            isOneToOne: false
+            referencedRelation: "itau_pagamentos_stage"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plano_contas: {
         Row: {
           ativo: boolean | null
@@ -12517,6 +12563,17 @@ export type Database = {
         Returns: Json
       }
       limpar_rascunhos_antigos: { Args: never; Returns: number }
+      listar_faturas_disponiveis_para_planilha: {
+        Args: { p_planilha_id: string }
+        Returns: {
+          cartao_nome: string
+          data_vencimento: string
+          fatura_id: string
+          ja_vinculada: boolean
+          qtd_lancamentos: number
+          valor_total: number
+        }[]
+      }
       listar_movimentacoes_elegiveis: {
         Args: never
         Returns: {
@@ -12975,6 +13032,10 @@ export type Database = {
       }
       vincular_nf_a_parceiro: {
         Args: { p_nf_stage_id: string; p_parceiro_id: string }
+        Returns: Json
+      }
+      vincular_planilha_fatura: {
+        Args: { p_fatura_id: string; p_planilha_id: string }
         Returns: Json
       }
       vincular_planilha_multiplas_movs: {
