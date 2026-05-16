@@ -482,9 +482,8 @@ export default function ContasPagar() {
             <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="aberto">Aberto</SelectItem>
             <SelectItem value="aprovado">Aprovado</SelectItem>
-            <SelectItem value="enviado_para_pagamento">Aguardando pagamento</SelectItem>
-            <SelectItem value="enviado_para_pagamento">Paga</SelectItem>
-            <SelectItem value="realizada">Realizada (já paga)</SelectItem>
+            <SelectItem value="enviado_para_pagamento">Enviado para Pagamento</SelectItem>
+            <SelectItem value="realizada">Realizada</SelectItem>
             <SelectItem value="cancelado">Cancelada</SelectItem>
             <SelectItem value="pendencia_nf">Pendência NF</SelectItem>
           </SelectContent>
