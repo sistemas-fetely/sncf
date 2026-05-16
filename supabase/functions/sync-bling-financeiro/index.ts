@@ -481,7 +481,9 @@ serve(async (req) => {
 
       var duracao = Date.now() - startTime;
       var statusFinal = (result.erros > 0) ? "parcial" : "sucesso";
-      var detalhe = tipo + ": " + result.criados + " novos, " + result.atualizados + " atualizados";
+      var ultimoErro = (result as any).ultimoErro || "";
+      var detalhe = tipo + ": " + result.criados + " novos, " + result.atualizados + " atualizados"
+        + (ultimoErro ? " | erro: " + ultimoErro.slice(0, 500) : "");
 
       if (logId) {
         await supabase.from("integracoes_sync_log").update({
@@ -501,7 +503,8 @@ serve(async (req) => {
       return ok({
         sucesso: true, criados: result.criados,
         atualizados: result.atualizados, erros: result.erros,
-        detalhes: detalhe, duracao_ms: duracao
+        detalhes: detalhe, duracao_ms: duracao,
+        ultimo_erro: ultimoErro || null
       });
     }
 
