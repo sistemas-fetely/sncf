@@ -7,7 +7,7 @@ const FLOW_PADRAO = [
   { key: "aberto", label: "Aberto" },
   { key: "aprovado", label: "Aprovado" },
   { key: "doc_pendente", label: "Doc. Pendente" },
-  { key: "enviado_para_pagamento", label: "Aguardando" },
+  { key: "enviado_para_pagamento", label: "Enviado p/ Pagamento" },
   { key: "finalizado", label: "Finalizado" },
 ] as const;
 
