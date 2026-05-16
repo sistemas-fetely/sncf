@@ -27,6 +27,7 @@ import {
   ExternalLink,
   Ban,
   CheckCircle,
+  CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
 import {
