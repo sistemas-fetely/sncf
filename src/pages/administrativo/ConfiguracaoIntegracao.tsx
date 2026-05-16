@@ -98,6 +98,18 @@ export default function ConfiguracaoIntegracao() {
     refetchInterval: syncing ? 2000 : false,
   });
 
+  const { data: cursores = [] } = useQuery({
+    queryKey: ["integracao-bling-cursores"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("integracoes_sync_cursor")
+        .select("*")
+        .eq("sistema", "bling");
+      return data || [];
+    },
+    refetchInterval: syncing ? 2000 : 10_000,
+  });
+
   const { data: configFinanceiro = [] } = useQuery({
     queryKey: ["config-financeiro-externo"],
     queryFn: async () => {
