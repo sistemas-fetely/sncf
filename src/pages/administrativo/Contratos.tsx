@@ -701,6 +701,582 @@ export default function Contratos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <NovoContratoDialog
+        open={novoContratoOpen}
+        onOpenChange={setNovoContratoOpen}
+        onSucesso={() => {
+          queryClient.invalidateQueries({ queryKey: ["contratos-todos"] });
+          queryClient.invalidateQueries({ queryKey: ["parcelas-dashboard"] });
+        }}
+      />
     </div>
+  );
+}
+
+// ─── Novo Contrato Dialog ──────────────────────────────────────────
+function NovoContratoDialog({
+  open,
+  onOpenChange,
+  onSucesso,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSucesso: () => void;
+}) {
+  const { toast } = useToast();
+  const [etapa, setEtapa] = useState<1 | 2 | 3>(1);
+
+  const [parceiroId, setParceiroId] = useState("");
+  const [buscaParceiro, setBuscaParceiro] = useState("");
+
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [processandoIA, setProcessandoIA] = useState(false);
+  const [dadosIA, setDadosIA] = useState<DadosIA | null>(null);
+  const [pastaId, setPastaId] = useState<string | null>(null);
+
+  const [numero, setNumero] = useState("");
+  const [tipoContratoId, setTipoContratoId] = useState<string | null>(null);
+  const [dataAssinatura, setDataAssinatura] = useState("");
+  const [vigenciaInicio, setVigenciaInicio] = useState("");
+  const [vigenciaFim, setVigenciaFim] = useState("");
+  const [ciclo, setCiclo] = useState("mensal");
+  const [valorParcela, setValorParcela] = useState("");
+  const [numParcelas, setNumParcelas] = useState("");
+  const [diaVenc, setDiaVenc] = useState("10");
+  const [dataPrimeiraParcela, setDataPrimeiraParcela] = useState("");
+  const [temSetup, setTemSetup] = useState(false);
+  const [valorSetup, setValorSetup] = useState("");
+  const [parcelasSetup, setParcelasSetup] = useState("1");
+  const [dataPrimeiraSetup, setDataPrimeiraSetup] = useState("");
+  const [formaId, setFormaId] = useState<string | null>(null);
+  const [renovaAuto, setRenovaAuto] = useState(false);
+  const [alertaDias, setAlertaDias] = useState("60");
+  const [permiteVariavel, setPermiteVariavel] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+
+  const { data: parceiros = [] } = useQuery({
+    queryKey: ["parceiros-contratos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("parceiros_comerciais")
+        .select("id, razao_social, cnpj, nome_fantasia")
+        .eq("ativo", true)
+        .order("razao_social");
+      return (data || []) as Parceiro[];
+    },
+  });
+
+  const { data: tiposContrato = [] } = useQuery({
+    queryKey: ["tipos-contrato-dialog"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("tipos_contrato")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      return (data || []) as { id: string; nome: string }[];
+    },
+  });
+
+  const { data: formasPagamento = [] } = useQuery({
+    queryKey: ["formas-pagamento-contratos"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("formas_pagamento")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      return (data || []) as FormasPagamento[];
+    },
+  });
+
+  const parceirosFiltrados = parceiros.filter(
+    (p) =>
+      p.razao_social.toLowerCase().includes(buscaParceiro.toLowerCase()) ||
+      (p.cnpj && p.cnpj.includes(buscaParceiro))
+  );
+
+  useEffect(() => {
+    if (!dadosIA) return;
+    if (dadosIA.numero_sugerido) setNumero(dadosIA.numero_sugerido);
+    if (dadosIA.data_assinatura) setDataAssinatura(dadosIA.data_assinatura);
+    if (dadosIA.vigencia_inicio) setVigenciaInicio(dadosIA.vigencia_inicio);
+    if (dadosIA.vigencia_fim) setVigenciaFim(dadosIA.vigencia_fim ?? "");
+    if (dadosIA.valor_parcela) setValorParcela(String(dadosIA.valor_parcela));
+    if (dadosIA.ciclo_pagamento) setCiclo(dadosIA.ciclo_pagamento);
+    if (dadosIA.numero_parcelas) setNumParcelas(String(dadosIA.numero_parcelas));
+    if (dadosIA.dia_vencimento) setDiaVenc(String(dadosIA.dia_vencimento));
+    if (dadosIA.data_primeira_parcela) setDataPrimeiraParcela(dadosIA.data_primeira_parcela);
+    if (typeof dadosIA.tem_setup === "boolean") setTemSetup(dadosIA.tem_setup);
+    if (dadosIA.valor_setup) setValorSetup(String(dadosIA.valor_setup));
+    if (dadosIA.parcelas_setup) setParcelasSetup(String(dadosIA.parcelas_setup));
+    if (dadosIA.data_primeira_parcela_setup) setDataPrimeiraSetup(dadosIA.data_primeira_parcela_setup);
+    if (typeof dadosIA.renova_automaticamente === "boolean") setRenovaAuto(dadosIA.renova_automaticamente);
+    if (typeof dadosIA.permite_valor_variavel === "boolean") setPermiteVariavel(dadosIA.permite_valor_variavel);
+  }, [dadosIA]);
+
+  function resetar() {
+    setEtapa(1);
+    setParceiroId(""); setBuscaParceiro("");
+    setArquivo(null); setProcessandoIA(false); setDadosIA(null); setPastaId(null);
+    setNumero(""); setTipoContratoId(null); setDataAssinatura("");
+    setVigenciaInicio(""); setVigenciaFim(""); setCiclo("mensal");
+    setValorParcela(""); setNumParcelas(""); setDiaVenc("10");
+    setDataPrimeiraParcela(""); setTemSetup(false); setValorSetup("");
+    setParcelasSetup("1"); setDataPrimeiraSetup(""); setFormaId(null);
+    setRenovaAuto(false); setAlertaDias("60"); setPermiteVariavel(false);
+  }
+
+  async function buscarOuCriarPasta(pId: string): Promise<string> {
+    const { data: pastas } = await (supabase as any)
+      .from("ged_pastas")
+      .select("id")
+      .eq("parceiro_id", pId)
+      .limit(1);
+
+    if (pastas && pastas.length > 0) return pastas[0].id;
+
+    const parceiro = parceiros.find((p) => p.id === pId);
+    const { data: novaPasta, error } = await (supabase as any)
+      .from("ged_pastas")
+      .insert({
+        nome: parceiro?.razao_social ?? "Parceiro",
+        parceiro_id: pId,
+        tipo: "contratos",
+        ativa: true,
+      })
+      .select("id")
+      .single();
+
+    if (error) throw new Error("Erro ao criar pasta: " + error.message);
+    return novaPasta.id;
+  }
+
+  async function processarUploadEIA() {
+    if (!arquivo || !parceiroId) return;
+    setProcessandoIA(true);
+
+    try {
+      const pId = await buscarOuCriarPasta(parceiroId);
+      setPastaId(pId);
+
+      const path = `${pId}/${Date.now()}_${arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error: upErr } = await supabase.storage
+        .from("ged")
+        .upload(path, arquivo, { contentType: arquivo.type });
+      if (upErr) throw new Error("Upload: " + upErr.message);
+
+      await (supabase as any).from("ged_documentos").insert({
+        pasta_id: pId,
+        nome: arquivo.name.replace(/\.[^/.]+$/, ""),
+        arquivo_original: arquivo.name,
+        tipo_documento: "contrato",
+        storage_path: path,
+        mime_type: arquivo.type,
+        tamanho_bytes: arquivo.size,
+      });
+
+      const { data: iaData, error: iaErr } = await supabase.functions.invoke(
+        "gerar-contrato-de-pasta",
+        { body: { pasta_id: pId } }
+      );
+
+      if (iaErr) throw new Error("IA: " + iaErr.message);
+
+      setDadosIA(iaData as DadosIA);
+      setEtapa(3);
+    } catch (err) {
+      toast({
+        title: "Erro",
+        description: err instanceof Error ? err.message : "Erro inesperado",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessandoIA(false);
+    }
+  }
+
+  async function salvar() {
+    if (!pastaId || !numero || !vigenciaInicio || !valorParcela || !dataPrimeiraParcela) {
+      toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
+      return;
+    }
+    setSalvando(true);
+
+    try {
+      const { data: contrato, error: errC } = await (supabase as any)
+        .from("pasta_contratos")
+        .insert({
+          pasta_id: pastaId,
+          numero,
+          tipo_contrato_id: tipoContratoId,
+          data_assinatura: dataAssinatura || null,
+          vigencia_inicio: vigenciaInicio,
+          vigencia_fim: vigenciaFim || null,
+          ciclo_pagamento: ciclo,
+          valor_parcela: Number(valorParcela),
+          valor_total: Number(valorParcela) * (numParcelas ? Number(numParcelas) : 12),
+          numero_parcelas: numParcelas ? Number(numParcelas) : null,
+          dia_vencimento: Number(diaVenc),
+          data_primeira_parcela: dataPrimeiraParcela,
+          tem_setup: temSetup,
+          valor_setup: temSetup && valorSetup ? Number(valorSetup) : null,
+          parcelas_setup: temSetup && parcelasSetup ? Number(parcelasSetup) : null,
+          data_primeira_parcela_setup: temSetup && dataPrimeiraSetup ? dataPrimeiraSetup : null,
+          meio_pagamento_id: formaId,
+          renova_automaticamente: renovaAuto,
+          alerta_renovacao_dias: Number(alertaDias),
+          permite_valor_variavel: permiteVariavel,
+          resumo_ia: dadosIA?.resumo_ia ?? null,
+          clausulas_extraidas: dadosIA ? { documentos_usados: dadosIA } : null,
+          status: "vigente",
+        })
+        .select("id")
+        .single();
+
+      if (errC) throw new Error(errC.message);
+
+      await (supabase as any).rpc("gerar_parcelas_pasta_contrato", {
+        p_contrato_id: contrato.id,
+      });
+
+      const { data: qtdCprs } = await (supabase as any).rpc(
+        "fn_gerar_cprs_de_contrato",
+        { p_contrato_id: contrato.id }
+      );
+
+      toast({
+        title: "Contrato criado",
+        description: `${qtdCprs ?? 0} despesas lançadas em Contas a Pagar com status Aprovado.`,
+      });
+
+      onSucesso();
+      onOpenChange(false);
+      resetar();
+    } catch (err) {
+      toast({
+        title: "Erro ao salvar",
+        description: err instanceof Error ? err.message : "Erro inesperado",
+        variant: "destructive",
+      });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetar(); }}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Novo Contrato</DialogTitle>
+          <DialogDescription>
+            {etapa === 1 && "Selecione o parceiro do contrato"}
+            {etapa === 2 && "Faça upload do documento — a IA extrai os dados automaticamente"}
+            {etapa === 3 && "Verifique e confirme os dados do contrato"}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Indicador de etapas */}
+        <div className="flex items-center gap-2 text-xs">
+          {[
+            { n: 1, label: "Parceiro" },
+            { n: 2, label: "Documento" },
+            { n: 3, label: "Confirmar" },
+          ].map((s, i) => (
+            <div key={s.n} className="flex items-center gap-2">
+              {i > 0 && <span className="text-slate-300">›</span>}
+              <span
+                className={
+                  etapa === s.n
+                    ? "font-semibold text-emerald-700"
+                    : etapa > s.n
+                    ? "text-emerald-600"
+                    : "text-slate-400"
+                }
+              >
+                {s.n}. {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Etapa 1 — Parceiro */}
+        {etapa === 1 && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Parceiro *</label>
+              <Input
+                placeholder="Buscar por nome ou CNPJ..."
+                value={buscaParceiro}
+                onChange={(e) => setBuscaParceiro(e.target.value)}
+              />
+              <div className="border rounded-md max-h-72 overflow-y-auto divide-y">
+                {parceirosFiltrados.length === 0 && (
+                  <div className="p-4 text-sm text-slate-500">
+                    Nenhum parceiro encontrado. Cadastre em Parceiros Comerciais primeiro.
+                  </div>
+                )}
+                {parceirosFiltrados.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => setParceiroId(p.id)}
+                    className={`px-3 py-2.5 cursor-pointer text-sm hover:bg-muted/50 ${
+                      parceiroId === p.id ? "bg-emerald-50 border-l-2 border-l-emerald-500" : ""
+                    }`}
+                  >
+                    <p className="font-medium">{p.razao_social}</p>
+                    {p.cnpj && <p className="text-xs text-slate-500">{p.cnpj}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button
+                onClick={() => setEtapa(2)}
+                disabled={!parceiroId}
+                style={{ background: VERDE }}
+                className="text-white"
+              >
+                Próximo
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {/* Etapa 2 — Upload */}
+        {etapa === 2 && (
+          <div className="space-y-4">
+            <div
+              className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/30"
+              onClick={() => document.getElementById("upload-contrato-novo")?.click()}
+            >
+              <input
+                id="upload-contrato-novo"
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+              />
+              {arquivo ? (
+                <div>
+                  <p className="font-medium text-sm">{arquivo.name}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {(arquivo.size / 1024).toFixed(0)} KB — clique para trocar
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                  <p className="text-sm font-medium">Clique para selecionar o PDF do contrato</p>
+                  <p className="text-xs text-slate-500 mt-1">A IA analisa e preenche os dados automaticamente</p>
+                </div>
+              )}
+            </div>
+            {processandoIA && (
+              <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Analisando documento com IA...
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEtapa(1)} disabled={processandoIA}>Voltar</Button>
+              <Button
+                onClick={processarUploadEIA}
+                disabled={!arquivo || processandoIA}
+                style={{ background: VERDE }}
+                className="text-white"
+              >
+                {processandoIA ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processando...</>
+                ) : (
+                  "Processar com IA"
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {/* Etapa 3 — Formulário */}
+        {etapa === 3 && (
+          <div className="space-y-4">
+            {dadosIA?.confianca === "baixa" && (
+              <div className="rounded-md bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">
+                ⚠️ IA com baixa confiança — verifique os dados antes de confirmar.
+              </div>
+            )}
+            {dadosIA?.resumo_ia && (
+              <div className="rounded-md bg-slate-50 border p-2.5 text-xs text-slate-600">
+                {dadosIA.resumo_ia}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Número *</label>
+                <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="CTR-2026-001" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Tipo de Contrato</label>
+                <Select
+                  value={tipoContratoId ?? "__none__"}
+                  onValueChange={(v) => setTipoContratoId(v === "__none__" ? null : v)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem tipo</SelectItem>
+                    {tiposContrato.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Data Assinatura</label>
+                <Input type="date" value={dataAssinatura} onChange={(e) => setDataAssinatura(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Vigência Início *</label>
+                <Input type="date" value={vigenciaInicio} onChange={(e) => setVigenciaInicio(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Vigência Fim</label>
+                <Input type="date" value={vigenciaFim} onChange={(e) => setVigenciaFim(e.target.value)} placeholder="Sem fim" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Ciclo</label>
+                <Select value={ciclo} onValueChange={setCiclo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unico">Único</SelectItem>
+                    <SelectItem value="mensal">Mensal</SelectItem>
+                    <SelectItem value="trimestral">Trimestral</SelectItem>
+                    <SelectItem value="semestral">Semestral</SelectItem>
+                    <SelectItem value="anual">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Valor da Parcela *</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={valorParcela}
+                  onChange={(e) => setValorParcela(e.target.value)}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Nº de Parcelas</label>
+                <Input
+                  type="number"
+                  value={numParcelas}
+                  onChange={(e) => setNumParcelas(e.target.value)}
+                  placeholder="Deixe vazio = sem fim"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium">1ª Parcela *</label>
+                <Input type="date" value={dataPrimeiraParcela} onChange={(e) => setDataPrimeiraParcela(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Dia de Vencimento</label>
+                <Input type="number" value={diaVenc} onChange={(e) => setDiaVenc(e.target.value)} min="1" max="28" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Forma de Pagamento</label>
+                <Select
+                  value={formaId ?? "__none__"}
+                  onValueChange={(v) => setFormaId(v === "__none__" ? null : v)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Não definido</SelectItem>
+                    {formasPagamento.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="border rounded-md p-3 space-y-3">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  checked={temSetup}
+                  onChange={(e) => setTemSetup(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Tem taxa de setup
+              </label>
+              {temSetup && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Valor Setup</label>
+                    <Input type="number" step="0.01" value={valorSetup} onChange={(e) => setValorSetup(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Parcelas Setup</label>
+                    <Input type="number" value={parcelasSetup} onChange={(e) => setParcelasSetup(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">1ª Parcela Setup</label>
+                    <Input type="date" value={dataPrimeiraSetup} onChange={(e) => setDataPrimeiraSetup(e.target.value)} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={renovaAuto}
+                  onChange={(e) => setRenovaAuto(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Renova automaticamente
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={permiteVariavel}
+                  onChange={(e) => setPermiteVariavel(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                SaaS (valor variável)
+              </label>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEtapa(2)} disabled={salvando}>Voltar</Button>
+              <Button
+                onClick={salvar}
+                disabled={salvando}
+                style={{ background: VERDE }}
+                className="text-white"
+              >
+                {salvando ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
+                ) : (
+                  "Salvar e gerar despesas"
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
