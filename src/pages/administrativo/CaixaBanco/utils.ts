@@ -32,6 +32,7 @@ export type Lancamento = {
   nf_stage_id?: string | null;
   data_enviada_para_pagamento: string | null;
   conta_pagar_id: string | null;
+  conta_bancaria_nome: string | null;
 };
 
 export type ContaBancariaLite = {
