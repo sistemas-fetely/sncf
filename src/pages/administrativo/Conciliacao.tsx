@@ -56,6 +56,8 @@ type CPRCandidato = {
   descricao: string;
   data_vencimento: string;
   valor: number;
+  parcela_atual?: number | null;
+  parcelas?: number | null;
 };
 
 // ─── ItemOperador ─────────────────────────────────────────────────────────
