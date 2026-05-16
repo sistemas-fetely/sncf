@@ -25,10 +25,7 @@ import * as XLSX from "xlsx";
 type ContaBancaria = { id: string; nome_exibicao: string };
 
 type ResultadoProcessamento = {
-  conciliado_auto: number;
-  aguardando_operador: number;
-  sem_cpr: number;
-  sem_parceiro: number;
+  total_importadas: number;
 };
 
 async function gerarHashItau(fields: {
@@ -202,24 +199,9 @@ export function ImportadorItauPagamentos() {
         }
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: proc, error: errProc } = await (supabase as any).rpc(
-        "processar_itau_pagamentos",
-        { p_importacao_id: imp.id }
-      );
-      if (errProc || !proc?.ok) {
-        toast.error("Erro no processamento: " + (errProc?.message ?? proc?.erro));
-        return;
-      }
+      setResultado({ total_importadas: dadosLinhas.length });
 
-      setResultado({
-        conciliado_auto: proc.conciliado_auto ?? 0,
-        aguardando_operador: proc.aguardando_operador ?? 0,
-        sem_cpr: proc.sem_cpr ?? 0,
-        sem_parceiro: proc.sem_parceiro ?? 0,
-      });
-
-      toast.success(`${dadosLinhas.length} pagamentos importados e processados`);
+      toast.success(`${dadosLinhas.length} pagamento(s) importado(s)`);
       qc.invalidateQueries({ queryKey: ["itau-importacoes"] });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
@@ -283,22 +265,19 @@ export function ImportadorItauPagamentos() {
         </div>
 
         {resultado && (
-          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t">
+          <div className="space-y-2 text-xs pt-2 border-t">
             <div className="flex items-center gap-1.5 text-success">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Auto: <span className="font-semibold">{resultado.conciliado_auto}</span>
+              <span className="font-semibold">
+                {resultado.total_importadas} linha(s) importada(s)
+              </span>
             </div>
-            <div className="flex items-center gap-1.5 text-warning">
-              <AlertCircle className="h-3.5 w-3.5" />
-              Operador: <span className="font-semibold">{resultado.aguardando_operador}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <AlertCircle className="h-3.5 w-3.5" />
-              Sem CPR: <span className="font-semibold">{resultado.sem_cpr}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <AlertCircle className="h-3.5 w-3.5" />
-              Sem parceiro: <span className="font-semibold">{resultado.sem_parceiro}</span>
+            <div className="text-muted-foreground">
+              Próximo passo: ir para{" "}
+              <a href="/administrativo/conciliacao/stage-1" className="underline font-medium">
+                Conciliação → Stage 1
+              </a>{" "}
+              e vincular cada linha à movimentação correspondente.
             </div>
           </div>
         )}
