@@ -427,9 +427,12 @@ export default function CaixaBanco() {
     const aPagar: Lancamento[] = [];
     const realizado: Lancamento[] = [];
     for (const l of filteredGlobal) {
-      const sv = statusVisual(l);
-      if (sv === "enviado_para_pagamento") aPagar.push(l);
-      else if (sv === "enviado_para_pagamento") realizado.push(l);
+      const jaPago =
+        !!l.movimentacao_bancaria_id ||
+        l.status_caixa === "pago" ||
+        l.status_caixa === "conciliado";
+      if (jaPago) realizado.push(l);
+      else aPagar.push(l);
     }
     return { listaAPagar: aPagar, listaRealizado: realizado };
   }, [filteredGlobal]);
