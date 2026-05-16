@@ -11822,6 +11822,7 @@ export type Database = {
           valor: number
         }[]
       }
+      apontar_matches_stage_2: { Args: { p_ofx_id: string }; Returns: Json }
       aprender_regra_de_classificacao: {
         Args: { p_stage_id: string; p_user_id?: string }
         Returns: Json
@@ -12823,6 +12824,10 @@ export type Database = {
       }
       vincular_stage_1: {
         Args: { p_movimentacao_id: string; p_planilha_id: string }
+        Returns: Json
+      }
+      vincular_stage_2: {
+        Args: { p_ofx_id: string; p_planilha_ids: string[] }
         Returns: Json
       }
     }
