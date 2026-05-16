@@ -27,8 +27,7 @@ export default function Conciliacao() {
       const { count } = await sb
         .from("ofx_transacoes_stage")
         .select("id", { count: "exact", head: true })
-        .eq("status", "pendente")
-        .lt("valor", 0);
+        .eq("status", "pendente");
       return count ?? 0;
     },
   });
