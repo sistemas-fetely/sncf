@@ -718,7 +718,7 @@ export default function Conciliacao() {
                           Categorize e aprove lá, depois clique <strong>Re-processar</strong>.
                         </p>
                       )}
-                      {todosOsPendentes.map((p) => {
+                      {pendentesOrdenados.map((p) => {
                         const statusLabel =
                           p.status_conciliacao === "aguardando_operador" ? "Selecionar CPR" :
                           p.status_conciliacao === "sem_cnpj"            ? "Sem CNPJ" :
