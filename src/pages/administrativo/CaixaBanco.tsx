@@ -819,7 +819,7 @@ export default function CaixaBanco() {
                     <SortableTableHead column="vencimento" sort={sort} onSort={setSort}>Vencimento</SortableTableHead>
                     <SortableTableHead column="pago_em" sort={sort} onSort={setSort}>Pago em</SortableTableHead>
                     <TableHead>Categoria</TableHead>
-                    <TableHead>Forma PG</TableHead>
+                    <TableHead>Meio de Pagamento</TableHead>
                     <SortableTableHead column="valor" sort={sort} onSort={setSort} align="right" className="text-right">Valor</SortableTableHead>
                     <TableHead>Tags</TableHead>
                   </TableRow>
@@ -833,7 +833,8 @@ export default function CaixaBanco() {
                       l.status_caixa === "conciliado";
                     const atrasada = isAtrasada(l);
                     const dias = diasAtraso(l);
-                    const formaNome = l.forma_pagamento_id && mapFormas[l.forma_pagamento_id];
+                    const meioId = cprMeioMap?.[l.id];
+                    const formaNome = meioId ? mapMeios[meioId] : null;
                     const categoriaNome = l.categoria_id && mapCategorias[l.categoria_id];
                     const flags = statusFlagsMap.get(l.id);
                     const remessa = contadorMap?.get(l.id);
