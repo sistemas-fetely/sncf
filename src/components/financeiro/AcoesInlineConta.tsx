@@ -105,7 +105,7 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
 
   const estadoMov: EstadoIcone =
     temMov ? "feito"
-    : (status === "aprovado" || status === "enviado_para_pagamento") ? "pendente"
+    : status === "aprovado" ? "pendente"
     : "na";
 
   async function handleAprovar() {
