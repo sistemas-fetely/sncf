@@ -222,15 +222,7 @@ export default function CaixaBanco() {
     },
   });
 
-  // Meios de Pagamento (dimensão silenciosa: a_vista, parcelado_fornecedor, fatura_cartao, recorrente, nascida_paga)
-  const { data: meiosPagamento } = useQuery({
-    queryKey: ["meios-pagamento-lite"],
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any).from("meios_pagamento").select("id, nome");
-      return (data || []) as { id: string; nome: string }[];
-    },
-  });
+  // (meios_pagamento é dimensão silenciosa — não exibida ao operador)
 
   const { data: parceiros } = useQuery({
     queryKey: ["parceiros-lite"],
