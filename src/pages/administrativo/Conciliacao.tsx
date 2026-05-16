@@ -506,12 +506,11 @@ export default function Conciliacao() {
     ? ofxPendentes.filter((o) => o.descricao.toLowerCase().includes(filtroOFX.toLowerCase()))
     : ofxPendentes;
 
-  const pendentesTotal = auto.length + operador.length + semCpr.length + semParc.length + cprCriada.length;
-  const defaultSubTab = auto.length > 0 ? "auto"
-    : operador.length > 0 ? "operador"
-    : semCpr.length > 0 ? "semcpr"
-    : semParc.length > 0 ? "semparc"
-    : "concluido";
+  const pendentesReais = operador.length + semCpr.length + semParc.length + cprCriada.length;
+  const pendentesTotal = pendentesReais; // auto vai para Concluídos
+  const defaultSubTab = pendentesReais > 0 ? "pendentes" : "concluidos";
+  const todosOsPendentes = [...operador, ...semCpr, ...semParc, ...cprCriada];
+  const todosOsConcluidos = [...auto, ...concluidos];
 
   // ─── Render ────────────────────────────────────────────────────────────
 
