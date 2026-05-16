@@ -153,6 +153,7 @@ export default function Conciliacao() {
   const [pagParaCadastrar, setPagParaCadastrar] = useState<Pagamento | null>(null);
   const [buscarCPRPag, setBuscarCPRPag] = useState<Pagamento | null>(null);
   const [vincularOFXPag, setVincularOFXPag] = useState<Pagamento | null>(null);
+  const [ordemPendentes, setOrdemPendentes] = useState<"data" | "nome" | "valor">("data");
 
   const { data: candidatosOFX = [] } = useQuery({
     queryKey: ["ofx-candidatos-vinculo", vincularOFXPag?.id, contaBancariaId],
@@ -562,6 +563,17 @@ export default function Conciliacao() {
   const pendentesTotal = pendentesReais; // auto vai para Concluídos
   const defaultSubTab = pendentesReais > 0 ? "pendentes" : "concluidos";
   const todosOsPendentes = [...operador, ...semCpr, ...semParc, ...cprCriada];
+  const pendentesOrdenados = [...todosOsPendentes].sort((a, b) => {
+    if (ordemPendentes === "nome") {
+      return (a.nome_favorecido ?? "").localeCompare(b.nome_favorecido ?? "", "pt-BR");
+    }
+    if (ordemPendentes === "valor") {
+      return (b.valor_pago ?? 0) - (a.valor_pago ?? 0);
+    }
+    const da = a.data_pagamento ?? "";
+    const db = b.data_pagamento ?? "";
+    return db.localeCompare(da);
+  });
   const todosOsConcluidos = [...auto, ...concluidos];
   const aguardandoOFX = todosOsConcluidos.filter(
     (p) => !p.movimentacao_id && p.status_conciliacao !== "ignorado" && !!p.conta_pagar_id
@@ -675,6 +687,25 @@ export default function Conciliacao() {
 
                 {/* ── Pendentes ── */}
                 <TabsContent value="pendentes" className="space-y-2">
+                  {todosOsPendentes.length > 1 && (
+                    <div className="flex items-center gap-1 pb-1">
+                      <span className="text-[10px] text-muted-foreground mr-1">Ordenar:</span>
+                      {(["data", "nome", "valor"] as const).map((op) => (
+                        <button
+                          key={op}
+                          type="button"
+                          onClick={() => setOrdemPendentes(op)}
+                          className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
+                            ordemPendentes === op
+                              ? "bg-foreground text-background border-foreground"
+                              : "border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {op === "data" ? "Data" : op === "nome" ? "Tomador" : "Valor"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {todosOsPendentes.length === 0 ? (
                     <p className="text-xs text-muted-foreground p-3 text-center">
                       ✓ Nenhum item pendente. Tudo resolvido!
