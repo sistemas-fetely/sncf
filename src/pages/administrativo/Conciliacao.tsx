@@ -157,19 +157,24 @@ export default function Conciliacao() {
   });
 
   const { data: movsElegiveis } = useQuery({
-    queryKey: ["movs-elegiveis-multi"],
+    queryKey: ["movs-elegiveis-multi", multiVinculoAberto?.planilha_id],
     enabled: !!multiVinculoAberto,
     queryFn: async () => {
-      const { data } = await sb
+      const { data, error } = await sb
         .from("movimentacoes_bancarias")
         .select(`
-          id, descricao, valor, data_transacao, conta_pagar_id, itau_planilha_id,
+          id,
+          descricao,
+          valor,
+          data_transacao,
+          conta_pagar_id,
           contas_pagar_receber:conta_pagar_id(descricao, fornecedor_cliente)
         `)
         .is("pg_em", null)
         .eq("tipo", "debito")
         .order("data_transacao", { ascending: false });
-      return ((data || []) as any[]).filter((m) => !m.itau_planilha_id) as Array<{
+      if (error) throw error;
+      return (data || []) as Array<{
         id: string;
         descricao: string | null;
         valor: number;
