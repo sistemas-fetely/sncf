@@ -412,7 +412,11 @@ export default function Conciliacao() {
                 return (
                   <div
                     key={item.planilha_id}
-                    className={`rounded-lg border bg-card p-3 transition-colors ${corNivel(item.mov_sugerida?.nivel)}`}
+                    className={`rounded-lg border bg-card p-3 transition-colors ${
+                      item.tipo === "parcialmente_conciliado"
+                        ? "border-l-4 border-l-blue-500 bg-blue-50/20"
+                        : corNivel(item.mov_sugerida?.nivel)
+                    }`}
                   >
                     <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1.5fr_1.5fr_auto] gap-3 items-center">
                       {/* Planilha */}
