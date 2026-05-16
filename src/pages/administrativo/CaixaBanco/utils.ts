@@ -33,6 +33,7 @@ export type Lancamento = {
   data_enviada_para_pagamento: string | null;
   meio_pagamento_id: string | null;
   conta_pagar_id: string | null;
+  conta_bancaria_nome: string | null;
 };
 
 export type ContaBancariaLite = {

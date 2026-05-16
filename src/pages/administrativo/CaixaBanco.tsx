@@ -798,6 +798,7 @@ export default function CaixaBanco() {
                     <SortableTableHead column="descricao" sort={sort} onSort={setSort}>Descrição</SortableTableHead>
                     <SortableTableHead column="vencimento" sort={sort} onSort={setSort}>Vencimento</SortableTableHead>
                     <TableHead>Enviado em</TableHead>
+                    <TableHead>Conta</TableHead>
                     <SortableTableHead column="pago_em" sort={sort} onSort={setSort}>Pago em</SortableTableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Meio de Pagamento</TableHead>
@@ -884,6 +885,14 @@ export default function CaixaBanco() {
                         <TableCell className="whitespace-nowrap text-xs">
                           {l.data_enviada_para_pagamento ? (
                             formatDateBR(l.data_enviada_para_pagamento)
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="whitespace-nowrap">
+                          {l.conta_bancaria_nome ? (
+                            <span className="text-xs">{l.conta_bancaria_nome}</span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
