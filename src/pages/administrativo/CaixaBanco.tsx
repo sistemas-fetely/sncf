@@ -222,7 +222,15 @@ export default function CaixaBanco() {
     },
   });
 
-  // (meios_pagamento é dimensão silenciosa — não exibida ao operador)
+  const { data: meiosPagamento } = useQuery({
+    queryKey: ["meios-pagamento-lite"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("meios_pagamento")
+        .select("id, nome, codigo");
+      return (data || []) as Array<{ id: string; nome: string; codigo: string }>;
+    },
+  });
 
   const { data: parceiros } = useQuery({
     queryKey: ["parceiros-lite"],
@@ -387,6 +395,12 @@ export default function CaixaBanco() {
     (formasPagamento || []).forEach((f) => (m[f.id] = f.nome));
     return m;
   }, [formasPagamento]);
+
+  const mapMeios = useMemo(() => {
+    const m: Record<string, string> = {};
+    (meiosPagamento || []).forEach((mp) => (m[mp.id] = mp.nome));
+    return m;
+  }, [meiosPagamento]);
 
   const mapParceiros = useMemo(() => {
     const m: Record<string, string> = {};
@@ -786,7 +800,7 @@ export default function CaixaBanco() {
                     <TableHead>Enviado em</TableHead>
                     <SortableTableHead column="pago_em" sort={sort} onSort={setSort}>Pago em</SortableTableHead>
                     <TableHead>Categoria</TableHead>
-                    <TableHead>Forma de Pagamento</TableHead>
+                    <TableHead>Meio de Pagamento</TableHead>
                     <SortableTableHead column="valor" sort={sort} onSort={setSort} align="right" className="text-right">Valor</SortableTableHead>
                     <TableHead>Tags</TableHead>
                   </TableRow>
@@ -800,8 +814,8 @@ export default function CaixaBanco() {
                       l.status_caixa === "conciliado";
                     const atrasada = isAtrasada(l);
                     const dias = diasAtraso(l);
-                    const formaId = l.forma_pagamento_id;
-                    const formaNome = formaId ? mapFormas[formaId] : null;
+                    const formaId = l.meio_pagamento_id;
+                    const formaNome = formaId ? mapMeios[formaId] : null;
                     const categoriaNome = l.categoria_id && mapCategorias[l.categoria_id];
                     const flags = statusFlagsMap.get(l.id);
                     const remessa = contadorMap?.get(l.id);
