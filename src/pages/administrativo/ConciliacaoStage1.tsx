@@ -246,7 +246,7 @@ export default function ConciliacaoStage1() {
           </div>
 
           <div className="space-y-2">
-            {linhas.map((l) => {
+            {linhasOrdenadas.map((l) => {
               const s = l.sugestao;
               const sugereAuto = !!s?.pode_auto_sugerir;
               const temCandidatos = (s?.qtd_total ?? 0) > 0 && !sugereAuto;
@@ -256,7 +256,11 @@ export default function ConciliacaoStage1() {
                 <div
                   key={l.id}
                   className={`p-4 border rounded-md transition-colors ${
-                    sugereAuto ? "bg-emerald-50/30 hover:bg-emerald-50/50" : "bg-card hover:bg-accent/30"
+                    sugereAuto
+                      ? "border-emerald-200 bg-emerald-50/30 border-l-4 border-l-emerald-500"
+                      : temCandidatos
+                      ? "border-l-4 border-l-amber-400 bg-card hover:bg-accent/30"
+                      : "bg-card hover:bg-accent/30"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-4">
