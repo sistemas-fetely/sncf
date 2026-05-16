@@ -8794,6 +8794,76 @@ export type Database = {
           },
         ]
       }
+      regras_automaticas_ofx: {
+        Row: {
+          ativa: boolean
+          categoria_id: string
+          conta_bancaria_id: string | null
+          created_at: string
+          criado_por: string | null
+          descricao_override: string | null
+          id: string
+          nome: string
+          padrao_descricao: string
+          parceiro_id: string | null
+          tipo_transacao: string
+          updated_at: string
+          valor_exato: number | null
+        }
+        Insert: {
+          ativa?: boolean
+          categoria_id: string
+          conta_bancaria_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao_override?: string | null
+          id?: string
+          nome: string
+          padrao_descricao: string
+          parceiro_id?: string | null
+          tipo_transacao: string
+          updated_at?: string
+          valor_exato?: number | null
+        }
+        Update: {
+          ativa?: boolean
+          categoria_id?: string
+          conta_bancaria_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao_override?: string | null
+          id?: string
+          nome?: string
+          padrao_descricao?: string
+          parceiro_id?: string | null
+          tipo_transacao?: string
+          updated_at?: string
+          valor_exato?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regras_automaticas_ofx_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regras_automaticas_ofx_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regras_automaticas_ofx_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regras_categorizacao: {
         Row: {
           aprendida_automaticamente: boolean
@@ -11774,6 +11844,10 @@ export type Database = {
         Returns: Json
       }
       aplicar_ia_categoria_em_massa: { Args: never; Returns: Json }
+      aplicar_regras_automaticas_ofx: {
+        Args: { p_conta_bancaria_id: string; p_user_id?: string }
+        Returns: Json
+      }
       aplicar_regras_categorizacao_stage: {
         Args: { p_stage_id: string }
         Returns: Json
