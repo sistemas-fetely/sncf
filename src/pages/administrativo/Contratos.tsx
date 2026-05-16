@@ -715,7 +715,301 @@ export default function Contratos() {
           queryClient.invalidateQueries({ queryKey: ["parcelas-dashboard"] });
         }}
       />
+
+      <ContratoDetalheDrawer
+        contrato={contratoDetalhes}
+        onClose={() => setContratoDetalhes(null)}
+      />
     </div>
+  );
+}
+
+// ─── Contrato Detalhe Drawer ───────────────────────────────────────
+function ContratoDetalheDrawer({
+  contrato,
+  onClose,
+}: {
+  contrato: ContratoListagem | null;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [novaExtraOpen, setNovaExtraOpen] = useState(false);
+  const [descricaoExtra, setDescricaoExtra] = useState("");
+  const [valorExtra, setValorExtra] = useState("");
+  const [dataExtra, setDataExtra] = useState(new Date().toISOString().split("T")[0]);
+  const [meioExtraId, setMeioExtraId] = useState<string | null>(null);
+  const [salvandoExtra, setSalvandoExtra] = useState(false);
+
+  const { data: parcelas = [] } = useQuery({
+    queryKey: ["contrato-parcelas", contrato?.id],
+    enabled: !!contrato?.id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("pasta_contrato_parcelas")
+        .select("id, origem, numero_parcela, total_parcelas, data_vencimento, valor, status, conta_pagar_id")
+        .eq("contrato_id", contrato!.id)
+        .order("data_vencimento");
+      return data || [];
+    },
+  });
+
+  const { data: cprs = [] } = useQuery({
+    queryKey: ["contrato-cprs", contrato?.id],
+    enabled: !!contrato?.id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("contas_pagar_receber")
+        .select("id, descricao, valor, data_vencimento, status, pasta_contrato_parcela_id, pago_em")
+        .eq("pasta_contrato_id", contrato!.id)
+        .is("deleted_at", null)
+        .order("data_vencimento");
+      return data || [];
+    },
+  });
+
+  const { data: meios = [] } = useQuery({
+    queryKey: ["meios-pagamento-extra"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("meios_pagamento")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("ordem");
+      return data || [];
+    },
+  });
+
+  const cprsExtras = cprs.filter((c: any) => !c.pasta_contrato_parcela_id);
+  const totalComprometido = parcelas.reduce((s: number, p: any) => s + Number(p.valor), 0);
+  const totalPago = cprs
+    .filter((c: any) => c.status === "enviado_para_pagamento")
+    .reduce((s: number, c: any) => s + Number(c.valor), 0);
+  const totalExtras = cprsExtras.reduce((s: number, c: any) => s + Number(c.valor), 0);
+  const cprMap = new Map(cprs.map((c: any) => [c.pasta_contrato_parcela_id, c]));
+
+  function statusCPRBadge(status: string) {
+    const cls: Record<string, string> = {
+      aprovado: "bg-blue-100 text-blue-800 border-blue-300",
+      enviado_para_pagamento: "bg-amber-100 text-amber-800 border-amber-300",
+      cancelado: "bg-slate-100 text-slate-500 border-slate-300",
+      aberto: "bg-slate-100 text-slate-700 border-slate-300",
+    };
+    const label: Record<string, string> = {
+      aprovado: "Aprovado",
+      enviado_para_pagamento: "Pago",
+      cancelado: "Cancelado",
+      aberto: "Aberto",
+    };
+    return (
+      <Badge variant="outline" className={cls[status] ?? "bg-slate-100 text-slate-700 border-slate-300"}>
+        {label[status] ?? status}
+      </Badge>
+    );
+  }
+
+  async function salvarExtra() {
+    if (!descricaoExtra.trim() || !valorExtra || !meioExtraId) {
+      toast({ title: "Preencha descrição, valor e meio de pagamento", variant: "destructive" });
+      return;
+    }
+    setSalvandoExtra(true);
+    try {
+      await (supabase as any).from("contas_pagar_receber").insert({
+        descricao: descricaoExtra.trim(),
+        valor: Number(valorExtra),
+        data_vencimento: dataExtra,
+        status: "aprovado",
+        tipo: "despesa",
+        origem: "contrato_extra",
+        parceiro_id: null,
+        meio_pagamento_id: meioExtraId,
+        pasta_contrato_id: contrato!.id,
+        nf_aplicavel: true,
+        aprovado_em: new Date().toISOString(),
+      });
+      toast({ title: "Despesa extra lançada", description: "Vinculada ao contrato com status Aprovado." });
+      setNovaExtraOpen(false);
+      setDescricaoExtra("");
+      setValorExtra("");
+      qc.invalidateQueries({ queryKey: ["contrato-cprs", contrato?.id] });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setSalvandoExtra(false);
+    }
+  }
+
+  if (!contrato) return null;
+
+  return (
+    <Sheet open={!!contrato} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{contrato.numero}</SheetTitle>
+          <SheetDescription>
+            {contrato.pasta_nome}
+            {contrato.parceiro_nome && ` · ${contrato.parceiro_nome}`}
+          </SheetDescription>
+        </SheetHeader>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-3 gap-3 mt-6">
+          <div className="rounded-lg border p-3">
+            <p className="text-xs text-muted-foreground">Comprometido</p>
+            <p className="text-lg font-semibold">{formatBRL(totalComprometido)}</p>
+            <p className="text-xs text-muted-foreground">parcelas geradas</p>
+          </div>
+          <div className="rounded-lg border p-3">
+            <p className="text-xs text-muted-foreground">Pago</p>
+            <p className="text-lg font-semibold">{formatBRL(totalPago)}</p>
+            <p className="text-xs text-muted-foreground">enviado p/ pagamento</p>
+          </div>
+          <div className="rounded-lg border p-3">
+            <p className="text-xs text-muted-foreground">Extras</p>
+            <p className="text-lg font-semibold">{formatBRL(totalExtras)}</p>
+            <p className="text-xs text-muted-foreground">{cprsExtras.length} lançamentos</p>
+          </div>
+        </div>
+
+        {/* Parcelas */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold">Parcelas</h3>
+            <span className="text-xs text-muted-foreground">{parcelas.length} parcelas</span>
+          </div>
+          <div className="space-y-2">
+            {parcelas.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nenhuma parcela gerada.</p>
+            )}
+            {parcelas.map((p: any) => {
+              const cpr = cprMap.get(p.id) as any;
+              return (
+                <div key={p.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                  <div>
+                    <p className="font-medium">
+                      {p.origem === "setup"
+                        ? `Setup ${p.numero_parcela ?? ""}/${p.total_parcelas ?? ""}`
+                        : p.total_parcelas
+                        ? `Parcela ${p.numero_parcela}/${p.total_parcelas}`
+                        : formatDateBR(p.data_vencimento)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{formatDateBR(p.data_vencimento)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs">{formatBRL(p.valor)}</span>
+                    {cpr ? (
+                      statusCPRBadge(cpr.status)
+                    ) : (
+                      <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-300">
+                        Sem CPR
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Extras */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold">Despesas extras</h3>
+            <Button size="sm" variant="outline" onClick={() => setNovaExtraOpen(true)}>
+              <Plus className="h-3 w-3 mr-1" /> Lançar extra
+            </Button>
+          </div>
+
+          {novaExtraOpen && (
+            <div className="rounded-md border p-3 mb-3 bg-slate-50">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="col-span-2">
+                  <Label className="text-xs">Descrição *</Label>
+                  <Input
+                    value={descricaoExtra}
+                    onChange={(e) => setDescricaoExtra(e.target.value)}
+                    placeholder="Ex: Uso excedente de API"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Valor *</Label>
+                  <Input
+                    type="number"
+                    value={valorExtra}
+                    onChange={(e) => setValorExtra(e.target.value)}
+                    placeholder="0,00"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Vencimento *</Label>
+                  <Input
+                    type="date"
+                    value={dataExtra}
+                    onChange={(e) => setDataExtra(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Meio de Pagamento *</Label>
+                  <Select value={meioExtraId ?? ""} onValueChange={setMeioExtraId}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Selecione…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {meios.map((m: any) => (
+                        <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-3">
+                <Button size="sm" variant="ghost" onClick={() => setNovaExtraOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button size="sm" onClick={salvarExtra} disabled={salvandoExtra}>
+                  {salvandoExtra ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {cprsExtras.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nenhuma despesa extra lançada.</p>
+            )}
+            {cprsExtras.map((c: any) => (
+              <div key={c.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                <div>
+                  <p className="font-medium">{c.descricao}</p>
+                  <p className="text-xs text-muted-foreground">{formatDateBR(c.data_vencimento)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs">{formatBRL(c.valor)}</span>
+                  {statusCPRBadge(c.status)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Ações */}
+        <div className="flex justify-between gap-2 mt-6 pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/administrativo-fetely/ged?pasta=${contrato.pasta_id}`)}
+          >
+            <FolderOpen className="h-4 w-4 mr-2" /> Ver no GED
+          </Button>
+          <Button variant="ghost" onClick={onClose}>Fechar</Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
