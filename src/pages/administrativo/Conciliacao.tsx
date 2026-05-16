@@ -84,6 +84,7 @@ export default function Conciliacao() {
   const [criarCPRPlanilha, setCriarCPRPlanilha] = useState<ItemConciliacao | null>(null);
   const [multiVinculoAberto, setMultiVinculoAberto] = useState<ItemConciliacao | null>(null);
   const [movsSelecionadas, setMovsSelecionadas] = useState<string[]>([]);
+  const [parciaisExpandidos, setParciaisExpandidos] = useState<Set<string>>(new Set());
 
   const { data: contas } = useQuery({
     queryKey: ["contas-bancarias-conciliacao"],
@@ -107,6 +108,35 @@ export default function Conciliacao() {
       });
       if (error) throw error;
       return data as RespostaConciliacao;
+    },
+  });
+
+  const { data: movsVinculadasMap } = useQuery({
+    queryKey: ["movs-vinculadas-parciais", Array.from(parciaisExpandidos).sort().join(",")],
+    enabled: parciaisExpandidos.size > 0,
+    queryFn: async () => {
+      const { data } = await sb
+        .from("movimentacoes_bancarias")
+        .select("id, itau_planilha_id, descricao, valor, data_transacao, pg_em")
+        .in("itau_planilha_id", Array.from(parciaisExpandidos))
+        .order("data_transacao", { ascending: true });
+      const map = new Map<
+        string,
+        Array<{
+          id: string;
+          descricao: string;
+          valor: number;
+          data_transacao: string;
+          pg_em: string | null;
+        }>
+      >();
+      (data || []).forEach((m: { itau_planilha_id: string | null; id: string; descricao: string; valor: number; data_transacao: string; pg_em: string | null }) => {
+        if (!m.itau_planilha_id) return;
+        const arr = map.get(m.itau_planilha_id) || [];
+        arr.push({ id: m.id, descricao: m.descricao, valor: m.valor, data_transacao: m.data_transacao, pg_em: m.pg_em });
+        map.set(m.itau_planilha_id, arr);
+      });
+      return map;
     },
   });
 
@@ -519,11 +549,27 @@ export default function Conciliacao() {
                           </Button>
                         )}
                         {item.tipo === "parcialmente_conciliado" && (
-                          <Button size="sm" variant="outline"
-                            className="gap-1 border-blue-300 text-blue-800 hover:bg-blue-50"
-                            onClick={() => { setMultiVinculoAberto(item); setMovsSelecionadas([]); }}>
-                            <Layers className="h-3.5 w-3.5" /> Selecionar movs
-                          </Button>
+                          <>
+                            <Button size="sm" variant="outline"
+                              className="gap-1 border-blue-300 text-blue-800 hover:bg-blue-50"
+                              onClick={() => { setMultiVinculoAberto(item); setMovsSelecionadas([]); }}>
+                              <Layers className="h-3.5 w-3.5" /> Selecionar movs
+                            </Button>
+                            <button
+                              onClick={() => {
+                                const s = new Set(parciaisExpandidos);
+                                if (s.has(item.planilha_id)) s.delete(item.planilha_id);
+                                else s.add(item.planilha_id);
+                                setParciaisExpandidos(s);
+                              }}
+                              className="text-muted-foreground hover:text-foreground p-1"
+                              title="Ver movimentações vinculadas"
+                            >
+                              {parciaisExpandidos.has(item.planilha_id)
+                                ? <ChevronUp className="h-4 w-4" />
+                                : <ChevronDown className="h-4 w-4" />}
+                            </button>
+                          </>
                         )}
                         {item.tipo === "sem_mov" && (
                           <>
@@ -547,6 +593,45 @@ export default function Conciliacao() {
                         )}
                       </div>
                     </div>
+
+                    {item.tipo === "parcialmente_conciliado" && parciaisExpandidos.has(item.planilha_id) && (
+                      <div className="border-t mt-2 pt-2">
+                        {(() => {
+                          const movs = movsVinculadasMap?.get(item.planilha_id) ?? [];
+                          if (movs.length === 0) {
+                            return (
+                              <p className="text-xs text-muted-foreground px-1 py-2">
+                                Nenhuma movimentação vinculada ainda.
+                              </p>
+                            );
+                          }
+                          return (
+                            <div className="divide-y">
+                              {movs.map((m) => (
+                                <div key={m.id} className="flex items-center justify-between gap-4 px-1 py-2 text-xs">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium truncate">{m.descricao || "—"}</p>
+                                    <p className="text-muted-foreground">{formatDateBR(m.data_transacao)}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="font-mono">{formatBRL(m.valor)}</span>
+                                    {m.pg_em ? (
+                                      <Badge variant="outline" className="text-[9px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                                        Conciliado
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-[9px] border-amber-300 text-amber-700 bg-amber-50">
+                                        Aguardando OFX
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
                 );
               })}
