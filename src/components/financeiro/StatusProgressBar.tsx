@@ -14,7 +14,7 @@ const FLOW_PADRAO = [
 // Família B (cartão): pula aprovação e doc pendente — paga via fatura mensal
 const FLOW_CARTAO = [
   { key: "aberto", label: "Aberto" },
-  { key: "enviado_para_pagamento", label: "Aguardando" },
+  { key: "enviado_para_pagamento", label: "Enviado p/ Pagamento" },
   { key: "finalizado", label: "Finalizado" },
 ] as const;
 
