@@ -654,6 +654,9 @@ export default function Conciliacao() {
                         <span className="text-sm text-muted-foreground">{p.data_pagamento ? formatDateBR(p.data_pagamento) : "—"}</span>
                         <span className="text-muted-foreground text-sm">·</span>
                         <span className="font-mono font-semibold text-sm">{formatBRL(p.valor_pago)}</span>
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => setBuscarCPRPag(p)}>
+                          <Search className="h-3.5 w-3.5" /> Vincular CPR
+                        </Button>
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => criarDespesaMutation.mutate(p)}>
                           <Plus className="h-3.5 w-3.5" /> Criar Despesa
                         </Button>
