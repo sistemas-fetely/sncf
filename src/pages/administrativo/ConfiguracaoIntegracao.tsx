@@ -218,25 +218,25 @@ export default function ConfiguracaoIntegracao() {
     qc.invalidateQueries({ queryKey: ["integracao-bling"] });
   }
 
-  async function sincronizar(tipo: "contas_receber" | "pedidos" | "produtos") {
-    setSyncing(tipo);
+  async function sincronizar(entidade: EntidadeBling) {
+    setSyncing(entidade);
     setSyncResult(null);
-    const { data, error } = await supabase.functions.invoke("sync-bling-financeiro", {
-      body: { tipo },
-    });
-    setSyncing(null);
-    if (error) {
-      toast.error("Falha: " + error.message);
-      return;
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-bling-financeiro", {
+        body: { tipo: "sync", entidades: [entidade] },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.sucesso === false) throw new Error(data.erro || "Erro");
+      setSyncResult(data);
+      toast.success(`Sync ${entidade}: ${data?.criados || 0} novos, ${data?.atualizados || 0} atualizados${data?.continuar ? " (continua)" : ""}`);
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message || String(e)));
+    } finally {
+      setSyncing(null);
+      qc.invalidateQueries({ queryKey: ["integracao-bling"] });
+      qc.invalidateQueries({ queryKey: ["integracao-bling-logs"] });
+      qc.invalidateQueries({ queryKey: ["integracao-bling-cursores"] });
     }
-    if (data?.sucesso === false) {
-      toast.error(data.erro || "Erro desconhecido");
-      return;
-    }
-    setSyncResult(data);
-    toast.success(`Sync concluída: ${data?.criados || 0} novos, ${data?.atualizados || 0} atualizados`);
-    qc.invalidateQueries({ queryKey: ["integracao-bling"] });
-    qc.invalidateQueries({ queryKey: ["integracao-bling-logs"] });
   }
 
   async function testarConexao() {
@@ -247,7 +247,7 @@ export default function ConfiguracaoIntegracao() {
       });
       if (error) throw new Error(error.message);
       if (data?.sucesso === false) throw new Error(data.erro || "Erro");
-      toast.success("Conexão OK: " + (data?.mensagem || "Edge Function ativa"));
+      toast.success("Conexão OK: " + (data?.mensagem || "Edge ativa"));
     } catch (e: any) {
       toast.error("Falha: " + (e?.message || String(e)));
     } finally {
@@ -258,33 +258,28 @@ export default function ConfiguracaoIntegracao() {
   async function handleSyncFull() {
     setSyncing("full");
     setSyncResult(null);
-    let totalCriados = 0;
-    let totalAtualizados = 0;
-    let totalErros = 0;
-    const detalhes: string[] = [];
     const startTime = Date.now();
-
-    const etapas: Array<{ tipo: "contas_receber" | "pedidos" | "produtos"; label: string }> = [
-      { tipo: "contas_receber", label: "contas a receber" },
-      { tipo: "pedidos", label: "pedidos de venda" },
-      { tipo: "produtos", label: "produtos" },
-    ];
-
     try {
-      for (const etapa of etapas) {
-        toast.info(`Sincronizando ${etapa.label}...`);
+      // Server processa as 5 entidades em ordem (contatos → produtos → contas_receber → pedidos → nfe).
+      // Se algo não finalizar em 120s, voltamos a chamar com `continuar=true`.
+      let continuar = true;
+      let totalCriados = 0, totalAtualizados = 0, totalErros = 0;
+      const detalhes: string[] = [];
+      let tentativas = 0;
+
+      while (continuar && tentativas < 6) {
+        tentativas++;
         const { data, error } = await supabase.functions.invoke("sync-bling-financeiro", {
-          body: { tipo: etapa.tipo },
+          body: { tipo: "sync" },
         });
         if (error) throw new Error(error.message);
-        if (data?.sucesso === false) throw new Error(data.erro || "Erro desconhecido");
-        if (data) {
-          totalCriados += data.criados || 0;
-          totalAtualizados += data.atualizados || 0;
-          totalErros += data.erros || 0;
-          if (data.detalhes) detalhes.push(data.detalhes);
-        }
-        qc.invalidateQueries({ queryKey: ["integracao-bling-logs"] });
+        if (data?.sucesso === false) throw new Error(data.erro || "Erro");
+        totalCriados += data?.criados || 0;
+        totalAtualizados += data?.atualizados || 0;
+        totalErros += data?.erros || 0;
+        if (data?.detalhes) detalhes.push(data.detalhes);
+        continuar = !!data?.continuar;
+        qc.invalidateQueries({ queryKey: ["integracao-bling-cursores"] });
       }
 
       setSyncResult({
@@ -294,14 +289,37 @@ export default function ConfiguracaoIntegracao() {
         detalhes: detalhes.join(" | "),
         duracao_ms: Date.now() - startTime,
       });
-      toast.success(`Sync completo! ${totalCriados} novos, ${totalAtualizados} atualizados`);
+      toast.success(`Sync completo: ${totalCriados} novos, ${totalAtualizados} atualizados${totalErros ? `, ${totalErros} erros` : ""}`);
     } catch (e: any) {
-      toast.error("Erro no sync: " + (e?.message || String(e)));
+      toast.error("Erro: " + (e?.message || String(e)));
     } finally {
       setSyncing(null);
       qc.invalidateQueries({ queryKey: ["integracao-bling"] });
       qc.invalidateQueries({ queryKey: ["integracao-bling-logs"] });
+      qc.invalidateQueries({ queryKey: ["integracao-bling-cursores"] });
     }
+  }
+
+  async function resetarCursor(entidade: EntidadeBling) {
+    const ok = window.confirm(`Resetar cursor de "${entidade}"? Próxima sync vai começar do zero (mais lenta).`);
+    if (!ok) return;
+    const { error } = await supabase.functions.invoke("sync-bling-financeiro", {
+      body: { tipo: "resetar_cursor", entidade },
+    });
+    if (error) { toast.error("Falha: " + error.message); return; }
+    toast.success("Cursor resetado");
+    qc.invalidateQueries({ queryKey: ["integracao-bling-cursores"] });
+  }
+
+  async function desconectarBling() {
+    const ok = window.confirm("Desconectar do Bling? Tokens serão apagados (Client ID/Secret ficam).");
+    if (!ok) return;
+    const { error } = await supabase.functions.invoke("sync-bling-financeiro", {
+      body: { tipo: "desconectar" },
+    });
+    if (error) { toast.error("Falha: " + error.message); return; }
+    toast.success("Bling desconectado");
+    qc.invalidateQueries({ queryKey: ["integracao-bling"] });
   }
 
   async function processarCodeManual() {
