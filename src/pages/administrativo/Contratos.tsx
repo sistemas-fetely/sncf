@@ -1151,6 +1151,7 @@ function NovoContratoDialog({
     setDataPrimeiraParcela(""); setTemSetup(false); setValorSetup("");
     setParcelasSetup("1"); setDataPrimeiraSetup(""); setFormaId(null);
     setRenovaAuto(false); setAlertaDias("60"); setPermiteVariavel(false);
+    setPastaGedId(""); setModoEtapa2("upload"); setBuscaGed("");
   }
 
   async function buscarOuCriarPasta(pId: string): Promise<string> {
