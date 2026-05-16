@@ -155,55 +155,47 @@ export default function Conciliacao() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
-  const { data: faturasDisponiveis, refetch: refetchFaturas } = useQuery({
-    queryKey: ["faturas-disponiveis", multiVinculoAberto?.planilha_id],
+  const { data: movsElegiveis } = useQuery({
+    queryKey: ["movs-elegiveis-multi", multiVinculoAberto?.planilha_id],
     enabled: !!multiVinculoAberto,
     queryFn: async () => {
-      const { data, error } = await sb.rpc("listar_faturas_disponiveis_para_planilha", {
-        p_planilha_id: multiVinculoAberto!.planilha_id,
-      });
+      const { data, error } = await sb.rpc("listar_movimentacoes_elegiveis");
       if (error) throw error;
       return (data || []) as Array<{
-        fatura_id: string;
-        cartao_nome: string;
-        data_vencimento: string;
-        valor_total: number;
-        qtd_lancamentos: number;
-        ja_vinculada: boolean;
-        parceiros: string | null;
+        id: string;
+        descricao: string | null;
+        valor: number;
+        data_transacao: string | null;
+        conta_pagar_id: string | null;
+        cpr_descricao: string | null;
+        fornecedor_cliente: string | null;
       }>;
     },
   });
 
-  const vincularFaturaMutation = useMutation({
-    mutationFn: async ({ planilhaId, faturaId }: { planilhaId: string; faturaId: string }) => {
-      const { data, error } = await sb.rpc("vincular_planilha_fatura", {
+  const valorPlanilhaAberta = multiVinculoAberto?.valor_pago ?? 0;
+  const somaMovsSelecionadas = (movsElegiveis ?? [])
+    .filter((m) => movsSelecionadas.includes(m.id))
+    .reduce((acc, m) => acc + Math.abs(Number(m.valor || 0)), 0);
+
+  const multiVinculoMutation = useMutation({
+    mutationFn: async ({ planilhaId, movIds }: { planilhaId: string; movIds: string[] }) => {
+      const { data, error } = await sb.rpc("vincular_planilha_multiplas_movs", {
         p_planilha_id: planilhaId,
-        p_fatura_id: faturaId,
+        p_movimentacao_ids: movIds,
       });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.motivo || "Erro");
       return data;
     },
-    onSuccess: (d: any) => {
-      if (d.status_novo === "conciliado") {
-        toast.success("Planilha totalmente conciliada ✓");
-        setMultiVinculoAberto(null);
-        invalidar();
-      } else {
-        toast.success(`Fatura vinculada · Faltam ${formatBRL(d.faltam)}`);
-        refetchFaturas();
-        invalidar();
-      }
+    onSuccess: () => {
+      toast.success("Movimentações vinculadas ✓");
+      setMultiVinculoAberto(null);
+      setMovsSelecionadas([]);
+      invalidar();
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
-
-  const totalJaVinculado = (faturasDisponiveis ?? [])
-    .filter((f) => f.ja_vinculada)
-    .reduce((acc, f) => acc + Number(f.valor_total || 0), 0);
-  const valorPlanilhaAberta = multiVinculoAberto?.valor_pago ?? 0;
-  const saldoRestante = valorPlanilhaAberta - totalJaVinculado;
 
   const itens = resultado?.itens ?? [];
   const lotes = resultado?.lotes ?? [];
