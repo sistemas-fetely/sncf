@@ -12582,6 +12582,8 @@ export type Database = {
           cpr_descricao: string
           data_transacao: string
           descricao: string
+          fatura_vencimento: string
+          forma_pagamento_nome: string
           fornecedor_cliente: string
           id: string
           valor: number
