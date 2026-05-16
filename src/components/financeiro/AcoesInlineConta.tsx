@@ -80,7 +80,6 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
     status === "aprovado" ||
     status === "enviado_para_pagamento" ||
     status === "doc_pendente" ||
-    status === "enviado_para_pagamento" ||
     statusEfetivo === "enviado_para_pagamento" ||
     statusEfetivo === "conciliado";
 
