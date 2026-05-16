@@ -283,81 +283,54 @@ export default function Conciliacao() {
 
   const confirmarLoteMutation = useMutation({
     mutationFn: async () => {
+      // Stage 1 em lote: apenas vincula CPRs aos itens da planilha, sem criar movimentações
       const pendentes = auto.filter((p) => !p.movimentacao_id && p.conta_pagar_id);
-      let confirmados = 0, erros = 0, jaPagas = 0;
+      let confirmados = 0, erros = 0;
       for (const pag of pendentes) {
         try {
-          // Doutrina #54 — pula CPRs que já têm mov vinculada
-          const { data: cprCheck } = await sb.from("contas_pagar_receber")
+          const { data: cprCheck } = await sb
+            .from("contas_pagar_receber")
             .select("movimentacao_bancaria_id")
-            .eq("id", pag.conta_pagar_id).maybeSingle();
-          if (cprCheck?.movimentacao_bancaria_id) {
-            jaPagas++;
-            continue;
-          }
-
-          await sb.from("contas_pagar_receber").update({
-            pago_em_conta_id: contaBancariaId,
-            data_pagamento: pag.data_pagamento ?? null,
-          }).eq("id", pag.conta_pagar_id);
-          const { data: res } = await sb.rpc("gerar_movimentacao_de_conta", { p_conta_id: pag.conta_pagar_id });
-          if (!res?.ok) { erros++; continue; }
-          const { data: mov } = await sb.from("movimentacoes_bancarias")
-            .select("id").eq("conta_pagar_id", pag.conta_pagar_id)
-            .order("created_at", { ascending: false }).limit(1).maybeSingle();
-          await sb.from("itau_pagamentos_stage").update({
-            movimentacao_id: mov?.id ?? null, status_conciliacao: "conciliado_manual",
-          }).eq("id", pag.id);
-          await vincularOFX(pag);
+            .eq("id", pag.conta_pagar_id)
+            .maybeSingle();
+          if (cprCheck?.movimentacao_bancaria_id) continue; // já conciliada, pula
+          await sb
+            .from("itau_pagamentos_stage")
+            .update({ status_conciliacao: "aguardando_ofx" })
+            .eq("id", pag.id);
           confirmados++;
         } catch { erros++; }
       }
-      return { confirmados, erros, jaPagas };
+      return { confirmados, erros };
     },
     onSuccess: (d) => {
-      const partes = [
-        `${d.confirmados} confirmado${d.confirmados !== 1 ? "s" : ""}`,
-      ];
-      if (d.jaPagas > 0) partes.push(`${d.jaPagas} pulado${d.jaPagas !== 1 ? "s" : ""} (já conciliado${d.jaPagas !== 1 ? "s" : ""})`);
-      if (d.erros > 0) partes.push(`${d.erros} erro(s)`);
-      toast.success(partes.join(" · "));
+      toast.success(`${d.confirmados} confirmado(s) — agora vincule ao extrato`);
       invalidarPagamentos();
-      invalidarOFX();
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
   const confirmarUnitarioMutation = useMutation({
     mutationFn: async ({ pagId, cprId }: { pagId: string; cprId: string }) => {
-      // Doutrina #54 — guarda UX antes do trigger DB rejeitar
-      const { data: cprCheck } = await sb.from("contas_pagar_receber")
+      // Guarda: CPR já conciliada?
+      const { data: cprCheck } = await sb
+        .from("contas_pagar_receber")
         .select("movimentacao_bancaria_id, descricao, data_pagamento")
-        .eq("id", cprId).maybeSingle();
+        .eq("id", cprId)
+        .maybeSingle();
       if (cprCheck?.movimentacao_bancaria_id) {
         throw new Error(
           `Esta CPR já possui movimentação vinculada` +
           (cprCheck.data_pagamento ? ` (paga em ${formatDateBR(cprCheck.data_pagamento)})` : "") +
-          `. Desvincule a movimentação anterior antes de re-vincular.`
+          `. Desvincule antes de re-vincular.`
         );
       }
-
-      const { data: pagCompleto } = await sb.from("itau_pagamentos_stage")
-        .select("id, importacao_id, numero_lote, valor_pago, data_pagamento")
-        .eq("id", pagId).maybeSingle();
-      await sb.from("itau_pagamentos_stage").update({ conta_pagar_id: cprId }).eq("id", pagId);
-      await sb.from("contas_pagar_receber").update({
-        pago_em_conta_id: contaBancariaId,
-        data_pagamento: pagCompleto?.data_pagamento ?? null,
-      }).eq("id", cprId);
-      const { data: res } = await sb.rpc("gerar_movimentacao_de_conta", { p_conta_id: cprId });
-      if (!res?.ok) throw new Error(res?.erro || "Erro ao gerar movimentação");
-      const { data: mov } = await sb.from("movimentacoes_bancarias")
-        .select("id").eq("conta_pagar_id", cprId)
-        .order("created_at", { ascending: false }).limit(1).maybeSingle();
-      await sb.from("itau_pagamentos_stage").update({
-        movimentacao_id: mov?.id ?? null, status_conciliacao: "conciliado_manual",
-      }).eq("id", pagId);
-      if (pagCompleto) await vincularOFX(pagCompleto as Pagamento);
+      // Stage 1: só vincula CPR, aguarda Stage 2 para finalizar
+      const { error } = await sb
+        .from("itau_pagamentos_stage")
+        .update({ conta_pagar_id: cprId, status_conciliacao: "aguardando_ofx" })
+        .eq("id", pagId);
+      if (error) throw error;
     },
     onSuccess: () => { toast.success("Confirmado"); invalidarPagamentos(); invalidarOFX(); },
     onError: (e: any) => toast.error("Erro: " + e.message),
@@ -425,24 +398,24 @@ export default function Conciliacao() {
 
   const confirmarVinculoOFXMutation = useMutation({
     mutationFn: async ({ pagId, ofxId }: { pagId: string; ofxId: string }) => {
-      const { error: e1 } = await sb
-        .from("ofx_transacoes_stage")
-        .update({ status: "persistida" })
-        .eq("id", ofxId);
-      if (e1) throw e1;
-      const { error: e2 } = await sb
-        .from("itau_pagamentos_stage")
-        .update({ movimentacao_id: ofxId })
-        .eq("id", pagId);
-      if (e2) throw e2;
+      // Stage 2: chama RPC que vincula movimentação existente à CPR e marca paga
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (sb as any).rpc("finalizar_conciliacao_v2", {
+        p_itau_pag_id:     pagId,
+        p_movimentacao_id: ofxId,
+        p_usuario_id:      user?.id ?? null,
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.erro || "Erro ao finalizar conciliação");
     },
     onSuccess: () => {
-      toast.success("Vinculado ao extrato");
+      toast.success("Conciliado ✓ — CPR marcada como paga");
       setVincularOFXPag(null);
       qc.invalidateQueries({ queryKey: ["itau-pagamentos-conta", contaBancariaId] });
       qc.invalidateQueries({ queryKey: ["ofx-residual", contaBancariaId] });
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
     },
-    onError: () => toast.error("Erro ao vincular ao extrato"),
+    onError: (e: any) => toast.error("Erro ao finalizar: " + e.message),
   });
 
   const reprocessarMutation = useMutation({
