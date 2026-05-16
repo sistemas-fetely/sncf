@@ -43,9 +43,9 @@ export type ContaBancariaLite = {
  */
 export function statusVisual(l: Lancamento): string {
   if (l.origem_view === "cartao_lancamento") {
-    if (l.movimentacao_bancaria_id || l.status_caixa === "conciliado") return "paga";
-    if (l.status_caixa === "pago") return "paga";
-    return "aguardando_pagamento";
+    if (l.movimentacao_bancaria_id || l.status_caixa === "conciliado") return "enviado_para_pagamento";
+    if (l.status_caixa === "pago") return "enviado_para_pagamento";
+    return "enviado_para_pagamento";
   }
   return l.status_conta_pagar || "aberto";
 }
@@ -53,7 +53,7 @@ export function statusVisual(l: Lancamento): string {
 export function isAtrasada(l: Lancamento): boolean {
   if (!l.data_vencimento) return false;
   const status = statusVisual(l);
-  if (status === "paga" || status === "cancelado") return false;
+  if (status === "enviado_para_pagamento" || status === "cancelado") return false;
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const venc = new Date(l.data_vencimento + "T00:00:00");
