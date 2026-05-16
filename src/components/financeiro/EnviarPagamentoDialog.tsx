@@ -198,6 +198,26 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
     },
   });
 
+  const { data: formaInfo } = useQuery({
+    queryKey: ["forma-pagamento-envio", conta.forma_pagamento_id],
+    enabled: open && !!conta.forma_pagamento_id,
+    queryFn: async () => {
+      if (!conta.forma_pagamento_id) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("formas_pagamento")
+        .select("nome, codigo, requer_dados_bancarios_destinatario, gera_fatura")
+        .eq("id", conta.forma_pagamento_id)
+        .maybeSingle();
+      return data as {
+        nome: string;
+        codigo: string;
+        requer_dados_bancarios_destinatario: boolean;
+        gera_fatura: boolean;
+      } | null;
+    },
+  });
+
   const ehEnvioAgrupado = !!dadosAgrupamento && dadosAgrupamento.parcelas.length > 1;
 
   useEffect(() => {
