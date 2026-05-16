@@ -140,7 +140,7 @@ function tipoBadgeClass(tipo: string): string {
 }
 
 export function PastaDetalhe({ pasta, onAtualizado }: Props) {
-  const [aba, setAba] = useState("contrato");
+  const [aba, setAba] = useState("documentos");
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -188,11 +188,7 @@ export function PastaDetalhe({ pasta, onAtualizado }: Props) {
 
       {/* Abas */}
       <Tabs value={aba} onValueChange={setAba} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-6 mt-4 grid w-fit grid-cols-4">
-          <TabsTrigger value="contrato" className="gap-2">
-            <FileSignature className="h-4 w-4" />
-            Contrato
-          </TabsTrigger>
+        <TabsList className="mx-6 mt-4 grid w-fit grid-cols-2">
           <TabsTrigger value="documentos" className="gap-2">
             <Files className="h-4 w-4" />
             Documentos ({pasta.total_documentos})
@@ -201,15 +197,7 @@ export function PastaDetalhe({ pasta, onAtualizado }: Props) {
             <History className="h-4 w-4" />
             Histórico
           </TabsTrigger>
-          <TabsTrigger value="parcelas" className="gap-2">
-            <Receipt className="h-4 w-4" />
-            Parcelas
-          </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="contrato" className="flex-1 overflow-y-auto px-6 py-4 m-0">
-          <AbaContrato pasta={pasta} onAtualizado={onAtualizado} />
-        </TabsContent>
 
         <TabsContent value="documentos" className="flex-1 overflow-y-auto px-6 py-4 m-0">
           <AbaDocumentos pastaId={pasta.id} />
@@ -217,10 +205,6 @@ export function PastaDetalhe({ pasta, onAtualizado }: Props) {
 
         <TabsContent value="historico" className="flex-1 overflow-y-auto px-6 py-4 m-0">
           <AbaHistorico pastaId={pasta.id} />
-        </TabsContent>
-
-        <TabsContent value="parcelas" className="flex-1 overflow-y-auto px-6 py-4 m-0">
-          <AbaParcelas pastaId={pasta.id} />
         </TabsContent>
       </Tabs>
     </div>
