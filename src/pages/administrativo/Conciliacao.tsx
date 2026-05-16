@@ -51,7 +51,9 @@ type ItemConciliacao = {
   tipo_pagamento: string | null;
   mov_sugerida: MovSugerida | null;
   ofx_sugerido: OfxSugerido | null;
-  tipo: "completo" | "parcial" | "sem_mov";
+  tipo: "completo" | "parcial" | "sem_mov" | "parcialmente_conciliado";
+  valor_ja_vinculado?: number;
+  faltam?: number;
 };
 
 type LoteConciliacao = {
@@ -209,6 +211,7 @@ export default function Conciliacao() {
     itens.filter((i) => i.tipo === "parcial").length +
     lotes.filter((l) => l.tipo === "lote_parcial").length;
   const semMov = itens.filter((i) => i.tipo === "sem_mov").length;
+  const parcialmenteConciliados = itens.filter((i) => i.tipo === "parcialmente_conciliado").length;
 
   function nivelBadge(nivel: number) {
     if (nivel <= 2) return "bg-emerald-100 text-emerald-800";
@@ -269,7 +272,7 @@ export default function Conciliacao() {
       ) : (
         <>
           {/* Resumo */}
-          {(completos + parciais + semMov) > 0 && (
+          {(completos + parciais + semMov + parcialmenteConciliados) > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               {completos > 0 && (
                 <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 gap-1">
@@ -287,6 +290,12 @@ export default function Conciliacao() {
                 <Badge variant="outline" className="gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {semMov} sem movimentação
+                </Badge>
+              )}
+              {parcialmenteConciliados > 0 && (
+                <Badge variant="outline" className="gap-1 border-blue-300 text-blue-800">
+                  <Clock className="h-3 w-3" />
+                  {parcialmenteConciliados} parcialmente conciliado{parcialmenteConciliados !== 1 ? "s" : ""}
                 </Badge>
               )}
             </div>
@@ -403,12 +412,26 @@ export default function Conciliacao() {
                 return (
                   <div
                     key={item.planilha_id}
-                    className={`rounded-lg border bg-card p-3 transition-colors ${corNivel(item.mov_sugerida?.nivel)}`}
+                    className={`rounded-lg border bg-card p-3 transition-colors ${
+                      item.tipo === "parcialmente_conciliado"
+                        ? "border-l-4 border-l-blue-500 bg-blue-50/20"
+                        : corNivel(item.mov_sugerida?.nivel)
+                    }`}
                   >
                     <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1.5fr_1.5fr_auto] gap-3 items-center">
                       {/* Planilha */}
                       <div className="min-w-0">
                         <p className="font-medium text-sm truncate">{item.nome_favorecido ?? "—"}</p>
+                        {item.tipo === "parcialmente_conciliado" && (
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <Badge className="text-[9px] bg-blue-100 text-blue-800 hover:bg-blue-100">
+                              Parcial · {formatBRL(item.valor_ja_vinculado ?? 0)} de {formatBRL(item.valor_pago)}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground">
+                              Faltam {formatBRL(item.faltam ?? 0)}
+                            </span>
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground truncate">
                           {item.cnpj_favorecido ?? "Sem CNPJ"} · {item.tipo_pagamento ?? "—"}
                           {item.data_pagamento && (
@@ -493,6 +516,13 @@ export default function Conciliacao() {
                               <Link2 className="h-3 w-3" />
                             )}
                             Stage 1
+                          </Button>
+                        )}
+                        {item.tipo === "parcialmente_conciliado" && (
+                          <Button size="sm" variant="outline"
+                            className="gap-1 border-blue-300 text-blue-800 hover:bg-blue-50"
+                            onClick={() => { setMultiVinculoAberto(item); setMovsSelecionadas([]); }}>
+                            <Layers className="h-3.5 w-3.5" /> Selecionar movs
                           </Button>
                         )}
                         {item.tipo === "sem_mov" && (
