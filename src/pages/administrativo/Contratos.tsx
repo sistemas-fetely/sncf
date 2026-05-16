@@ -24,10 +24,14 @@ import {
 } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import {
+  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
+import {
   FileSignature, Search, AlertTriangle, CheckCircle2, TrendingUp,
   FolderOpen, ArrowRight, Info, Trash2, Clock,
   Banknote, CalendarClock, Activity, ChevronDown, ChevronUp,
-  Plus, Loader2, Upload,
+  Plus, Loader2, Upload, Save,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
