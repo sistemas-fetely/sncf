@@ -5722,7 +5722,6 @@ export type Database = {
           conta_pagar_id: string | null
           conta_plano_id: string | null
           created_at: string | null
-          data_balancete: string | null
           data_transacao: string
           descricao: string
           hash_unico: string | null
@@ -5731,6 +5730,7 @@ export type Database = {
           inconsistencia_motivo: string | null
           ofx_transacao_id: string | null
           origem: string | null
+          pg_em: string | null
           saldo_pos_transacao: number | null
           tipo: string | null
           tipo_pagamento: string | null
@@ -5746,7 +5746,6 @@ export type Database = {
           conta_pagar_id?: string | null
           conta_plano_id?: string | null
           created_at?: string | null
-          data_balancete?: string | null
           data_transacao: string
           descricao: string
           hash_unico?: string | null
@@ -5755,6 +5754,7 @@ export type Database = {
           inconsistencia_motivo?: string | null
           ofx_transacao_id?: string | null
           origem?: string | null
+          pg_em?: string | null
           saldo_pos_transacao?: number | null
           tipo?: string | null
           tipo_pagamento?: string | null
@@ -5770,7 +5770,6 @@ export type Database = {
           conta_pagar_id?: string | null
           conta_plano_id?: string | null
           created_at?: string | null
-          data_balancete?: string | null
           data_transacao?: string
           descricao?: string
           hash_unico?: string | null
@@ -5779,6 +5778,7 @@ export type Database = {
           inconsistencia_motivo?: string | null
           ofx_transacao_id?: string | null
           origem?: string | null
+          pg_em?: string | null
           saldo_pos_transacao?: number | null
           tipo?: string | null
           tipo_pagamento?: string | null
@@ -11807,6 +11807,21 @@ export type Database = {
           unidade_nome: string
         }[]
       }
+      apontar_matches_stage_1: {
+        Args: { p_planilha_id: string }
+        Returns: {
+          conta_pagar_descricao: string
+          conta_pagar_id: string
+          data_transacao: string
+          descricao: string
+          match_descricao: string
+          match_nivel: number
+          movimentacao_id: string
+          parceiro_cnpj: string
+          parceiro_nome: string
+          valor: number
+        }[]
+      }
       aprender_regra_de_classificacao: {
         Args: { p_stage_id: string; p_user_id?: string }
         Returns: Json
@@ -12804,6 +12819,10 @@ export type Database = {
       }
       vincular_nf_a_parceiro: {
         Args: { p_nf_stage_id: string; p_parceiro_id: string }
+        Returns: Json
+      }
+      vincular_stage_1: {
+        Args: { p_movimentacao_id: string; p_planilha_id: string }
         Returns: Json
       }
     }
