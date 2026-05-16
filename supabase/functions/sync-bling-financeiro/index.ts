@@ -7,7 +7,7 @@ var corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-var BLING_BASE = "https://www.bling.com.br/Api/v3";
+var BLING_BASE = "https://api.bling.com.br/Api/v3";
 
 function ok(data: any) {
   return new Response(JSON.stringify(data), {
@@ -264,6 +264,7 @@ async function syncPedidos(supabase: any, accessToken: string, ultimaSync: any) 
 // === SYNC: PRODUTOS ===
 async function syncProdutos(supabase: any, accessToken: string) {
   var criados = 0, atualizados = 0, erros = 0;
+  var ultimoErro = "";
   var pagina = 1;
   var temMais = true;
 
@@ -312,13 +313,22 @@ async function syncProdutos(supabase: any, accessToken: string) {
             await supabase.from("produtos").insert(registro);
             criados++;
           }
-        } catch (e) { erros++; }
+        } catch (e) {
+          erros++;
+          ultimoErro = "item: " + ((e instanceof Error) ? e.message : String(e));
+          console.error("[syncProdutos][item]", ultimoErro);
+        }
       }
       pagina++;
       await sleep(400);
-    } catch (e) { erros++; temMais = false; }
+    } catch (e) {
+      erros++;
+      ultimoErro = "pagina " + pagina + ": " + ((e instanceof Error) ? e.message : String(e));
+      console.error("[syncProdutos][page]", ultimoErro);
+      temMais = false;
+    }
   }
-  return { criados: criados, atualizados: atualizados, erros: erros };
+  return { criados: criados, atualizados: atualizados, erros: erros, ultimoErro: ultimoErro };
 }
 
 // === MAIN HANDLER ===
@@ -471,7 +481,9 @@ serve(async (req) => {
 
       var duracao = Date.now() - startTime;
       var statusFinal = (result.erros > 0) ? "parcial" : "sucesso";
-      var detalhe = tipo + ": " + result.criados + " novos, " + result.atualizados + " atualizados";
+      var ultimoErro = (result as any).ultimoErro || "";
+      var detalhe = tipo + ": " + result.criados + " novos, " + result.atualizados + " atualizados"
+        + (ultimoErro ? " | erro: " + ultimoErro.slice(0, 500) : "");
 
       if (logId) {
         await supabase.from("integracoes_sync_log").update({
@@ -491,7 +503,8 @@ serve(async (req) => {
       return ok({
         sucesso: true, criados: result.criados,
         atualizados: result.atualizados, erros: result.erros,
-        detalhes: detalhe, duracao_ms: duracao
+        detalhes: detalhe, duracao_ms: duracao,
+        ultimo_erro: ultimoErro || null
       });
     }
 
