@@ -422,6 +422,16 @@ export default function Conciliacao() {
                       {/* Planilha */}
                       <div className="min-w-0">
                         <p className="font-medium text-sm truncate">{item.nome_favorecido ?? "—"}</p>
+                        {item.tipo === "parcialmente_conciliado" && (
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <Badge className="text-[9px] bg-blue-100 text-blue-800 hover:bg-blue-100">
+                              Parcial · {formatBRL(item.valor_ja_vinculado ?? 0)} de {formatBRL(item.valor_pago)}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground">
+                              Faltam {formatBRL(item.faltam ?? 0)}
+                            </span>
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground truncate">
                           {item.cnpj_favorecido ?? "Sem CNPJ"} · {item.tipo_pagamento ?? "—"}
                           {item.data_pagamento && (
@@ -506,6 +516,13 @@ export default function Conciliacao() {
                               <Link2 className="h-3 w-3" />
                             )}
                             Stage 1
+                          </Button>
+                        )}
+                        {item.tipo === "parcialmente_conciliado" && (
+                          <Button size="sm" variant="outline"
+                            className="gap-1 border-blue-300 text-blue-800 hover:bg-blue-50"
+                            onClick={() => { setMultiVinculoAberto(item); setMovsSelecionadas([]); }}>
+                            <Layers className="h-3.5 w-3.5" /> Selecionar movs
                           </Button>
                         )}
                         {item.tipo === "sem_mov" && (
