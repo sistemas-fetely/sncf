@@ -194,6 +194,7 @@ export default function Contratos() {
   const [contratoParaExcluir, setContratoParaExcluir] = useState<ContratoListagem | null>(null);
   const [mostrarBanner, setMostrarBanner] = useState(false);
   const [novoContratoOpen, setNovoContratoOpen] = useState(false);
+  const [contratoDetalhes, setContratoDetalhes] = useState<ContratoListagem | null>(null);
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["contratos-todos"],
