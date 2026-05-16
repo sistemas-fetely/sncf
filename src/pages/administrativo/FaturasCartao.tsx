@@ -349,7 +349,7 @@ export default function FaturasCartao() {
     const all = faturas || [];
     const filtradas =
       filtroCartao !== "__todos__"
-        ? all.filter((f) => f.conta_bancaria_id === filtroCartao)
+        ? all.filter((f) => f.cartao_id === filtroCartao)
         : all;
 
     const hoje = new Date();
