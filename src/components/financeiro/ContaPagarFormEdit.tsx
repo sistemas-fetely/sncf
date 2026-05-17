@@ -57,6 +57,7 @@ type ContaEditavel = {
 interface Props {
   conta: ContaEditavel;
   onSaved: () => void;
+  onSaveAndClose?: () => void;
   onCancel: () => void;
   highlightCampo?: "pago_em_conta_id" | null;
 }
