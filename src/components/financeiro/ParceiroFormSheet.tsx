@@ -767,6 +767,27 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
           <PastaGedSection parceiroId={editing.id} parceiroNome={editing.razao_social} />
         )}
 
+        {grupoId && (
+          <div className="space-y-2 pt-2 border-t">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Building2 className="h-3.5 w-3.5" />
+              Grupo: {grupoInfo?.nome}
+            </p>
+            {irmaos && irmaos.length > 0 ? (
+              <div className="space-y-1">
+                {irmaos.map((p: any) => (
+                  <div key={p.id} className="flex items-center justify-between text-sm px-2 py-1.5 rounded bg-muted/40">
+                    <span className="font-medium">{p.nome_fantasia || p.razao_social}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{p.cnpj}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Único membro cadastrado neste grupo.</p>
+            )}
+          </div>
+        )}
+
         <SheetFooter>
           {!obrigatorio && (
             <Button variant="outline" onClick={() => onOpenChange(false)}>
