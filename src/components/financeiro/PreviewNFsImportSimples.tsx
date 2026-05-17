@@ -40,10 +40,11 @@ function tipoArquivo(nf: NFParsed): "XML" | "PDF" {
 
 export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: Props) {
   const totals = useMemo(() => {
-    const naoDup = nfs.filter((n) => !n._duplicata).length;
-    const sel = nfs.filter((n) => n._selecionada && !n._duplicata).length;
+    const naoDup = nfs.filter((n) => !n._duplicata && !n._ja_existe).length;
+    const sel = nfs.filter((n) => n._selecionada && !n._duplicata && !n._ja_existe).length;
     const dup = nfs.filter((n) => n._duplicata).length;
-    return { naoDup, sel, dup };
+    const jaExiste = nfs.filter((n) => n._ja_existe).length;
+    return { naoDup, sel, dup, jaExiste };
   }, [nfs]);
 
   if (nfs.length === 0) return null;
@@ -72,12 +73,17 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{totals.sel}</span> selecionadas de{" "}
           <span className="font-medium text-foreground">{totals.naoDup}</span>
           {totals.dup > 0 && (
             <span className="ml-2 text-destructive">
               ({totals.dup} duplicata{totals.dup === 1 ? "" : "s"})
+            </span>
+          )}
+          {totals.jaExiste > 0 && (
+            <span className="ml-2 text-slate-500">
+              ({totals.jaExiste} já existente{totals.jaExiste === 1 ? "" : "s"})
             </span>
           )}
         </div>
@@ -160,12 +166,14 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
                               : ""}
                           </span>
                         )}
-                      </div>
-                    ) : (
-                      <Badge className="bg-success hover:bg-success text-success-foreground">
-                        Novo
-                      </Badge>
-                    )}
+                  </div>
+                ) : nf._ja_existe ? (
+                  <Badge className="bg-slate-400 hover:bg-slate-400 text-white">Já existe</Badge>
+                ) : (
+                  <Badge className="bg-success hover:bg-success text-success-foreground">
+                    Novo
+                  </Badge>
+                )}
                   </TableCell>
                   <TableCell>
                     {nf.confianca === "baixa" && !nf._duplicata ? (
