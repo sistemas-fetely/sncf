@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { sha256Hex } from "@/lib/repositorio/hash";
+import { sanitizeStorageKey } from "@/lib/repositorio/storage-key";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +83,8 @@ export function UploadEmLoteSheet({ open, onOpenChange }: Props) {
         const hash = await sha256Hex(item.file);
 
         // 2. upload bucket
-        const storagePath = `repositorio/${loteId}/${crypto.randomUUID()}-${item.file.name}`;
+        const safeName = sanitizeStorageKey(item.file.name);
+        const storagePath = `repositorio/${loteId}/${crypto.randomUUID()}-${safeName}`;
         const { error: upErr } = await supabase.storage
           .from("ged")
           .upload(storagePath, item.file, { contentType: item.file.type });
