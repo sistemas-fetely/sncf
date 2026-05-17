@@ -461,6 +461,10 @@ export default function ContaPagarDetalheDrawer({
                     formas_pagamento: conta.formas_pagamento ?? null,
                   }}
                   onSaved={() => setModoEdit(false)}
+                  onSaveAndClose={() => {
+                    setModoEdit(false);
+                    onClose();
+                  }}
                   onCancel={() => setModoEdit(false)}
                   highlightCampo={highlightCampo}
                 />

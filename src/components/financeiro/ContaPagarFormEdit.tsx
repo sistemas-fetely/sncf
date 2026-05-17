@@ -57,6 +57,7 @@ type ContaEditavel = {
 interface Props {
   conta: ContaEditavel;
   onSaved: () => void;
+  onSaveAndClose?: () => void;
   onCancel: () => void;
   highlightCampo?: "pago_em_conta_id" | null;
 }
@@ -71,6 +72,7 @@ const STATUS_TRAVA_CRITICOS = ["enviado_para_pagamento", "cancelado"];
 export function ContaPagarFormEdit({
   conta,
   onSaved,
+  onSaveAndClose,
   onCancel,
   highlightCampo = null,
 }: Props) {
@@ -342,7 +344,7 @@ export function ContaPagarFormEdit({
     }
   }
 
-  async function handleSalvar() {
+  async function handleSalvar(fecharDrawer: boolean = false) {
     if (isReadOnly) {
       toast.error("Conta com status read-only — edição bloqueada");
       return;
@@ -416,7 +418,11 @@ export function ContaPagarFormEdit({
       
       qc.invalidateQueries({ queryKey: ["parceiros"] });
       qc.invalidateQueries({ queryKey: ["parceiros-para-atribuir"] });
-      onSaved();
+      if (fecharDrawer && onSaveAndClose) {
+        onSaveAndClose();
+      } else {
+        onSaved();
+      }
     } catch (e) {
       let msg = "Erro desconhecido";
       if (e instanceof Error) msg = e.message;
@@ -832,18 +838,35 @@ export function ContaPagarFormEdit({
           {isReadOnly ? "Fechar" : "Cancelar"}
         </Button>
         {!isReadOnly && (
-          <Button
-            className="flex-1"
-            onClick={handleSalvar}
-            disabled={salvando}
-          >
-            {salvando ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-1" />
-            )}
-            Salvar
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => handleSalvar(false)}
+              disabled={salvando}
+              title="Salva e mantém o drawer aberto"
+            >
+              {salvando ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Salvar
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => handleSalvar(true)}
+              disabled={salvando}
+              title="Salva e fecha o drawer"
+            >
+              {salvando ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Salvar e fechar
+            </Button>
+          </>
         )}
       </div>
     </div>
