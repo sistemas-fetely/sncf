@@ -96,6 +96,7 @@ type NFStage = {
   valor: number;
   descricao: string | null;
   categoria_id: string | null;
+  categoria_sugerida_ia?: boolean | null;
   data_vencimento: string | null;
   status: string;
   conta_pagar_existente_id: string | null;
@@ -179,6 +180,31 @@ export default function NFsStage() {
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
+  const [classificandoIA, setClassificandoIA] = useState(false);
+
+  async function classificarComIA() {
+    setClassificandoIA(true);
+    try {
+      const resp = await supabase.functions.invoke("classificar-nfs-ia", { body: {} });
+      if (resp.error) throw new Error(resp.error.message);
+      const resultado = resp.data as {
+        classificadas: number;
+        erros: string[];
+        cnpjs_processados: number;
+      };
+      toast.success(
+        `IA classificou ${resultado.classificadas} NFs (${resultado.cnpjs_processados} fornecedores)`,
+      );
+      if (resultado.erros?.length > 0) {
+        console.warn("Erros na classificação:", resultado.erros);
+      }
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    } catch (e) {
+      toast.error("Erro na classificação: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setClassificandoIA(false);
+    }
+  }
 
   const handleGerarResumo = async (nf: NFStage, regerar: boolean) => {
     if (regerar) {
@@ -400,6 +426,7 @@ export default function NFsStage() {
         .from("nfs_stage")
         .update({
           categoria_id: categoriaId || null,
+          categoria_sugerida_ia: false,
         })
         .eq("id", id);
       if (error) throw error;
@@ -587,16 +614,31 @@ export default function NFsStage() {
               </span>
             </p>
           </div>
-          {sugestoesDisponiveis > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="outline"
-              onClick={aceitarTodasSugestoes}
-              className="gap-2 border-violet-300 text-violet-700 hover:bg-violet-50"
+              onClick={classificarComIA}
+              disabled={classificandoIA}
+              className="gap-2"
             >
-              <Sparkles className="h-4 w-4" />
-              Aplicar {sugestoesDisponiveis} sugestão{sugestoesDisponiveis === 1 ? "" : "ões"} automática{sugestoesDisponiveis === 1 ? "" : "s"}
+              {classificandoIA ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {classificandoIA ? "Classificando..." : "Classificar com IA"}
             </Button>
-          )}
+            {sugestoesDisponiveis > 0 && (
+              <Button
+                variant="outline"
+                onClick={aceitarTodasSugestoes}
+                className="gap-2 border-violet-300 text-violet-700 hover:bg-violet-50"
+              >
+                <Sparkles className="h-4 w-4" />
+                Aplicar {sugestoesDisponiveis} sugestão{sugestoesDisponiveis === 1 ? "" : "ões"} automática{sugestoesDisponiveis === 1 ? "" : "s"}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* KPI pills (clicáveis = filtros) */}
@@ -832,6 +874,12 @@ export default function NFsStage() {
                               placeholder="Classificar..."
                               disabled={salvando}
                             />
+                            {nf.categoria_sugerida_ia && nf.categoria_id && (
+                              <Sparkles
+                                className="h-3 w-3 text-purple-500 shrink-0"
+                                aria-label="Categoria sugerida pela IA — revise e confirme"
+                              />
+                            )}
                             {sugestao && (() => {
                               const conf = sugestao.confianca || 0;
                               const corBadge =
@@ -858,8 +906,11 @@ export default function NFsStage() {
                             })()}
                           </div>
                         ) : nf.categoria_id ? (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                             {mapCategorias[nf.categoria_id] || "—"}
+                            {nf.categoria_sugerida_ia && (
+                              <Sparkles className="h-3 w-3 text-purple-500" />
+                            )}
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">—</span>
