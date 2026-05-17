@@ -80,7 +80,7 @@ export function RotearBoletoDialog({
   const [candidatos, setCandidatos] = useState<CprCandidato[]>([]);
   const [cprEscolhida, setCprEscolhida] = useState<string | null>(null);
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
-  const [meioPagamentoId, setMeioPagamentoId] = useState<string | null>(null);
+  const [formaPagamentoId, setFormaPagamentoId] = useState<string | null>(null);
   const [descricao, setDescricao] = useState("");
   const [salvando, setSalvando] = useState(false);
 
