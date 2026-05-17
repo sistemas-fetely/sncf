@@ -307,6 +307,9 @@ export default function ContratoPJDetalhe() {
         data_inicio: ct.data_inicio,
         data_fim: ct.data_fim || "",
         valor_mensal: ct.valor_mensal,
+        valor_base: (ct as any).valor_base?.toString() || "",
+        valor_transporte: (ct as any).valor_transporte?.toString() || "0",
+        valor_beneficios_extras: (ct as any).valor_beneficios_extras?.toString() || "0",
         forma_pagamento: ct.forma_pagamento,
         dia_vencimento: ct.dia_vencimento || 10,
         renovacao_automatica: ct.renovacao_automatica,
@@ -377,7 +380,10 @@ export default function ContratoPJDetalhe() {
           departamento: rest.departamento,
           data_inicio: rest.data_inicio,
           data_fim: rest.data_fim || null,
-          valor_mensal: Number(valor_mensal),
+          valor_base: Number(rest.valor_base) || 0,
+          valor_transporte: Number(rest.valor_transporte) || 0,
+          valor_beneficios_extras: Number(rest.valor_beneficios_extras) || 0,
+          valor_mensal: (Number(rest.valor_base) || 0) + (Number(rest.valor_transporte) || 0) + (Number(rest.valor_beneficios_extras) || 0),
           forma_pagamento: rest.forma_pagamento,
           dia_vencimento: Number(rest.dia_vencimento) || 10,
           renovacao_automatica: rest.renovacao_automatica,
@@ -659,16 +665,25 @@ export default function ContratoPJDetalhe() {
                 <InfoField label="Cargo / Tipo de Serviço" value={contrato.tipo_servico} />
                 <InfoField label="Departamento" value={contrato.departamento} />
                 {canSeeSalary(isCargoClevel(contrato.tipo_servico)) && (
-                  <InfoField
-                    label="Valor Mensal"
-                    value={
-                      <SalarioMasked
-                        valor={Number(contrato.valor_mensal)}
-                        userId={(contrato as any).user_id}
-                        contexto="admissao"
-                      />
-                    }
-                  />
+                  <div className="md:col-span-2 lg:col-span-3 border rounded-lg p-4 space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Remuneração</h4>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Salário base</span>
+                      <SalarioMasked valor={Number((contrato as any).valor_base) || 0} userId={(contrato as any).user_id} contexto="admissao" />
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Aux. transporte</span>
+                      <SalarioMasked valor={Number((contrato as any).valor_transporte) || 0} userId={(contrato as any).user_id} contexto="admissao" />
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Outros benefícios</span>
+                      <SalarioMasked valor={Number((contrato as any).valor_beneficios_extras) || 0} userId={(contrato as any).user_id} contexto="admissao" />
+                    </div>
+                    <div className="flex justify-between text-sm pt-2 border-t font-semibold">
+                      <span>Total</span>
+                      <SalarioMasked valor={Number(contrato.valor_mensal)} userId={(contrato as any).user_id} contexto="admissao" />
+                    </div>
+                  </div>
                 )}
                 <InfoField label="Forma de Pagamento" value={contrato.forma_pagamento} />
                 <InfoField
