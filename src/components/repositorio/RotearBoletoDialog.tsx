@@ -120,11 +120,11 @@ export function RotearBoletoDialog({
         .maybeSingle();
 
       if (bol) {
-        setBoleto(bol as BoletoStage);
+        setBoleto(bol as unknown as BoletoStage);
       }
 
       if (res.status_ancoragem === "aguardando_escolha_operador") {
-        setCandidatos(res.candidatos ?? (bol?.cpr_match_candidatos as CprCandidato[]) ?? []);
+        setCandidatos(res.candidatos ?? ((bol?.cpr_match_candidatos as unknown) as CprCandidato[]) ?? []);
         setEtapa("escolher");
       } else {
         setEtapa("criar");
