@@ -12309,7 +12309,7 @@ export type Database = {
           p_boleto_stage_id: string
           p_categoria_id: string
           p_descricao_extra?: string
-          p_meio_pagamento_id?: string
+          p_forma_pagamento_id?: string
         }
         Returns: Json
       }

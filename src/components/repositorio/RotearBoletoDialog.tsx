@@ -80,7 +80,7 @@ export function RotearBoletoDialog({
   const [candidatos, setCandidatos] = useState<CprCandidato[]>([]);
   const [cprEscolhida, setCprEscolhida] = useState<string | null>(null);
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
-  const [meioPagamentoId, setMeioPagamentoId] = useState<string | null>(null);
+  const [formaPagamentoId, setFormaPagamentoId] = useState<string | null>(null);
   const [descricao, setDescricao] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -93,7 +93,7 @@ export function RotearBoletoDialog({
     setEtapa("loading");
     setCprEscolhida(null);
     setCategoriaId(null);
-    setMeioPagamentoId(null);
+    setFormaPagamentoId(null);
     setDescricao(nomeDocumento ?? "");
     try {
       const { data, error } = await supabase.rpc("rotear_documento_para_boleto", {
@@ -193,8 +193,8 @@ export function RotearBoletoDialog({
       toast.error("Selecione a categoria");
       return;
     }
-    if (!meioPagamentoId) {
-      toast.error("Selecione o meio de pagamento");
+    if (!formaPagamentoId) {
+      toast.error("Selecione a forma de pagamento");
       return;
     }
     setSalvando(true);
@@ -202,7 +202,7 @@ export function RotearBoletoDialog({
       const { data, error } = await supabase.rpc("criar_cpr_de_boleto", {
         p_boleto_stage_id: boleto.id,
         p_categoria_id: categoriaId,
-        p_meio_pagamento_id: meioPagamentoId,
+        p_forma_pagamento_id: formaPagamentoId,
         p_descricao_extra: descricao || undefined,
       });
       if (error) throw error;
@@ -298,15 +298,15 @@ export function RotearBoletoDialog({
                 />
               </div>
               <div>
-                <Label>Meio de pagamento *</Label>
+                <Label>Forma de pagamento <span className="text-red-500">*</span></Label>
                 <Select
-                  value={meioPagamentoId ?? ""}
-                  onValueChange={(v) => setMeioPagamentoId(v || null)}
+                  value={formaPagamentoId ?? undefined}
+                  onValueChange={(v) => setFormaPagamentoId(v)}
                 >
                   <SelectTrigger
-                    className={!meioPagamentoId ? "border-amber-300" : ""}
+                    className={!formaPagamentoId ? "border-amber-300" : ""}
                   >
-                    <SelectValue placeholder="Selecione o meio de pagamento" />
+                    <SelectValue placeholder="Selecione a forma de pagamento" />
                   </SelectTrigger>
                   <SelectContent>
                     {meios.map((m) => (
@@ -330,13 +330,13 @@ export function RotearBoletoDialog({
               <Button
                 variant="secondary"
                 onClick={() => criar(false)}
-                disabled={salvando || !categoriaId || !meioPagamentoId}
+                disabled={salvando || !categoriaId || !formaPagamentoId}
               >
                 Criar
               </Button>
               <Button
                 onClick={() => criar(true)}
-                disabled={salvando || !categoriaId || !meioPagamentoId}
+                disabled={salvando || !categoriaId || !formaPagamentoId}
                 className="bg-[#1A4A3A] hover:bg-[#1A4A3A]/90"
               >
                 {salvando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
