@@ -575,11 +575,11 @@ export default function ContratosPJ() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Carregando...</TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum contrato encontrado.</TableCell>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum contrato encontrado.</TableCell>
                   </TableRow>
                 ) : (
                   filtered.map((c) => (
