@@ -216,6 +216,8 @@ export default function Repositorio() {
       toast.error("Erro: " + (e instanceof Error ? e.message : String(e)), { duration: 15000 });
     }
   }
+
+  const docsFiltrados = useMemo(() => {
     let arr = docs;
     if (filtroStatus === "ativos") {
       arr = arr.filter((d) => d.status_classificacao !== "descartada");
