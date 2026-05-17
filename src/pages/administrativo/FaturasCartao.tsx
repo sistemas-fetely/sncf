@@ -1401,3 +1401,75 @@ function KpiPill({ label, count, color, active, onClick, icon, description }: Kp
     </button>
   );
 }
+
+// === Inline edit do Limite do cartão ===
+function LimiteInlineEdit({ cartaoId, valor }: { cartaoId: string; valor: number }) {
+  const [editando, setEditando] = useState(false);
+  const [tempValor, setTempValor] = useState<string>(
+    valor > 0 ? valor.toFixed(2).replace(".", ",") : "",
+  );
+  const [salvando, setSalvando] = useState(false);
+  const qc = useQueryClient();
+
+  async function salvar() {
+    const novo = parseValorBR(tempValor) ?? 0;
+    if (novo === valor) {
+      setEditando(false);
+      return;
+    }
+    setSalvando(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("cartoes_credito")
+        .update({ limite: novo, updated_at: new Date().toISOString() })
+        .eq("id", cartaoId);
+      if (error) throw error;
+      toast.success("Limite atualizado");
+      qc.invalidateQueries({ queryKey: ["cartoes-credito-listagem"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao atualizar limite: " + msg);
+      setTempValor(valor > 0 ? valor.toFixed(2).replace(".", ",") : "");
+    } finally {
+      setSalvando(false);
+      setEditando(false);
+    }
+  }
+
+  if (editando) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        inputMode="decimal"
+        value={tempValor}
+        onChange={(e) => setTempValor(e.target.value)}
+        onBlur={salvar}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            (e.currentTarget as HTMLInputElement).blur();
+          }
+          if (e.key === "Escape") {
+            setTempValor(valor > 0 ? valor.toFixed(2).replace(".", ",") : "");
+            setEditando(false);
+          }
+        }}
+        disabled={salvando}
+        placeholder="0,00"
+        className="text-xs font-semibold font-mono w-full px-1 py-0 border border-input rounded outline-none focus:ring-1 focus:ring-primary bg-background"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditando(true)}
+      className="text-xs font-semibold font-mono hover:underline cursor-pointer text-left block w-full"
+      title="Clique para editar"
+    >
+      {formatBRL(valor)}
+    </button>
+  );
+}
