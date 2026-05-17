@@ -66,9 +66,12 @@ export interface DocumentoRepositorio {
   resumo_ia: string | null;
   parceiro_id: string | null;
   parceiro_nome: string | null;
+  parceiro_cnpj_ia: string | null;
+  parceiro_inferido: boolean;
   valor: number | null;
   vencimento: string | null;
   data_emissao: string | null;
+  data_validade: string | null;
   numero_documento: string | null;
   lote_id: string | null;
   origem_porta: string;
@@ -125,14 +128,21 @@ export default function Repositorio() {
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
-      return ((data ?? []) as any[]).map((r) => ({
-        ...r,
-        parceiro_nome: r.parceiros_comerciais?.razao_social ?? null,
-        valor: r.classificacao_ia?.valor ?? null,
-        vencimento: r.classificacao_ia?.data_vencimento ?? null,
-        data_emissao: r.classificacao_ia?.data_emissao ?? null,
-        numero_documento: r.classificacao_ia?.numero_documento ?? null,
-      })) as DocumentoRepositorio[];
+      return ((data ?? []) as any[]).map((r) => {
+        const cadastrado = r.parceiros_comerciais?.razao_social ?? null;
+        const inferido = r.classificacao_ia?.parceiro_razao_social ?? null;
+        return {
+          ...r,
+          parceiro_nome: cadastrado ?? inferido,
+          parceiro_cnpj_ia: r.classificacao_ia?.parceiro_cnpj ?? null,
+          parceiro_inferido: !cadastrado && !!inferido,
+          valor: r.classificacao_ia?.valor ?? null,
+          vencimento: r.classificacao_ia?.data_vencimento ?? null,
+          data_emissao: r.classificacao_ia?.data_emissao ?? null,
+          data_validade: r.classificacao_ia?.data_validade ?? null,
+          numero_documento: r.classificacao_ia?.numero_documento ?? null,
+        };
+      }) as DocumentoRepositorio[];
     },
   });
 
@@ -381,12 +391,29 @@ export default function Repositorio() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-sm">{d.parceiro_nome ?? "—"}</TableCell>
+                  <TableCell className="text-sm">
+                    {d.parceiro_nome ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate max-w-[200px]" title={d.parceiro_nome}>
+                          {d.parceiro_nome}
+                        </span>
+                        {d.parceiro_inferido && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1 py-0 h-4 border-amber-300 bg-amber-50 text-amber-700"
+                            title="Sugerido pela IA — não cadastrado em Parceiros"
+                          >
+                            IA
+                          </Badge>
+                        )}
+                      </div>
+                    ) : "—"}
+                  </TableCell>
                   <TableCell className="text-right text-sm">
                     {d.valor != null ? formatBRL(d.valor) : "—"}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {formatDateBR(d.vencimento ?? d.data_emissao)}
+                    {formatDateBR(d.vencimento ?? d.data_emissao ?? d.data_validade)}
                   </TableCell>
                   {agruparLote && (
                     <TableCell>
