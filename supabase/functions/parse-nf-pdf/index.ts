@@ -100,7 +100,7 @@ Responda APENAS com JSON neste formato (sem markdown, sem explicações):
   "taxa_conversao": number ou null (multiplicador moeda_origem → BRL — preencher SOMENTE se moeda != BRL),
   "data_emissao": string formato YYYY-MM-DD,
   "data_vencimento": string formato YYYY-MM-DD ou null,
-  "descricao": string (descrição dos itens/serviços),
+  "descricao": string (descrição resumida dos itens/serviços, MÁXIMO 280 caracteres — se houver muitos itens, resuma como "N itens: primeiro item; segundo item; ..." sem listar todos),
   "numero_documento": string (número da NF para nfe/nfse, número do recibo/invoice, OU para boleto: "Nosso Número" ou "Número do Documento" do banco),
   "serie": string ou null (série, só pra NF-e/NFS-e brasileiras),
   "chave_acesso": string ou null (EXATAMENTE 44 dígitos pra NF-e, ID do InfNfse pra NFS-e. **OBRIGATORIAMENTE null pra recibo E boleto** — NUNCA preencher chave_acesso quando tipo_documento for boleto, mesmo que haja números longos no documento — esses são linha digitável, não chave.),
