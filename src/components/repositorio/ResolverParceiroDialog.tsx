@@ -528,6 +528,73 @@ export function ResolverParceiroDialog({
             Confirmar
           </Button>
         </DialogFooter>
+        </>
+        )}
+
+        {etapa === "oferta_lote" && dadosResolucao && (
+          <>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-emerald-900">
+                    Parceiro deste documento resolvido
+                  </p>
+                  <p className="text-sm text-emerald-800 mt-1">
+                    {dadosResolucao.decisao === "vincular_existente" &&
+                      "Vinculado a parceiro existente."}
+                    {dadosResolucao.decisao === "criar_novo" &&
+                      "Parceiro cadastrado (cadastro incompleto — complete depois)."}
+                    {dadosResolucao.decisao === "dispensar" &&
+                      "Resolução dispensada para este documento."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-900">
+                      Encontramos {pendentesMesmoCnpj} outro
+                      {pendentesMesmoCnpj > 1 ? "s" : ""} documento
+                      {pendentesMesmoCnpj > 1 ? "s" : ""} pendente
+                      {pendentesMesmoCnpj > 1 ? "s" : ""} com o mesmo CNPJ
+                    </p>
+                    <p className="text-sm text-amber-800 mt-1">
+                      CNPJ <strong>{formatCNPJ(dadosResolucao.cnpj_ia)}</strong>
+                      {dadosResolucao.razao_social_ia &&
+                        ` · ${dadosResolucao.razao_social_ia}`}
+                    </p>
+                    <p className="text-sm text-amber-800 mt-2">
+                      Aplicar a mesma resolução a todos eles?
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={handlePularLote} disabled={salvando}>
+                Não, só este documento
+              </Button>
+              <Button
+                onClick={handleAplicarLote}
+                disabled={salvando}
+                className="bg-[#1A4A3A] hover:bg-[#1A4A3A]/90"
+              >
+                {salvando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Sim, aplicar aos {pendentesMesmoCnpj}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {etapa === "executando_lote" && (
+          <div className="py-12 flex items-center justify-center text-sm text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Aplicando em lote...
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
