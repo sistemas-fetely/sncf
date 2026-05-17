@@ -126,19 +126,55 @@ export function StepDadosProfissionaisPJ() {
             <p className="text-xs text-destructive mt-1">{(errors as any).unidade_id.message}</p>
           )}
         </div>
-        <div>
-          <Label>Valor Mensal (R$) *</Label>
-          <Input
-            type="text"
-            inputMode="numeric"
-            value={watch("valor_mensal") ? formatBRL(watch("valor_mensal")) : ""}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, "");
-              const cents = parseInt(digits || "0", 10);
-              setValue("valor_mensal", cents / 100);
-            }}
-            placeholder="R$ 0,00"
-          />
+        <div className="md:col-span-2 lg:col-span-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label>Salário Base (R$) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={(watch("valor_base" as any) as number | undefined) ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value === "" ? undefined : Number(e.target.value);
+                  setValue("valor_base" as any, v as any);
+                  const total = (Number(v) || 0) + (Number(watch("valor_transporte" as any)) || 0) + (Number(watch("valor_beneficios_extras" as any)) || 0);
+                  setValue("valor_mensal", total);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Aux. Transporte (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={(watch("valor_transporte" as any) as number | undefined) ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value === "" ? undefined : Number(e.target.value);
+                  setValue("valor_transporte" as any, v as any);
+                  const total = (Number(watch("valor_base" as any)) || 0) + (Number(v) || 0) + (Number(watch("valor_beneficios_extras" as any)) || 0);
+                  setValue("valor_mensal", total);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Outros Benefícios (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={(watch("valor_beneficios_extras" as any) as number | undefined) ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value === "" ? undefined : Number(e.target.value);
+                  setValue("valor_beneficios_extras" as any, v as any);
+                  const total = (Number(watch("valor_base" as any)) || 0) + (Number(watch("valor_transporte" as any)) || 0) + (Number(v) || 0);
+                  setValue("valor_mensal", total);
+                }}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Total: R$ {((Number(watch("valor_base" as any)) || 0) + (Number(watch("valor_transporte" as any)) || 0) + (Number(watch("valor_beneficios_extras" as any)) || 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </p>
+          <input type="hidden" {...register("valor_mensal")} />
           {errors.valor_mensal && <p className="text-xs text-destructive mt-1">{errors.valor_mensal.message}</p>}
         </div>
         <div>
