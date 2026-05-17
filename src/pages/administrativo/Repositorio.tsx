@@ -34,6 +34,7 @@ import {
   Link as LinkIcon,
   ExternalLink,
   Search,
+  AlertCircle,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
