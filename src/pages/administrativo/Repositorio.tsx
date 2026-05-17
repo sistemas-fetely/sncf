@@ -180,7 +180,42 @@ export default function Repositorio() {
     },
   });
 
-  const docsFiltrados = useMemo(() => {
+  const { data: qtdPendentes = 0 } = useQuery({
+    queryKey: ["repositorio-qtd-pendentes"],
+    queryFn: async () => {
+      const { count } = await (supabase as any)
+        .from("ged_documentos")
+        .select("id", { count: "exact", head: true })
+        .eq("parceiro_resolucao_pendente", true)
+        .eq("parceiro_resolucao_dispensada", false);
+      return count ?? 0;
+    },
+    staleTime: 30_000,
+  });
+
+  async function tentarResolverPendentes() {
+    try {
+      const { data, error } = await (supabase as any).rpc("tentar_match_parceiro_retroativo");
+      if (error) throw error;
+      const res = (data ?? {}) as { resolvidos_automaticamente?: number; restantes_pendentes?: number };
+      const resolvidos = res.resolvidos_automaticamente ?? 0;
+      const restantes = res.restantes_pendentes ?? 0;
+      if (resolvidos > 0) {
+        toast.success(
+          `${resolvidos} parceiro(s) resolvido(s) automaticamente${
+            restantes > 0 ? `. Restam ${restantes} sem match — resolva manualmente.` : "."
+          }`,
+          { duration: 10000 },
+        );
+      } else {
+        toast.info("Nenhum parceiro pode ser resolvido automaticamente. Resolva manualmente.");
+      }
+      qc.invalidateQueries({ queryKey: ["repositorio-documentos"] });
+      qc.invalidateQueries({ queryKey: ["repositorio-qtd-pendentes"] });
+    } catch (e) {
+      toast.error("Erro: " + (e instanceof Error ? e.message : String(e)), { duration: 15000 });
+    }
+  }
     let arr = docs;
     if (filtroStatus === "ativos") {
       arr = arr.filter((d) => d.status_classificacao !== "descartada");
