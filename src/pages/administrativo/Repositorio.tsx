@@ -135,7 +135,8 @@ export default function Repositorio() {
            status_classificacao, confianca_ia, classificacao_ia, resumo_ia,
            parceiro_id, lote_id, origem_porta, tags, created_at,
            parceiro_resolucao_pendente, parceiro_resolucao_dispensada,
-           parceiros_comerciais ( razao_social )`,
+           parceiros_comerciais ( razao_social ),
+           boleto_stage ( id, status, contas_pagar_receber_id )`,
         )
         .order("created_at", { ascending: false })
         .limit(500);
@@ -143,6 +144,7 @@ export default function Repositorio() {
       return ((data ?? []) as any[]).map((r) => {
         const cadastrado = r.parceiros_comerciais?.razao_social ?? null;
         const inferido = r.classificacao_ia?.parceiro_razao_social ?? null;
+        const bs = Array.isArray(r.boleto_stage) ? r.boleto_stage[0] : r.boleto_stage;
         return {
           ...r,
           parceiro_nome: cadastrado ?? inferido,
@@ -153,6 +155,9 @@ export default function Repositorio() {
           data_emissao: r.classificacao_ia?.data_emissao ?? null,
           data_validade: r.classificacao_ia?.data_validade ?? null,
           numero_documento: r.classificacao_ia?.numero_documento ?? null,
+          boleto_stage_status: bs?.status ?? null,
+          boleto_stage_id: bs?.id ?? null,
+          boleto_stage_cpr_id: bs?.contas_pagar_receber_id ?? null,
         };
       }) as DocumentoRepositorio[];
     },
