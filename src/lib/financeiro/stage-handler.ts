@@ -194,6 +194,37 @@ export async function moverParaStage(
     }
   }
 
+  // === Auto-classificação por IA (Doutrina #101) ===
+  // Dispara classificar-nfs-ia para as NFs recém-criadas que ficaram sem categoria.
+  // A edge function verifica regras_categorizacao antes de chamar Gemini, então
+  // CNPJs já mapeados manualmente nunca são sobrescritos.
+  // Não-bloqueante: falha aqui não invalida a importação.
+  if (result.stageIdsCriados.length > 0) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: semCategoria } = await (supabase as any)
+        .from("nfs_stage")
+        .select("id")
+        .in("id", result.stageIdsCriados)
+        .is("categoria_id", null);
+
+      const idsParaClassificar: string[] = (semCategoria || []).map(
+        (r: { id: string }) => r.id,
+      );
+
+      if (idsParaClassificar.length > 0) {
+        // Fire-and-forget: não aguarda resposta, não bloqueia retorno.
+        supabase.functions
+          .invoke("classificar-nfs-ia", { body: { ids: idsParaClassificar } })
+          .catch((e) => {
+            console.warn("Auto-classificação IA falhou (não-bloqueante):", e);
+          });
+      }
+    } catch (e) {
+      console.warn("Auto-classificação IA pulada (erro de leitura):", e);
+    }
+  }
+
   return result;
 }
 
