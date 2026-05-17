@@ -336,7 +336,7 @@ export function RotearBoletoDialog({
               </Button>
               <Button
                 onClick={() => criar(true)}
-                disabled={salvando || !categoriaId || !meioPagamentoId}
+                disabled={salvando || !categoriaId || !formaPagamentoId}
                 className="bg-[#1A4A3A] hover:bg-[#1A4A3A]/90"
               >
                 {salvando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
