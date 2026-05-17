@@ -170,7 +170,7 @@ export function ImportarNFDespesaDialog({
           parcela_atual: i + 1,
           parcela_grupo_id: grupoId,
           status: "aberto",
-          origem: "manual",
+          origem: nf.stageId ? "nf_import" : "manual",
         });
       }
 
