@@ -12284,6 +12284,10 @@ export type Database = {
         Args: { p_conta_pagar_id: string; p_pagamento_id: string }
         Returns: Json
       }
+      contar_boletos_pendentes_mesmo_parceiro: {
+        Args: { p_boleto_stage_id_referencia: string }
+        Returns: Json
+      }
       contar_pendentes_mesmo_cnpj: {
         Args: { p_ged_documento_id_referencia: string }
         Returns: Json
@@ -12310,6 +12314,14 @@ export type Database = {
           p_categoria_id: string
           p_descricao_extra?: string
           p_forma_pagamento_id?: string
+        }
+        Returns: Json
+      }
+      criar_cpr_de_boleto_em_lote: {
+        Args: {
+          p_boleto_stage_ids: string[]
+          p_categoria_id: string
+          p_forma_pagamento_id: string
         }
         Returns: Json
       }
