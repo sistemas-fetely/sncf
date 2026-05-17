@@ -95,6 +95,7 @@ export default function Parceiros() {
     column: "razao_social",
     direction: "asc",
   });
+  const [filtroIncompleto, setFiltroIncompleto] = useState<"sem_categoria" | "sem_meio_pgto" | "sem_centro_custo" | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -254,6 +255,10 @@ export default function Parceiros() {
       );
     }
 
+    if (filtroIncompleto === "sem_categoria") list = list.filter((p) => !p.categoria_padrao_id);
+    else if (filtroIncompleto === "sem_meio_pgto") list = list.filter((p) => !temMeioPagamento(p));
+    else if (filtroIncompleto === "sem_centro_custo") list = list.filter((p) => !p.centro_custo_id);
+
     if (!sort) return list;
     const mult = sort.direction === "asc" ? 1 : -1;
     const sortFn = (a: Parceiro, b: Parceiro) => {
@@ -287,7 +292,7 @@ export default function Parceiros() {
       return v * mult;
     };
     return [...list].sort(sortFn);
-  }, [data, filtroStatus, filtroGrupo, busca, tabAtiva, sort, categoriaNomeMap, centroCustoNomeMap]);
+  }, [data, filtroStatus, filtroGrupo, busca, tabAtiva, sort, categoriaNomeMap, centroCustoNomeMap, filtroIncompleto]);
 
   const handleOpenNew = () => {
     setEditing(null);
@@ -461,7 +466,10 @@ export default function Parceiros() {
                     <div className="text-2xl font-bold text-[#1A4A3A]">{kpis.clientes}</div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className={`cursor-pointer transition-all hover:shadow-md ${filtroIncompleto === "sem_categoria" ? "ring-2 ring-warning" : ""}`}
+                  onClick={() => setFiltroIncompleto(filtroIncompleto === "sem_categoria" ? null : "sem_categoria")}
+                >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-normal text-muted-foreground">Sem categoria</CardTitle>
                   </CardHeader>
@@ -469,7 +477,10 @@ export default function Parceiros() {
                     <div className="text-2xl font-bold text-warning">{kpis.semCategoria}</div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className={`cursor-pointer transition-all hover:shadow-md ${filtroIncompleto === "sem_centro_custo" ? "ring-2 ring-warning" : ""}`}
+                  onClick={() => setFiltroIncompleto(filtroIncompleto === "sem_centro_custo" ? null : "sem_centro_custo")}
+                >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-normal text-muted-foreground">Sem centro de custo</CardTitle>
                   </CardHeader>
@@ -477,7 +488,10 @@ export default function Parceiros() {
                     <div className="text-2xl font-bold text-warning">{kpis.semCentroCusto}</div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className={`cursor-pointer transition-all hover:shadow-md ${filtroIncompleto === "sem_meio_pgto" ? "ring-2 ring-warning" : ""}`}
+                  onClick={() => setFiltroIncompleto(filtroIncompleto === "sem_meio_pgto" ? null : "sem_meio_pgto")}
+                >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-normal text-muted-foreground">Sem meio de pagamento</CardTitle>
                   </CardHeader>
