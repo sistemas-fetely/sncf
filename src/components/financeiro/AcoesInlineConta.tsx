@@ -317,6 +317,15 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
           }}
         />
       )}
+
+      <NfStageBuscadorModal
+        open={showAnexarNF}
+        onOpenChange={setShowAnexarNF}
+        valorEsperado={conta.valor}
+        fornecedorEsperado={conta.fornecedor_cliente || undefined}
+        parceiroId={conta.parceiro_id || undefined}
+        onSelecionar={handleSelecionarNFDoStage}
+      />
     </div>
   );
 }
