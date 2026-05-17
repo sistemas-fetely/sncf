@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import EnviarPagamentoDialog from "./EnviarPagamentoDialog";
+import { NfStageBuscadorModal } from "./NfStageBuscadorModal";
 
 import { cn } from "@/lib/utils";
 import {
@@ -55,6 +56,34 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
   const [aprovando, setAprovando] = useState(false);
   const [lancandoMov, setLancandoMov] = useState(false);
   const [showEnviar, setShowEnviar] = useState(false);
+  const [showAnexarNF, setShowAnexarNF] = useState(false);
+  const [vinculandoNF, setVinculandoNF] = useState(false);
+
+  async function handleSelecionarNFDoStage(nfStageId: string) {
+    setVinculandoNF(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: result, error } = await (supabase as any).rpc(
+        "vincular_nf_a_conta",
+        { p_nf_id: nfStageId, p_conta_id: conta.id },
+      );
+      if (error) throw error;
+      if (!result?.ok && !result?.success) {
+        const msg = result?.erro || result?.error || "Falha ao vincular NF";
+        toast.error(typeof msg === "string" ? msg : "Falha ao vincular NF");
+        return;
+      }
+      toast.success("NF vinculada à conta");
+      setShowAnexarNF(false);
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+      qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    } catch (e) {
+      toast.error("Erro: " + extractMsg(e));
+    } finally {
+      setVinculandoNF(false);
+    }
+  }
 
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -210,14 +239,25 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
 
   return (
     <div className="flex items-center gap-1">
-      {/* 1) NF — click propaga e abre o drawer (anexar NF é parte da edição da CPR — D-E). */}
+      {/* 1) NF — vermelho abre modal de anexar do Repositório; verde propaga pra abrir drawer. */}
       <Button
         size="icon"
         variant="ghost"
         className={cn("h-7 w-7", COR_ICONE[estadoNF])}
-        title={tooltipNF}
+        title={estadoNF === "pendente" ? "Anexar NF do Repositório" : tooltipNF}
+        disabled={vinculandoNF}
+        onClick={(e) => {
+          if (estadoNF === "pendente") {
+            e.stopPropagation();
+            setShowAnexarNF(true);
+          }
+        }}
       >
-        <Paperclip className="h-3.5 w-3.5" />
+        {vinculandoNF ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Paperclip className="h-3.5 w-3.5" />
+        )}
       </Button>
 
       {/* 2) Aprovar */}
@@ -277,6 +317,15 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
           }}
         />
       )}
+
+      <NfStageBuscadorModal
+        open={showAnexarNF}
+        onOpenChange={setShowAnexarNF}
+        valorEsperado={conta.valor}
+        fornecedorEsperado={conta.fornecedor_cliente || undefined}
+        parceiroId={conta.parceiro_id || undefined}
+        onSelecionar={handleSelecionarNFDoStage}
+      />
     </div>
   );
 }
