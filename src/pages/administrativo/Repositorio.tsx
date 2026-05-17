@@ -687,7 +687,7 @@ function AcaoInline({
           variant="ghost"
           className="h-8 text-muted-foreground hover:text-foreground"
         >
-          <Link to={`/contas-pagar?id=${doc.boleto_stage_cpr_id}`}>
+          <Link to="/administrativo/contas-pagar">
             <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ver CPR
           </Link>
         </Button>
