@@ -557,14 +557,32 @@ function AcaoInline({
   doc,
   onRotear,
   onVincular,
+  onResolverParceiro,
 }: {
   doc: DocumentoRepositorio;
   onRotear: (d: DocumentoRepositorio) => void;
   onVincular: (d: DocumentoRepositorio) => void;
+  onResolverParceiro: (d: DocumentoRepositorio) => void;
 }) {
   if (doc.status_classificacao === "descartada") return null;
 
+  const parceiroPendente =
+    doc.parceiro_resolucao_pendente && !doc.parceiro_resolucao_dispensada;
+
   if (doc.tipo_documento === "boleto" && doc.status_classificacao === "classificada") {
+    if (parceiroPendente) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-amber-300 text-amber-700 hover:bg-amber-50"
+          onClick={() => onResolverParceiro(doc)}
+          title="Resolva o parceiro antes de rotear"
+        >
+          <AlertCircle className="h-3.5 w-3.5 mr-1" /> Resolver parceiro
+        </Button>
+      );
+    }
     return (
       <Button
         size="sm"
@@ -587,11 +605,38 @@ function AcaoInline({
   }
 
   if (doc.tipo_documento === "contrato" || doc.tipo_documento === "aditivo") {
+    if (parceiroPendente) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-amber-300 text-amber-700 hover:bg-amber-50"
+          onClick={() => onResolverParceiro(doc)}
+          title="Resolva o parceiro antes de criar contrato"
+        >
+          <AlertCircle className="h-3.5 w-3.5 mr-1" /> Resolver parceiro
+        </Button>
+      );
+    }
     return (
       <Button asChild size="sm" variant="outline" className="h-8">
         <Link to={`/administrativo-fetely/contratos?ged_documento_id=${doc.id}`}>
           Criar contrato
         </Link>
+      </Button>
+    );
+  }
+
+  if (parceiroPendente) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 border-amber-300 text-amber-700 hover:bg-amber-50"
+        onClick={() => onResolverParceiro(doc)}
+        title="Resolva o parceiro antes de vincular"
+      >
+        <AlertCircle className="h-3.5 w-3.5 mr-1" /> Resolver parceiro
       </Button>
     );
   }
