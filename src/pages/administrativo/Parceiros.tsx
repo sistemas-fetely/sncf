@@ -95,6 +95,7 @@ export default function Parceiros() {
     column: "razao_social",
     direction: "asc",
   });
+  const [filtroIncompleto, setFiltroIncompleto] = useState<"sem_categoria" | "sem_meio_pgto" | "sem_centro_custo" | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
