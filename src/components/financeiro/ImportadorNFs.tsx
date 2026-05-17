@@ -137,11 +137,6 @@ async function parsePdfFile(file: File): Promise<NFParsed | null> {
   return nf;
 }
 
-function normalizarNumeroNF(n: string | undefined): string {
-  if (!n) return "";
-  return n.replace(/\D/g, "").replace(/^0+/, "");
-}
-
 export function ImportadorNFs({ onImported }: Props) {
   const qc = useQueryClient();
   const [parsing, setParsing] = useState(false);
