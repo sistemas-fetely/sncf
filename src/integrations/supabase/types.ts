@@ -2985,7 +2985,10 @@ export type Database = {
           unidade_id: string | null
           updated_at: string
           user_id: string | null
+          valor_base: number | null
+          valor_beneficios_extras: number | null
           valor_mensal: number
+          valor_transporte: number | null
         }
         Insert: {
           acesso_revogado_em?: string | null
@@ -3049,7 +3052,10 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
+          valor_base?: number | null
+          valor_beneficios_extras?: number | null
           valor_mensal: number
+          valor_transporte?: number | null
         }
         Update: {
           acesso_revogado_em?: string | null
@@ -3113,7 +3119,10 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
+          valor_base?: number | null
+          valor_beneficios_extras?: number | null
           valor_mensal?: number
+          valor_transporte?: number | null
         }
         Relationships: [
           {
