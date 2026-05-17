@@ -98,7 +98,14 @@ export function RotearBoletoDialog({
         candidatos?: CprCandidato[];
         boleto?: BoletoStage;
         message?: string;
+        ja_roteado?: boolean;
+        mensagem?: string;
       };
+
+      // RPC idempotente: já existe boleto_stage — apenas informa e segue fluxo normal
+      if (res.ja_roteado && res.mensagem) {
+        toast.info(res.mensagem, { duration: 8000 });
+      }
 
       if (res.status_ancoragem === "ancorado_automatico") {
         toast.success(

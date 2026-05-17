@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import {
   ExternalLink,
   Search,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
@@ -81,6 +83,9 @@ export interface DocumentoRepositorio {
   origem_porta: string;
   tags: string[] | null;
   created_at: string;
+  boleto_stage_status: string | null;
+  boleto_stage_id: string | null;
+  boleto_stage_cpr_id: string | null;
 }
 
 type SortCol = "nome" | "tipo_documento" | "valor" | "vencimento" | "created_at" | "confianca_ia";
@@ -102,6 +107,7 @@ const TIPOS = [
 const STATUSES = ["aguardando", "classificada", "roteada", "descartada", "erro"];
 
 export default function Repositorio() {
+  const qc = useQueryClient();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("ativos");
@@ -129,7 +135,8 @@ export default function Repositorio() {
            status_classificacao, confianca_ia, classificacao_ia, resumo_ia,
            parceiro_id, lote_id, origem_porta, tags, created_at,
            parceiro_resolucao_pendente, parceiro_resolucao_dispensada,
-           parceiros_comerciais ( razao_social )`,
+           parceiros_comerciais ( razao_social ),
+           boleto_stage ( id, status, contas_pagar_receber_id )`,
         )
         .order("created_at", { ascending: false })
         .limit(500);
@@ -137,6 +144,7 @@ export default function Repositorio() {
       return ((data ?? []) as any[]).map((r) => {
         const cadastrado = r.parceiros_comerciais?.razao_social ?? null;
         const inferido = r.classificacao_ia?.parceiro_razao_social ?? null;
+        const bs = Array.isArray(r.boleto_stage) ? r.boleto_stage[0] : r.boleto_stage;
         return {
           ...r,
           parceiro_nome: cadastrado ?? inferido,
@@ -147,6 +155,9 @@ export default function Repositorio() {
           data_emissao: r.classificacao_ia?.data_emissao ?? null,
           data_validade: r.classificacao_ia?.data_validade ?? null,
           numero_documento: r.classificacao_ia?.numero_documento ?? null,
+          boleto_stage_status: bs?.status ?? null,
+          boleto_stage_id: bs?.id ?? null,
+          boleto_stage_cpr_id: bs?.contas_pagar_receber_id ?? null,
         };
       }) as DocumentoRepositorio[];
     },
@@ -168,6 +179,43 @@ export default function Repositorio() {
       };
     },
   });
+
+  const { data: qtdPendentes = 0 } = useQuery({
+    queryKey: ["repositorio-qtd-pendentes"],
+    queryFn: async () => {
+      const { count } = await (supabase as any)
+        .from("ged_documentos")
+        .select("id", { count: "exact", head: true })
+        .eq("parceiro_resolucao_pendente", true)
+        .eq("parceiro_resolucao_dispensada", false);
+      return count ?? 0;
+    },
+    staleTime: 30_000,
+  });
+
+  async function tentarResolverPendentes() {
+    try {
+      const { data, error } = await (supabase as any).rpc("tentar_match_parceiro_retroativo");
+      if (error) throw error;
+      const res = (data ?? {}) as { resolvidos_automaticamente?: number; restantes_pendentes?: number };
+      const resolvidos = res.resolvidos_automaticamente ?? 0;
+      const restantes = res.restantes_pendentes ?? 0;
+      if (resolvidos > 0) {
+        toast.success(
+          `${resolvidos} parceiro(s) resolvido(s) automaticamente${
+            restantes > 0 ? `. Restam ${restantes} sem match — resolva manualmente.` : "."
+          }`,
+          { duration: 10000 },
+        );
+      } else {
+        toast.info("Nenhum parceiro pode ser resolvido automaticamente. Resolva manualmente.");
+      }
+      qc.invalidateQueries({ queryKey: ["repositorio-documentos"] });
+      qc.invalidateQueries({ queryKey: ["repositorio-qtd-pendentes"] });
+    } catch (e) {
+      toast.error("Erro: " + (e instanceof Error ? e.message : String(e)), { duration: 15000 });
+    }
+  }
 
   const docsFiltrados = useMemo(() => {
     let arr = docs;
@@ -242,13 +290,26 @@ export default function Repositorio() {
             Stage Universal de Documentos · suba qualquer arquivo, a IA classifica e roteia.
           </p>
         </div>
-        <Button
-          onClick={() => setUploadOpen(true)}
-          className="bg-[#1A4A3A] hover:bg-[#1A4A3A]/90"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Subir arquivos
-        </Button>
+        <div className="flex items-center gap-2">
+          {qtdPendentes > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 border-amber-300 text-amber-700 hover:bg-amber-50"
+              onClick={tentarResolverPendentes}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Tentar resolver {qtdPendentes} pendente{qtdPendentes > 1 ? "s" : ""}
+            </Button>
+          )}
+          <Button
+            onClick={() => setUploadOpen(true)}
+            className="bg-[#1A4A3A] hover:bg-[#1A4A3A]/90"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Subir arquivos
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -477,11 +538,13 @@ export default function Repositorio() {
                           <DropdownMenuItem onClick={() => abrirDetalhe(d)}>
                             Ver detalhes
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => comResolucaoParceiro(d, abrirVincular)}
-                          >
-                            Vincular
-                          </DropdownMenuItem>
+                          {!(d.tipo_documento === "boleto" && d.status_classificacao === "roteada") && (
+                            <DropdownMenuItem
+                              onClick={() => comResolucaoParceiro(d, abrirVincular)}
+                            >
+                              Vincular
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -569,29 +632,68 @@ function AcaoInline({
   const parceiroPendente =
     doc.parceiro_resolucao_pendente && !doc.parceiro_resolucao_dispensada;
 
-  if (doc.tipo_documento === "boleto" && doc.status_classificacao === "classificada") {
-    if (parceiroPendente) {
+  if (doc.tipo_documento === "boleto") {
+    // Estado 1: ainda não roteado
+    if (doc.status_classificacao === "classificada") {
+      if (parceiroPendente) {
+        return (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 border-amber-300 text-amber-700 hover:bg-amber-50"
+            onClick={() => onResolverParceiro(doc)}
+            title="Resolva o parceiro antes de rotear"
+          >
+            <AlertCircle className="h-3.5 w-3.5 mr-1" /> Resolver parceiro
+          </Button>
+        );
+      }
+      return (
+        <Button
+          size="sm"
+          className="bg-[#1A4A3A] hover:bg-[#1A4A3A]/90 h-8"
+          onClick={() => onRotear(doc)}
+        >
+          Rotear
+        </Button>
+      );
+    }
+
+    // Estado 2: roteado mas aguardando ancoragem
+    if (
+      doc.status_classificacao === "roteada" &&
+      doc.boleto_stage_status === "aguardando_ancoragem"
+    ) {
       return (
         <Button
           size="sm"
           variant="outline"
-          className="h-8 border-amber-300 text-amber-700 hover:bg-amber-50"
-          onClick={() => onResolverParceiro(doc)}
-          title="Resolva o parceiro antes de rotear"
+          className="h-8 border-blue-300 text-blue-700 hover:bg-blue-50"
+          onClick={() => onRotear(doc)}
+          title="Boleto criado, falta ancorar em CPR"
         >
-          <AlertCircle className="h-3.5 w-3.5 mr-1" /> Resolver parceiro
+          Continuar ancoragem
         </Button>
       );
     }
-    return (
-      <Button
-        size="sm"
-        className="bg-[#1A4A3A] hover:bg-[#1A4A3A]/90 h-8"
-        onClick={() => onRotear(doc)}
-      >
-        Rotear
-      </Button>
-    );
+
+    // Estado 3: ancorado / CPR criada
+    if (doc.status_classificacao === "roteada" && doc.boleto_stage_cpr_id) {
+      return (
+        <Button
+          asChild
+          size="sm"
+          variant="ghost"
+          className="h-8 text-muted-foreground hover:text-foreground"
+        >
+          <Link to={`/contas-pagar?id=${doc.boleto_stage_cpr_id}`}>
+            <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ver CPR
+          </Link>
+        </Button>
+      );
+    }
+
+    return null;
   }
 
   if (doc.tipo_documento === "nf") {

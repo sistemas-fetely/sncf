@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Sparkles, Search, AlertTriangle, Info } from "lucide-react";
+import { Loader2, Sparkles, Search, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Opcao = "vincular_existente" | "criar_novo" | "dispensar";
@@ -70,11 +70,25 @@ export function ResolverParceiroDialog({
 
   const [salvando, setSalvando] = useState(false);
 
+  type Etapa = "resolver" | "oferta_lote" | "executando_lote";
+  const [etapa, setEtapa] = useState<Etapa>("resolver");
+  const [pendentesMesmoCnpj, setPendentesMesmoCnpj] = useState(0);
+  const [dadosResolucao, setDadosResolucao] = useState<{
+    decisao: Opcao;
+    parceiro_id?: string | null;
+    dados_novo_parceiro?: Record<string, unknown> | null;
+    cnpj_ia: string;
+    razao_social_ia: string;
+  } | null>(null);
+
   // Inicializa ao abrir
   useEffect(() => {
     if (!open) return;
     setOpcao("vincular_existente");
     setParceiroEscolhido(null);
+    setEtapa("resolver");
+    setDadosResolucao(null);
+    setPendentesMesmoCnpj(0);
     const razao = classificacaoIa.parceiro_razao_social ?? "";
     const cnpj = classificacaoIa.parceiro_cnpj ?? "";
     setTermo(razao);
@@ -160,7 +174,12 @@ export function ResolverParceiroDialog({
       );
       if (error) throw error;
 
-      const res = (data ?? {}) as { ok?: boolean; mensagem?: string; decisao?: string };
+      const res = (data ?? {}) as {
+        ok?: boolean;
+        mensagem?: string;
+        decisao?: string;
+        parceiro_id?: string;
+      };
 
       if (res.mensagem) {
         toast.success(res.mensagem);
@@ -174,6 +193,45 @@ export function ResolverParceiroDialog({
 
       qc.invalidateQueries({ queryKey: ["repositorio-documentos"] });
       qc.invalidateQueries({ queryKey: ["repositorio-kpis"] });
+      qc.invalidateQueries({ queryKey: ["repositorio-qtd-pendentes"] });
+
+      // Doutrina #119 — checa se há outros pendentes com mesmo CNPJ
+      const cnpjIa = (classificacaoIa.parceiro_cnpj ?? "").replace(/\D/g, "");
+      if (cnpjIa) {
+        try {
+          const { data: contagem } = await supabase.rpc(
+            "contar_pendentes_mesmo_cnpj",
+            { p_ged_documento_id_referencia: gedDocumentoId } as never,
+          );
+          const qtdOutros =
+            ((contagem as { qtd?: number } | null) ?? {}).qtd ?? 0;
+          if (qtdOutros > 0) {
+            setDadosResolucao({
+              decisao: opcao,
+              parceiro_id:
+                opcao === "vincular_existente"
+                  ? parceiroEscolhido?.id
+                  : res.parceiro_id ?? null,
+              dados_novo_parceiro:
+                opcao === "criar_novo"
+                  ? {
+                      razao_social: dadosNovo.razao_social.trim(),
+                      nome_fantasia: dadosNovo.nome_fantasia.trim() || null,
+                      cnpj: dadosNovo.cnpj.replace(/\D/g, "") || null,
+                    }
+                  : null,
+              cnpj_ia: classificacaoIa.parceiro_cnpj ?? "",
+              razao_social_ia: classificacaoIa.parceiro_razao_social ?? "",
+            });
+            setPendentesMesmoCnpj(qtdOutros);
+            setEtapa("oferta_lote");
+            return; // não fecha — operador decide lote
+          }
+        } catch {
+          // ignora silenciosamente erro de contagem; não bloqueia fluxo
+        }
+      }
+
       onResolvido?.();
       onOpenChange(false);
     } catch (e) {
@@ -186,23 +244,73 @@ export function ResolverParceiroDialog({
     }
   }
 
+  async function handleAplicarLote() {
+    if (!dadosResolucao) return;
+    setSalvando(true);
+    setEtapa("executando_lote");
+    try {
+      const { data, error } = await supabase.rpc("resolver_parceiro_em_lote", {
+        p_cnpj_ia: dadosResolucao.cnpj_ia,
+        p_decisao: dadosResolucao.decisao,
+        p_parceiro_id: dadosResolucao.parceiro_id ?? null,
+        p_dados_novo_parceiro: dadosResolucao.dados_novo_parceiro ?? null,
+      } as never);
+      if (error) throw error;
+      const res = (data ?? {}) as { qtd_afetada?: number };
+      toast.success(`${res.qtd_afetada ?? 0} documento(s) atualizado(s) em lote`);
+      qc.invalidateQueries({ queryKey: ["repositorio-documentos"] });
+      qc.invalidateQueries({ queryKey: ["repositorio-kpis"] });
+      qc.invalidateQueries({ queryKey: ["repositorio-qtd-pendentes"] });
+      onResolvido?.();
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(
+        "Erro ao aplicar em lote: " + (e instanceof Error ? e.message : String(e)),
+        { duration: 15000 },
+      );
+      setEtapa("oferta_lote");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  function handlePularLote() {
+    onResolvido?.();
+    onOpenChange(false);
+  }
+
   const podeConfirmar =
     (opcao === "vincular_existente" && !!parceiroEscolhido) ||
     (opcao === "criar_novo" && !!dadosNovo.razao_social.trim()) ||
     opcao === "dispensar";
 
+  const termoTrim = termo.trim();
+  const buscaVazia = termoTrim.length === 0;
+  const termoMuitoCurto = termoTrim.length > 0 && termoTrim.length < 3;
+
+  const tituloDialog =
+    etapa === "resolver"
+      ? "Resolver parceiro do documento"
+      : etapa === "oferta_lote"
+        ? "Aplicar resolução em lote?"
+        : "Aplicando em lote...";
+
   return (
     <Dialog open={open} onOpenChange={(v) => !salvando && onOpenChange(v)}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Resolver parceiro do documento</DialogTitle>
-          <DialogDescription>
-            {classificacaoIa.tipo_documento
-              ? `Tipo: ${classificacaoIa.tipo_documento}`
-              : "Defina como vincular este documento a um parceiro comercial."}
-          </DialogDescription>
+          <DialogTitle>{tituloDialog}</DialogTitle>
+          {etapa === "resolver" && (
+            <DialogDescription>
+              {classificacaoIa.tipo_documento
+                ? `Tipo: ${classificacaoIa.tipo_documento}`
+                : "Defina como vincular este documento a um parceiro comercial."}
+            </DialogDescription>
+          )}
         </DialogHeader>
 
+        {etapa === "resolver" && (
+        <>
         {/* Bloco IA */}
         <div className="rounded-md border border-[#1A4A3A]/20 bg-[#1A4A3A]/5 p-3">
           <div className="flex items-start gap-2">
@@ -246,22 +354,37 @@ export function ResolverParceiroDialog({
                   <Input
                     value={termo}
                     onChange={(e) => setTermo(e.target.value)}
-                    placeholder="Buscar por nome ou CNPJ..."
+                    placeholder="Buscar por razão social ou CNPJ"
                     className="pl-8"
+                    autoFocus
                   />
                 </div>
 
                 <div className="space-y-1 max-h-64 overflow-y-auto">
-                  {buscando && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                  {buscaVazia && (
+                    <p className="text-xs text-muted-foreground italic px-1 py-2">
+                      Digite a razão social ou CNPJ do parceiro
+                    </p>
+                  )}
+                  {termoMuitoCurto && (
+                    <p className="text-xs text-muted-foreground italic px-1 py-2">
+                      Digite ao menos 3 caracteres para buscar...
+                    </p>
+                  )}
+                  {!buscaVazia && !termoMuitoCurto && buscando && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-2 px-1">
                       <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
                     </div>
                   )}
-                  {!buscando && termoDebounced.trim() && resultados.length === 0 && (
-                    <p className="text-xs text-muted-foreground py-2">
-                      Nenhum parceiro encontrado. Tente "Cadastrar parceiro novo" abaixo.
-                    </p>
-                  )}
+                  {!buscaVazia &&
+                    !termoMuitoCurto &&
+                    !buscando &&
+                    termoDebounced.trim() &&
+                    resultados.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic px-1 py-2">
+                        Nenhum parceiro encontrado. Tente "Cadastrar parceiro novo" abaixo.
+                      </p>
+                    )}
                   {resultados.map((p) => {
                     const sel = parceiroEscolhido?.id === p.id;
                     return (
@@ -405,6 +528,73 @@ export function ResolverParceiroDialog({
             Confirmar
           </Button>
         </DialogFooter>
+        </>
+        )}
+
+        {etapa === "oferta_lote" && dadosResolucao && (
+          <>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-emerald-900">
+                    Parceiro deste documento resolvido
+                  </p>
+                  <p className="text-sm text-emerald-800 mt-1">
+                    {dadosResolucao.decisao === "vincular_existente" &&
+                      "Vinculado a parceiro existente."}
+                    {dadosResolucao.decisao === "criar_novo" &&
+                      "Parceiro cadastrado (cadastro incompleto — complete depois)."}
+                    {dadosResolucao.decisao === "dispensar" &&
+                      "Resolução dispensada para este documento."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-900">
+                      Encontramos {pendentesMesmoCnpj} outro
+                      {pendentesMesmoCnpj > 1 ? "s" : ""} documento
+                      {pendentesMesmoCnpj > 1 ? "s" : ""} pendente
+                      {pendentesMesmoCnpj > 1 ? "s" : ""} com o mesmo CNPJ
+                    </p>
+                    <p className="text-sm text-amber-800 mt-1">
+                      CNPJ <strong>{formatCNPJ(dadosResolucao.cnpj_ia)}</strong>
+                      {dadosResolucao.razao_social_ia &&
+                        ` · ${dadosResolucao.razao_social_ia}`}
+                    </p>
+                    <p className="text-sm text-amber-800 mt-2">
+                      Aplicar a mesma resolução a todos eles?
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={handlePularLote} disabled={salvando}>
+                Não, só este documento
+              </Button>
+              <Button
+                onClick={handleAplicarLote}
+                disabled={salvando}
+                className="bg-[#1A4A3A] hover:bg-[#1A4A3A]/90"
+              >
+                {salvando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Sim, aplicar aos {pendentesMesmoCnpj}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {etapa === "executando_lote" && (
+          <div className="py-12 flex items-center justify-center text-sm text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Aplicando em lote...
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
