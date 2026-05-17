@@ -309,6 +309,8 @@ export function ResolverParceiroDialog({
           )}
         </DialogHeader>
 
+        {etapa === "resolver" && (
+        <>
         {/* Bloco IA */}
         <div className="rounded-md border border-[#1A4A3A]/20 bg-[#1A4A3A]/5 p-3">
           <div className="flex items-start gap-2">
