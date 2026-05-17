@@ -838,18 +838,35 @@ export function ContaPagarFormEdit({
           {isReadOnly ? "Fechar" : "Cancelar"}
         </Button>
         {!isReadOnly && (
-          <Button
-            className="flex-1"
-            onClick={handleSalvar}
-            disabled={salvando}
-          >
-            {salvando ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-1" />
-            )}
-            Salvar
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => handleSalvar(false)}
+              disabled={salvando}
+              title="Salva e mantém o drawer aberto"
+            >
+              {salvando ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Salvar
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => handleSalvar(true)}
+              disabled={salvando}
+              title="Salva e fecha o drawer"
+            >
+              {salvando ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Salvar e fechar
+            </Button>
+          </>
         )}
       </div>
     </div>
