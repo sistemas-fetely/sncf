@@ -70,6 +70,8 @@ export interface DocumentoRepositorio {
   parceiro_nome: string | null;
   parceiro_cnpj_ia: string | null;
   parceiro_inferido: boolean;
+  parceiro_resolucao_pendente: boolean;
+  parceiro_resolucao_dispensada: boolean;
   valor: number | null;
   vencimento: string | null;
   data_emissao: string | null;
