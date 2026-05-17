@@ -210,17 +210,30 @@ REGRAS GERAIS:
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      console.error("Failed to parse AI response:", content);
-      return new Response(
-        JSON.stringify({
-          error: "Não foi possível extrair dados do PDF",
-          raw: content,
-        }),
-        {
-          status: 422,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // Tentativa de recuperação: resposta provavelmente truncada no meio de "descricao".
+      // Corta no último campo conhecido válido e fecha o objeto.
+      try {
+        const lastValidComma = cleaned.lastIndexOf('",\n');
+        if (lastValidComma > 0) {
+          const truncated = cleaned.slice(0, lastValidComma + 1) + "\n}";
+          parsed = JSON.parse(truncated);
+          console.warn("Recovered from truncated AI response");
+        } else {
+          throw new Error("no recovery point");
         }
-      );
+      } catch {
+        console.error("Failed to parse AI response:", content);
+        return new Response(
+          JSON.stringify({
+            error: "Não foi possível extrair dados do PDF",
+            raw: content,
+          }),
+          {
+            status: 422,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     // Validação leve: garante campos mínimos com defaults
