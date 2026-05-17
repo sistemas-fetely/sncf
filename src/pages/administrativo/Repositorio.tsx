@@ -36,6 +36,7 @@ import {
   ExternalLink,
   Search,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
