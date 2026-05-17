@@ -83,6 +83,7 @@ interface ContratoPJ {
   created_at: string;
   foto_url: string | null;
   user_id: string | null;
+  contrato_assinado?: boolean;
 }
 
 function ContratoPJForm({
@@ -566,6 +567,7 @@ export default function ContratosPJ() {
                   <TableHead className="font-semibold hidden lg:table-cell">Departamento</TableHead>
                   <TableHead className="font-semibold">Valor Mensal</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold hidden lg:table-cell">Contrato</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Vigência</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -613,6 +615,11 @@ export default function ContratosPJ() {
                       <TableCell>
                         <Badge variant="outline" className={statusStyles[c.status] || ""}>
                           {statusMap[c.status] || c.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant="outline" className={(c as any).contrato_assinado ? "bg-success/10 text-success border-0" : "bg-warning/10 text-warning border-0"}>
+                          {(c as any).contrato_assinado ? "Assinado" : "Pendente"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
