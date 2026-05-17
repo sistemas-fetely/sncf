@@ -436,6 +436,73 @@ export function RotearBoletoDialog({
             </DialogFooter>
           </>
         )}
+
+        {etapaCpr === "oferta_lote" && pendentesLote && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Criar CPR para outros boletos?</DialogTitle>
+              <DialogDescription>
+                Aplique a mesma categoria e forma de pagamento aos demais.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-emerald-900">CPR criada com sucesso</p>
+                  <p className="text-sm text-emerald-800 mt-1">
+                    O boleto foi vinculado a uma nova CPR aberta.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-900">
+                      Há {pendentesLote.qtd} outro{pendentesLote.qtd > 1 ? "s" : ""} boleto
+                      {pendentesLote.qtd > 1 ? "s" : ""}{" "}
+                      {pendentesLote.parceiro_nome
+                        ? `de ${pendentesLote.parceiro_nome}`
+                        : "do mesmo parceiro"}{" "}
+                      aguardando ancoragem
+                    </p>
+                    <p className="text-sm text-amber-800 mt-2">
+                      Criar CPR para todos com a mesma categoria e forma de pagamento?
+                    </p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Cada CPR usará a descrição padrão do boleto (nome do arquivo).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={pularLote} disabled={salvando}>
+                Não, só este
+              </Button>
+              <Button
+                className="bg-[#1A4A3A] hover:bg-[#1A4A3A]/90"
+                onClick={aplicarLote}
+                disabled={salvando}
+              >
+                {salvando
+                  ? "Aplicando..."
+                  : `Sim, criar CPR para os ${pendentesLote.qtd}`}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {etapaCpr === "executando_lote" && (
+          <div className="py-12 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="h-6 w-6 animate-spin text-[#1A4A3A]" />
+            <p className="text-sm text-muted-foreground">Aplicando em lote...</p>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
