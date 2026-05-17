@@ -1247,6 +1247,7 @@ function NovoContratoDialog({
     }
   }
 
+  async function salvar() {
     if (!pastaId || !numero || !vigenciaInicio || !valorParcela || !dataPrimeiraParcela) {
       toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
       return;
