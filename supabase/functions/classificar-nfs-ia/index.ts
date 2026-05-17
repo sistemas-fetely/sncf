@@ -102,6 +102,26 @@ Deno.serve(async (req) => {
 
     for (const [cnpj, grupo] of porCnpj) {
       try {
+        // Se já existe regra manual para este CNPJ, aplica direto sem chamar IA
+        const { data: regraExistente } = await (supabase as any)
+          .from("regras_categorizacao")
+          .select("categoria_id")
+          .eq("cnpj_emitente", cnpj)
+          .order("vezes_aplicada", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (regraExistente?.categoria_id) {
+          for (const nf of grupo) {
+            resultados.push({
+              id: nf.id,
+              categoria_id: regraExistente.categoria_id,
+              motivo: "Regra manual existente para este CNPJ",
+            });
+          }
+          continue;
+        }
+
         const nfRef = grupo[0];
         const nomeFornecedor = nfRef.fornecedor_razao_social || cnpj;
 
