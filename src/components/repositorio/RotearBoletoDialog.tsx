@@ -298,15 +298,15 @@ export function RotearBoletoDialog({
                 />
               </div>
               <div>
-                <Label>Meio de pagamento *</Label>
+                <Label>Forma de pagamento <span className="text-red-500">*</span></Label>
                 <Select
-                  value={meioPagamentoId ?? ""}
-                  onValueChange={(v) => setMeioPagamentoId(v || null)}
+                  value={formaPagamentoId ?? undefined}
+                  onValueChange={(v) => setFormaPagamentoId(v)}
                 >
                   <SelectTrigger
-                    className={!meioPagamentoId ? "border-amber-300" : ""}
+                    className={!formaPagamentoId ? "border-amber-300" : ""}
                   >
-                    <SelectValue placeholder="Selecione o meio de pagamento" />
+                    <SelectValue placeholder="Selecione a forma de pagamento" />
                   </SelectTrigger>
                   <SelectContent>
                     {meios.map((m) => (
