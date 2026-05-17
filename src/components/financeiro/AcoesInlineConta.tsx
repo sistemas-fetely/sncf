@@ -239,14 +239,25 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
 
   return (
     <div className="flex items-center gap-1">
-      {/* 1) NF — click propaga e abre o drawer (anexar NF é parte da edição da CPR — D-E). */}
+      {/* 1) NF — vermelho abre modal de anexar do Repositório; verde propaga pra abrir drawer. */}
       <Button
         size="icon"
         variant="ghost"
         className={cn("h-7 w-7", COR_ICONE[estadoNF])}
-        title={tooltipNF}
+        title={estadoNF === "pendente" ? "Anexar NF do Repositório" : tooltipNF}
+        disabled={vinculandoNF}
+        onClick={(e) => {
+          if (estadoNF === "pendente") {
+            e.stopPropagation();
+            setShowAnexarNF(true);
+          }
+        }}
       >
-        <Paperclip className="h-3.5 w-3.5" />
+        {vinculandoNF ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Paperclip className="h-3.5 w-3.5" />
+        )}
       </Button>
 
       {/* 2) Aprovar */}
