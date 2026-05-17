@@ -614,16 +614,31 @@ export default function NFsStage() {
               </span>
             </p>
           </div>
-          {sugestoesDisponiveis > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="outline"
-              onClick={aceitarTodasSugestoes}
-              className="gap-2 border-violet-300 text-violet-700 hover:bg-violet-50"
+              onClick={classificarComIA}
+              disabled={classificandoIA}
+              className="gap-2"
             >
-              <Sparkles className="h-4 w-4" />
-              Aplicar {sugestoesDisponiveis} sugestão{sugestoesDisponiveis === 1 ? "" : "ões"} automática{sugestoesDisponiveis === 1 ? "" : "s"}
+              {classificandoIA ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {classificandoIA ? "Classificando..." : "Classificar com IA"}
             </Button>
-          )}
+            {sugestoesDisponiveis > 0 && (
+              <Button
+                variant="outline"
+                onClick={aceitarTodasSugestoes}
+                className="gap-2 border-violet-300 text-violet-700 hover:bg-violet-50"
+              >
+                <Sparkles className="h-4 w-4" />
+                Aplicar {sugestoesDisponiveis} sugestão{sugestoesDisponiveis === 1 ? "" : "ões"} automática{sugestoesDisponiveis === 1 ? "" : "s"}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* KPI pills (clicáveis = filtros) */}
