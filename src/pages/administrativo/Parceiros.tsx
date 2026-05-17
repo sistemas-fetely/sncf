@@ -611,9 +611,16 @@ export default function Parceiros() {
                               </TableCell>
                               <TableCell className="font-mono text-xs">{formatCnpj(p.cnpj)}</TableCell>
                               <TableCell>
-                                <Badge className={TIPO_BADGE[tipoLabel] || "bg-muted"}>
-                                  {tipoLabel === "ambos" ? "Forn. + Cliente" : tipoLabel}
-                                </Badge>
+                                <div className="flex flex-wrap gap-1">
+                                  <Badge className={TIPO_BADGE[tipoLabel] || "bg-muted"}>
+                                    {tipoLabel === "ambos" ? "Forn. + Cliente" : tipoLabel}
+                                  </Badge>
+                                  {tipos.includes("prestador_pj") && (
+                                    <Badge className="bg-purple-100 text-purple-700 border-0">
+                                      Prestador PJ
+                                    </Badge>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 {cat ? (
