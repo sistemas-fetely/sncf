@@ -4884,6 +4884,8 @@ export type Database = {
           nome: string
           origem_porta: string
           parceiro_id: string | null
+          parceiro_resolucao_dispensada: boolean
+          parceiro_resolucao_pendente: boolean
           pasta_contrato_id: string | null
           pasta_id: string | null
           resumo_ia: string | null
@@ -4910,6 +4912,8 @@ export type Database = {
           nome: string
           origem_porta?: string
           parceiro_id?: string | null
+          parceiro_resolucao_dispensada?: boolean
+          parceiro_resolucao_pendente?: boolean
           pasta_contrato_id?: string | null
           pasta_id?: string | null
           resumo_ia?: string | null
@@ -4936,6 +4940,8 @@ export type Database = {
           nome?: string
           origem_porta?: string
           parceiro_id?: string | null
+          parceiro_resolucao_dispensada?: boolean
+          parceiro_resolucao_pendente?: boolean
           pasta_contrato_id?: string | null
           pasta_id?: string | null
           resumo_ia?: string | null
@@ -12215,6 +12221,10 @@ export type Database = {
           valor_nf: number
         }[]
       }
+      buscar_parceiro_por_cnpj_ou_nome: {
+        Args: { p_termo: string }
+        Returns: Json
+      }
       calcular_docs_status: { Args: { p_conta_id: string }; Returns: string }
       cancelar_conta_pagar: { Args: { p_conta_id: string }; Returns: Json }
       cancelar_item_pedido: {
@@ -13066,6 +13076,15 @@ export type Database = {
       }
       rejeitar_nf_pj: {
         Args: { _motivo: string; _nota_id: string }
+        Returns: Json
+      }
+      resolver_parceiro_do_documento: {
+        Args: {
+          p_dados_novo_parceiro?: Json
+          p_decisao: string
+          p_ged_documento_id: string
+          p_parceiro_id?: string
+        }
         Returns: Json
       }
       revogar_acessos_ex_colaboradores: { Args: never; Returns: number }

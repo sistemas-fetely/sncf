@@ -34,6 +34,7 @@ import {
   Link as LinkIcon,
   ExternalLink,
   Search,
+  AlertCircle,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
@@ -51,6 +52,7 @@ import { UploadEmLoteSheet } from "@/components/repositorio/UploadEmLoteSheet";
 import { RotearBoletoDialog } from "@/components/repositorio/RotearBoletoDialog";
 import { VincularDocumentoDialog } from "@/components/repositorio/VincularDocumentoDialog";
 import { DetalheDocumentoDrawer } from "@/components/repositorio/DetalheDocumentoDrawer";
+import { ResolverParceiroDialog } from "@/components/repositorio/ResolverParceiroDialog";
 import { cn } from "@/lib/utils";
 
 export interface DocumentoRepositorio {
@@ -68,6 +70,8 @@ export interface DocumentoRepositorio {
   parceiro_nome: string | null;
   parceiro_cnpj_ia: string | null;
   parceiro_inferido: boolean;
+  parceiro_resolucao_pendente: boolean;
+  parceiro_resolucao_dispensada: boolean;
   valor: number | null;
   vencimento: string | null;
   data_emissao: string | null;
@@ -109,6 +113,7 @@ export default function Repositorio() {
   });
 
   const [docSelecionado, setDocSelecionado] = useState<DocumentoRepositorio | null>(null);
+  const [docResolverParceiro, setDocResolverParceiro] = useState<DocumentoRepositorio | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [rotearOpen, setRotearOpen] = useState(false);
   const [vincularOpen, setVincularOpen] = useState(false);
@@ -123,6 +128,7 @@ export default function Repositorio() {
           `id, nome, arquivo_original, storage_path, mime_type, tipo_documento,
            status_classificacao, confianca_ia, classificacao_ia, resumo_ia,
            parceiro_id, lote_id, origem_porta, tags, created_at,
+           parceiro_resolucao_pendente, parceiro_resolucao_dispensada,
            parceiros_comerciais ( razao_social )`,
         )
         .order("created_at", { ascending: false })
@@ -207,6 +213,20 @@ export default function Repositorio() {
     setDocAcao(doc);
     setVincularOpen(true);
     setDrawerOpen(false);
+  }
+
+  /** Se o doc tem parceiro pendente (e não dispensado), abre ResolverParceiroDialog e
+   *  posterga a ação original; senão, executa a ação. */
+  function comResolucaoParceiro(
+    doc: DocumentoRepositorio,
+    acao: (d: DocumentoRepositorio) => void,
+  ) {
+    if (doc.parceiro_resolucao_pendente && !doc.parceiro_resolucao_dispensada) {
+      setDocAcao(doc);
+      setDocResolverParceiro(doc);
+    } else {
+      acao(doc);
+    }
   }
 
   return (
@@ -392,22 +412,29 @@ export default function Repositorio() {
                     )}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {d.parceiro_nome ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate max-w-[200px]" title={d.parceiro_nome}>
-                          {d.parceiro_nome}
+                    {d.parceiro_id && d.parceiro_nome ? (
+                      <span className="truncate max-w-[200px] inline-block align-middle" title={d.parceiro_nome}>
+                        {d.parceiro_nome}
+                      </span>
+                    ) : d.parceiro_resolucao_pendente && !d.parceiro_resolucao_dispensada ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDocResolverParceiro(d);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-amber-300 bg-amber-50 text-amber-800 text-xs hover:bg-amber-100 transition"
+                        title="Clique para resolver o parceiro"
+                      >
+                        <AlertCircle className="h-3 w-3" />
+                        <span className="truncate max-w-[160px]">
+                          {(d.classificacao_ia?.parceiro_razao_social as string) ?? "Resolver parceiro"}
                         </span>
-                        {d.parceiro_inferido && (
-                          <Badge
-                            variant="outline"
-                            className="text-[9px] px-1 py-0 h-4 border-amber-300 bg-amber-50 text-amber-700"
-                            title="Sugerido pela IA — não cadastrado em Parceiros"
-                          >
-                            IA
-                          </Badge>
-                        )}
-                      </div>
-                    ) : "—"}
+                      </button>
+                    ) : d.parceiro_resolucao_dispensada ? (
+                      <span className="text-xs text-muted-foreground italic">Sem parceiro</span>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell className="text-right text-sm">
                     {d.valor != null ? formatBRL(d.valor) : "—"}
@@ -434,7 +461,12 @@ export default function Repositorio() {
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
-                      <AcaoInline doc={d} onRotear={abrirRotear} onVincular={abrirVincular} />
+                      <AcaoInline
+                        doc={d}
+                        onRotear={(x) => comResolucaoParceiro(x, abrirRotear)}
+                        onVincular={(x) => comResolucaoParceiro(x, abrirVincular)}
+                        onResolverParceiro={(x) => setDocResolverParceiro(x)}
+                      />
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -445,7 +477,9 @@ export default function Repositorio() {
                           <DropdownMenuItem onClick={() => abrirDetalhe(d)}>
                             Ver detalhes
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => abrirVincular(d)}>
+                          <DropdownMenuItem
+                            onClick={() => comResolucaoParceiro(d, abrirVincular)}
+                          >
                             Vincular
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -481,8 +515,22 @@ export default function Repositorio() {
         doc={docSelecionado}
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
-        onRotearBoleto={abrirRotear}
-        onVincular={abrirVincular}
+        onRotearBoleto={(d) => comResolucaoParceiro(d, abrirRotear)}
+        onVincular={(d) => comResolucaoParceiro(d, abrirVincular)}
+      />
+      <ResolverParceiroDialog
+        open={!!docResolverParceiro}
+        onOpenChange={(open) => !open && setDocResolverParceiro(null)}
+        gedDocumentoId={docResolverParceiro?.id ?? ""}
+        classificacaoIa={(docResolverParceiro?.classificacao_ia as never) ?? {}}
+        onResolvido={() => {
+          // Após resolver, se era boleto, abre Rotear automaticamente
+          if (docResolverParceiro?.tipo_documento === "boleto") {
+            setDocAcao(docResolverParceiro);
+            setRotearOpen(true);
+          }
+          setDocResolverParceiro(null);
+        }}
       />
     </div>
   );
@@ -509,14 +557,32 @@ function AcaoInline({
   doc,
   onRotear,
   onVincular,
+  onResolverParceiro,
 }: {
   doc: DocumentoRepositorio;
   onRotear: (d: DocumentoRepositorio) => void;
   onVincular: (d: DocumentoRepositorio) => void;
+  onResolverParceiro: (d: DocumentoRepositorio) => void;
 }) {
   if (doc.status_classificacao === "descartada") return null;
 
+  const parceiroPendente =
+    doc.parceiro_resolucao_pendente && !doc.parceiro_resolucao_dispensada;
+
   if (doc.tipo_documento === "boleto" && doc.status_classificacao === "classificada") {
+    if (parceiroPendente) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-amber-300 text-amber-700 hover:bg-amber-50"
+          onClick={() => onResolverParceiro(doc)}
+          title="Resolva o parceiro antes de rotear"
+        >
+          <AlertCircle className="h-3.5 w-3.5 mr-1" /> Resolver parceiro
+        </Button>
+      );
+    }
     return (
       <Button
         size="sm"
@@ -539,11 +605,38 @@ function AcaoInline({
   }
 
   if (doc.tipo_documento === "contrato" || doc.tipo_documento === "aditivo") {
+    if (parceiroPendente) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-amber-300 text-amber-700 hover:bg-amber-50"
+          onClick={() => onResolverParceiro(doc)}
+          title="Resolva o parceiro antes de criar contrato"
+        >
+          <AlertCircle className="h-3.5 w-3.5 mr-1" /> Resolver parceiro
+        </Button>
+      );
+    }
     return (
       <Button asChild size="sm" variant="outline" className="h-8">
         <Link to={`/administrativo-fetely/contratos?ged_documento_id=${doc.id}`}>
           Criar contrato
         </Link>
+      </Button>
+    );
+  }
+
+  if (parceiroPendente) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 border-amber-300 text-amber-700 hover:bg-amber-50"
+        onClick={() => onResolverParceiro(doc)}
+        title="Resolva o parceiro antes de vincular"
+      >
+        <AlertCircle className="h-3.5 w-3.5 mr-1" /> Resolver parceiro
       </Button>
     );
   }

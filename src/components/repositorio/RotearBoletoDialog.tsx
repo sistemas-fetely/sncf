@@ -130,9 +130,15 @@ export function RotearBoletoDialog({
         setEtapa("criar");
       }
     } catch (e) {
-      toast.error("Erro ao rotear: " + (e instanceof Error ? e.message : String(e)), {
-        duration: 15000,
-      });
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("Resolução de parceiro pendente")) {
+        toast.error(
+          "Resolva o parceiro deste documento antes de rotear. Clique no chip amarelo na coluna Parceiro.",
+          { duration: 15000 },
+        );
+      } else {
+        toast.error("Erro ao rotear: " + msg, { duration: 15000 });
+      }
       onOpenChange(false);
     }
   }
