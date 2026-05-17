@@ -1028,6 +1028,7 @@ export type Database = {
           conta_pagamento_id: string | null
           created_at: string
           id: string
+          limite: number
           nome: string
           ultimos_digitos: string | null
           updated_at: string
@@ -1038,6 +1039,7 @@ export type Database = {
           conta_pagamento_id?: string | null
           created_at?: string
           id?: string
+          limite?: number
           nome: string
           ultimos_digitos?: string | null
           updated_at?: string
@@ -1048,6 +1050,7 @@ export type Database = {
           conta_pagamento_id?: string | null
           created_at?: string
           id?: string
+          limite?: number
           nome?: string
           ultimos_digitos?: string | null
           updated_at?: string
