@@ -418,7 +418,11 @@ export function ContaPagarFormEdit({
       
       qc.invalidateQueries({ queryKey: ["parceiros"] });
       qc.invalidateQueries({ queryKey: ["parceiros-para-atribuir"] });
-      onSaved();
+      if (fecharDrawer && onSaveAndClose) {
+        onSaveAndClose();
+      } else {
+        onSaved();
+      }
     } catch (e) {
       let msg = "Erro desconhecido";
       if (e instanceof Error) msg = e.message;
