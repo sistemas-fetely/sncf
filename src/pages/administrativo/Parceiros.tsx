@@ -255,6 +255,10 @@ export default function Parceiros() {
       );
     }
 
+    if (filtroIncompleto === "sem_categoria") list = list.filter((p) => !p.categoria_padrao_id);
+    else if (filtroIncompleto === "sem_meio_pgto") list = list.filter((p) => !temMeioPagamento(p));
+    else if (filtroIncompleto === "sem_centro_custo") list = list.filter((p) => !p.centro_custo_id);
+
     if (!sort) return list;
     const mult = sort.direction === "asc" ? 1 : -1;
     const sortFn = (a: Parceiro, b: Parceiro) => {
