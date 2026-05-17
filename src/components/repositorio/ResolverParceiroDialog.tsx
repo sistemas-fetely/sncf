@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Sparkles, Search, AlertTriangle, Info } from "lucide-react";
+import { Loader2, Sparkles, Search, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Opcao = "vincular_existente" | "criar_novo" | "dispensar";
