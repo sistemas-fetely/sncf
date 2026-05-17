@@ -466,7 +466,10 @@ export default function Parceiros() {
                     <div className="text-2xl font-bold text-[#1A4A3A]">{kpis.clientes}</div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className={`cursor-pointer transition-all hover:shadow-md ${filtroIncompleto === "sem_categoria" ? "ring-2 ring-warning" : ""}`}
+                  onClick={() => setFiltroIncompleto(filtroIncompleto === "sem_categoria" ? null : "sem_categoria")}
+                >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-normal text-muted-foreground">Sem categoria</CardTitle>
                   </CardHeader>
@@ -474,7 +477,10 @@ export default function Parceiros() {
                     <div className="text-2xl font-bold text-warning">{kpis.semCategoria}</div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className={`cursor-pointer transition-all hover:shadow-md ${filtroIncompleto === "sem_centro_custo" ? "ring-2 ring-warning" : ""}`}
+                  onClick={() => setFiltroIncompleto(filtroIncompleto === "sem_centro_custo" ? null : "sem_centro_custo")}
+                >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-normal text-muted-foreground">Sem centro de custo</CardTitle>
                   </CardHeader>
@@ -482,7 +488,10 @@ export default function Parceiros() {
                     <div className="text-2xl font-bold text-warning">{kpis.semCentroCusto}</div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className={`cursor-pointer transition-all hover:shadow-md ${filtroIncompleto === "sem_meio_pgto" ? "ring-2 ring-warning" : ""}`}
+                  onClick={() => setFiltroIncompleto(filtroIncompleto === "sem_meio_pgto" ? null : "sem_meio_pgto")}
+                >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-normal text-muted-foreground">Sem meio de pagamento</CardTitle>
                   </CardHeader>
