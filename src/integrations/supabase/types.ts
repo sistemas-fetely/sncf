@@ -12284,6 +12284,10 @@ export type Database = {
         Args: { p_conta_pagar_id: string; p_pagamento_id: string }
         Returns: Json
       }
+      contar_pendentes_mesmo_cnpj: {
+        Args: { p_ged_documento_id_referencia: string }
+        Returns: Json
+      }
       contar_uso_template: { Args: { _template_id: string }; Returns: Json }
       contas_para_match_ofx: {
         Args: never
@@ -13087,6 +13091,15 @@ export type Database = {
         }
         Returns: Json
       }
+      resolver_parceiro_em_lote: {
+        Args: {
+          p_cnpj_ia: string
+          p_dados_novo_parceiro?: Json
+          p_decisao: string
+          p_parceiro_id?: string
+        }
+        Returns: Json
+      }
       revogar_acessos_ex_colaboradores: { Args: never; Returns: number }
       rotear_documento_para_boleto: {
         Args: { p_ged_documento_id: string }
@@ -13205,6 +13218,7 @@ export type Database = {
         Args: { _cargo_id: string }
         Returns: string
       }
+      tentar_match_parceiro_retroativo: { Args: never; Returns: Json }
       termo_uso_versao_vigente: { Args: never; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
       user_perfis_detalhados: {
