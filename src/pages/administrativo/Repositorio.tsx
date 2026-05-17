@@ -52,6 +52,7 @@ import { UploadEmLoteSheet } from "@/components/repositorio/UploadEmLoteSheet";
 import { RotearBoletoDialog } from "@/components/repositorio/RotearBoletoDialog";
 import { VincularDocumentoDialog } from "@/components/repositorio/VincularDocumentoDialog";
 import { DetalheDocumentoDrawer } from "@/components/repositorio/DetalheDocumentoDrawer";
+import { ResolverParceiroDialog } from "@/components/repositorio/ResolverParceiroDialog";
 import { cn } from "@/lib/utils";
 
 export interface DocumentoRepositorio {
