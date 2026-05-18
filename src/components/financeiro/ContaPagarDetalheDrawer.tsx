@@ -422,7 +422,7 @@ export default function ContaPagarDetalheDrawer({
                     {conta.status === "enviado_para_pagamento" ? "Ver dados" : "Editar"}
                   </Button>
                 )}
-                {/* Botão de Lançar em Mov movido pra área de ações por status (footer) — bloco aguardando_pagamento */}
+                {/* Botão de Lançar em Mov movido pra área de ações por status (footer) — bloco enviado_para_pagamento */}
               </div>
               <div className="text-2xl font-bold mt-2">{formatBRL(conta.valor)}</div>
               {conta.origem === "nf_pj_interno" && nfPjId && (
@@ -690,7 +690,7 @@ export default function ContaPagarDetalheDrawer({
                       <Button
                         className="w-full bg-purple-700 hover:bg-purple-800 text-white gap-2"
                         onClick={async () => {
-                          // Cartão vai direto pra aguardando_pagamento em cascata (sem email ao fornecedor)
+                          // Cartão vai direto pra enviado_para_pagamento em cascata (sem email ao fornecedor)
                           // Não-cartão vai pra aprovado em cascata (requer envio de email depois)
                           const statusAlvo = isCartao ? "enviado_para_pagamento" : "aprovado";
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -23,7 +23,7 @@ import {
  * Form de edição de Conta a Pagar — Fase 2 (29/04/2026).
  *
  * Doutrina cravada por Flavio:
- * - Edição liberada em status: rascunho, aberto, aprovado, aguardando_pagamento
+ * - Edição liberada em status: rascunho, aberto, aprovado, enviado_para_pagamento
  * - Read-only automático em: paga, cancelado
  * - Campos NUNCA editáveis aqui: valor, parceiro_id, data_compra, status, meio_pagamento_id
  *   (rastreio fiel: muda só por fluxo, não por edição manual)
@@ -65,8 +65,8 @@ interface Props {
 const STATUS_READONLY = ["enviado_para_pagamento", "cancelado"];
 
 // Status em que campos CRÍTICOS (categoria, centro custo, vencimento, meio, conta origem)
-// ficam travados. Inclui `aguardando_pagamento` porque o email já saiu pro financeiro —
-// D-E (bola redonda): pacote enviado é imutável sem novo envio. Pra alterar = cancelar e recriar.
+// ficam travados. Inclui `enviado_para_pagamento` porque o email já saiu pro financeiro —
+// pacote enviado é imutável sem novo envio. Pra alterar = cancelar e recriar.
 const STATUS_TRAVA_CRITICOS = ["enviado_para_pagamento", "cancelado"];
 
 export function ContaPagarFormEdit({
