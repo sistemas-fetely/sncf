@@ -336,7 +336,7 @@ serve(async (req) => {
             num_parcelas_enviadas: parcelasCPRs.length,
             num_attachments: attachments.length,
             num_links: linksDocs.length,
-            patch_version: "v6-bucket-dinamico",
+            patch_version: "v7-pdf-mime",
             // Debug v5 — saber por que RPC retorna 0
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             rpc_error: rpcErr ? JSON.stringify(rpcErr) : null,
