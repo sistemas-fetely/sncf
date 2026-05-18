@@ -161,16 +161,21 @@ serve(async (req) => {
       );
     }
 
-    // === BUSCAR DOCS DIRETO DO BANCO (não confiar no front) ===
+    // === BUSCAR DOCS DIRETO DO BANCO — APENAS DA CPR ATUAL (v3) ===
+    // Doutrina: docs pertencem à CPR específica; agrupamento é só pro template do email
     type DocFonte = { tipo: string; nome_arquivo: string; storage_path: string };
     const docsFromBanco: DocFonte[] = [];
 
     // Fonte 1: contas_pagar_documentos (boletos, comprovantes, anexos manuais)
-    const { data: cpDocs } = await supabaseService
+    const { data: cpDocs, error: cpDocsErr } = await supabaseService
       .from("contas_pagar_documentos")
       .select("tipo, nome_arquivo, storage_path")
-      .in("conta_id", idsAtualizar);
-    
+      .eq("conta_id", cprId);
+
+    if (cpDocsErr) {
+      console.error("[email-pagto v3] erro buscando cpDocs", cpDocsErr);
+    }
+
     for (const d of cpDocs || []) {
       if (d?.storage_path) docsFromBanco.push({
         tipo: d.tipo || "outro",
@@ -180,11 +185,15 @@ serve(async (req) => {
     }
 
     // Fonte 2: NFs vinculadas via nfs_stage.conta_pagar_id (recibos vinculados pelo modal)
-    const { data: nfsVinc } = await supabaseService
+    const { data: nfsVinc, error: nfsErr } = await supabaseService
       .from("nfs_stage")
       .select("id, nf_numero, nfs_stage_documentos(tipo, arquivo_nome, storage_path)")
-      .in("conta_pagar_id", idsAtualizar);
-    
+      .eq("conta_pagar_id", cprId);
+
+    if (nfsErr) {
+      console.error("[email-pagto v3] erro buscando nfsVinc", nfsErr);
+    }
+
     for (const nf of nfsVinc || []) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const sd of ((nf as any).nfs_stage_documentos || [])) {
@@ -197,7 +206,7 @@ serve(async (req) => {
       }
     }
 
-    // Dedup por storage_path (não anexar 2x o mesmo arquivo)
+    // Dedup por storage_path
     const docsUnicos: DocFonte[] = [];
     const seenPaths = new Set<string>();
     for (const d of docsFromBanco) {
@@ -207,7 +216,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[email-pagto] CPRs=${idsAtualizar.length}, docs_encontrados=${docsUnicos.length}, docs_no_body=${docs.length}`);
+    console.log(`[email-pagto v3] cprId=${cprId}, docs_encontrados=${docsUnicos.length}, cp_docs=${(cpDocs || []).length}, nfs_vinc=${(nfsVinc || []).length}`);
 
     const attachments: Array<{ filename: string; content: string }> = [];
     const linksDocs: DocLink[] = [];
