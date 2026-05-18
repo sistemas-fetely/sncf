@@ -22,6 +22,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  SortableTableHead,
+  ordenarPor,
+  type SortState,
+} from "@/components/shared/SortableTableHead";
+import {
   ArrowUpFromLine,
   Plus,
   Upload,
@@ -282,6 +287,9 @@ export default function ContasPagar() {
     return !!s && s.nf_aplicavel && !s.vinculo_nf_completo;
   };
 
+  type SortColumn = "parceiro" | "descricao" | "vencimento" | "meio_pagamento" | "categoria" | "valor" | "status";
+  const [sort, setSort] = useState<SortState<SortColumn> | null>({ column: "vencimento", direction: "asc" });
+
   const kpis = useMemo(() => {
     const lista = data || [];
     const para_agir = lista.filter(
@@ -338,9 +346,21 @@ export default function ContasPagar() {
     }
     if (dataDe) lista = lista.filter((c) => (c.data_vencimento || "") >= dataDe);
     if (dataAte) lista = lista.filter((c) => (c.data_vencimento || "") <= dataAte);
+
+    // Ordenação
+    lista = ordenarPor(lista, sort, {
+      parceiro: (c) => c.parceiros_comerciais?.razao_social || c.fornecedor_cliente || "",
+      descricao: (c) => c.descricao || "",
+      vencimento: (c) => c.data_vencimento || "",
+      meio_pagamento: (c) => c.formas_pagamento?.nome || "",
+      categoria: (c) => c.plano_contas?.nome || "",
+      valor: (c) => Number(c.valor) || 0,
+      status: (c) => c.status || "",
+    });
+
     return lista;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte, pendenciaMap, solicitanteMap, nfStatusMap]);
+  }, [data, kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte, pendenciaMap, solicitanteMap, nfStatusMap, sort]);
 
   const temFiltroAtivo =
     !!busca.trim() ||
@@ -536,13 +556,27 @@ export default function ContasPagar() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Parceiro</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Meio de pagamento</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Status</TableHead>
+                  <SortableTableHead column="parceiro" sort={sort} onSort={setSort}>
+                    Parceiro
+                  </SortableTableHead>
+                  <SortableTableHead column="descricao" sort={sort} onSort={setSort}>
+                    Descrição
+                  </SortableTableHead>
+                  <SortableTableHead column="vencimento" sort={sort} onSort={setSort}>
+                    Vencimento
+                  </SortableTableHead>
+                  <SortableTableHead column="meio_pagamento" sort={sort} onSort={setSort}>
+                    Meio de pagamento
+                  </SortableTableHead>
+                  <SortableTableHead column="categoria" sort={sort} onSort={setSort}>
+                    Categoria
+                  </SortableTableHead>
+                  <SortableTableHead column="valor" sort={sort} onSort={setSort} align="right">
+                    Valor
+                  </SortableTableHead>
+                  <SortableTableHead column="status" sort={sort} onSort={setSort}>
+                    Status
+                  </SortableTableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
