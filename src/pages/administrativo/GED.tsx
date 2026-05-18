@@ -522,14 +522,26 @@ export function NovaPastaDialog({
     }
     setSalvando(true);
     try {
+      // Se for subpasta, herda parceiro_id da pasta-mãe
+      let parceiroIdFinal: string | null = parceiroId || null;
+      if (parentId) {
+        const { data: mae, error: errMae } = await (supabase as any)
+          .from("ged_pastas")
+          .select("parceiro_id")
+          .eq("id", parentId)
+          .single();
+        if (errMae) throw errMae;
+        parceiroIdFinal = mae?.parceiro_id ?? null;
+      }
+
       const { error } = await (supabase as any).from("ged_pastas").insert({
         nome: nome.trim(),
         descricao: descricao.trim() || null,
-        parceiro_id: parceiroId || null,
+        parceiro_id: parceiroIdFinal,
         parent_id: parentId || null,
       });
       if (error) throw error;
-      toast.success("Pasta criada");
+      toast.success(parentId ? "Subpasta criada" : "Pasta criada");
       setNome("");
       setDescricao("");
       setParceiroId("");
