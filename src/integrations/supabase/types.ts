@@ -12257,6 +12257,15 @@ export type Database = {
         Args: { _dados: Json; _token: string }
         Returns: boolean
       }
+      buscar_docs_pagamento: {
+        Args: { p_cpr_id: string }
+        Returns: {
+          fonte: string
+          nome_arquivo: string
+          storage_path: string
+          tipo: string
+        }[]
+      }
       buscar_nfs_stage_para_conta: {
         Args: { p_conta_id: string }
         Returns: {
