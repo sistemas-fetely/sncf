@@ -164,6 +164,7 @@ function DocIndicator({ label, tem }: { label: string; tem: boolean }) {
 
 type FiltroPill =
   | "nao_vinculadas"
+  | "vinculadas"
   | "descartadas"
   | "sem_categoria"
   | "com_xml"
@@ -307,6 +308,8 @@ export default function NFsStage() {
     let list = nfs || [];
     if (filtroPill === "nao_vinculadas") {
       list = list.filter((n) => n.status === "nao_vinculada");
+    } else if (filtroPill === "vinculadas") {
+      list = list.filter((n) => n.status === "vinculada");
     } else if (filtroPill === "descartadas") {
       list = list.filter((n) => n.status === "descartada");
     } else if (filtroPill === "sem_categoria") {
@@ -345,6 +348,7 @@ export default function NFsStage() {
     const all = nfs || [];
     return {
       naoVinculadas: all.filter((n) => n.status === "nao_vinculada").length,
+      vinculadas: all.filter((n) => n.status === "vinculada").length,
       descartadas: all.filter((n) => n.status === "descartada").length,
       semCategoria: all.filter((n) => !n.categoria_id && n.status !== "descartada").length,
       comXml: all.filter((n) => n.tem_xml && n.status !== "descartada").length,
@@ -650,6 +654,14 @@ export default function NFsStage() {
             active={filtroPill === "nao_vinculadas"}
             onClick={() => setFiltroPill("nao_vinculadas")}
             icon={<Clock className="h-3 w-3" />}
+          />
+          <KpiPill
+            label="Vinculadas"
+            count={totals.vinculadas}
+            color="emerald"
+            icon={<CheckCircle2 className="h-4 w-4" />}
+            active={filtroPill === "vinculadas"}
+            onClick={() => setFiltroPill("vinculadas")}
           />
           <KpiPill
             label="Sem categoria"
