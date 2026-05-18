@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
                 nome,
                 email,
                 senha: tempPassword,
-                link: "https://people-fetely.lovable.app",
+                link: "https://sncf.lovable.app",
               },
             }),
           });

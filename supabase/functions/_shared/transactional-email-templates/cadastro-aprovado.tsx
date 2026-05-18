@@ -24,7 +24,7 @@ const CadastroAprovadoEmail = ({ nome }: CadastroAprovadoProps) => (
         <Text style={text}>
           Seu acesso ao sistema {SITE_NAME} já está liberado. Utilize o botão abaixo para acessar a plataforma.
         </Text>
-        <Button style={button} href="https://people-fetely.lovable.app/login">
+        <Button style={button} href="https://sncf.lovable.app/login">
           Acessar o Sistema
         </Button>
         <Text style={text}>

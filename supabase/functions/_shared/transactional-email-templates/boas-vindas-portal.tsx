@@ -22,7 +22,7 @@ const BoasVindasPortalEmail = ({
   nome = 'colaborador(a)',
   email_corporativo,
   email,
-  link = 'https://people-fetely.lovable.app',
+  link = 'https://sncf.lovable.app',
 }: BoasVindasProps) => {
   const emailMostrado = email_corporativo || email || ''
   const primeiroNome = (nome || '').split(' ')[0] || 'colaborador(a)'
@@ -94,7 +94,7 @@ export const template = {
   previewData: {
     nome: 'Maria Silva',
     email_corporativo: 'maria.silva@fetely.com.br',
-    link: 'https://people-fetely.lovable.app',
+    link: 'https://sncf.lovable.app',
   },
 } satisfies TemplateEntry
 

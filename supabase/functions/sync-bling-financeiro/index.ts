@@ -97,7 +97,7 @@ serve(async (req) => {
       const params = new URLSearchParams();
       params.set("grant_type", "authorization_code");
       params.set("code", body.code);
-      params.set("redirect_uri", body.redirect_uri || "https://people-fetely.lovable.app/administrativo/bling-callback");
+      params.set("redirect_uri", body.redirect_uri || "https://sncf.lovable.app/administrativo/bling-callback");
       const tokenRes = await fetch(`${BLING_BASE}/oauth/token`, {
         method: "POST",
         headers: {

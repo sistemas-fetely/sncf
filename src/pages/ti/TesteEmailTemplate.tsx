@@ -34,8 +34,8 @@ const TEMPLATES = [
 ];
 
 const TEMPLATE_DATA_DEFAULTS: Record<string, Record<string, unknown>> = {
-  "boas-vindas-portal": { nome: "Flávio", email_corporativo: "", link: "https://people-fetely.lovable.app" },
-  "recuperacao-senha": { nome: "Flávio", link: "https://people-fetely.lovable.app" },
+  "boas-vindas-portal": { nome: "Flávio", email_corporativo: "", link: "https://sncf.lovable.app" },
+  "recuperacao-senha": { nome: "Flávio", link: "https://sncf.lovable.app" },
 };
 
 type SendResult =

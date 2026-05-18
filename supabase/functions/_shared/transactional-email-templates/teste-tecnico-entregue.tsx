@@ -92,6 +92,6 @@ export const template = {
     nome_candidato: "Maria Silva",
     cargo: "Analista de Design Jr",
     link_entrega: "https://drive.google.com/exemplo",
-    link_sistema: "https://people-fetely.lovable.app/recrutamento",
+    link_sistema: "https://sncf.lovable.app/recrutamento",
   },
 }

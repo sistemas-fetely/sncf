@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
-const CALLBACK_URL = "https://people-fetely.lovable.app/administrativo/bling-callback";
+const CALLBACK_URL = "https://sncf.lovable.app/administrativo/bling-callback";
 
 export default function BlingCallback() {
   const [params] = useSearchParams();

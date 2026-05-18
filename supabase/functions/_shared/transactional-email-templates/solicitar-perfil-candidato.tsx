@@ -71,7 +71,7 @@ export const template = {
   previewData: {
     nome: 'João Felix',
     cargo: 'Analista RH Jr',
-    link_vaga: 'https://people-fetely.lovable.app/vagas/exemplo',
+    link_vaga: 'https://sncf.lovable.app/vagas/exemplo',
   },
 } satisfies TemplateEntry
 

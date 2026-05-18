@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const CALLBACK_URL = "https://people-fetely.lovable.app/administrativo/bling-callback";
+const CALLBACK_URL = "https://sncf.lovable.app/administrativo/bling-callback";
 
 type EntidadeBling = "contatos" | "produtos" | "contas_receber" | "pedidos" | "nfe";
 

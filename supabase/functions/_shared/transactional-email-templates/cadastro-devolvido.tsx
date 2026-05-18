@@ -60,7 +60,7 @@ export const template = {
   previewData: {
     nome: "Maria Silva",
     comentario: "Por favor, corrija o número do CPF e envie novamente a foto do RG (ficou ilegível).",
-    link: "https://people-fetely.lovable.app/cadastro/abc123",
+    link: "https://sncf.lovable.app/cadastro/abc123",
   },
 } satisfies TemplateEntry
 
