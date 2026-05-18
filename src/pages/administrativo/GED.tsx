@@ -522,14 +522,26 @@ export function NovaPastaDialog({
     }
     setSalvando(true);
     try {
+      // Se for subpasta, herda parceiro_id da pasta-mãe
+      let parceiroIdFinal: string | null = parceiroId || null;
+      if (parentId) {
+        const { data: mae, error: errMae } = await (supabase as any)
+          .from("ged_pastas")
+          .select("parceiro_id")
+          .eq("id", parentId)
+          .single();
+        if (errMae) throw errMae;
+        parceiroIdFinal = mae?.parceiro_id ?? null;
+      }
+
       const { error } = await (supabase as any).from("ged_pastas").insert({
         nome: nome.trim(),
         descricao: descricao.trim() || null,
-        parceiro_id: parceiroId || null,
+        parceiro_id: parceiroIdFinal,
         parent_id: parentId || null,
       });
       if (error) throw error;
-      toast.success("Pasta criada");
+      toast.success(parentId ? "Subpasta criada" : "Pasta criada");
       setNome("");
       setDescricao("");
       setParceiroId("");
@@ -575,21 +587,28 @@ export function NovaPastaDialog({
               onChange={(e) => setDescricao(e.target.value)}
             />
           </div>
-          <div className="space-y-1">
-            <Label>Parceiro relacionado</Label>
-            <Select value={parceiroId} onValueChange={setParceiroId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Opcional" />
-              </SelectTrigger>
-              <SelectContent>
-                {(parceiros as any[]).map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.razao_social}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!parentId && (
+            <div className="space-y-1">
+              <Label>Parceiro relacionado</Label>
+              <Select value={parceiroId} onValueChange={setParceiroId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Opcional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(parceiros as any[]).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.razao_social}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {parentId && parentNome && (
+            <div className="text-sm text-muted-foreground">
+              Subpasta de "{parentNome}" — parceiro será herdado automaticamente.
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
