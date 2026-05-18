@@ -161,49 +161,25 @@ serve(async (req) => {
       );
     }
 
-    // === BUSCAR DOCS DIRETO DO BANCO — APENAS DA CPR ATUAL (v3) ===
-    // Doutrina: docs pertencem à CPR específica; agrupamento é só pro template do email
+    // === BUSCAR DOCS VIA RPC (v4 - bypass RLS) ===
     type DocFonte = { tipo: string; nome_arquivo: string; storage_path: string };
     const docsFromBanco: DocFonte[] = [];
 
-    // Fonte 1: contas_pagar_documentos (boletos, comprovantes, anexos manuais)
-    const { data: cpDocs, error: cpDocsErr } = await supabaseService
-      .from("contas_pagar_documentos")
-      .select("tipo, nome_arquivo, storage_path")
-      .eq("conta_id", cprId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: docsRpc, error: rpcErr } = await (supabaseService as any)
+      .rpc("buscar_docs_pagamento", { p_cpr_id: cprId });
 
-    if (cpDocsErr) {
-      console.error("[email-pagto v3] erro buscando cpDocs", cpDocsErr);
+    if (rpcErr) {
+      console.error("[email-pagto v4] erro na RPC buscar_docs_pagamento", rpcErr);
     }
 
-    for (const d of cpDocs || []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const d of (docsRpc || []) as any[]) {
       if (d?.storage_path) docsFromBanco.push({
         tipo: d.tipo || "outro",
         nome_arquivo: d.nome_arquivo || "documento",
         storage_path: d.storage_path,
       });
-    }
-
-    // Fonte 2: NFs vinculadas via nfs_stage.conta_pagar_id (recibos vinculados pelo modal)
-    const { data: nfsVinc, error: nfsErr } = await supabaseService
-      .from("nfs_stage")
-      .select("id, nf_numero, nfs_stage_documentos(tipo, arquivo_nome, storage_path)")
-      .eq("conta_pagar_id", cprId);
-
-    if (nfsErr) {
-      console.error("[email-pagto v3] erro buscando nfsVinc", nfsErr);
-    }
-
-    for (const nf of nfsVinc || []) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const sd of ((nf as any).nfs_stage_documentos || [])) {
-        if (sd?.storage_path) docsFromBanco.push({
-          tipo: "nf",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          nome_arquivo: sd.arquivo_nome || `NF ${(nf as any).nf_numero || nf.id}.pdf`,
-          storage_path: sd.storage_path,
-        });
-      }
     }
 
     // Dedup por storage_path
@@ -216,7 +192,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[email-pagto v3] cprId=${cprId}, docs_encontrados=${docsUnicos.length}, cp_docs=${(cpDocs || []).length}, nfs_vinc=${(nfsVinc || []).length}`);
+    console.log(`[email-pagto v4] cprId=${cprId}, docs_encontrados=${docsUnicos.length}, rpc_rows=${(docsRpc || []).length}`);
 
     const attachments: Array<{ filename: string; content: string }> = [];
     const linksDocs: DocLink[] = [];
