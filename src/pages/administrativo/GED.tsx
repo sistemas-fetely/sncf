@@ -175,6 +175,31 @@ export default function GED() {
     });
   }, [pastas, busca]);
 
+  // Índice: parent_id (ou "ROOT") → lista de pastas-filhas
+  const indiceFilhas = useMemo(() => {
+    const idx = new Map<string, typeof pastasFiltradas>();
+    for (const p of pastasFiltradas) {
+      const chave = p.parent_id ?? "ROOT";
+      if (!idx.has(chave)) idx.set(chave, []);
+      idx.get(chave)!.push(p);
+    }
+    for (const lista of idx.values()) {
+      lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    }
+    return idx;
+  }, [pastasFiltradas]);
+
+  // Auto-expande quando há busca ativa
+  useEffect(() => {
+    if (busca && busca.trim().length > 0) {
+      const todasComFilhas = new Set<string>();
+      for (const p of pastasFiltradas) {
+        if (p.parent_id) todasComFilhas.add(p.parent_id);
+      }
+      setPastasExpandidas(todasComFilhas);
+    }
+  }, [busca, pastasFiltradas]);
+
   // Doutrina #34: useEffect (não useState) pra reagir a dados que chegam depois.
   // Cobre 3 cenários:
   // 1. Vinda de Contratos.tsx com ?pasta=<id> — aplica seleção quando pastas chegam.
