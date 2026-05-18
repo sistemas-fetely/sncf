@@ -816,14 +816,19 @@ function ContratoDetalheDrawer({
     }
     setSalvandoExtra(true);
     try {
-      const { error } = await (supabase as any).rpc("fn_criar_cpr_extra_de_contrato", {
-        p_contrato_id: contrato!.id,
-        p_descricao: descricaoExtra.trim(),
-        p_valor: Number(valorExtra),
-        p_data_vencimento: dataExtra,
-        p_meio_pagamento_id: meioExtraId,
+      await (supabase as any).from("contas_pagar_receber").insert({
+        descricao: descricaoExtra.trim(),
+        valor: Number(valorExtra),
+        data_vencimento: dataExtra,
+        status: "aprovado",
+        tipo: "despesa",
+        origem: "contrato_extra",
+        parceiro_id: null,
+        meio_pagamento_id: meioExtraId,
+        pasta_contrato_id: contrato!.id,
+        nf_aplicavel: true,
+        aprovado_em: new Date().toISOString(),
       });
-      if (error) throw error;
       toast({ title: "Despesa extra lançada", description: "Vinculada ao contrato com status Aprovado." });
       setNovaExtraOpen(false);
       setDescricaoExtra("");
