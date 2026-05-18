@@ -535,7 +535,16 @@ export function NovaPastaDialog({
       setParceiroId("");
       onSalvo();
     } catch (e) {
-      toast.error("Erro: " + (e instanceof Error ? e.message : String(e)));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err = e as any;
+      const msg =
+        err?.message ||
+        err?.details ||
+        err?.hint ||
+        (e instanceof Error ? e.message : null) ||
+        JSON.stringify(e);
+      console.error("[NovaPastaDialog] salvar falhou:", e);
+      toast.error("Erro: " + msg);
     } finally {
       setSalvando(false);
     }
