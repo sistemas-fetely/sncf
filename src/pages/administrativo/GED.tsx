@@ -40,6 +40,8 @@ import {
   Info,
   X,
   Files,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { useParametros } from "@/hooks/useParametros";
 import { formatDateBR } from "@/lib/format-currency";
@@ -91,6 +93,16 @@ export default function GED() {
   const [novaPastaOpen, setNovaPastaOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [docDetalhe, setDocDetalhe] = useState<Documento | null>(null);
+  const [pastasExpandidas, setPastasExpandidas] = useState<Set<string>>(new Set());
+
+  function toggleExpandir(pastaId: string) {
+    setPastasExpandidas((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(pastaId)) novo.delete(pastaId);
+      else novo.add(pastaId);
+      return novo;
+    });
+  }
 
   const { data: pastas = [], isLoading: loadingPastas } = useQuery({
     queryKey: ["ged-pastas"],
@@ -162,6 +174,31 @@ export default function GED() {
       );
     });
   }, [pastas, busca]);
+
+  // Índice: parent_id (ou "ROOT") → lista de pastas-filhas
+  const indiceFilhas = useMemo(() => {
+    const idx = new Map<string, typeof pastasFiltradas>();
+    for (const p of pastasFiltradas) {
+      const chave = p.parent_id ?? "ROOT";
+      if (!idx.has(chave)) idx.set(chave, []);
+      idx.get(chave)!.push(p);
+    }
+    for (const lista of idx.values()) {
+      lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    }
+    return idx;
+  }, [pastasFiltradas]);
+
+  // Auto-expande quando há busca ativa
+  useEffect(() => {
+    if (busca && busca.trim().length > 0) {
+      const todasComFilhas = new Set<string>();
+      for (const p of pastasFiltradas) {
+        if (p.parent_id) todasComFilhas.add(p.parent_id);
+      }
+      setPastasExpandidas(todasComFilhas);
+    }
+  }, [busca, pastasFiltradas]);
 
   // Doutrina #34: useEffect (não useState) pra reagir a dados que chegam depois.
   // Cobre 3 cenários:
@@ -298,39 +335,18 @@ export default function GED() {
             <p className="text-xs text-muted-foreground p-2">Carregando...</p>
           )}
 
-          {pastasFiltradas.map((p) => (
-            <div
+          {(indiceFilhas.get("ROOT") ?? []).map((p) => (
+            <PastaNoArvore
               key={p.id}
-              className={`group relative w-full px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors cursor-pointer ${
-                pastaSelecionada === p.id
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "hover:bg-muted"
-              }`}
-              onClick={() => setPastaSelecionada(p.id)}
-            >
-              <Folder className="h-4 w-4 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="truncate">{p.nome}</div>
-                {p.parceiro_nome && (
-                  <div className="text-xs text-muted-foreground truncate">
-                    {p.parceiro_nome}
-                  </div>
-                )}
-              </div>
-              <Badge variant="secondary" className="text-xs shrink-0 group-hover:hidden">
-                {p.total_documentos}
-              </Badge>
-              <button
-                className="hidden group-hover:flex h-6 w-6 items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive shrink-0"
-                title={`Excluir pasta "${p.nome}"`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleExcluirPasta(p);
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
+              pasta={p as Pasta}
+              nivel={0}
+              indiceFilhas={indiceFilhas as Map<string, Pasta[]>}
+              pastaSelecionada={pastaSelecionada}
+              setPastaSelecionada={setPastaSelecionada}
+              pastasExpandidas={pastasExpandidas}
+              toggleExpandir={toggleExpandir}
+              handleExcluirPasta={handleExcluirPasta}
+            />
           ))}
         </div>
       </aside>
@@ -482,6 +498,107 @@ export default function GED() {
         }}
       />
     </div>
+  );
+}
+
+// ─── Componente recursivo: pasta na árvore ───────────────────
+function PastaNoArvore({
+  pasta,
+  nivel,
+  indiceFilhas,
+  pastaSelecionada,
+  setPastaSelecionada,
+  pastasExpandidas,
+  toggleExpandir,
+  handleExcluirPasta,
+}: {
+  pasta: Pasta;
+  nivel: number;
+  indiceFilhas: Map<string, Pasta[]>;
+  pastaSelecionada: string;
+  setPastaSelecionada: (id: string) => void;
+  pastasExpandidas: Set<string>;
+  toggleExpandir: (id: string) => void;
+  handleExcluirPasta: (p: Pasta) => void;
+}) {
+  const filhas = indiceFilhas.get(pasta.id) ?? [];
+  const temFilhas = filhas.length > 0;
+  const expandida = pastasExpandidas.has(pasta.id);
+  const isSelecionada = pastaSelecionada === pasta.id;
+  const paddingLeft = 12 + nivel * 16;
+
+  return (
+    <>
+      <div
+        className={`group relative w-full pr-3 py-2 rounded-md text-sm flex items-center gap-1 transition-colors cursor-pointer ${
+          isSelecionada
+            ? "bg-primary/10 text-primary font-medium"
+            : "hover:bg-muted"
+        }`}
+        style={{ paddingLeft }}
+        onClick={() => setPastaSelecionada(pasta.id)}
+      >
+        {temFilhas ? (
+          <button
+            className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted-foreground/10 shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleExpandir(pasta.id);
+            }}
+          >
+            {expandida ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
+          </button>
+        ) : (
+          <span className="w-5 shrink-0" />
+        )}
+
+        <Folder className="h-4 w-4 shrink-0" />
+
+        <div className="flex-1 min-w-0">
+          <div className="truncate">{pasta.nome}</div>
+          {pasta.parceiro_nome && nivel === 0 && (
+            <div className="text-xs text-muted-foreground truncate">
+              {pasta.parceiro_nome}
+            </div>
+          )}
+        </div>
+
+        <Badge variant="secondary" className="text-xs shrink-0 group-hover:hidden">
+          {pasta.total_documentos}
+        </Badge>
+
+        {!temFilhas && (
+          <button
+            className="hidden group-hover:flex h-6 w-6 items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive shrink-0"
+            title={`Excluir pasta "${pasta.nome}"`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleExcluirPasta(pasta);
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
+      {temFilhas && expandida && filhas.map((filha) => (
+        <PastaNoArvore
+          key={filha.id}
+          pasta={filha}
+          nivel={nivel + 1}
+          indiceFilhas={indiceFilhas}
+          pastaSelecionada={pastaSelecionada}
+          setPastaSelecionada={setPastaSelecionada}
+          pastasExpandidas={pastasExpandidas}
+          toggleExpandir={toggleExpandir}
+          handleExcluirPasta={handleExcluirPasta}
+        />
+      ))}
+    </>
   );
 }
 
