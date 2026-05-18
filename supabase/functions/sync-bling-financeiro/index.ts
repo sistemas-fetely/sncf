@@ -20,7 +20,9 @@ const ok = (data: any, status = 200) =>
 const err = (msg: string, status = 400) =>
   new Response(JSON.stringify({ sucesso: false, erro: msg }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const MAX_EXEC_MS = 120_000;
+// Budget bem abaixo do idle timeout de 150s do edge runtime, para garantir
+// que a função sempre retorne resposta antes do timeout (cliente faz loop).
+const MAX_EXEC_MS = 90_000;
 
 type Entidade = "contatos" | "produtos" | "contas_receber" | "pedidos" | "nfe";
 const ORDEM: Entidade[] = ["contatos", "produtos", "contas_receber", "pedidos", "nfe"];
