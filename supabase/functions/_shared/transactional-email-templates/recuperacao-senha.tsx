@@ -24,7 +24,7 @@ const COR_CREME = "#F5F0E8";
 
 const RecuperacaoSenha = ({
   nome = "colaborador(a)",
-  link = "https://people-fetely.lovable.app/reset-password",
+  link = "https://sncf.lovable.app/reset-password",
 }: Props) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
@@ -78,7 +78,7 @@ export const template = {
   displayName: "Recuperação de senha",
   previewData: {
     nome: "Bruna Foshi",
-    link: "https://people-fetely.lovable.app/reset-password",
+    link: "https://sncf.lovable.app/reset-password",
   },
 } satisfies TemplateEntry;
 

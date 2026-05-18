@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     for (const convite of convites || []) {
       const createdAt = new Date(convite.created_at);
       const daysSince = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
-      const appLink = `https://people-fetely.lovable.app/cadastro/${convite.token}`;
+      const appLink = `https://sncf.lovable.app/cadastro/${convite.token}`;
 
       if (convite.lembretes_ativos === false) {
         // Skip reminders for this invite — suspended by HR

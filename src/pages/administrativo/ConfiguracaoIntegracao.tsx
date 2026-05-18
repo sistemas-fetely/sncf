@@ -17,10 +17,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle, AlertCircle, Settings2, ExternalLink, Mail, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { PUBLIC_APP_URL } from "@/lib/urls";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const CALLBACK_URL = "https://people-fetely.lovable.app/administrativo/bling-callback";
+const CALLBACK_URL = `${PUBLIC_APP_URL}/administrativo/bling-callback`;
 
 type EntidadeBling = "contatos" | "produtos" | "contas_receber" | "pedidos" | "nfe";
 

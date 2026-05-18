@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { PUBLIC_APP_URL } from "@/lib/urls";
 
-const CALLBACK_URL = "https://people-fetely.lovable.app/administrativo/bling-callback";
+const CALLBACK_URL = `${PUBLIC_APP_URL}/administrativo/bling-callback`;
 
 export default function BlingCallback() {
   const [params] = useSearchParams();

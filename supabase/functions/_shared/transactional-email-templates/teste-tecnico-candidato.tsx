@@ -157,6 +157,6 @@ export const template = {
     entregaveis: "PDF com no mínimo 3 alternativas de layout",
     criterios: "Aderência ao DNA Fetely, criatividade, execução técnica",
     prazo: "20/04/2026",
-    link_portal: "https://people-fetely.lovable.app/vagas/abc123",
+    link_portal: "https://sncf.lovable.app/vagas/abc123",
   },
 }

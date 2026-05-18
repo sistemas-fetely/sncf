@@ -29,7 +29,7 @@ interface Documento {
 const PROMPT_CONTINUIDADE = `Continuando o desenvolvimento do SNCF (Sistema Nervoso Central Fetely).
 Leia o Estado_Atual_PeopleFetely.md e o RunBook_PeopleFetely_Tecnico.md antes de começar.
 Repositório: github.com/sistemas-fetely/people-fetely-29d8a45f
-Produção: https://people-fetely.lovable.app`;
+Produção: https://sncf.lovable.app`;
 
 export default function DocumentacaoViva() {
   const navigate = useNavigate();

@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
           templateData: {
             nome: full_name,
             email,
-            link: Deno.env.get("SITE_URL") || "https://people-fetely.lovable.app",
+            link: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
           },
         });
         if (!r.ok) {
@@ -359,7 +359,7 @@ Deno.serve(async (req) => {
           templateData: {
             nome: full_name,
             email,
-            link: Deno.env.get("SITE_URL") || "https://people-fetely.lovable.app",
+            link: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
           },
         });
         if (!r.ok) {
@@ -546,7 +546,7 @@ Deno.serve(async (req) => {
             nome: full_name,
             email_corporativo: emailCorporativo,
             email_pessoal: emailPessoal,
-            link: Deno.env.get("SITE_URL") || "https://people-fetely.lovable.app",
+            link: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
           },
         });
         if (!r.ok) {
@@ -838,7 +838,7 @@ Deno.serve(async (req) => {
 
       // 4. Escolher template
       const templateName = ehPrimeiroAcesso ? "boas-vindas-portal" : "recuperacao-senha";
-      const link = Deno.env.get("SITE_URL") || "https://people-fetely.lovable.app";
+      const link = Deno.env.get("SITE_URL") || "https://sncf.lovable.app";
 
       try {
         const r = await invokeSendTransactionalEmail(supabaseUrl, anonKey, authHeader, {

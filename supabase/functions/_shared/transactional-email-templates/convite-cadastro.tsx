@@ -54,7 +54,7 @@ export const template = {
     tipo: 'clt',
     cargo: 'Analista',
     departamento: 'Tecnologia',
-    link: 'https://people-fetely.lovable.app/cadastro/abc123',
+    link: 'https://sncf.lovable.app/cadastro/abc123',
   },
 } satisfies TemplateEntry
 
