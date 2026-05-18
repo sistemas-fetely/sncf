@@ -53,6 +53,7 @@ interface Pasta {
   parceiro_nome: string | null;
   total_documentos: number;
   ultimo_upload: string | null;
+  parent_id: string | null;
 }
 
 interface Documento {
@@ -485,14 +486,18 @@ export default function GED() {
 }
 
 // ─── Dialog: Nova Pasta ──────────────────────────────────────
-function NovaPastaDialog({
+export function NovaPastaDialog({
   open,
   onOpenChange,
   onSalvo,
+  parentId,
+  parentNome,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSalvo: () => void;
+  parentId?: string | null;
+  parentNome?: string | null;
 }) {
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -521,6 +526,7 @@ function NovaPastaDialog({
         nome: nome.trim(),
         descricao: descricao.trim() || null,
         parceiro_id: parceiroId || null,
+        parent_id: parentId || null,
       });
       if (error) throw error;
       toast.success("Pasta criada");
@@ -539,7 +545,9 @@ function NovaPastaDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nova pasta</DialogTitle>
+          <DialogTitle>
+            {parentNome ? `Nova subpasta em "${parentNome}"` : "Nova pasta"}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1">

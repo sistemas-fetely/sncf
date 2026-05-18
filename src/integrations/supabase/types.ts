@@ -5031,6 +5031,7 @@ export type Database = {
           id: string
           nome: string
           parceiro_id: string | null
+          parent_id: string | null
           responsavel_id: string | null
           status: string | null
           tipo: string | null
@@ -5047,6 +5048,7 @@ export type Database = {
           id?: string
           nome: string
           parceiro_id?: string | null
+          parent_id?: string | null
           responsavel_id?: string | null
           status?: string | null
           tipo?: string | null
@@ -5063,6 +5065,7 @@ export type Database = {
           id?: string
           nome?: string
           parceiro_id?: string | null
+          parent_id?: string | null
           responsavel_id?: string | null
           status?: string | null
           tipo?: string | null
@@ -5081,6 +5084,27 @@ export type Database = {
             columns: ["parceiro_id"]
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ged_pastas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ged_pastas_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pastas_kpis"
             referencedColumns: ["id"]
           },
         ]
@@ -11785,6 +11809,7 @@ export type Database = {
           nome: string | null
           parceiro_id: string | null
           parceiro_nome: string | null
+          parent_id: string | null
           proximo_vencimento_contrato: string | null
           responsavel_id: string | null
           status: string | null
@@ -11802,6 +11827,27 @@ export type Database = {
             columns: ["parceiro_id"]
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ged_pastas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ged_pastas_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pastas_kpis"
             referencedColumns: ["id"]
           },
         ]
@@ -12009,6 +12055,7 @@ export type Database = {
           nome: string | null
           parceiro_id: string | null
           parceiro_nome: string | null
+          parent_id: string | null
           proximo_vencimento_contrato: string | null
           responsavel_id: string | null
           status: string | null
@@ -12026,6 +12073,27 @@ export type Database = {
             columns: ["parceiro_id"]
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ged_pastas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ged_pastas_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pastas_kpis"
             referencedColumns: ["id"]
           },
         ]
