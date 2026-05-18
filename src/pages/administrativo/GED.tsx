@@ -335,39 +335,18 @@ export default function GED() {
             <p className="text-xs text-muted-foreground p-2">Carregando...</p>
           )}
 
-          {pastasFiltradas.map((p) => (
-            <div
+          {(indiceFilhas.get("ROOT") ?? []).map((p) => (
+            <PastaNoArvore
               key={p.id}
-              className={`group relative w-full px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors cursor-pointer ${
-                pastaSelecionada === p.id
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "hover:bg-muted"
-              }`}
-              onClick={() => setPastaSelecionada(p.id)}
-            >
-              <Folder className="h-4 w-4 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="truncate">{p.nome}</div>
-                {p.parceiro_nome && (
-                  <div className="text-xs text-muted-foreground truncate">
-                    {p.parceiro_nome}
-                  </div>
-                )}
-              </div>
-              <Badge variant="secondary" className="text-xs shrink-0 group-hover:hidden">
-                {p.total_documentos}
-              </Badge>
-              <button
-                className="hidden group-hover:flex h-6 w-6 items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive shrink-0"
-                title={`Excluir pasta "${p.nome}"`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleExcluirPasta(p);
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
+              pasta={p as Pasta}
+              nivel={0}
+              indiceFilhas={indiceFilhas as Map<string, Pasta[]>}
+              pastaSelecionada={pastaSelecionada}
+              setPastaSelecionada={setPastaSelecionada}
+              pastasExpandidas={pastasExpandidas}
+              toggleExpandir={toggleExpandir}
+              handleExcluirPasta={handleExcluirPasta}
+            />
           ))}
         </div>
       </aside>
