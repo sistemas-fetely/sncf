@@ -42,7 +42,9 @@ import {
   FileSignature,
   Receipt,
   Files,
+  FolderPlus,
 } from "lucide-react";
+import { NovaPastaDialog } from "@/pages/administrativo/GED";
 import { useParametros } from "@/hooks/useParametros";
 import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -61,6 +63,7 @@ interface Pasta {
   contratos_vigentes: number;
   valor_mensal_estimado: number;
   proximo_vencimento_contrato: string | null;
+  parent_id: string | null;
   // NOVOS — vêm da consulta enriquecida em GED.tsx
   grupo_id?: string | null;
   grupo_nome?: string | null;
@@ -141,6 +144,8 @@ function tipoBadgeClass(tipo: string): string {
 
 export function PastaDetalhe({ pasta, onAtualizado }: Props) {
   const [aba, setAba] = useState("documentos");
+  const [novaSubpastaOpen, setNovaSubpastaOpen] = useState(false);
+  const qc = useQueryClient();
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -183,6 +188,15 @@ export function PastaDetalhe({ pasta, onAtualizado }: Props) {
               <p className="text-sm text-muted-foreground mt-1">{pasta.descricao}</p>
             )}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setNovaSubpastaOpen(true)}
+            className="gap-2 shrink-0"
+          >
+            <FolderPlus className="h-4 w-4" />
+            Nova subpasta
+          </Button>
         </div>
       </div>
 
@@ -207,6 +221,18 @@ export function PastaDetalhe({ pasta, onAtualizado }: Props) {
           <AbaHistorico pastaId={pasta.id} />
         </TabsContent>
       </Tabs>
+
+      <NovaPastaDialog
+        open={novaSubpastaOpen}
+        onOpenChange={setNovaSubpastaOpen}
+        parentId={pasta.id}
+        parentNome={pasta.nome}
+        onSalvo={() => {
+          setNovaSubpastaOpen(false);
+          qc.invalidateQueries({ queryKey: ["ged-pastas"] });
+          onAtualizado();
+        }}
+      />
     </div>
   );
 }
