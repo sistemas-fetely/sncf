@@ -483,7 +483,7 @@ export default function CaixaBanco() {
       return v >= iniAnt && v <= fimAnt;
     });
 
-    // A pagar próximo mês — usa listaAPagar (status aguardando_pagamento) + venc no próximo mês
+    // A pagar próximo mês — usa listaAPagar (status enviado_para_pagamento) + venc no próximo mês
     const aPagarProxMes = listaAPagar.filter((l) => {
       if (!l.data_vencimento) return false;
       const v = new Date(l.data_vencimento + "T00:00:00");
