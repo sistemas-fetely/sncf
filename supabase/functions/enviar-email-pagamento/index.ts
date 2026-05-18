@@ -330,7 +330,14 @@ serve(async (req) => {
             num_parcelas_enviadas: parcelasCPRs.length,
             num_attachments: attachments.length,
             num_links: linksDocs.length,
-            patch_version: "v4-rpc-bypass-rls",
+            patch_version: "v5-debug-rpc",
+            // Debug v5 — saber por que RPC retorna 0
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            rpc_error: rpcErr ? JSON.stringify(rpcErr) : null,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            rpc_rows: ((docsRpc as any) || []).length,
+            docs_unicos: docsUnicos.length,
+            service_key_presente: !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
           },
         }),
       }
