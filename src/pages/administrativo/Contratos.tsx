@@ -735,13 +735,6 @@ function ContratoDetalheDrawer({
   const navigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [novaExtraOpen, setNovaExtraOpen] = useState(false);
-  const [descricaoExtra, setDescricaoExtra] = useState("");
-  const [valorExtra, setValorExtra] = useState("");
-  const [dataExtra, setDataExtra] = useState(new Date().toISOString().split("T")[0]);
-  const [meioExtraId, setMeioExtraId] = useState<string | null>(null);
-  const [salvandoExtra, setSalvandoExtra] = useState(false);
-
   const { data: parcelas = [] } = useQuery({
     queryKey: ["contrato-parcelas", contrato?.id],
     enabled: !!contrato?.id,
@@ -765,18 +758,6 @@ function ContratoDetalheDrawer({
         .eq("pasta_contrato_id", contrato!.id)
         .is("deleted_at", null)
         .order("data_vencimento");
-      return data || [];
-    },
-  });
-
-  const { data: meios = [] } = useQuery({
-    queryKey: ["meios-pagamento-extra"],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("meios_pagamento")
-        .select("id, nome")
-        .eq("ativo", true)
-        .order("ordem");
       return data || [];
     },
   });
@@ -807,38 +788,6 @@ function ContratoDetalheDrawer({
         {label[status] ?? status}
       </Badge>
     );
-  }
-
-  async function salvarExtra() {
-    if (!descricaoExtra.trim() || !valorExtra || !meioExtraId) {
-      toast({ title: "Preencha descrição, valor e meio de pagamento", variant: "destructive" });
-      return;
-    }
-    setSalvandoExtra(true);
-    try {
-      await (supabase as any).from("contas_pagar_receber").insert({
-        descricao: descricaoExtra.trim(),
-        valor: Number(valorExtra),
-        data_vencimento: dataExtra,
-        status: "aprovado",
-        tipo: "despesa",
-        origem: "contrato_extra",
-        parceiro_id: null,
-        meio_pagamento_id: meioExtraId,
-        pasta_contrato_id: contrato!.id,
-        nf_aplicavel: true,
-        aprovado_em: new Date().toISOString(),
-      });
-      toast({ title: "Despesa extra lançada", description: "Vinculada ao contrato com status Aprovado." });
-      setNovaExtraOpen(false);
-      setDescricaoExtra("");
-      setValorExtra("");
-      qc.invalidateQueries({ queryKey: ["contrato-cprs", contrato?.id] });
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    } finally {
-      setSalvandoExtra(false);
-    }
   }
 
   if (!contrato) return null;
@@ -910,91 +859,6 @@ function ContratoDetalheDrawer({
                 </div>
               );
             })}
-          </div>
-        </div>
-
-        {/* Extras */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold">Despesas extras</h3>
-            <Button size="sm" variant="outline" onClick={() => setNovaExtraOpen(true)}>
-              <Plus className="h-3 w-3 mr-1" /> Lançar extra
-            </Button>
-          </div>
-
-          {novaExtraOpen && (
-            <div className="rounded-md border p-3 mb-3 bg-slate-50">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="col-span-2">
-                  <Label className="text-xs">Descrição *</Label>
-                  <Input
-                    value={descricaoExtra}
-                    onChange={(e) => setDescricaoExtra(e.target.value)}
-                    placeholder="Ex: Uso excedente de API"
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Valor *</Label>
-                  <Input
-                    type="number"
-                    value={valorExtra}
-                    onChange={(e) => setValorExtra(e.target.value)}
-                    placeholder="0,00"
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Vencimento *</Label>
-                  <Input
-                    type="date"
-                    value={dataExtra}
-                    onChange={(e) => setDataExtra(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label className="text-xs">Meio de Pagamento *</Label>
-                  <Select value={meioExtraId ?? ""} onValueChange={setMeioExtraId}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Selecione…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {meios.map((m: any) => (
-                        <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-3">
-                <Button size="sm" variant="ghost" onClick={() => setNovaExtraOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button size="sm" onClick={salvarExtra} disabled={salvandoExtra}>
-                  {salvandoExtra ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
-                  Salvar
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {cprsExtras.length === 0 && (
-              <p className="text-xs text-muted-foreground">Nenhuma despesa extra lançada.</p>
-            )}
-            {cprsExtras.map((c: any) => (
-              <div key={c.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                <div>
-                  <p className="font-medium">{c.descricao}</p>
-                  <p className="text-xs text-muted-foreground">{formatDateBR(c.data_vencimento)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs">{formatBRL(c.valor)}</span>
-                  {statusCPRBadge(c.status)}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
