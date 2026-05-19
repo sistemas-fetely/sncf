@@ -34,10 +34,12 @@ const dashboardItem: MenuItem = {
 const financeiroItems: MenuItem[] = [
   { title: "Contas a Pagar", url: "/administrativo/contas-pagar", icon: ArrowUpFromLine },
   { title: "Faturas de Cartão", url: "/administrativo/faturas-cartao", icon: CreditCard },
+  { title: "Reconciliação Cartão", url: "/administrativo/reconciliacao-cartao", icon: ArrowLeftRight },
   { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine },
   { title: "Parceiros Comerciais", url: "/administrativo/parceiros", icon: Users },
   { title: "NFs em Stage", url: "/administrativo/nfs-stage", icon: Layers },
   { title: "Conciliação", url: "/administrativo/conciliacao", icon: CheckSquare },
+  { title: "Compromissos", url: "/administrativo/compromissos", icon: Receipt },
   { title: "Documentos Pendentes", url: "/administrativo/documentos-pendentes", icon: FileWarning },
 ];
 

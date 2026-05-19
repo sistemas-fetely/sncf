@@ -60,8 +60,6 @@ const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
 const AdministrativoLayout = lazy(() => import("@/layouts/AdministrativoLayout"));
 const GestaoVistaLayout = lazy(() => import("@/layouts/GestaoVistaLayout"));
-const ProdutoLayout = lazy(() => import("@/layouts/ProdutoLayout"));
-const ProdutoIndex = lazy(() => import("@/pages/produto/ProdutoIndex"));
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
@@ -494,13 +492,6 @@ const App = () => (
                   <PlaceholderPage title="Relatórios e BI" description="Relatórios gerenciais e exportação" />
                 </ProtectedRoute>
               } />
-            </Route>
-
-            {/* ═══════════════════════════════════════════════
-                PRODUTO FETELY — Sistema novo placeholder (Sprint 2 — 29/04/2026)
-                ═══════════════════════════════════════════════ */}
-            <Route path="/produto" element={<ProtectedRoute><ProdutoLayout /></ProtectedRoute>}>
-              <Route index element={<ProdutoIndex />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

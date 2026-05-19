@@ -31,6 +31,7 @@ interface MenuItem {
 
 const items: MenuItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, end: true },
+  { title: "Gestão à Vista", url: "/gestao-a-vista", icon: Tv },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
