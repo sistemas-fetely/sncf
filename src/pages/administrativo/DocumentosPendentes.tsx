@@ -1006,14 +1006,14 @@ export default function DocumentosPendentes() {
             // Pra avulsa: 1 entrada igual à conta.
             if (c.tipo === "compromisso" && c.parcelas && c.parcelas.length > 0) {
               return c.parcelas.map((p) => ({
-                plano_contas_id: p.plano_contas_id,
+                conta_id: p.plano_contas_id,
                 valor: Number(p.valor || 0),
                 data_vencimento: p.data_vencimento,
                 data_pagamento: p.data_pagamento,
               }));
             }
             return [{
-              plano_contas_id: c.plano_contas_id,
+              conta_id: c.plano_contas_id,
               valor: Number(c.valor || 0),
               data_vencimento: c.data_vencimento,
               data_pagamento: c.data_pagamento,

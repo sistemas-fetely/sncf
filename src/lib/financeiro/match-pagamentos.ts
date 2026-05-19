@@ -130,6 +130,6 @@ function encontrarMatchPagamento(
     conta_descricao: `${melhor.conta.fornecedor_cliente || "—"} — R$ ${Number(melhor.conta.valor || 0).toFixed(2)}`,
     conta_status: melhor.conta.status,
     conta_docs_status: melhor.conta.docs_status,
-    conta_categoria_id: melhor.conta.plano_contas_id,
+    conta_plano_contas_id: melhor.conta.plano_contas_id,
   };
 }

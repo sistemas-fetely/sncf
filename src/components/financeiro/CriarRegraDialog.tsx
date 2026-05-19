@@ -66,7 +66,7 @@ export function CriarRegraDialog({
         outra.nf_chave_acesso === nf.nf_chave_acesso
       )
         return false;
-      if (outra._categoria_id) return false;
+      if (outra._plano_contas_id) return false;
       if (outra._duplicata) return false;
 
       let match = false;
@@ -165,7 +165,7 @@ export function CriarRegraDialog({
         outra.nf_chave_acesso === nf.nf_chave_acesso
       )
         return outra;
-      if (outra._categoria_id) return outra;
+      if (outra._plano_contas_id) return outra;
       if (outra._duplicata) return outra;
 
       let deuMatch = false;
@@ -186,7 +186,7 @@ export function CriarRegraDialog({
         atualizadas++;
         return {
           ...outra,
-          _categoria_id: categoriaId,
+          _plano_contas_id: categoriaId,
           _categoria_nome: categoriaNome,
           _regra_origem: tipo === "ncm" ? "ncm" : "parceiro",
         } as NFParsed;

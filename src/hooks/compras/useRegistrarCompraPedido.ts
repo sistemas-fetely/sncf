@@ -27,7 +27,7 @@ export function useRegistrarCompraPedido() {
         p_primeira_parcela_data: input.primeira_parcela_data,
         p_intervalo_dias: input.intervalo_dias,
         p_periodicidade: input.periodicidade,
-        p_conta_id: input.conta_id ?? null,
+        p_conta_id: input.plano_contas_id ?? null,
         p_observacao: input.observacao ?? null,
         p_itens: input.itens as unknown as never,
       });

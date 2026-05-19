@@ -163,7 +163,7 @@ export function MarcarPagoDialog({ open, onOpenChange, contas, onSuccess }: Prop
       // Histórico (best-effort)
       try {
         const historicoRows = contas.map((c) => ({
-          plano_contas_id: c.id,
+          conta_id: c.id,
           status_anterior: "finalizado",
           status_novo: "finalizado", // mantém status do CP - mudança é só no Caixa
           observacao: `Pagamento marcado em Caixa e Banco — ${formatBRL(c.valor)}`,

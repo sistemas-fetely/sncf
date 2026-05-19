@@ -296,7 +296,7 @@ export default function PlanoDeContas() {
       const { count, error: countErr } = await supabase
         .from("contas_pagar_receber")
         .select("id", { count: "exact", head: true })
-        .eq("conta_id", deleting.id);
+        .eq("plano_contas_id", deleting.id);
       if (countErr) throw countErr;
       if ((count ?? 0) > 0) {
         throw new Error(`Esta categoria tem ${count} lançamento(s) vinculado(s). Remova-os antes de excluir.`);
