@@ -189,6 +189,7 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess }: Props) {
             t.data,
             t.valor,
             t.descricao,
+            t.fitid,
           ),
           saldo_pos_transacao: null,
           status: "pendente",
