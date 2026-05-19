@@ -46,16 +46,19 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSuccess?: () => void;
+  contaBancariaId?: string;
 }
 
 type EtapaImport = "upload" | "preview" | "salvando" | "concluido";
 
-export function ImportarOFXDialog({ open, onOpenChange, onSuccess }: Props) {
+export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancariaId: contaBancariaIdProp }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [contaBancariaId, setContaBancariaId] = useState("");
+  const [contaBancariaIdInterno, setContaBancariaIdInterno] = useState("");
+  const contaBancariaId = contaBancariaIdProp ?? contaBancariaIdInterno;
+  const setContaBancariaId = (v: string) => { if (!contaBancariaIdProp) setContaBancariaIdInterno(v); };
   const [arquivoNome, setArquivoNome] = useState("");
   const [arquivoFile, setArquivoFile] = useState<File | null>(null);
   const [parseado, setParseado] = useState<OFXResultado | null>(null);
@@ -83,7 +86,7 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess }: Props) {
   useEffect(() => {
     if (!open) {
       // Reset ao fechar
-      setContaBancariaId("");
+      if (!contaBancariaIdProp) setContaBancariaIdInterno("");
       setArquivoNome("");
       setArquivoFile(null);
       setParseado(null);
@@ -249,24 +252,26 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess }: Props) {
         {/* ETAPA 1: UPLOAD */}
         {etapa === "upload" && (
           <div className="space-y-6 py-6">
-            <div className="space-y-1">
-              <Label>Conta bancária *</Label>
-              <Select value={contaBancariaId} onValueChange={setContaBancariaId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Para qual conta é este extrato?" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(contasBancarias || []).map((cb) => (
-                    <SelectItem key={cb.id} value={cb.id}>
-                      {cb.nome_exibicao}{" "}
-                      <span className="text-muted-foreground text-xs ml-1">
-                        ({cb.tipo === "cartao_credito" ? "Cartão" : cb.banco})
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!contaBancariaIdProp && (
+              <div className="space-y-1">
+                <Label>Conta bancária *</Label>
+                <Select value={contaBancariaId} onValueChange={setContaBancariaId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Para qual conta é este extrato?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(contasBancarias || []).map((cb) => (
+                      <SelectItem key={cb.id} value={cb.id}>
+                        {cb.nome_exibicao}{" "}
+                        <span className="text-muted-foreground text-xs ml-1">
+                          ({cb.tipo === "cartao_credito" ? "Cartão" : cb.banco})
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="rounded-lg border-2 border-dashed border-muted-foreground/30 p-8 text-center space-y-3">
               <Upload className="h-10 w-10 text-muted-foreground mx-auto" />

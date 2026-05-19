@@ -11,7 +11,7 @@ import {
 import {
   Loader2, CheckCircle2, Link2, Plus, ChevronDown, ChevronUp,
   Sparkles, Clock, AlertCircle, Layers, ArrowLeftRight, Upload,
-  FileSpreadsheet, Inbox, ArrowRight,
+  FileSpreadsheet,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { CriarCPRAvulsaDialog } from "@/components/financeiro/CriarCPRAvulsaDialog";
@@ -20,7 +20,6 @@ import { ImportadorItauPagamentos } from "@/components/financeiro/ImportadorItau
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
-import { Link } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -78,9 +77,32 @@ type LoteConciliacao = {
   tipo: "lote_completo" | "lote_parcial";
 };
 
+type ItemAguardandoOfx = {
+  planilha_id: string;
+  nome_favorecido: string | null;
+  cnpj_favorecido: string | null;
+  valor_pago: number;
+  data_pagamento: string | null;
+  movimentacao_id: string;
+  cpr_descricao: string | null;
+  parceiro_nome: string | null;
+  ofx_sugerido: OfxSugerido | null;
+  tipo: "aguardando_ofx_com_match" | "aguardando_ofx_sem_match";
+};
+
+type OfxOrfao = {
+  ofx_id: string;
+  data_transacao: string;
+  descricao: string;
+  valor: number;
+  tipo: "sem_planilha";
+};
+
 type RespostaConciliacao = {
   itens: ItemConciliacao[];
+  aguardando_ofx: ItemAguardandoOfx[];
   lotes: LoteConciliacao[];
+  ofx_orfao: OfxOrfao[];
 };
 
 export default function Conciliacao() {
@@ -88,6 +110,7 @@ export default function Conciliacao() {
   const [contaBancariaId, setContaBancariaId] = useState("");
   const [lotesExpandidos, setLotesExpandidos] = useState<Set<string>>(new Set());
   const [criarCPRPlanilha, setCriarCPRPlanilha] = useState<ItemConciliacao | null>(null);
+  const [criarCPROfx, setCriarCPROfx] = useState<OfxOrfao | null>(null);
   const [multiVinculoAberto, setMultiVinculoAberto] = useState<ItemConciliacao | null>(null);
   const [movsSelecionadas, setMovsSelecionadas] = useState<string[]>([]);
   const [parciaisExpandidos, setParciaisExpandidos] = useState<Set<string>>(new Set());
@@ -150,35 +173,7 @@ export default function Conciliacao() {
 
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["conciliacao-unificada", contaBancariaId] });
-    qc.invalidateQueries({ queryKey: ["ofx-stage-count", contaBancariaId] });
-    qc.invalidateQueries({ queryKey: ["planilha-stage-count", contaBancariaId] });
   };
-
-  const { data: ofxStageCount } = useQuery({
-    queryKey: ["ofx-stage-count", contaBancariaId],
-    enabled: !!contaBancariaId,
-    queryFn: async () => {
-      const { count } = await sb
-        .from("ofx_transacoes_stage")
-        .select("id", { count: "exact", head: true })
-        .eq("conta_bancaria_id", contaBancariaId)
-        .eq("status", "pendente");
-      return count ?? 0;
-    },
-  });
-
-  const { data: planilhaStageCount } = useQuery({
-    queryKey: ["planilha-stage-count", contaBancariaId],
-    enabled: !!contaBancariaId,
-    queryFn: async () => {
-      const { count } = await sb
-        .from("itau_pagamentos_stage")
-        .select("id", { count: "exact", head: true })
-        .eq("conta_bancaria_id", contaBancariaId)
-        .eq("status", "pendente");
-      return count ?? 0;
-    },
-  });
 
   const vincularMutation = useMutation({
     mutationFn: async ({
@@ -269,7 +264,9 @@ export default function Conciliacao() {
   });
 
   const itens = resultado?.itens ?? [];
+  const aguardandoOfx = resultado?.aguardando_ofx ?? [];
   const lotes = resultado?.lotes ?? [];
+  const ofxOrfao = resultado?.ofx_orfao ?? [];
   const completos =
     itens.filter((i) => i.tipo === "completo").length +
     lotes.filter((l) => l.tipo === "lote_completo").length;
@@ -306,11 +303,6 @@ export default function Conciliacao() {
             A IA cruza planilha × movimentação × OFX simultaneamente. Verde = concilia tudo em 1 clique.
             Amarelo = Stage 1 agora, OFX depois.
           </p>
-        </div>
-        <div className="text-xs text-muted-foreground flex items-center gap-2 shrink-0">
-          <Link to="/administrativo/conciliacao/stage-1" className="hover:underline">Stage 1</Link>
-          <span>·</span>
-          <Link to="/administrativo/conciliacao/stage-2" className="hover:underline">Stage 2</Link>
         </div>
       </div>
 
@@ -756,51 +748,87 @@ export default function Conciliacao() {
             </div>
           )}
 
-          {(ofxStageCount ?? 0) + (planilhaStageCount ?? 0) > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(ofxStageCount ?? 0) > 0 && (
-                <Link
-                  to="/administrativo/ofx-stage"
-                  className="rounded-md border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors p-4 flex items-center gap-3"
-                >
-                  <Inbox className="h-5 w-5 text-amber-700 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-amber-900">
-                      {ofxStageCount} {ofxStageCount === 1 ? "transação OFX pendente" : "transações OFX pendentes"}
+          {aguardandoOfx.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
+                Aguardando OFX ({aguardandoOfx.length})
+              </p>
+              {aguardandoOfx.map((item) => (
+                <div key={item.planilha_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-amber-400 bg-amber-50/20">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.nome_favorecido ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.data_pagamento ? formatDateBR(item.data_pagamento) : "—"} · {formatBRL(item.valor_pago)}
                     </p>
-                    <p className="text-xs text-amber-700">Validar em Stage OFX</p>
+                    {item.cpr_descricao && (
+                      <p className="text-xs text-muted-foreground truncate">CPR: {item.cpr_descricao}</p>
+                    )}
                   </div>
-                  <ArrowRight className="h-4 w-4 text-amber-700 shrink-0" />
-                </Link>
-              )}
-              {(planilhaStageCount ?? 0) > 0 && (
-                <Link
-                  to="/administrativo/conciliacao/stage-1"
-                  className="rounded-md border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors p-4 flex items-center gap-3"
-                >
-                  <FileSpreadsheet className="h-5 w-5 text-amber-700 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-amber-900">
-                      {planilhaStageCount} {planilhaStageCount === 1 ? "planilha Itaú pendente" : "planilhas Itaú pendentes"}
-                    </p>
-                    <p className="text-xs text-amber-700">Conciliar em Stage 1 — Planilha ↔ Movimentação</p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {item.ofx_sugerido && (
+                      <div className="text-right mr-2">
+                        <Badge variant="outline" className="text-xs mb-1">OFX sugerido</Badge>
+                        <p className="text-xs text-muted-foreground">{item.ofx_sugerido.descricao}</p>
+                        <p className="text-xs font-medium">{formatBRL(item.ofx_sugerido.valor)}</p>
+                      </div>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!item.ofx_sugerido || vincularMutation.isPending}
+                      onClick={() => {
+                        if (item.ofx_sugerido) {
+                          vincularMutation.mutate({
+                            planilhaId: item.planilha_id,
+                            movId: item.movimentacao_id,
+                            ofxId: item.ofx_sugerido.id,
+                          });
+                        }
+                      }}
+                      className="gap-1"
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      Vincular OFX
+                    </Button>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-amber-700 shrink-0" />
-                </Link>
-              )}
+                </div>
+              ))}
             </div>
           )}
 
-          {itens.length === 0 && lotes.length === 0 && (
+          {ofxOrfao.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
+                OFX sem planilha ({ofxOrfao.length})
+              </p>
+              {ofxOrfao.map((item) => (
+                <div key={item.ofx_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-slate-300">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.descricao}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDateBR(item.data_transacao)} · {formatBRL(item.valor)}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCriarCPROfx(item)}
+                    className="gap-1 shrink-0"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Criar CPR
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {itens.length === 0 && lotes.length === 0 && aguardandoOfx.length === 0 && ofxOrfao.length === 0 && (
             <Card>
               <CardContent className="py-12 text-center space-y-2">
                 <Sparkles className="h-8 w-8 mx-auto text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Nenhum match pronto pra conciliar nesta conta.</p>
-                <p className="text-xs text-muted-foreground">
-                  {((ofxStageCount ?? 0) + (planilhaStageCount ?? 0) > 0)
-                    ? "Há dados em Stage aguardando processamento (acima)."
-                    : <>Importe uma planilha ou OFX nos botões acima.</>}
-                </p>
+                <p className="text-sm text-muted-foreground">Nenhum item pendente nesta conta.</p>
+                <p className="text-xs text-muted-foreground">Importe uma planilha ou OFX nos botões acima.</p>
               </CardContent>
             </Card>
           )}
@@ -824,10 +852,27 @@ export default function Conciliacao() {
         />
       )}
 
+      {criarCPROfx && (
+        <CriarCPRAvulsaDialog
+          open={!!criarCPROfx}
+          onOpenChange={(v) => { if (!v) setCriarCPROfx(null); }}
+          origem="stage_2_debito"
+          fonteId={criarCPROfx.ofx_id}
+          resumo={{
+            titulo: criarCPROfx.descricao,
+            valor: criarCPROfx.valor,
+            data: criarCPROfx.data_transacao,
+          }}
+          descricaoInicial={criarCPROfx.descricao}
+          onSucesso={() => { setCriarCPROfx(null); invalidar(); }}
+        />
+      )}
+
       <ImportarOFXDialog
         open={importOfxOpen}
         onOpenChange={setImportOfxOpen}
         onSuccess={invalidar}
+        contaBancariaId={contaBancariaId || undefined}
       />
 
       <Sheet open={importPlanilhaOpen} onOpenChange={setImportPlanilhaOpen}>
@@ -839,7 +884,7 @@ export default function Conciliacao() {
             </SheetDescription>
           </SheetHeader>
           <div className="py-4">
-            <ImportadorItauPagamentos />
+            <ImportadorItauPagamentos contaBancariaId={contaBancariaId || undefined} />
           </div>
         </SheetContent>
       </Sheet>

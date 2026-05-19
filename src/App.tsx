@@ -105,11 +105,7 @@ const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const Produtos = lazy(() => import("@/pages/administrativo/Produtos"));
 const CaixaBanco = lazy(() => import("@/pages/administrativo/CaixaBanco"));
 const ContasBancarias = lazy(() => import("@/pages/administrativo/ContasBancarias"));
-const OFXStage = lazy(() => import("@/pages/administrativo/OFXStage"));
 const Conciliacao = lazy(() => import("@/pages/administrativo/Conciliacao"));
-const ConciliacaoStage1 = lazy(() => import("@/pages/administrativo/ConciliacaoStage1"));
-const ConciliacaoStage2 = lazy(() => import("@/pages/administrativo/ConciliacaoStage2"));
-const ConciliacaoLegacy = lazy(() => import("@/pages/administrativo/ConciliacaoLegacy"));
 const RegrasOFX = lazy(() => import("@/pages/administrativo/RegrasOFX"));
 const DashboardFinanceiro = lazy(() => import("@/pages/administrativo/DashboardFinanceiro"));
 const InvestimentoLancamento = lazy(() => import("@/pages/administrativo/InvestimentoLancamento"));
@@ -437,11 +433,7 @@ const App = () => (
               <Route path="contas-pagar" element={<ContasPagar />} />
               <Route path="caixa-banco" element={<CaixaBanco />} />
               <Route path="caixa-banco/contas" element={<ContasBancarias />} />
-              <Route path="ofx-stage" element={<OFXStage />} />
               <Route path="conciliacao" element={<Conciliacao />} />
-              <Route path="conciliacao/stage-1" element={<ConciliacaoStage1 />} />
-              <Route path="conciliacao/stage-2" element={<ConciliacaoStage2 />} />
-              <Route path="conciliacao/legacy" element={<ConciliacaoLegacy />} />
               <Route path="regras-ofx" element={<RegrasOFX />} />
               <Route path="contas-receber" element={<ContasReceber />} />
               <Route path="parceiros" element={<Parceiros />} />

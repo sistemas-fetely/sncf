@@ -73,10 +73,16 @@ function parsearValor(valor: any): number {
   return parseFloat(String(valor).replace(/\./g, "").replace(",", ".")) || 0;
 }
 
-export function ImportadorItauPagamentos() {
+interface ImportadorItauPagamentosProps {
+  contaBancariaId?: string;
+}
+
+export function ImportadorItauPagamentos({ contaBancariaId: contaBancariaIdProp }: ImportadorItauPagamentosProps = {}) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [contaBancariaId, setContaBancariaId] = useState("");
+  const [contaBancariaIdInterno, setContaBancariaIdInterno] = useState("");
+  const contaBancariaId = contaBancariaIdProp ?? contaBancariaIdInterno;
+  const setContaBancariaId = (v: string) => { if (!contaBancariaIdProp) setContaBancariaIdInterno(v); };
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoProcessamento | null>(null);
 
@@ -224,21 +230,23 @@ export function ImportadorItauPagamentos() {
           </div>
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-xs">Conta bancária</Label>
-          <Select value={contaBancariaId} onValueChange={setContaBancariaId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Para qual conta é este relatório?" />
-            </SelectTrigger>
-            <SelectContent>
-              {(contas ?? []).map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nome_exibicao}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!contaBancariaIdProp && (
+          <div className="space-y-1">
+            <Label className="text-xs">Conta bancária</Label>
+            <Select value={contaBancariaId} onValueChange={setContaBancariaId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Para qual conta é este relatório?" />
+              </SelectTrigger>
+              <SelectContent>
+                {(contas ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nome_exibicao}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <input
@@ -274,8 +282,8 @@ export function ImportadorItauPagamentos() {
             </div>
             <div className="text-muted-foreground">
               Próximo passo: ir para{" "}
-              <a href="/administrativo/conciliacao/stage-1" className="underline font-medium">
-                Conciliação → Stage 1
+              <a href="/administrativo/conciliacao" className="underline font-medium">
+                Conciliação Bancária
               </a>{" "}
               e vincular cada linha à movimentação correspondente.
             </div>
