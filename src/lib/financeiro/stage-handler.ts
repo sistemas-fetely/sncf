@@ -116,7 +116,7 @@ export async function moverParaStage(
         } else {
           if (storagePath && cprData?.id) {
             await supabase.from("contas_pagar_documentos").insert({
-              conta_id: cprData.id,
+              conta_pagar_id: cprData.id,
               tipo: "boleto",
               nome_arquivo: arquivo?.name || "boleto.pdf",
               storage_path: storagePath,
@@ -346,7 +346,7 @@ async function moverArquivoParaContasPagar(
 
     // Registra em contas_pagar_documentos
     await supabase.from("contas_pagar_documentos").insert({
-      conta_id: contaId,
+      conta_pagar_id: contaId,
       tipo: tipoDoc,
       nome_arquivo: nomeArquivo,
       storage_path: novoPath,

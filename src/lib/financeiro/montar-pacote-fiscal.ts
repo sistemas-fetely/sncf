@@ -34,7 +34,7 @@ import JSZip from "jszip";
 
 interface DocRow {
   id: string;
-  conta_id: string;
+  conta_pagar_id: string;
   nome_arquivo: string;
   storage_path: string;
   tipo: string;
@@ -49,7 +49,7 @@ interface DocRow {
 }
 
 interface StageFallback {
-  conta_id: string;
+  conta_pagar_id: string;
   fornecedor: string;
   descricao: string;
   valor: number;
@@ -111,7 +111,7 @@ export async function montarZipPacoteFiscal(
     .from("contas_pagar_documentos")
     .select(
       `
-      id, nome_arquivo, storage_path, tipo, conta_id,
+      id, nome_arquivo, storage_path, tipo, conta_pagar_id,
       contas_pagar_receber!inner(
         descricao, valor, data_pagamento,
         fornecedor_cliente, nf_aplicavel,
@@ -119,13 +119,13 @@ export async function montarZipPacoteFiscal(
       )
     `,
     )
-    .in("conta_id", contaIds);
+    .in("conta_pagar_id", contaIds);
 
   if (errDocs) throw errDocs;
   const docs = (docsRaw || []) as DocRow[];
 
   // 2. Identifica contas sem doc registrado — candidatas a fallback Stage
-  const contasComDoc = new Set(docs.map((d) => d.conta_id));
+  const contasComDoc = new Set(docs.map((d) => d.conta_pagar_id));
   const contasSemDoc = contaIds.filter((id) => !contasComDoc.has(id));
 
   // 3. Fallback Stage: pra contas órfãs, busca TODAS as NFs anexadas via conta_pagar_id.
@@ -222,7 +222,7 @@ export async function montarZipPacoteFiscal(
       nfsComDanfe.forEach((nf, idx) => {
         const sufixo = total > 1 ? ` (NF ${idx + 1} de ${total})` : "";
         fallbacks.push({
-          conta_id: contaId,
+          conta_pagar_id: contaId,
           fornecedor,
           descricao: (cpr.descricao || "") + sufixo,
           valor: cpr.valor,
@@ -294,7 +294,7 @@ export async function montarZipPacoteFiscal(
       const blob = await res.blob();
       zip.file(`${fornecedor}/${d.nome_arquivo}`, blob);
       baixados++;
-      contasComArquivo.add(d.conta_id);
+      contasComArquivo.add(d.conta_pagar_id);
       csvLinhas.push(
         [
           fornecedor,
@@ -313,7 +313,7 @@ export async function montarZipPacoteFiscal(
 
   // 5b. Fallback Stage (cinto + suspensório — pós backfill quase nunca dispara)
   for (const f of fallbacks) {
-    if (contasComArquivo.has(f.conta_id)) continue;
+    if (contasComArquivo.has(f.conta_pagar_id)) continue;
 
     const fornecedor = sanitizarPasta(f.fornecedor);
     const arquivos: Array<{ path: string; nome: string; tipo: string }> = [];
@@ -343,7 +343,7 @@ export async function montarZipPacoteFiscal(
         const blob = await res.blob();
         zip.file(`${fornecedor}/${arq.nome}`, blob);
         baixados++;
-        contasComArquivo.add(f.conta_id);
+        contasComArquivo.add(f.conta_pagar_id);
         csvLinhas.push(
           [
             fornecedor,

@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
       let insercoes = 0;
       if (contasLinkadas?.length) {
         const docsRows = contasLinkadas.map((c) => ({
-          conta_id: c.id,
+          conta_pagar_id: c.id,
           tipo: "nf",
           nome_arquivo: `resumo_nfe_${numeroSeguro}.pdf`,
           storage_path: pdfPath,
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
         await admin
           .from("contas_pagar_documentos")
           .delete()
-          .in("conta_id", contasLinkadas.map((c) => c.id))
+          .in("conta_pagar_id", contasLinkadas.map((c) => c.id))
           .like("nome_arquivo", "resumo_nfe_%");
 
         const { error: insErr } = await admin

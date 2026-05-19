@@ -41,7 +41,7 @@ async function anexarPdfNF(
     const { error: docErr } = await supabase
       .from("contas_pagar_documentos")
       .insert({
-        conta_id: contaId,
+        conta_pagar_id: contaId,
         tipo: "nf",
         nome_arquivo: arquivo.name,
         storage_path: path,

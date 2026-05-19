@@ -123,14 +123,14 @@ Deno.serve(async (req) => {
     // 2. Criar itens (1 por conta) com snapshot de doc_ids
     const { data: docsRows } = await supabaseAdmin
       .from("contas_pagar_documentos")
-      .select("id, conta_id")
-      .in("conta_id", body.conta_ids);
+      .select("id, conta_pagar_id")
+      .in("conta_pagar_id", body.conta_ids);
 
     const docsByConta = new Map<string, string[]>();
-    (docsRows || []).forEach((d: { id: string; conta_id: string }) => {
-      const arr = docsByConta.get(d.conta_id) || [];
+    (docsRows || []).forEach((d: { id: string; conta_pagar_id: string }) => {
+      const arr = docsByConta.get(d.conta_pagar_id) || [];
       arr.push(d.id);
-      docsByConta.set(d.conta_id, arr);
+      docsByConta.set(d.conta_pagar_id, arr);
     });
 
     const itens = body.conta_ids.map((cid) => ({
