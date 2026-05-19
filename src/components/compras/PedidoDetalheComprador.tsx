@@ -96,7 +96,7 @@ export function PedidoDetalheComprador({
         .select(`
           *,
           parceiros_comerciais:parceiro_id (id, razao_social, nome_fantasia),
-          plano_contas:conta_id (id, codigo, nome),
+          plano_contas:plano_contas_id (id, codigo, nome),
           formas_pagamento:meio_pagamento_id (id, nome, tipo),
           compras_registradas_itens (
             *,

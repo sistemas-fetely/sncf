@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(\\(Get-Content supabase\\\\migrations\\\\20260518143000_versionar_fn_gerar_cprs_de_contrato_v2_cpr_li.sql | Measure-Object -Line\\).Lines)",
+      "Bash(npx tsc *)",
+      "Bash(npm install *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ]
+  }
+}

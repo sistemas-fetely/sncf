@@ -207,7 +207,7 @@ export default function DashboardFinanceiro() {
 
       const { data: realizadas } = await (supabase as any)
         .from("contas_pagar_receber")
-        .select("id, tipo, valor, data_pagamento, data_vencimento, status, parceiro_id, conta_id, fornecedor_cliente, descricao, parceiros_comerciais(razao_social), plano_contas:conta_id(nome, codigo)")
+        .select("id, tipo, valor, data_pagamento, data_vencimento, status, parceiro_id, plano_contas_id, fornecedor_cliente, descricao, parceiros_comerciais(razao_social), plano_contas:plano_contas_id(nome, codigo)")
         .gte("data_pagamento", seteMesesAtras)
         .not("data_pagamento", "is", null);
 
