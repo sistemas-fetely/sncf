@@ -106,7 +106,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       const { data, error } = await supabase
         .from("contas_pagar_documentos")
         .select("id, tipo, nome_arquivo, storage_path, tamanho_bytes")
-        .eq("conta_pagar_id", conta.id)
+        .eq("conta_id", conta.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as DocAnexo[];
@@ -357,7 +357,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       const { data: novo, error: dbErr } = await supabase
         .from("contas_pagar_documentos")
         .insert({
-          conta_pagar_id: conta.id,
+          conta_id: conta.id,
           tipo: "outro",
           nome_arquivo: file.name,
           storage_path: storagePath,
