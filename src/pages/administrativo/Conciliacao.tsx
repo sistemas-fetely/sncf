@@ -594,6 +594,16 @@ export default function Conciliacao() {
           }
         }}
       />
+
+      <ImportarOFXDialog
+        open={importOfxOpen}
+        onOpenChange={setImportOfxOpen}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ["movs-nao-conciliadas", contaBancariaId] });
+          qc.invalidateQueries({ queryKey: ["contas-para-match"] });
+          qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
+        }}
+      />
     </div>
   );
 }
