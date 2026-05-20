@@ -174,13 +174,14 @@ export default function FaturasCartao() {
   });
 
   // Cartões pra filtro + cards do topo
+  // conta_bancaria_id: ponte temporária até B-19 (revisão arquitetural)
   const { data: cartoes = [] } = useQuery({
-    queryKey: ["cartoes-credito-listagem"],
+    queryKey: ["cartoes-credito-listagem-v2"],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("cartoes_credito")
-        .select("id, nome, bandeira, ultimos_digitos, ativo, limite")
+        .select("id, nome, bandeira, ultimos_digitos, ativo, limite, conta_bancaria_id")
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;
@@ -191,32 +192,32 @@ export default function FaturasCartao() {
         ultimos_digitos: string | null;
         ativo: boolean;
         limite: number | null;
+        conta_bancaria_id: string | null;
       }>;
     },
   });
 
   // Comprometido por cartão = soma do valor_total das faturas abertas.
-  // Doutrina implícita: "espelhar o instrumento, não o sistema".
-  // Fatura aberta = limite usado, independente de CPR existir ou não.
-  // Quando a fatura vira 'paga' (trigger automático), sai do cálculo.
+  // Doutrina: "espelhar o instrumento, não o sistema". Fatura aberta = limite usado.
+  // Map chaveado por conta_bancaria_id (ponte até B-19); card resolve via cartao.conta_bancaria_id.
   const { data: comprometidoMap = new Map<string, number>() } = useQuery({
-    queryKey: ["cartoes-comprometido-v5"],
+    queryKey: ["cartoes-comprometido-v6"],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("faturas_cartao")
-        .select("cartao_id, valor_total")
-        .not("cartao_id", "is", null)
+        .select("conta_bancaria_id, valor_total")
+        .not("conta_bancaria_id", "is", null)
         .not("status", "in", "(paga,conciliada,cancelada)");
       if (error) throw error;
 
       const map = new Map<string, number>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (data || []).forEach((f: any) => {
-        if (!f.cartao_id) return;
+        if (!f.conta_bancaria_id) return;
         map.set(
-          f.cartao_id,
-          (map.get(f.cartao_id) || 0) + Number(f.valor_total || 0),
+          f.conta_bancaria_id,
+          (map.get(f.conta_bancaria_id) || 0) + Number(f.valor_total || 0),
         );
       });
       return map;
@@ -548,7 +549,9 @@ export default function FaturasCartao() {
               (c) => !(c.nome || "").toLowerCase().includes("safra"),
             )
             .map((cartao) => {
-              const comprometido = comprometidoMap.get(cartao.id) || 0;
+              const comprometido = cartao.conta_bancaria_id
+                ? (comprometidoMap.get(cartao.conta_bancaria_id) || 0)
+                : 0;
               const limite = Number(cartao.limite ?? 0);
               const disponivel = limite - comprometido;
               const percentUsado = limite > 0 ? (comprometido / limite) * 100 : 0;
