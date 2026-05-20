@@ -17,7 +17,7 @@ const BUCKET = "faturas-cartao";
 
 export interface SalvarFaturaInput {
   parsed: FaturaParsed;
-  conta_bancaria_id: string;       // FK do cartão
+  cartao_id: string;               // FK de cartoes_credito (Modelo 3D)
   data_vencimento: string;         // o usuário pode ajustar
   arquivo_original?: File | null;  // PDF ou CSV original
   observacao?: string;
@@ -37,7 +37,7 @@ export interface SalvarFaturaResult {
 export async function salvarFaturaCartao(
   input: SalvarFaturaInput,
 ): Promise<SalvarFaturaResult> {
-  const { parsed, conta_bancaria_id, data_vencimento, arquivo_original, observacao } = input;
+  const { parsed, cartao_id, data_vencimento, arquivo_original, observacao } = input;
   const loteId = crypto.randomUUID();
 
   try {
@@ -73,14 +73,14 @@ export async function salvarFaturaCartao(
       }
     }
 
-    // 3. Buscar info do cartão pra montar o nome da conta
+    // 3. Buscar info do cartão — Modelo 3D (cartoes_credito)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: cartao } = await (supabase as any)
-      .from("contas_bancarias")
-      .select("id, nome_exibicao, banco, numero_conta")
-      .eq("id", conta_bancaria_id)
+      .from("cartoes_credito")
+      .select("id, nome, bandeira, ultimos_digitos, conta_bancaria_id")
+      .eq("id", cartao_id)
       .single();
-    const cartaoLabel = cartao?.nome_exibicao || cartao?.banco || "Cartão";
+    const cartaoLabel = cartao?.nome || "Cartão";
 
     // (Doutrina nova: fatura NÃO cria conta a pagar totalizadora.
     //  Lançamentos viram conta a pagar individualmente quando operador clica "Criar despesa".)
@@ -91,7 +91,8 @@ export async function salvarFaturaCartao(
     const { data: faturaCriada, error: errFatura } = await (supabase as any)
       .from("faturas_cartao")
       .insert({
-        conta_bancaria_id,
+        cartao_id,
+        conta_bancaria_id: cartao?.conta_bancaria_id ?? null,
         periodo_inicio: parsed.periodo_inicio,
         periodo_fim: parsed.periodo_fim,
         data_emissao: parsed.data_emissao,

@@ -115,6 +115,15 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
       const conteudo = await file.text();
       const resultado = parsearOFX(conteudo);
 
+      // Bloquear OFX de cartão — deve usar Importar Fatura de Cartão (Modelo 3D)
+      if (resultado.banco.tipo === "cartao_credito") {
+        toast.error(
+          "Este OFX parece ser de cartão de crédito. Use 'Importar Fatura de Cartão' para faturas de cartão.",
+        );
+        setArquivoFile(null);
+        return;
+      }
+
       // Detectar duplicatas (transações com fitid já gravado nesta conta)
       const fitids = resultado.transacoes.map((t) => t.fitid).filter(Boolean);
       if (fitids.length > 0) {
