@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
         "Authorization": `Bearer ${lovableApiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash", // flash pra evitar timeout de 150s; pro estava estourando
+        model: "google/gemini-2.5-pro", // pro pra fatura (mais complexa que NF)
         messages: [
           {
             role: "system",
