@@ -41,7 +41,6 @@ export type ContaBancaria = {
   ativo: boolean | null;
 };
 
-// Bancos brasileiros mais comuns (lista curta - usuário pode digitar nome se não estiver)
 const BANCOS_COMUNS: { codigo: string; nome: string }[] = [
   { codigo: "001", nome: "Banco do Brasil" },
   { codigo: "033", nome: "Santander" },
@@ -76,7 +75,7 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
   const isEdit = !!editing;
 
   const [nomeExibicao, setNomeExibicao] = useState("");
-  const [tipo, setTipo] = useState<string>("corrente");
+  const [tipo, setTipo] = useState("corrente");
   const [bancoCodigo, setBancoCodigo] = useState("");
   const [bancoNome, setBancoNome] = useState("");
   const [agencia, setAgencia] = useState("");
@@ -84,9 +83,6 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
   const [unidade, setUnidade] = useState("");
   const [saldoInicial, setSaldoInicial] = useState("");
   const [dataSaldoInicial, setDataSaldoInicial] = useState("");
-  const [diaFechamento, setDiaFechamento] = useState("");
-  const [diaVencimento, setDiaVencimento] = useState("");
-  const [limiteCredito, setLimiteCredito] = useState("");
   const [cor, setCor] = useState(CORES[0]);
   const [ativo, setAtivo] = useState(true);
 
@@ -102,9 +98,6 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
       setUnidade(editing.unidade || "");
       setSaldoInicial(editing.saldo_inicial != null ? String(editing.saldo_inicial) : "");
       setDataSaldoInicial(editing.data_saldo_inicial || "");
-      setDiaFechamento(editing.dia_fechamento != null ? String(editing.dia_fechamento) : "");
-      setDiaVencimento(editing.dia_vencimento != null ? String(editing.dia_vencimento) : "");
-      setLimiteCredito(editing.limite_credito != null ? String(editing.limite_credito) : "");
       setCor(editing.cor || CORES[0]);
       setAtivo(editing.ativo !== false);
     } else {
@@ -117,9 +110,6 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
       setUnidade("");
       setSaldoInicial("");
       setDataSaldoInicial(new Date().toISOString().substring(0, 10));
-      setDiaFechamento("");
-      setDiaVencimento("");
-      setLimiteCredito("");
       setCor(CORES[Math.floor(Math.random() * CORES.length)]);
       setAtivo(true);
     }
@@ -131,16 +121,12 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
     if (b) setBancoNome(b.nome);
   }
 
-  const isCartao = tipo === "cartao_credito";
   const isContaCorrente = tipo === "corrente" || tipo === "poupanca";
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!nomeExibicao.trim()) throw new Error("Apelido é obrigatório");
       if (!bancoNome.trim() && tipo !== "caixa_fisico") throw new Error("Banco é obrigatório");
-      if (isCartao && (!diaFechamento || !diaVencimento)) {
-        throw new Error("Cartão de crédito precisa ter dia de fechamento e vencimento");
-      }
 
       const payload = {
         nome_exibicao: nomeExibicao.trim(),
@@ -153,14 +139,10 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
         saldo_inicial: saldoInicial ? Number(saldoInicial) : 0,
         data_saldo_inicial: dataSaldoInicial || null,
         saldo_atual: isEdit ? undefined : (saldoInicial ? Number(saldoInicial) : 0),
-        dia_fechamento: isCartao && diaFechamento ? Number(diaFechamento) : null,
-        dia_vencimento: isCartao && diaVencimento ? Number(diaVencimento) : null,
-        limite_credito: isCartao && limiteCredito ? Number(limiteCredito) : null,
         cor,
         ativo,
       };
 
-      // Remove undefined (saldo_atual em modo edit)
       const cleanPayload: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(payload)) {
         if (v !== undefined) cleanPayload[k] = v;
@@ -189,30 +171,28 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent className="sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{isEdit ? "Editar conta bancária" : "Nova conta bancária"}</SheetTitle>
           <SheetDescription>
-            Cadastro de conta corrente, poupança, cartão de crédito ou caixa físico.
+            Cadastro de conta corrente, poupança ou caixa físico.
           </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-4">
-          {/* Apelido */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label>Apelido *</Label>
             <Input
               value={nomeExibicao}
               onChange={(e) => setNomeExibicao(e.target.value)}
               placeholder="Ex: Itaú Matriz, Bradesco Joinville, Caixinha SP"
             />
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Nome curto pra identificar essa conta na lista.
             </p>
           </div>
 
-          {/* Tipo */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label>Tipo *</Label>
             <Select value={tipo} onValueChange={setTipo}>
               <SelectTrigger>
@@ -221,20 +201,18 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
               <SelectContent>
                 <SelectItem value="corrente">Conta Corrente</SelectItem>
                 <SelectItem value="poupanca">Poupança</SelectItem>
-                <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
                 <SelectItem value="caixa_fisico">Caixa Físico</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Banco - oculto em caixa físico */}
           {tipo !== "caixa_fisico" && (
             <>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label>Banco *</Label>
                 <Select value={bancoCodigo} onValueChange={selecionarBanco}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecionar banco..." />
+                    <SelectValue placeholder="Selecione o banco" />
                   </SelectTrigger>
                   <SelectContent>
                     {BANCOS_COMUNS.map((b) => (
@@ -252,93 +230,38 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
                 />
               </div>
 
-              {/* Agência/Conta - só pra contas bancárias */}
               {isContaCorrente && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
                     <Label>Agência</Label>
                     <Input value={agencia} onChange={(e) => setAgencia(e.target.value)} placeholder="0001" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <Label>Número da conta</Label>
                     <Input value={numeroConta} onChange={(e) => setNumeroConta(e.target.value)} placeholder="12345-6" />
                   </div>
                 </div>
               )}
-
-              {/* Cartão crédito: dia fechamento + vencimento + limite */}
-              {isCartao && (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label>Dia de fechamento *</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={31}
-                        value={diaFechamento}
-                        onChange={(e) => setDiaFechamento(e.target.value)}
-                        placeholder="Ex: 25"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Dia de vencimento *</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={31}
-                        value={diaVencimento}
-                        onChange={(e) => setDiaVencimento(e.target.value)}
-                        placeholder="Ex: 5"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Limite de crédito</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={limiteCredito}
-                      onChange={(e) => setLimiteCredito(e.target.value)}
-                      placeholder="0,00"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Final do cartão (opcional)</Label>
-                    <Input
-                      value={numeroConta}
-                      onChange={(e) => setNumeroConta(e.target.value)}
-                      placeholder="Ex: 1234"
-                      maxLength={4}
-                    />
-                  </div>
-                </>
-              )}
             </>
           )}
 
-          {/* Unidade */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label>Unidade Fetely</Label>
             <Select value={unidade} onValueChange={setUnidade}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecionar unidade..." />
+                <SelectValue placeholder="Selecione (opcional)" />
               </SelectTrigger>
               <SelectContent>
                 {UNIDADES.map((u) => (
-                  <SelectItem key={u.value} value={u.value}>
-                    {u.label}
-                  </SelectItem>
+                  <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Saldo inicial - oculto em cartão */}
-          {!isCartao && (
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
+          {tipo !== "caixa_fisico" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <Label>Saldo inicial</Label>
                 <Input
                   type="number"
@@ -348,7 +271,7 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
                   placeholder="0,00"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <Label>Data do saldo</Label>
                 <Input
                   type="date"
@@ -359,10 +282,9 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
             </div>
           )}
 
-          {/* Cor */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label>Cor de identificação</Label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2">
               {CORES.map((c) => (
                 <button
                   key={c}
@@ -378,11 +300,10 @@ export function ContaBancariaFormSheet({ open, onOpenChange, editing }: Props) {
             </div>
           </div>
 
-          {/* Ativo */}
           <div className="flex items-center justify-between rounded-md border p-3">
             <div>
-              <Label className="text-sm">Conta ativa</Label>
-              <p className="text-[11px] text-muted-foreground">
+              <Label>Conta ativa</Label>
+              <p className="text-xs text-muted-foreground">
                 Inativas ficam ocultas das listas mas mantêm histórico.
               </p>
             </div>
