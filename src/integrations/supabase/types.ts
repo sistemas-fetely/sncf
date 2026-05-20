@@ -1163,6 +1163,8 @@ export type Database = {
           bandeira: string | null
           conta_bancaria_id: string | null
           created_at: string
+          dia_fechamento: number | null
+          dia_vencimento: number | null
           id: string
           limite: number
           nome: string
@@ -1174,6 +1176,8 @@ export type Database = {
           bandeira?: string | null
           conta_bancaria_id?: string | null
           created_at?: string
+          dia_fechamento?: number | null
+          dia_vencimento?: number | null
           id?: string
           limite?: number
           nome: string
@@ -1185,6 +1189,8 @@ export type Database = {
           bandeira?: string | null
           conta_bancaria_id?: string | null
           created_at?: string
+          dia_fechamento?: number | null
+          dia_vencimento?: number | null
           id?: string
           limite?: number
           nome?: string

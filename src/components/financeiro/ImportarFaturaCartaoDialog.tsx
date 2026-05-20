@@ -58,7 +58,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
   const [etapa, setEtapa] = useState<Etapa>("upload");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [parsed, setParsed] = useState<FaturaParsed | null>(null);
-  const [contaBancariaId, setContaBancariaId] = useState<string>("");
+  const [cartaoId, setCartaoId] = useState<string>("");
   const [dataVencimento, setDataVencimento] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
   const [parseando, setParseando] = useState(false);
@@ -69,17 +69,17 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
     parcelas_pagas_marcadas: number;
   } | null>(null);
 
-  // Buscar cartões cadastrados
+  // Buscar cartões cadastrados — Modelo 3D (cartoes_credito)
   const { data: cartoes } = useQuery({
     queryKey: ["cartoes-credito"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("contas_bancarias")
-        .select("id, nome_exibicao, banco, numero_conta")
-        .eq("tipo", "cartao_credito")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("cartoes_credito")
+        .select("id, nome, ultimos_digitos, bandeira")
         .eq("ativo", true)
-        .order("nome_exibicao");
-      return data || [];
+        .order("nome");
+      return (data || []) as { id: string; nome: string; ultimos_digitos: string | null; bandeira: string | null }[];
     },
     enabled: open,
   });
@@ -88,7 +88,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
     setEtapa("upload");
     setArquivo(null);
     setParsed(null);
-    setContaBancariaId("");
+    setCartaoId("");
     setDataVencimento("");
     setObservacao("");
     setParseando(false);
@@ -122,22 +122,16 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
           return;
         }
         resultado = parseCsvItau(texto);
-      } else if (ext === "pdf" || f.type === "application/pdf") {
-        toast.info("Lendo PDF com IA - pode levar 30-60 segundos...");
-        resultado = await parsearPDFFatura(f);
       } else {
-        toast.error("Formato não suportado. Aceito: PDF ou CSV");
-        setParseando(false);
-        setArquivo(null);
-        return;
+        resultado = await parsearPDFFatura(f);
       }
 
-      // Sugerir cartão pelo final detectado
+      // Sugerir cartão pelo final detectado (Modelo 3D — ultimos_digitos)
       if (resultado.cartao_numero_final && cartoes) {
-        const sugestao = cartoes.find((c) =>
-          c.numero_conta?.endsWith(resultado.cartao_numero_final!),
+        const sugestao = cartoes.find(
+          (c) => c.ultimos_digitos === resultado.cartao_numero_final,
         );
-        if (sugestao) setContaBancariaId(sugestao.id);
+        if (sugestao) setCartaoId(sugestao.id);
       }
       // Sugerir vencimento
       if (resultado.data_vencimento) {
@@ -157,7 +151,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
 
   async function handleSalvar() {
     if (!parsed) return;
-    if (!contaBancariaId) {
+    if (!cartaoId) {
       toast.error("Selecione o cartão");
       return;
     }
@@ -170,7 +164,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
 
     const result = await salvarFaturaCartao({
       parsed,
-      conta_bancaria_id: contaBancariaId,
+      conta_bancaria_id: cartaoId,
       data_vencimento: dataVencimento,
       arquivo_original: arquivo,
       observacao: observacao || undefined,
@@ -182,7 +176,6 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
       return;
     }
 
-    // Guardar resultado pra mostrar na etapa concluido
     setResultadoFinal({
       qtd_lancamentos: result.qtd_lancamentos || 0,
       compromissos_criados: result.compromissos_criados || 0,
@@ -214,7 +207,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-admin" />
@@ -225,55 +218,49 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto pr-2">
+        <div className="flex-1 overflow-y-auto space-y-4 py-2">
           {/* ETAPA 1 - UPLOAD */}
           {etapa === "upload" && (
-            <div className="space-y-4 py-4">
-              <label
-                htmlFor="fatura-file"
-                className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-12 cursor-pointer hover:bg-muted/40 transition-colors"
-              >
+            <div className="space-y-4">
+              <label className="block border-2 border-dashed rounded-lg p-10 text-center cursor-pointer hover:bg-muted/30 transition">
                 {parseando ? (
                   <>
-                    <Loader2 className="h-12 w-12 animate-spin text-admin" />
-                    <p className="text-sm font-medium">Lendo arquivo...</p>
-                    <p className="text-xs text-muted-foreground">
+                    <Loader2 className="h-10 w-10 animate-spin text-admin mx-auto mb-3" />
+                    <p className="font-medium">Lendo arquivo...</p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       PDFs podem levar até 60 segundos (IA)
                     </p>
                   </>
                 ) : (
                   <>
-                    <Upload className="h-12 w-12 text-muted-foreground/60" />
-                    <div className="text-center">
-                      <p className="text-base font-medium">
-                        Selecione o arquivo da fatura
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        PDF (lido por IA) ou CSV (extraído rápido)
-                      </p>
-                    </div>
+                    <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="font-medium">
+                      Selecione o arquivo da fatura
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PDF (lido por IA) ou CSV (extraído rápido)
+                    </p>
                   </>
                 )}
                 <input
-                  id="fatura-file"
                   type="file"
                   accept=".pdf,.csv,application/pdf,text/csv"
-                  className="hidden"
                   onChange={handleArquivo}
                   disabled={parseando}
+                  className="hidden"
                 />
               </label>
 
-              <div className="rounded-md bg-muted/30 p-3 text-xs space-y-1.5">
+              <div className="rounded-md border bg-muted/20 p-3 text-xs space-y-2">
                 <p className="font-medium flex items-center gap-1.5">
-                  <Receipt className="h-3.5 w-3.5" />
+                  <Sparkles className="h-3.5 w-3.5 text-admin" />
                   Como funciona:
                 </p>
-                <ul className="list-disc pl-5 space-y-0.5 text-muted-foreground">
-                  <li>O sistema cria <strong>1 conta a pagar</strong> no valor total da fatura</li>
-                  <li>Cada lançamento da fatura vira um <strong>item detalhado</strong> classificável</li>
+                <ul className="list-disc pl-5 text-muted-foreground space-y-0.5">
+                  <li>O sistema cria 1 conta a pagar no valor total da fatura</li>
+                  <li>Cada lançamento da fatura vira um item detalhado classificável</li>
                   <li>Compras parceladas (ex: "02/10") são detectadas automaticamente</li>
-                  <li>O PDF original fica <strong>anexado</strong> à fatura para consulta</li>
+                  <li>O PDF original fica anexado à fatura para consulta</li>
                 </ul>
               </div>
             </div>
@@ -281,12 +268,12 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
 
           {/* ETAPA 2 - PREVIEW */}
           {etapa === "preview" && parsed && (
-            <div className="space-y-4 py-2">
+            <div className="space-y-4">
               {/* Header com arquivo */}
-              <div className="flex items-center gap-3 rounded-md border p-3 bg-muted/20">
-                <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div className="flex items-center gap-3 rounded-md border bg-muted/20 p-3">
+                <FileText className="h-5 w-5 text-admin shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{arquivo?.name}</p>
+                  <p className="font-medium text-sm truncate">{arquivo?.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {parsed.formato} ·{" "}
                     {parsed.cartao_numero_final && `cartão ****${parsed.cartao_numero_final} · `}
@@ -307,18 +294,17 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
               {/* Resumo destacado */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 <ResumoCard
-                  label="Total"
-                  valor={formatBRL(totalCalculado || parsed.valor_total || 0)}
+                  label="Valor total"
+                  valor={formatBRL(totalCalculado || 0)}
                   highlight
                 />
                 <ResumoCard
                   label="Lançamentos"
                   valor={String(parsed.lancamentos.length)}
-                  sub={`${qtdParceladas} parceladas`}
                 />
                 <ResumoCard
-                  label="Estornos"
-                  valor={String(qtdEstornos)}
+                  label="Parceladas"
+                  valor={String(qtdParceladas)}
                   sub={qtdEstornos > 0 ? "valores negativos" : ""}
                 />
                 <ResumoCard
@@ -329,33 +315,33 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
               </div>
 
               {/* Configuração */}
-              <div className="rounded-md border p-4 space-y-3 bg-card">
-                <p className="text-sm font-semibold">Antes de importar:</p>
+              <div className="space-y-3 rounded-md border p-3">
+                <p className="text-sm font-medium">Antes de importar:</p>
 
-                <div className="grid md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
                     <Label className="text-xs">Cartão *</Label>
-                    <Select value={contaBancariaId} onValueChange={setContaBancariaId}>
+                    <Select value={cartaoId} onValueChange={setCartaoId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o cartão..." />
+                        <SelectValue placeholder="Selecione o cartão" />
                       </SelectTrigger>
                       <SelectContent>
                         {(cartoes || []).map((c) => (
                           <SelectItem key={c.id} value={c.id}>
-                            {c.nome_exibicao}
-                            {c.numero_conta && ` (****${c.numero_conta.slice(-4)})`}
+                            {c.nome}
+                            {c.ultimos_digitos && ` (****${c.ultimos_digitos})`}
                           </SelectItem>
                         ))}
                         {(!cartoes || cartoes.length === 0) && (
-                          <SelectItem value="__nenhum__" disabled>
-                            Nenhum cartão cadastrado. Cadastre em Contas Bancárias.
-                          </SelectItem>
+                          <div className="px-3 py-2 text-xs text-muted-foreground">
+                            Nenhum cartão cadastrado. Cadastre em Cartões de Crédito.
+                          </div>
                         )}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <Label className="text-xs">Vencimento *</Label>
                     <Input
                       type="date"
@@ -365,7 +351,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
                   </div>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <Label className="text-xs">Observação (opcional)</Label>
                   <Textarea
                     value={observacao}
@@ -542,7 +528,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
             </Button>
             <Button
               onClick={handleSalvar}
-              disabled={!contaBancariaId || !dataVencimento || (cartoes && cartoes.length === 0)}
+              disabled={!cartaoId || !dataVencimento || (cartoes && cartoes.length === 0)}
               className="gap-2 bg-admin hover:bg-admin-accent text-admin-foreground"
             >
               Importar fatura
