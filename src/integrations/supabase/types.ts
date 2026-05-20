@@ -1161,7 +1161,7 @@ export type Database = {
         Row: {
           ativo: boolean
           bandeira: string | null
-          conta_pagamento_id: string | null
+          conta_bancaria_id: string | null
           created_at: string
           id: string
           limite: number
@@ -1172,7 +1172,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           bandeira?: string | null
-          conta_pagamento_id?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           id?: string
           limite?: number
@@ -1183,7 +1183,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           bandeira?: string | null
-          conta_pagamento_id?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           id?: string
           limite?: number
@@ -1193,8 +1193,8 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "cartoes_credito_conta_pagamento_id_fkey"
-            columns: ["conta_pagamento_id"]
+            foreignKeyName: "cartoes_credito_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -1904,7 +1904,7 @@ export type Database = {
       }
       compromissos_parcelados: {
         Row: {
-          centro_custo: string | null
+          centro_custo_id: string | null
           conta_bancaria_id: string | null
           created_at: string
           criado_por: string | null
@@ -1928,7 +1928,7 @@ export type Database = {
           valor_total: number
         }
         Insert: {
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           conta_bancaria_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -1952,7 +1952,7 @@ export type Database = {
           valor_total: number
         }
         Update: {
-          centro_custo?: string | null
+          centro_custo_id?: string | null
           conta_bancaria_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -1976,6 +1976,13 @@ export type Database = {
           valor_total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "compromissos_parcelados_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "compromissos_parcelados_conta_bancaria_id_fkey"
             columns: ["conta_bancaria_id"]
@@ -2541,6 +2548,7 @@ export type Database = {
           bling_id: string | null
           boleto_avulso_justificativa: string | null
           canal_venda_id: string | null
+          cartao_id: string | null
           categoria_confirmada: boolean | null
           categoria_sugerida_ia: boolean | null
           centro_custo_id: string | null
@@ -2630,6 +2638,7 @@ export type Database = {
           bling_id?: string | null
           boleto_avulso_justificativa?: string | null
           canal_venda_id?: string | null
+          cartao_id?: string | null
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
           centro_custo_id?: string | null
@@ -2719,6 +2728,7 @@ export type Database = {
           bling_id?: string | null
           boleto_avulso_justificativa?: string | null
           canal_venda_id?: string | null
+          cartao_id?: string | null
           categoria_confirmada?: boolean | null
           categoria_sugerida_ia?: boolean | null
           centro_custo_id?: string | null
@@ -2808,6 +2818,13 @@ export type Database = {
             columns: ["canal_venda_id"]
             isOneToOne: false
             referencedRelation: "canais_venda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_cartao_id_fkey"
+            columns: ["cartao_id"]
+            isOneToOne: false
+            referencedRelation: "cartoes_credito"
             referencedColumns: ["id"]
           },
           {
@@ -5943,6 +5960,7 @@ export type Database = {
       }
       movimentacoes_bancarias: {
         Row: {
+          cartao_id: string | null
           categoria_inconsistente: boolean
           centro_custo_id: string | null
           conciliado: boolean | null
@@ -5968,6 +5986,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          cartao_id?: string | null
           categoria_inconsistente?: boolean
           centro_custo_id?: string | null
           conciliado?: boolean | null
@@ -5993,6 +6012,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          cartao_id?: string | null
           categoria_inconsistente?: boolean
           centro_custo_id?: string | null
           conciliado?: boolean | null
@@ -6018,6 +6038,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "movimentacoes_bancarias_cartao_id_fkey"
+            columns: ["cartao_id"]
+            isOneToOne: false
+            referencedRelation: "cartoes_credito"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "movimentacoes_bancarias_centro_custo_id_fkey"
             columns: ["centro_custo_id"]
@@ -11588,6 +11615,7 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por: string | null
           atrasada: boolean | null
+          cartao_id: string | null
           centro_custo_id: string | null
           comprovante_url: string | null
           created_at: string | null
@@ -11596,6 +11624,7 @@ export type Database = {
           data_vencimento: string | null
           descricao: string | null
           eh_cartao: boolean | null
+          enviado_pagamento_em: string | null
           forma_pagamento_id: string | null
           fornecedor_id: string | null
           id: string | null
@@ -11614,6 +11643,7 @@ export type Database = {
           numero_parcela: number | null
           observacao: string | null
           origem: string | null
+          pago_em_conta_id: string | null
           parceiro_id: string | null
           parcela_atual: number | null
           parcela_grupo_id: string | null
@@ -11627,6 +11657,13 @@ export type Database = {
           valor: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_cartao_id_fkey"
+            columns: ["cartao_id"]
+            isOneToOne: false
+            referencedRelation: "cartoes_credito"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
             columns: ["centro_custo_id"]
@@ -11653,6 +11690,13 @@ export type Database = {
             columns: ["movimentacao_bancaria_id"]
             isOneToOne: false
             referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_pago_em_conta_id_fkey"
+            columns: ["pago_em_conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
@@ -11880,6 +11924,8 @@ export type Database = {
       }
       vw_lancamentos_caixa_banco: {
         Row: {
+          cartao_id: string | null
+          cartao_nome: string | null
           conciliado_em: string | null
           conciliado_por: string | null
           conta_bancaria_nome: string | null
