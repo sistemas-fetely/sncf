@@ -164,7 +164,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
 
     const result = await salvarFaturaCartao({
       parsed,
-      conta_bancaria_id: cartaoId,
+      cartao_id: cartaoId,
       data_vencimento: dataVencimento,
       arquivo_original: arquivo,
       observacao: observacao || undefined,
