@@ -690,15 +690,6 @@ export default function ContaPagarDetalheDrawer({
                       <Button
                         className="w-full bg-purple-700 hover:bg-purple-800 text-white gap-2"
                         onClick={async () => {
-                          // Bloquear aprovação de cartão sem conta bancária definida
-                          if (isCartao && !conta.pago_em_conta_id) {
-                            toast.warning(
-                              "Informe em qual cartão esta despesa será paga antes de aprovar.",
-                              { duration: 4000 },
-                            );
-                            setModoEdit(true);
-                            return;
-                          }
                           // Cartão vai direto pra enviado_para_pagamento em cascata (sem email ao fornecedor)
                           // Não-cartão vai pra aprovado em cascata (requer envio de email depois)
                           const statusAlvo = isCartao ? "enviado_para_pagamento" : "aprovado";

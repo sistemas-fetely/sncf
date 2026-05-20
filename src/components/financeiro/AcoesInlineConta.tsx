@@ -139,22 +139,10 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
 
   async function handleAprovar() {
     if (estadoAprovar !== "pendente") return;
-
-    // Bloquear aprovação de cartão sem conta bancária definida
-    const isCartaoAprov = conta.meios_pagamento?.codigo === "fatura_cartao";
-    if (isCartaoAprov && !conta.pago_em_conta_id) {
-      toast.warning(
-        "Informe em qual cartão esta despesa será paga antes de aprovar.",
-        { duration: 4000 },
-      );
-      if (onAbrirEditandoBanco) onAbrirEditandoBanco(conta.id);
-      return;
-    }
-
     setAprovando(true);
     try {
       // Cartão vai direto pra enviado_para_pagamento (sem etapa de envio de email)
-      const statusAlvo = isCartaoAprov ? "enviado_para_pagamento" : "aprovado";
+      const statusAlvo = conta.meios_pagamento?.codigo === "fatura_cartao" ? "enviado_para_pagamento" : "aprovado";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: result, error } = await (supabase as any).rpc(
         "aprovar_cpr_em_cascata",
