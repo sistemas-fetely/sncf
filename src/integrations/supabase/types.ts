@@ -11590,7 +11590,6 @@ export type Database = {
           atrasada: boolean | null
           centro_custo_id: string | null
           comprovante_url: string | null
-          conta_id: string | null
           created_at: string | null
           criado_por: string | null
           data_pagamento: string | null
@@ -11619,6 +11618,7 @@ export type Database = {
           parcela_atual: number | null
           parcela_grupo_id: string | null
           pasta_contrato_id: string | null
+          plano_contas_id: string | null
           status: string | null
           status_efetivo: string | null
           tags: Json | null
@@ -11671,7 +11671,7 @@ export type Database = {
           },
           {
             foreignKeyName: "contas_pagar_receber_plano_contas_id_fkey"
-            columns: ["conta_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -11880,7 +11880,6 @@ export type Database = {
       }
       vw_lancamentos_caixa_banco: {
         Row: {
-          categoria_id: string | null
           conciliado_em: string | null
           conciliado_por: string | null
           conta_bancaria_nome: string | null
@@ -11903,6 +11902,7 @@ export type Database = {
           pago_em: string | null
           pago_em_conta_id: string | null
           parceiro_id: string | null
+          plano_contas_id: string | null
           status_caixa: string | null
           status_conta_pagar: string | null
           tipo: string | null
@@ -12213,40 +12213,6 @@ export type Database = {
         Args: { p_conta_bancaria_id: string }
         Returns: Json
       }
-      apontar_matches_stage_1: {
-        Args: { p_planilha_id: string }
-        Returns: {
-          conta_pagar_descricao: string
-          conta_pagar_id: string
-          data_transacao: string
-          descricao: string
-          match_descricao: string
-          match_nivel: number
-          movimentacao_id: string
-          parceiro_cnpj: string
-          parceiro_nome: string
-          valor: number
-        }[]
-      }
-      apontar_matches_stage_1_em_lote: {
-        Args: { p_conta_bancaria_id: string }
-        Returns: {
-          melhor_nivel: number
-          melhor_nivel_descricao: string
-          planilha_id: string
-          pode_auto_sugerir: boolean
-          qtd_no_melhor_nivel: number
-          qtd_total: number
-          sugestao_conta_pagar_descricao: string
-          sugestao_conta_pagar_id: string
-          sugestao_data_transacao: string
-          sugestao_descricao: string
-          sugestao_movimentacao_id: string
-          sugestao_parceiro_nome: string
-          sugestao_valor: number
-        }[]
-      }
-      apontar_matches_stage_2: { Args: { p_ofx_id: string }; Returns: Json }
       aprender_regra_de_classificacao: {
         Args: { p_stage_id: string; p_user_id?: string }
         Returns: Json
@@ -12881,7 +12847,6 @@ export type Database = {
         }[]
       }
       ignorar_lancamento: { Args: { p_lancamento_id: string }; Returns: Json }
-      ignorar_ofx: { Args: { p_ofx_id: string }; Returns: Json }
       iniciar_compra_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       lancar_ofx_como_movimentacao: {
         Args: { p_ofx_id: string }
@@ -13405,10 +13370,6 @@ export type Database = {
       }
       vincular_planilha_multiplas_movs: {
         Args: { p_movimentacao_ids: string[]; p_planilha_id: string }
-        Returns: Json
-      }
-      vincular_stage_1: {
-        Args: { p_movimentacao_id: string; p_planilha_id: string }
         Returns: Json
       }
       vincular_stage_2: {
