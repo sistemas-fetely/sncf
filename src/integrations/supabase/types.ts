@@ -12394,6 +12394,10 @@ export type Database = {
         Args: { p_contas_pagar_ids: string[]; p_ofx_id: string }
         Returns: Json
       }
+      conciliar_semov_com_ofx: {
+        Args: { p_ofx_id: string; p_planilha_id: string }
+        Returns: Json
+      }
       conciliar_transacao_ofx: {
         Args: { p_conta_pagar_id: string; p_ofx_id: string }
         Returns: Json
