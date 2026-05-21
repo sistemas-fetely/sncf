@@ -7,8 +7,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
+// Layouts — importados diretamente (não lazy) para evitar Suspense na raiz e soluço de navegação.
+// Layouts são pequenos (~30-80L cada) e não justificam code-splitting.
+import { AppLayout } from "@/components/AppLayout";
+import AdminFinanceiroLayout from "@/layouts/AdminFinanceiroLayout";
+import AdministrativoLayout from "@/layouts/AdministrativoLayout";
+import TILayout from "@/layouts/TILayout";
+import AdminLayout from "@/layouts/AdminLayout";
+import SNCFLayout from "@/layouts/SNCFLayout";
+import GestaoVistaLayout from "@/layouts/GestaoVistaLayout";
+
 // Lazy-loaded routes — reduces initial bundle (was ~1.3MB) to improve TBT/Max FID.
-const AppLayout = lazy(() => import("@/components/AppLayout").then(m => ({ default: m.AppLayout })));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Colaboradores = lazy(() => import("@/pages/Colaboradores"));
 const Pessoas = lazy(() => import("@/pages/Pessoas"));
@@ -53,13 +62,8 @@ const CargoForm = lazy(() => import("@/pages/CargoForm"));
 const CargosEnriquecimento = lazy(() => import("@/pages/CargosEnriquecimento"));
 const EntregaTeste = lazy(() => import("@/pages/EntregaTeste"));
 const PortalSNCF = lazy(() => import("@/pages/PortalSNCF"));
-const TILayout = lazy(() => import("@/layouts/TILayout"));
-const AdminLayout = lazy(() => import("@/layouts/AdminLayout"));
-const SNCFLayout = lazy(() => import("@/layouts/SNCFLayout"));
 const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
-const AdministrativoLayout = lazy(() => import("@/layouts/AdministrativoLayout"));
-const GestaoVistaLayout = lazy(() => import("@/layouts/GestaoVistaLayout"));
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
@@ -82,7 +86,6 @@ const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
 const HistoricoImportacoesPDF = lazy(() => import("@/pages/admin/HistoricoImportacoesPDF"));
 const GestaoAVista = lazy(() => import("@/pages/GestaoAVista"));
 const DocumentacaoGeral = lazy(() => import("@/pages/DocumentacaoGeral"));
-const AdminFinanceiroLayout = lazy(() => import("@/layouts/AdminFinanceiroLayout"));
 const PlanoDeContas = lazy(() => import("@/pages/administrativo/PlanoDeContas"));
 const FluxoCaixa = lazy(() => import("@/pages/administrativo/FluxoCaixa"));
 const ContasPagar = lazy(() => import("@/pages/administrativo/ContasPagar"));
