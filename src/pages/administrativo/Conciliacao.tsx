@@ -293,12 +293,36 @@ export default function Conciliacao() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
-  const conciliarSemMovMutation = useMutation({
-    mutationFn: async ({ planilhaId, ofxId }: { planilhaId: string; ofxId: string }) => {
+  const [faturaSelecionada, setFaturaSelecionada] = useState<string | null>(null);
+
+  const { data: faturasDisponiveis } = useQuery({
+    queryKey: ["faturas-disponiveis", confirmacaoAberta?.planilha_id],
+    enabled: !!confirmacaoAberta,
+    queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (sb as any).rpc("conciliar_semov_com_ofx", {
+      const { data, error } = await (sb as any).rpc("listar_faturas_disponiveis_para_planilha", {
+        p_planilha_id: confirmacaoAberta!.planilha_id,
+      });
+      if (error) throw error;
+      return (data || []) as Array<{
+        fatura_id: string;
+        cartao_nome: string;
+        data_vencimento: string;
+        valor_total: number;
+        qtd_lancamentos: number;
+        ja_vinculada: boolean;
+        parceiros: string;
+      }>;
+    },
+  });
+
+  const conciliarFaturaMutation = useMutation({
+    mutationFn: async ({ planilhaId, faturaId, ofxId }: { planilhaId: string; faturaId: string; ofxId?: string }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (sb as any).rpc("conciliar_semov_fatura", {
         p_planilha_id: planilhaId,
-        p_ofx_id: ofxId,
+        p_fatura_id: faturaId,
+        p_ofx_id: ofxId ?? null,
       });
       if (error) throw error;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -306,7 +330,9 @@ export default function Conciliacao() {
       return data;
     },
     onSuccess: () => {
-      toast.success("Conciliado ✓ — movimentação criada a partir do OFX");
+      toast.success("Fatura vinculada ✓ — conciliação completa");
+      setConfirmacaoAberta(null);
+      setFaturaSelecionada(null);
       invalidar();
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
@@ -734,7 +760,7 @@ export default function Conciliacao() {
                           <Button
                             size="sm"
                             className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                            disabled={conciliarSemMovMutation.isPending}
+                            disabled={conciliarFaturaMutation.isPending}
                             onClick={() => setConfirmacaoAberta(item)}
                           >
                             <Link2 className="h-3 w-3" />
@@ -1043,51 +1069,92 @@ export default function Conciliacao() {
       </Dialog>
 
       {/* Dialog de confirmação */}
-      <Dialog open={!!confirmacaoAberta} onOpenChange={(v) => !v && setConfirmacaoAberta(null)}>
-        <DialogContent className="max-w-md">
+      <Dialog open={!!confirmacaoAberta} onOpenChange={(v) => { if (!v) { setConfirmacaoAberta(null); setFaturaSelecionada(null); } }}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5 text-emerald-600" />
-              Confirmar conciliação
+              Vincular à Fatura de Cartão
             </DialogTitle>
           </DialogHeader>
           {confirmacaoAberta && (
-            <div className="space-y-3 py-2">
-              <div className="rounded-md border p-3 space-y-1 text-sm">
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Planilha Itaú</p>
-                <p className="font-semibold">{confirmacaoAberta.nome_favorecido ?? "—"}</p>
-                <p className="text-muted-foreground text-xs">{confirmacaoAberta.cnpj_favorecido}</p>
-                <p className="font-mono font-bold text-base">{formatBRL(confirmacaoAberta.valor_pago)}</p>
-                <p className="text-xs text-muted-foreground">{confirmacaoAberta.data_pagamento ? formatDateBR(confirmacaoAberta.data_pagamento) : "—"}</p>
-              </div>
-              {confirmacaoAberta.ofx_sugerido && (
-                <div className="rounded-md border p-3 space-y-1 text-sm bg-muted/20">
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground">OFX detectado</p>
-                  <p className="font-medium truncate">{confirmacaoAberta.ofx_sugerido.descricao}</p>
-                  <p className="font-mono font-bold text-base">{formatBRL(confirmacaoAberta.ofx_sugerido.valor)}</p>
-                  <p className="text-xs text-muted-foreground">{formatDateBR(confirmacaoAberta.ofx_sugerido.data_transacao)}</p>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-md border p-3 space-y-1 text-sm">
+                  <p className="text-[10px] font-semibold uppercase text-muted-foreground">Planilha Itaú</p>
+                  <p className="font-semibold">{confirmacaoAberta.nome_favorecido ?? "—"}</p>
+                  <p className="font-mono font-bold text-base">{formatBRL(confirmacaoAberta.valor_pago)}</p>
+                  <p className="text-xs text-muted-foreground">{confirmacaoAberta.data_pagamento ? formatDateBR(confirmacaoAberta.data_pagamento) : "—"}</p>
                 </div>
-              )}
+                {confirmacaoAberta.ofx_sugerido && (
+                  <div className="rounded-md border p-3 space-y-1 text-sm bg-muted/20">
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">OFX detectado</p>
+                    <p className="font-medium truncate">{confirmacaoAberta.ofx_sugerido.descricao}</p>
+                    <p className="font-mono font-bold text-base">{formatBRL(confirmacaoAberta.ofx_sugerido.valor)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateBR(confirmacaoAberta.ofx_sugerido.data_transacao)}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Selecione a fatura que este pagamento está quitando:</p>
+                {!faturasDisponiveis ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : faturasDisponiveis.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-3 text-center">Nenhuma fatura disponível para vinculação.</p>
+                ) : (
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {faturasDisponiveis.map((f) => (
+                      <div
+                        key={f.fatura_id}
+                        onClick={() => !f.ja_vinculada && setFaturaSelecionada(f.fatura_id)}
+                        className={`p-3 rounded border cursor-pointer text-xs transition-colors ${
+                          f.ja_vinculada
+                            ? "opacity-50 cursor-not-allowed bg-muted/20"
+                            : faturaSelecionada === f.fatura_id
+                              ? "border-emerald-400 bg-emerald-50/40"
+                              : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold truncate">{f.cartao_nome}</p>
+                            <p className="text-muted-foreground truncate">{f.parceiros}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">Vence {formatDateBR(f.data_vencimento)} · {f.qtd_lancamentos} lançamentos</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <p className="font-mono font-bold">{formatBRL(f.valor_total)}</p>
+                            {f.ja_vinculada && <Badge variant="outline" className="text-[9px]">já vinculada</Badge>}
+                            {faturaSelecionada === f.fatura_id && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmacaoAberta(null)}>
+            <Button variant="outline" onClick={() => { setConfirmacaoAberta(null); setFaturaSelecionada(null); }}>
               Cancelar
             </Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-              disabled={conciliarSemMovMutation.isPending}
+              disabled={conciliarFaturaMutation.isPending || !faturaSelecionada}
               onClick={() => {
-                if (!confirmacaoAberta?.ofx_sugerido) return;
-                conciliarSemMovMutation.mutate({
+                if (!confirmacaoAberta || !faturaSelecionada) return;
+                conciliarFaturaMutation.mutate({
                   planilhaId: confirmacaoAberta.planilha_id,
-                  ofxId: confirmacaoAberta.ofx_sugerido.id,
+                  faturaId: faturaSelecionada,
+                  ofxId: confirmacaoAberta.ofx_sugerido?.id,
                 });
-                setConfirmacaoAberta(null);
               }}
             >
-              {conciliarSemMovMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-              Confirmar conciliação
+              {conciliarFaturaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+              Vincular fatura
             </Button>
           </DialogFooter>
         </DialogContent>
