@@ -12398,6 +12398,10 @@ export type Database = {
         Args: { p_ofx_id: string; p_planilha_id: string }
         Returns: Json
       }
+      conciliar_semov_fatura: {
+        Args: { p_fatura_id: string; p_ofx_id?: string; p_planilha_id: string }
+        Returns: Json
+      }
       conciliar_transacao_ofx: {
         Args: { p_conta_pagar_id: string; p_ofx_id: string }
         Returns: Json
