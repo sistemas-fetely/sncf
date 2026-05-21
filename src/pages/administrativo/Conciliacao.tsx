@@ -263,6 +263,25 @@ export default function Conciliacao() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
+  const conciliarSemMovMutation = useMutation({
+    mutationFn: async ({ planilhaId, ofxId }: { planilhaId: string; ofxId: string }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (sb as any).rpc("conciliar_semov_com_ofx", {
+        p_planilha_id: planilhaId,
+        p_ofx_id: ofxId,
+      });
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (!(data as any)?.ok) throw new Error((data as any)?.motivo || "Erro");
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Conciliado ✓ — movimentação criada a partir do OFX");
+      invalidar();
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
   const itens = resultado?.itens ?? [];
   const aguardandoOfx = resultado?.aguardando_ofx ?? [];
   const lotes = resultado?.lotes ?? [];
@@ -680,6 +699,26 @@ export default function Conciliacao() {
                                 : <ChevronDown className="h-4 w-4" />}
                             </button>
                           </>
+                        )}
+                        {item.tipo === "sem_mov" && item.ofx_sugerido && (
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                            disabled={conciliarSemMovMutation.isPending}
+                            onClick={() =>
+                              conciliarSemMovMutation.mutate({
+                                planilhaId: item.planilha_id,
+                                ofxId: item.ofx_sugerido!.id,
+                              })
+                            }
+                          >
+                            {conciliarSemMovMutation.isPending ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Link2 className="h-3 w-3" />
+                            )}
+                            Conciliar
+                          </Button>
                         )}
                         {item.tipo === "sem_mov" && (
                           <>
