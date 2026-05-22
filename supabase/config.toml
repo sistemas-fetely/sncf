@@ -31,3 +31,5 @@ project_id = "vaxzorhqzvsnkutrlvfr"
     verify_jwt = true
     [functions.parse-fatura-cartao-pdf.runtime]
       wall_clock_limit_sec = 400
+  [functions.consultar-cnpj]
+    verify_jwt = true

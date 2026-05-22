@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,11 +12,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Loader2, FileText, Upload } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { CategoriaFolhaSelect } from "./CategoriaFolhaSelect";
-import { parseNFeXml } from "@/lib/financeiro/xml-nfe-parser";
+import { cleanCNPJ, formatCNPJ, validateCNPJ } from "@/lib/cnpj";
 
 interface Props {
   open: boolean;
@@ -30,37 +29,60 @@ export function NovoFornecedorRapidoDialog({ open, onOpenChange, onCriado }: Pro
   const [nomeFantasia, setNomeFantasia] = useState("");
   const [categoriaPadraoId, setCategoriaPadraoId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [consultando, setConsultando] = useState(false);
+  const ultimoCnpjConsultado = useRef("");
   const qc = useQueryClient();
 
-  const handleImportarNF = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".xml")) {
-      toast.error("Selecione um arquivo XML da NF-e");
-      return;
-    }
-    try {
-      const text = await file.text();
-      const parsed = parseNFeXml(text);
-      if (!parsed) {
-        toast.error("Não foi possível ler a NF-e. Verifique se é um XML válido.");
-        return;
+  const cnpjLimpo = cleanCNPJ(cnpj);
+  const cnpjValido = cnpjLimpo.length === 14 && validateCNPJ(cnpjLimpo);
+  const cnpjComErroDV = cnpjLimpo.length === 14 && !cnpjValido;
+
+  useEffect(() => {
+    if (!cnpjValido) return;
+    if (ultimoCnpjConsultado.current === cnpjLimpo) return;
+
+    const timer = setTimeout(async () => {
+      ultimoCnpjConsultado.current = cnpjLimpo;
+      setConsultando(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("consultar-cnpj", {
+          body: { cnpj: cnpjLimpo },
+        });
+
+        if (error) {
+          toast.warning("Consulta da Receita indisponível. Preencha manualmente.");
+          console.error("consultar-cnpj error:", error);
+          return;
+        }
+
+        if (data?.found === false) {
+          toast.info("CNPJ não encontrado na Receita. Preencha manualmente.");
+          return;
+        }
+
+        if (data?.razao_social) setRazaoSocial(data.razao_social);
+        if (data?.nome_fantasia) setNomeFantasia(data.nome_fantasia);
+        if (data?.razao_social || data?.nome_fantasia) {
+          toast.success("Dados preenchidos pela Receita Federal");
+        }
+      } catch (e) {
+        toast.warning("Consulta indisponível. Preencha manualmente.");
+        console.error("consultar-cnpj exception:", e);
+      } finally {
+        setConsultando(false);
       }
-      if (parsed.fornecedor_cnpj) setCnpj(parsed.fornecedor_cnpj);
-      if (parsed.fornecedor_nome) {
-        setRazaoSocial(parsed.fornecedor_nome);
-        if (!nomeFantasia) setNomeFantasia(parsed.fornecedor_nome);
-      }
-      toast.success("Dados importados da NF-e");
-    } catch (e) {
-      toast.error("Erro ao ler XML: " + (e as Error).message);
-    }
-  };
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [cnpjLimpo, cnpjValido]);
 
   const reset = () => {
     setCnpj("");
     setRazaoSocial("");
     setNomeFantasia("");
     setCategoriaPadraoId(null);
+    setConsultando(false);
+    ultimoCnpjConsultado.current = "";
   };
 
   const handleSubmit = async () => {
@@ -68,9 +90,8 @@ export function NovoFornecedorRapidoDialog({ open, onOpenChange, onCriado }: Pro
       toast.error("Razão social é obrigatória");
       return;
     }
-    const cnpjLimpo = cnpj.replace(/\D/g, "");
-    if (cnpjLimpo && cnpjLimpo.length !== 14) {
-      toast.error("CNPJ inválido (deve ter 14 dígitos)");
+    if (cnpjLimpo && !validateCNPJ(cnpjLimpo)) {
+      toast.error("CNPJ inválido — verifique os dígitos");
       return;
     }
     setSubmitting(true);
@@ -115,46 +136,35 @@ export function NovoFornecedorRapidoDialog({ open, onOpenChange, onCriado }: Pro
         <DialogHeader>
           <DialogTitle>Cadastrar fornecedor</DialogTitle>
           <DialogDescription>
-            Cadastro rápido. Mais detalhes podem ser preenchidos depois em Parceiros Comerciais.
+            Digite o CNPJ — os dados da Receita Federal são preenchidos automaticamente.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <Card className="p-3 bg-muted/30 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <FileText className="h-4 w-4" />
-              Tem a NF-e do fornecedor?
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-3.5 w-3.5 mr-1" />
-              Importar XML
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xml"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleImportarNF(f);
-                e.target.value = "";
-              }}
-            />
-          </Card>
-
           <div>
             <Label>CNPJ</Label>
-            <Input
-              value={cnpj}
-              onChange={(e) => setCnpj(e.target.value)}
-              placeholder="00.000.000/0000-00"
-              maxLength={18}
-            />
+            <div className="relative">
+              <Input
+                value={cnpj}
+                onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+                placeholder="00.000.000/0000-00"
+                inputMode="numeric"
+                maxLength={18}
+                className={
+                  cnpjComErroDV
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
+              />
+              {consultando && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            {cnpjComErroDV && (
+              <p className="text-xs text-destructive mt-1">
+                Dígitos verificadores inválidos
+              </p>
+            )}
           </div>
 
           <div>
