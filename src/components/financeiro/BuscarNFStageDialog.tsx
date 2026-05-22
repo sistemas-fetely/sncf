@@ -179,6 +179,7 @@ export default function BuscarNFStageDialog({
         .from("contas_pagar_receber")
         .select("id, descricao, valor, data_vencimento, parceiro_id")
         .eq("parceiro_id", parceiroId)
+        .eq("tipo", "pagar")
         .neq("status", "cancelado")
         .gte("valor", valorNF - 0.05)
         .lte("valor", valorNF + 0.05);
