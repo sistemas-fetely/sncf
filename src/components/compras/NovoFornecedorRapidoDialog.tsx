@@ -23,6 +23,19 @@ interface Props {
   onCriado: (parceiroId: string) => void;
 }
 
+// Dados extras capturados silenciosamente da BrasilAPI, vinculados ao CNPJ consultado
+interface DadosBrasilapi {
+  cnpj: string;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  telefone: string | null;
+  email: string | null;
+}
+
 export function NovoFornecedorRapidoDialog({ open, onOpenChange, onCriado }: Props) {
   const [cnpj, setCnpj] = useState("");
   const [razaoSocial, setRazaoSocial] = useState("");
@@ -31,6 +44,7 @@ export function NovoFornecedorRapidoDialog({ open, onOpenChange, onCriado }: Pro
   const [submitting, setSubmitting] = useState(false);
   const [consultando, setConsultando] = useState(false);
   const ultimoCnpjConsultado = useRef("");
+  const dadosBrasilapiRef = useRef<DadosBrasilapi | null>(null);
   const qc = useQueryClient();
 
   const cnpjLimpo = cleanCNPJ(cnpj);
@@ -62,6 +76,25 @@ export function NovoFornecedorRapidoDialog({ open, onOpenChange, onCriado }: Pro
 
         if (data?.razao_social) setRazaoSocial(data.razao_social);
         if (data?.nome_fantasia) setNomeFantasia(data.nome_fantasia);
+
+        // Captura silenciosa dos campos extras — vinculados ao CNPJ consultado
+        // (se o operador depois mudar o CNPJ, descartamos no submit via comparação)
+        const logradouroCompleto = data?.complemento
+          ? `${data.logradouro ?? ""}, ${data.complemento}`.trim().replace(/^,\s*/, "")
+          : data?.logradouro ?? null;
+
+        dadosBrasilapiRef.current = {
+          cnpj: cnpjLimpo,
+          cep: data?.cep || null,
+          logradouro: logradouroCompleto || null,
+          numero: data?.numero || null,
+          bairro: data?.bairro || null,
+          cidade: data?.municipio || null,
+          uf: data?.uf || null,
+          telefone: data?.ddd_telefone_1 || null,
+          email: data?.email || null,
+        };
+
         if (data?.razao_social || data?.nome_fantasia) {
           toast.success("Dados preenchidos pela Receita Federal");
         }
@@ -83,6 +116,7 @@ export function NovoFornecedorRapidoDialog({ open, onOpenChange, onCriado }: Pro
     setCategoriaPadraoId(null);
     setConsultando(false);
     ultimoCnpjConsultado.current = "";
+    dadosBrasilapiRef.current = null;
   };
 
   const handleSubmit = async () => {
@@ -94,6 +128,14 @@ export function NovoFornecedorRapidoDialog({ open, onOpenChange, onCriado }: Pro
       toast.error("CNPJ inválido — verifique os dígitos");
       return;
     }
+
+    // Só usa os dados extras se foram capturados para o CNPJ atual
+    // (operador pode ter mudado o CNPJ após a consulta — descarta)
+    const dadosExtras =
+      dadosBrasilapiRef.current?.cnpj === cnpjLimpo
+        ? dadosBrasilapiRef.current
+        : null;
+
     setSubmitting(true);
     try {
       const { data, error } = await supabase
@@ -106,6 +148,17 @@ export function NovoFornecedorRapidoDialog({ open, onOpenChange, onCriado }: Pro
           ativo: true,
           tipo: "pj",
           origem: "manual",
+          // Cadastro completo se veio da Receita; incompleto se foi só manual
+          cadastro_incompleto: !dadosExtras,
+          // Enriquecimento silencioso — só se houve consulta bem-sucedida ao CNPJ atual
+          cep: dadosExtras?.cep ?? null,
+          logradouro: dadosExtras?.logradouro ?? null,
+          numero: dadosExtras?.numero ?? null,
+          bairro: dadosExtras?.bairro ?? null,
+          cidade: dadosExtras?.cidade ?? null,
+          uf: dadosExtras?.uf ?? null,
+          telefone: dadosExtras?.telefone ?? null,
+          email: dadosExtras?.email ?? null,
         })
         .select()
         .single();

@@ -69,6 +69,17 @@ Deno.serve(async (req) => {
         razao_social: data.razao_social ?? "",
         nome_fantasia: data.nome_fantasia ?? "",
         situacao: data.descricao_situacao_cadastral ?? null,
+        // Enriquecimento silencioso — endereço
+        cep: data.cep ?? null,
+        logradouro: data.logradouro ?? null,
+        complemento: data.complemento ?? null,
+        numero: data.numero ?? null,
+        bairro: data.bairro ?? null,
+        municipio: data.municipio ?? null,
+        uf: data.uf ?? null,
+        // Contato
+        ddd_telefone_1: data.ddd_telefone_1 ?? null,
+        email: data.email ?? null,
       }),
       {
         status: 200,
