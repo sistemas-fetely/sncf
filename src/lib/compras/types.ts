@@ -77,7 +77,7 @@ export interface RegistrarCompraInput {
 // B-42 — Linhas heterogêneas e workflow rascunho/finalizada
 // =========================================================================
 
-export type TipoLinha = "produto" | "frete" | "servico" | "extra";
+export type TipoLinha = "produto" | "frete" | "servico" | "extra" | "desconto";
 export type StatusLinha = "comprada" | "nao_comprada" | "substituida";
 export type StatusAlvo = "rascunho" | "finalizada";
 
