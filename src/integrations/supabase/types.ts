@@ -1706,9 +1706,11 @@ export type Database = {
           meio_pagamento_id: string | null
           observacao: string | null
           parceiro_id: string
+          parceiro_id_pedido_original: string | null
           parcela_grupo_id: string
           parcelas_count: number
           pedido_id: string
+          periodicidade: string
           primeira_parcela_data: string
           status: Database["public"]["Enums"]["compra_registrada_status_enum"]
           updated_at: string
@@ -1727,9 +1729,11 @@ export type Database = {
           meio_pagamento_id?: string | null
           observacao?: string | null
           parceiro_id: string
+          parceiro_id_pedido_original?: string | null
           parcela_grupo_id?: string
           parcelas_count?: number
           pedido_id: string
+          periodicidade?: string
           primeira_parcela_data: string
           status?: Database["public"]["Enums"]["compra_registrada_status_enum"]
           updated_at?: string
@@ -1748,9 +1752,11 @@ export type Database = {
           meio_pagamento_id?: string | null
           observacao?: string | null
           parceiro_id?: string
+          parceiro_id_pedido_original?: string | null
           parcela_grupo_id?: string
           parcelas_count?: number
           pedido_id?: string
+          periodicidade?: string
           primeira_parcela_data?: string
           status?: Database["public"]["Enums"]["compra_registrada_status_enum"]
           updated_at?: string
@@ -1774,6 +1780,13 @@ export type Database = {
           {
             foreignKeyName: "compras_registradas_parceiro_id_fkey"
             columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_registradas_parceiro_id_pedido_original_fkey"
+            columns: ["parceiro_id_pedido_original"]
             isOneToOne: false
             referencedRelation: "parceiros_comerciais"
             referencedColumns: ["id"]
@@ -1870,25 +1883,40 @@ export type Database = {
         Row: {
           compra_registrada_id: string
           created_at: string
+          descricao_livre: string | null
           id: string
-          pedido_item_id: string
+          pedido_item_id: string | null
           quantidade_real: number
+          status_linha: string
+          substitui_pedido_item_id: string | null
+          tipo_linha: string
+          valor_total_real: number | null
           valor_unitario_real: number
         }
         Insert: {
           compra_registrada_id: string
           created_at?: string
+          descricao_livre?: string | null
           id?: string
-          pedido_item_id: string
+          pedido_item_id?: string | null
           quantidade_real: number
+          status_linha?: string
+          substitui_pedido_item_id?: string | null
+          tipo_linha?: string
+          valor_total_real?: number | null
           valor_unitario_real: number
         }
         Update: {
           compra_registrada_id?: string
           created_at?: string
+          descricao_livre?: string | null
           id?: string
-          pedido_item_id?: string
+          pedido_item_id?: string | null
           quantidade_real?: number
+          status_linha?: string
+          substitui_pedido_item_id?: string | null
+          tipo_linha?: string
+          valor_total_real?: number | null
           valor_unitario_real?: number
         }
         Relationships: [
@@ -1902,6 +1930,13 @@ export type Database = {
           {
             foreignKeyName: "compras_registradas_itens_pedido_item_id_fkey"
             columns: ["pedido_item_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_registradas_itens_substitui_pedido_item_id_fkey"
+            columns: ["substitui_pedido_item_id"]
             isOneToOne: false
             referencedRelation: "pedidos_compra_itens"
             referencedColumns: ["id"]
@@ -13185,18 +13220,20 @@ export type Database = {
       }
       registrar_compra_pedido: {
         Args: {
+          p_compra_id?: string
           p_conta_id?: string
           p_data_compra: string
           p_intervalo_dias?: number
-          p_itens?: Json
+          p_linhas: Json
           p_meio_pagamento_id: string
           p_observacao?: string
           p_parceiro_id: string
+          p_parceiro_id_pedido_original?: string
           p_parcelas_count?: number
           p_pedido_id: string
           p_periodicidade?: string
           p_primeira_parcela_data?: string
-          p_valor_total: number
+          p_status_alvo: string
         }
         Returns: Json
       }
@@ -13461,7 +13498,11 @@ export type Database = {
         | "recibo"
         | "comprovante_pagamento"
         | "outro"
-      compra_registrada_status_enum: "ativa" | "excluida"
+      compra_registrada_status_enum:
+        | "ativa"
+        | "excluida"
+        | "rascunho"
+        | "finalizada"
       contexto_acesso_salario:
         | "proprio"
         | "folha"
@@ -13647,7 +13688,12 @@ export const Constants = {
         "comprovante_pagamento",
         "outro",
       ],
-      compra_registrada_status_enum: ["ativa", "excluida"],
+      compra_registrada_status_enum: [
+        "ativa",
+        "excluida",
+        "rascunho",
+        "finalizada",
+      ],
       contexto_acesso_salario: [
         "proprio",
         "folha",
