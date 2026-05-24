@@ -3,9 +3,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Package, Truck, Wrench, Sparkles } from "lucide-react";
+import { Plus, Package, Truck, Wrench, Sparkles, TrendingDown } from "lucide-react";
 import type { TipoLinha } from "@/lib/compras/types";
 
 interface Props {
@@ -38,6 +39,11 @@ export function AdicionarLinhaDropdown({ onAdd, disabled }: Props) {
         <DropdownMenuItem onClick={() => onAdd("extra")}>
           <Sparkles className="h-4 w-4 mr-2" />
           Extra / Taxa
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onAdd("desconto")}>
+          <TrendingDown className="h-4 w-4 mr-2 text-emerald-600" />
+          Desconto (saving negociado)
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
