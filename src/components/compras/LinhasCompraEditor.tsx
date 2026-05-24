@@ -351,19 +351,23 @@ export function LinhasCompraEditor({ linhas, onChange, pedidoItens, readonly }: 
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={l.quantidade_real}
-                      onChange={(e) =>
-                        updateLinha(l._local_id, {
-                          quantidade_real: Math.max(0, Number(e.target.value) || 0),
-                        })
-                      }
-                      disabled={readonly || !isComprada}
-                      className={cn("h-8 w-full text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none", qtdInvalid && "border-destructive")}
-                    />
+                    {l.tipo_linha === "desconto" ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : (
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={l.quantidade_real}
+                        onChange={(e) =>
+                          updateLinha(l._local_id, {
+                            quantidade_real: Math.max(0, Number(e.target.value) || 0),
+                          })
+                        }
+                        disabled={readonly || !isComprada}
+                        className={cn("h-8 w-full text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none", qtdInvalid && "border-destructive")}
+                      />
+                    )}
                   </TableCell>
                   <TableCell>
                     <InputMoedaBR
@@ -373,23 +377,32 @@ export function LinhasCompraEditor({ linhas, onChange, pedidoItens, readonly }: 
                       invalid={valorInvalid}
                     />
                   </TableCell>
-                  <TableCell className="text-right text-sm font-medium">
-                    {fmtBRL(l._valor_total)}
+                  <TableCell
+                    className={cn(
+                      "text-right text-sm font-medium",
+                      l.tipo_linha === "desconto" && "text-rose-600 dark:text-rose-400",
+                    )}
+                  >
+                    {l.tipo_linha === "desconto" ? `− ${fmtBRL(l._valor_total)}` : fmtBRL(l._valor_total)}
                   </TableCell>
                   <TableCell className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => !readonly && cicloStatus(l)}
-                      disabled={readonly}
-                      className={cn(
-                        "cursor-pointer hover:opacity-80 transition-opacity",
-                        readonly && "cursor-default",
-                      )}
-                    >
-                      <Badge className={cn("text-[10px]", statusBadge[l.status_linha].cls)}>
-                        {statusBadge[l.status_linha].label}
-                      </Badge>
-                    </button>
+                    {l.tipo_linha === "desconto" ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => !readonly && cicloStatus(l)}
+                        disabled={readonly}
+                        className={cn(
+                          "cursor-pointer hover:opacity-80 transition-opacity",
+                          readonly && "cursor-default",
+                        )}
+                      >
+                        <Badge className={cn("text-[10px]", statusBadge[l.status_linha].cls)}>
+                          {statusBadge[l.status_linha].label}
+                        </Badge>
+                      </button>
+                    )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
