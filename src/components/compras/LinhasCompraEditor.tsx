@@ -113,7 +113,11 @@ export function LinhasCompraEditor({ linhas, onChange, pedidoItens, readonly }: 
     () =>
       linhas
         .filter((l) => l.status_linha === "comprada")
-        .reduce((s, l) => s + l._valor_total, 0),
+        .reduce(
+          (s, l) =>
+            l.tipo_linha === "desconto" ? s - l._valor_total : s + l._valor_total,
+          0,
+        ),
     [linhas],
   );
 
