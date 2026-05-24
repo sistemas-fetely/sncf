@@ -264,7 +264,7 @@ export function LinhasCompraEditor({ linhas, onChange, pedidoItens, readonly }: 
             <TableRow>
               <TableHead className="w-[90px]">Tipo</TableHead>
               <TableHead>Descrição</TableHead>
-              <TableHead className="w-[80px]">Qtd</TableHead>
+              <TableHead className="w-[110px]">Qtd</TableHead>
               <TableHead className="w-[140px]">Valor unit.</TableHead>
               <TableHead className="w-[110px] text-right">Subtotal</TableHead>
               <TableHead className="w-[120px] text-center">Status</TableHead>
@@ -347,7 +347,7 @@ export function LinhasCompraEditor({ linhas, onChange, pedidoItens, readonly }: 
                         })
                       }
                       disabled={readonly || !isComprada}
-                      className={cn("h-8", qtdInvalid && "border-destructive")}
+                      className={cn("h-8 w-full text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none", qtdInvalid && "border-destructive")}
                     />
                   </TableCell>
                   <TableCell>
