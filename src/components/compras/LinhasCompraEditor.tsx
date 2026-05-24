@@ -50,15 +50,15 @@ const tipoBadge: Record<TipoLinha, { label: string; cls: string }> = {
 
 const statusBadge: Record<StatusLinha, { label: string; cls: string }> = {
   comprada: {
-    label: "Comprada",
+    label: "Veio",
     cls: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
   },
   nao_comprada: {
-    label: "Não veio",
+    label: "Faltou",
     cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   },
   substituida: {
-    label: "Substituída",
+    label: "Trocado",
     cls: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
   },
 };
@@ -257,6 +257,9 @@ export function LinhasCompraEditor({ linhas, onChange, pedidoItens, readonly }: 
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Linhas da compra</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Marque o que aconteceu com cada item do pedido na hora da compra. Click no badge da coluna "Resultado" pra alternar entre Veio / Faltou / Trocado.
+        </p>
       </CardHeader>
       <CardContent>
         <Table>
@@ -267,7 +270,7 @@ export function LinhasCompraEditor({ linhas, onChange, pedidoItens, readonly }: 
               <TableHead className="w-[110px]">Qtd</TableHead>
               <TableHead className="w-[140px]">Valor unit.</TableHead>
               <TableHead className="w-[110px] text-right">Subtotal</TableHead>
-              <TableHead className="w-[120px] text-center">Status</TableHead>
+              <TableHead className="w-[120px] text-center">Resultado</TableHead>
               <TableHead className="w-[40px]" />
             </TableRow>
           </TableHeader>
