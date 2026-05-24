@@ -247,13 +247,17 @@ export function RegistrarCompraDialog({
 
   const { upload: uploadAnexo } = useAnexosCompraRegistrada();
 
-  const valorTotalCalculado = useMemo(
-    () =>
-      linhas
-        .filter((l) => l.status_linha === "comprada")
-        .reduce((s, l) => s + l._valor_total, 0),
-    [linhas],
-  );
+const valorTotalCalculado = useMemo(
+  () =>
+    linhas
+      .filter((l) => l.status_linha === "comprada")
+      .reduce(
+        (s, l) =>
+          l.tipo_linha === "desconto" ? s - l._valor_total : s + l._valor_total,
+        0,
+      ),
+  [linhas],
+);
 
   const previewParcelas = useMemo(() => {
     const n = Math.max(1, Math.floor(parcelasCount));
