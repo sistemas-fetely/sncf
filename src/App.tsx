@@ -16,6 +16,7 @@ import TILayout from "@/layouts/TILayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import SNCFLayout from "@/layouts/SNCFLayout";
 import GestaoVistaLayout from "@/layouts/GestaoVistaLayout";
+import PublicLayout from "@/layouts/PublicLayout";
 
 // Lazy-loaded routes — reduces initial bundle (was ~1.3MB) to improve TBT/Max FID.
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -167,19 +168,20 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Suspense fallback={null}>
           <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/recuperar-senha" element={<RecuperarSenha />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/sem-permissao" element={<SemPermissao />} />
-            <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
-            <Route path="/cadastro/:token" element={<CadastroPublico />} />
-            <Route path="/vagas/:id" element={<VagaPublica />} />
-            <Route path="/vagas/:id/candidatura" element={<PortalCandidatura />} />
-            <Route path="/vagas/:id/teste" element={<EntregaTeste />} />
-            <Route path="/unsubscribe" element={<Unsubscribe />} />
+            {/* Public routes (Suspense boundary via PublicLayout — R-01) */}
+            <Route element={<PublicLayout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/sem-permissao" element={<SemPermissao />} />
+              <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
+              <Route path="/cadastro/:token" element={<CadastroPublico />} />
+              <Route path="/vagas/:id" element={<VagaPublica />} />
+              <Route path="/vagas/:id/candidatura" element={<PortalCandidatura />} />
+              <Route path="/vagas/:id/teste" element={<EntregaTeste />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
+            </Route>
 
             {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
             <Route element={<ProtectedRoute><SNCFLayout /></ProtectedRoute>}>
@@ -489,9 +491,11 @@ const App = () => (
               } />
             </Route>
 
-            <Route path="*" element={<NotFound />} />
+            {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
+            <Route element={<PublicLayout />}>
+              <Route path="*" element={<NotFound />} />
+            </Route>
           </Routes>
-          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
