@@ -255,162 +255,6 @@ export type Database = {
           },
         ]
       }
-      backup_movimentacoes_bancarias_20260426: {
-        Row: {
-          centro_custo: string | null
-          conciliado: boolean | null
-          conciliado_em: string | null
-          conciliado_por: string | null
-          conta_bancaria_id: string | null
-          conta_pagar_id: string | null
-          conta_plano_id: string | null
-          created_at: string | null
-          data_balancete: string | null
-          data_transacao: string | null
-          descricao: string | null
-          hash_unico: string | null
-          id: string | null
-          id_transacao_banco: string | null
-          importacao_id: string | null
-          origem: string | null
-          saldo_pos_transacao: number | null
-          tipo: string | null
-          tipo_pagamento: string | null
-          valor: number | null
-        }
-        Insert: {
-          centro_custo?: string | null
-          conciliado?: boolean | null
-          conciliado_em?: string | null
-          conciliado_por?: string | null
-          conta_bancaria_id?: string | null
-          conta_pagar_id?: string | null
-          conta_plano_id?: string | null
-          created_at?: string | null
-          data_balancete?: string | null
-          data_transacao?: string | null
-          descricao?: string | null
-          hash_unico?: string | null
-          id?: string | null
-          id_transacao_banco?: string | null
-          importacao_id?: string | null
-          origem?: string | null
-          saldo_pos_transacao?: number | null
-          tipo?: string | null
-          tipo_pagamento?: string | null
-          valor?: number | null
-        }
-        Update: {
-          centro_custo?: string | null
-          conciliado?: boolean | null
-          conciliado_em?: string | null
-          conciliado_por?: string | null
-          conta_bancaria_id?: string | null
-          conta_pagar_id?: string | null
-          conta_plano_id?: string | null
-          created_at?: string | null
-          data_balancete?: string | null
-          data_transacao?: string | null
-          descricao?: string | null
-          hash_unico?: string | null
-          id?: string | null
-          id_transacao_banco?: string | null
-          importacao_id?: string | null
-          origem?: string | null
-          saldo_pos_transacao?: number | null
-          tipo?: string | null
-          tipo_pagamento?: string | null
-          valor?: number | null
-        }
-        Relationships: []
-      }
-      backup_parceiros_comerciais_20260426: {
-        Row: {
-          ativo: boolean | null
-          bairro: string | null
-          bling_id: string | null
-          canal: string | null
-          categoria_padrao_id: string | null
-          centro_custo_padrao: string | null
-          cep: string | null
-          cidade: string | null
-          cnpj: string | null
-          cpf: string | null
-          created_at: string | null
-          email: string | null
-          id: string | null
-          logradouro: string | null
-          nome_fantasia: string | null
-          numero: string | null
-          observacao: string | null
-          origem: string | null
-          razao_social: string | null
-          segmento: string | null
-          tags: string[] | null
-          telefone: string | null
-          tipo: string | null
-          tipos: string[] | null
-          uf: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          ativo?: boolean | null
-          bairro?: string | null
-          bling_id?: string | null
-          canal?: string | null
-          categoria_padrao_id?: string | null
-          centro_custo_padrao?: string | null
-          cep?: string | null
-          cidade?: string | null
-          cnpj?: string | null
-          cpf?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          logradouro?: string | null
-          nome_fantasia?: string | null
-          numero?: string | null
-          observacao?: string | null
-          origem?: string | null
-          razao_social?: string | null
-          segmento?: string | null
-          tags?: string[] | null
-          telefone?: string | null
-          tipo?: string | null
-          tipos?: string[] | null
-          uf?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          ativo?: boolean | null
-          bairro?: string | null
-          bling_id?: string | null
-          canal?: string | null
-          categoria_padrao_id?: string | null
-          centro_custo_padrao?: string | null
-          cep?: string | null
-          cidade?: string | null
-          cnpj?: string | null
-          cpf?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          logradouro?: string | null
-          nome_fantasia?: string | null
-          numero?: string | null
-          observacao?: string | null
-          origem?: string | null
-          razao_social?: string | null
-          segmento?: string | null
-          tags?: string[] | null
-          telefone?: string | null
-          tipo?: string | null
-          tipos?: string[] | null
-          uf?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       beneficios_catalogo: {
         Row: {
           ativo: boolean | null
@@ -1695,7 +1539,6 @@ export type Database = {
       compras_registradas: {
         Row: {
           comprador_id: string
-          conta_id: string | null
           created_at: string
           data_compra: string
           excluida_em: string | null
@@ -1711,6 +1554,7 @@ export type Database = {
           parcelas_count: number
           pedido_id: string
           periodicidade: string
+          plano_contas_id: string | null
           primeira_parcela_data: string
           status: Database["public"]["Enums"]["compra_registrada_status_enum"]
           updated_at: string
@@ -1718,7 +1562,6 @@ export type Database = {
         }
         Insert: {
           comprador_id: string
-          conta_id?: string | null
           created_at?: string
           data_compra: string
           excluida_em?: string | null
@@ -1734,6 +1577,7 @@ export type Database = {
           parcelas_count?: number
           pedido_id: string
           periodicidade?: string
+          plano_contas_id?: string | null
           primeira_parcela_data: string
           status?: Database["public"]["Enums"]["compra_registrada_status_enum"]
           updated_at?: string
@@ -1741,7 +1585,6 @@ export type Database = {
         }
         Update: {
           comprador_id?: string
-          conta_id?: string | null
           created_at?: string
           data_compra?: string
           excluida_em?: string | null
@@ -1757,6 +1600,7 @@ export type Database = {
           parcelas_count?: number
           pedido_id?: string
           periodicidade?: string
+          plano_contas_id?: string | null
           primeira_parcela_data?: string
           status?: Database["public"]["Enums"]["compra_registrada_status_enum"]
           updated_at?: string
@@ -1765,7 +1609,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "compras_registradas_conta_id_fkey"
-            columns: ["conta_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -2328,7 +2172,7 @@ export type Database = {
       }
       contas_pagar_documentos: {
         Row: {
-          conta_id: string
+          conta_pagar_id: string
           created_at: string | null
           id: string
           nome_arquivo: string
@@ -2338,7 +2182,7 @@ export type Database = {
           uploaded_por: string | null
         }
         Insert: {
-          conta_id: string
+          conta_pagar_id: string
           created_at?: string | null
           id?: string
           nome_arquivo: string
@@ -2348,7 +2192,7 @@ export type Database = {
           uploaded_por?: string | null
         }
         Update: {
-          conta_id?: string
+          conta_pagar_id?: string
           created_at?: string | null
           id?: string
           nome_arquivo?: string
@@ -2360,42 +2204,42 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
-            columns: ["conta_id"]
+            columns: ["conta_pagar_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
-            columns: ["conta_id"]
+            columns: ["conta_pagar_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
-            columns: ["conta_id"]
+            columns: ["conta_pagar_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar_receber_ativas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
-            columns: ["conta_id"]
+            columns: ["conta_pagar_id"]
             isOneToOne: false
             referencedRelation: "v_cpr_bola_redonda"
             referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
-            columns: ["conta_id"]
+            columns: ["conta_pagar_id"]
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
-            columns: ["conta_id"]
+            columns: ["conta_pagar_id"]
             isOneToOne: false
             referencedRelation: "vw_documentos_envio_estados"
             referencedColumns: ["conta_id"]
@@ -13341,12 +13185,12 @@ export type Database = {
         Args: { p_lancamento_id: string }
         Returns: {
           motivo: string
-          nf_categoria_id: string
           nf_cnpj: string
           nf_data: string
           nf_fornecedor: string
           nf_id: string
           nf_numero: string
+          nf_plano_contas_id: string
           nf_valor: number
           score: number
         }[]

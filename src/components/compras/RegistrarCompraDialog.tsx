@@ -109,7 +109,7 @@ export function RegistrarCompraDialog({
       const { data } = await (supabase as any)
         .from("compras_registradas")
         .select(
-          `id, conta_id, parceiro_id, parceiro_id_pedido_original, data_compra,
+          `id, plano_contas_id, parceiro_id, parceiro_id_pedido_original, data_compra,
            parcelas_count, primeira_parcela_data, intervalo_dias, periodicidade,
            meio_pagamento_id, observacao, valor_total,
            compras_registradas_itens (
@@ -150,7 +150,7 @@ export function RegistrarCompraDialog({
     if (rascunho) {
       setCompraIdAtual(rascunho.id);
       setParceiroId(rascunho.parceiro_id || pedido.parceiro_preferencial_id || "");
-      setContaId(rascunho.conta_id || "");
+      setContaId(rascunho.plano_contas_id || "");
       setDataCompra(rascunho.data_compra ? new Date(rascunho.data_compra + "T00:00:00") : new Date());
       setParcelasCount(Number(rascunho.parcelas_count) || 1);
       setPrimeiraParcelaData(

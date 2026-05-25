@@ -60,7 +60,7 @@ export default function DocumentosCP({
       const { data, error } = await supabase
         .from("contas_pagar_documentos")
         .select("id, tipo, nome_arquivo, storage_path")
-        .eq("conta_id", contaId)
+        .eq("conta_pagar_id", contaId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as Doc[];
@@ -108,7 +108,7 @@ export default function DocumentosCP({
       const { error: insErr } = await supabase
         .from("contas_pagar_documentos")
         .insert({
-          conta_id: contaId,
+          conta_pagar_id: contaId,
           tipo,
           nome_arquivo: file.name,
           storage_path: path,
