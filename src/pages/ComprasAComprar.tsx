@@ -105,7 +105,7 @@ export default function ComprasAComprar() {
           .from("compras_registradas")
           .select("id", { count: "exact", head: true })
           .eq("comprador_id", user!.id)
-          .eq("status", "ativa")
+          .eq("status", "finalizada")
           .gte("data_compra", inicioMes),
       ]);
       return {

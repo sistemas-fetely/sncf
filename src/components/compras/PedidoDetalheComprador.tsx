@@ -296,14 +296,14 @@ export function PedidoDetalheComprador({
                           {c.parceiros_comerciais?.razao_social || "—"}
                         </div>
                         <Badge
-                          variant={c.status === "ativa" ? "default" : "secondary"}
+                          variant={c.status === "finalizada" ? "default" : "secondary"}
                           className={
-                            c.status === "ativa"
+                            c.status === "finalizada"
                               ? "bg-success/10 text-success border-0"
                               : "bg-muted text-muted-foreground border-0"
                           }
                         >
-                          {c.status === "ativa" ? "Ativa" : "Excluída"}
+                          {c.status === "finalizada" ? "Finalizada" : "Excluída"}
                         </Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
@@ -312,7 +312,7 @@ export function PedidoDetalheComprador({
                         <div>Total: {fmtBRL(Number(c.valor_total))}</div>
                         <div>Parcelas: {c.parcelas_count}</div>
                       </div>
-                      {c.status === "ativa" && podeAgir && (
+                      {c.status === "finalizada" && podeAgir && (
                         <div className="flex justify-end">
                           <Button
                             size="sm"
