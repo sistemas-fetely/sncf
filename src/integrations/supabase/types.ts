@@ -13342,11 +13342,7 @@ export type Database = {
         | "recibo"
         | "comprovante_pagamento"
         | "outro"
-      compra_registrada_status_enum:
-        | "ativa"
-        | "excluida"
-        | "rascunho"
-        | "finalizada"
+      compra_registrada_status_enum: "rascunho" | "finalizada" | "excluida"
       contexto_acesso_salario:
         | "proprio"
         | "folha"
@@ -13532,12 +13528,7 @@ export const Constants = {
         "comprovante_pagamento",
         "outro",
       ],
-      compra_registrada_status_enum: [
-        "ativa",
-        "excluida",
-        "rascunho",
-        "finalizada",
-      ],
+      compra_registrada_status_enum: ["rascunho", "finalizada", "excluida"],
       contexto_acesso_salario: [
         "proprio",
         "folha",
