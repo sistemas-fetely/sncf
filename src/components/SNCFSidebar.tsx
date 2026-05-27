@@ -46,6 +46,7 @@ const operacionalItems: MenuItem[] = [
   { title: "Portal", url: "/sncf", icon: LayoutGrid, end: true },
   { title: "Minhas Tarefas", url: "/tarefas", icon: ClipboardList, end: true },
   { title: "Tarefas do Time", url: "/tarefas/time", icon: UsersRound, requireRole: "gestor_or_rh" },
+  { title: "Análise de Crédito", url: "/credito", icon: Wallet },
 ];
 
 const minhasNotasItem: MenuItem = {
