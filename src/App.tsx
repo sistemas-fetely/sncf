@@ -17,6 +17,7 @@ import AdminLayout from "@/layouts/AdminLayout";
 import SNCFLayout from "@/layouts/SNCFLayout";
 import GestaoVistaLayout from "@/layouts/GestaoVistaLayout";
 import PublicLayout from "@/layouts/PublicLayout";
+import { CasaLayout } from "@/layouts/CasaLayout";
 
 // Lazy-loaded routes — reduces initial bundle (was ~1.3MB) to improve TBT/Max FID.
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
