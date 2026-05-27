@@ -21,7 +21,8 @@ export function useAnalisesFila(opts: UseAnalisesFilaOptions = {}) {
           criado_em, decidido_em,
           analise_ia_confianca, analise_ia_processada_em,
           parceiro:parceiros_comerciais(cnpj, razao_social),
-          pedido:pedidos(id_externo, valor_liquido, condicao_solicitada)
+          pedido:pedidos(id_externo, valor_liquido, condicao_solicitada),
+          transicoes:analise_credito_transicoes(acao)
         `)
         .order("criado_em", { ascending: false });
 
@@ -47,6 +48,8 @@ export function useAnalisesFila(opts: UseAnalisesFilaOptions = {}) {
         pedido_id_externo: r.pedido?.id_externo ?? "",
         analise_ia_confianca: r.analise_ia_confianca,
         analise_ia_processada_em: r.analise_ia_processada_em,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        foi_devolvida: (r.transicoes || []).some((t: any) => t.acao === "devolvido"),
       }));
 
       if (opts.busca) {

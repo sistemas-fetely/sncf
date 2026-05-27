@@ -2,20 +2,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Wand2 } from "lucide-react";
+import { CurrencyInput } from "./CurrencyInput";
 import type { PerfilCredito, FormaPagamento, SugestaoIA } from "@/types/credito";
 
 export interface CamposDecisao {
-  perfil_aplicado: PerfilCredito;
+  perfil_aplicado: PerfilCredito; // mantido internamente, vem da IA
   limite_concedido: number;
   prazo_max_dias: number;
   formas_aceitas: FormaPagamento[];
@@ -31,14 +25,6 @@ interface Props {
   onChange: (next: CamposDecisao) => void;
   disabled?: boolean;
 }
-
-const PERFIS: { value: PerfilCredito; label: string }[] = [
-  { value: "novo_entrada", label: "Novo entrada" },
-  { value: "novo_qualificado", label: "Novo qualificado" },
-  { value: "recorrente_bom_pagador", label: "Recorrente bom pagador" },
-  { value: "premium", label: "Premium" },
-  { value: "bandeira_vermelha", label: "Bandeira vermelha" },
-];
 
 const FORMAS: FormaPagamento[] = ["boleto", "pix", "cartao"];
 
@@ -77,42 +63,14 @@ export function FormDecisaoCredito({ valores, sugestaoIA, onChange, disabled }: 
       <CardHeader>
         <CardTitle>Decisão</CardTitle>
         <CardDescription>
-          Campos pré-preenchidos pela IA. Edite o que quiser; o sistema registra a diferença automaticamente.
+          Joseph tem autonomia total — edite tudo. Sistema registra a diferença em relação à IA pra aprendizado.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label>Perfil aplicado</Label>
-              <MarcadorDelta
-                alterado={
-                  !!sugestaoIA &&
-                  diferente(sugestaoIA.perfil_aplicado, valores.perfil_aplicado)
-                }
-              />
-            </div>
-            <Select
-              value={valores.perfil_aplicado}
-              onValueChange={(v) => set("perfil_aplicado", v as PerfilCredito)}
-              disabled={disabled}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERFIS.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Limite concedido (R$)</Label>
+              <Label className="text-xs">Limite concedido</Label>
               <MarcadorDelta
                 alterado={
                   !!sugestaoIA &&
@@ -120,18 +78,16 @@ export function FormDecisaoCredito({ valores, sugestaoIA, onChange, disabled }: 
                 }
               />
             </div>
-            <Input
-              type="number"
-              min={0}
+            <CurrencyInput
               value={valores.limite_concedido}
-              onChange={(e) => set("limite_concedido", Number(e.target.value))}
+              onChange={(v) => set("limite_concedido", v)}
               disabled={disabled}
             />
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label>Prazo máximo (dias)</Label>
+              <Label className="text-xs">Prazo máximo (dias)</Label>
               <MarcadorDelta
                 alterado={
                   !!sugestaoIA &&
@@ -149,24 +105,20 @@ export function FormDecisaoCredito({ valores, sugestaoIA, onChange, disabled }: 
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Validade da decisão</Label>
-            </div>
+            <Label className="text-xs">Validade da decisão</Label>
             <Input
               type="date"
               value={valores.validade_ate}
               onChange={(e) => set("validade_ate", e.target.value)}
               disabled={disabled}
             />
-            <p className="text-xs text-muted-foreground">
-              Default 90 dias (calculado pelo banco se deixado vazio).
-            </p>
+            <p className="text-[11px] text-muted-foreground">Vazio = 90 dias automático</p>
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Formas aceitas</Label>
+            <Label className="text-xs">Formas aceitas</Label>
             <MarcadorDelta
               alterado={
                 !!sugestaoIA &&
@@ -190,7 +142,7 @@ export function FormDecisaoCredito({ valores, sugestaoIA, onChange, disabled }: 
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label>Parecer público (vai pro lojista via Mariana)</Label>
+            <Label className="text-xs">Parecer público (Mariana repassa ao lojista)</Label>
             <MarcadorDelta
               alterado={
                 !!sugestaoIA && diferente(sugestaoIA.parecer_final, valores.parecer_final)
@@ -206,30 +158,41 @@ export function FormDecisaoCredito({ valores, sugestaoIA, onChange, disabled }: 
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label>Ressalva (se aprovação com ressalva)</Label>
-          <Textarea
-            rows={2}
-            value={valores.ressalva}
-            onChange={(e) => set("ressalva", e.target.value)}
-            disabled={disabled}
-            placeholder="Opcional. Preencha se for aprovar com ressalva."
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Ressalva (se aprovação com ressalva)</Label>
+            <Textarea
+              rows={2}
+              value={valores.ressalva}
+              onChange={(e) => set("ressalva", e.target.value)}
+              disabled={disabled}
+              placeholder="Opcional. Preencha se for aprovar com ressalva."
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">
+              💬 Anotar contexto (opcional — vai pra aprendizado da IA)
+            </Label>
+            <Textarea
+              rows={2}
+              value={valores.contexto_anotacao}
+              onChange={(e) => set("contexto_anotacao", e.target.value)}
+              disabled={disabled}
+              placeholder="Por que editou? Vai pra próxima análise da IA."
+              className="text-sm"
+            />
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground flex items-center gap-2">
-            💬 Anotar contexto (opcional — vai pra aprendizado da IA)
-          </Label>
-          <Textarea
-            rows={2}
-            value={valores.contexto_anotacao}
-            onChange={(e) => set("contexto_anotacao", e.target.value)}
-            disabled={disabled}
-            placeholder="Por que editou? Ex: 'reduzi limite porque o sócio tem ações judiciais em outras empresas'"
-            className="text-sm"
-          />
-        </div>
+        {sugestaoIA?.perfil_aplicado && (
+          <div className="text-xs text-muted-foreground pt-2 border-t">
+            📊 Cliente será classificado automaticamente como:{" "}
+            <span className="font-medium text-foreground capitalize">
+              {sugestaoIA.perfil_aplicado.replace(/_/g, " ")}
+            </span>{" "}
+            (dedução da IA)
+          </div>
+        )}
       </CardContent>
     </Card>
   );

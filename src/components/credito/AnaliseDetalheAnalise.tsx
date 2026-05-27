@@ -167,7 +167,7 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
         {/* Coluna direita — área de operação */}
         <div className="lg:col-span-2 space-y-4">
           <UploadBureauZone analise_id={analise.id} />
-          <ScoresAnexados scores={scores} />
+          <ScoresAnexados scores={scores} analiseId={analiseId} />
           <AnaliseIaCard
             analise_id={analise.id}
             scoresCount={scores.length}

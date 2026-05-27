@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { Upload, Loader2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUploadBureauPDF } from "@/hooks/credito/useUploadBureauPDF";
 
@@ -28,9 +27,9 @@ export function UploadBureauZone({ analise_id, disabled }: Props) {
   };
 
   return (
-    <Card
+    <div
       className={cn(
-        "border-2 border-dashed transition-colors",
+        "border-2 border-dashed rounded-md flex items-center justify-between gap-3 px-4 py-3 transition-colors",
         dragOver ? "border-primary bg-primary/5" : "border-muted",
         disabled && "opacity-50 pointer-events-none",
       )}
@@ -46,51 +45,39 @@ export function UploadBureauZone({ analise_id, disabled }: Props) {
         if (file) handleFile(file);
       }}
     >
-      <div className="p-8 flex flex-col items-center justify-center text-center gap-4">
+      <div className="flex items-center gap-3 min-w-0">
         {upload.isPending ? (
-          <>
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <div>
-              <p className="font-medium">Processando bureau...</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Upload + extração da IA. Aguarde alguns segundos.
-              </p>
-            </div>
-          </>
+          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
         ) : (
-          <>
-            <div className="p-3 rounded-full bg-muted">
-              <FileText className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="font-medium">Anexar Serasa ou Boa Vista (PDF)</p>
-              <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                Arraste o arquivo aqui ou clique para selecionar. A IA detecta a fonte e extrai os dados.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => inputRef.current?.click()}
-              disabled={disabled || upload.isPending}
-            >
-              <Upload className="h-4 w-4" />
-              Selecionar arquivo
-            </Button>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFile(file);
-                if (inputRef.current) inputRef.current.value = "";
-              }}
-            />
-          </>
+          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
         )}
+        <p className="text-sm text-muted-foreground truncate">
+          {upload.isPending
+            ? "Processando bureau..."
+            : "Arraste Serasa ou Boa Vista (PDF) ou clique pra anexar"}
+        </p>
       </div>
-    </Card>
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-2 shrink-0"
+        onClick={() => inputRef.current?.click()}
+        disabled={disabled || upload.isPending}
+      >
+        <Upload className="h-3.5 w-3.5" />
+        Anexar bureau
+      </Button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+          if (inputRef.current) inputRef.current.value = "";
+        }}
+      />
+    </div>
   );
 }

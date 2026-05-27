@@ -88,6 +88,7 @@ export interface AnaliseListItem {
   pedido_id_externo: string;
   analise_ia_confianca: number | null;
   analise_ia_processada_em: string | null;
+  foi_devolvida: boolean;
 }
 
 export interface AnaliseScore {

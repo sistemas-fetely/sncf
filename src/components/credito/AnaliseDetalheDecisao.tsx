@@ -251,7 +251,7 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
       </div>
 
       {/* Bureaus */}
-      <ScoresAnexados scores={scores} />
+      <ScoresAnexados scores={scores} analiseId={analiseId} />
 
       {/* Histórico */}
       <HistoricoClienteAccordion
