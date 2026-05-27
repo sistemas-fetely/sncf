@@ -3,6 +3,7 @@ import { CreditoStatsCards } from "@/components/credito/CreditoStatsCards";
 import { FilaPorEstagio } from "@/components/credito/FilaPorEstagio";
 import { NovaAnaliseModalDialog } from "@/components/credito/NovaAnaliseModalDialog";
 import { useSearchParams } from "react-router-dom";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 
 const TABS_VALIDAS = ["entrada", "analise", "decisao", "decididas"];
 
@@ -16,31 +17,53 @@ export default function CreditoIndex() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Análise de Crédito</h1>
-          <p className="text-sm text-muted-foreground">
-            Pipeline de aprovação de pedidos B2B — Entrada (Mariana) → Análise (Time) → Decisão (Joseph)
-          </p>
-        </div>
-        <NovaAnaliseModalDialog />
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+      <CasaPageHeader
+        breadcrumb={[
+          { label: "Casa", to: "/" },
+          { label: "Crédito" },
+        ]}
+        title="Análise de Crédito"
+        subtitle="Pipeline B2B — Entrada (Mariana) → Análise (Time) → Decisão (Joseph)"
+        actions={<NovaAnaliseModalDialog />}
+      />
+
+      <div className="space-y-6">
+        <CreditoStatsCards />
+
+        <Tabs value={tabAtiva} onValueChange={handleTabChange} className="space-y-4">
+          <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-6">
+            <TabsTrigger
+              value="entrada"
+              className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+            >
+              Entrada
+            </TabsTrigger>
+            <TabsTrigger
+              value="analise"
+              className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+            >
+              Análise
+            </TabsTrigger>
+            <TabsTrigger
+              value="decisao"
+              className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+            >
+              Decisão
+            </TabsTrigger>
+            <TabsTrigger
+              value="decididas"
+              className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+            >
+              Decididas
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="entrada"><FilaPorEstagio estagio="entrada" /></TabsContent>
+          <TabsContent value="analise"><FilaPorEstagio estagio="analise" /></TabsContent>
+          <TabsContent value="decisao"><FilaPorEstagio estagio="decisao" /></TabsContent>
+          <TabsContent value="decididas"><FilaPorEstagio estagio="decididas" /></TabsContent>
+        </Tabs>
       </div>
-
-      <CreditoStatsCards />
-
-      <Tabs value={tabAtiva} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="entrada">Entrada</TabsTrigger>
-          <TabsTrigger value="analise">Análise</TabsTrigger>
-          <TabsTrigger value="decisao">Decisão</TabsTrigger>
-          <TabsTrigger value="decididas">Decididas</TabsTrigger>
-        </TabsList>
-        <TabsContent value="entrada"><FilaPorEstagio estagio="entrada" /></TabsContent>
-        <TabsContent value="analise"><FilaPorEstagio estagio="analise" /></TabsContent>
-        <TabsContent value="decisao"><FilaPorEstagio estagio="decisao" /></TabsContent>
-        <TabsContent value="decididas"><FilaPorEstagio estagio="decididas" /></TabsContent>
-      </Tabs>
     </div>
   );
 }
