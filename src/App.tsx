@@ -244,8 +244,7 @@ const App = () => (
             </Route>
 
             {/* Protected routes */}
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/" element={<Navigate to="/sncf" replace />} />
+            <Route element={<AppLayout />}>
               {/* /dashboard, /gestao-a-vista, /relatorios MIGRADOS pra GestaoVistaLayout (Sprint 2 — 29/04/2026) */}
               <Route path="/desligamento/:id" element={<DesligamentoDetalhe />} />
               <Route path="/pessoas" element={<Pessoas />} />
