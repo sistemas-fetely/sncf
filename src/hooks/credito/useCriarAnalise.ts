@@ -36,6 +36,19 @@ export function useCriarAnalise() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["analises-fila"] });
+
+      if (data.status === "criada") {
+        supabase.functions
+          .invoke("enriquecer-parceiro-cnpj", {
+            body: { parceiro_id: data.parceiro_id },
+          })
+          .then(() => {
+            qc.invalidateQueries({ queryKey: ["analise-detalhe", data.analise_id] });
+            qc.invalidateQueries({ queryKey: ["analises-fila"] });
+          })
+          .catch((e) => console.error("Erro enriquecimento background:", e));
+      }
+
       toast({
         title: data.status === "ja_existe" ? "Análise já existente" : "Análise criada",
         description: `ID: ${data.analise_id.slice(0, 8)}...`,

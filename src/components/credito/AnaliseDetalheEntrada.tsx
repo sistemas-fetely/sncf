@@ -1,4 +1,5 @@
 import { useAnaliseDetalhe } from "@/hooks/credito/useAnaliseDetalhe";
+import { useEnriquecerParceiro } from "@/hooks/credito/useEnriquecerParceiro";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -7,7 +8,7 @@ import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
 import { EditarProgramaInline } from "./EditarProgramaInline";
 import { EncaminharDialog } from "./dialogs/EncaminharDialog";
 import { CancelarAnaliseDialog } from "./dialogs/CancelarAnaliseDialog";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ interface Props {
 export function AnaliseDetalheEntrada({ analiseId }: Props) {
   const { data, isLoading } = useAnaliseDetalhe(analiseId);
   const navigate = useNavigate();
+  const enriquecer = useEnriquecerParceiro();
 
   if (isLoading) {
     return (
@@ -109,6 +111,22 @@ export function AnaliseDetalheEntrada({ analiseId }: Props) {
             <Linha label="Razão social" value={parceiro?.razao_social} />
             <Linha label="Nome fantasia" value={parceiro?.nome_fantasia} />
             <Linha label="CNPJ" value={parceiro?.cnpj} />
+            {parceiro?.cadastro_incompleto && parceiro?.id && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-2 mt-2 border-amber-500/50 text-amber-700 hover:bg-amber-50"
+                onClick={() => enriquecer.mutate(parceiro.id)}
+                disabled={enriquecer.isPending}
+              >
+                {enriquecer.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3" />
+                )}
+                Enriquecer cadastro via BrasilAPI
+              </Button>
+            )}
             <Separator className="my-2" />
             <Linha label="Cidade" value={parceiro?.cidade} />
             <Linha label="UF" value={parceiro?.uf} />
