@@ -33,3 +33,7 @@ project_id = "vaxzorhqzvsnkutrlvfr"
       wall_clock_limit_sec = 400
   [functions.consultar-cnpj]
     verify_jwt = true
+  [functions.parse-bureau-pdf]
+    verify_jwt = true
+  [functions.analisar-credito-ia]
+    verify_jwt = true
