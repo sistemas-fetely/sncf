@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useAnaliseDetalhe } from "@/hooks/credito/useAnaliseDetalhe";
 import { AnaliseDetalheEntrada } from "@/components/credito/AnaliseDetalheEntrada";
+import { AnaliseDetalheAnalise } from "@/components/credito/AnaliseDetalheAnalise";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AnaliseDetalhe() {
@@ -26,13 +27,17 @@ export default function AnaliseDetalhe() {
     return <AnaliseDetalheEntrada analiseId={id} />;
   }
 
+  if (estagio === "analise") {
+    return <AnaliseDetalheAnalise analiseId={id} />;
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold tracking-tight">
         Análise {id.slice(0, 8)}... · Estágio: {estagio}
       </h1>
       <p className="text-sm text-muted-foreground">
-        Layout do estágio "{estagio}" será construído nas sub-fases 4.3 (Análise) e 4.4 (Decisão).
+        Layout do estágio "{estagio}" será construído na sub-fase 4.4 (Joseph — Decisão).
       </p>
     </div>
   );
