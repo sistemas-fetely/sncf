@@ -3,128 +3,141 @@
 @tailwind utilities;
 
 @layer base {
+  /* ============================================================
+     CASA FETÉLY · TOKENS LIGHT (default)
+     Paleta Thomer: cream + ouro mostarda + marrom escuro
+     ============================================================ */
   :root {
-    --background: 150 20% 96%;
-    --foreground: 156 28% 12%;
+    /* Backgrounds */
+    --background: 35 36% 90%;       /* #F0E7DB cream */
+    --foreground: 30 22% 14%;       /* marrom escuro pra texto */
+    --card: 36 50% 94%;             /* #F8F1E6 surface */
+    --card-foreground: 30 22% 14%;
+    --popover: 36 50% 94%;
+    --popover-foreground: 30 22% 14%;
 
-    --card: 150 15% 99%;
-    --card-foreground: 156 28% 12%;
+    /* Ouro Fetély */
+    --primary: 43 58% 39%;          /* ~#9F7E2A ouro escuro */
+    --primary-foreground: 36 50% 96%;
+    --secondary: 36 35% 84%;        /* #E5D8C5 surface-2 */
+    --secondary-foreground: 30 22% 14%;
 
-    --popover: 150 15% 99%;
-    --popover-foreground: 156 28% 12%;
+    /* Muted / Accent */
+    --muted: 36 30% 86%;
+    --muted-foreground: 36 12% 38%;
+    --accent: 43 35% 75%;
+    --accent-foreground: 30 22% 14%;
 
-    --primary: 156 28% 22%;
-    --primary-foreground: 0 0% 100%;
+    /* Status */
+    --destructive: 4 55% 41%;       /* #A33A30 terroso, não red shadcn */
+    --destructive-foreground: 36 50% 96%;
+    --success: 150 33% 36%;         /* #3D7A5C verde Fetély */
+    --success-foreground: 36 50% 96%;
+    --warning: 38 70% 41%;          /* #B07A20 âmbar Fetély */
+    --warning-foreground: 36 50% 96%;
+    --info: 200 50% 40%;
+    --info-foreground: 36 50% 96%;
 
-    --secondary: 150 18% 90%;
-    --secondary-foreground: 156 28% 12%;
-
-    --muted: 150 14% 92%;
-    --muted-foreground: 156 12% 42%;
-
-    --accent: 152 20% 88%;
-    --accent-foreground: 156 28% 12%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 152 60% 36%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 32 95% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --info: 200 70% 50%;
-    --info-foreground: 0 0% 100%;
-
-    /* Pilar Administrativo — Bordô Fetely (#8B1A2F) */
+    /* Compatibilidade com componentes legados (admin/sidebar/chart) */
     --admin: 350 70% 33%;
-    --admin-foreground: 0 0% 100%;
-    --admin-muted: 350 30% 92%;
+    --admin-foreground: 36 50% 96%;
+    --admin-muted: 350 30% 88%;
     --admin-accent: 350 60% 28%;
 
-    --border: 150 16% 86%;
-    --input: 150 16% 86%;
-    --ring: 156 28% 22%;
+    /* Borders */
+    --border: 35 22% 78%;
+    --input: 35 22% 78%;
+    --ring: 43 58% 39%;
+    --radius: 0.375rem;             /* 6px — Thomer default */
 
-    --radius: 0.75rem;
+    /* Sidebar legacy (light variant) */
+    --sidebar-background: 36 50% 94%;
+    --sidebar-foreground: 30 22% 18%;
+    --sidebar-primary: 43 58% 39%;
+    --sidebar-primary-foreground: 36 50% 96%;
+    --sidebar-accent: 36 35% 84%;
+    --sidebar-accent-foreground: 30 22% 14%;
+    --sidebar-border: 35 22% 80%;
+    --sidebar-ring: 43 58% 39%;
+    --sidebar-muted: 36 12% 50%;
 
-    --sidebar-background: 156 28% 22%;
-    --sidebar-foreground: 150 20% 92%;
-    --sidebar-primary: 152 40% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 156 24% 28%;
-    --sidebar-accent-foreground: 150 20% 95%;
-    --sidebar-border: 156 20% 30%;
-    --sidebar-ring: 152 40% 50%;
-    --sidebar-muted: 156 15% 48%;
+    --chart-1: 43 58% 39%;
+    --chart-2: 30 30% 35%;
+    --chart-3: 150 25% 40%;
+    --chart-4: 38 50% 50%;
+    --chart-5: 4 40% 45%;
 
-    --chart-1: 156 28% 22%;
-    --chart-2: 152 45% 40%;
-    --chart-3: 156 20% 50%;
-    --chart-4: 150 30% 65%;
-    --chart-5: 148 18% 75%;
+    /* Tokens semânticos Thomer extra */
+    --gold: 45 53% 55%;             /* #C9A84C ouro principal */
+    --gold-light: 43 68% 70%;       /* #E8C97A */
+    --gold-muted: 42 44% 33%;       /* #7A6230 */
+    --stock-in: 150 33% 36%;
+    --stock-pre: 38 70% 41%;
+    --stock-out: 0 41% 39%;
   }
 
+  /* ============================================================
+     CASA FETÉLY · TOKENS DARK (toggle)
+     Paleta Thomer: preto profundo + ouro brilhante + cream
+     ============================================================ */
   .dark {
-    --background: 156 22% 7%;
-    --foreground: 150 18% 92%;
+    --background: 0 0% 4%;          /* #0A0A0A */
+    --foreground: 36 38% 93%;       /* #F5F0E8 cream */
+    --card: 0 0% 7%;                /* #111 */
+    --card-foreground: 36 38% 93%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 36 38% 93%;
 
-    --card: 156 20% 11%;
-    --card-foreground: 150 18% 92%;
+    --primary: 45 53% 55%;          /* #C9A84C ouro brilhante */
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 10%;          /* #1A1A1A */
+    --secondary-foreground: 36 38% 93%;
 
-    --popover: 156 20% 11%;
-    --popover-foreground: 150 18% 92%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 42 13% 56%; /* #A09880 */
+    --accent: 0 0% 12%;
+    --accent-foreground: 36 38% 93%;
 
-    --primary: 152 40% 45%;
-    --primary-foreground: 0 0% 100%;
+    --destructive: 4 55% 45%;
+    --destructive-foreground: 36 38% 96%;
+    --success: 150 30% 42%;
+    --success-foreground: 36 38% 96%;
+    --warning: 38 65% 50%;
+    --warning-foreground: 0 0% 4%;
+    --info: 200 50% 50%;
+    --info-foreground: 0 0% 4%;
 
-    --secondary: 156 14% 16%;
-    --secondary-foreground: 150 18% 92%;
-
-    --muted: 156 14% 16%;
-    --muted-foreground: 156 10% 52%;
-
-    --accent: 156 14% 18%;
-    --accent-foreground: 150 18% 92%;
-
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 152 50% 42%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 32 85% 55%;
-    --warning-foreground: 0 0% 100%;
-
-    --info: 200 65% 55%;
-    --info-foreground: 0 0% 100%;
-
-    /* Pilar Administrativo — Bordô (dark) */
-    --admin: 350 60% 45%;
-    --admin-foreground: 0 0% 100%;
+    --admin: 350 60% 50%;
+    --admin-foreground: 36 38% 96%;
     --admin-muted: 350 20% 18%;
     --admin-accent: 350 55% 38%;
 
-    --border: 156 14% 18%;
-    --input: 156 14% 18%;
-    --ring: 152 40% 45%;
+    --border: 0 0% 16%;             /* #2A2A2A */
+    --input: 0 0% 16%;
+    --ring: 45 53% 55%;
 
-    --sidebar-background: 156 28% 10%;
-    --sidebar-foreground: 150 18% 85%;
-    --sidebar-primary: 152 38% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 156 20% 16%;
-    --sidebar-accent-foreground: 150 18% 90%;
-    --sidebar-border: 156 14% 16%;
-    --sidebar-ring: 152 38% 48%;
-    --sidebar-muted: 156 10% 40%;
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 36 38% 90%;
+    --sidebar-primary: 45 53% 55%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 36 38% 93%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 45 53% 55%;
+    --sidebar-muted: 42 13% 50%;
 
-    --chart-1: 152 40% 45%;
-    --chart-2: 156 28% 35%;
-    --chart-3: 150 25% 50%;
-    --chart-4: 148 22% 60%;
-    --chart-5: 152 15% 70%;
+    --chart-1: 45 53% 55%;
+    --chart-2: 36 30% 60%;
+    --chart-3: 150 28% 50%;
+    --chart-4: 38 50% 55%;
+    --chart-5: 4 45% 55%;
+
+    --gold: 45 53% 55%;
+    --gold-light: 43 68% 70%;
+    --gold-muted: 42 44% 33%;
+    --stock-in: 150 33% 42%;
+    --stock-pre: 38 70% 45%;
+    --stock-out: 0 41% 45%;
   }
 }
 
@@ -135,17 +148,111 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-weight: 400;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  h1, h2, h3, h4 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  h5, h6 {
+    font-family: 'DM Sans', system-ui, sans-serif;
     font-weight: 600;
   }
 }
 
 @layer utilities {
+  /* Compatibilidade com card-shadow antigo */
   .card-shadow {
     box-shadow: 0 1px 4px 0 hsl(var(--foreground) / 0.03), 0 1px 3px -1px hsl(var(--foreground) / 0.03);
   }
+
+  /* ============================================================
+     Utilities Casa Fetély — herdadas do Thomer
+     ============================================================ */
+
+  /* Fonte display (Cormorant Garamond) */
+  .font-display {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+
+  /* Bordas douradas */
+  .gold-border {
+    border: 1px solid hsl(var(--gold) / 0.35);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .gold-border-hover:hover {
+    border-color: hsl(var(--gold));
+    box-shadow: 0 0 0 1px hsl(var(--gold) / 0.15);
+  }
+
+  /* Texto ouro */
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+  .text-gold-light {
+    color: hsl(var(--gold-light));
+  }
+  .text-gold-muted {
+    color: hsl(var(--gold-muted));
+  }
+
+  /* Backgrounds ouro */
+  .bg-gold {
+    background-color: hsl(var(--gold));
+  }
+  .bg-gold-soft {
+    background-color: hsl(var(--gold) / 0.1);
+  }
+
+  /* Borders ouro */
+  .border-gold {
+    border-color: hsl(var(--gold));
+  }
+
+  /* Animação fadeIn (Thomer) */
+  @keyframes casaFadeIn {
+    from { opacity: 0; transform: scale(1.02); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate-casa-fade-in {
+    animation: casaFadeIn 0.35s ease-out;
+  }
+
+  /* Auréola dourada (CTAs grandes) */
+  .casa-aurora {
+    position: absolute;
+    right: -60px;
+    top: -60px;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: hsl(var(--gold) / 0.1);
+    filter: blur(50px);
+    pointer-events: none;
+    transition: background 0.3s ease;
+  }
+  .casa-aurora-group:hover .casa-aurora {
+    background: hsl(var(--gold) / 0.2);
+  }
+}
+
+/* Scrollbar dourada discreta (Thomer) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--gold) / 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--gold) / 0.5);
 }
