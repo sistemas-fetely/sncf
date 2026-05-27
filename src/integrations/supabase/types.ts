@@ -65,6 +65,231 @@ export type Database = {
         }
         Relationships: []
       }
+      analise_credito_scores: {
+        Row: {
+          analise_id: string
+          anexado_em: string
+          anexado_por: string | null
+          dados_extraidos_json: Json | null
+          data_consulta: string
+          documento_storage_path: string | null
+          extraido_em: string | null
+          flag_acoes_judiciais: boolean | null
+          flag_cheque_devolvido: boolean | null
+          flag_divida_vencida: boolean | null
+          flag_falencia_rj: boolean | null
+          flag_pefin: boolean | null
+          flag_protestos: boolean | null
+          flag_refin: boolean | null
+          fonte: string
+          id: string
+          parceiro_id: string
+          score_categorico: string | null
+          score_numerico: number | null
+          total_dividas: number | null
+        }
+        Insert: {
+          analise_id: string
+          anexado_em?: string
+          anexado_por?: string | null
+          dados_extraidos_json?: Json | null
+          data_consulta: string
+          documento_storage_path?: string | null
+          extraido_em?: string | null
+          flag_acoes_judiciais?: boolean | null
+          flag_cheque_devolvido?: boolean | null
+          flag_divida_vencida?: boolean | null
+          flag_falencia_rj?: boolean | null
+          flag_pefin?: boolean | null
+          flag_protestos?: boolean | null
+          flag_refin?: boolean | null
+          fonte: string
+          id?: string
+          parceiro_id: string
+          score_categorico?: string | null
+          score_numerico?: number | null
+          total_dividas?: number | null
+        }
+        Update: {
+          analise_id?: string
+          anexado_em?: string
+          anexado_por?: string | null
+          dados_extraidos_json?: Json | null
+          data_consulta?: string
+          documento_storage_path?: string | null
+          extraido_em?: string | null
+          flag_acoes_judiciais?: boolean | null
+          flag_cheque_devolvido?: boolean | null
+          flag_divida_vencida?: boolean | null
+          flag_falencia_rj?: boolean | null
+          flag_pefin?: boolean | null
+          flag_protestos?: boolean | null
+          flag_refin?: boolean | null
+          fonte?: string
+          id?: string
+          parceiro_id?: string
+          score_categorico?: string | null
+          score_numerico?: number | null
+          total_dividas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_credito_scores_analise_id_fkey"
+            columns: ["analise_id"]
+            isOneToOne: false
+            referencedRelation: "analises_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_credito_scores_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analise_credito_transicoes: {
+        Row: {
+          acao: string
+          analise_id: string
+          criado_em: string
+          delta_ia: Json | null
+          estagio_destino: string | null
+          estagio_origem: string | null
+          id: string
+          motivo: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          acao: string
+          analise_id: string
+          criado_em?: string
+          delta_ia?: Json | null
+          estagio_destino?: string | null
+          estagio_origem?: string | null
+          id?: string
+          motivo?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: string
+          analise_id?: string
+          criado_em?: string
+          delta_ia?: Json | null
+          estagio_destino?: string | null
+          estagio_origem?: string | null
+          id?: string
+          motivo?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_credito_transicoes_analise_id_fkey"
+            columns: ["analise_id"]
+            isOneToOne: false
+            referencedRelation: "analises_credito"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analises_credito: {
+        Row: {
+          analise_anterior_id: string | null
+          analise_ia_confianca: number | null
+          analise_ia_json: Json | null
+          analise_ia_processada_em: string | null
+          analise_ia_resumo: string | null
+          criado_em: string
+          decidido_em: string | null
+          decidido_por: string | null
+          encaminhado_analise_em: string | null
+          encaminhado_decisao_em: string | null
+          estagio_atual: string
+          formas_aceitas: string[] | null
+          id: string
+          limite_concedido: number | null
+          parceiro_id: string
+          parecer_final: string | null
+          pedido_id: string
+          perfil_aplicado: string | null
+          prazo_max_dias: number | null
+          ressalva: string | null
+          status_final: string | null
+          validade_ate: string | null
+        }
+        Insert: {
+          analise_anterior_id?: string | null
+          analise_ia_confianca?: number | null
+          analise_ia_json?: Json | null
+          analise_ia_processada_em?: string | null
+          analise_ia_resumo?: string | null
+          criado_em?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          encaminhado_analise_em?: string | null
+          encaminhado_decisao_em?: string | null
+          estagio_atual?: string
+          formas_aceitas?: string[] | null
+          id?: string
+          limite_concedido?: number | null
+          parceiro_id: string
+          parecer_final?: string | null
+          pedido_id: string
+          perfil_aplicado?: string | null
+          prazo_max_dias?: number | null
+          ressalva?: string | null
+          status_final?: string | null
+          validade_ate?: string | null
+        }
+        Update: {
+          analise_anterior_id?: string | null
+          analise_ia_confianca?: number | null
+          analise_ia_json?: Json | null
+          analise_ia_processada_em?: string | null
+          analise_ia_resumo?: string | null
+          criado_em?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          encaminhado_analise_em?: string | null
+          encaminhado_decisao_em?: string | null
+          estagio_atual?: string
+          formas_aceitas?: string[] | null
+          id?: string
+          limite_concedido?: number | null
+          parceiro_id?: string
+          parecer_final?: string | null
+          pedido_id?: string
+          perfil_aplicado?: string | null
+          prazo_max_dias?: number | null
+          ressalva?: string | null
+          status_final?: string | null
+          validade_ate?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analises_credito_analise_anterior_id_fkey"
+            columns: ["analise_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "analises_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analises_credito_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analises_credito_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atribuicao_origem: {
         Row: {
           atribuicao_id: string
@@ -5151,6 +5376,60 @@ export type Database = {
         }
         Relationships: []
       }
+      grupos_economicos: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          criado_por: string | null
+          fundido_em_grupo_id: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          origem_deteccao: string
+          parceiro_matriz_id: string | null
+          status: string
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          fundido_em_grupo_id?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          origem_deteccao?: string
+          parceiro_matriz_id?: string | null
+          status?: string
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          fundido_em_grupo_id?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          origem_deteccao?: string
+          parceiro_matriz_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_grupos_economicos_matriz"
+            columns: ["parceiro_matriz_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grupos_economicos_fundido_em_grupo_id_fkey"
+            columns: ["fundido_em_grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_economicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grupos_empresariais: {
         Row: {
           ativo: boolean
@@ -7095,30 +7374,127 @@ export type Database = {
           },
         ]
       }
+      parceiro_eventos_externos: {
+        Row: {
+          data_evento: string
+          fonte: string
+          id: string
+          parceiro_id: string
+          payload: Json | null
+          processado: boolean
+          recebido_em: string
+          tipo_evento: string
+        }
+        Insert: {
+          data_evento: string
+          fonte: string
+          id?: string
+          parceiro_id: string
+          payload?: Json | null
+          processado?: boolean
+          recebido_em?: string
+          tipo_evento: string
+        }
+        Update: {
+          data_evento?: string
+          fonte?: string
+          id?: string
+          parceiro_id?: string
+          payload?: Json | null
+          processado?: boolean
+          recebido_em?: string
+          tipo_evento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_eventos_externos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parceiro_marcos: {
+        Row: {
+          criado_em: string
+          id: string
+          motivo: string | null
+          operador_id: string | null
+          parceiro_id: string
+          referencia_id: string | null
+          referencia_tipo: string | null
+          tipo_marco: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          operador_id?: string | null
+          parceiro_id: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          tipo_marco: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          operador_id?: string | null
+          parceiro_id?: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          tipo_marco?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_marcos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parceiros_comerciais: {
         Row: {
           ativo: boolean | null
           bairro: string | null
+          bandeira_vermelha: boolean
+          bandeira_vermelha_em: string | null
+          bandeira_vermelha_motivo: string | null
+          bandeira_vermelha_por: string | null
           bling_id: string | null
           cadastro_incompleto: boolean
           canal_venda_id: string | null
+          categoria_ka: string | null
           centro_custo_id: string | null
           cep: string | null
           cidade: string | null
           cnpj: string | null
+          contexto_bureau: Json | null
           cpf: string | null
           created_at: string | null
           dados_bancarios: Json | null
           data_nascimento: string | null
           email: string | null
           forma_pagamento_padrao_id: string | null
+          grupo_economico_id: string | null
           grupo_id: string | null
           id: string
           logradouro: string | null
+          nivel_programa: string
           nome_fantasia: string | null
           numero: string | null
           observacao: string | null
           origem: string | null
+          perfil_credito: string
           pix_chave: string | null
           pix_tipo: string | null
           plano_contas_id: string | null
@@ -7136,26 +7512,35 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           bairro?: string | null
+          bandeira_vermelha?: boolean
+          bandeira_vermelha_em?: string | null
+          bandeira_vermelha_motivo?: string | null
+          bandeira_vermelha_por?: string | null
           bling_id?: string | null
           cadastro_incompleto?: boolean
           canal_venda_id?: string | null
+          categoria_ka?: string | null
           centro_custo_id?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          contexto_bureau?: Json | null
           cpf?: string | null
           created_at?: string | null
           dados_bancarios?: Json | null
           data_nascimento?: string | null
           email?: string | null
           forma_pagamento_padrao_id?: string | null
+          grupo_economico_id?: string | null
           grupo_id?: string | null
           id?: string
           logradouro?: string | null
+          nivel_programa?: string
           nome_fantasia?: string | null
           numero?: string | null
           observacao?: string | null
           origem?: string | null
+          perfil_credito?: string
           pix_chave?: string | null
           pix_tipo?: string | null
           plano_contas_id?: string | null
@@ -7173,26 +7558,35 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           bairro?: string | null
+          bandeira_vermelha?: boolean
+          bandeira_vermelha_em?: string | null
+          bandeira_vermelha_motivo?: string | null
+          bandeira_vermelha_por?: string | null
           bling_id?: string | null
           cadastro_incompleto?: boolean
           canal_venda_id?: string | null
+          categoria_ka?: string | null
           centro_custo_id?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          contexto_bureau?: Json | null
           cpf?: string | null
           created_at?: string | null
           dados_bancarios?: Json | null
           data_nascimento?: string | null
           email?: string | null
           forma_pagamento_padrao_id?: string | null
+          grupo_economico_id?: string | null
           grupo_id?: string | null
           id?: string
           logradouro?: string | null
+          nivel_programa?: string
           nome_fantasia?: string | null
           numero?: string | null
           observacao?: string | null
           origem?: string | null
+          perfil_credito?: string
           pix_chave?: string | null
           pix_tipo?: string | null
           plano_contas_id?: string | null
@@ -7234,6 +7628,13 @@ export type Database = {
             columns: ["forma_pagamento_padrao_id"]
             isOneToOne: false
             referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiros_comerciais_grupo_economico_id_fkey"
+            columns: ["grupo_economico_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_economicos"
             referencedColumns: ["id"]
           },
           {
@@ -7570,6 +7971,65 @@ export type Database = {
             columns: ["pasta_id"]
             isOneToOne: false
             referencedRelation: "vw_pastas_kpis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          condicao_solicitada: string
+          data_pedido: string
+          desconto_pct: number | null
+          forma_solicitada: string
+          id: string
+          id_externo: string
+          itens_json: Json | null
+          origem: string | null
+          parceiro_id: string
+          recebido_em: string
+          recebido_via: string
+          valor_bruto: number
+          valor_liquido: number
+          vendedor: string | null
+        }
+        Insert: {
+          condicao_solicitada: string
+          data_pedido: string
+          desconto_pct?: number | null
+          forma_solicitada: string
+          id?: string
+          id_externo: string
+          itens_json?: Json | null
+          origem?: string | null
+          parceiro_id: string
+          recebido_em?: string
+          recebido_via?: string
+          valor_bruto: number
+          valor_liquido: number
+          vendedor?: string | null
+        }
+        Update: {
+          condicao_solicitada?: string
+          data_pedido?: string
+          desconto_pct?: number | null
+          forma_solicitada?: string
+          id?: string
+          id_externo?: string
+          itens_json?: Json | null
+          origem?: string | null
+          parceiro_id?: string
+          recebido_em?: string
+          recebido_via?: string
+          valor_bruto?: number
+          valor_liquido?: number
+          vendedor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
             referencedColumns: ["id"]
           },
         ]
@@ -9082,6 +9542,54 @@ export type Database = {
           },
         ]
       }
+      programa_niveis_beneficios: {
+        Row: {
+          a_vista_boleto_pct: number | null
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          cartao_sem_juros_max_parcelas: number
+          criado_em: string
+          desconto_pct: number
+          id: string
+          nome: string
+          ordem_hierarquia: number | null
+          pix_antecipado_pct: number | null
+          prazo_padrao_dias: number
+          slug: string
+        }
+        Insert: {
+          a_vista_boleto_pct?: number | null
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          cartao_sem_juros_max_parcelas?: number
+          criado_em?: string
+          desconto_pct?: number
+          id?: string
+          nome: string
+          ordem_hierarquia?: number | null
+          pix_antecipado_pct?: number | null
+          prazo_padrao_dias: number
+          slug: string
+        }
+        Update: {
+          a_vista_boleto_pct?: number | null
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          cartao_sem_juros_max_parcelas?: number
+          criado_em?: string
+          desconto_pct?: number
+          id?: string
+          nome?: string
+          ordem_hierarquia?: number | null
+          pix_antecipado_pct?: number | null
+          prazo_padrao_dias?: number
+          slug?: string
+        }
+        Relationships: []
+      }
       regras_automaticas_ofx: {
         Row: {
           ativa: boolean
@@ -10245,6 +10753,59 @@ export type Database = {
             columns: ["sistema_id"]
             isOneToOne: false
             referencedRelation: "sncf_sistemas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      socios_parceiro: {
+        Row: {
+          cpf_cnpj: string
+          criado_em: string
+          data_entrada: string | null
+          desligado_em: string | null
+          fonte: string
+          id: string
+          nacionalidade: string | null
+          nome: string
+          parceiro_id: string
+          participacao_pct: number | null
+          qualificacao: string | null
+          ultima_atualizacao: string
+        }
+        Insert: {
+          cpf_cnpj: string
+          criado_em?: string
+          data_entrada?: string | null
+          desligado_em?: string | null
+          fonte?: string
+          id?: string
+          nacionalidade?: string | null
+          nome: string
+          parceiro_id: string
+          participacao_pct?: number | null
+          qualificacao?: string | null
+          ultima_atualizacao?: string
+        }
+        Update: {
+          cpf_cnpj?: string
+          criado_em?: string
+          data_entrada?: string | null
+          desligado_em?: string | null
+          fonte?: string
+          id?: string
+          nacionalidade?: string | null
+          nome?: string
+          parceiro_id?: string
+          participacao_pct?: number | null
+          qualificacao?: string | null
+          ultima_atualizacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "socios_parceiro_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
             referencedColumns: ["id"]
           },
         ]
