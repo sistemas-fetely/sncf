@@ -2,6 +2,7 @@ import {
   LayoutGrid, ClipboardList, UsersRound, UserCog, Workflow,
   LogOut, Network, Sparkles, BookOpen, Shield, ExternalLink, FileText,
   PartyPopper, MessageSquareWarning, Users, Monitor, Landmark,
+  Wallet,
 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Link } from "react-router-dom";
