@@ -11488,6 +11488,27 @@ export type Database = {
           },
         ]
       }
+      user_preferencias_navegacao: {
+        Row: {
+          created_at: string
+          tema: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          tema?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          tema?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           atribuido_manualmente: boolean
@@ -14031,6 +14052,21 @@ export type Database = {
           p_valor_b: number
         }
         Returns: number
+      }
+      set_user_tema: {
+        Args: { p_tema: string }
+        Returns: {
+          created_at: string
+          tema: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_preferencias_navegacao"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

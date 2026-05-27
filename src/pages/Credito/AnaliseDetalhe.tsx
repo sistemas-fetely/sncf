@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 
 export default function AnaliseDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -39,16 +40,26 @@ export default function AnaliseDetalhe() {
     };
 
     return (
-      <div className="max-w-3xl mx-auto space-y-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 -ml-2"
-          onClick={() => navigate("/credito?tab=decididas")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Fila (Decididas)
-        </Button>
+      <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+        <CasaPageHeader
+          breadcrumb={[
+            { label: "Casa", to: "/" },
+            { label: "Crédito", to: "/credito" },
+            { label: `Análise · ${statusFinal.replace(/_/g, " ")}` },
+          ]}
+          title="Análise decidida"
+          actions={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate("/credito?tab=decididas")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Fila (Decididas)
+            </Button>
+          }
+        />
         <Card>
           <CardContent className="p-8 space-y-5 text-center">
             <div className="flex justify-center">{iconMap[statusFinal]}</div>

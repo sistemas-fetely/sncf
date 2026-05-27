@@ -1,15 +1,18 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutGrid, Users, Monitor, Star, Search,
   FileText, Briefcase, UserPlus, ClipboardList, Workflow,
   BookOpen, MessageSquare, Settings, Sliders,
   Receipt, Calendar, Heart, Building2, ChevronRight,
+  CreditCard, UserSearch,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useRecentes } from "@/hooks/useRecentes";
 import { useFavoritos } from "@/hooks/useFavoritos";
+import { supabase } from "@/integrations/supabase/client";
 
 type Pilar = "sncf" | "people" | "ti" | "admin";
 
@@ -31,6 +34,8 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/fala-fetely", titulo: "Fala Fetely", pilar: "sncf", icon: MessageSquare, tags: ["fala", "chat", "ia", "perguntar"] },
   { rota: "/fala-fetely/conhecimento", titulo: "Base de Conhecimento", pilar: "sncf", icon: BookOpen, tags: ["conhecimento", "base"] },
   { rota: "/mural", titulo: "Mural Fetely", pilar: "sncf", icon: MessageSquare, tags: ["mural", "comunicação"] },
+  { rota: "/compras", titulo: "Compras", pilar: "sncf", icon: Receipt, tags: ["compras", "pedidos"] },
+  { rota: "/credito", titulo: "Análise de Crédito", pilar: "sncf", icon: CreditCard, tags: ["crédito", "análise", "limite"] },
 
   // People
   { rota: "/dashboard", titulo: "Dashboard People", pilar: "people", icon: Users, tags: ["dashboard", "rh", "resumo"] },
@@ -72,6 +77,22 @@ const PILAR_LABELS: Record<string, string> = {
   admin: "ADM",
 };
 
+interface AnaliseRow {
+  id: string;
+  estagio_atual: string;
+  status_final: string | null;
+  parceiro_id: string;
+  parceiro_nome: string;
+  parceiro_cnpj: string | null;
+}
+
+interface ClienteRow {
+  id: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj: string | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -79,7 +100,9 @@ interface Props {
 
 type ListItem =
   | { type: "header"; label: string }
-  | { type: "item"; page: PageItem };
+  | { type: "item"; page: PageItem }
+  | { type: "analise"; row: AnaliseRow }
+  | { type: "cliente"; row: ClienteRow };
 
 export function CommandPalette({ open, onOpenChange }: Props) {
   const navigate = useNavigate();
@@ -99,21 +122,77 @@ export function CommandPalette({ open, onOpenChange }: Props) {
     }
   }, [open]);
 
+  const queryTrimmed = query.trim();
+  const enableEntidades = queryTrimmed.length >= 2;
+
+  // Busca clientes (parceiros)
+  const parceirosQuery = useQuery({
+    queryKey: ["cmdk-parceiros", queryTrimmed],
+    enabled: open && enableEntidades,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const term = queryTrimmed;
+      const { data, error } = await supabase
+        .from("parceiros_comerciais")
+        .select("id, razao_social, nome_fantasia, cnpj")
+        .or(`razao_social.ilike.%${term}%,nome_fantasia.ilike.%${term}%,cnpj.ilike.%${term}%`)
+        .eq("ativo", true)
+        .limit(6);
+      if (error) throw error;
+      return (data ?? []) as ClienteRow[];
+    },
+  });
+
+  // Busca análises de crédito (via parceiro)
+  const analisesQuery = useQuery({
+    queryKey: ["cmdk-analises", queryTrimmed],
+    enabled: open && enableEntidades,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const term = queryTrimmed;
+      const { data, error } = await supabase
+        .from("analises_credito")
+        .select(`
+          id,
+          estagio_atual,
+          status_final,
+          parceiro_id,
+          parceiros_comerciais!analises_credito_parceiro_id_fkey(razao_social, cnpj)
+        `)
+        .or(
+          `razao_social.ilike.%${term}%,cnpj.ilike.%${term}%`,
+          { foreignTable: "parceiros_comerciais" } as never
+        )
+        .limit(6);
+      if (error) throw error;
+      return (data ?? [])
+        .filter((row: any) => row.parceiros_comerciais)
+        .map((row: any) => ({
+          id: row.id,
+          estagio_atual: row.estagio_atual,
+          status_final: row.status_final,
+          parceiro_id: row.parceiro_id,
+          parceiro_nome: row.parceiros_comerciais?.razao_social ?? "—",
+          parceiro_cnpj: row.parceiros_comerciais?.cnpj ?? null,
+        })) as AnaliseRow[];
+    },
+  });
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.toLowerCase();
+    if (!queryTrimmed) return [];
+    const q = queryTrimmed.toLowerCase();
     return ALL_PAGES.filter(
       (p) =>
         p.titulo.toLowerCase().includes(q) ||
         p.tags.some((t) => t.includes(q)) ||
         p.pilar.includes(q)
     );
-  }, [query]);
+  }, [queryTrimmed]);
 
   const items = useMemo<ListItem[]>(() => {
     const result: ListItem[] = [];
 
-    if (!query.trim()) {
+    if (!queryTrimmed) {
       if (favoritos.length > 0) {
         result.push({ type: "header", label: "⭐ Favoritos" });
         favoritos.forEach((f) => {
@@ -135,16 +214,39 @@ export function CommandPalette({ open, onOpenChange }: Props) {
         ALL_PAGES.slice(0, 10).forEach((page) => result.push({ type: "item", page }));
       }
     } else {
-      result.push({ type: "header", label: `🔍 Resultados para "${query}"` });
-      filtered.forEach((page) => result.push({ type: "item", page }));
+      if (filtered.length > 0) {
+        result.push({ type: "header", label: `🔍 Telas` });
+        filtered.slice(0, 10).forEach((page) => result.push({ type: "item", page }));
+      }
+      if (analisesQuery.data && analisesQuery.data.length > 0) {
+        result.push({ type: "header", label: "💳 Análises de crédito" });
+        analisesQuery.data.forEach((row) => result.push({ type: "analise", row }));
+      }
+      if (parceirosQuery.data && parceirosQuery.data.length > 0) {
+        result.push({ type: "header", label: "🏢 Clientes" });
+        parceirosQuery.data.forEach((row) => result.push({ type: "cliente", row }));
+      }
     }
 
     return result;
-  }, [query, favoritos, recentes, filtered]);
+  }, [queryTrimmed, favoritos, recentes, filtered, analisesQuery.data, parceirosQuery.data]);
 
   const selectableItems = useMemo(
-    () => items.filter((i): i is { type: "item"; page: PageItem } => i.type === "item"),
+    () =>
+      items.filter(
+        (i): i is Exclude<ListItem, { type: "header" }> => i.type !== "header"
+      ),
     [items]
+  );
+
+  const handleSelectItem = useCallback(
+    (item: Exclude<ListItem, { type: "header" }>) => {
+      if (item.type === "item") navigate(item.page.rota);
+      else if (item.type === "analise") navigate(`/credito/analises/${item.row.id}`);
+      else if (item.type === "cliente") navigate(`/credito/clientes/${item.row.id}`);
+      onOpenChange(false);
+    },
+    [navigate, onOpenChange]
   );
 
   const handleKeyDown = useCallback(
@@ -158,42 +260,42 @@ export function CommandPalette({ open, onOpenChange }: Props) {
       } else if (e.key === "Enter") {
         e.preventDefault();
         const selected = selectableItems[selectedIndex];
-        if (selected) {
-          navigate(selected.page.rota);
-          onOpenChange(false);
-        }
+        if (selected) handleSelectItem(selected);
       }
     },
-    [selectableItems, selectedIndex, navigate, onOpenChange]
+    [selectableItems, selectedIndex, handleSelectItem]
   );
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [queryTrimmed]);
 
   useEffect(() => {
     const el = listRef.current?.querySelector(`[data-index="${selectedIndex}"]`);
     el?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
-  const handleSelect = (rota: string) => {
-    navigate(rota);
-    onOpenChange(false);
-  };
-
   let itemIndex = -1;
+  const isLoadingEntidades =
+    enableEntidades && (analisesQuery.isLoading || parceirosQuery.isLoading);
+  const nothingFound =
+    queryTrimmed &&
+    filtered.length === 0 &&
+    (!analisesQuery.data || analisesQuery.data.length === 0) &&
+    (!parceirosQuery.data || parceirosQuery.data.length === 0) &&
+    !isLoadingEntidades;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 max-w-2xl overflow-hidden gap-0">
-        {/* Input de busca */}
         <div className="flex items-center gap-2 px-4 py-3 border-b">
           <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <input
             ref={inputRef}
             value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
+            onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Buscar página, módulo ou atalho..."
+            placeholder="Buscar tela, cliente, análise..."
             className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
           />
           <kbd className="rounded border px-1.5 py-0.5 text-[10px] font-mono bg-muted text-muted-foreground">
@@ -201,8 +303,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
           </kbd>
         </div>
 
-        {/* Lista de resultados */}
-        <div ref={listRef} className="max-h-[420px] overflow-y-auto">
+        <div ref={listRef} className="max-h-[440px] overflow-y-auto">
           {items.map((item, i) => {
             if (item.type === "header") {
               return (
@@ -217,57 +318,114 @@ export function CommandPalette({ open, onOpenChange }: Props) {
 
             itemIndex++;
             const isSelected = itemIndex === selectedIndex;
-            const page = item.page;
-            const Icon = page.icon;
-            const fav = isFavorito(page.rota);
             const currentItemIndex = itemIndex;
+            const selectableSnapshot = item;
 
+            if (item.type === "item") {
+              const page = item.page;
+              const Icon = page.icon;
+              const fav = isFavorito(page.rota);
+              return (
+                <button
+                  key={`p-${page.rota}-${i}`}
+                  data-index={currentItemIndex}
+                  onMouseEnter={() => setSelectedIndex(currentItemIndex)}
+                  onClick={() => handleSelectItem(selectableSnapshot)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                    isSelected ? "bg-muted" : "hover:bg-muted/50"
+                  }`}
+                >
+                  <div className={`shrink-0 h-8 w-8 rounded-lg flex items-center justify-center ${PILAR_COLORS[page.pilar]}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <span className="flex-1 text-sm font-medium truncate">{page.titulo}</span>
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${PILAR_COLORS[page.pilar]}`}>
+                    {PILAR_LABELS[page.pilar] || page.pilar}
+                  </Badge>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void toggleFavorito(page.rota, page.titulo, page.pilar);
+                    }}
+                    className={`shrink-0 p-1 rounded hover:bg-background/80 ${
+                      fav ? "text-amber-400" : "text-muted-foreground/20 hover:text-amber-400"
+                    }`}
+                    aria-label={fav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                  >
+                    <Star className={`h-3.5 w-3.5 ${fav ? "fill-amber-400" : ""}`} />
+                  </button>
+                </button>
+              );
+            }
+
+            if (item.type === "analise") {
+              const a = item.row;
+              return (
+                <button
+                  key={`a-${a.id}`}
+                  data-index={currentItemIndex}
+                  onMouseEnter={() => setSelectedIndex(currentItemIndex)}
+                  onClick={() => handleSelectItem(selectableSnapshot)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                    isSelected ? "bg-muted" : "hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center bg-gold/10 text-gold border border-gold/20">
+                    <CreditCard className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{a.parceiro_nome}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {a.parceiro_cnpj ?? "sem CNPJ"} · {a.status_final ?? a.estagio_atual}
+                    </p>
+                  </div>
+                </button>
+              );
+            }
+
+            // cliente
+            const c = item.row;
             return (
               <button
-                key={`${page.rota}-${i}`}
+                key={`c-${c.id}`}
                 data-index={currentItemIndex}
                 onMouseEnter={() => setSelectedIndex(currentItemIndex)}
-                onClick={() => handleSelect(page.rota)}
+                onClick={() => handleSelectItem(selectableSnapshot)}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                   isSelected ? "bg-muted" : "hover:bg-muted/50"
                 }`}
               >
-                <div className={`shrink-0 h-8 w-8 rounded-lg flex items-center justify-center ${PILAR_COLORS[page.pilar]}`}>
-                  <Icon className="h-4 w-4" />
+                <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center bg-gold/10 text-gold border border-gold/20">
+                  <UserSearch className="h-4 w-4" />
                 </div>
-                <span className="flex-1 text-sm font-medium truncate">{page.titulo}</span>
-                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${PILAR_COLORS[page.pilar]}`}>
-                  {PILAR_LABELS[page.pilar] || page.pilar}
-                </Badge>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void toggleFavorito(page.rota, page.titulo, page.pilar);
-                  }}
-                  className={`shrink-0 p-1 rounded hover:bg-background/80 ${
-                    fav ? "text-amber-400" : "text-muted-foreground/20 hover:text-amber-400"
-                  }`}
-                  aria-label={fav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                >
-                  <Star className={`h-3.5 w-3.5 ${fav ? "fill-amber-400" : ""}`} />
-                </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{c.razao_social}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {[c.nome_fantasia, c.cnpj].filter(Boolean).join(" · ") || "—"}
+                  </p>
+                </div>
               </button>
             );
           })}
 
-          {query.trim() && filtered.length === 0 && (
+          {isLoadingEntidades && (
+            <div className="px-4 py-3 text-xs text-muted-foreground">
+              Buscando análises e clientes…
+            </div>
+          )}
+
+          {nothingFound && (
             <div className="text-center py-12 px-4">
               <p className="text-sm text-muted-foreground">
-                Nenhuma página encontrada para "{query}"
+                Nada encontrado para "{queryTrimmed}".
               </p>
               <p className="text-xs text-muted-foreground/60 mt-1">
-                Tente "tarefas", "pessoas", "processos"...
+                Tente "tarefas", "pessoas", CNPJ ou nome do cliente…
               </p>
             </div>
           )}
         </div>
 
-        {/* Footer com dicas */}
         <div className="flex items-center gap-3 px-4 py-2 border-t bg-muted/20 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <kbd className="rounded border px-1 py-0.5 font-mono bg-background">↑↓</kbd>

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, AlertTriangle, ExternalLink } from "lucide-react";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { TimelineClienteVisual } from "@/components/credito/TimelineClienteVisual";
 import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/ErguerBandeiraVermelhaDialog";
 import { BaixarBandeiraVermelhaDialog } from "@/components/credito/dialogs/BaixarBandeiraVermelhaDialog";
@@ -36,31 +37,36 @@ export default function ClienteDetalhe() {
   const { parceiro, socios, kpisFinanceiros, kpisGrupo, analises, marcos } = data;
 
   return (
-    <div className="space-y-6">
-      <Button variant="ghost" size="sm" className="gap-2 -ml-2" onClick={() => navigate("/credito")}>
-        <ArrowLeft className="h-4 w-4" />
-        Voltar
-      </Button>
-
-      {/* Header */}
-      <div className="space-y-3">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {parceiro?.razao_social || "Cliente sem razão"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              CNPJ {parceiro?.cnpj}
-              {parceiro?.nome_fantasia && ` · ${parceiro.nome_fantasia}`}
-              {parceiro?.cidade && parceiro?.uf && ` · ${parceiro.cidade}/${parceiro.uf}`}
-            </p>
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
+      <CasaPageHeader
+        breadcrumb={[
+          { label: "Casa", to: "/" },
+          { label: "Crédito", to: "/credito" },
+          { label: parceiro?.razao_social || "Cliente" },
+        ]}
+        title={parceiro?.razao_social || "Cliente sem razão"}
+        subtitle={[
+          parceiro?.cnpj && `CNPJ ${parceiro.cnpj}`,
+          parceiro?.nome_fantasia,
+          parceiro?.cidade && parceiro?.uf && `${parceiro.cidade}/${parceiro.uf}`,
+        ].filter(Boolean).join(" · ")}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate("/credito")}>
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
+            {parceiro?.bandeira_vermelha ? (
+              <BaixarBandeiraVermelhaDialog parceiro_id={parceiro.id} />
+            ) : (
+              <ErguerBandeiraVermelhaDialog parceiro_id={parceiro?.id} />
+            )}
           </div>
-          {parceiro?.bandeira_vermelha ? (
-            <BaixarBandeiraVermelhaDialog parceiro_id={parceiro.id} />
-          ) : (
-            <ErguerBandeiraVermelhaDialog parceiro_id={parceiro?.id} />
-          )}
-        </div>
+        }
+      />
+
+      <div className="space-y-3">
+
 
         <div className="flex flex-wrap gap-2">
           {parceiro?.bandeira_vermelha && (

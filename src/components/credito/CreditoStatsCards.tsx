@@ -10,7 +10,7 @@ export function CreditoStatsCards() {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-24" />
+          <Skeleton key={i} className="h-28" />
         ))}
       </div>
     );
@@ -19,31 +19,29 @@ export function CreditoStatsCards() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <StatCard
-        icon={<Inbox className="h-5 w-5 text-primary" />}
+        icon={<Inbox className="h-5 w-5" />}
         label="Entrada (Mariana)"
         value={data?.entrada || 0}
         hint="aguardando triagem"
       />
       <StatCard
-        icon={<Search className="h-5 w-5 text-primary" />}
+        icon={<Search className="h-5 w-5" />}
         label="Análise (Time)"
         value={data?.analise || 0}
         hint="aguardando anexos+IA"
       />
       <StatCard
-        icon={<Gavel className="h-5 w-5 text-primary" />}
+        icon={<Gavel className="h-5 w-5" />}
         label="Decisão (Joseph)"
         value={data?.decisao || 0}
         hint="aguardando decisão"
       />
       <StatCard
-        icon={<CheckCircle2 className="h-5 w-5 text-success" />}
+        icon={<CheckCircle2 className="h-5 w-5" />}
         label="Decididas no mês"
         value={data?.decididasMes || 0}
         hint={
-          data
-            ? `${data.aprovadasMes} aprov · ${data.reprovadasMes} reprov`
-            : ""
+          data ? `${data.aprovadasMes} aprov · ${data.reprovadasMes} reprov` : ""
         }
       />
     </div>
@@ -54,15 +52,17 @@ function StatCard({
   icon, label, value, hint,
 }: { icon: React.ReactNode; label: string; value: number; hint?: string }) {
   return (
-    <Card>
+    <Card className="gold-border gold-border-hover transition-all">
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-0.5">
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="text-2xl font-bold tracking-tight">{value}</p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/10 text-gold flex-shrink-0">
+            {icon}
+          </div>
+          <div className="space-y-0.5 min-w-0">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
+            <p className="font-serif text-3xl leading-none text-foreground">{value}</p>
             {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
           </div>
-          <div className="rounded-md bg-muted p-2">{icon}</div>
         </div>
       </CardContent>
     </Card>
