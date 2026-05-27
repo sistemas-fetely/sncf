@@ -148,9 +148,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Converte pra base64
+    // Converte pra base64 (chunked pra não estourar stack em PDFs grandes)
     const arrayBuffer = await pdfData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = "";
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
+    }
+    const base64 = btoa(binary);
 
     // Chama Gemini via Lovable AI Gateway
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
