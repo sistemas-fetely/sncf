@@ -4,11 +4,11 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { TISidebar } from "@/components/TISidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Monitor } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
 import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
-import { LayoutHeader } from "@/components/shared/LayoutHeader";
+
 
 export default function TILayout() {
   const { user, roles } = useAuth();
@@ -66,7 +66,7 @@ export default function TILayout() {
       <div className="min-h-screen flex w-full">
         <TISidebar />
         <div className="flex-1 flex flex-col">
-          <LayoutHeader icon={Monitor} nome="TI Fetély" />
+
           <main className="flex-1 p-6 overflow-auto bg-background relative">
             <Suspense fallback={
               <div className="flex items-center justify-center h-full p-12">
