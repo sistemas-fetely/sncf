@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 
 export default function AnaliseDetalhe() {
   const { id } = useParams<{ id: string }>();
