@@ -188,8 +188,18 @@ const App = () => (
               <Route path="/unsubscribe" element={<Unsubscribe />} />
             </Route>
 
+            {/* Bling OAuth callback — público (recebe redirect externo), fora da Casa */}
+            <Route path="/administrativo/bling-callback" element={<BlingCallback />} />
+
+            {/* ═══════════════════════════════════════════════
+                Casa Fetély — wrapper de auth + visual global
+                Doutrina CASA-1 — substitui Regra de Ouro dos Menus.
+                ═══════════════════════════════════════════════ */}
+            <Route element={<ProtectedRoute><CasaLayout /></ProtectedRoute>}>
+              <Route path="/" element={<CasaHome />} />
+
             {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
-            <Route element={<ProtectedRoute><SNCFLayout /></ProtectedRoute>}>
+            <Route element={<SNCFLayout />}>
               <Route path="/sncf" element={<PortalSNCF />} />
               <Route path="/tarefas" element={<MinhasTarefas />} />
               <Route path="/tarefas/time" element={<TarefasDoTime />} />
