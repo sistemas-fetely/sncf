@@ -17,9 +17,11 @@ import AdminLayout from "@/layouts/AdminLayout";
 import SNCFLayout from "@/layouts/SNCFLayout";
 import GestaoVistaLayout from "@/layouts/GestaoVistaLayout";
 import PublicLayout from "@/layouts/PublicLayout";
+import { CasaLayout } from "@/layouts/CasaLayout";
 
 // Lazy-loaded routes — reduces initial bundle (was ~1.3MB) to improve TBT/Max FID.
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const CasaHome = lazy(() => import("@/pages/CasaHome"));
 const Colaboradores = lazy(() => import("@/pages/Colaboradores"));
 const Pessoas = lazy(() => import("@/pages/Pessoas"));
 const ColaboradorDetalhe = lazy(() => import("@/pages/ColaboradorDetalhe"));
@@ -186,8 +188,18 @@ const App = () => (
               <Route path="/unsubscribe" element={<Unsubscribe />} />
             </Route>
 
+            {/* Bling OAuth callback — público (recebe redirect externo), fora da Casa */}
+            <Route path="/administrativo/bling-callback" element={<BlingCallback />} />
+
+            {/* ═══════════════════════════════════════════════
+                Casa Fetély — wrapper de auth + visual global
+                Doutrina CASA-1 — substitui Regra de Ouro dos Menus.
+                ═══════════════════════════════════════════════ */}
+            <Route element={<ProtectedRoute><CasaLayout /></ProtectedRoute>}>
+              <Route path="/" element={<CasaHome />} />
+
             {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
-            <Route element={<ProtectedRoute><SNCFLayout /></ProtectedRoute>}>
+            <Route element={<SNCFLayout />}>
               <Route path="/sncf" element={<PortalSNCF />} />
               <Route path="/tarefas" element={<MinhasTarefas />} />
               <Route path="/tarefas/time" element={<TarefasDoTime />} />
@@ -221,7 +233,7 @@ const App = () => (
             </Route>
 
             {/* TI Fetely */}
-            <Route path="/ti" element={<ProtectedRoute><TILayout /></ProtectedRoute>}>
+            <Route path="/ti" element={<TILayout />}>
               <Route index element={<TIDashboard />} />
               <Route path="ativos" element={<TIAtivos />} />
               <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
@@ -232,8 +244,7 @@ const App = () => (
             </Route>
 
             {/* Protected routes */}
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/" element={<Navigate to="/sncf" replace />} />
+            <Route element={<AppLayout />}>
               {/* /dashboard, /gestao-a-vista, /relatorios MIGRADOS pra GestaoVistaLayout (Sprint 2 — 29/04/2026) */}
               <Route path="/desligamento/:id" element={<DesligamentoDetalhe />} />
               <Route path="/pessoas" element={<Pessoas />} />
@@ -428,8 +439,6 @@ const App = () => (
               } />
             </Route>
 
-            {/* Bling OAuth callback — rota independente, fora do layout */}
-            <Route path="/administrativo/bling-callback" element={<BlingCallback />} />
 
             {/* ═══════════════════════════════════════════════
                 Pilar Administrativo (Financeiro, Contratos, Imóveis, Seguros, GED)
@@ -487,7 +496,7 @@ const App = () => (
                 Recebe Dashboard + Relatórios (vindos do People).
                 URLs preservadas (/dashboard, /relatorios) — só layout muda.
                 ═══════════════════════════════════════════════ */}
-            <Route element={<ProtectedRoute><GestaoVistaLayout /></ProtectedRoute>}>
+            <Route element={<GestaoVistaLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/gestao-a-vista" element={<GestaoAVista />} />
               <Route path="/relatorios" element={
@@ -496,6 +505,9 @@ const App = () => (
                 </ProtectedRoute>
               } />
             </Route>
+
+            </Route>
+            {/* fecha wrapper CasaLayout */}
 
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
