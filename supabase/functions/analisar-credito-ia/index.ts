@@ -45,6 +45,8 @@ DECISÃO SUGERIDA pode ser:
 
 OUTPUT: JSON válido, sem markdown, sem texto fora do JSON.
 
+REGRA: validade_ate é calculada pelo banco automaticamente (now() + 90 dias na aprovação). Sempre retorne null nesse campo.
+
 ESTRUTURA OBRIGATÓRIA:
 {
   "resumo": "3-5 linhas em prosa humana resumindo o caso",
@@ -56,7 +58,7 @@ ESTRUTURA OBRIGATÓRIA:
     "formas_aceitas": ["boleto","pix","cartao"],
     "parecer_final": "2-3 frases pro lojista (Joseph adapta antes de enviar)",
     "ressalva": string | null,
-    "validade_ate": "YYYY-MM-DD" | null
+    "validade_ate": null
   },
   "decisao_sugerida": "aprovar"|"aprovar_com_ressalva"|"reprovar"|"devolver_analise"|"devolver_entrada",
   "justificativa": "1-2 parágrafos citando fontes específicas",
