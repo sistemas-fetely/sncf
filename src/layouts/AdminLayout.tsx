@@ -3,11 +3,11 @@ import { Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Shield } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
 import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
-import { LayoutHeader } from "@/components/shared/LayoutHeader";
+
 
 export default function AdminLayout() {
   const { user, roles, loading } = useAuth();
@@ -36,7 +36,7 @@ export default function AdminLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AdminSidebar />
         <div className="flex-1 flex flex-col">
-          <LayoutHeader icon={Shield} nome="ADM SNCF" />
+
           <main className="flex-1 overflow-auto relative">
             <Suspense fallback={
               <div className="flex items-center justify-center h-full p-12">
