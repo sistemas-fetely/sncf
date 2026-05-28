@@ -30,6 +30,8 @@ export function useEnriquecerParceiro() {
       qc.invalidateQueries({ queryKey: ["analise-detalhe"] });
       qc.invalidateQueries({ queryKey: ["cliente-detalhe"] });
       qc.invalidateQueries({ queryKey: ["analises-fila"] });
+      qc.invalidateQueries({ queryKey: ["parceiro-detalhe"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
 
       if (resp.enriquecido) {
         const partes: string[] = [];

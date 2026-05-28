@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ShieldAlert, AlertCircle, MapPin, FileText } from "lucide-react";
+import { ArrowLeft, ShieldAlert, AlertCircle, MapPin, FileText, Sparkles, Loader2 } from "lucide-react";
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
+import { useEnriquecerParceiro } from "@/hooks/credito/useEnriquecerParceiro";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -25,6 +26,7 @@ export default function ParceiroDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data, isLoading } = useParceiroDetalhe(id);
+  const enriquecer = useEnriquecerParceiro();
 
   const handleVoltar = () => {
     if (window.history.length > 2) navigate(-1);
@@ -99,6 +101,43 @@ export default function ParceiroDetalhe() {
           <Badge variant="outline">KA {parceiro.categoria_ka}</Badge>
         )}
       </div>
+
+      {/* Box enriquecer — só quando cadastro incompleto e tem CNPJ válido */}
+      {parceiro.cadastro_incompleto && parceiro.cnpj && parceiro.cnpj.length === 14 && (
+        <Card className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="pt-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Cadastro incompleto</p>
+                  <p className="text-sm text-muted-foreground">
+                    Faltam dados de razão social, endereço, e/ou sócios. Enriqueça via BrasilAPI pra completar automaticamente.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => parceiro.id && enriquecer.mutate(parceiro.id)}
+                disabled={enriquecer.isPending}
+                className="gap-2 shrink-0"
+              >
+                {enriquecer.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Enriquecendo...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Enriquecer agora
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPIs */}
       <div className="grid gap-4 md:grid-cols-3">
