@@ -18,6 +18,12 @@ export function useParceiroDetalhe(id: string | undefined) {
         .single();
       if (error) throw error;
 
+      const { data: socios } = await sb
+        .from("socios_parceiro")
+        .select("*")
+        .eq("parceiro_id", id)
+        .order("participacao_pct", { ascending: false, nullsFirst: false });
+
       const { count: total_pedidos } = await sb
         .from("pedidos")
         .select("id", { count: "exact", head: true })
@@ -40,6 +46,7 @@ export function useParceiroDetalhe(id: string | undefined) {
 
       return {
         parceiro,
+        socios: socios || [],
         total_pedidos: total_pedidos || 0,
         valor_total,
         pedidos_em_aberto,
