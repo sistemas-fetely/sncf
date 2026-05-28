@@ -55,7 +55,7 @@ export function PipelineHorizontal({ onClickEstagio, estagioAtivo }: Props) {
   const visiveisNaBarra = useMemo(
     () =>
       consolidado.filter(
-        (e) => !["em_cobranca", "recebido"].includes(e.estagio) && e.qtd === 0)
+        (e) => !("em_cobranca", "recebido"].includes(e.estagio) && e.qtd === 0)
       ),
     [consolidado]
   );
