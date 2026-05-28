@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowLeft, ExternalLink, FileText, Receipt, AlertCircle,
+  ArrowLeft, ExternalLink, FileText, AlertCircle,
 } from "lucide-react";
+import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
+import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
 import { EstagioBadge, BadgesContextuaisPedido, FormatoIdade } from "@/components/pedidos/BadgesPedido";
 import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
 import { TransicionarPedidoDialog } from "@/components/pedidos/dialogs/TransicionarPedidoDialog";
