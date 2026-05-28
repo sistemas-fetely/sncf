@@ -118,3 +118,30 @@ export const ESTAGIO_ORDEM: EstagioPedido[] = [
   "entregue",
   "cancelado",
 ];
+
+export type FaseCluster = "entrada" | "analise" | "cobranca" | "faturamento" | "concluido";
+
+export const FASE_LABELS: Record<FaseCluster, string> = {
+  entrada: "Entrada",
+  analise: "Análise",
+  cobranca: "Cobrança",
+  faturamento: "Faturamento",
+  concluido: "Concluído",
+};
+
+export const ESTAGIO_FASE: Record<EstagioPedido, FaseCluster> = {
+  recebido: "entrada",
+  em_analise_credito: "analise",
+  em_cobranca: "cobranca",
+  em_cobranca_cartao: "cobranca",
+  em_cobranca_pix: "cobranca",
+  em_cobranca_boleto: "cobranca",
+  pronto_pro_bling: "faturamento",
+  em_separacao: "faturamento",
+  faturado: "faturamento",
+  em_transporte: "faturamento",
+  entregue: "concluido",
+  cancelado: "concluido",
+};
+
+export const FASE_ORDEM: FaseCluster[] = ["entrada", "analise", "cobranca", "faturamento", "concluido"];
