@@ -373,6 +373,14 @@ export default function PedidoDetalhe() {
                         ultimo_evento={ultimoBoleto}
                       />
                     )}
+                    {(pedido.estagio === "em_cobranca_cartao" ||
+                      pedido.estagio === "em_cobranca_pix" ||
+                      pedido.estagio === "em_cobranca_boleto") && (
+                      <ConfirmarPagamentoDialog
+                        pedido_id={pedido.id}
+                        valor_pedido={Number(pedido.valor_liquido)}
+                      />
+                    )}
                   </>
                 );
               })()}
