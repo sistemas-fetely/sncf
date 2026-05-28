@@ -51,10 +51,13 @@ export function TransicionarPedidoDialog({
 
   const label = triggerLabel || (estagio_atual === "recebido" ? "Triar e encaminhar" : "Avançar estágio");
 
+  // Triar é ação primária do recebido → destaque. Avançar estágio é fallback genérico → outline.
+  const isAcaoPrimaria = estagio_atual === "recebido" || !!triggerLabel;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button className="gap-2" variant={isAcaoPrimaria ? "default" : "outline"}>
           <ArrowRight className="h-4 w-4" />
           {label}
         </Button>
