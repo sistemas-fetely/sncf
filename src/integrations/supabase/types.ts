@@ -8248,6 +8248,10 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          analise_pedido_detalhes: Json | null
+          analise_pedido_executada_em: string | null
+          analise_pedido_motivo: string | null
+          analise_pedido_status: string | null
           area_atual: string
           cancelado_em: string | null
           cancelado_motivo: string | null
@@ -8280,6 +8284,10 @@ export type Database = {
           vendedor: string | null
         }
         Insert: {
+          analise_pedido_detalhes?: Json | null
+          analise_pedido_executada_em?: string | null
+          analise_pedido_motivo?: string | null
+          analise_pedido_status?: string | null
           area_atual?: string
           cancelado_em?: string | null
           cancelado_motivo?: string | null
@@ -8312,6 +8320,10 @@ export type Database = {
           vendedor?: string | null
         }
         Update: {
+          analise_pedido_detalhes?: Json | null
+          analise_pedido_executada_em?: string | null
+          analise_pedido_motivo?: string | null
+          analise_pedido_status?: string | null
           area_atual?: string
           cancelado_em?: string | null
           cancelado_motivo?: string | null
@@ -12523,6 +12535,10 @@ export type Database = {
       v_pedidos_fila: {
         Row: {
           analise_credito_id: string | null
+          analise_pedido_detalhes: Json | null
+          analise_pedido_executada_em: string | null
+          analise_pedido_motivo: string | null
+          analise_pedido_status: string | null
           area_atual: string | null
           bandeira_vermelha: boolean | null
           cancelado_em: string | null
@@ -13212,6 +13228,10 @@ export type Database = {
     }
     Functions: {
       _meio_pagamento_nascida_paga: { Args: never; Returns: string }
+      analisar_pedido_vs_programa: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       ancorar_boleto_em_cpr: {
         Args: { p_boleto_stage_id: string; p_cpr_id: string }
         Returns: Json
