@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
   DialogFooter, DialogTrigger,
@@ -10,24 +10,46 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CreditCard } from "lucide-react";
+import { CreditCard, RefreshCw } from "lucide-react";
 import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
 
 interface Props {
   pedido_id: string;
   contato_email?: string | null;
   contato_telefone?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ultimo_evento?: any | null;
 }
 
 const METODOS = ["Email", "WhatsApp", "SMS", "Outro"] as const;
 type Metodo = typeof METODOS[number];
 
-export function OperacaoCartaoDialog({ pedido_id, contato_email, contato_telefone }: Props) {
+export function OperacaoCartaoDialog({
+  pedido_id, contato_email, contato_telefone, ultimo_evento,
+}: Props) {
+  const isAtualizacao = !!ultimo_evento;
+  const meta = ultimo_evento?.metadata || {};
+
   const [open, setOpen] = useState(false);
   const [link, setLink] = useState("");
   const [metodo, setMetodo] = useState<Metodo>("WhatsApp");
   const [contato, setContato] = useState("");
   const [observacao, setObservacao] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    if (isAtualizacao) {
+      setLink(String(meta.link || ""));
+      setMetodo((METODOS.includes(meta.metodo) ? meta.metodo : "WhatsApp") as Metodo);
+      setContato(String(meta.contato || ""));
+      setObservacao("");
+    } else {
+      setLink("");
+      setMetodo("WhatsApp");
+      setContato(contato_telefone || "");
+      setObservacao("");
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const registrar = useRegistrarOperacaoPedido();
 
@@ -35,7 +57,6 @@ export function OperacaoCartaoDialog({ pedido_id, contato_email, contato_telefon
     setMetodo(m);
     if (m === "Email" && contato_email) setContato(contato_email);
     else if (["WhatsApp", "SMS"].includes(m) && contato_telefone) setContato(contato_telefone);
-    else if (!contato_email && !contato_telefone) setContato("");
   };
 
   const handleConfirm = async () => {
@@ -43,36 +64,44 @@ export function OperacaoCartaoDialog({ pedido_id, contato_email, contato_telefon
 
     await registrar.mutateAsync({
       pedido_id,
-      tipo_evento: "link_cartao_enviado",
-      descricao: `Link enviado por ${metodo} para ${contato}`,
+      tipo_evento: isAtualizacao ? "link_cartao_atualizado" : "link_cartao_enviado",
+      descricao: isAtualizacao
+        ? `Link de cartão atualizado — enviado por ${metodo} para ${contato}`
+        : `Link enviado por ${metodo} para ${contato}`,
       metadata: {
         link: link.trim(),
         metodo,
         contato: contato.trim(),
         observacao: observacao.trim() || undefined,
+        evento_anterior_id: isAtualizacao ? ultimo_evento.id : undefined,
       },
       proxima_acao: "Aguardar confirmação do pagamento",
     });
 
     setOpen(false);
-    setLink("");
-    setContato("");
-    setObservacao("");
   };
+
+  const btnClass = isAtualizacao
+    ? "gap-2 bg-blue-700 hover:bg-blue-800 text-white"
+    : "gap-2 bg-blue-600 hover:bg-blue-700 text-white";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-          <CreditCard className="h-4 w-4" />
-          Enviar link de pagamento
+        <Button size="sm" className={btnClass}>
+          {isAtualizacao ? <RefreshCw className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+          {isAtualizacao ? "Atualizar link" : "Enviar link de pagamento"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Enviar link de pagamento por cartão</DialogTitle>
+          <DialogTitle>
+            {isAtualizacao ? "Atualizar link de pagamento" : "Enviar link de pagamento por cartão"}
+          </DialogTitle>
           <DialogDescription>
-            Cole o link gerado no gateway externo. O sistema registra o envio na timeline.
+            {isAtualizacao
+              ? "Cliente pediu mudança? Atualize o link/método/contato. Registra novo evento na timeline."
+              : "Cole o link gerado no gateway externo. O sistema registra o envio."}
           </DialogDescription>
         </DialogHeader>
 
@@ -90,9 +119,7 @@ export function OperacaoCartaoDialog({ pedido_id, contato_email, contato_telefon
             <div className="space-y-2">
               <Label>Método de envio *</Label>
               <Select value={metodo} onValueChange={(v) => handleMetodoChange(v as Metodo)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {METODOS.map((m) => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
@@ -100,7 +127,6 @@ export function OperacaoCartaoDialog({ pedido_id, contato_email, contato_telefon
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label>Contato *</Label>
               <Input
@@ -112,11 +138,11 @@ export function OperacaoCartaoDialog({ pedido_id, contato_email, contato_telefon
           </div>
 
           <div className="space-y-2">
-            <Label>Observação (opcional)</Label>
+            <Label>{isAtualizacao ? "Motivo da atualização" : "Observação (opcional)"}</Label>
             <Textarea
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Algum contexto adicional pro audit trail."
+              placeholder={isAtualizacao ? "Ex: cliente pediu pra enviar pelo email" : "Algum contexto adicional pro audit trail."}
               rows={2}
             />
           </div>
@@ -128,7 +154,7 @@ export function OperacaoCartaoDialog({ pedido_id, contato_email, contato_telefon
             onClick={handleConfirm}
             disabled={!link.trim() || !contato.trim() || registrar.isPending}
           >
-            {registrar.isPending ? "Registrando..." : "Registrar envio"}
+            {registrar.isPending ? "Registrando..." : isAtualizacao ? "Registrar atualização" : "Registrar envio"}
           </Button>
         </DialogFooter>
       </DialogContent>

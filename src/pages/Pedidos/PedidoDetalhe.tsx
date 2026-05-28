@@ -331,28 +331,50 @@ export default function PedidoDetalhe() {
             <div className="flex items-center gap-2">
               <AnotarPedidoDialog pedido_id={pedido.id} />
               <CancelarPedidoDialog pedido_id={pedido.id} />
-              {pedido.estagio === "em_cobranca_cartao" && (
-                <OperacaoCartaoDialog
-                  pedido_id={pedido.id}
-                  contato_email={parceiro?.email}
-                  contato_telefone={parceiro?.telefone}
-                />
-              )}
-              {pedido.estagio === "em_cobranca_pix" && (
-                <OperacaoPixDialog
-                  pedido_id={pedido.id}
-                  contato_email={parceiro?.email}
-                  contato_telefone={parceiro?.telefone}
-                />
-              )}
-              {pedido.estagio === "em_cobranca_boleto" && (
-                <OperacaoBoletoDialog
-                  pedido_id={pedido.id}
-                  valor_padrao={Number(pedido.valor_liquido)}
-                  condicao_solicitada={pedido.condicao_solicitada}
-                  data_pedido={pedido.data_pedido}
-                />
-              )}
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const ultimoDe = (tipos: string[]) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const matches = (eventos || []).filter((e: any) => tipos.includes(e.tipo_evento));
+                  if (matches.length === 0) return null;
+                  return [...matches].sort(
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                  )[0];
+                };
+                const ultimoCartao = ultimoDe(["link_cartao_enviado", "link_cartao_atualizado"]);
+                const ultimoPix = ultimoDe(["pix_enviado", "pix_atualizado"]);
+                const ultimoBoleto = ultimoDe(["boleto_emitido", "boleto_atualizado"]);
+                return (
+                  <>
+                    {pedido.estagio === "em_cobranca_cartao" && (
+                      <OperacaoCartaoDialog
+                        pedido_id={pedido.id}
+                        contato_email={parceiro?.email}
+                        contato_telefone={parceiro?.telefone}
+                        ultimo_evento={ultimoCartao}
+                      />
+                    )}
+                    {pedido.estagio === "em_cobranca_pix" && (
+                      <OperacaoPixDialog
+                        pedido_id={pedido.id}
+                        contato_email={parceiro?.email}
+                        contato_telefone={parceiro?.telefone}
+                        ultimo_evento={ultimoPix}
+                      />
+                    )}
+                    {pedido.estagio === "em_cobranca_boleto" && (
+                      <OperacaoBoletoDialog
+                        pedido_id={pedido.id}
+                        valor_padrao={Number(pedido.valor_liquido)}
+                        condicao_solicitada={pedido.condicao_solicitada}
+                        data_pedido={pedido.data_pedido}
+                        ultimo_evento={ultimoBoleto}
+                      />
+                    )}
+                  </>
+                );
+              })()}
               {(pedido.estagio === "em_cobranca_cartao" ||
                 pedido.estagio === "em_cobranca_pix" ||
                 pedido.estagio === "em_cobranca_boleto" ||
