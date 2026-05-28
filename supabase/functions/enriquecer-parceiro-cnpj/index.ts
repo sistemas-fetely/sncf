@@ -103,10 +103,16 @@ Deno.serve(async (req) => {
       return jsonResponse({ enriquecido: false, motivo: "cnpj_nao_encontrado" });
     }
 
+    if (resp.status === 400) {
+      const txt = await resp.text().catch(() => "");
+      console.warn("BrasilAPI 400 (CNPJ inválido/inexistente)", txt);
+      return jsonResponse({ enriquecido: false, motivo: "cnpj_nao_encontrado" });
+    }
+
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
       console.error("BrasilAPI erro", resp.status, txt);
-      return jsonResponse({ error: `BrasilAPI status ${resp.status}` }, 502);
+      return jsonResponse({ enriquecido: false, motivo: "brasilapi_indisponivel" }, 200);
     }
 
     const dataApi = await resp.json();
