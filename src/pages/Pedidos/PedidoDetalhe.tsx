@@ -328,17 +328,20 @@ export default function PedidoDetalhe() {
             <div className="flex items-center gap-2">
               <AnotarPedidoDialog pedido_id={pedido.id} />
               <CancelarPedidoDialog pedido_id={pedido.id} />
-              {pedido.estagio === "recebido" ? (
+              {(pedido.estagio === "em_cobranca_cartao" ||
+                pedido.estagio === "em_cobranca_pix" ||
+                pedido.estagio === "em_cobranca_boleto" ||
+                pedido.estagio === "em_analise_credito") && (
                 <TriarPedidoDialog
                   pedido_id={pedido.id}
                   perfil_credito={parceiro?.perfil_credito}
-                />
-              ) : (
-                <TransicionarPedidoDialog
-                  pedido_id={pedido.id}
                   estagio_atual={pedido.estagio as EstagioPedido}
                 />
               )}
+              <TransicionarPedidoDialog
+                pedido_id={pedido.id}
+                estagio_atual={pedido.estagio as EstagioPedido}
+              />
             </div>
           </div>
         </div>

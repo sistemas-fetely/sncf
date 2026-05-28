@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, CreditCard, QrCode, Receipt, AlertCircle, CheckCircle2 } from "lucide-react";
+import { RefreshCw, CreditCard, QrCode, Receipt, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
 import { podePularAnaliseParaBoleto } from "@/lib/pedidoTransicoes";
 import type { EstagioPedido } from "@/types/pedido";
@@ -19,9 +19,20 @@ type Trilha = "cartao" | "pix" | "boleto";
 interface Props {
   pedido_id: string;
   perfil_credito: string | null | undefined;
+  estagio_atual: EstagioPedido;
+  /** Texto do botão. Default: "Mudar trilha" */
+  triggerLabel?: string;
+  /** Variante visual do botão trigger. Default: "outline" */
+  triggerVariant?: "default" | "outline" | "ghost";
 }
 
-export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
+export function TriarPedidoDialog({
+  pedido_id,
+  perfil_credito,
+  estagio_atual,
+  triggerLabel = "Mudar trilha",
+  triggerVariant = "outline",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [trilha, setTrilha] = useState<Trilha | null>(null);
   const [proximaAcao, setProximaAcao] = useState("");
@@ -29,6 +40,13 @@ export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
 
   const transicionar = useTransicionarPedido();
   const boletoDireto = podePularAnaliseParaBoleto(perfil_credito);
+
+  // Trilha "atual" (pra desabilitar o card correspondente)
+  const trilhaAtual: Trilha | null =
+    estagio_atual === "em_cobranca_cartao" ? "cartao" :
+    estagio_atual === "em_cobranca_pix" ? "pix" :
+    estagio_atual === "em_cobranca_boleto" || estagio_atual === "em_analise_credito" ? "boleto" :
+    null;
 
   const handleConfirm = async () => {
     if (!trilha) return;
@@ -42,7 +60,7 @@ export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
     else {
       destino = "em_analise_credito";
       if (!motivoFinal) {
-        motivoFinal = `Boleto solicitado — perfil ${perfil_credito || "indefinido"} precisa de análise prévia`;
+        motivoFinal = `Mudança pra boleto — perfil ${perfil_credito || "indefinido"} requer análise prévia`;
       }
     }
 
@@ -50,7 +68,7 @@ export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
       pedido_id,
       para_estagio: destino,
       proxima_acao: proximaAcao || undefined,
-      motivo: motivoFinal || undefined,
+      motivo: motivoFinal || `Mudança de trilha solicitada`,
     });
 
     setOpen(false);
@@ -62,16 +80,17 @@ export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <ArrowRight className="h-4 w-4" />
-          Triar e encaminhar
+        <Button size="sm" variant={triggerVariant} className="gap-2">
+          <RefreshCw className="h-4 w-4" />
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Triar pedido</DialogTitle>
+          <DialogTitle>Mudar trilha de pagamento</DialogTitle>
           <DialogDescription>
-            Como o cliente vai pagar? A trilha define a próxima etapa do fluxo.
+            Use só quando o cliente mudar a forma de pagamento. O sistema já alocou a trilha
+            automaticamente baseado no que veio do pedido.
           </DialogDescription>
         </DialogHeader>
 
@@ -83,6 +102,7 @@ export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
               subtitulo="de crédito"
               cor="blue"
               ativa={trilha === "cartao"}
+              atual={trilhaAtual === "cartao"}
               onClick={() => setTrilha("cartao")}
             />
             <TrilhaCard
@@ -91,6 +111,7 @@ export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
               subtitulo="chave ou QR"
               cor="cyan"
               ativa={trilha === "pix"}
+              atual={trilhaAtual === "pix"}
               onClick={() => setTrilha("pix")}
             />
             <TrilhaCard
@@ -112,6 +133,7 @@ export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
               }
               cor="amber"
               ativa={trilha === "boleto"}
+              atual={trilhaAtual === "boleto"}
               onClick={() => setTrilha("boleto")}
             />
           </div>
@@ -138,11 +160,11 @@ export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>Observação (opcional)</Label>
+            <Label>Motivo da mudança</Label>
             <Textarea
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Contexto pra próxima pessoa. Vai pro audit trail."
+              placeholder="Ex: Cliente preferiu PIX em vez de boleto. Vai pro audit trail."
               rows={2}
             />
           </div>
@@ -150,8 +172,11 @@ export function TriarPedidoDialog({ pedido_id, perfil_credito }: Props) {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={handleConfirm} disabled={!trilha || transicionar.isPending}>
-            {transicionar.isPending ? "Encaminhando..." : "Confirmar"}
+          <Button
+            onClick={handleConfirm}
+            disabled={!trilha || trilha === trilhaAtual || transicionar.isPending}
+          >
+            {transicionar.isPending ? "Mudando..." : "Confirmar mudança"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -165,11 +190,12 @@ interface TrilhaCardProps {
   subtitulo: string;
   cor: "blue" | "cyan" | "amber";
   ativa: boolean;
+  atual: boolean;
   badge?: React.ReactNode;
   onClick: () => void;
 }
 
-function TrilhaCard({ icone, titulo, subtitulo, cor, ativa, badge, onClick }: TrilhaCardProps) {
+function TrilhaCard({ icone, titulo, subtitulo, cor, ativa, atual, badge, onClick }: TrilhaCardProps) {
   const borderActive: Record<string, string> = {
     blue: "border-blue-500 ring-2 ring-blue-500/30 bg-blue-50/50",
     cyan: "border-cyan-500 ring-2 ring-cyan-500/30 bg-cyan-50/50",
@@ -183,9 +209,9 @@ function TrilhaCard({ icone, titulo, subtitulo, cor, ativa, badge, onClick }: Tr
 
   return (
     <Card
-      className={`cursor-pointer transition-all hover:border-foreground/30 ${
+      className={`cursor-pointer transition-all hover:border-foreground/30 relative ${
         ativa ? borderActive[cor] : ""
-      }`}
+      } ${atual ? "opacity-60" : ""}`}
       onClick={onClick}
     >
       <CardContent className="py-4 flex flex-col items-center text-center gap-2">
@@ -195,6 +221,11 @@ function TrilhaCard({ icone, titulo, subtitulo, cor, ativa, badge, onClick }: Tr
           <p className="text-xs text-muted-foreground">{subtitulo}</p>
         </div>
         {badge && <div>{badge}</div>}
+        {atual && (
+          <Badge variant="secondary" className="text-[10px] absolute top-1 right-1">
+            atual
+          </Badge>
+        )}
       </CardContent>
     </Card>
   );
