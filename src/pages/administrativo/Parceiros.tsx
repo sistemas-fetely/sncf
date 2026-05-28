@@ -582,8 +582,12 @@ export default function Parceiros() {
                       <TableBody>
                         {filtered.map((p) => {
                           const tipos = p.tipos || [];
-                          const tipoLabel =
-                            tipos.length === 2 ? "ambos" : tipos[0] || "fornecedor";
+                          const isForn = tipos.includes("fornecedor");
+                          const isCli = tipos.includes("cliente");
+                          let tipoLabel: string;
+                          if (isForn && isCli) tipoLabel = "ambos";
+                          else if (isCli) tipoLabel = "cliente";
+                          else tipoLabel = "fornecedor";
                           const cat = p.plano_contas_id
                             ? categoriaNomeMap.get(p.plano_contas_id)
                             : null;
