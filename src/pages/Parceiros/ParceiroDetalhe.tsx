@@ -9,6 +9,7 @@ import { ArrowLeft, ShieldAlert, AlertCircle, MapPin, FileText, Sparkles, Loader
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
 import { useEnriquecerParceiro } from "@/hooks/credito/useEnriquecerParceiro";
 import { validateCNPJ } from "@/lib/cnpj";
+import { descricaoNaturezaJuridica } from "@/lib/natureza-juridica";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -306,7 +307,10 @@ export default function ParceiroDetalhe() {
                 <Linha label="Capital social" value={fmtBRL.format(Number(rf.capital_social))} />
               )}
               {rf.natureza_juridica != null && (
-                <Linha label="Natureza jurídica" value={String(rf.natureza_juridica)} />
+                <Linha
+                  label="Natureza jurídica"
+                  value={descricaoNaturezaJuridica(rf.natureza_juridica as string | number)}
+                />
               )}
               {rf.cnae_fiscal != null && (
                 <Linha label="CNAE principal" value={String(rf.cnae_fiscal)} />
