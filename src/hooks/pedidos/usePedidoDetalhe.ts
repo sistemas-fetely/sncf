@@ -54,7 +54,7 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
 
       const { data: analiseCredito } = await sb
         .from("analises_credito")
-        .select("id, estagio_atual, status_final, criado_em, decidido_em, analise_ia_resumo, analise_ia_confianca")
+        .select("*")
         .eq("pedido_id", pedidoId)
         .order("criado_em", { ascending: false })
         .limit(1)
