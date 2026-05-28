@@ -58,7 +58,14 @@ export default function ParceiroDetalhe() {
     );
   }
 
-  const { parceiro, total_pedidos, valor_total, pedidos_em_aberto } = data;
+  const { parceiro, socios, total_pedidos, valor_total, pedidos_em_aberto } = data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rf = (parceiro.contexto_bureau as any)?.brasilapi as Record<string, any> | undefined;
+
+  const fmtDateBR = (s: string | null | undefined) => {
+    if (!s) return "—";
+    try { return new Date(s).toLocaleDateString("pt-BR"); } catch { return s; }
+  };
 
   const enderecoCompleto = [
     parceiro.logradouro,
