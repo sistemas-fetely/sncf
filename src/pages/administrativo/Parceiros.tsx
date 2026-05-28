@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { exportarParceirosXlsx, importarParceirosXlsx, type LookupMaps } from "@/lib/parceiros/excel-io";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Users, Trash2, Download, Upload, Loader2 } from "lucide-react";
+import { Plus, Search, Users, Trash2, Download, Upload, Loader2, Pencil } from "lucide-react";
 import { ParceiroFormSheet, Parceiro } from "@/components/financeiro/ParceiroFormSheet";
 import { CategoriaOption } from "@/components/financeiro/CategoriaCombobox";
 import { GruposLista } from "@/components/financeiro/GruposLista";
@@ -67,6 +67,7 @@ type SortField =
 
 export default function Parceiros() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const tabParam = searchParams.get("tab");
   const tabAtiva =
     tabParam === "grupos"
@@ -592,7 +593,7 @@ export default function Parceiros() {
                             <TableRow
                               key={p.id}
                               className="cursor-pointer"
-                              onClick={() => handleEdit(p)}
+                              onClick={() => navigate(`/parceiros/${p.id}`)}
                             >
                               <TableCell>
                                 <div>
@@ -649,15 +650,26 @@ export default function Parceiros() {
                                 )}
                               </TableCell>
                               <TableCell onClick={(e) => e.stopPropagation()}>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => setParceiroParaExcluir(p)}
-                                  title="Excluir parceiro"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleEdit(p)}
+                                    title="Edição rápida"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setParceiroParaExcluir(p)}
+                                    title="Excluir parceiro"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
