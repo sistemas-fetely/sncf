@@ -349,6 +349,8 @@ export default function PedidoDetalhe() {
                 <OperacaoBoletoDialog
                   pedido_id={pedido.id}
                   valor_padrao={Number(pedido.valor_liquido)}
+                  condicao_solicitada={pedido.condicao_solicitada}
+                  data_pedido={pedido.data_pedido}
                 />
               )}
               {(pedido.estagio === "em_cobranca_cartao" ||
