@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ function Linha({
 export default function PedidoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data, isLoading } = usePedidoDetalhe(id);
 
   if (isLoading) {
@@ -177,7 +178,7 @@ export default function PedidoDetalhe() {
               variant="outline"
               size="sm"
               className="w-full gap-2 mt-2"
-              onClick={() => parceiro?.id && navigate(`/parceiros/${parceiro.id}`)}
+              onClick={() => parceiro?.id && navigate(`/parceiros/${parceiro.id}`, { state: { from: location.pathname } })}
             >
               <ExternalLink className="h-4 w-4" />
               Ver perfil completo

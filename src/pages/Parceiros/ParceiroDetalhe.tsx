@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useParceiroDetalhe } from "@/hooks/parceiros/useParceiroDetalhe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,11 +26,18 @@ function Linha({
 export default function ParceiroDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data, isLoading } = useParceiroDetalhe(id);
   const enriquecer = useEnriquecerParceiro();
 
   const handleVoltar = () => {
-    navigate(-1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const from = (location.state as any)?.from as string | undefined;
+    if (from) {
+      navigate(from);
+    } else {
+      navigate("/administrativo/parceiros");
+    }
   };
 
   if (isLoading) {

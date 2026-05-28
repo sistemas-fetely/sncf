@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { exportarParceirosXlsx, importarParceirosXlsx, type LookupMaps } from "@/lib/parceiros/excel-io";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -68,6 +68,7 @@ type SortField =
 export default function Parceiros() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const tabParam = searchParams.get("tab");
   const tabAtiva =
     tabParam === "grupos"
@@ -593,7 +594,7 @@ export default function Parceiros() {
                             <TableRow
                               key={p.id}
                               className="cursor-pointer"
-                              onClick={() => navigate(`/parceiros/${p.id}`)}
+                              onClick={() => navigate(`/parceiros/${p.id}`, { state: { from: location.pathname + location.search } })}
                             >
                               <TableCell>
                                 <div>
