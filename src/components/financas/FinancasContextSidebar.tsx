@@ -23,7 +23,6 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
@@ -60,57 +59,50 @@ export function FinancasContextSidebar() {
 
         {/* OPERAR */}
         <SidebarGroup>
-          <SidebarGroupLabel className="uppercase tracking-wider text-xs text-muted-foreground">
-            Operar
-          </SidebarGroupLabel>
           <SidebarGroupContent className="space-y-2">
-            <FinancasSidebarSection title="CPR">
-              <FinancasSidebarItem to="/administrativo/contas-pagar" icon={ArrowDownCircle} label="Contas a Pagar" />
-              <FinancasSidebarItem to="/administrativo/contas-receber" icon={ArrowUpCircle} label="Contas a Receber" />
-              <FinancasSidebarItem to="/administrativo/compromissos" icon={Calendar} label="Compromissos" />
-            </FinancasSidebarSection>
+            <FinancasSidebarSection title="Operar" variant="primary">
+              <FinancasSidebarSection title="CPR">
+                <FinancasSidebarItem to="/administrativo/contas-pagar" icon={ArrowDownCircle} label="Contas a Pagar" />
+                <FinancasSidebarItem to="/administrativo/contas-receber" icon={ArrowUpCircle} label="Contas a Receber" />
+                <FinancasSidebarItem to="/administrativo/compromissos" icon={Calendar} label="Compromissos" />
+              </FinancasSidebarSection>
 
-            <FinancasSidebarSection title="Banco">
-              <FinancasSidebarItem to="/administrativo/caixa-banco" icon={ArrowLeftRight} label="Movimentações" end />
-              <FinancasSidebarItem to="/administrativo/faturas-cartao" icon={CreditCard} label="Faturas de Cartão" />
-              <FinancasSidebarItem to="/administrativo/reconciliacao-cartao" icon={GitCompare} label="Reconciliação" />
-              <FinancasSidebarItem to="/administrativo/conciliacao" icon={CheckCheck} label="Conciliação" />
-            </FinancasSidebarSection>
+              <FinancasSidebarSection title="Banco">
+                <FinancasSidebarItem to="/administrativo/caixa-banco" icon={ArrowLeftRight} label="Movimentações" end />
+                <FinancasSidebarItem to="/administrativo/faturas-cartao" icon={CreditCard} label="Faturas de Cartão" />
+                <FinancasSidebarItem to="/administrativo/reconciliacao-cartao" icon={GitCompare} label="Reconciliação" />
+                <FinancasSidebarItem to="/administrativo/conciliacao" icon={CheckCheck} label="Conciliação" />
+              </FinancasSidebarSection>
 
-            <FinancasSidebarSection title="Documentos">
-              <FinancasSidebarItem to="/administrativo/importar" icon={Upload} label="Importar Dados" />
-              <FinancasSidebarItem to="/administrativo/nfs-stage" icon={FileText} label="NFs em Stage" />
-              <FinancasSidebarItem to="/administrativo/documentos-pendentes" icon={FileWarning} label="Documentos Pendentes" />
+              <FinancasSidebarSection title="Documentos">
+                <FinancasSidebarItem to="/administrativo/importar" icon={Upload} label="Importar Dados" />
+                <FinancasSidebarItem to="/administrativo/nfs-stage" icon={FileText} label="NFs em Stage" />
+                <FinancasSidebarItem to="/administrativo/documentos-pendentes" icon={FileWarning} label="Documentos Pendentes" />
+              </FinancasSidebarSection>
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
 
         {/* ESTRUTURA */}
         <SidebarGroup>
-          <SidebarGroupLabel className="uppercase tracking-wider text-xs text-muted-foreground">
-            Estrutura
-          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <FinancasSidebarSection title="Estrutura" variant="primary">
               <FinancasSidebarItem to="/administrativo/parceiros" icon={Users} label="Parceiros Comerciais" />
               <FinancasSidebarItem to="/administrativo/plano-contas" icon={FolderTree} label="Plano de Contas" />
               <FinancasSidebarItem to="/administrativo/caixa-banco/contas" icon={Landmark} label="Contas Bancárias" />
               <FinancasSidebarItem to="/administrativo/investimento-lancamento" icon={Coins} label="Investimento de Lançamento" />
-            </SidebarMenu>
+            </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
 
         {/* ACOMPANHAR */}
         <SidebarGroup>
-          <SidebarGroupLabel className="uppercase tracking-wider text-xs text-muted-foreground">
-            Acompanhar
-          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <FinancasSidebarSection title="Acompanhar" variant="primary">
               <FinancasSidebarItem to="/administrativo/fluxo-caixa" icon={LineChart} label="Fluxo de Caixa" />
               <FinancasSidebarItem to="/administrativo/fluxo-futuro" icon={TrendingUp} label="Fluxo Futuro" />
               <FinancasSidebarItem to="/administrativo/fluxo-futuro-investimento" icon={Target} label="Fluxo Futuro Investimento" />
-            </SidebarMenu>
+            </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

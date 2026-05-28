@@ -8,23 +8,25 @@ interface FinancasSidebarSectionProps {
   title: string;
   children: ReactNode;
   defaultOpen?: boolean;
+  variant?: "primary" | "nested";
 }
 
 export function FinancasSidebarSection({
   title,
   children,
   defaultOpen = true,
+  variant = "nested",
 }: FinancasSidebarSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
 
+  const triggerClassName =
+    variant === "primary"
+      ? "flex w-full items-center justify-between px-2 py-2 text-xs uppercase tracking-wider font-medium text-muted-foreground rounded-md transition-colors hover:bg-sidebar-accent hover:text-foreground"
+      : "flex w-full items-center justify-between px-3 py-1.5 text-xs font-medium text-foreground rounded-md transition-colors hover:bg-sidebar-accent";
+
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="group/section">
-      <CollapsibleTrigger
-        className={cn(
-          "flex w-full items-center justify-between px-3 py-1.5 text-xs font-medium text-foreground rounded-md transition-colors",
-          "hover:bg-sidebar-accent"
-        )}
-      >
+      <CollapsibleTrigger className={cn(triggerClassName)}>
         <span>{title}</span>
         <ChevronRight
           className={cn(
