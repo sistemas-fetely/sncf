@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { BLING_BASE, ensureFreshToken, makeBlingClient, type BlingConfig } from "./bling-client.ts";
 import { syncContatos } from "./sync-contatos.ts";
 import { syncProdutos } from "./sync-produtos.ts";
+import { syncEstoques } from "./sync-estoques.ts";
 import { syncContasReceber } from "./sync-contas-receber.ts";
 import { syncPedidos } from "./sync-pedidos.ts";
 import { syncNfe } from "./sync-nfe.ts";
@@ -24,8 +25,9 @@ const err = (msg: string, status = 400) =>
 // que a função sempre retorne resposta antes do timeout (cliente faz loop).
 const MAX_EXEC_MS = 90_000;
 
-type Entidade = "contatos" | "produtos" | "contas_receber" | "pedidos" | "nfe";
-const ORDEM: Entidade[] = ["contatos", "produtos", "contas_receber", "pedidos", "nfe"];
+type Entidade = "contatos" | "produtos" | "estoques" | "contas_receber" | "pedidos" | "nfe";
+// estoques roda depois de produtos (precisa dos bling_id já populados).
+const ORDEM: Entidade[] = ["contatos", "produtos", "estoques", "contas_receber", "pedidos", "nfe"];
 
 async function getOrCreateCursor(supabase: any, entidade: Entidade) {
   const { data } = await supabase.from("integracoes_sync_cursor")
@@ -49,6 +51,7 @@ async function runEntity(
   try {
     if (entidade === "contatos") result = await syncContatos(supabase, client, timeUp, cursor);
     else if (entidade === "produtos") result = await syncProdutos(supabase, client, timeUp, cursor);
+    else if (entidade === "estoques") result = await syncEstoques(supabase, client, timeUp, cursor);
     else if (entidade === "contas_receber") result = await syncContasReceber(supabase, client, timeUp, cursor, ultimaSync);
     else if (entidade === "pedidos") result = await syncPedidos(supabase, client, timeUp, cursor, ultimaSync);
     else if (entidade === "nfe") result = await syncNfe(supabase, client, timeUp, cursor, ultimaSync);
@@ -152,12 +155,13 @@ serve(async (req) => {
     }
 
     // === SYNC ===
-    if (tipo === "sync" || tipo === "contas_receber" || tipo === "pedidos" || tipo === "produtos") {
+    if (tipo === "sync" || tipo === "contas_receber" || tipo === "pedidos" || tipo === "produtos" || tipo === "estoques") {
       const entidades: Entidade[] =
         tipo === "sync"
           ? (Array.isArray(body.entidades) && body.entidades.length > 0 ? body.entidades : ORDEM)
           : tipo === "contas_receber" ? ["contas_receber"]
           : tipo === "pedidos" ? ["pedidos"]
+          : tipo === "estoques" ? ["estoques"]
           : ["produtos"];
 
       for (const e of entidades) {

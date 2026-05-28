@@ -39,7 +39,7 @@ export async function syncProdutos(
           gtin: p.gtin || null,
           preco_custo: p.precoCusto != null ? Number(p.precoCusto) : null,
           preco_venda: p.preco != null ? Number(p.preco) : null,
-          estoque_atual: p.estoque?.saldoVirtualTotal != null ? Number(p.estoque.saldoVirtualTotal) : null,
+          // estoque_atual NÃO vem na listagem /produtos da API v3 — populado pelo syncEstoques.
           estoque_minimo: p.estoque?.minimo != null ? Number(p.estoque.minimo) : null,
           imagem_url: p.midia?.imagens?.externas?.[0]?.link ?? p.imageThumbnail ?? null,
           ativo: p.situacao === "A",
