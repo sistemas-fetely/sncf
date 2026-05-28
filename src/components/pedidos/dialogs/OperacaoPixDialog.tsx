@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
   DialogFooter, DialogTrigger,
@@ -11,19 +11,26 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { QrCode } from "lucide-react";
+import { QrCode, RefreshCw } from "lucide-react";
 import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
 
 interface Props {
   pedido_id: string;
   contato_email?: string | null;
   contato_telefone?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ultimo_evento?: any | null;
 }
 
 const METODOS = ["Email", "WhatsApp", "SMS", "Outro"] as const;
 type Metodo = typeof METODOS[number];
 
-export function OperacaoPixDialog({ pedido_id, contato_email, contato_telefone }: Props) {
+export function OperacaoPixDialog({
+  pedido_id, contato_email, contato_telefone, ultimo_evento,
+}: Props) {
+  const isAtualizacao = !!ultimo_evento;
+  const meta = ultimo_evento?.metadata || {};
+
   const [open, setOpen] = useState(false);
   const [tipo, setTipo] = useState<"chave" | "qr">("chave");
   const [dados, setDados] = useState("");
@@ -31,13 +38,29 @@ export function OperacaoPixDialog({ pedido_id, contato_email, contato_telefone }
   const [contato, setContato] = useState("");
   const [observacao, setObservacao] = useState("");
 
+  useEffect(() => {
+    if (!open) return;
+    if (isAtualizacao) {
+      setTipo(meta.tipo === "qr" ? "qr" : "chave");
+      setDados(String(meta.dados || ""));
+      setMetodo((METODOS.includes(meta.metodo) ? meta.metodo : "WhatsApp") as Metodo);
+      setContato(String(meta.contato || ""));
+      setObservacao("");
+    } else {
+      setTipo("chave");
+      setDados("");
+      setMetodo("WhatsApp");
+      setContato(contato_telefone || "");
+      setObservacao("");
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const registrar = useRegistrarOperacaoPedido();
 
   const handleMetodoChange = (m: Metodo) => {
     setMetodo(m);
     if (m === "Email" && contato_email) setContato(contato_email);
     else if (["WhatsApp", "SMS"].includes(m) && contato_telefone) setContato(contato_telefone);
-    else if (!contato_email && !contato_telefone) setContato("");
   };
 
   const handleConfirm = async () => {
@@ -47,37 +70,43 @@ export function OperacaoPixDialog({ pedido_id, contato_email, contato_telefone }
 
     await registrar.mutateAsync({
       pedido_id,
-      tipo_evento: "pix_enviado",
-      descricao: `${tipoLabel} enviada por ${metodo} para ${contato}`,
+      tipo_evento: isAtualizacao ? "pix_atualizado" : "pix_enviado",
+      descricao: isAtualizacao
+        ? `PIX atualizado — ${tipoLabel} enviada por ${metodo} para ${contato}`
+        : `${tipoLabel} enviada por ${metodo} para ${contato}`,
       metadata: {
         tipo,
         dados: dados.trim(),
         metodo,
         contato: contato.trim(),
         observacao: observacao.trim() || undefined,
+        evento_anterior_id: isAtualizacao ? ultimo_evento.id : undefined,
       },
       proxima_acao: "Aguardar confirmação do pagamento PIX",
     });
 
     setOpen(false);
-    setDados("");
-    setContato("");
-    setObservacao("");
   };
+
+  const btnClass = isAtualizacao
+    ? "gap-2 bg-cyan-700 hover:bg-cyan-800 text-white"
+    : "gap-2 bg-cyan-600 hover:bg-cyan-700 text-white";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2 bg-cyan-600 hover:bg-cyan-700 text-white">
-          <QrCode className="h-4 w-4" />
-          Enviar PIX
+        <Button size="sm" className={btnClass}>
+          {isAtualizacao ? <RefreshCw className="h-4 w-4" /> : <QrCode className="h-4 w-4" />}
+          {isAtualizacao ? "Atualizar PIX" : "Enviar PIX"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Enviar PIX</DialogTitle>
+          <DialogTitle>{isAtualizacao ? "Atualizar PIX" : "Enviar PIX"}</DialogTitle>
           <DialogDescription>
-            Registra o envio da chave PIX ou QR Code copia-e-cola pro cliente.
+            {isAtualizacao
+              ? "Atualizar chave/QR ou método de envio. Registra novo evento na timeline."
+              : "Registra o envio da chave PIX ou QR Code copia-e-cola pro cliente."}
           </DialogDescription>
         </DialogHeader>
 
@@ -123,9 +152,7 @@ export function OperacaoPixDialog({ pedido_id, contato_email, contato_telefone }
             <div className="space-y-2">
               <Label>Método de envio *</Label>
               <Select value={metodo} onValueChange={(v) => handleMetodoChange(v as Metodo)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {METODOS.map((m) => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
@@ -133,7 +160,6 @@ export function OperacaoPixDialog({ pedido_id, contato_email, contato_telefone }
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label>Contato *</Label>
               <Input
@@ -145,11 +171,11 @@ export function OperacaoPixDialog({ pedido_id, contato_email, contato_telefone }
           </div>
 
           <div className="space-y-2">
-            <Label>Observação (opcional)</Label>
+            <Label>{isAtualizacao ? "Motivo da atualização" : "Observação (opcional)"}</Label>
             <Textarea
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Algum contexto adicional pro audit trail."
+              placeholder={isAtualizacao ? "Ex: cliente trocou de banco" : "Algum contexto adicional pro audit trail."}
               rows={2}
             />
           </div>
@@ -161,7 +187,7 @@ export function OperacaoPixDialog({ pedido_id, contato_email, contato_telefone }
             onClick={handleConfirm}
             disabled={!dados.trim() || !contato.trim() || registrar.isPending}
           >
-            {registrar.isPending ? "Registrando..." : "Registrar envio"}
+            {registrar.isPending ? "Registrando..." : isAtualizacao ? "Registrar atualização" : "Registrar envio"}
           </Button>
         </DialogFooter>
       </DialogContent>
