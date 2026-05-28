@@ -177,7 +177,7 @@ export default function PedidoDetalhe() {
               variant="outline"
               size="sm"
               className="w-full gap-2 mt-2"
-              onClick={() => parceiro?.id && navigate(`/credito/clientes/${parceiro.id}`)}
+              onClick={() => parceiro?.id && navigate(`/parceiros/${parceiro.id}`)}
             >
               <ExternalLink className="h-4 w-4" />
               Ver perfil completo

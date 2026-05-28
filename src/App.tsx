@@ -122,6 +122,7 @@ const AnaliseDetalhe = lazy(() => import("@/pages/Credito/AnaliseDetalhe"));
 const ClienteDetalhe = lazy(() => import("@/pages/Credito/ClienteDetalhe"));
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
+const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -215,6 +216,7 @@ const App = () => (
                   ═══════════════════════════════════════════════ */}
               <Route path="/pedidos" element={<PedidosIndex />} />
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
+              <Route path="/parceiros/:id" element={<ParceiroDetalhe />} />
 
               {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
               <Route element={<SNCFLayout />}>
