@@ -108,7 +108,7 @@ const AdminSeguros = lazy(() => import("@/pages/administrativo/Seguros"));
 const AdminGED = lazy(() => import("@/pages/administrativo/GED"));
 const ConfiguracaoIntegracao = lazy(() => import("@/pages/administrativo/ConfiguracaoIntegracao"));
 const BlingCallback = lazy(() => import("@/pages/administrativo/BlingCallback"));
-const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
+
 const Produtos = lazy(() => import("@/pages/administrativo/Produtos"));
 const CaixaBanco = lazy(() => import("@/pages/administrativo/CaixaBanco"));
 const ContasBancarias = lazy(() => import("@/pages/administrativo/ContasBancarias"));
