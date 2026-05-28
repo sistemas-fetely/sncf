@@ -208,6 +208,12 @@ const App = () => (
               <Route path="/credito/analises/:id" element={<AnaliseDetalhe />} />
               <Route path="/credito/clientes/:id" element={<ClienteDetalhe />} />
 
+              {/* ═══════════════════════════════════════════════
+                  App Pedidos — App Simples (sem sidebar lateral)
+                  Doutrina CASA-2: 1 tela + 5 tabs internas + querystring.
+                  ═══════════════════════════════════════════════ */}
+              <Route path="/pedidos" element={<PedidosIndex />} />
+
               {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
               <Route element={<SNCFLayout />}>
               <Route path="/sncf" element={<PortalSNCF />} />
@@ -237,7 +243,6 @@ const App = () => (
               <Route path="/documentacao/:slug" element={<DocumentacaoDetalhe />} />
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
-              <Route path="/pedidos" element={<PedidosIndex />} />
             </Route>
 
             {/* TI Fetely */}
@@ -477,7 +482,8 @@ const App = () => (
               {/* MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
                   pedidos, produtos, contratos, imoveis, seguros, ged.
                   Redirects logo abaixo mantêm compatibilidade com URLs antigas. */}
-              <Route path="pedidos" element={<Navigate to="/administrativo-fetely/pedidos" replace />} />
+              {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
+              <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
               <Route path="produtos" element={<Navigate to="/administrativo-fetely/produtos" replace />} />
               <Route path="contratos" element={<Navigate to="/administrativo-fetely/contratos" replace />} />
               <Route path="imoveis" element={<Navigate to="/administrativo-fetely/imoveis" replace />} />
@@ -495,7 +501,8 @@ const App = () => (
               <Route path="imoveis" element={<AdminImoveis />} />
               <Route path="seguros" element={<AdminSeguros />} />
               <Route path="ged" element={<AdminGED />} />
-              <Route path="pedidos" element={<PedidosVenda />} />
+              {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
+              <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
               <Route path="produtos" element={<Produtos />} />
             </Route>
 
