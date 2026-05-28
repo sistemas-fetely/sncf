@@ -49,13 +49,18 @@ export function PipelineHorizontal({ onClickEstagio, estagioAtivo }: Props) {
     }));
   }, [data]);
 
-  // Esconde em_cobranca legado se vazio
+  // Filtra estágios efêmeros/legados quando vazios:
+  // - em_cobranca legado (substituído pelas 3 trilhas)
+  // - recebido (efêmero — alocação automática vai retirar em segundos)
   const visiveisNaBarra = useMemo(
-    () => consolidado.filter((e) => !(e.estagio === "em_cobranca" && e.qtd === 0)),
+    () =>
+      consolidado.filter(
+        (e) => !(["em_cobranca", "recebido"].includes(e.estagio) && e.qtd === 0)
+      ),
     [consolidado]
   );
 
-  // Agrupa em clusters
+  // Agrupa em clusters — esconde clusters totalmente vazios
   const clusters: ClusterAgrupado[] = useMemo(() => {
     const map = new Map<FaseCluster, EstagioConsolidado[]>();
     FASE_ORDEM.forEach((f) => map.set(f, []));
@@ -72,7 +77,7 @@ export function PipelineHorizontal({ onClickEstagio, estagioAtivo }: Props) {
         estagios,
         qtdTotal: estagios.reduce((acc, e) => acc + e.qtd, 0),
       };
-    });
+    }).filter((c) => c.estagios.length > 0); // esconde clusters sem nenhum estágio visível
   }, [visiveisNaBarra]);
 
   const total = consolidado.reduce((acc, e) => acc + e.qtd, 0);
