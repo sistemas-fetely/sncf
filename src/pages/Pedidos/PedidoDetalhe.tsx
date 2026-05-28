@@ -12,6 +12,7 @@ import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline"
 import { EstagioBadge, BadgesContextuaisPedido, FormatoIdade } from "@/components/pedidos/BadgesPedido";
 import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
 import { TransicionarPedidoDialog } from "@/components/pedidos/dialogs/TransicionarPedidoDialog";
+import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
@@ -327,10 +328,17 @@ export default function PedidoDetalhe() {
             <div className="flex items-center gap-2">
               <AnotarPedidoDialog pedido_id={pedido.id} />
               <CancelarPedidoDialog pedido_id={pedido.id} />
-              <TransicionarPedidoDialog
-                pedido_id={pedido.id}
-                estagio_atual={pedido.estagio as EstagioPedido}
-              />
+              {pedido.estagio === "recebido" ? (
+                <TriarPedidoDialog
+                  pedido_id={pedido.id}
+                  perfil_credito={parceiro?.perfil_credito}
+                />
+              ) : (
+                <TransicionarPedidoDialog
+                  pedido_id={pedido.id}
+                  estagio_atual={pedido.estagio as EstagioPedido}
+                />
+              )}
             </div>
           </div>
         </div>
