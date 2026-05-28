@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ShieldAlert, AlertCircle, MapPin, FileText, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, ShieldAlert, AlertCircle, MapPin, FileText, Sparkles, Loader2, Building2, Users, Phone, Mail, CheckCircle2, XCircle } from "lucide-react";
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
 import { useEnriquecerParceiro } from "@/hooks/credito/useEnriquecerParceiro";
 import { validateCNPJ } from "@/lib/cnpj";
