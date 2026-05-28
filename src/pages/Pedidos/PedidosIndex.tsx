@@ -1,11 +1,12 @@
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CreditCard, QrCode, Receipt, Shield, Factory, Archive, LayoutGrid } from "lucide-react";
 import { PedidosStatsCards } from "@/components/pedidos/PedidosStatsCards";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
 import type { EstagioPedido } from "@/types/pedido";
 
-const TABS_VALIDAS = ["todas", "sops", "credito", "bling", "concluidos"];
+const TABS_VALIDAS = ["todas", "credito", "cartao", "pix", "boleto", "faturamento", "concluidos"];
 
 export default function PedidosIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,12 +45,35 @@ export default function PedidosIndex() {
       />
 
       <Tabs value={tabAtiva} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="todas">Todos</TabsTrigger>
-          <TabsTrigger value="sops">Em SOps</TabsTrigger>
-          <TabsTrigger value="credito">Em Crédito</TabsTrigger>
-          <TabsTrigger value="bling">Em Bling</TabsTrigger>
-          <TabsTrigger value="concluidos">Concluídos</TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto justify-start">
+          <TabsTrigger value="todas" className="gap-1.5">
+            <LayoutGrid className="h-4 w-4" />
+            Todos
+          </TabsTrigger>
+          <TabsTrigger value="credito" className="gap-1.5">
+            <Shield className="h-4 w-4" />
+            Crédito
+          </TabsTrigger>
+          <TabsTrigger value="cartao" className="gap-1.5">
+            <CreditCard className="h-4 w-4" />
+            Cartão
+          </TabsTrigger>
+          <TabsTrigger value="pix" className="gap-1.5">
+            <QrCode className="h-4 w-4" />
+            PIX
+          </TabsTrigger>
+          <TabsTrigger value="boleto" className="gap-1.5">
+            <Receipt className="h-4 w-4" />
+            Boleto
+          </TabsTrigger>
+          <TabsTrigger value="faturamento" className="gap-1.5">
+            <Factory className="h-4 w-4" />
+            Faturamento
+          </TabsTrigger>
+          <TabsTrigger value="concluidos" className="gap-1.5">
+            <Archive className="h-4 w-4" />
+            Concluídos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="todas">
@@ -59,17 +83,31 @@ export default function PedidosIndex() {
             apenasAtivos={false}
           />
         </TabsContent>
-        <TabsContent value="sops">
-          <FilaPedidosPorArea area="sops" apenasAtivos />
-        </TabsContent>
         <TabsContent value="credito">
-          <FilaPedidosPorArea area="credito" apenasAtivos />
+          <FilaPedidosPorArea area="todas" estagios={["em_analise_credito"]} apenasAtivos />
         </TabsContent>
-        <TabsContent value="bling">
-          <FilaPedidosPorArea area="bling" apenasAtivos />
+        <TabsContent value="cartao">
+          <FilaPedidosPorArea area="todas" estagios={["em_cobranca_cartao"]} apenasAtivos />
+        </TabsContent>
+        <TabsContent value="pix">
+          <FilaPedidosPorArea area="todas" estagios={["em_cobranca_pix"]} apenasAtivos />
+        </TabsContent>
+        <TabsContent value="boleto">
+          <FilaPedidosPorArea area="todas" estagios={["em_cobranca_boleto"]} apenasAtivos />
+        </TabsContent>
+        <TabsContent value="faturamento">
+          <FilaPedidosPorArea
+            area="todas"
+            estagios={["pronto_pro_bling", "em_separacao", "faturado", "em_transporte"]}
+            apenasAtivos
+          />
         </TabsContent>
         <TabsContent value="concluidos">
-          <FilaPedidosPorArea area="todas" apenasAtivos={false} estagioInicial="entregue" />
+          <FilaPedidosPorArea
+            area="todas"
+            estagios={["entregue", "cancelado"]}
+            apenasAtivos={false}
+          />
         </TabsContent>
       </Tabs>
     </div>

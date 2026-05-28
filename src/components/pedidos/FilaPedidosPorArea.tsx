@@ -18,21 +18,27 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 interface Props {
   area: AreaPedido | "todas";
   estagioInicial?: EstagioPedido | "todos";
+  /** Múltiplos estágios — quando preenchido, esconde o Select interno */
+  estagios?: EstagioPedido[];
   apenasAtivos?: boolean;
 }
 
 export function FilaPedidosPorArea({
   area,
   estagioInicial = "todos",
+  estagios,
   apenasAtivos = true,
 }: Props) {
   const [busca, setBusca] = useState("");
   const [estagioFilter, setEstagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
   const navigate = useNavigate();
 
+  const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
+
   const { data, isLoading } = usePedidosFila({
     area,
-    estagio: estagioFilter,
+    estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
+    estagios: usarEstagiosMultiplos ? estagios : undefined,
     busca: busca || undefined,
     apenasAtivos,
   });
@@ -49,20 +55,22 @@ export function FilaPedidosPorArea({
             className="pl-10"
           />
         </div>
-        <Select
-          value={estagioFilter}
-          onValueChange={(v) => setEstagioFilter(v as EstagioPedido | "todos")}
-        >
-          <SelectTrigger className="w-full sm:w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os estágios</SelectItem>
-            {ESTAGIO_ORDEM.map((e) => (
-              <SelectItem key={e} value={e}>{ESTAGIO_LABELS[e]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!usarEstagiosMultiplos && (
+          <Select
+            value={estagioFilter}
+            onValueChange={(v) => setEstagioFilter(v as EstagioPedido | "todos")}
+          >
+            <SelectTrigger className="w-full sm:w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os estágios</SelectItem>
+              {ESTAGIO_ORDEM.map((e) => (
+                <SelectItem key={e} value={e}>{ESTAGIO_LABELS[e]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       <div className="rounded-md border border-border overflow-hidden">

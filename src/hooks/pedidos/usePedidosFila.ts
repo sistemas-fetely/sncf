@@ -4,7 +4,10 @@ import type { PedidoFilaItem, EstagioPedido, AreaPedido } from "@/types/pedido";
 
 interface Opts {
   area?: AreaPedido | "todas";
+  /** Filtro de UM estágio específico OU 'todos' */
   estagio?: EstagioPedido | "todos";
+  /** Filtro de MÚLTIPLOS estágios (tem prioridade sobre `estagio`) */
+  estagios?: EstagioPedido[];
   busca?: string;
   apenasAtivos?: boolean;
 }
@@ -18,7 +21,13 @@ export function usePedidosFila(opts: Opts = {}) {
       let q = (supabase as any).from("v_pedidos_fila").select("*");
 
       if (opts.area && opts.area !== "todas") q = q.eq("area_atual", opts.area);
-      if (opts.estagio && opts.estagio !== "todos") q = q.eq("estagio", opts.estagio);
+
+      if (opts.estagios && opts.estagios.length > 0) {
+        q = q.in("estagio", opts.estagios);
+      } else if (opts.estagio && opts.estagio !== "todos") {
+        q = q.eq("estagio", opts.estagio);
+      }
+
       if (opts.apenasAtivos) {
         q = q.not("estagio", "in", "(entregue,cancelado)");
       }
