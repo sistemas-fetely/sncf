@@ -13681,6 +13681,10 @@ export type Database = {
           token_extraido: string
         }[]
       }
+      disparar_enriquecimento_parceiro: {
+        Args: { p_parceiro_id: string }
+        Returns: number
+      }
       documentos_envio_agrupados: {
         Args: {
           p_busca?: string
