@@ -52,10 +52,13 @@ export function PipelineHorizontal({ onClickEstagio, estagioAtivo }: Props) {
   // Filtra estágios efêmeros/legados quando vazios:
   // - em_cobranca legado (substituído pelas 3 trilhas)
   // - recebido (efêmero — alocação automática vai retirar em segundos)
+  // Filtra estágios efêmeros/legados quando vazios:
+  // - em_cobranca legado (substituído pelas 3 trilhas)
+  // - recebido (efêmero — alocação automática vai retirar em segundos)
   const visiveisNaBarra = useMemo(
     () =>
       consolidado.filter(
-        (e) => !("em_cobranca", "recebido"].includes(e.estagio) && e.qtd === 0)
+        (e) => !["em_cobranca", "recebido"].includes(e.estagio) && e.qtd === 0)
       ),
     [consolidado]
   );
