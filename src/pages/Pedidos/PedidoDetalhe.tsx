@@ -16,6 +16,7 @@ import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialo
 import { OperacaoCartaoDialog } from "@/components/pedidos/dialogs/OperacaoCartaoDialog";
 import { OperacaoPixDialog } from "@/components/pedidos/dialogs/OperacaoPixDialog";
 import { OperacaoBoletoDialog } from "@/components/pedidos/dialogs/OperacaoBoletoDialog";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
