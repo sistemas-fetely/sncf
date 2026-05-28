@@ -200,8 +200,16 @@ const App = () => (
             <Route element={<ProtectedRoute><CasaLayout /></ProtectedRoute>}>
               <Route path="/" element={<CasaHome />} />
 
-            {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
-            <Route element={<SNCFLayout />}>
+              {/* ═══════════════════════════════════════════════
+                  App Crédito — App Simples (sem sidebar lateral)
+                  Doutrina: Apps Simples usam CasaLayout direto.
+                  ═══════════════════════════════════════════════ */}
+              <Route path="/credito" element={<CreditoIndex />} />
+              <Route path="/credito/analises/:id" element={<AnaliseDetalhe />} />
+              <Route path="/credito/clientes/:id" element={<ClienteDetalhe />} />
+
+              {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
+              <Route element={<SNCFLayout />}>
               <Route path="/sncf" element={<PortalSNCF />} />
               <Route path="/tarefas" element={<MinhasTarefas />} />
               <Route path="/tarefas/time" element={<TarefasDoTime />} />
