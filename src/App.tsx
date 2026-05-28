@@ -121,6 +121,7 @@ const CreditoIndex = lazy(() => import("@/pages/Credito/CreditoIndex"));
 const AnaliseDetalhe = lazy(() => import("@/pages/Credito/AnaliseDetalhe"));
 const ClienteDetalhe = lazy(() => import("@/pages/Credito/ClienteDetalhe"));
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
+const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -213,6 +214,7 @@ const App = () => (
                   Doutrina CASA-2: 1 tela + 5 tabs internas + querystring.
                   ═══════════════════════════════════════════════ */}
               <Route path="/pedidos" element={<PedidosIndex />} />
+              <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
 
               {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
               <Route element={<SNCFLayout />}>
