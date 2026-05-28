@@ -81,12 +81,7 @@ export default function PedidoDetalhe() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold">
-            <button
-              onClick={() => parceiro?.id && navigate(`/credito/clientes/${parceiro.id}`)}
-              className="hover:underline text-left"
-            >
-              {parceiro?.razao_social || pedido.cliente_nome_snapshot || "Cliente"}
-            </button>
+            {parceiro?.razao_social || pedido.cliente_nome_snapshot || "Cliente"}
           </h1>
           <p className="text-sm text-muted-foreground">
             CNPJ {parceiro?.cnpj} · Pedido <span className="font-mono">{pedido.id_externo}</span>
