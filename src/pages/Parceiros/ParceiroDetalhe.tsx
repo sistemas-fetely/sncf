@@ -208,6 +208,18 @@ export default function ParceiroDetalhe() {
             {parceiro.situacao_receita && (
               <Linha label="Situação Receita" value={parceiro.situacao_receita} />
             )}
+            {parceiro.telefone && (
+              <div className="flex items-center gap-2 text-sm">
+                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>{parceiro.telefone}</span>
+              </div>
+            )}
+            {parceiro.email && (
+              <div className="flex items-center gap-2 text-sm">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="break-all">{parceiro.email}</span>
+              </div>
+            )}
             <Separator className="my-2" />
             <div className="flex items-start gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
