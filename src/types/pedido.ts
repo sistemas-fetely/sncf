@@ -1,7 +1,10 @@
 export type EstagioPedido =
   | "recebido"
   | "em_analise_credito"
-  | "em_cobranca"
+  | "em_cobranca" // legado — mantido até refator completo da UI/SQL
+  | "em_cobranca_cartao"
+  | "em_cobranca_pix"
+  | "em_cobranca_boleto"
   | "pronto_pro_bling"
   | "em_separacao"
   | "faturado"
@@ -12,6 +15,16 @@ export type EstagioPedido =
 export type AreaPedido = "sops" | "credito" | "bling" | "sistema" | "nenhuma";
 
 export type TipoPagamento = "a_prazo" | "a_vista";
+
+/**
+ * As 3 trilhas de cobrança da Fase C.
+ * Útil pra agrupar nas tabs e mini-pipeline.
+ */
+export const TRILHAS_COBRANCA: readonly EstagioPedido[] = [
+  "em_cobranca_cartao",
+  "em_cobranca_pix",
+  "em_cobranca_boleto",
+] as const;
 
 export interface PedidoFilaItem {
   id: string;
@@ -57,6 +70,9 @@ export const ESTAGIO_LABELS: Record<EstagioPedido, string> = {
   recebido: "Recebido",
   em_analise_credito: "Em análise crédito",
   em_cobranca: "Em cobrança",
+  em_cobranca_cartao: "Cobrança · Cartão",
+  em_cobranca_pix: "Cobrança · PIX",
+  em_cobranca_boleto: "Cobrança · Boleto",
   pronto_pro_bling: "Pronto pro Bling",
   em_separacao: "Em separação",
   faturado: "Faturado",
@@ -76,9 +92,12 @@ export const AREA_LABELS: Record<AreaPedido, string> = {
 export const ESTAGIO_CORES: Record<EstagioPedido, string> = {
   recebido: "bg-slate-500",
   em_analise_credito: "bg-purple-500",
-  em_cobranca: "bg-amber-500",
+  em_cobranca: "bg-stone-400", // legado, tom dessaturado
+  em_cobranca_cartao: "bg-blue-500",
+  em_cobranca_pix: "bg-cyan-500",
+  em_cobranca_boleto: "bg-amber-500",
   pronto_pro_bling: "bg-emerald-500",
-  em_separacao: "bg-blue-500",
+  em_separacao: "bg-blue-700",
   faturado: "bg-teal-600",
   em_transporte: "bg-indigo-500",
   entregue: "bg-green-600",
@@ -88,7 +107,10 @@ export const ESTAGIO_CORES: Record<EstagioPedido, string> = {
 export const ESTAGIO_ORDEM: EstagioPedido[] = [
   "recebido",
   "em_analise_credito",
-  "em_cobranca",
+  "em_cobranca_cartao",
+  "em_cobranca_pix",
+  "em_cobranca_boleto",
+  "em_cobranca", // legado — depois das 3 trilhas oficiais
   "pronto_pro_bling",
   "em_separacao",
   "faturado",
