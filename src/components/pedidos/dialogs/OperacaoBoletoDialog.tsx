@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
   DialogFooter, DialogTrigger,
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Receipt, Plus, X } from "lucide-react";
+import { Receipt, Plus, X, RefreshCw } from "lucide-react";
 import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -25,20 +25,20 @@ interface Props {
   valor_padrao?: number;
   condicao_solicitada?: string | null;
   data_pedido?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ultimo_evento?: any | null;
 }
 
 function parseCondicao(cond: string | null | undefined): number[] {
   if (!cond) return [30];
   const c = cond.toLowerCase().trim();
   if (c.includes("vista") || c === "a_vista") return [0];
-
   const dias = c
     .split(/[\/,;]/)
     .map((s) => s.trim().replace(/[^0-9]/g, ""))
     .filter((s) => s.length > 0)
     .map((s) => Number(s))
     .filter((n) => !isNaN(n) && n >= 0);
-
   return dias.length > 0 ? dias : [30];
 }
 
@@ -49,38 +49,43 @@ function calcularVencimento(baseISO: string, dias: number): string {
 }
 
 export function OperacaoBoletoDialog({
-  pedido_id,
-  valor_padrao,
-  condicao_solicitada,
-  data_pedido,
+  pedido_id, valor_padrao, condicao_solicitada, data_pedido, ultimo_evento,
 }: Props) {
+  const isAtualizacao = !!ultimo_evento;
   const [open, setOpen] = useState(false);
 
   const parcelasIniciais = useMemo<ParcelaForm[]>(() => {
+    if (isAtualizacao && Array.isArray(ultimo_evento.metadata?.parcelas)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ultimo_evento.metadata.parcelas.map((p: any) => ({
+        numero: String(p.numero_boleto || ""),
+        vencimento: String(p.vencimento || ""),
+        valor: p.valor != null ? Number(p.valor).toFixed(2) : "",
+        link_pdf: String(p.link_pdf || ""),
+      }));
+    }
     const dias = parseCondicao(condicao_solicitada);
     const baseDate = data_pedido || new Date().toISOString().slice(0, 10);
     const valorPorParcela = valor_padrao ? valor_padrao / dias.length : 0;
-
     return dias.map((d) => ({
       numero: "",
       vencimento: calcularVencimento(baseDate, d),
       valor: valorPorParcela > 0 ? valorPorParcela.toFixed(2) : "",
       link_pdf: "",
     }));
-  }, [condicao_solicitada, valor_padrao, data_pedido]);
+  }, [isAtualizacao, ultimo_evento, condicao_solicitada, valor_padrao, data_pedido]);
 
   const [parcelas, setParcelas] = useState<ParcelaForm[]>(parcelasIniciais);
   const [observacao, setObservacao] = useState("");
 
   const registrar = useRegistrarOperacaoPedido();
 
-  const handleOpenChange = (v: boolean) => {
-    if (v) {
+  useEffect(() => {
+    if (open) {
       setParcelas(parcelasIniciais);
       setObservacao("");
     }
-    setOpen(v);
-  };
+  }, [open, parcelasIniciais]);
 
   const updateParcela = (idx: number, patch: Partial<ParcelaForm>) => {
     setParcelas((arr) => arr.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
@@ -94,7 +99,6 @@ export function OperacaoBoletoDialog({
     const ultima = parcelas[parcelas.length - 1];
     const baseDate = ultima?.vencimento || data_pedido || new Date().toISOString().slice(0, 10);
     const novoVencimento = calcularVencimento(baseDate, 30);
-
     setParcelas((arr) => [
       ...arr,
       { numero: "", vencimento: novoVencimento, valor: "0.00", link_pdf: "" },
@@ -117,10 +121,11 @@ export function OperacaoBoletoDialog({
       link_pdf: p.link_pdf.trim() || undefined,
     }));
 
+    const acaoLabel = isAtualizacao ? "atualizado(s)" : "emitido(s)";
     const descricao =
       parcelas.length === 1
-        ? `Boleto ${parcelas[0].numero} emitido — venc ${fmtDateBR(parcelas[0].vencimento)} — ${fmtBRL.format(Number(parcelas[0].valor))}`
-        : `${parcelas.length} boletos emitidos — total ${fmtBRL.format(valorTotal)} — 1ª venc ${fmtDateBR(parcelas[0].vencimento)}`;
+        ? `Boleto ${parcelas[0].numero} ${acaoLabel} — venc ${fmtDateBR(parcelas[0].vencimento)} — ${fmtBRL.format(Number(parcelas[0].valor))}`
+        : `${parcelas.length} boletos ${acaoLabel} — total ${fmtBRL.format(valorTotal)} — 1ª venc ${fmtDateBR(parcelas[0].vencimento)}`;
 
     const proximaAcao =
       parcelas.length === 1
@@ -129,13 +134,14 @@ export function OperacaoBoletoDialog({
 
     await registrar.mutateAsync({
       pedido_id,
-      tipo_evento: "boleto_emitido",
+      tipo_evento: isAtualizacao ? "boleto_atualizado" : "boleto_emitido",
       descricao,
       metadata: {
         total_parcelas: parcelas.length,
         valor_total: valorTotal,
         parcelas: parcelasPayload,
         observacao: observacao.trim() || undefined,
+        evento_anterior_id: isAtualizacao ? ultimo_evento.id : undefined,
       },
       proxima_acao: proximaAcao,
     });
@@ -143,26 +149,36 @@ export function OperacaoBoletoDialog({
     setOpen(false);
   };
 
+  const btnClass = isAtualizacao
+    ? "gap-2 bg-amber-700 hover:bg-amber-800 text-white"
+    : "gap-2 bg-amber-600 hover:bg-amber-700 text-white";
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2 bg-amber-600 hover:bg-amber-700 text-white">
-          <Receipt className="h-4 w-4" />
-          Emitir boleto
+        <Button size="sm" className={btnClass}>
+          {isAtualizacao ? <RefreshCw className="h-4 w-4" /> : <Receipt className="h-4 w-4" />}
+          {isAtualizacao ? "Atualizar boletos" : "Emitir boleto"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Registrar emissão de boleto(s)</DialogTitle>
+          <DialogTitle>
+            {isAtualizacao ? "Atualizar boletos" : "Registrar emissão de boleto(s)"}
+          </DialogTitle>
           <DialogDescription>
-            Boleto(s) gerado(s) externamente (banco). Cole os dados pra registrar no audit.
-            {condicao_solicitada && (
-              <span className="block mt-1 text-xs">
-                Condição do pedido: <strong>{condicao_solicitada}</strong> ·{" "}
-                {parcelasIniciais.length} parcela
-                {parcelasIniciais.length > 1 ? "s" : ""} detectada
-                {parcelasIniciais.length > 1 ? "s" : ""}
-              </span>
+            {isAtualizacao ? (
+              <>Cliente pediu mudança? Edite os boletos abaixo (número, venc, valor) e registre a atualização.</>
+            ) : (
+              <>
+                Boleto(s) gerado(s) externamente (banco). Cole os dados pra registrar no audit.
+                {condicao_solicitada && (
+                  <span className="block mt-1 text-xs">
+                    Condição do pedido: <strong>{condicao_solicitada}</strong> ·{" "}
+                    {parcelasIniciais.length} parcela{parcelasIniciais.length > 1 ? "s" : ""} detectada{parcelasIniciais.length > 1 ? "s" : ""}
+                  </span>
+                )}
+              </>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -175,12 +191,7 @@ export function OperacaoBoletoDialog({
                   Parcela {idx + 1} de {parcelas.length}
                 </span>
                 {parcelas.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removerParcela(idx)}
-                    className="h-7 w-7 p-0"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => removerParcela(idx)} className="h-7 w-7 p-0">
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 )}
@@ -206,7 +217,6 @@ export function OperacaoBoletoDialog({
                     className="h-8"
                   />
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="text-xs">Valor *</Label>
                   <Input
@@ -232,13 +242,7 @@ export function OperacaoBoletoDialog({
             </div>
           ))}
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={adicionarParcela}
-            className="w-full gap-2"
-          >
+          <Button type="button" variant="outline" size="sm" onClick={adicionarParcela} className="w-full gap-2">
             <Plus className="h-4 w-4" />
             Adicionar parcela
           </Button>
@@ -249,11 +253,11 @@ export function OperacaoBoletoDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Observação geral (opcional)</Label>
+            <Label>{isAtualizacao ? "Motivo da atualização" : "Observação geral (opcional)"}</Label>
             <Textarea
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Contexto adicional pro audit trail. Vale pra todas as parcelas."
+              placeholder={isAtualizacao ? "Ex: cliente ligou pedindo adiar a 2ª parcela em 15 dias" : "Contexto adicional pro audit trail."}
               rows={2}
             />
           </div>
@@ -267,6 +271,8 @@ export function OperacaoBoletoDialog({
           >
             {registrar.isPending
               ? "Registrando..."
+              : isAtualizacao
+              ? `Registrar atualização${parcelas.length > 1 ? ` (${parcelas.length})` : ""}`
               : parcelas.length === 1
               ? "Registrar boleto"
               : `Registrar ${parcelas.length} boletos`}
