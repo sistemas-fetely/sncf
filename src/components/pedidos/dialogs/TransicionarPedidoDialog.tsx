@@ -36,8 +36,12 @@ export function TransicionarPedidoDialog({
 
   if (transicoes.length === 0) return null;
 
+  const motivoObrigatorio = para === "cancelado" || para === "recuperacao_venda";
+  const motivoFaltando = motivoObrigatorio && !motivo.trim();
+
   const handleConfirm = async () => {
     if (!para) return;
+    if (motivoFaltando) return;
     await transicionar.mutateAsync({
       pedido_id,
       para_estagio: para as EstagioPedido,
