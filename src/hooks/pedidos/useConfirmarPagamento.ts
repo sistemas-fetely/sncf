@@ -35,12 +35,12 @@ export function useConfirmarPagamento() {
       });
       if (errEvento) throw errEvento;
 
-      // 2. Avança estágio pra pronto_pro_bling
+      // 2. Avança estágio pra pre_faturado (engine F-2 gera os títulos)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: errTransicao } = await (supabase as any).rpc("transicionar_pedido", {
         p_pedido_id: pedido_id,
-        p_para_estagio: "pronto_pro_bling",
-        p_proxima_acao: "Exportar pedido pro Bling",
+        p_para_estagio: "pre_faturado",
+        p_proxima_acao: "Pronto pra enviar pro Bling",
         p_motivo: "Pagamento confirmado",
       });
       if (errTransicao) throw errTransicao;

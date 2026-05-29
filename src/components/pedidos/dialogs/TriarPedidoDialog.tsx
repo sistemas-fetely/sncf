@@ -36,10 +36,9 @@ export function TriarPedidoDialog({
   const transicionar = useTransicionarPedido();
   const podePular = podePularAnaliseCredito(perfil_credito);
 
-  // F-2: parser de condicao_solicitada → condicao_final_aprovada ainda não existe.
-  // Trigger SQL exige condicao_final_aprovada antes de aprovar análise.
-  // Botão "Pular análise" desabilitado até F-3.
-  const pularDisponivel = false;
+  // F-3.2: parser de condicao + trigger tr_pedido_pular_analise cravados.
+  // Pular análise cria análise shell, parseia condição e gera títulos automaticamente.
+  const pularDisponivel = true;
 
   const handleConfirm = async () => {
     if (!acao) return;
@@ -106,12 +105,7 @@ export function TriarPedidoDialog({
                   />
                 </div>
               </TooltipTrigger>
-              {!pularDisponivel && (
-                <TooltipContent side="bottom" className="max-w-xs">
-                  Pular análise ainda não disponível — precisa do parser de condição (F-3).
-                </TooltipContent>
-              )}
-              {pularDisponivel && !podePular && (
+              {!podePular && (
                 <TooltipContent side="bottom" className="max-w-xs">
                   Perfil <strong>{perfil_credito || "indefinido"}</strong> precisa passar pela análise.
                 </TooltipContent>
