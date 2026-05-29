@@ -52,6 +52,7 @@ export async function refreshAccessToken(supabase: any, cfg: BlingConfig): Promi
 
 export type BlingClient = {
   get: (endpoint: string) => Promise<any>;
+  post: (endpoint: string, body: any) => Promise<any>;
   currentToken: () => string;
 };
 
@@ -80,5 +81,32 @@ export function makeBlingClient(supabase: any, cfg: BlingConfig, initialToken: s
     return res.json();
   }
 
-  return { get, currentToken: () => token };
+  async function post(endpoint: string, body: any, attempt = 0): Promise<any> {
+    const res = await fetch(`${BLING_BASE}${endpoint}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (res.status === 401 && attempt === 0) {
+      token = await refreshAccessToken(supabase, { ...cfg, access_token: token });
+      return post(endpoint, body, attempt + 1);
+    }
+    if ((res.status === 429 || res.status >= 500) && attempt < 3) {
+      const wait = 1000 * Math.pow(2, attempt);
+      await sleep(wait);
+      return post(endpoint, body, attempt + 1);
+    }
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`Bling POST ${endpoint} ${res.status}: ${txt.slice(0, 500)}`);
+    }
+    return res.json();
+  }
+
+  return { get, post, currentToken: () => token };
 }

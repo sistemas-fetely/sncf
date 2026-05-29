@@ -670,6 +670,63 @@ export type Database = {
           },
         ]
       }
+      bling_envios_log: {
+        Row: {
+          bling_id_retornado: number | null
+          duracao_ms: number | null
+          enviado_por: string | null
+          erro_msg: string | null
+          id: string
+          payload_enviado: Json
+          pedido_id: string
+          resposta_body: Json | null
+          resposta_status: number | null
+          sucesso: boolean
+          tentativa_em: string
+        }
+        Insert: {
+          bling_id_retornado?: number | null
+          duracao_ms?: number | null
+          enviado_por?: string | null
+          erro_msg?: string | null
+          id?: string
+          payload_enviado: Json
+          pedido_id: string
+          resposta_body?: Json | null
+          resposta_status?: number | null
+          sucesso?: boolean
+          tentativa_em?: string
+        }
+        Update: {
+          bling_id_retornado?: number | null
+          duracao_ms?: number | null
+          enviado_por?: string | null
+          erro_msg?: string | null
+          id?: string
+          payload_enviado?: Json
+          pedido_id?: string
+          resposta_body?: Json | null
+          resposta_status?: number | null
+          sucesso?: boolean
+          tentativa_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_envios_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_envios_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boleto_stage: {
         Row: {
           ancorado_em: string | null
@@ -4983,6 +5040,7 @@ export type Database = {
       formas_pagamento: {
         Row: {
           ativo: boolean | null
+          bling_id_forma_pagamento: number | null
           cobra_email: boolean
           codigo: string
           envio_agrupa_parcelas: boolean
@@ -4996,6 +5054,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
+          bling_id_forma_pagamento?: number | null
           cobra_email?: boolean
           codigo: string
           envio_agrupa_parcelas?: boolean
@@ -5009,6 +5068,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
+          bling_id_forma_pagamento?: number | null
           cobra_email?: boolean
           codigo?: string
           envio_agrupa_parcelas?: boolean
@@ -8448,9 +8508,9 @@ export type Database = {
           itens_json: Json | null
           origem: string | null
           parceiro_id: string
+          pre_faturado_em: string | null
           prioridade_motivo: string | null
           prioridade_score: number
-          pronto_pro_bling_em: string | null
           proxima_acao: string | null
           recebido_em: string
           recebido_via: string
@@ -8490,9 +8550,9 @@ export type Database = {
           itens_json?: Json | null
           origem?: string | null
           parceiro_id: string
+          pre_faturado_em?: string | null
           prioridade_motivo?: string | null
           prioridade_score?: number
-          pronto_pro_bling_em?: string | null
           proxima_acao?: string | null
           recebido_em?: string
           recebido_via?: string
@@ -8532,9 +8592,9 @@ export type Database = {
           itens_json?: Json | null
           origem?: string | null
           parceiro_id?: string
+          pre_faturado_em?: string | null
           prioridade_motivo?: string | null
           prioridade_score?: number
-          pronto_pro_bling_em?: string | null
           proxima_acao?: string | null
           recebido_em?: string
           recebido_via?: string
@@ -14219,6 +14279,14 @@ export type Database = {
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }
         Returns: string
+      }
+      fn_parse_condicao: {
+        Args: {
+          p_condicao_solicitada: string
+          p_data_referencia?: string
+          p_valor_liquido: number
+        }
+        Returns: Json
       }
       fn_recalcular_tags_doc_cpr: {
         Args: { p_cpr_id: string }
