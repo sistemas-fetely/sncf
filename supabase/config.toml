@@ -39,3 +39,5 @@ project_id = "vaxzorhqzvsnkutrlvfr"
     verify_jwt = true
   [functions.enriquecer-parceiro-cnpj]
     verify_jwt = true
+  [functions.recebe-pedido]
+    verify_jwt = false
