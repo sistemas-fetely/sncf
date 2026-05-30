@@ -14656,6 +14656,23 @@ export type Database = {
         Args: { p_stage_id: string }
         Returns: undefined
       }
+      receber_pedido_externo: {
+        Args: {
+          p_cnpj: string
+          p_condicao_solicitada: string
+          p_data_pedido: string
+          p_desconto_pct?: number
+          p_forma_solicitada: string
+          p_id_externo: string
+          p_itens_json?: Json
+          p_origem?: string
+          p_recebido_via?: string
+          p_valor_bruto: number
+          p_valor_liquido: number
+          p_vendedor?: string
+        }
+        Returns: Json
+      }
       registrar_aceite_termo_uso: {
         Args: { _versao: string }
         Returns: undefined
