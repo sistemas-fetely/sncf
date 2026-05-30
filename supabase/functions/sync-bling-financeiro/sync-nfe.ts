@@ -15,6 +15,16 @@ async function resolveParceiroId(supabase: any, contato: any): Promise<string | 
   return novo?.id ?? null;
 }
 
+async function resolvePedidoId(supabase: any, numeroLoja: any): Promise<string | null> {
+  if (numeroLoja === null || numeroLoja === undefined || numeroLoja === "") return null;
+  const { data: pedido } = await supabase
+    .from("pedidos")
+    .select("id")
+    .eq("id_externo", String(numeroLoja))
+    .maybeSingle();
+  return pedido?.id ?? null;
+}
+
 // Bling NFe situação: 1=Pendente, 2=Emitida, 3=Cancelada, 4=Em digitação, 5=Rejeitada, 6=Autorizada, 7=Inutilizada, 8=Denegada
 const SITUACAO_MAP: Record<number, string> = {
   1: "pendente", 2: "emitida", 3: "cancelada", 4: "rascunho",
