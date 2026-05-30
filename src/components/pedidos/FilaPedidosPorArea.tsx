@@ -6,7 +6,9 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Send, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import {
   EstagioBadge, BadgesContextuaisPedido, FormatoIdade,
 } from "./BadgesPedido";
@@ -44,6 +46,7 @@ export function FilaPedidosPorArea({
   const [busca, setBusca] = useState("");
   const [estagioFilter, setEstagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
   const navigate = useNavigate();
+  const enviarBling = useEnviarBling();
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
 
@@ -103,19 +106,20 @@ export function FilaPedidosPorArea({
               <TableHead>Sinais</TableHead>
               <TableHead>Idade</TableHead>
               <TableHead>Próxima ação</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   Carregando…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && (!data || data.length === 0) && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   Nenhum pedido neste filtro.
                 </TableCell>
               </TableRow>
@@ -150,6 +154,31 @@ export function FilaPedidosPorArea({
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {p.proxima_acao || <span className="opacity-50">—</span>}
+                </TableCell>
+                <TableCell className="text-right">
+                  {p.estagio === "pre_faturado" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={enviarBling.isPending && enviarBling.variables === p.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        enviarBling.mutate(p.id);
+                      }}
+                    >
+                      {enviarBling.isPending && enviarBling.variables === p.id ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          Enviando…
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-3 w-3 mr-1" />
+                          Enviar Bling
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
