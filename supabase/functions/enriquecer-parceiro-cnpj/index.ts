@@ -139,20 +139,48 @@ Deno.serve(async (req) => {
       },
     };
 
+    // Padrão SÓ-SE-NULL: BrasilAPI complementa o que SNCF não tem.
+    // Preserva o que veio do FOP ou foi editado no SNCF.
+    // Doutrina cravada 30/05: SNCF preserva em conflito.
     const updates: Record<string, unknown> = {
-      razao_social: dataApi.razao_social || parceiro.razao_social,
-      nome_fantasia: dataApi.nome_fantasia || parceiro.nome_fantasia,
-      cidade: dataApi.municipio || parceiro.cidade,
-      uf: dataApi.uf || parceiro.uf,
-      cadastro_incompleto: false,
-      contexto_bureau: novoContexto,
+      cadastro_incompleto: false, // sempre marca completo após enriquecer com sucesso
+      contexto_bureau: novoContexto, // metadata da BrasilAPI — sempre atualiza
     };
 
-    if (dataApi.cep) updates.cep = dataApi.cep;
-    if (dataApi.logradouro) updates.logradouro = dataApi.logradouro;
-    if (dataApi.numero) updates.numero = dataApi.numero;
-    if (dataApi.bairro) updates.bairro = dataApi.bairro;
-    if (dataApi.ddd_telefone_1) updates.telefone = dataApi.ddd_telefone_1;
+    // Identidade
+    if (dataApi.razao_social && !parceiro.razao_social) {
+      updates.razao_social = dataApi.razao_social;
+    }
+    // Caso especial: placeholder "A enriquecer via BrasilAPI" usado quando
+    // receber_pedido_externo é chamada sem p_razao_social — substituir é OK
+    else if (
+      dataApi.razao_social &&
+      parceiro.razao_social === "A enriquecer via BrasilAPI"
+    ) {
+      updates.razao_social = dataApi.razao_social;
+    }
+    if (dataApi.nome_fantasia && !parceiro.nome_fantasia) {
+      updates.nome_fantasia = dataApi.nome_fantasia;
+    }
+
+    // Situação cadastral (campo novo — Fase A)
+    if (dataApi.descricao_situacao_cadastral && !parceiro.situacao_cadastral) {
+      updates.situacao_cadastral = dataApi.descricao_situacao_cadastral;
+    }
+
+    // Endereço
+    if (dataApi.cep && !parceiro.cep) updates.cep = dataApi.cep;
+    if (dataApi.logradouro && !parceiro.logradouro) updates.logradouro = dataApi.logradouro;
+    if (dataApi.numero && !parceiro.numero) updates.numero = dataApi.numero;
+    if (dataApi.complemento && !parceiro.endereco_complemento) {
+      updates.endereco_complemento = dataApi.complemento;
+    }
+    if (dataApi.bairro && !parceiro.bairro) updates.bairro = dataApi.bairro;
+    if (dataApi.municipio && !parceiro.cidade) updates.cidade = dataApi.municipio;
+    if (dataApi.uf && !parceiro.uf) updates.uf = dataApi.uf;
+
+    // Contato
+    if (dataApi.ddd_telefone_1 && !parceiro.telefone) updates.telefone = dataApi.ddd_telefone_1;
 
     const { error: upErr } = await supa
       .from("parceiros_comerciais")

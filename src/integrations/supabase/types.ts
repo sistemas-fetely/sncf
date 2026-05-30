@@ -7813,22 +7813,28 @@ export type Database = {
           bandeira_vermelha_por: string | null
           bling_id: string | null
           cadastro_incompleto: boolean
+          canal_fop: string | null
           canal_venda_id: string | null
           categoria_ka: string | null
           centro_custo_id: string | null
           cep: string | null
           cidade: string | null
           cnpj: string | null
+          contatos: Json | null
           contexto_bureau: Json | null
           cpf: string | null
           created_at: string | null
           dados_bancarios: Json | null
           data_nascimento: string | null
           email: string | null
+          endereco_complemento: string | null
+          endereco_entrega: Json | null
           forma_pagamento_padrao_id: string | null
           grupo_economico_id: string | null
           grupo_id: string | null
           id: string
+          inscricao_estadual: string | null
+          isento_ie: boolean
           logradouro: string | null
           nivel_programa: string
           nome_fantasia: string | null
@@ -7839,9 +7845,12 @@ export type Database = {
           pix_chave: string | null
           pix_tipo: string | null
           plano_contas_id: string | null
+          premissas: Json | null
           razao_social: string
+          regiao_atuacao: string | null
           rg: string | null
           segmento: string | null
+          situacao_cadastral: string | null
           tags: string[] | null
           telefone: string | null
           tipo: string | null
@@ -7859,22 +7868,28 @@ export type Database = {
           bandeira_vermelha_por?: string | null
           bling_id?: string | null
           cadastro_incompleto?: boolean
+          canal_fop?: string | null
           canal_venda_id?: string | null
           categoria_ka?: string | null
           centro_custo_id?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          contatos?: Json | null
           contexto_bureau?: Json | null
           cpf?: string | null
           created_at?: string | null
           dados_bancarios?: Json | null
           data_nascimento?: string | null
           email?: string | null
+          endereco_complemento?: string | null
+          endereco_entrega?: Json | null
           forma_pagamento_padrao_id?: string | null
           grupo_economico_id?: string | null
           grupo_id?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          isento_ie?: boolean
           logradouro?: string | null
           nivel_programa?: string
           nome_fantasia?: string | null
@@ -7885,9 +7900,12 @@ export type Database = {
           pix_chave?: string | null
           pix_tipo?: string | null
           plano_contas_id?: string | null
+          premissas?: Json | null
           razao_social: string
+          regiao_atuacao?: string | null
           rg?: string | null
           segmento?: string | null
+          situacao_cadastral?: string | null
           tags?: string[] | null
           telefone?: string | null
           tipo?: string | null
@@ -7905,22 +7923,28 @@ export type Database = {
           bandeira_vermelha_por?: string | null
           bling_id?: string | null
           cadastro_incompleto?: boolean
+          canal_fop?: string | null
           canal_venda_id?: string | null
           categoria_ka?: string | null
           centro_custo_id?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          contatos?: Json | null
           contexto_bureau?: Json | null
           cpf?: string | null
           created_at?: string | null
           dados_bancarios?: Json | null
           data_nascimento?: string | null
           email?: string | null
+          endereco_complemento?: string | null
+          endereco_entrega?: Json | null
           forma_pagamento_padrao_id?: string | null
           grupo_economico_id?: string | null
           grupo_id?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          isento_ie?: boolean
           logradouro?: string | null
           nivel_programa?: string
           nome_fantasia?: string | null
@@ -7931,9 +7955,12 @@ export type Database = {
           pix_chave?: string | null
           pix_tipo?: string | null
           plano_contas_id?: string | null
+          premissas?: Json | null
           razao_social?: string
+          regiao_atuacao?: string | null
           rg?: string | null
           segmento?: string | null
+          situacao_cadastral?: string | null
           tags?: string[] | null
           telefone?: string | null
           tipo?: string | null
@@ -14655,15 +14682,37 @@ export type Database = {
       }
       receber_pedido_externo: {
         Args: {
+          p_bairro?: string
+          p_canal_fop?: string
+          p_cep?: string
+          p_cidade?: string
           p_cnpj: string
+          p_complemento?: string
           p_condicao_solicitada: string
+          p_contatos?: Json
           p_data_pedido: string
           p_desconto_pct?: number
+          p_email?: string
+          p_endereco_entrega?: Json
           p_forma_solicitada: string
           p_id_externo: string
+          p_inscricao_estadual?: string
+          p_isento_ie?: boolean
           p_itens_json?: Json
+          p_logradouro?: string
+          p_nome_fantasia?: string
+          p_numero?: string
+          p_observacao?: string
           p_origem?: string
+          p_premissas?: Json
+          p_razao_social?: string
           p_recebido_via?: string
+          p_regiao_atuacao?: string
+          p_segmento?: string
+          p_situacao_cadastral?: string
+          p_tags?: string[]
+          p_telefone?: string
+          p_uf?: string
           p_valor_bruto: number
           p_valor_liquido: number
           p_vendedor?: string
