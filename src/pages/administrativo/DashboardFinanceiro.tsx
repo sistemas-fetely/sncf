@@ -49,45 +49,47 @@ function HeroBalance({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
+      className="relative overflow-hidden rounded-2xl p-4 text-white shadow-lg"
       style={{ background: `linear-gradient(135deg, ${VERDE} 0%, ${VERDE_MED} 100%)` }}
     >
       <div
-        className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full opacity-10"
+        className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full opacity-10"
         style={{ background: "radial-gradient(circle, white 0%, transparent 70%)" }}
       />
-      <div className="relative grid gap-4 md:grid-cols-[1.4fr_1fr]">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-white/70">
-            <Wallet className="h-3.5 w-3.5" />
-            Saldo Consolidado
+      <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-4">
+          <div>
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/70">
+              <Wallet className="h-3 w-3" />
+              Saldo Consolidado
+            </div>
+            <div className="text-3xl font-bold tracking-tight tabular-nums leading-tight">
+              {formatBRL(saldo)}
+            </div>
           </div>
-          <div className="mt-1 text-4xl font-bold tracking-tight tabular-nums">
-            {formatBRL(saldo)}
-          </div>
-          <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur">
             <span className={`h-2 w-2 rounded-full ${dotColor}`} />
             {status.mensagem}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3 self-end md:grid-cols-1">
+        <div className="flex items-center gap-5 md:gap-6">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-white/60">Recebido no mês</div>
-            <div className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-emerald-200 tabular-nums">
+            <div className="text-[10px] uppercase tracking-wider text-white/60">Recebido mês</div>
+            <div className="flex items-center gap-1 text-sm font-semibold text-emerald-200 tabular-nums">
               <ArrowUpRight className="h-3.5 w-3.5" />
               {formatBRL(recebidoMes)}
             </div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-white/60">Pago no mês</div>
-            <div className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-rose-200 tabular-nums">
+            <div className="text-[10px] uppercase tracking-wider text-white/60">Pago mês</div>
+            <div className="flex items-center gap-1 text-sm font-semibold text-rose-200 tabular-nums">
               <ArrowDownRight className="h-3.5 w-3.5" />
               {formatBRL(pagoMes)}
             </div>
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-wider text-white/60">Líquido</div>
-            <div className={`mt-0.5 text-sm font-semibold tabular-nums ${liquido >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+            <div className={`text-sm font-semibold tabular-nums ${liquido >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
               {liquido >= 0 ? "+" : ""}{formatBRL(liquido)}
             </div>
           </div>
@@ -96,6 +98,7 @@ function HeroBalance({
     </div>
   );
 }
+
 
 // ─── MetricCard ────────────────────────────────────────────────────
 function MetricCard({
@@ -332,6 +335,53 @@ export default function DashboardFinanceiro() {
     },
   });
 
+  const { data: formasData } = useQuery({
+    queryKey: ["dashboard-formas-fetely"],
+    queryFn: async () => {
+      const hoje = new Date();
+      const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0];
+      const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0];
+      const { data } = await (supabase as any)
+        .from("pedidos")
+        .select("forma_solicitada, valor_liquido, tipo_pagamento")
+        .gte("data_pedido", ini)
+        .lte("data_pedido", fim);
+      const rows = data ?? [];
+      const total = rows.reduce((s: number, p: any) => s + Number(p.valor_liquido ?? 0), 0);
+      const porForma = new Map<string, number>();
+      let aVista = 0, aPrazo = 0;
+      for (const p of rows) {
+        const f = p.forma_solicitada ?? "outro";
+        porForma.set(f, (porForma.get(f) ?? 0) + Number(p.valor_liquido ?? 0));
+        if (p.tipo_pagamento === "a_vista") aVista += Number(p.valor_liquido ?? 0);
+        else if (p.tipo_pagamento === "a_prazo") aPrazo += Number(p.valor_liquido ?? 0);
+      }
+      const formas = Array.from(porForma.entries())
+        .map(([forma, valor]) => ({ forma, valor, pct: total > 0 ? (valor / total) * 100 : 0 }))
+        .sort((a, b) => b.valor - a.valor);
+      return { formas, total, aVista, aPrazo };
+    },
+  });
+
+  const { data: dsoData } = useQuery({
+    queryKey: ["dashboard-dso-fetely"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("titulo_a_receber")
+        .select("data_emissao_nf, data_pagamento")
+        .in("status", ["pago", "pago_com_atraso", "pago_judicial"])
+        .not("data_pagamento", "is", null)
+        .not("data_emissao_nf", "is", null);
+      const rows = data ?? [];
+      if (rows.length === 0) return { dias: null as number | null, amostra: 0 };
+      const soma = rows.reduce((s: number, t: any) => {
+        const d = (new Date(t.data_pagamento).getTime() - new Date(t.data_emissao_nf).getTime()) / 86_400_000;
+        return s + Math.max(0, d);
+      }, 0);
+      return { dias: Math.round(soma / rows.length), amostra: rows.length };
+    },
+  });
+
   const metrics = useMemo(() => {
     const hoje = new Date();
     const iniMesAtual = inicioMes(hoje);
@@ -462,6 +512,107 @@ export default function DashboardFinanceiro() {
         pagoMes={metrics.pagoMes}
         status={metrics.status}
       />
+
+      {/* Vendas por forma de pagamento + DSO + À vista/A prazo */}
+      {(() => {
+        const FORMA_MAP: Record<string, { label: string; cor: string }> = {
+          boleto: { label: "Boleto", cor: VERDE },
+          cartao: { label: "Cartão", cor: AZUL },
+          pix: { label: "Pix", cor: ROSA },
+          troca_mercadoria: { label: "Troca de mercadoria", cor: AMBAR },
+        };
+        const rotuloForma = (f: string) =>
+          FORMA_MAP[f]?.label ?? f.charAt(0).toUpperCase() + f.slice(1).replace(/_/g, " ");
+        const corForma = (f: string) => FORMA_MAP[f]?.cor ?? "#8b5cf6";
+        const totalAV_AP = (formasData?.aVista ?? 0) + (formasData?.aPrazo ?? 0);
+        const pctAVista = totalAV_AP > 0 ? ((formasData?.aVista ?? 0) / totalAV_AP) * 100 : 0;
+        const pctAPrazo = totalAV_AP > 0 ? ((formasData?.aPrazo ?? 0) / totalAV_AP) * 100 : 0;
+        return (
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl border bg-card p-5 shadow-sm md:col-span-2">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Vendas por forma de pagamento
+              </div>
+              <div className="mt-0.5 text-xs text-muted-foreground">Mês atual · % por valor</div>
+              <div className="mt-4 space-y-3">
+                {(formasData?.total ?? 0) === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">Sem vendas no mês.</div>
+                ) : (
+                  (formasData?.formas ?? []).map((f) => (
+                    <div key={f.forma}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: corForma(f.forma) }} />
+                          <span className="font-medium">{rotuloForma(f.forma)}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-xs font-semibold tabular-nums">{formatBRL(f.valor)}</span>
+                          <span className="w-12 text-right text-xs text-muted-foreground tabular-nums">{f.pct.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full rounded-full" style={{ width: `${f.pct}%`, backgroundColor: corForma(f.forma) }} />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              <div className="rounded-xl border bg-card p-5 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Tempo médio de recebimento
+                  </div>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: `${VERDE}15` }}>
+                    <Clock className="h-4 w-4" style={{ color: VERDE }} />
+                  </div>
+                </div>
+                <div className="mt-3 text-2xl font-bold tracking-tight tabular-nums">
+                  {dsoData?.dias == null ? "—" : `${dsoData.dias} dias`}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {dsoData?.dias == null ? "Sem títulos quitados ainda" : `Base: ${dsoData.amostra} títulos`}
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-card p-5 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    À vista × a prazo
+                  </div>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: `${AZUL}15` }}>
+                    <Wallet className="h-4 w-4" style={{ color: AZUL }} />
+                  </div>
+                </div>
+                {totalAV_AP === 0 ? (
+                  <div className="mt-3 text-sm text-muted-foreground">Sem dados no mês.</div>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">À vista</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-semibold tabular-nums">{formatBRL(formasData?.aVista ?? 0)}</span>
+                        <span className="w-12 text-right text-xs text-muted-foreground tabular-nums">{pctAVista.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">A prazo</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-semibold tabular-nums">{formatBRL(formasData?.aPrazo ?? 0)}</span>
+                        <span className="w-12 text-right text-xs text-muted-foreground tabular-nums">{pctAPrazo.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+
 
       {/* Linha 1 — NEGÓCIO */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
