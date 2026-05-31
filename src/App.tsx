@@ -517,6 +517,9 @@ const App = () => (
               <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
               <Route path="produtos" element={<Produtos />} />
               <Route path="parceiros" element={<Parceiros />} />
+              <Route path="importar" element={<ImportarDados />} />
+              <Route path="nfs-stage" element={<NFsStage />} />
+              <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
             </Route>
 
             {/* ═══════════════════════════════════════════════
