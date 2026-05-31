@@ -35,11 +35,11 @@ const financeiroItems: MenuItem[] = [
   { title: "Contas a Pagar", url: "/administrativo/contas-pagar", icon: ArrowUpFromLine },
   { title: "Faturas de Cartão", url: "/administrativo/faturas-cartao", icon: CreditCard },
   { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine },
+  { title: "Fluxo de Caixa", url: "/administrativo/fluxo-caixa", icon: TrendingUp },
 ];
 
 const caixaBancoItems: MenuItem[] = [
   { title: "Contratos Recorrentes", url: "/administrativo/compromissos", icon: Receipt },
-  { title: "Fluxo de Caixa", url: "/administrativo/fluxo-caixa", icon: TrendingUp },
   { title: "Fluxo Futuro Investimento", url: "/administrativo/fluxo-futuro-investimento", icon: Target },
   { title: "Fluxo Futuro", url: "/administrativo/fluxo-futuro", icon: Calendar },
   { title: "Contas Bancárias", url: "/administrativo/caixa-banco/contas", icon: Landmark },
