@@ -342,11 +342,17 @@ Deno.serve(async (req) => {
         await adminClient.from("grupo_acesso_usuarios").insert(grupoInserts);
       }
 
+      let linkPrimeiroAcesso: string | null = null;
       try {
-        await adminClient.auth.admin.generateLink({
+        const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
           type: "recovery",
           email,
         });
+        if (linkErr) {
+          console.error("Erro ao gerar link de recuperação:", linkErr);
+        } else {
+          linkPrimeiroAcesso = linkData?.properties?.action_link ?? null;
+        }
       } catch (linkErr) {
         console.error("Erro ao gerar link de recuperação:", linkErr);
       }
