@@ -73,7 +73,6 @@ export function FinancasContextSidebar() {
                 <FinancasSidebarItem to="/administrativo/conciliacao" icon={CheckCheck} label="Conciliação" />
               </FinancasSidebarSection>
 
-              </FinancasSidebarSection>
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
