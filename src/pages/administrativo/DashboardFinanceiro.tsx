@@ -49,45 +49,45 @@ function HeroBalance({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl p-8 text-white shadow-lg"
+      className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
       style={{ background: `linear-gradient(135deg, ${VERDE} 0%, ${VERDE_MED} 100%)` }}
     >
       <div
-        className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full opacity-10"
+        className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full opacity-10"
         style={{ background: "radial-gradient(circle, white 0%, transparent 70%)" }}
       />
-      <div className="relative grid gap-8 md:grid-cols-[1.4fr_1fr]">
+      <div className="relative grid gap-4 md:grid-cols-[1.4fr_1fr]">
         <div>
-          <div className="flex items-center gap-2 text-sm text-white/70">
-            <Wallet className="h-4 w-4" />
+          <div className="flex items-center gap-2 text-xs text-white/70">
+            <Wallet className="h-3.5 w-3.5" />
             Saldo Consolidado
           </div>
-          <div className="mt-2 text-6xl font-bold tracking-tight tabular-nums">
+          <div className="mt-1 text-4xl font-bold tracking-tight tabular-nums">
             {formatBRL(saldo)}
           </div>
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur">
+          <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur">
             <span className={`h-2 w-2 rounded-full ${dotColor}`} />
             {status.mensagem}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-4 self-end md:grid-cols-1">
+        <div className="grid grid-cols-3 gap-3 self-end md:grid-cols-1">
           <div>
-            <div className="text-xs uppercase tracking-wider text-white/60">Recebido no mês</div>
-            <div className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-emerald-200 tabular-nums">
-              <ArrowUpRight className="h-4 w-4" />
+            <div className="text-[10px] uppercase tracking-wider text-white/60">Recebido no mês</div>
+            <div className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-emerald-200 tabular-nums">
+              <ArrowUpRight className="h-3.5 w-3.5" />
               {formatBRL(recebidoMes)}
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wider text-white/60">Pago no mês</div>
-            <div className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-rose-200 tabular-nums">
-              <ArrowDownRight className="h-4 w-4" />
+            <div className="text-[10px] uppercase tracking-wider text-white/60">Pago no mês</div>
+            <div className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-rose-200 tabular-nums">
+              <ArrowDownRight className="h-3.5 w-3.5" />
               {formatBRL(pagoMes)}
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wider text-white/60">Líquido</div>
-            <div className={`mt-1 text-lg font-semibold tabular-nums ${liquido >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+            <div className="text-[10px] uppercase tracking-wider text-white/60">Líquido</div>
+            <div className={`mt-0.5 text-sm font-semibold tabular-nums ${liquido >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
               {liquido >= 0 ? "+" : ""}{formatBRL(liquido)}
             </div>
           </div>
