@@ -38,7 +38,7 @@ const financeiroItems: MenuItem[] = [
   { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine },
   { title: "NFs em Stage", url: "/administrativo/nfs-stage", icon: Layers },
   { title: "Conciliação", url: "/administrativo/conciliacao", icon: CheckSquare },
-  { title: "Compromissos", url: "/administrativo/compromissos", icon: Receipt },
+  { title: "Contratos Recorrentes", url: "/administrativo/compromissos", icon: Receipt },
   { title: "Documentos Pendentes", url: "/administrativo/documentos-pendentes", icon: FileWarning },
 ];
 
