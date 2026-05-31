@@ -36,7 +36,7 @@ export default function AdminLayout() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AdminSidebar />
+        {!hideSidebar && <AdminSidebar />}
         <div className="flex-1 flex flex-col">
 
           <main className="flex-1 overflow-auto relative">
