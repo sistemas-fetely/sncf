@@ -124,6 +124,7 @@ const CobrancaFila = lazy(() => import("@/pages/Credito/CobrancaFila"));
 const CobrancaDetalhe = lazy(() => import("@/pages/Credito/CobrancaDetalhe"));
 const AguardandoPagamentoFila = lazy(() => import("@/pages/Credito/AguardandoPagamentoFila"));
 const AguardandoPagamentoDetalhe = lazy(() => import("@/pages/Credito/AguardandoPagamentoDetalhe"));
+const RegrasCadencia = lazy(() => import("@/pages/Credito/RegrasCadencia"));
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
