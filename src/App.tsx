@@ -122,6 +122,8 @@ const AnaliseDetalhe = lazy(() => import("@/pages/Credito/AnaliseDetalhe"));
 const ClienteDetalhe = lazy(() => import("@/pages/Credito/ClienteDetalhe"));
 const CobrancaFila = lazy(() => import("@/pages/Credito/CobrancaFila"));
 const CobrancaDetalhe = lazy(() => import("@/pages/Credito/CobrancaDetalhe"));
+const AguardandoPagamentoFila = lazy(() => import("@/pages/Credito/AguardandoPagamentoFila"));
+const AguardandoPagamentoDetalhe = lazy(() => import("@/pages/Credito/AguardandoPagamentoDetalhe"));
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
@@ -213,6 +215,8 @@ const App = () => (
               <Route path="/credito/clientes/:id" element={<ClienteDetalhe />} />
               <Route path="/credito/cobranca" element={<CobrancaFila />} />
               <Route path="/credito/cobranca/:pedidoId" element={<CobrancaDetalhe />} />
+              <Route path="/credito/aguardando-pagamento" element={<AguardandoPagamentoFila />} />
+              <Route path="/credito/aguardando-pagamento/:pedidoId" element={<AguardandoPagamentoDetalhe />} />
 
               {/* ═══════════════════════════════════════════════
                   App Pedidos — App Simples (sem sidebar lateral)
