@@ -77,6 +77,7 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
     setColaboradorId("");
     setPular(false);
     setGrupoIds([]);
+    setResultado(null);
   };
 
   const handleOpenChange = (next: boolean) => {
