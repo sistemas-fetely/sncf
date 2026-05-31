@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatCurrency } from "@/lib/format-currency";
+import { formatBRL } from "@/lib/format-currency";
 import type { RegraCadencia, RegraCadenciaCriterio } from "@/types/credito";
 
 const PERFIL_LABEL: Record<string, string> = {
