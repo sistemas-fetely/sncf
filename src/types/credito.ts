@@ -89,6 +89,17 @@ export interface AnaliseListItem {
   analise_ia_confianca: number | null;
   analise_ia_processada_em: string | null;
   foi_devolvida: boolean;
+  pre_aprovado_regra_id?: string | null;
+  pre_aprovacao_em?: string | null;
+  pre_aprovacao_regra_nome?: string | null;
+}
+
+export interface PreAprovacaoPayload {
+  regra_id: string;
+  regra_nome: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  condicao_sugerida: any;
+  parecer_sugerido: string;
 }
 
 export interface AnaliseScore {
