@@ -20,9 +20,9 @@ export function CreditoStatsCards() {
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <StatCard
         icon={<Inbox className="h-5 w-5" />}
-        label="Entrada (Mariana)"
+        label="Aguardando liberação (SOps)"
         value={data?.entrada || 0}
-        hint="aguardando triagem"
+        hint="liberação acontece em /pedidos"
       />
       <StatCard
         icon={<Search className="h-5 w-5" />}
