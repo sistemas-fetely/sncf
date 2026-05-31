@@ -14514,6 +14514,14 @@ export type Database = {
         Args: { _nfs_stage_id: string }
         Returns: undefined
       }
+      marcar_titulo_pago: {
+        Args: {
+          p_data_pagamento?: string
+          p_observacao?: string
+          p_titulo_id: string
+        }
+        Returns: Json
+      }
       materializar_cobranca: {
         Args: { p_pedido_id: string; p_titulos_editados: Json }
         Returns: Json

@@ -263,3 +263,31 @@ export interface CobrancaFilaItem {
   perfil_aplicado: PerfilCredito | null;
   condicao_solicitada: string;
 }
+
+// ──────────────────────────────────────────────────────────────────
+// Aguardando pagamento (Fase 5 — marcação manual de entradas)
+// ──────────────────────────────────────────────────────────────────
+
+export interface PedidoAguardandoPagamento {
+  pedido_id: string;
+  id_externo: string;
+  parceiro_nome: string;
+  parceiro_cnpj: string;
+  valor_liquido: number;
+  estagio_atualizado_em: string;
+  entradas_pendentes: number;
+  entradas_total: number;
+  dias_aguardando: number;
+}
+
+export interface TituloEntradaPedido {
+  titulo_id: string;
+  numero_titulo: string;
+  numero_parcela: number;
+  total_parcelas: number;
+  tipo_pagamento: "pix" | "cartao" | "boleto";
+  valor_bruto: number;
+  data_vencimento_atual: string | null;
+  status: string; // 'pendente' | 'pago' | ...
+  data_pagamento: string | null;
+}
