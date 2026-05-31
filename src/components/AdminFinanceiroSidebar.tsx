@@ -36,10 +36,8 @@ const financeiroItems: MenuItem[] = [
   { title: "Faturas de Cartão", url: "/administrativo/faturas-cartao", icon: CreditCard },
   { title: "Reconciliação Cartão", url: "/administrativo/reconciliacao-cartao", icon: ArrowLeftRight },
   { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine },
-  { title: "NFs em Stage", url: "/administrativo/nfs-stage", icon: Layers },
   { title: "Conciliação", url: "/administrativo/conciliacao", icon: CheckSquare },
   { title: "Contratos Recorrentes", url: "/administrativo/compromissos", icon: Receipt },
-  { title: "Documentos Pendentes", url: "/administrativo/documentos-pendentes", icon: FileWarning },
 ];
 
 const caixaBancoItems: MenuItem[] = [
@@ -54,7 +52,6 @@ const caixaBancoItems: MenuItem[] = [
 const configFinanceiroItems: MenuItem[] = [
   { title: "Investimento de Lançamento", url: "/administrativo/investimento-lancamento", icon: Target },
   { title: "Plano de Contas", url: "/administrativo/plano-contas", icon: ListTree },
-  { title: "Importar Dados", url: "/administrativo/importar", icon: Upload },
 ];
 
 // MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
