@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { Loader2, Lock, Check } from "lucide-react";
+import { toast } from "sonner";
+import { Loader2, Lock, Check, Copy } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -19,6 +20,7 @@ import {
   useColaboradoresDisponiveis,
   useGruposParaSelecao,
   type VinculoTipo,
+  type CriarUsuarioV2Output,
 } from "@/hooks/useCriarUsuarioV2";
 
 interface NovoUsuarioDialogProps {
@@ -55,6 +57,9 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
   // Passo 3
   const [grupoIds, setGrupoIds] = useState<string[]>([]);
 
+  // Resultado pós-criação (mostra painel com link de primeiro acesso)
+  const [resultado, setResultado] = useState<CriarUsuarioV2Output | null>(null);
+
   const colabTipo: "clt" | "pj" | null =
     vinculoOpcao === "clt" ? "clt" : vinculoOpcao === "pj" ? "pj" : null;
 
@@ -72,6 +77,7 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
     setColaboradorId("");
     setPular(false);
     setGrupoIds([]);
+    setResultado(null);
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -109,7 +115,7 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
     }
 
     try {
-      await criar.mutateAsync({
+      const out = await criar.mutateAsync({
         email: email.trim(),
         full_name: fullName.trim(),
         vinculo_tipo,
@@ -118,9 +124,19 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
         tipo_externo,
         grupo_ids: grupoIds,
       });
-      handleOpenChange(false);
+      setResultado(out);
     } catch {
       // Toast já vem do hook — manter dialog aberto
+    }
+  };
+
+  const copiarLink = async () => {
+    if (!resultado?.link_primeiro_acesso) return;
+    try {
+      await navigator.clipboard.writeText(resultado.link_primeiro_acesso);
+      toast.success("Link copiado");
+    } catch {
+      toast.error("Não foi possível copiar. Selecione o link manualmente.");
     }
   };
 
@@ -137,6 +153,7 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
           <DialogTitle>Novo Usuário</DialogTitle>
         </DialogHeader>
 
+        {!resultado && (<>
         {/* Stepper */}
         <div className="flex items-start justify-center gap-2 py-4">
           {stepperItems.map((item, idx) => {
@@ -409,6 +426,61 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
             </Button>
           )}
         </DialogFooter>
+        </>)}
+
+        {resultado && (
+          <div className="py-2 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                <Check className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Usuário criado</p>
+                <p className="text-xs text-muted-foreground">{resultado.email}</p>
+              </div>
+            </div>
+
+            {resultado.link_primeiro_acesso ? (
+              <>
+                <p className="text-sm leading-relaxed">
+                  Envie este link para a pessoa definir a senha (ela ainda <strong>não</strong> tem senha).
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="link-acesso">Link de primeiro acesso</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="link-acesso"
+                      readOnly
+                      value={resultado.link_primeiro_acesso}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="font-mono text-xs"
+                    />
+                    <Button type="button" variant="secondary" onClick={copiarLink}>
+                      <Copy className="h-4 w-4" /> Copiar
+                    </Button>
+                  </div>
+                </div>
+                <Button type="button" className="w-full" onClick={copiarLink}>
+                  <Copy className="h-4 w-4" /> Copiar link de primeiro acesso
+                </Button>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  O link expira — envie e use logo. Vale só para esta pessoa.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Não foi possível gerar o link automaticamente. Use o botão{" "}
+                <strong>Reenviar link</strong> na lista de usuários.
+              </p>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
