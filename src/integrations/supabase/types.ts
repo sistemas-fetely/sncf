@@ -14514,6 +14514,10 @@ export type Database = {
         Args: { _nfs_stage_id: string }
         Returns: undefined
       }
+      materializar_cobranca: {
+        Args: { p_pedido_id: string; p_titulos_editados: Json }
+        Returns: Json
+      }
       merge_contas_duplicadas: {
         Args: { p_id_descartar: string; p_id_manter: string }
         Returns: Json
@@ -14643,6 +14647,7 @@ export type Database = {
         Args: { _motivo?: string; _processo_id: string }
         Returns: number
       }
+      propor_cobranca: { Args: { p_pedido_id: string }; Returns: Json }
       qualidade_dado_contas: {
         Args: { p_conta_ids: string[] }
         Returns: {
