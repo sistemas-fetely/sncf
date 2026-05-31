@@ -243,3 +243,79 @@ function Linha({
     </div>
   );
 }
+
+function resumirCondicao(c: unknown): string {
+  if (!c || typeof c !== "object") return "—";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cond = c as any;
+  if (typeof cond.resumo === "string") return cond.resumo;
+  const partes: string[] = [];
+  if (cond.condicao) partes.push(String(cond.condicao));
+  if (cond.forma) partes.push(String(cond.forma).toUpperCase());
+  if (typeof cond.limite_concedido === "number")
+    partes.push(fmtBRL.format(cond.limite_concedido));
+  if (typeof cond.prazo_max_dias === "number") partes.push(`até ${cond.prazo_max_dias}d`);
+  return partes.length ? partes.join(" · ") : JSON.stringify(cond);
+}
+
+function PreAprovacaoCard({
+  payload,
+  loading,
+  onConfirmar,
+}: {
+  payload: PreAprovacaoPayload | null;
+  loading: boolean;
+  onConfirmar: () => void;
+}) {
+  return (
+    <Card className="border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
+          <Sparkles className="h-4 w-4" />
+          Pré-aprovado pela regra "{payload?.regra_nome ?? "regra desconhecida"}"
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2 text-sm">
+          <div>
+            <p className="text-xs font-medium text-emerald-900/70 dark:text-emerald-200/70 uppercase tracking-wide">
+              Parecer sugerido
+            </p>
+            <p className="text-emerald-900 dark:text-emerald-100 whitespace-pre-wrap">
+              {payload?.parecer_sugerido || "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-emerald-900/70 dark:text-emerald-200/70 uppercase tracking-wide">
+              Condição sugerida
+            </p>
+            <p className="text-emerald-900 dark:text-emerald-100">
+              {resumirCondicao(payload?.condicao_sugerida)}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-start gap-1.5">
+          <Button
+            onClick={onConfirmar}
+            disabled={loading}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Confirmando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" /> Confirmar pré-aprovação
+              </>
+            )}
+          </Button>
+          <p className="text-xs text-emerald-900/70 dark:text-emerald-200/70">
+            Você ainda pode decidir manualmente nos botões abaixo se preferir.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
