@@ -208,7 +208,7 @@ const App = () => (
                 Casa Fetély — wrapper de auth + visual global
                 Doutrina CASA-1 — substitui Regra de Ouro dos Menus.
                 ═══════════════════════════════════════════════ */}
-            <Route element={<ProtectedRoute><CasaLayout /></ProtectedRoute>}>
+            <Route element={<ProtectedRoute><RotaGate><CasaLayout /></RotaGate></ProtectedRoute>}>
               <Route path="/" element={<CasaHome />} />
 
               {/* ═══════════════════════════════════════════════
