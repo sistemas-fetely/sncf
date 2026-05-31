@@ -21,6 +21,7 @@ import { TransicionarPedidoDialog } from "@/components/pedidos/dialogs/Transicio
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
+import { EncaminharDialog } from "@/components/credito/dialogs/EncaminharDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import {
