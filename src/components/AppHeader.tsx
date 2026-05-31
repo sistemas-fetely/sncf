@@ -1,4 +1,4 @@
-import { Bell, Moon, Sun, Search, Home } from "lucide-react";
+import { Bell, Moon, Sun, Home } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
