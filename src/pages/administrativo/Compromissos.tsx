@@ -234,7 +234,7 @@ export default function Compromissos() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Repeat className="h-6 w-6 text-primary" />
-            Compromissos
+            Contratos Recorrentes
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Obrigações financeiras recorrentes e parceladas. Geram parcelas

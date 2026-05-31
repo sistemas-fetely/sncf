@@ -63,7 +63,7 @@ export function FinancasContextSidebar() {
               <FinancasSidebarSection title="CPR">
                 <FinancasSidebarItem to="/administrativo/contas-pagar" icon={ArrowDownCircle} label="Contas a Pagar" />
                 <FinancasSidebarItem to="/administrativo/contas-receber" icon={ArrowUpCircle} label="Contas a Receber" />
-                <FinancasSidebarItem to="/administrativo/compromissos" icon={Calendar} label="Compromissos" />
+                <FinancasSidebarItem to="/administrativo/compromissos" icon={Calendar} label="Contratos Recorrentes" />
               </FinancasSidebarSection>
 
               <FinancasSidebarSection title="Banco">
