@@ -357,11 +357,14 @@ export default function DashboardFinanceiro() {
       .reduce((s: number, c: any) => s + Number(c.valor), 0);
 
     const tresMesesAtras = new Date(hoje.getFullYear(), hoje.getMonth() - 3, 1);
-    const pagasUltimosTresMeses = realizadas
-      .filter((c: any) => c.tipo === "pagar" && new Date(c.data_pagamento) >= tresMesesAtras && new Date(c.data_pagamento) < iniMesAtual)
-      .reduce((s: number, c: any) => s + Number(c.valor), 0);
+    const pagasUltimosTresMesesArr = realizadas
+      .filter((c: any) => c.tipo === "pagar" && new Date(c.data_pagamento) >= tresMesesAtras && new Date(c.data_pagamento) < iniMesAtual);
+    const pagasUltimosTresMeses = pagasUltimosTresMesesArr.reduce((s: number, c: any) => s + Number(c.valor), 0);
+    const mesesComBurn = new Set(
+      pagasUltimosTresMesesArr.map((c: any) => String(c.data_pagamento).slice(0, 7))
+    ).size;
     const burnMedio = pagasUltimosTresMeses / 3;
-    const runway = burnMedio > 0 ? saldoBancario / burnMedio : null;
+    const runway = burnMedio > 0 && mesesComBurn >= 3 ? saldoBancario / burnMedio : null;
 
     const aVencer = cprData?.aVencer ?? [];
     const aVencerPagar = aVencer.filter((c: any) => c.tipo === "pagar");
