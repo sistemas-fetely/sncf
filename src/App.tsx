@@ -482,9 +482,9 @@ const App = () => (
               <Route path="regras-ofx" element={<RegrasOFX />} />
               <Route path="contas-receber" element={<ContasReceber />} />
               <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
-              <Route path="importar" element={<ImportarDados />} />
-              <Route path="nfs-stage" element={<NFsStage />} />
-              <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
+              <Route path="importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
+              <Route path="nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
+              <Route path="documentos-pendentes" element={<Navigate to="/administrativo-fetely/documentos-pendentes" replace />} />
               <Route path="faturas-cartao" element={<FaturasCartao />} />
               <Route path="reconciliacao-cartao" element={<ReconciliacaoCartao />} />
               <Route path="fluxo-futuro" element={<FluxoCaixaFuturo />} />
