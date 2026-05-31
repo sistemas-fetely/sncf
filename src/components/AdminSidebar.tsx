@@ -1,8 +1,7 @@
 import { useLocation } from "react-router-dom";
 import {
-  Banknote, Sliders, Settings, UserCog, MessageSquareWarning, Shield,
-  LayoutGrid, Users, Monitor, ClipboardList, UsersRound, Landmark,
-  FileText, BookOpen, Workflow, FilePlus,
+  Sliders, Settings, UserCog, Shield,
+  ClipboardList, UsersRound, FilePlus,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
@@ -22,13 +21,6 @@ interface MenuItem {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   end?: boolean;
 }
-
-// Grupo 1: Documentação & Processos (vindos do SNCF na Sprint 2)
-const docItems: MenuItem[] = [
-  { title: "Documentação", url: "/documentacao", icon: FileText },
-  { title: "Processos", url: "/processos", icon: Workflow },
-  { title: "Base de Conhecimento", url: "/fala-fetely/conhecimento", icon: BookOpen },
-];
 
 // Grupo 2: Pessoas & Acessos
 const pessoasItems: MenuItem[] = [
