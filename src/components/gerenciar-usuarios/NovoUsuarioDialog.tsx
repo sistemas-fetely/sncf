@@ -57,6 +57,9 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
   // Passo 3
   const [grupoIds, setGrupoIds] = useState<string[]>([]);
 
+  // Resultado pós-criação (mostra painel com link de primeiro acesso)
+  const [resultado, setResultado] = useState<CriarUsuarioV2Output | null>(null);
+
   const colabTipo: "clt" | "pj" | null =
     vinculoOpcao === "clt" ? "clt" : vinculoOpcao === "pj" ? "pj" : null;
 
