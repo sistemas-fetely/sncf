@@ -34,6 +34,7 @@ export interface CriarUsuarioV2Output {
   email: string;
   vinculo_tipo: VinculoTipo;
   grupos_atribuidos: number;
+  link_primeiro_acesso: string | null;
 }
 
 export function useCriarUsuarioV2() {
