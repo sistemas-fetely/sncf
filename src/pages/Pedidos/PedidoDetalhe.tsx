@@ -262,6 +262,82 @@ export default function PedidoDetalhe() {
         </span>
       </div>
 
+      {/* Liberar pra análise de crédito (etapa SOps — mora aqui agora) */}
+      {analiseCredito?.estagio_atual === "entrada" && (
+        <Card className="border-amber-500/60 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              Liberar pra análise de crédito
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Confira os dados e libere pra análise de crédito. O time/IA assume a partir daqui.
+            </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              {parceiro?.perfil_credito && (
+                <div className="space-y-0.5">
+                  <p className="text-muted-foreground uppercase tracking-wide">Perfil cliente</p>
+                  <p className="font-semibold capitalize">
+                    {String(parceiro.perfil_credito).split("_").join(" ")}
+                  </p>
+                </div>
+              )}
+              {analiseCredito.perfil_aplicado && (
+                <div className="space-y-0.5">
+                  <p className="text-muted-foreground uppercase tracking-wide">Perfil aplicado</p>
+                  <p className="font-semibold capitalize">
+                    {String(analiseCredito.perfil_aplicado).split("_").join(" ")}
+                  </p>
+                </div>
+              )}
+              {analiseCredito.limite_concedido != null && (
+                <div className="space-y-0.5">
+                  <p className="text-muted-foreground uppercase tracking-wide">Limite default</p>
+                  <p className="font-semibold">{fmtBRL.format(analiseCredito.limite_concedido)}</p>
+                </div>
+              )}
+              {analiseCredito.prazo_max_dias != null && (
+                <div className="space-y-0.5">
+                  <p className="text-muted-foreground uppercase tracking-wide">Prazo máx</p>
+                  <p className="font-semibold">{analiseCredito.prazo_max_dias} dias</p>
+                </div>
+              )}
+            </div>
+
+            {(parceiro?.bandeira_vermelha || parceiro?.cadastro_incompleto) && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                {parceiro?.bandeira_vermelha && (
+                  <Badge variant="destructive">🚩 Bandeira vermelha</Badge>
+                )}
+                {parceiro?.cadastro_incompleto && (
+                  <Badge className="bg-amber-500 text-white border-0">
+                    ⚠️ Cadastro incompleto
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <EncaminharDialog analise_id={analiseCredito.id} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {analiseCredito?.estagio_atual && analiseCredito.estagio_atual !== "entrada" && !analiseCredito.status_final && (
+        <p className="text-xs text-muted-foreground">
+          {analiseCredito.estagio_atual === "analise" && "Em análise de crédito"}
+          {analiseCredito.estagio_atual === "decisao" && "Aguardando decisão de crédito"}
+        </p>
+      )}
+      {analiseCredito?.status_final && (
+        <p className="text-xs text-muted-foreground">Crédito decidido</p>
+      )}
+
+
       {/* Urgência IA — sinal manual SOps */}
       <Card>
         <CardHeader className="pb-3">
