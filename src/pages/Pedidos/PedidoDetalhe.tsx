@@ -174,6 +174,19 @@ export default function PedidoDetalhe() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data, isLoading } = usePedidoDetalhe(id);
+  const { data: priorizado } = usePedidoPriorizado(id);
+  const atualizarUrgencia = useAtualizarUrgencia();
+
+  const [urgencia, setUrgencia] = useState<UrgenciaDeclarada>("normal");
+  const [obsUrgencia, setObsUrgencia] = useState<string>("");
+
+  useEffect(() => {
+    if (priorizado) {
+      setUrgencia(priorizado.urgencia_declarada || "normal");
+      setObsUrgencia(priorizado.urgencia_observacao || "");
+    }
+  }, [priorizado]);
+
 
   if (isLoading) {
     return (
