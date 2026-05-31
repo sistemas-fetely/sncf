@@ -45,12 +45,12 @@ export function DevolverParaEntradaDialog({ analise_id }: Props) {
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Undo2 className="h-4 w-4" />
-          Devolver pra Entrada
+          Devolver pra SOps
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Devolver análise pra Entrada</DialogTitle>
+          <DialogTitle>Devolver pra SOps</DialogTitle>
           <DialogDescription>
             Use quando identificar erro no payload (CNPJ não bate, valor inconsistente,
             dados faltando). Mariana recebe na fila com o motivo abaixo.
