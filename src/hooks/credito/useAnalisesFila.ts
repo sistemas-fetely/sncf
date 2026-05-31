@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { AnaliseListItem, EstagioAnalise } from "@/types/credito";
+import type { AnaliseListItem, EstagioAnalise, PreAprovacaoPayload } from "@/types/credito";
 
 interface UseAnalisesFilaOptions {
   estagio?: EstagioAnalise;
@@ -20,8 +20,10 @@ export function useAnalisesFila(opts: UseAnalisesFilaOptions = {}) {
           id, pedido_id, parceiro_id, estagio_atual, status_final,
           criado_em, decidido_em,
           analise_ia_confianca, analise_ia_processada_em,
+          pre_aprovado_regra_id, pre_aprovacao_em, pre_aprovacao_payload,
           parceiro:parceiros_comerciais(cnpj, razao_social),
           pedido:pedidos(id_externo, valor_liquido, condicao_solicitada),
+          regra:regras_cadencia_credito!pre_aprovado_regra_id(nome),
           transicoes:analise_credito_transicoes(acao)
         `)
         .order("criado_em", { ascending: false });
@@ -33,24 +35,38 @@ export function useAnalisesFila(opts: UseAnalisesFilaOptions = {}) {
       if (error) throw error;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped: AnaliseListItem[] = (data || []).map((r: any) => ({
-        id: r.id,
-        pedido_id: r.pedido_id,
-        parceiro_id: r.parceiro_id,
-        estagio_atual: r.estagio_atual,
-        status_final: r.status_final,
-        criado_em: r.criado_em,
-        decidido_em: r.decidido_em,
-        parceiro_cnpj: r.parceiro?.cnpj ?? null,
-        parceiro_razao: r.parceiro?.razao_social ?? null,
-        pedido_valor_liquido: Number(r.pedido?.valor_liquido ?? 0),
-        pedido_condicao: r.pedido?.condicao_solicitada ?? "",
-        pedido_id_externo: r.pedido?.id_externo ?? "",
-        analise_ia_confianca: r.analise_ia_confianca,
-        analise_ia_processada_em: r.analise_ia_processada_em,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        foi_devolvida: (r.transicoes || []).some((t: any) => t.acao === "devolvido"),
-      }));
+      const mapped: AnaliseListItem[] = (data || []).map((r: any) => {
+        const payload = r.pre_aprovacao_payload as PreAprovacaoPayload | null;
+        return {
+          id: r.id,
+          pedido_id: r.pedido_id,
+          parceiro_id: r.parceiro_id,
+          estagio_atual: r.estagio_atual,
+          status_final: r.status_final,
+          criado_em: r.criado_em,
+          decidido_em: r.decidido_em,
+          parceiro_cnpj: r.parceiro?.cnpj ?? null,
+          parceiro_razao: r.parceiro?.razao_social ?? null,
+          pedido_valor_liquido: Number(r.pedido?.valor_liquido ?? 0),
+          pedido_condicao: r.pedido?.condicao_solicitada ?? "",
+          pedido_id_externo: r.pedido?.id_externo ?? "",
+          analise_ia_confianca: r.analise_ia_confianca,
+          analise_ia_processada_em: r.analise_ia_processada_em,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          foi_devolvida: (r.transicoes || []).some((t: any) => t.acao === "devolvido"),
+          pre_aprovado_regra_id: r.pre_aprovado_regra_id ?? null,
+          pre_aprovacao_em: r.pre_aprovacao_em ?? null,
+          pre_aprovacao_regra_nome: r.regra?.nome ?? payload?.regra_nome ?? null,
+        };
+      });
+
+      // Pré-aprovadas no topo (sub-ordenação dentro do mesmo conjunto)
+      mapped.sort((a, b) => {
+        const aPre = a.pre_aprovado_regra_id ? 1 : 0;
+        const bPre = b.pre_aprovado_regra_id ? 1 : 0;
+        if (aPre !== bPre) return bPre - aPre;
+        return a.criado_em.localeCompare(b.criado_em);
+      });
 
       if (opts.busca) {
         const termo = opts.busca.toLowerCase();
