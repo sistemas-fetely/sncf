@@ -241,16 +241,9 @@ export default function DashboardFinanceiro() {
     queryFn: async () => {
       const { data: contratos } = await (supabase as any)
         .from("pasta_contratos")
-        .select("id, ciclo_pagamento, valor_parcela, status")
+        .select("id, status")
         .eq("status", "vigente");
-      const vigentes = contratos ?? [];
-      const mrr = vigentes.reduce((s: number, c: any) => {
-        const v = Number(c.valor_parcela);
-        if (c.ciclo_pagamento === "mensal") return s + v;
-        if (c.ciclo_pagamento === "trimestral") return s + v / 3;
-        if (c.ciclo_pagamento === "anual") return s + v / 12;
-        return s;
-      }, 0);
+      const vigentesCount = (contratos ?? []).length;
 
       const em12m = new Date(Date.now() + 365 * 86_400_000).toISOString().split("T")[0];
       const hoje = new Date().toISOString().split("T")[0];
@@ -261,7 +254,82 @@ export default function DashboardFinanceiro() {
         .lte("data_vencimento", em12m);
       const compromisso12m = (parcelas ?? []).reduce((s: number, p: any) => s + Number(p.valor), 0);
 
-      return { mrr, vigentesCount: vigentes.length, compromisso12m };
+      return { vigentesCount, compromisso12m };
+    },
+  });
+
+  const { data: pedidosData } = useQuery({
+    queryKey: ["dashboard-pedidos-fetely"],
+    queryFn: async () => {
+      const hoje = new Date();
+      const iniAtual = inicioMes(hoje).toISOString();
+      const fimAtual = fimMes(hoje).toISOString();
+      const iniAnt = inicioMes(new Date(hoje.getFullYear(), hoje.getMonth() - 1)).toISOString();
+      const fimAnt = fimMes(new Date(hoje.getFullYear(), hoje.getMonth() - 1)).toISOString();
+      const iniAtualDate = inicioMes(hoje).toISOString().split("T")[0];
+      const fimAtualDate = fimMes(hoje).toISOString().split("T")[0];
+
+      const { data: fatAtual } = await (supabase as any)
+        .from("pedidos")
+        .select("valor_liquido")
+        .gte("faturado_em", iniAtual)
+        .lte("faturado_em", fimAtual);
+      const { data: fatAnt } = await (supabase as any)
+        .from("pedidos")
+        .select("valor_liquido")
+        .gte("faturado_em", iniAnt)
+        .lte("faturado_em", fimAnt);
+      const { data: pipeline } = await (supabase as any)
+        .from("pedidos")
+        .select("valor_liquido")
+        .is("faturado_em", null)
+        .in("estagio", ["em_analise_credito", "pre_faturado"]);
+      const { data: descMes } = await (supabase as any)
+        .from("pedidos")
+        .select("desconto_pct")
+        .gte("data_pedido", iniAtualDate)
+        .lte("data_pedido", fimAtualDate)
+        .not("desconto_pct", "is", null);
+
+      const faturamentoMes = (fatAtual ?? []).reduce((s: number, p: any) => s + Number(p.valor_liquido ?? 0), 0);
+      const faturamentoMesAnterior = (fatAnt ?? []).reduce((s: number, p: any) => s + Number(p.valor_liquido ?? 0), 0);
+      const pedidosFaturadosMes = (fatAtual ?? []).length;
+      const ticketMedio = pedidosFaturadosMes > 0 ? faturamentoMes / pedidosFaturadosMes : 0;
+      const pipelineCount = (pipeline ?? []).length;
+      const pipelineValor = (pipeline ?? []).reduce((s: number, p: any) => s + Number(p.valor_liquido ?? 0), 0);
+      const descs = (descMes ?? []).map((d: any) => Number(d.desconto_pct));
+      const descontoMedioMes = descs.length > 0 ? descs.reduce((a: number, b: number) => a + b, 0) / descs.length : 0;
+
+      return {
+        faturamentoMes, faturamentoMesAnterior, pedidosFaturadosMes, ticketMedio,
+        pipelineCount, pipelineValor, descontoMedioMes,
+      };
+    },
+  });
+
+  const { data: recebiveisData } = useQuery({
+    queryKey: ["dashboard-recebiveis-fetely"],
+    queryFn: async () => {
+      const hoje = new Date().toISOString().split("T")[0];
+      const { data: abertos } = await (supabase as any)
+        .from("titulo_a_receber")
+        .select("valor_atual, valor_bruto, data_vencimento_atual, flag_bandeira_amarela")
+        .is("data_pagamento", null)
+        .neq("status", "pago");
+
+      let valorAReceberAVencer = 0;
+      let valorEmAtraso = 0;
+      let qtdBandeiraAmarela = 0;
+      for (const t of abertos ?? []) {
+        const v = Number(t.valor_atual ?? t.valor_bruto ?? 0);
+        if (t.data_vencimento_atual && t.data_vencimento_atual < hoje) valorEmAtraso += v;
+        else valorAReceberAVencer += v;
+        if (t.flag_bandeira_amarela) qtdBandeiraAmarela += 1;
+      }
+      const totalEmAberto = valorAReceberAVencer + valorEmAtraso;
+      const inadimplenciaPct = totalEmAberto > 0 ? (valorEmAtraso / totalEmAberto) * 100 : 0;
+
+      return { valorAReceberAVencer, valorEmAtraso, totalEmAberto, inadimplenciaPct, qtdBandeiraAmarela };
     },
   });
 
