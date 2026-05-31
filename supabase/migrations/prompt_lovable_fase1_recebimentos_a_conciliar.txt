@@ -1,0 +1,54 @@
+CONTEXTO / ONDE RODAR: Lovable. Cria 1 página nova + rota + 1 item de menu. Referência: Fase 1 Recebimento — baixa de título a receber via crédito do extrato. Tempo estimado: 1 iteração.
+
+DIAGNÓSTICO: O backend da Fase 1 já está no banco (2 RPCs + coluna). Falta a tela focada "Recebimentos a conciliar", que NÃO mexe na tela grande de Conciliação de despesas (essa é só pra CPR/débito). Esta tela trabalha a direção: crédito do extrato → sugere títulos a receber → operador baixa.
+
+CRIAR:
+- Página nova: src/pages/administrativo/RecebimentosConciliar.tsx
+- Rota nova (no App.tsx), dentro do mesmo grupo/layout das outras telas administrativas/financeiras (ex.: /administrativo/recebimentos-conciliar).
+- Item de menu "Recebimentos a conciliar" perto do item "Contas a Receber" (no sidebar financeiro/admin que já lista Contas a Receber).
+
+DADOS / CONTRATO (usar EXATAMENTE estas RPCs e tabela — já existem no banco):
+
+1) Lista de créditos a conciliar — query na tabela `movimentacoes_bancarias`:
+   - filtro: tipo = 'credito' AND conciliado = false
+   - colunas usadas: id, data_transacao, descricao, valor, conta_bancaria_id
+   - ordenar por data_transacao desc
+
+2) Sugestão de títulos pra um crédito — RPC `sugerir_titulos_para_credito`:
+   - args: { p_movimentacao_id: <id da movimentação>, p_janela_dias: 7 }
+   - retorna linhas: { titulo_id, numero_titulo, cliente, valor_atual, data_vencimento_atual, status, diff_valor, dias_distancia }
+
+3) Dar baixa — RPC `baixar_titulo_conciliacao`:
+   - args: { p_titulo_id, p_movimentacao_id } (a data de pagamento usa default no banco)
+   - retorna jsonb { ok, titulo_id, numero_titulo, status, ... }
+
+COMPORTAMENTO DA TELA:
+- Card de resumo no topo: quantidade de créditos não conciliados + soma dos valores.
+- Lista/tabela dos créditos não conciliados: Data | Descrição | Valor (mono, à direita) | botão "Conciliar".
+- Ao clicar "Conciliar" numa linha, expandir abaixo dela um painel que chama `sugerir_titulos_para_credito(p_movimentacao_id = id daquele crédito)` e mostra os títulos candidatos numa sub-tabela:
+  Nº título | Cliente | Vencimento | Valor | Status | botão "Dar baixa".
+  - Destacar visualmente o candidato mais provável: quando diff_valor = 0 (valor bate exato), marcar com um selo "valor exato" verde. Ordenar como a RPC já devolve (melhor candidato primeiro).
+  - Status do título mostrado como rótulo amigável agrupado (mesma lógica de grupos da tela Contas a Receber: a receber / vencido). NÃO mostrar o status cru de 15 valores.
+- Ao clicar "Dar baixa", chamar `baixar_titulo_conciliacao({ p_titulo_id, p_movimentacao_id })`.
+
+DOUTRINA FAIL-LOUD (obrigatória nesta tela):
+- `await` real na RPC. Se a RPC retornar erro OU `data.ok !== true`, mostrar toast de ERRO com a mensagem e NÃO remover o crédito da lista.
+- Só em caso de sucesso confirmado: toast de sucesso ("Título <numero> baixado") + invalidar/refetch a query da lista de créditos (o crédito conciliado some, pois vira conciliado=true).
+- Garantir que o <Toaster/> do app está montado na árvore (se a tela usa toast e não tem Toaster, o toast some silenciosamente — pior que nada).
+- Nada de fire-and-forget. Nada de remover da UI antes do sucesso confirmado.
+
+SISTEMA SUGERE, HUMANO DECIDE: a tela só sugere candidatos; a baixa só acontece quando o operador clica "Dar baixa". Sem baixa automática.
+
+ESTADOS:
+- Loading: skeletons.
+- Vazio: "Nenhum crédito aguardando conciliação." (ícone + texto, padrão das outras telas).
+- Erro de carga: mensagem amigável.
+
+ESTILO: seguir o padrão visual das telas financeiras existentes (Card, Table, Badge, Button do shadcn/ui; mesmas cores/tokens). Sem inventar paleta.
+
+ACEITE:
+- Tela lista créditos com tipo='credito' e conciliado=false.
+- Expandir um crédito mostra títulos candidatos vindos da RPC, melhor candidato no topo, selo "valor exato" quando bate.
+- "Dar baixa" chama a RPC certa; em sucesso o crédito some da lista e aparece toast de sucesso; em erro aparece toast de erro e nada some.
+- Status do título exibido em rótulo agrupado, não cru.
+- Nenhuma alteração na tela grande de Conciliação de despesas.
