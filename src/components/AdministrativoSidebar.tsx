@@ -51,6 +51,13 @@ const vendasItems: MenuItem[] = [
   { title: "Produtos", url: "/administrativo-fetely/produtos", icon: Package, badge: "⚠️" },
 ];
 
+// Grupo 4: Documentos (migrado de Finanças em 31/05/2026)
+const documentosItems: MenuItem[] = [
+  { title: "Importar Dados", url: "/administrativo-fetely/importar", icon: Upload },
+  { title: "NFs em Stage", url: "/administrativo-fetely/nfs-stage", icon: Layers },
+  { title: "Documentos Pendentes", url: "/administrativo-fetely/documentos-pendentes", icon: FileWarning },
+];
+
 export function AdministrativoSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
