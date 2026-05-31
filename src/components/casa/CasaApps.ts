@@ -1,8 +1,8 @@
-import { Home, Users, Wallet, Sparkles, CreditCard, BookOpen, Shield, LucideIcon } from "lucide-react";
+import { Home, Users, Wallet, Sparkles, CreditCard, HandCoins, BookOpen, Shield, LucideIcon } from "lucide-react";
 
 export interface CasaApp {
   /** Identificador interno */
-  id: "casa" | "pessoas" | "financas" | "marca" | "credito" | "acervo" | "mesa";
+  id: "casa" | "pessoas" | "financas" | "marca" | "credito" | "recebimento" | "acervo" | "mesa";
   /** Label exibido no top nav */
   label: string;
   /** Rota default ao clicar no app */
