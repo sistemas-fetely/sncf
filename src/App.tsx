@@ -98,7 +98,7 @@ const Parceiros = lazy(() => import("@/pages/administrativo/Parceiros"));
 const ImportarDados = lazy(() => import("@/pages/administrativo/ImportarDados"));
 const NFsStage = lazy(() => import("@/pages/administrativo/NFsStage"));
 const FaturasCartao = lazy(() => import("@/pages/administrativo/FaturasCartao"));
-const ReconciliacaoCartao = lazy(() => import("@/pages/administrativo/ReconciliacaoCartao"));
+
 const FluxoCaixaFuturo = lazy(() => import("@/pages/administrativo/FluxoCaixaFuturo"));
 const Compromissos = lazy(() => import("@/pages/administrativo/Compromissos"));
 const DocumentosPendentes = lazy(() => import("@/pages/administrativo/DocumentosPendentes"));
@@ -488,7 +488,7 @@ const App = () => (
               <Route path="nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
               <Route path="documentos-pendentes" element={<Navigate to="/administrativo-fetely/documentos-pendentes" replace />} />
               <Route path="faturas-cartao" element={<FaturasCartao />} />
-              <Route path="reconciliacao-cartao" element={<ReconciliacaoCartao />} />
+              
               <Route path="fluxo-futuro" element={<FluxoCaixaFuturo />} />
               <Route path="fluxo-futuro-investimento" element={<FluxoFuturoInvestimento />} />
               <Route path="compromissos" element={<Compromissos />} />

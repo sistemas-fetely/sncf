@@ -6,7 +6,6 @@ import {
   Calendar,
   ArrowLeftRight,
   CreditCard,
-  GitCompare,
   CheckCheck,
   Upload,
   FileText,
@@ -69,7 +68,6 @@ export function FinancasContextSidebar() {
 
               <FinancasSidebarSection title="Banco">
                 <FinancasSidebarItem to="/administrativo/faturas-cartao" icon={CreditCard} label="Faturas de Cartão" />
-                <FinancasSidebarItem to="/administrativo/reconciliacao-cartao" icon={GitCompare} label="Reconciliação" />
                 <FinancasSidebarItem to="/administrativo/conciliacao" icon={CheckCheck} label="Conciliação" />
                 <FinancasSidebarItem to="/administrativo/caixa-banco/contas" icon={Landmark} label="Contas Bancárias" />
               </FinancasSidebarSection>

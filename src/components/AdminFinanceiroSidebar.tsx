@@ -4,7 +4,7 @@ import {
   FileSignature, Building2, ShieldCheck, FolderArchive,
   Users, Monitor, Network, Landmark, LogOut, ClipboardList,
   UsersRound, Settings2, ShoppingCart, Package,
-  Layers, CreditCard, Calendar, FileWarning, ArrowLeftRight, CheckSquare,
+  Layers, CreditCard, Calendar, FileWarning, CheckSquare,
   Target,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -34,7 +34,7 @@ const dashboardItem: MenuItem = {
 const financeiroItems: MenuItem[] = [
   { title: "Contas a Pagar", url: "/administrativo/contas-pagar", icon: ArrowUpFromLine },
   { title: "Faturas de Cartão", url: "/administrativo/faturas-cartao", icon: CreditCard },
-  { title: "Reconciliação Cartão", url: "/administrativo/reconciliacao-cartao", icon: ArrowLeftRight },
+  
   { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine },
   { title: "Conciliação", url: "/administrativo/conciliacao", icon: CheckSquare },
   { title: "Contratos Recorrentes", url: "/administrativo/compromissos", icon: Receipt },
