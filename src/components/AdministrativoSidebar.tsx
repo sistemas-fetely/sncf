@@ -168,8 +168,6 @@ export function AdministrativoSidebar() {
 
         {renderGroup("Ativos & Patrimônio", patrimonioItems)}
         <div className="mx-4 border-t border-sidebar-border/40" />
-        {renderGroup("Parceiros & Rede", parceirosItems)}
-        <div className="mx-4 border-t border-sidebar-border/40" />
         {renderGroup("Vendas & Produtos", vendasItems)}
         <div className="mx-4 border-t border-sidebar-border/40" />
         {renderGroup("Documentos", documentosItems)}
