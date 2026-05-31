@@ -283,7 +283,7 @@ export default function DashboardFinanceiro() {
         .from("pedidos")
         .select("valor_liquido")
         .is("faturado_em", null)
-        .in("estagio", ["em_analise_credito", "pre_faturado"]);
+        .not("estagio", "in", "(faturado,entregue,cancelado)");
       const { data: descMes } = await (supabase as any)
         .from("pedidos")
         .select("desconto_pct")
@@ -314,8 +314,7 @@ export default function DashboardFinanceiro() {
       const { data: abertos } = await (supabase as any)
         .from("titulo_a_receber")
         .select("valor_atual, valor_bruto, data_vencimento_atual, flag_bandeira_amarela")
-        .is("data_pagamento", null)
-        .neq("status", "pago");
+        .in("status", ["aguardando_pagamento", "aguardando_envio_bling", "aguardando_emissao_nf", "vigente", "vigente_parcial", "vencido", "vencido_suspenso", "em_juridico"]);
 
       let valorAReceberAVencer = 0;
       let valorEmAtraso = 0;
