@@ -43,10 +43,10 @@ const caixaBancoItems: MenuItem[] = [
   { title: "Fluxo Futuro Investimento", url: "/administrativo/fluxo-futuro-investimento", icon: Target },
   { title: "Fluxo Futuro", url: "/administrativo/fluxo-futuro", icon: Calendar },
   { title: "Contas Bancárias", url: "/administrativo/caixa-banco/contas", icon: Landmark },
+  { title: "Investimento de Lançamento", url: "/administrativo/investimento-lancamento", icon: Target },
 ];
 
 const configFinanceiroItems: MenuItem[] = [
-  { title: "Investimento de Lançamento", url: "/administrativo/investimento-lancamento", icon: Target },
   { title: "Plano de Contas", url: "/administrativo/plano-contas", icon: ListTree },
   { title: "Conciliação", url: "/administrativo/conciliacao", icon: CheckSquare },
 ];

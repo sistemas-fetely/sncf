@@ -72,6 +72,7 @@ export function FinancasContextSidebar() {
                 <FinancasSidebarItem to="/administrativo/caixa-banco/contas" icon={Landmark} label="Contas Bancárias" />
                 <FinancasSidebarItem to="/administrativo/fluxo-futuro" icon={TrendingUp} label="Fluxo Futuro" />
                 <FinancasSidebarItem to="/administrativo/fluxo-futuro-investimento" icon={Target} label="Fluxo Futuro Investimento" />
+                <FinancasSidebarItem to="/administrativo/investimento-lancamento" icon={Coins} label="Investimento de Lançamento" />
               </FinancasSidebarSection>
 
             </FinancasSidebarSection>
@@ -84,7 +85,6 @@ export function FinancasContextSidebar() {
             <FinancasSidebarSection title="Estrutura" variant="primary">
               <FinancasSidebarItem to="/administrativo/plano-contas" icon={FolderTree} label="Plano de Contas" />
               <FinancasSidebarItem to="/administrativo/conciliacao" icon={CheckCheck} label="Conciliação" />
-              <FinancasSidebarItem to="/administrativo/investimento-lancamento" icon={Coins} label="Investimento de Lançamento" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
