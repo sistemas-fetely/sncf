@@ -28,6 +28,7 @@ interface Props {
 export function AnaliseDetalheAnalise({ analiseId }: Props) {
   const { data, isLoading } = useAnaliseDetalhe(analiseId);
   const navigate = useNavigate();
+  const confirmarPre = useConfirmarPreAprovacao();
 
   if (isLoading) {
     return (
