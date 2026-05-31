@@ -46,8 +46,8 @@ const parceirosItems: MenuItem[] = [
 ];
 
 // Grupo 3: Vendas & Produtos (provisórios — ⚠️ a revisar)
+// "Pedidos de Venda" migrado pro app Vendas em 31/05/2026.
 const vendasItems: MenuItem[] = [
-  { title: "Pedidos de Venda", url: "/administrativo-fetely/pedidos", icon: ShoppingCart, badge: "⚠️" },
   { title: "Produtos", url: "/administrativo-fetely/produtos", icon: Package, badge: "⚠️" },
 ];
 

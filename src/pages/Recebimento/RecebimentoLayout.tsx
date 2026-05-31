@@ -13,6 +13,8 @@ export default function RecebimentoLayout() {
   const handleTabChange = (v: string) => {
     if (v === "aguardando_pagamento") {
       navigate("/recebimento/aguardando-pagamento");
+    } else if (v === "pedidos_venda") {
+      navigate("/pedidos");
     } else {
       navigate("/recebimento/cobranca");
     }
@@ -23,10 +25,10 @@ export default function RecebimentoLayout() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "Recebimento" },
+          { label: "Vendas" },
         ]}
-        title="Recebimento"
-        subtitle="Cobrança da entrada e confirmação de pagamento — antes do faturamento"
+        title="Vendas"
+        subtitle="Cobrança da entrada, confirmação de pagamento e pedidos de venda"
       />
 
       <Tabs value={tabAtiva} onValueChange={handleTabChange} className="space-y-4">
@@ -42,6 +44,12 @@ export default function RecebimentoLayout() {
             className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent"
           >
             Aguardando pagamento
+          </TabsTrigger>
+          <TabsTrigger
+            value="pedidos_venda"
+            className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+          >
+            Pedidos de Venda
           </TabsTrigger>
         </TabsList>
       </Tabs>
