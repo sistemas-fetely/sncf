@@ -185,7 +185,7 @@ export function FilaPedidosPorArea({
                     {sc ? (
                       <BadgePriorizacao
                         score={sc.score}
-                        breakdown={sc.breakdown as never}
+                        breakdown={sc.breakdown}
                         compact
                       />
                     ) : (
