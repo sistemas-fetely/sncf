@@ -291,3 +291,28 @@ export interface TituloEntradaPedido {
   status: string; // 'pendente' | 'pago' | ...
   data_pagamento: string | null;
 }
+
+// ──────────────────────────────────────────────────────────────────
+// Regras de cadência (IA-B — pré-aprovação automática)
+// ──────────────────────────────────────────────────────────────────
+
+export interface RegraCadenciaCriterio {
+  perfil_in?: string[];
+  valor_max?: number;
+  sem_bandeira?: boolean;
+  titulos_pagos_no_prazo_min?: number;
+}
+
+export interface RegraCadencia {
+  id: string;
+  nome: string;
+  descricao?: string;
+  ativa: boolean;
+  ordem: number;
+  criterio: RegraCadenciaCriterio;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  condicao_default?: any;
+  parecer_template?: string;
+  criado_em: string;
+  criado_por?: string;
+}
