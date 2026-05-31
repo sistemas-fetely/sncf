@@ -11,7 +11,6 @@ import {
   Upload,
   FileText,
   FileWarning,
-  Users,
   FolderTree,
   Landmark,
   Coins,
