@@ -89,16 +89,6 @@ export function FinancasContextSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* ACOMPANHAR */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <FinancasSidebarSection title="Acompanhar" variant="primary">
-              <FinancasSidebarItem to="/administrativo/fluxo-caixa" icon={LineChart} label="Fluxo de Caixa" />
-              <FinancasSidebarItem to="/administrativo/fluxo-futuro" icon={TrendingUp} label="Fluxo Futuro" />
-              <FinancasSidebarItem to="/administrativo/fluxo-futuro-investimento" icon={Target} label="Fluxo Futuro Investimento" />
-            </FinancasSidebarSection>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
