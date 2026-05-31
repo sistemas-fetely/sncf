@@ -21,7 +21,7 @@ export function FinancasSidebarSection({
 
   const triggerClassName =
     variant === "primary"
-      ? "flex w-full items-center justify-between px-2 py-1.5 font-serif text-lg text-foreground rounded-md transition-colors hover:text-gold"
+      ? "flex w-full items-center justify-between px-2 py-2 text-[13px] uppercase tracking-[2px] text-muted-foreground rounded-md transition-colors hover:text-foreground"
       : "flex w-full items-center justify-between px-3 py-1.5 text-xs font-medium text-foreground rounded-md transition-colors hover:bg-sidebar-accent";
 
   return (
