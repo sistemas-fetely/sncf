@@ -115,7 +115,9 @@ export default function AnaliseDetalhe() {
     );
   }
 
-  if (estagio === "entrada") return <AnaliseDetalheEntrada analiseId={id} />;
+  if (estagio === "entrada") {
+    return <Navigate to={`/pedidos/${data.analise.pedido_id}`} replace />;
+  }
   if (estagio === "analise") return <AnaliseDetalheAnalise analiseId={id} />;
   if (estagio === "decisao") return <AnaliseDetalheDecisao analiseId={id} />;
 
