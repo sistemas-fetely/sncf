@@ -40,10 +40,8 @@ const patrimonioItems: MenuItem[] = [
   { title: "GED", url: "/administrativo-fetely/ged", icon: FolderArchive },
 ];
 
-// Grupo 2: Parceiros & Rede
-const parceirosItems: MenuItem[] = [
-  { title: "Parceiros Comerciais", url: "/administrativo-fetely/parceiros", icon: Users },
-];
+// Grupo 2: Parceiros & Rede — "Parceiros Comerciais" migrado pro app Vendas em 31/05/2026.
+const parceirosItems: MenuItem[] = [];
 
 // Grupo 3: Vendas & Produtos (provisórios — ⚠️ a revisar)
 // "Pedidos de Venda" migrado pro app Vendas em 31/05/2026.
