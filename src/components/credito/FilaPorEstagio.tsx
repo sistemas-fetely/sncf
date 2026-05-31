@@ -112,7 +112,12 @@ export function FilaPorEstagio({ estagio }: Props) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <p className="text-sm font-medium">{a.parceiro_razao || "Cliente novo"}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium">{a.parceiro_razao || "Cliente novo"}</p>
+                      {a.pre_aprovado_regra_id && (
+                        <BadgePreAprovado regraNome={a.pre_aprovacao_regra_nome} compact />
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{a.parceiro_cnpj}</p>
                   </TableCell>
                   <TableCell className="text-right font-medium">
