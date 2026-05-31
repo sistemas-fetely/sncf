@@ -2,17 +2,22 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CreditoStatsCards } from "@/components/credito/CreditoStatsCards";
 import { FilaPorEstagio } from "@/components/credito/FilaPorEstagio";
 import { NovaAnaliseModalDialog } from "@/components/credito/NovaAnaliseModalDialog";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 
 const TABS_VALIDAS = ["entrada", "analise", "decisao", "decididas"];
 
 export default function CreditoIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const tabParam = searchParams.get("tab");
   const tabAtiva = tabParam && TABS_VALIDAS.includes(tabParam) ? tabParam : "entrada";
 
   const handleTabChange = (v: string) => {
+    if (v === "cobranca") {
+      navigate("/credito/cobranca");
+      return;
+    }
     setSearchParams({ tab: v });
   };
 
