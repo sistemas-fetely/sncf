@@ -310,7 +310,7 @@ export default function ParametrosFinanceiroTab() {
             <p className="text-xs text-muted-foreground">Fornecedores e clientes - cadastro unificado</p>
           </div>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/administrativo/parceiros" className="gap-2">
+            <Link to="/administrativo-fetely/parceiros" className="gap-2">
               <Users className="h-4 w-4" /> Gerenciar
             </Link>
           </Button>

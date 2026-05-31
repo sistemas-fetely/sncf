@@ -37,7 +37,7 @@ export default function ParceiroDetalhe() {
     if (from) {
       navigate(from);
     } else {
-      navigate("/administrativo/parceiros");
+      navigate("/administrativo-fetely/parceiros");
     }
   };
 
