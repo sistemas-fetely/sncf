@@ -30,7 +30,7 @@ export default function CreditoIndex() {
           { label: "Crédito" },
         ]}
         title="Análise de Crédito"
-        subtitle="Pipeline B2B — Entrada (Mariana) → Análise (Time) → Decisão (Joseph)"
+        subtitle="Pipeline B2B — Análise (Time) → Decisão (Joseph)"
         actions={
           <div className="flex items-center gap-2">
             {isAdmin && (
