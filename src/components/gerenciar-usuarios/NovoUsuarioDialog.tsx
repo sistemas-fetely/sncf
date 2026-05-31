@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
-import { Loader2, Lock, Check } from "lucide-react";
+import { useState, useMemo } from "react";
+import { toast } from "sonner";
+import { Loader2, Lock, Check, Copy } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
