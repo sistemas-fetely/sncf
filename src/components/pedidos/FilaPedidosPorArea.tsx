@@ -233,7 +233,19 @@ export function FilaPedidosPorArea({
                     </p>
                   </TableCell>
                   <TableCell>
-                    <EstagioBadge estagio={p.estagio} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <EstagioBadge estagio={p.estagio} />
+                      {p.estagio === "em_analise_credito" && analiseStages?.get(p.id) === "entrada" && (
+                        <Badge className="bg-amber-500 text-white border-0 text-[10px]">
+                          Aguardando liberação
+                        </Badge>
+                      )}
+                      {p.estagio === "em_analise_credito" && analiseStages?.get(p.id) === "analise" && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          Em análise
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <BadgesContextuaisPedido p={p} />
