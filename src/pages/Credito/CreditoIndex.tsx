@@ -13,6 +13,8 @@ const TABS_VALIDAS = ["entrada", "analise", "decisao", "decididas"];
 export default function CreditoIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { roles } = useAuth();
+  const isAdmin = roles?.some((r) => ["super_admin", "admin_rh"].includes(r));
   const tabParam = searchParams.get("tab");
   const tabAtiva = tabParam && TABS_VALIDAS.includes(tabParam) ? tabParam : "entrada";
 
@@ -37,8 +39,25 @@ export default function CreditoIndex() {
         ]}
         title="Análise de Crédito"
         subtitle="Pipeline B2B — Entrada (Mariana) → Análise (Time) → Decisão (Joseph)"
-        actions={<NovaAnaliseModalDialog />}
+        actions={
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/credito/regras-cadencia")}
+                className="gap-2"
+                title="Regras de cadência (admin)"
+              >
+                <Settings2 className="h-4 w-4" />
+                Regras
+              </Button>
+            )}
+            <NovaAnaliseModalDialog />
+          </div>
+        }
       />
+
 
       <div className="space-y-6">
         <CreditoStatsCards />
