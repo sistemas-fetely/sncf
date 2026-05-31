@@ -17,14 +17,14 @@ export function FinancasSidebarItem({ to, icon: Icon, label, end = false }: Fina
         <NavLink
           to={to}
           end={end}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-3 px-3 py-2 text-[13px] transition-colors border-l-2 border-transparent bg-transparent hover:bg-transparent",
-              isActive
-                ? "border-gold text-gold font-medium [&_svg]:text-gold"
-                : "text-foreground/70 hover:text-foreground [&_svg]:opacity-70"
-            )
-          }
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 px-3 py-2 text-[13px] transition-colors border-l-2 border-transparent rounded-sm",
+                isActive
+                  ? "border-gold bg-gold/8 text-gold font-medium [&_svg]:text-gold"
+                  : "text-foreground/70 hover:bg-muted/40 hover:text-foreground [&_svg]:opacity-70 hover:[&_svg]:opacity-100"
+              )
+            }
         >
           <Icon className="h-4 w-4 flex-shrink-0" />
           <span className="truncate">{label}</span>
