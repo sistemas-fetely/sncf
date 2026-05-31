@@ -53,25 +53,15 @@ export function CasaHeader() {
           </span>
         </Link>
 
-        {/* Busca central (desktop) */}
-        <div className="hidden md:flex flex-1 justify-center max-w-md mx-auto">
-          <CasaSearchDock />
-        </div>
-
         {/* Top nav desktop */}
-        <CasaTopNav className="hidden lg:flex" />
+        <CasaTopNav className="hidden lg:flex ml-auto" />
 
         {/* Utilitários */}
-        <div className="flex items-center gap-1 ml-auto">
+        <div className="flex items-center gap-1 ml-auto lg:ml-4">
           <CasaFalaFetelyButton />
           <CasaThemeToggle />
           <CasaAvatarMenu />
         </div>
-      </div>
-
-      {/* Busca mobile (linha extra) */}
-      <div className="md:hidden px-4 pb-3">
-        <CasaSearchDock />
       </div>
     </header>
   );
