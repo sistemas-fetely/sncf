@@ -20,6 +20,7 @@ import {
   useColaboradoresDisponiveis,
   useGruposParaSelecao,
   type VinculoTipo,
+  type CriarUsuarioV2Output,
 } from "@/hooks/useCriarUsuarioV2";
 
 interface NovoUsuarioDialogProps {
