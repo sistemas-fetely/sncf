@@ -16,6 +16,7 @@ import {
   LineChart,
   TrendingUp,
   Target,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
