@@ -114,6 +114,48 @@ export interface PipelineItem {
 }
 
 // ─────────────────────────────────────────────
+// Tipos de Priorização IA (Fase IA-1/IA-2)
+// ─────────────────────────────────────────────
+
+export type UrgenciaDeclarada = "normal" | "alta" | "critica";
+
+export const URGENCIA_LABELS: Record<UrgenciaDeclarada, string> = {
+  normal: "Normal",
+  alta: "Alta",
+  critica: "Crítica",
+};
+
+export interface ScoreBreakdown {
+  idade: number;
+  destrava: number;
+  expira: number;
+  valor: number;
+  ka_mestre: number;
+  urgencia: number;
+}
+
+export interface PedidoPriorizado {
+  id: string;
+  id_externo: string;
+  parceiro_id: string;
+  estagio: EstagioPedido;
+  area_atual: AreaPedido;
+  forma_solicitada: string | null;
+  valor_liquido: number;
+  urgencia_declarada: UrgenciaDeclarada;
+  urgencia_observacao: string | null;
+  recebido_em: string;
+  estagio_atualizado_em: string | null;
+  parceiro_razao_social: string | null;
+  parceiro_cnpj: string | null;
+  nivel_programa: string | null;
+  categoria_ka: string | null;
+  parceiro_cadastro_incompleto: boolean | null;
+  score_total: number;
+  score_breakdown: ScoreBreakdown;
+}
+
+// ─────────────────────────────────────────────
 // Tipos do Sub-módulo Contas a Receber (5.2)
 // ─────────────────────────────────────────────
 

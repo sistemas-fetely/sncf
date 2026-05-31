@@ -24,11 +24,19 @@ import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDia
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import {
-  AREA_LABELS, ESTAGIO_LABELS, STATUS_TITULO_LABELS,
+  AREA_LABELS, ESTAGIO_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS,
 } from "@/types/pedido";
 import type {
   AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber,
+  UrgenciaDeclarada,
 } from "@/types/pedido";
+import { useState, useEffect } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Sparkles } from "lucide-react";
+import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
+import { usePedidoPriorizado } from "@/hooks/pedidos/useFilaPedidosPriorizada";
+import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { cn } from "@/lib/utils";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -166,6 +174,19 @@ export default function PedidoDetalhe() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data, isLoading } = usePedidoDetalhe(id);
+  const { data: priorizado } = usePedidoPriorizado(id);
+  const atualizarUrgencia = useAtualizarUrgencia();
+
+  const [urgencia, setUrgencia] = useState<UrgenciaDeclarada>("normal");
+  const [obsUrgencia, setObsUrgencia] = useState<string>("");
+
+  useEffect(() => {
+    if (priorizado) {
+      setUrgencia(priorizado.urgencia_declarada || "normal");
+      setObsUrgencia(priorizado.urgencia_observacao || "");
+    }
+  }, [priorizado]);
+
 
   if (isLoading) {
     return (
@@ -229,10 +250,94 @@ export default function PedidoDetalhe() {
       <div className="flex flex-wrap items-center gap-2">
         <EstagioBadge estagio={estagio} />
         <BadgesContextuaisPedido p={badgeData} />
+        {priorizado && (
+          <BadgePriorizacao
+            score={priorizado.score_total}
+            breakdown={priorizado.score_breakdown}
+          />
+        )}
         <span className="text-xs text-muted-foreground ml-2">
           Idade: <FormatoIdade minutos={idade_minutos} />
         </span>
       </div>
+
+      {/* Urgência IA — sinal manual SOps */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Urgência
+            <span className="text-xs text-muted-foreground font-normal">
+              · IA sugere, você decide
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-[200px_1fr_auto] md:items-end">
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Nível</label>
+              <Select
+                value={urgencia}
+                onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-gray-400" />
+                      {URGENCIA_LABELS.normal}
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="alta">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                      {URGENCIA_LABELS.alta}
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="critica">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-red-500" />
+                      {URGENCIA_LABELS.critica}
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Observação (opcional)</label>
+              <Textarea
+                value={obsUrgencia}
+                onChange={(e) => setObsUrgencia(e.target.value)}
+                placeholder="Justificativa opcional — ex: Evento sexta, cliente em viagem"
+                rows={2}
+              />
+            </div>
+            <Button
+              onClick={() =>
+                id &&
+                atualizarUrgencia.mutate({
+                  pedidoId: id,
+                  urgencia,
+                  observacao: obsUrgencia,
+                })
+              }
+              disabled={atualizarUrgencia.isPending}
+            >
+              {atualizarUrgencia.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Salvando…
+                </>
+              ) : (
+                "Salvar urgência"
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
 
       {sla_estourado && (
         <Card className="border-destructive bg-destructive/5">
