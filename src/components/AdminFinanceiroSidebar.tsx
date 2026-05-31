@@ -35,7 +35,6 @@ const financeiroItems: MenuItem[] = [
   { title: "Contas a Pagar", url: "/administrativo/contas-pagar", icon: ArrowUpFromLine },
   { title: "Faturas de Cartão", url: "/administrativo/faturas-cartao", icon: CreditCard },
   { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine },
-  { title: "Conciliação", url: "/administrativo/conciliacao", icon: CheckSquare },
 ];
 
 const caixaBancoItems: MenuItem[] = [
@@ -49,6 +48,7 @@ const caixaBancoItems: MenuItem[] = [
 const configFinanceiroItems: MenuItem[] = [
   { title: "Investimento de Lançamento", url: "/administrativo/investimento-lancamento", icon: Target },
   { title: "Plano de Contas", url: "/administrativo/plano-contas", icon: ListTree },
+  { title: "Conciliação", url: "/administrativo/conciliacao", icon: CheckSquare },
 ];
 
 // MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
