@@ -11,7 +11,6 @@ import {
   Upload,
   FileText,
   FileWarning,
-  Users,
   FolderTree,
   Landmark,
   Coins,
@@ -87,7 +86,6 @@ export function FinancasContextSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <FinancasSidebarSection title="Estrutura" variant="primary">
-              <FinancasSidebarItem to="/administrativo/parceiros" icon={Users} label="Parceiros Comerciais" />
               <FinancasSidebarItem to="/administrativo/plano-contas" icon={FolderTree} label="Plano de Contas" />
               <FinancasSidebarItem to="/administrativo/caixa-banco/contas" icon={Landmark} label="Contas Bancárias" />
               <FinancasSidebarItem to="/administrativo/investimento-lancamento" icon={Coins} label="Investimento de Lançamento" />

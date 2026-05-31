@@ -481,7 +481,7 @@ const App = () => (
               <Route path="conciliacao" element={<Conciliacao />} />
               <Route path="regras-ofx" element={<RegrasOFX />} />
               <Route path="contas-receber" element={<ContasReceber />} />
-              <Route path="parceiros" element={<Parceiros />} />
+              <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
               <Route path="importar" element={<ImportarDados />} />
               <Route path="nfs-stage" element={<NFsStage />} />
               <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
@@ -516,6 +516,7 @@ const App = () => (
               {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
               <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
               <Route path="produtos" element={<Produtos />} />
+              <Route path="parceiros" element={<Parceiros />} />
             </Route>
 
             {/* ═══════════════════════════════════════════════

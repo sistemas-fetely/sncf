@@ -623,7 +623,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
                   className="gap-1"
                   onClick={() => {
                     onOpenChange(false);
-                    navigate(`/administrativo/parceiros?abrir=${conta.parceiro_id}`);
+                    navigate(`/administrativo-fetely/parceiros?abrir=${conta.parceiro_id}`);
                   }}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
