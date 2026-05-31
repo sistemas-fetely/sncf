@@ -426,6 +426,61 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
             </Button>
           )}
         </DialogFooter>
+        </>)}
+
+        {resultado && (
+          <div className="py-2 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                <Check className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Usuário criado</p>
+                <p className="text-xs text-muted-foreground">{resultado.email}</p>
+              </div>
+            </div>
+
+            {resultado.link_primeiro_acesso ? (
+              <>
+                <p className="text-sm leading-relaxed">
+                  Envie este link para a pessoa definir a senha (ela ainda <strong>não</strong> tem senha).
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="link-acesso">Link de primeiro acesso</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="link-acesso"
+                      readOnly
+                      value={resultado.link_primeiro_acesso}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="font-mono text-xs"
+                    />
+                    <Button type="button" variant="secondary" onClick={copiarLink}>
+                      <Copy className="h-4 w-4" /> Copiar
+                    </Button>
+                  </div>
+                </div>
+                <Button type="button" className="w-full" onClick={copiarLink}>
+                  <Copy className="h-4 w-4" /> Copiar link de primeiro acesso
+                </Button>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  O link expira — envie e use logo. Vale só para esta pessoa.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Não foi possível gerar o link automaticamente. Use o botão{" "}
+                <strong>Reenviar link</strong> na lista de usuários.
+              </p>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
