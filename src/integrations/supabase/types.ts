@@ -15101,20 +15101,6 @@ export type Database = {
           similares: Json
         }[]
       }
-      sugerir_match_cartao_nf: {
-        Args: { p_lancamento_id: string }
-        Returns: {
-          motivo: string
-          nf_cnpj: string
-          nf_data: string
-          nf_fornecedor: string
-          nf_id: string
-          nf_numero: string
-          nf_plano_contas_id: string
-          nf_valor: number
-          score: number
-        }[]
-      }
       sugerir_matches_lancamento: {
         Args: { p_lancamento_id: string }
         Returns: {
