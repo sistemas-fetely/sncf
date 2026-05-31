@@ -54,7 +54,7 @@ export function FinancasContextSidebar() {
                 label="Visão Geral"
                 end
               />
-              <FinancasSidebarItem to="/administrativo/painel-financeiro-conta" icon={Users} label="Painel Financeiro da Conta" />
+              <FinancasSidebarItem to="/administrativo/painel-financeiro-conta" icon={Users} label="Vencimentos x Cliente" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

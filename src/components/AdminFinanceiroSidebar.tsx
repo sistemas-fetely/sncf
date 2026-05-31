@@ -32,7 +32,7 @@ const dashboardItem: MenuItem = {
 };
 
 const tudoAVistaItems: MenuItem[] = [
-  { title: "Painel Financeiro da Conta", url: "/administrativo/painel-financeiro-conta", icon: Users },
+  { title: "Vencimentos x Cliente", url: "/administrativo/painel-financeiro-conta", icon: Users },
 ];
 
 const financeiroItems: MenuItem[] = [

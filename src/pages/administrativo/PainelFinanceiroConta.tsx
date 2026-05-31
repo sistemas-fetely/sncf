@@ -267,7 +267,7 @@ export default function PainelFinanceiroConta() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold">Painel Financeiro da Conta</h1>
+        <h1 className="text-2xl font-bold">Vencimentos x Cliente</h1>
         <p className="text-sm text-muted-foreground">
           Quanto cada cliente deve e há quanto tempo. Visão consolidada por aging.
         </p>
