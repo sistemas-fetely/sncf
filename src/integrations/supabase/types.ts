@@ -236,6 +236,9 @@ export type Database = {
           pedido_id: string
           perfil_aplicado: string | null
           prazo_max_dias: number | null
+          pre_aprovacao_em: string | null
+          pre_aprovacao_payload: Json | null
+          pre_aprovado_regra_id: string | null
           ressalva: string | null
           status_final: string | null
           validade_ate: string | null
@@ -261,6 +264,9 @@ export type Database = {
           pedido_id: string
           perfil_aplicado?: string | null
           prazo_max_dias?: number | null
+          pre_aprovacao_em?: string | null
+          pre_aprovacao_payload?: Json | null
+          pre_aprovado_regra_id?: string | null
           ressalva?: string | null
           status_final?: string | null
           validade_ate?: string | null
@@ -286,6 +292,9 @@ export type Database = {
           pedido_id?: string
           perfil_aplicado?: string | null
           prazo_max_dias?: number | null
+          pre_aprovacao_em?: string | null
+          pre_aprovacao_payload?: Json | null
+          pre_aprovado_regra_id?: string | null
           ressalva?: string | null
           status_final?: string | null
           validade_ate?: string | null
@@ -338,6 +347,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analises_credito_pre_aprovado_regra_id_fkey"
+            columns: ["pre_aprovado_regra_id"]
+            isOneToOne: false
+            referencedRelation: "regras_cadencia_credito"
             referencedColumns: ["id"]
           },
         ]
@@ -10364,6 +10380,51 @@ export type Database = {
           },
         ]
       }
+      regras_cadencia_credito: {
+        Row: {
+          ativa: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          condicao_default: Json | null
+          criado_em: string
+          criado_por: string | null
+          criterio: Json
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          parecer_template: string | null
+        }
+        Insert: {
+          ativa?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          condicao_default?: Json | null
+          criado_em?: string
+          criado_por?: string | null
+          criterio?: Json
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          parecer_template?: string | null
+        }
+        Update: {
+          ativa?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          condicao_default?: Json | null
+          criado_em?: string
+          criado_por?: string | null
+          criterio?: Json
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          parecer_template?: string | null
+        }
+        Relationships: []
+      }
       regras_categorizacao: {
         Row: {
           aprendida_automaticamente: boolean
@@ -14022,6 +14083,7 @@ export type Database = {
         Args: { p_conta_pagar_id: string; p_pagamento_id: string }
         Returns: Json
       }
+      confirmar_pre_aprovacao: { Args: { p_analise_id: string }; Returns: Json }
       contar_boletos_pendentes_mesmo_parceiro: {
         Args: { p_boleto_stage_id_referencia: string }
         Returns: Json
@@ -14381,6 +14443,10 @@ export type Database = {
       fix_lancamentos_origem_constraint: { Args: never; Returns: string }
       fn_alocar_trilha_pedido: {
         Args: { p_pedido_id: string }
+        Returns: string
+      }
+      fn_aplicar_cadencia_credito: {
+        Args: { p_analise_id: string }
         Returns: string
       }
       fn_criar_analise_desde_pedido: {

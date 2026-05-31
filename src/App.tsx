@@ -124,6 +124,7 @@ const CobrancaFila = lazy(() => import("@/pages/Credito/CobrancaFila"));
 const CobrancaDetalhe = lazy(() => import("@/pages/Credito/CobrancaDetalhe"));
 const AguardandoPagamentoFila = lazy(() => import("@/pages/Credito/AguardandoPagamentoFila"));
 const AguardandoPagamentoDetalhe = lazy(() => import("@/pages/Credito/AguardandoPagamentoDetalhe"));
+const RegrasCadencia = lazy(() => import("@/pages/Credito/RegrasCadencia"));
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
@@ -217,6 +218,7 @@ const App = () => (
               <Route path="/credito/cobranca/:pedidoId" element={<CobrancaDetalhe />} />
               <Route path="/credito/aguardando-pagamento" element={<AguardandoPagamentoFila />} />
               <Route path="/credito/aguardando-pagamento/:pedidoId" element={<AguardandoPagamentoDetalhe />} />
+              <Route path="/credito/regras-cadencia" element={<RegrasCadencia />} />
 
               {/* ═══════════════════════════════════════════════
                   App Pedidos — App Simples (sem sidebar lateral)
