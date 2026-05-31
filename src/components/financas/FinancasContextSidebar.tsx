@@ -40,7 +40,7 @@ export function FinancasContextSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="pt-3">
         {/* Item raiz */}
         <SidebarGroup>
           <SidebarGroupContent>
