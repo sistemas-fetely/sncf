@@ -4,6 +4,9 @@ import { FilaPorEstagio } from "@/components/credito/FilaPorEstagio";
 import { NovaAnaliseModalDialog } from "@/components/credito/NovaAnaliseModalDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { Button } from "@/components/ui/button";
+import { Settings2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TABS_VALIDAS = ["entrada", "analise", "decisao", "decididas"];
 
