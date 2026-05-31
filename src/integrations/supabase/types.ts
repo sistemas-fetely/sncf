@@ -333,6 +333,13 @@ export type Database = {
             referencedRelation: "v_pedidos_fila"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "analises_credito_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
         ]
       }
       atribuicao_origem: {
@@ -723,6 +730,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_envios_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
           },
         ]
@@ -6794,6 +6808,13 @@ export type Database = {
             referencedRelation: "v_pedidos_fila"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
         ]
       }
       nfs_stage: {
@@ -7112,6 +7133,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_venda_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
           },
         ]
@@ -8408,6 +8436,13 @@ export type Database = {
             referencedRelation: "v_pedidos_fila"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pedido_eventos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pedido_itens: {
@@ -8465,6 +8500,13 @@ export type Database = {
             referencedRelation: "v_pedidos_fila"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pedido_transicoes: {
@@ -8516,6 +8558,13 @@ export type Database = {
             referencedRelation: "v_pedidos_fila"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pedido_transicoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pedidos: {
@@ -8557,6 +8606,8 @@ export type Database = {
           recebido_via: string
           tipo_pagamento: string | null
           triado_em: string | null
+          urgencia_declarada: string
+          urgencia_observacao: string | null
           valor_bruto: number
           valor_liquido: number
           vendedor: string | null
@@ -8599,6 +8650,8 @@ export type Database = {
           recebido_via?: string
           tipo_pagamento?: string | null
           triado_em?: string | null
+          urgencia_declarada?: string
+          urgencia_observacao?: string | null
           valor_bruto: number
           valor_liquido: number
           vendedor?: string | null
@@ -8641,6 +8694,8 @@ export type Database = {
           recebido_via?: string
           tipo_pagamento?: string | null
           triado_em?: string | null
+          urgencia_declarada?: string
+          urgencia_observacao?: string | null
           valor_bruto?: number
           valor_liquido?: number
           vendedor?: string | null
@@ -12005,6 +12060,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
             columns: ["titulo_pai_id"]
             isOneToOne: false
@@ -13070,6 +13132,50 @@ export type Database = {
           soma_valor: number | null
         }
         Relationships: []
+      }
+      v_pedidos_priorizados: {
+        Row: {
+          area_atual: string | null
+          categoria_ka: string | null
+          estagio: string | null
+          estagio_atualizado_em: string | null
+          forma_solicitada: string | null
+          id: string | null
+          id_externo: string | null
+          nivel_programa: string | null
+          parceiro_cadastro_incompleto: boolean | null
+          parceiro_cnpj: string | null
+          parceiro_id: string | null
+          parceiro_razao_social: string | null
+          recebido_em: string | null
+          s_destrava: number | null
+          s_expira: number | null
+          s_idade: number | null
+          s_ka_mestre: number | null
+          s_urgencia: number | null
+          s_valor: number | null
+          score_breakdown: Json | null
+          score_total: number | null
+          urgencia_declarada: string | null
+          urgencia_observacao: string | null
+          valor_liquido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+        ]
       }
       vw_contas_pagar_consolidado: {
         Row: {
