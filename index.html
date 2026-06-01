@@ -28,6 +28,15 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      (function() {
+        var s = window.location.search;
+        var p = window.location.pathname;
+        if (s.indexOf('code=') !== -1 && p === '/') {
+          history.replaceState(null, '', '/reset-password' + s);
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
