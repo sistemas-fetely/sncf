@@ -15518,6 +15518,12 @@ export type Database = {
         Args: { p_acao?: string; p_permissao_slug: string; p_user_id: string }
         Returns: boolean
       }
+      usuario_telas_permitidas: {
+        Args: { p_user_id: string }
+        Returns: {
+          slug: string
+        }[]
+      }
       validar_email_corporativo: { Args: { _email: string }; Returns: Json }
       validar_nf_pj: { Args: { _nota_id: string }; Returns: Json }
       validar_prontidao_sistema: { Args: never; Returns: Json }
