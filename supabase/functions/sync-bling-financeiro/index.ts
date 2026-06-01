@@ -2,7 +2,7 @@
 // Router modular: OAuth + sync por entidade (contatos, produtos, contas_receber, pedidos, nfe).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { BLING_BASE, ensureFreshToken, makeBlingClient, type BlingConfig } from "./bling-client.ts";
+import { BLING_BASE, ensureFreshToken, makeBlingClient, type BlingConfig } from "../_shared/bling/bling-client.ts";
 import { syncContatos } from "./sync-contatos.ts";
 import { syncProdutos } from "./sync-produtos.ts";
 import { syncEstoques } from "./sync-estoques.ts";

@@ -4,7 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { ensureFreshToken, makeBlingClient } from "../sync-bling-financeiro/bling-client.ts";
+import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
