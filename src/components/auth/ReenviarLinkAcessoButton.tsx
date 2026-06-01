@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { Copy, Key, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,8 +20,8 @@ import { toast } from "sonner";
 interface Props {
   userId: string;
   nome?: string;
-  /** "button" = standalone outline button; "inline" = compact item to nest in a DropdownMenuItem */
-  variant?: "button" | "inline";
+  /** "button" = standalone outline button; "inline" = compact item to nest in a DropdownMenuItem; "icon" = icon-only ghost button (luxury) */
+  variant?: "button" | "inline" | "icon";
   onSuccess?: () => void;
 }
 
@@ -81,6 +81,15 @@ export function ReenviarLinkAcessoButton({ userId, nome, variant = "button", onS
       {variant === "button" ? (
         <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
           <Key className="h-4 w-4" /> Link
+        </Button>
+      ) : variant === "icon" ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setOpen(true)}
+          className="h-8 w-8 text-muted-foreground hover:text-gold hover:bg-gold/10"
+        >
+          <Key className="h-3.5 w-3.5" />
         </Button>
       ) : (
         <button
