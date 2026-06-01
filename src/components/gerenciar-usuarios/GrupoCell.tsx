@@ -17,8 +17,9 @@ export function GrupoCell({ userId }: { userId: string }) {
     queryKey: ["grupos-acesso-lista"],
     queryFn: async (): Promise<Grupo[]> => {
       const { data, error } = await supabase
-        .from("grupo_acesso")
+        .from("grupos_acesso")
         .select("id, nome")
+        .eq("ativo", true)
         .order("nome");
       if (error) throw error;
       return (data ?? []) as Grupo[];
