@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Receipt, CheckSquare, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
+
 
 const saudacao = () => {
   const h = new Date().getHours();
@@ -56,7 +58,10 @@ function KpiCard({
 
 export default function CasaHome() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const { data: permitidas } = usePermissoesDoUsuario();
+  const temAcesso = (slug: string) => isSuperAdmin || (permitidas?.has(slug) ?? false);
 
   // KPI 1: CPRs aguardando aprovação
   const kpiCPRs = useQuery({
@@ -144,40 +149,44 @@ export default function CasaHome() {
 
       {/* CTAs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-        <button
-          type="button"
-          onClick={() => navigate("/administrativo")}
-          className="casa-aurora-group group relative overflow-hidden text-left p-6 md:p-7 rounded-xl gold-border gold-border-hover bg-card transition-shadow"
-        >
-          <span className="casa-aurora" aria-hidden="true" />
-          <div className="relative">
-            <p className="text-[10px] uppercase tracking-[2px] text-gold mb-2">Começar</p>
-            <h2 className="font-display text-2xl md:text-3xl text-foreground mb-2">
-              Abrir Operação Financeira
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Contas a pagar, conciliação, fluxo. Tudo que precisa de mão hoje.
-            </p>
-            <span className="inline-flex items-center gap-1.5 text-sm text-gold group-hover:gap-2.5 transition-all">
-              Entrar <ArrowRight className="h-3.5 w-3.5" />
-            </span>
-          </div>
-        </button>
+        {temAcesso("tela.financeiro") && (
+          <button
+            type="button"
+            onClick={() => navigate("/administrativo")}
+            className="casa-aurora-group group relative overflow-hidden text-left p-6 md:p-7 rounded-xl gold-border gold-border-hover bg-card transition-shadow"
+          >
+            <span className="casa-aurora" aria-hidden="true" />
+            <div className="relative">
+              <p className="text-[10px] uppercase tracking-[2px] text-gold mb-2">Começar</p>
+              <h2 className="font-display text-2xl md:text-3xl text-foreground mb-2">
+                Abrir Operação Financeira
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Contas a pagar, conciliação, fluxo. Tudo que precisa de mão hoje.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-sm text-gold group-hover:gap-2.5 transition-all">
+                Entrar <ArrowRight className="h-3.5 w-3.5" />
+              </span>
+            </div>
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={() => navigate("/tarefas")}
-          className="group text-left p-6 md:p-7 rounded-xl gold-border gold-border-hover bg-card transition-shadow"
-        >
-          <p className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2">
-            Em andamento
-          </p>
-          <h2 className="font-display text-2xl md:text-3xl text-foreground mb-2">Tarefas</h2>
-          <div className="font-display text-5xl text-gold leading-none mb-1">
-            {kpiTarefas.isLoading ? "…" : kpiTarefas.data ?? 0}
-          </div>
-          <p className="text-sm text-muted-foreground">pendentes</p>
-        </button>
+        {temAcesso("tela.tarefas") && (
+          <button
+            type="button"
+            onClick={() => navigate("/tarefas")}
+            className="group text-left p-6 md:p-7 rounded-xl gold-border gold-border-hover bg-card transition-shadow"
+          >
+            <p className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2">
+              Em andamento
+            </p>
+            <h2 className="font-display text-2xl md:text-3xl text-foreground mb-2">Tarefas</h2>
+            <div className="font-display text-5xl text-gold leading-none mb-1">
+              {kpiTarefas.isLoading ? "…" : kpiTarefas.data ?? 0}
+            </div>
+            <p className="text-sm text-muted-foreground">pendentes</p>
+          </button>
+        )}
       </div>
 
       {/* Mural Fetely placeholder */}
