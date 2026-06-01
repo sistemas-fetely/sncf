@@ -124,14 +124,16 @@ export default function Login() {
         </div>
 
         {mode === "login" && (
-          <div className="flex justify-end">
-        <Link to="/recuperar-senha" className="text-xs text-primary hover:underline">
-          Esqueci minha senha
-        </Link>
-      </div>
-      <p className="text-xs text-muted-foreground text-center mt-1">
-        Primeiro acesso? Use o link acima para criar sua senha.
-      </p>
+          <>
+            <div className="flex justify-end">
+              <Link to="/recuperar-senha" className="text-xs text-primary hover:underline">
+                Esqueci minha senha
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground text-center mt-1">
+              Primeiro acesso? Use o link acima para criar sua senha.
+            </p>
+          </>
         )}
 
         <Button type="submit" className="w-full" disabled={loading}>
