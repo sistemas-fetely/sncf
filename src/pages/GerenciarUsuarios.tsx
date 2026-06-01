@@ -184,20 +184,8 @@ export default function GerenciarUsuarios() {
     },
   });
 
-  const { data: perfisV2 = [] } = usePerfisV2();
   const { data: unidadesV2 = [] } = useUnidades();
 
-  const { data: atribuicoesV2 = [] } = useQuery({
-    queryKey: ["atribuicoes-todas-v2"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_atribuicoes")
-        .select("user_id, perfil_id, unidade_id, nivel");
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 30 * 1000,
-  });
 
   const { data: unlinkedCLT = [] } = useQuery({
     queryKey: ["unlinked-clt"],
