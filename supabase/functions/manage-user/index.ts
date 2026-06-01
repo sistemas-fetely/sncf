@@ -853,8 +853,22 @@ Deno.serve(async (req) => {
       const nome = (profile as any)?.full_name || targetEmail;
 
       // 3. Gerar novo link de recovery
+      let linkPrimeiroAcesso: string | null = null;
       try {
-        await adminClient.auth.admin.generateLink({ type: "recovery", email: targetEmail });
+        const siteUrl = Deno.env.get("SITE_URL") || "https://people-fetely.lovable.app";
+        const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
+          type: "recovery",
+          email: targetEmail,
+          options: { redirectTo: `${siteUrl}/definir-senha` },
+        });
+        if (linkErr) {
+          console.error("[reenviar_link_acesso] Erro ao gerar link:", linkErr);
+          return new Response(JSON.stringify({ error: "Falha ao gerar link. Tente novamente." }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        linkPrimeiroAcesso = linkData?.properties?.action_link ?? null;
       } catch (e) {
         console.error("[reenviar_link_acesso] Erro ao gerar link:", e);
         return new Response(JSON.stringify({ error: "Falha ao gerar link. Tente novamente." }), {
