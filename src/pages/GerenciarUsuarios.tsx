@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { ConfirmacaoDupla } from "@/components/ConfirmacaoDupla";
 import { DrawerUsuario } from "@/components/DrawerUsuario";
 import { HubDaPessoaDialog } from "@/components/gerenciar-usuarios/HubDaPessoaDialog";
-import { TemplatesTab } from "@/components/gerenciar-usuarios/TemplatesTab";
+import { GrupoCell } from "@/components/gerenciar-usuarios/GrupoCell";
 import NovoUsuarioDialog from "@/components/gerenciar-usuarios/NovoUsuarioDialog";
 import { usePerfisV2 } from "@/hooks/usePerfisV2";
 import { useUnidades } from "@/hooks/useUnidades";
@@ -734,9 +734,6 @@ export default function GerenciarUsuarios() {
           {(isSuperAdmin || isAdminRH) && (
             <TabsTrigger value="matriz" className="gap-2"><ShieldCheck className="h-4 w-4" /> Matriz de Permissões</TabsTrigger>
           )}
-          {isSuperAdmin && (
-            <TabsTrigger value="templates" className="gap-2"><FileText className="h-4 w-4" /> Templates</TabsTrigger>
-          )}
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
@@ -964,11 +961,6 @@ export default function GerenciarUsuarios() {
           </TabsContent>
         )}
 
-        {isSuperAdmin && (
-          <TabsContent value="templates" className="mt-4">
-            <TemplatesTab />
-          </TabsContent>
-        )}
       </Tabs>
 
       {/* Hub da Pessoa v2 — perfis, níveis e unidades */}
