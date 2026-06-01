@@ -781,105 +781,146 @@ export default function GerenciarUsuarios() {
                           {new Date(profile.created_at).toLocaleDateString("pt-BR")}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1"
-                              onClick={() => openRolesDialog(profile.user_id, profile.full_name || "Usuário")}
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              Ver
-                            </Button>
-                            <ReenviarLinkAcessoButton
-                              userId={profile.user_id}
-                              nome={profile.full_name || undefined}
-                              variant="button"
-                            />
-                            <Button
-                               size="sm"
-                               variant="outline"
-                               className={`gap-1 ${
-                                 getUserLink(profile.user_id)
-                                   ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                                   : "text-muted-foreground hover:text-foreground"
-                               }`}
-                               onClick={() => {
-                                 setLinkUser({ userId: profile.user_id, name: profile.full_name || "Usuário" });
-                                 setLinkColaboradorId("");
-                                 setLinkContratoPjId("");
-                                 setLinkDialogOpen(true);
-                               }}
-                             >
-                               <Link2 className="h-3.5 w-3.5" />
-                               {getUserLink(profile.user_id) ? "Vinculado" : "Vincular"}
-                             </Button>
-                            {isBanned ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-emerald-600 hover:text-emerald-700 gap-1"
-                                onClick={() => toggleBan.mutate({ user_id: profile.user_id, ban: false })}
-                                disabled={toggleBan.isPending}
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                Ativar
-                              </Button>
-                            ) : !profile.approved ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-emerald-600 hover:text-emerald-700 gap-1"
-                                onClick={() => approveUser.mutate(profile.user_id)}
-                                disabled={approveUser.isPending}
-                              >
-                                <UserCheck className="h-3.5 w-3.5" />
-                                Aprovar
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-red-600 hover:text-red-700 gap-1"
-                                onClick={() => {
-                                  if (roles.includes("super_admin" as AppRole)) {
-                                    setRemoveSuperAdminConfirm({
-                                      userId: profile.user_id,
-                                      name: profile.full_name || "Usuário",
-                                      mode: "ban",
-                                    });
-                                  } else {
-                                    toggleBan.mutate({ user_id: profile.user_id, ban: true });
-                                  }
-                                }}
-                                disabled={toggleBan.isPending}
-                              >
-                                <XCircle className="h-3.5 w-3.5" />
-                                Inativar
-                              </Button>
-                            )}
-                            {isSuperAdmin && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-destructive hover:text-destructive gap-1"
-                                onClick={() => {
-                                  if (roles.includes("super_admin" as AppRole)) {
-                                    setRemoveSuperAdminConfirm({
-                                      userId: profile.user_id,
-                                      name: profile.full_name || "Usuário",
-                                      mode: "delete",
-                                    });
-                                  } else {
-                                    setDeleteConfirm({ userId: profile.user_id, name: profile.full_name || "Usuário" });
-                                  }
-                                }}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                Deletar
-                              </Button>
-                            )}
-                          </div>
+                          <TooltipProvider delayDuration={150}>
+                            <div className="flex justify-end items-center gap-0.5">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-muted-foreground hover:text-gold hover:bg-gold/10"
+                                    onClick={() => openRolesDialog(profile.user_id, profile.full_name || "Usuário")}
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Ver perfis e permissões</TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <ReenviarLinkAcessoButton
+                                      userId={profile.user_id}
+                                      nome={profile.full_name || undefined}
+                                      variant="icon"
+                                    />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Reenviar link de acesso</TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className={`h-8 w-8 ${
+                                      getUserLink(profile.user_id)
+                                        ? "text-gold hover:text-gold hover:bg-gold/10"
+                                        : "text-muted-foreground hover:text-gold hover:bg-gold/10"
+                                    }`}
+                                    onClick={() => {
+                                      setLinkUser({ userId: profile.user_id, name: profile.full_name || "Usuário" });
+                                      setLinkColaboradorId("");
+                                      setLinkContratoPjId("");
+                                      setLinkDialogOpen(true);
+                                    }}
+                                  >
+                                    <Link2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {getUserLink(profile.user_id) ? "Vínculo ativo — gerenciar" : "Vincular cadastro"}
+                                </TooltipContent>
+                              </Tooltip>
+
+                              <span className="mx-1 h-5 w-px bg-border/60" aria-hidden />
+
+                              {isBanned ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-muted-foreground hover:text-success hover:bg-success/10"
+                                      onClick={() => toggleBan.mutate({ user_id: profile.user_id, ban: false })}
+                                      disabled={toggleBan.isPending}
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Reativar usuário</TooltipContent>
+                                </Tooltip>
+                              ) : !profile.approved ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-muted-foreground hover:text-success hover:bg-success/10"
+                                      onClick={() => approveUser.mutate(profile.user_id)}
+                                      disabled={approveUser.isPending}
+                                    >
+                                      <UserCheck className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Aprovar acesso</TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => {
+                                        if (roles.includes("super_admin" as AppRole)) {
+                                          setRemoveSuperAdminConfirm({
+                                            userId: profile.user_id,
+                                            name: profile.full_name || "Usuário",
+                                            mode: "ban",
+                                          });
+                                        } else {
+                                          toggleBan.mutate({ user_id: profile.user_id, ban: true });
+                                        }
+                                      }}
+                                      disabled={toggleBan.isPending}
+                                    >
+                                      <XCircle className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Inativar usuário</TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {isSuperAdmin && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => {
+                                        if (roles.includes("super_admin" as AppRole)) {
+                                          setRemoveSuperAdminConfirm({
+                                            userId: profile.user_id,
+                                            name: profile.full_name || "Usuário",
+                                            mode: "delete",
+                                          });
+                                        } else {
+                                          setDeleteConfirm({ userId: profile.user_id, name: profile.full_name || "Usuário" });
+                                        }
+                                      }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Deletar permanentemente</TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </TooltipProvider>
                         </TableCell>
                       </TableRow>
                     );
