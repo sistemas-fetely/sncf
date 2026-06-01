@@ -29,11 +29,22 @@ export default function ResetPassword() {
   useEffect(() => {
     const init = async () => {
       const hash = window.location.hash;
-      if (!hash.includes("type=recovery")) {
-        setValidToken(false);
-        return;
+      const isImplicitRecovery = hash.includes("type=recovery");
+
+      if (isImplicitRecovery) {
+        // Fluxo implicit: hash tem type=recovery — token válido imediatamente
+        setValidToken(true);
+      } else {
+        // Fluxo PKCE: não há hash, mas Supabase já estabeleceu sessão via ?code=
+        await new Promise((r) => setTimeout(r, 500));
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          setValidToken(true);
+        } else {
+          setValidToken(false);
+          return;
+        }
       }
-      setValidToken(true);
 
       // Dá um tempinho pra Supabase processar o hash
       await new Promise((r) => setTimeout(r, 300));

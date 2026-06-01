@@ -349,7 +349,7 @@ Deno.serve(async (req) => {
           type: "recovery",
           email,
           options: {
-            redirectTo: `${siteUrl}/definir-senha`,
+            redirectTo: `${siteUrl}/reset-password`,
           },
         });
         if (linkErr) {
@@ -859,7 +859,7 @@ Deno.serve(async (req) => {
         const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
           type: "recovery",
           email: targetEmail,
-          options: { redirectTo: `${siteUrl}/definir-senha` },
+          options: { redirectTo: `${siteUrl}/reset-password` },
         });
         if (linkErr) {
           console.error("[reenviar_link_acesso] Erro ao gerar link:", linkErr);

@@ -120,7 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN") {
         const hash = window.location.hash;
         const isRecoveryHash = hash.includes("type=recovery");
-        const isOnDefinirSenha = window.location.pathname === "/definir-senha";
+        const isOnDefinirSenha =
+          window.location.pathname === "/definir-senha" ||
+          window.location.pathname === "/reset-password";
 
         if (isRecoveryHash && !isOnDefinirSenha) {
           setSession(nextSession);
