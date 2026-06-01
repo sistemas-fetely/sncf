@@ -753,6 +753,7 @@ export default function GerenciarUsuarios() {
                     <TableHead>Nome</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Perfis</TableHead>
+                    <TableHead>Grupo</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Último acesso</TableHead>
                     <TableHead>Criado em</TableHead>
@@ -809,6 +810,9 @@ export default function GerenciarUsuarios() {
                         </TableCell>
                         <TableCell>
                           {renderAtribuicoesV2(profile.user_id, atribuicoesV2, perfisV2, unidadesV2)}
+                        </TableCell>
+                        <TableCell>
+                          <GrupoCell userId={profile.user_id} />
                         </TableCell>
                         <TableCell>
                           {isBanned ? (
@@ -940,7 +944,7 @@ export default function GerenciarUsuarios() {
                   })}
                   {profiles.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                         Nenhum usuário encontrado
                       </TableCell>
                     </TableRow>
