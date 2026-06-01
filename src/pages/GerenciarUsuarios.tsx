@@ -29,7 +29,7 @@ import {
 import {
   CheckCircle2, XCircle, UserCheck, UserX, Users, UserPlus,
   Shield, ShieldCheck, ShieldAlert, Pencil, Trash2, Link2, LinkIcon, Unlink,
-  ChevronDown, ChevronRight, FileText, Sparkles, Check,
+  ChevronDown, ChevronRight, FileText, Sparkles, Check, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmacaoDupla } from "@/components/ConfirmacaoDupla";
@@ -37,12 +37,10 @@ import { DrawerUsuario } from "@/components/DrawerUsuario";
 import { HubDaPessoaDialog } from "@/components/gerenciar-usuarios/HubDaPessoaDialog";
 import { GrupoCell } from "@/components/gerenciar-usuarios/GrupoCell";
 import NovoUsuarioDialog from "@/components/gerenciar-usuarios/NovoUsuarioDialog";
-import { usePerfisV2 } from "@/hooks/usePerfisV2";
 import { useUnidades } from "@/hooks/useUnidades";
 import { useTemplates } from "@/hooks/useTemplates";
 import { useDepartamentoInfo } from "@/hooks/useEstruturaOrganizacional";
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
-import { NIVEL_LABELS_V2 } from "@/types/permissoes-v2";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
