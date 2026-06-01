@@ -189,6 +189,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <PrimeiroAcessoOverlay />
           <Routes>
             {/* Public routes (Suspense boundary via PublicLayout — R-01) */}
             <Route element={<PublicLayout />}>
