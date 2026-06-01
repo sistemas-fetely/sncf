@@ -1,5 +1,9 @@
 project_id = "vaxzorhqzvsnkutrlvfr"
 
+[auth]
+site_url = "https://people-fetely.lovable.app"
+additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
+
 [functions]
   [functions.auth-email-hook]
     verify_jwt = false
