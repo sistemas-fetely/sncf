@@ -947,6 +947,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "definir_senha") {
+      const { user_id, password } = body;
+      if (!user_id || !password || password.length < 8) {
+        return new Response(
+          JSON.stringify({ error: "user_id e senha (mín. 8 chars) obrigatórios" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { error } = await adminClient.auth.admin.updateUserById(user_id, { password });
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
