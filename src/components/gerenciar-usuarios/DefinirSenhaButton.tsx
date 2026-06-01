@@ -16,6 +16,10 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  ForcaSenhaIndicator,
+  senhaEhForte,
+} from "@/components/auth/ForcaSenhaIndicator";
 
 interface Props {
   userId: string;
@@ -28,7 +32,7 @@ export function DefinirSenhaButton({ userId, nome }: Props) {
   const [p2, setP2] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const invalid = p1.length < 8 || p1 !== p2;
+  const invalid = !senhaEhForte(p1) || p1 !== p2;
 
   const reset = () => {
     setP1("");
@@ -50,7 +54,12 @@ export function DefinirSenhaButton({ userId, nome }: Props) {
       setOpen(false);
       reset();
     } catch (err: any) {
-      toast.error(err?.message || "Erro ao definir senha");
+      const msg = err?.message || "Erro ao definir senha";
+      if (msg.toLowerCase().includes("weak") || msg.toLowerCase().includes("known")) {
+        toast.error("Senha muito comum/fraca. Escolha outra que atenda todos os critérios.");
+      } else {
+        toast.error(msg);
+      }
       setLoading(false);
     }
   };
@@ -82,13 +91,13 @@ export function DefinirSenhaButton({ userId, nome }: Props) {
           <AlertDialogHeader>
             <AlertDialogTitle>Definir senha para {nome}</AlertDialogTitle>
             <AlertDialogDescription>
-              Defina uma senha temporária e informe ao usuário pessoalmente. Nenhum email será enviado.
+              Defina uma senha temporária forte e informe ao usuário pessoalmente. Nenhum email será enviado.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="novaSenha">Nova senha (mínimo 8 caracteres)</Label>
+              <Label htmlFor="novaSenha">Nova senha</Label>
               <Input
                 id="novaSenha"
                 type="password"
@@ -96,6 +105,7 @@ export function DefinirSenhaButton({ userId, nome }: Props) {
                 onChange={(e) => setP1(e.target.value)}
                 autoComplete="new-password"
               />
+              <ForcaSenhaIndicator senha={p1} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="confirmaSenha">Confirmar senha</Label>
