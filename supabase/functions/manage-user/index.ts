@@ -780,10 +780,26 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Limpa vínculos NÃO-cascade que bloqueariam o delete de auth.users
+      // (FKs sem ON DELETE CASCADE / SET NULL apontando pra auth.users)
+      await adminClient.from("colaboradores_clt").update({ user_id: null }).eq("user_id", user_id);
+      await adminClient.from("contratos_pj").update({ user_id: null }).eq("user_id", user_id);
+      await adminClient.from("grupo_acesso_usuarios").delete().eq("user_id", user_id);
       await adminClient.from("user_roles").delete().eq("user_id", user_id);
       await adminClient.from("profiles").delete().eq("user_id", user_id);
+
       const { error } = await adminClient.auth.admin.deleteUser(user_id);
-      if (error) throw error;
+      if (error) {
+        console.error("[delete_user] deleteUser falhou:", error);
+        return new Response(
+          JSON.stringify({
+            error:
+              "Não foi possível excluir o usuário porque ele ainda está vinculado a registros do sistema (ex.: pedidos, processos, auditoria). Use 'Inativar acesso' em vez de excluir.",
+            detail: error.message,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
