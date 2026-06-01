@@ -768,7 +768,7 @@ export default function GerenciarUsuarios() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-xs text-muted-foreground">
                           {authUser?.last_sign_in_at
                             ? new Date(authUser.last_sign_in_at).toLocaleDateString("pt-BR", {
                                 day: "2-digit", month: "2-digit", year: "2-digit",
@@ -776,7 +776,7 @@ export default function GerenciarUsuarios() {
                               })
                             : "Nunca"}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-xs text-muted-foreground">
                           {new Date(profile.created_at).toLocaleDateString("pt-BR")}
                         </TableCell>
                         <TableCell className="text-right">
@@ -787,8 +787,8 @@ export default function GerenciarUsuarios() {
                               className="gap-1"
                               onClick={() => openRolesDialog(profile.user_id, profile.full_name || "Usuário")}
                             >
-                              <Pencil className="h-3.5 w-3.5" />
-                              Perfis
+                              <Eye className="h-3.5 w-3.5" />
+                              Ver
                             </Button>
                             <Button
                                size="sm"
