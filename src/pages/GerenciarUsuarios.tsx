@@ -115,55 +115,6 @@ async function callManageUser(action: string, payload: Record<string, unknown>) 
   return data;
 }
 
-function renderAtribuicoesV2(
-  userId: string,
-  atribuicoes: Array<{ user_id: string; perfil_id: string; unidade_id: string | null; nivel: string | null }>,
-  perfis: Array<{ id: string; nome: string; tipo: string }>,
-  unidades: Array<{ id: string; nome: string }>
-) {
-  const doUser = atribuicoes.filter((a) => a.user_id === userId);
-  if (doUser.length === 0) {
-    return <span className="text-xs text-muted-foreground italic">Sem perfis</span>;
-  }
-
-  const agrupado = new Map<
-    string,
-    { perfil: { id: string; nome: string; tipo: string }; nivel: string | null; unidades: string[] }
-  >();
-  for (const a of doUser) {
-    const perfil = perfis.find((p) => p.id === a.perfil_id);
-    if (!perfil) continue;
-    const key = `${a.perfil_id}::${a.nivel || ""}`;
-    if (!agrupado.has(key)) {
-      agrupado.set(key, { perfil, nivel: a.nivel, unidades: [] });
-    }
-    if (a.unidade_id) {
-      const u = unidades.find((x) => x.id === a.unidade_id);
-      if (u) agrupado.get(key)!.unidades.push(u.nome);
-    }
-  }
-
-  const nivelLabel = (n: string | null) => {
-    if (!n) return null;
-    return (NIVEL_LABELS_V2 as Record<string, string>)[n] || n;
-  };
-
-  return (
-    <div className="flex flex-col gap-1">
-      {Array.from(agrupado.values()).map((g, i) => (
-        <Badge key={i} variant="secondary" className="text-xs font-normal w-fit max-w-full">
-          <span className="font-medium">{g.perfil.nome}</span>
-          {g.nivel && <span className="ml-1 opacity-70">· {nivelLabel(g.nivel)}</span>}
-          {g.unidades.length > 0 && (
-            <span className="ml-1 text-[10px] opacity-60 truncate">
-              [{g.unidades.join(", ")}]
-            </span>
-          )}
-        </Badge>
-      ))}
-    </div>
-  );
-}
 
 export default function GerenciarUsuarios() {
   const navigate = useNavigate();
