@@ -119,20 +119,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // (redirect_to funcionou corretamente).
       if (event === "SIGNED_IN") {
         const hash = window.location.hash;
+        const search = window.location.search;
         const isRecoveryHash = hash.includes("type=recovery");
-        const isOnDefinirSenha =
+        const isPkceAuthRedirect = search.includes("code=");
+        const isOnResetPage =
           window.location.pathname === "/definir-senha" ||
           window.location.pathname === "/reset-password";
 
-        if (isRecoveryHash && !isOnDefinirSenha) {
+        // Fluxo implicit: hash tem type=recovery mas não está na página certa
+        if (isRecoveryHash && !isOnResetPage) {
           setSession(nextSession);
           setUser(nextSession?.user ?? null);
           setLoading(false);
-          window.location.replace("/definir-senha");
+          window.location.replace("/reset-password");
           return;
         }
 
-        if (isOnDefinirSenha) {
+        // Fluxo PKCE: chegou via ?code= na URL (recovery, invite ou magic link)
+        // Login normal via email+senha NÃO tem ?code= na URL — é API call direto
+        if (isPkceAuthRedirect && !isOnResetPage) {
+          setSession(nextSession);
+          setUser(nextSession?.user ?? null);
+          setLoading(false);
+          window.location.replace("/reset-password");
+          return;
+        }
+
+        // Já está na página de reset — só atualiza estado, não navega
+        if (isOnResetPage) {
           setSession(nextSession);
           setUser(nextSession?.user ?? null);
           setLoading(false);
