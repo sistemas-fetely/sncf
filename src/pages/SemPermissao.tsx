@@ -7,7 +7,7 @@ export default function SemPermissao() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <AcessoBloqueado
         tipo="sem-permissao"
-        onVoltar={() => navigate("/sncf")}
+        onVoltar={() => navigate("/")}
       />
     </div>
   );
