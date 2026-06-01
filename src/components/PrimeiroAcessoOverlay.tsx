@@ -109,11 +109,10 @@ export function PrimeiroAcessoOverlay() {
     <>
       <Dialog open modal>
         <DialogContent
-          className="max-w-md"
+          className="max-w-md [&>button]:hidden"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
-          hideClose
         >
           <DialogHeader>
             <DialogTitle>Ative seu acesso</DialogTitle>
