@@ -894,17 +894,9 @@ Deno.serve(async (req) => {
         });
         if (!r.ok) {
           console.error("[reenviar_link_acesso] Falha em send-transactional-email:", r.status, r.body);
-          return new Response(
-            JSON.stringify({ error: `Link gerado mas falha ao enviar email (${r.status}).` }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
         }
       } catch (e) {
         console.error("[reenviar_link_acesso] Falha ao enviar email:", e);
-        return new Response(JSON.stringify({ error: "Link gerado mas falha ao enviar email." }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
       }
 
       // 5. Log de auditoria
