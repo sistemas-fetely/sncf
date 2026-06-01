@@ -349,7 +349,7 @@ Deno.serve(async (req) => {
           type: "recovery",
           email,
           options: {
-            redirectTo: `${siteUrl}/definir-senha`,
+            redirectTo: `${siteUrl}/reset-password`,
           },
         });
         if (linkErr) {
