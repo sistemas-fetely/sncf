@@ -791,6 +791,11 @@ export default function GerenciarUsuarios() {
                               <Eye className="h-3.5 w-3.5" />
                               Ver
                             </Button>
+                            <ReenviarLinkAcessoButton
+                              userId={profile.user_id}
+                              nome={profile.full_name || undefined}
+                              variant="button"
+                            />
                             <Button
                                size="sm"
                                variant="outline"
