@@ -101,7 +101,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
+        setLoading(false);
+        navigate("/definir-senha", { replace: true });
+        return;
+      }
       applySession(nextSession);
     });
 
