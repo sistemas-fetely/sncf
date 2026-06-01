@@ -102,15 +102,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      // PASSWORD_RECOVERY: fluxo implicit (fallback)
       if (event === "PASSWORD_RECOVERY") {
         setSession(nextSession);
         setUser(nextSession?.user ?? null);
         setLoading(false);
-        navigate("/definir-senha", { replace: true });
+        if (window.location.pathname !== "/definir-senha") {
+          window.location.replace("/definir-senha");
+        }
         return;
       }
+
+      // SIGNED_IN: fluxo PKCE para recovery link
+      // No PKCE, recovery links disparam SIGNED_IN. Detectamos pelo hash da URL
+      // (implicit: #type=recovery) ou pelo pathname já estar em /definir-senha
+      // (redirect_to funcionou corretamente).
+      if (event === "SIGNED_IN") {
+        const hash = window.location.hash;
+        const isRecoveryHash = hash.includes("type=recovery");
+        const isOnDefinirSenha = window.location.pathname === "/definir-senha";
+
+        if (isRecoveryHash && !isOnDefinirSenha) {
+          setSession(nextSession);
+          setUser(nextSession?.user ?? null);
+          setLoading(false);
+          window.location.replace("/definir-senha");
+          return;
+        }
+
+        if (isOnDefinirSenha) {
+          setSession(nextSession);
+          setUser(nextSession?.user ?? null);
+          setLoading(false);
+          return;
+        }
+      }
+
       applySession(nextSession);
     });
+
 
     void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       applySession(initialSession);
