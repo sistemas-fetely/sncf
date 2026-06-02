@@ -76,15 +76,24 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Auth + super_admin
-    const auth = req.headers.get("Authorization");
-    if (!auth) return err("Não autorizado", 401);
-    const { data: userData, error: userErr } = await supabase.auth.getUser(auth.replace("Bearer ", ""));
-    if (userErr || !userData.user) return err("Não autorizado", 401);
-    const user = userData.user;
-    const { data: roleData } = await supabase.from("user_roles")
-      .select("role").eq("user_id", user.id).eq("role", "super_admin").maybeSingle();
-    if (!roleData) return err("Apenas super_admin", 403);
+    // Cron bypass: chamada interna via secret do Vault (sem usuário logado).
+    let user: any = null;
+    const cronSecret = req.headers.get("x-cron-secret");
+    if (cronSecret) {
+      const { data: secretVal } = await supabase.rpc("get_vault_secret", { p_name: "SYNC_CRON_SECRET" });
+      if (!secretVal || cronSecret !== secretVal) return err("Cron secret inválido", 401);
+      // autenticado como cron — segue usando a service role já criada acima.
+    } else {
+      // Auth + super_admin (chamada de usuário)
+      const auth = req.headers.get("Authorization");
+      if (!auth) return err("Não autorizado", 401);
+      const { data: userData, error: userErr } = await supabase.auth.getUser(auth.replace("Bearer ", ""));
+      if (userErr || !userData.user) return err("Não autorizado", 401);
+      user = userData.user;
+      const { data: roleData } = await supabase.from("user_roles")
+        .select("role").eq("user_id", user.id).eq("role", "super_admin").maybeSingle();
+      if (!roleData) return err("Apenas super_admin", 403);
+    }
 
     const body = await req.json().catch(() => ({ tipo: "ping" }));
     const tipo = body.tipo || "ping";
