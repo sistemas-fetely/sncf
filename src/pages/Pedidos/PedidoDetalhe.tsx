@@ -18,6 +18,7 @@ import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
 import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
 import { EstagioBadge, FormatoIdade } from "@/components/pedidos/BadgesPedido";
 import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
+import { BadgesContextuais } from "@/components/credito/BadgesContextuais";
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
