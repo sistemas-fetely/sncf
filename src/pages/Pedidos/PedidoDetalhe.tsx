@@ -216,6 +216,12 @@ export default function PedidoDetalhe() {
               <Linha label="Vendedor" value={pedido.vendedor} />
               <Linha label="Valor bruto" value={fmtBRL.format(pedido.valor_bruto || 0)} />
               <Linha label="Valor líquido" value={fmtBRL.format(pedido.valor_liquido || 0)} destaque />
+              {pedido.valor_frete > 0 && (
+                <Linha label="Frete" value={fmtBRL.format(pedido.valor_frete)} />
+              )}
+              {pedido.frete_tipo && (
+                <Linha label="Tipo frete" value={pedido.frete_tipo} />
+              )}
               {pedido.bling_id_destino && <Linha label="Bling ID" value={`#${pedido.bling_id_destino}`} />}
             </div>
             <div>
