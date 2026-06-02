@@ -135,6 +135,7 @@ const RegrasCadencia = lazy(() => import("@/pages/Credito/RegrasCadencia"));
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
+const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
