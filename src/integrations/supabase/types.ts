@@ -8809,6 +8809,7 @@ export type Database = {
           exportado_bling_em: string | null
           faturado_em: string | null
           forma_solicitada: string
+          frete_tipo: string | null
           id: string
           id_externo: string
           itens_json: Json | null
@@ -8825,6 +8826,7 @@ export type Database = {
           urgencia_declarada: string
           urgencia_observacao: string | null
           valor_bruto: number
+          valor_frete: number
           valor_liquido: number
           vendedor: string | null
         }
@@ -8853,6 +8855,7 @@ export type Database = {
           exportado_bling_em?: string | null
           faturado_em?: string | null
           forma_solicitada: string
+          frete_tipo?: string | null
           id?: string
           id_externo: string
           itens_json?: Json | null
@@ -8869,6 +8872,7 @@ export type Database = {
           urgencia_declarada?: string
           urgencia_observacao?: string | null
           valor_bruto: number
+          valor_frete?: number
           valor_liquido: number
           vendedor?: string | null
         }
@@ -8897,6 +8901,7 @@ export type Database = {
           exportado_bling_em?: string | null
           faturado_em?: string | null
           forma_solicitada?: string
+          frete_tipo?: string | null
           id?: string
           id_externo?: string
           itens_json?: Json | null
@@ -8913,6 +8918,7 @@ export type Database = {
           urgencia_declarada?: string
           urgencia_observacao?: string | null
           valor_bruto?: number
+          valor_frete?: number
           valor_liquido?: number
           vendedor?: string | null
         }
@@ -15252,6 +15258,7 @@ export type Database = {
           p_email?: string
           p_endereco_entrega?: Json
           p_forma_solicitada: string
+          p_frete_tipo?: string
           p_id_externo: string
           p_inscricao_estadual?: string
           p_isento_ie?: boolean
@@ -15271,6 +15278,7 @@ export type Database = {
           p_telefone?: string
           p_uf?: string
           p_valor_bruto: number
+          p_valor_frete?: number
           p_valor_liquido: number
           p_vendedor?: string
         }
