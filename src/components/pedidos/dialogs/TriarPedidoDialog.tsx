@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowRight, Zap, X, GitBranch } from "lucide-react";
+import { ArrowRight, Zap, X, GitBranch, Undo2 } from "lucide-react";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
+import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
 import { podePularAnaliseCredito } from "@/lib/pedidoTransicoes";
 import type { EstagioPedido } from "@/types/pedido";
 
-type Acao = "analise" | "pular" | "cancelar";
+type Acao = "analise" | "pular" | "corrigir" | "cancelar";
 
 interface Props {
   pedido_id: string;
@@ -34,16 +35,36 @@ export function TriarPedidoDialog({
   const [motivo, setMotivo] = useState("");
 
   const transicionar = useTransicionarPedido();
+  const registrar = useRegistrarOperacaoPedido();
   const podePular = podePularAnaliseCredito(perfil_credito);
 
   // F-3.2: parser de condicao + trigger tr_pedido_pular_analise cravados.
   // Pular análise cria análise shell, parseia condição e gera títulos automaticamente.
   const pularDisponivel = true;
 
+  // "Pedir correção / devolver ao vendedor": dado errado no pedido. Não é transição —
+  // o pedido continua em 'recebido' (na mão do SOps/vendedor). Registra anotação na
+  // timeline com o motivo. (Notificação por email ao vendedor entra com o Resend / Fase E1.)
+  const aplicando = transicionar.isPending || registrar.isPending;
+
   const handleConfirm = async () => {
     if (!acao) return;
 
-    if (acao === "cancelar" && !motivo.trim()) return;
+    if ((acao === "cancelar" || acao === "corrigir") && !motivo.trim()) return;
+
+    if (acao === "corrigir") {
+      await registrar.mutateAsync({
+        pedido_id,
+        tipo_evento: "anotacao",
+        descricao: `Correção solicitada ao vendedor: ${motivo.trim()}`,
+        metadata: { tipo: "correcao_solicitada", motivo: motivo.trim() },
+        proxima_acao: "Aguardando correção do vendedor",
+      });
+      setOpen(false);
+      setAcao(null);
+      setMotivo("");
+      return;
+    }
 
     let destino: EstagioPedido;
     if (acao === "analise") destino = "em_analise_credito";
@@ -73,8 +94,8 @@ export function TriarPedidoDialog({
         <DialogHeader>
           <DialogTitle>Triar pedido</DialogTitle>
           <DialogDescription>
-            Decida o próximo passo. A triagem encaminha o pedido pra análise de crédito,
-            pula análise (perfis dispensados) ou cancela.
+            Decida o próximo passo: encaminha pra análise de crédito, pula análise
+            (perfis dispensados), pede correção ao vendedor ou cancela.
           </DialogDescription>
         </DialogHeader>
 
@@ -114,6 +135,14 @@ export function TriarPedidoDialog({
           </TooltipProvider>
 
           <AcaoCard
+            ativa={acao === "corrigir"}
+            onClick={() => setAcao("corrigir")}
+            icone={<Undo2 className="h-5 w-5 text-amber-600" />}
+            titulo="Pedir correção (devolver ao vendedor)"
+            descricao="Dado errado no pedido. Fica com o vendedor pra corrigir. Motivo obrigatório."
+          />
+
+          <AcaoCard
             ativa={acao === "cancelar"}
             onClick={() => setAcao("cancelar")}
             icone={<X className="h-5 w-5 text-destructive" />}
@@ -130,6 +159,18 @@ export function TriarPedidoDialog({
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Ex: Cliente desistiu, divergência de preço, etc."
+              rows={2}
+            />
+          </div>
+        )}
+
+        {acao === "corrigir" && (
+          <div className="space-y-2">
+            <Label>O que o vendedor precisa corrigir?</Label>
+            <Textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex: CNPJ divergente, valor do pedido não bate com a condição, item faltando."
               rows={2}
             />
           </div>
@@ -153,12 +194,12 @@ export function TriarPedidoDialog({
             onClick={handleConfirm}
             disabled={
               !acao ||
-              (acao === "cancelar" && !motivo.trim()) ||
-              transicionar.isPending
+              ((acao === "cancelar" || acao === "corrigir") && !motivo.trim()) ||
+              aplicando
             }
             variant={acao === "cancelar" ? "destructive" : "default"}
           >
-            {transicionar.isPending ? "Aplicando..." : "Confirmar"}
+            {aplicando ? "Aplicando..." : "Confirmar"}
           </Button>
         </DialogFooter>
       </DialogContent>

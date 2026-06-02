@@ -9362,6 +9362,13 @@ export type Database = {
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pedidos_venda_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_produtos_estoque_virtual"
+            referencedColumns: ["id"]
+          },
         ]
       }
       perfil_packs: {
@@ -9657,6 +9664,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      politica_reserva_estoque: {
+        Row: {
+          atualizado_em: string
+          descricao: string | null
+          estagio: string
+          reserva: boolean
+        }
+        Insert: {
+          atualizado_em?: string
+          descricao?: string | null
+          estagio: string
+          reserva?: boolean
+        }
+        Update: {
+          atualizado_em?: string
+          descricao?: string | null
+          estagio?: string
+          reserva?: boolean
+        }
+        Relationships: []
       }
       politica_visibilidade_salario: {
         Row: {
@@ -14175,6 +14203,20 @@ export type Database = {
           },
         ]
       }
+      vw_produtos_estoque_virtual: {
+        Row: {
+          ativo: boolean | null
+          codigo: string | null
+          estoque_minimo: number | null
+          estoque_real: number | null
+          estoque_virtual: number | null
+          id: string | null
+          nome: string | null
+          reservado: number | null
+          status_venda: string | null
+        }
+        Relationships: []
+      }
       vw_recebivel_por_conta: {
         Row: {
           cliente: string | null
@@ -14189,6 +14231,14 @@ export type Database = {
           qtd_titulos_abertos: number | null
           total_a_receber: number | null
           total_vencido: number | null
+        }
+        Relationships: []
+      }
+      vw_reserva_skus_orfaos: {
+        Row: {
+          pedidos: number | null
+          qtd_reservada_perdida: number | null
+          sku: string | null
         }
         Relationships: []
       }
