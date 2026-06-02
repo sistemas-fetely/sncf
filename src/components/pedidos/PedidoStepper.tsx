@@ -2,8 +2,8 @@ import { Check, AlertTriangle, RotateCcw } from "lucide-react";
 import {
   PIPELINE_PRINCIPAL,
   ESTAGIO_LABELS,
-  ESTAGIO_CORES,
 } from "@/types/pedido";
+import { ESTAGIO_CORES } from "@/components/pedidos/BadgesPedido";
 import { cn } from "@/lib/utils";
 import type { EstagioPedido } from "@/types/pedido";
 
