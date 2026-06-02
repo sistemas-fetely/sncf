@@ -4,7 +4,6 @@ import {
   LayoutGrid, Inbox, Shield, CheckCircle2, Receipt,
   Clock, FileClock, Factory, FileText, Truck, PackageCheck, XCircle,
 } from "lucide-react";
-import { PedidosStatsCards } from "@/components/pedidos/PedidosStatsCards";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
 import type { EstagioPedido } from "@/types/pedido";
