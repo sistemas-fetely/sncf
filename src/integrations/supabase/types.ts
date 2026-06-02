@@ -9362,13 +9362,6 @@ export type Database = {
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "pedidos_venda_itens_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "vw_produtos_estoque_virtual"
-            referencedColumns: ["id"]
-          },
         ]
       }
       perfil_packs: {
@@ -14210,7 +14203,6 @@ export type Database = {
           estoque_minimo: number | null
           estoque_real: number | null
           estoque_virtual: number | null
-          id: string | null
           nome: string | null
           reservado: number | null
           status_venda: string | null
