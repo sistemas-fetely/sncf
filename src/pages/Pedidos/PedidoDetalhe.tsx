@@ -205,6 +205,33 @@ export default function PedidoDetalhe() {
             </div>
           )}
 
+          {/* Pedido + Cliente — sempre visível, acima dos itens */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Pedido</p>
+              <Linha label="ID externo" value={pedido.id_externo} />
+              <Linha label="Data" value={fmtDate(pedido.data_pedido)} />
+              <Linha label="Recebido em" value={fmtDateTime(pedido.recebido_em)} />
+              <Linha label="Via" value={pedido.recebido_via} />
+              <Linha label="Vendedor" value={pedido.vendedor} />
+              <Linha label="Valor bruto" value={fmtBRL.format(pedido.valor_bruto || 0)} />
+              <Linha label="Valor líquido" value={fmtBRL.format(pedido.valor_liquido || 0)} destaque />
+              {pedido.bling_id_destino && <Linha label="Bling ID" value={`#${pedido.bling_id_destino}`} />}
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Cliente</p>
+              <Linha label="Razão social" value={parceiro?.razao_social} />
+              <Linha label="CNPJ" value={parceiro?.cnpj} />
+              {parceiro?.id && <div className="py-2"><EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} /></div>}
+              <Button variant="outline" size="sm" className="w-full gap-2 mt-2" onClick={() => parceiro?.id && navigate(`/parceiros/${parceiro.id}`, { state: { from: location.pathname } })}>
+                <ExternalLink className="h-3.5 w-3.5" />Ver perfil completo
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Itens */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold">Itens do pedido</p>
@@ -224,58 +251,12 @@ export default function PedidoDetalhe() {
             }
           </div>
 
-          <Tabs defaultValue="detalhes" className="space-y-3">
+          <Tabs defaultValue="parcelas" className="space-y-3">
             <TabsList>
-              <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
               <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
               <TabsTrigger value="analise">Análise IA</TabsTrigger>
               <TabsTrigger value="timeline">Histórico</TabsTrigger>
             </TabsList>
-
-            <TabsContent value="detalhes" className="space-y-4">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Pedido</p>
-                  <Linha label="ID externo" value={pedido.id_externo} />
-                  <Linha label="Data" value={fmtDate(pedido.data_pedido)} />
-                  <Linha label="Recebido em" value={fmtDateTime(pedido.recebido_em)} />
-                  <Linha label="Via" value={pedido.recebido_via} />
-                  <Linha label="Vendedor" value={pedido.vendedor} />
-                  <Linha label="Valor bruto" value={fmtBRL.format(pedido.valor_bruto || 0)} />
-                  <Linha label="Valor líquido" value={fmtBRL.format(pedido.valor_liquido || 0)} destaque />
-                  {pedido.bling_id_destino && <Linha label="Bling ID" value={`#${pedido.bling_id_destino}`} />}
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Cliente</p>
-                  <Linha label="Razão social" value={parceiro?.razao_social} />
-                  <Linha label="CNPJ" value={parceiro?.cnpj} />
-                  {parceiro?.id && <div className="py-2"><EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} /></div>}
-                  <Button variant="outline" size="sm" className="w-full gap-2 mt-2" onClick={() => parceiro?.id && navigate(`/parceiros/${parceiro.id}`, { state: { from: location.pathname } })}>
-                    <ExternalLink className="h-3.5 w-3.5" />Ver perfil completo
-                  </Button>
-                </div>
-              </div>
-              {analiseCredito && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Análise de crédito</p>
-                  <div className="rounded-md border p-3 space-y-2">
-                    <div className="text-sm">
-                      {analiseCredito.status_final === "aprovado" && <span className="text-emerald-600 font-medium">✓ Aprovado</span>}
-                      {analiseCredito.status_final === "aprovado_com_ressalva" && <span className="text-amber-600 font-medium">⚠ Aprovado c/ ressalva</span>}
-                      {analiseCredito.status_final === "reprovado" && <span className="text-destructive font-medium">✗ Reprovado</span>}
-                      {!analiseCredito.status_final && <span className="text-muted-foreground">{analiseCredito.estagio_atual === "analise" ? "Em análise" : "Aguardando decisão"}</span>}
-                    </div>
-                    {analiseCredito.limite_concedido != null && (
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div><p className="text-muted-foreground">Limite</p><p className="font-semibold">{fmtBRL.format(analiseCredito.limite_concedido)}</p></div>
-                        {analiseCredito.prazo_max_dias && <div><p className="text-muted-foreground">Prazo máx</p><p className="font-semibold">{analiseCredito.prazo_max_dias}d</p></div>}
-                      </div>
-                    )}
-                    {analiseCredito.parecer_final && <p className="text-xs text-muted-foreground">{analiseCredito.parecer_final}</p>}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
 
             <TabsContent value="parcelas"><ParcelasTab pedidoId={pedido.id} /></TabsContent>
             <TabsContent value="analise">
