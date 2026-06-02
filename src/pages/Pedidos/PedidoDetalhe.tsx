@@ -21,7 +21,7 @@ import { TransicionarPedidoDialog } from "@/components/pedidos/dialogs/Transicio
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
-import { EncaminharDialog } from "@/components/credito/dialogs/EncaminharDialog";
+
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import {
@@ -266,49 +266,40 @@ export default function PedidoDetalhe() {
       <PedidoStepper estagioAtual={estagio} />
 
 
-      {/* Liberar pra análise de crédito (etapa SOps — mora aqui agora) */}
-      {analiseCredito?.estagio_atual === "entrada" && (
+      {estagio === "recebido" && (
         <Card className="border-amber-500/60 bg-amber-50/50 dark:bg-amber-950/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-amber-600" />
-              Liberar pra análise de crédito
+              Revisar e encaminhar
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Confira os dados e libere pra análise de crédito. O time/IA assume a partir daqui.
+              Confira os dados abaixo e decida o próximo passo do pedido.
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-              {parceiro?.perfil_credito && (
-                <div className="space-y-0.5">
-                  <p className="text-muted-foreground uppercase tracking-wide">Perfil cliente</p>
-                  <p className="font-semibold capitalize">
-                    {String(parceiro.perfil_credito).split("_").join(" ")}
-                  </p>
-                </div>
-              )}
-              {analiseCredito.perfil_aplicado && (
-                <div className="space-y-0.5">
-                  <p className="text-muted-foreground uppercase tracking-wide">Perfil aplicado</p>
-                  <p className="font-semibold capitalize">
-                    {String(analiseCredito.perfil_aplicado).split("_").join(" ")}
-                  </p>
-                </div>
-              )}
-              {analiseCredito.limite_concedido != null && (
-                <div className="space-y-0.5">
-                  <p className="text-muted-foreground uppercase tracking-wide">Limite default</p>
-                  <p className="font-semibold">{fmtBRL.format(analiseCredito.limite_concedido)}</p>
-                </div>
-              )}
-              {analiseCredito.prazo_max_dias != null && (
-                <div className="space-y-0.5">
-                  <p className="text-muted-foreground uppercase tracking-wide">Prazo máx</p>
-                  <p className="font-semibold">{analiseCredito.prazo_max_dias} dias</p>
-                </div>
-              )}
+              <div className="space-y-0.5">
+                <p className="text-muted-foreground uppercase tracking-wide">Perfil cliente</p>
+                <p className="font-semibold capitalize">
+                  {parceiro?.perfil_credito
+                    ? String(parceiro.perfil_credito).split("_").join(" ")
+                    : "Não definido"}
+                </p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-muted-foreground uppercase tracking-wide">Valor</p>
+                <p className="font-semibold">{fmtBRL.format(pedido.valor_liquido || 0)}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-muted-foreground uppercase tracking-wide">Condição</p>
+                <p className="font-semibold">{pedido.condicao_solicitada}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-muted-foreground uppercase tracking-wide">Forma</p>
+                <p className="font-semibold">{pedido.forma_solicitada}</p>
+              </div>
             </div>
 
             {(parceiro?.bandeira_vermelha || parceiro?.cadastro_incompleto) && (
@@ -325,13 +316,18 @@ export default function PedidoDetalhe() {
             )}
 
             <div className="flex justify-end pt-2">
-              <EncaminharDialog analise_id={analiseCredito.id} />
+              <TriarPedidoDialog
+                pedido_id={pedido.id}
+                perfil_credito={parceiro?.perfil_credito}
+                estagio_atual={estagio}
+                triggerLabel="Encaminhar pedido"
+              />
             </div>
           </CardContent>
         </Card>
       )}
 
-      {analiseCredito?.estagio_atual && analiseCredito.estagio_atual !== "entrada" && !analiseCredito.status_final && (
+      {analiseCredito && !analiseCredito.status_final && (
         <p className="text-xs text-muted-foreground">
           {analiseCredito.estagio_atual === "analise" && "Em análise de crédito"}
           {analiseCredito.estagio_atual === "decisao" && "Aguardando decisão de crédito"}
@@ -340,6 +336,7 @@ export default function PedidoDetalhe() {
       {analiseCredito?.status_final && (
         <p className="text-xs text-muted-foreground">Crédito decidido</p>
       )}
+
 
 
       {/* Urgência IA — sinal manual SOps */}
@@ -580,8 +577,7 @@ export default function PedidoDetalhe() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {analiseCredito.estagio_atual === "entrada" && "Aguardando triagem"}
+                <span className="text-xs text-muted-foreground">
                     {analiseCredito.estagio_atual === "analise" && "Em análise"}
                     {analiseCredito.estagio_atual === "decisao" && "Aguardando decisão"}
                   </span>
