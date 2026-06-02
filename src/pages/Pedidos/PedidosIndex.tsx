@@ -1,7 +1,8 @@
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  LayoutGrid, Shield, CheckCircle2, FileClock, Factory, Undo2, PackageCheck, XCircle,
+  LayoutGrid, Inbox, Shield, CheckCircle2, Receipt,
+  Clock, FileClock, Factory, Undo2, PackageCheck, XCircle,
 } from "lucide-react";
 import { PedidosStatsCards } from "@/components/pedidos/PedidosStatsCards";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
@@ -9,7 +10,8 @@ import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
 import type { EstagioPedido } from "@/types/pedido";
 
 const TABS_VALIDAS = [
-  "todas", "analise", "aprovado", "pre_faturado", "bling", "recuperacao", "entregues", "cancelados",
+  "todas", "recebido", "analise", "aprovado", "cobranca",
+  "aguardando", "pre_faturado", "bling", "recuperacao", "entregues", "cancelados",
 ];
 
 export default function PedidosIndex() {
@@ -37,7 +39,7 @@ export default function PedidosIndex() {
       <div>
         <h1 className="text-2xl font-bold">Casa dos Pedidos</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Portal único de pedidos B2B — recebimento, triagem, crédito, pré-faturamento, envio pro Bling.
+          Portal único de pedidos B2B — recebimento, triagem, crédito, cobrança, faturamento.
         </p>
       </div>
 
@@ -54,13 +56,25 @@ export default function PedidosIndex() {
             <LayoutGrid className="h-4 w-4" />
             Todos
           </TabsTrigger>
+          <TabsTrigger value="recebido" className="gap-1.5">
+            <Inbox className="h-4 w-4" />
+            Recebidos
+          </TabsTrigger>
           <TabsTrigger value="analise" className="gap-1.5">
             <Shield className="h-4 w-4" />
             Em Análise
           </TabsTrigger>
           <TabsTrigger value="aprovado" className="gap-1.5">
             <CheckCircle2 className="h-4 w-4" />
-            Crédito Aprovado
+            Aprovado
+          </TabsTrigger>
+          <TabsTrigger value="cobranca" className="gap-1.5">
+            <Receipt className="h-4 w-4" />
+            Cobrança
+          </TabsTrigger>
+          <TabsTrigger value="aguardando" className="gap-1.5">
+            <Clock className="h-4 w-4" />
+            Aguardando pgto
           </TabsTrigger>
           <TabsTrigger value="pre_faturado" className="gap-1.5">
             <FileClock className="h-4 w-4" />
@@ -91,11 +105,20 @@ export default function PedidosIndex() {
             apenasAtivos={false}
           />
         </TabsContent>
+        <TabsContent value="recebido">
+          <FilaPedidosPorArea area="todas" estagios={["recebido"]} apenasAtivos />
+        </TabsContent>
         <TabsContent value="analise">
           <FilaPedidosPorArea area="todas" estagios={["em_analise_credito"]} apenasAtivos />
         </TabsContent>
         <TabsContent value="aprovado">
           <FilaPedidosPorArea area="todas" estagios={["credito_aprovado"]} apenasAtivos />
+        </TabsContent>
+        <TabsContent value="cobranca">
+          <FilaPedidosPorArea area="todas" estagios={["cobranca"]} apenasAtivos />
+        </TabsContent>
+        <TabsContent value="aguardando">
+          <FilaPedidosPorArea area="todas" estagios={["aguardando_pagamento"]} apenasAtivos />
         </TabsContent>
         <TabsContent value="pre_faturado">
           <FilaPedidosPorArea area="todas" estagios={["pre_faturado"]} apenasAtivos />
