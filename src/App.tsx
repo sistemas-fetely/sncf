@@ -224,7 +224,7 @@ const App = () => (
               <Route path="/credito/analises/:id" element={<AnaliseDetalhe />} />
               <Route path="/credito/clientes/:id" element={<ClienteDetalhe />} />
               <Route path="/recebimento" element={<RecebimentoLayout />}>
-                <Route index element={<Navigate to="/recebimento/cobranca" replace />} />
+                <Route index element={<Navigate to="/pedidos" replace />} />
                 <Route path="cobranca" element={<CobrancaFila />} />
                 <Route path="aguardando-pagamento" element={<AguardandoPagamentoFila />} />
               </Route>
