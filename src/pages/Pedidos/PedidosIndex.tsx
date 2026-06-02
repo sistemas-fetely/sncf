@@ -30,7 +30,7 @@ export default function PedidosIndex() {
       </div>
 
       {/* Pipeline sticky */}
-      <div className="sticky top-0 z-10 bg-background py-2">
+      <div className="sticky top-14 z-20 bg-background border-b border-border px-4 md:px-6 py-2">
         <PipelineHorizontal
           onClickEstagio={handlePipelineClick}
           onLimparFiltro={handleLimparFiltro}
