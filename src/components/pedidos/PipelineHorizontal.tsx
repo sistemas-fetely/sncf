@@ -1,36 +1,33 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { usePedidosPipeline } from "@/hooks/pedidos/usePedidosPipeline";
 import { ESTAGIO_LABELS, PIPELINE_PRINCIPAL } from "@/types/pedido";
+import { ESTAGIO_CORES } from "@/components/pedidos/BadgesPedido";
 import type { EstagioPedido } from "@/types/pedido";
-import { ESTAGIO_CORES } from "./BadgesPedido";
-import { useMemo } from "react";
+import { AlertTriangle } from "lucide-react";
 
 const fmtBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
 
 interface Props {
   onClickEstagio?: (estagio: EstagioPedido) => void;
   estagioAtivo?: EstagioPedido | null;
 }
 
-interface EstagioConsolidado {
-  estagio: EstagioPedido;
-  qtd: number;
-  valor: number;
-  sla: number;
-}
-
 export function PipelineHorizontal({ onClickEstagio, estagioAtivo }: Props) {
   const { data, isLoading } = usePedidosPipeline();
 
-  const consolidado: EstagioConsolidado[] = useMemo(() => {
+  const estagios = useMemo(() => {
     const map = new Map<EstagioPedido, { qtd: number; valor: number; sla: number }>();
     PIPELINE_PRINCIPAL.forEach((e) => map.set(e, { qtd: 0, valor: 0, sla: 0 }));
     (data || []).forEach((row) => {
       const atual = map.get(row.estagio as EstagioPedido);
-      if (!atual) return; // estágios fora do pipeline principal (cancelado, recuperacao_venda)
+      if (!atual) return;
       atual.qtd += row.qtd;
       atual.valor += Number(row.soma_valor || 0);
       atual.sla += row.qtd_sla_estourado;
@@ -41,71 +38,112 @@ export function PipelineHorizontal({ onClickEstagio, estagioAtivo }: Props) {
     }));
   }, [data]);
 
-  const totalAtivo = consolidado
+  const ativos = estagios.filter(
+    (e) => e.qtd > 0 && e.estagio !== "entregue"
+  );
+  const totalOperacao = estagios
     .filter((e) => e.estagio !== "entregue")
     .reduce((acc, e) => acc + e.qtd, 0);
-  const totalPipeline = consolidado.reduce((acc, e) => acc + e.qtd, 0);
-  const slaEstouradoTotal = consolidado.reduce((acc, e) => acc + e.sla, 0);
+  const totalSla = estagios.reduce((acc, e) => acc + e.sla, 0);
 
   if (isLoading) {
-    return <Skeleton className="h-32 w-full" />;
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-28 w-full rounded-lg" />
+        ))}
+      </div>
+    );
   }
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="text-sm">
-            <span className="font-semibold">{totalAtivo} em operação</span>
-            <span className="text-muted-foreground"> · {totalPipeline} no pipeline</span>
-          </div>
-          {slaEstouradoTotal > 0 && (
-            <div className="text-xs text-red-600 font-medium">
-              {slaEstouradoTotal} pedido{slaEstouradoTotal > 1 ? "s" : ""} com SLA estourado
-            </div>
-          )}
+    <div className="space-y-3">
+      {/* Cabeçalho resumo */}
+      <div className="flex items-center justify-between px-1">
+        <div className="text-sm">
+          <span className="font-semibold">{totalOperacao}</span>
+          <span className="text-muted-foreground">
+            {" "}
+            pedidos em operação
+          </span>
         </div>
+        {totalSla > 0 && (
+          <div className="flex items-center gap-1 text-xs text-red-600 font-medium">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {totalSla} com SLA estourado
+          </div>
+        )}
+      </div>
 
-        {/* Barra de segmentos */}
-        <div className="flex h-8 w-full rounded-md overflow-hidden border border-border">
-          {consolidado.map(({ estagio, qtd }) => {
-            const flexBase = qtd > 0 ? Math.max(qtd, 0.5) : 0.4;
+      {/* Cards por estágio */}
+      {ativos.length === 0 ? (
+        <div className="text-sm text-muted-foreground text-center py-8">
+          Nenhum pedido em operação.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {ativos.map(({ estagio, qtd, valor, sla }) => {
             const isAtivo = estagioAtivo === estagio;
+
             return (
               <button
                 key={estagio}
                 type="button"
                 onClick={() => onClickEstagio?.(estagio)}
-                style={{ flex: flexBase }}
-                title={`${ESTAGIO_LABELS[estagio]}: ${qtd}`}
                 className={cn(
-                  "text-[11px] font-medium text-white px-1 transition-all hover:opacity-90 border-r border-background last:border-r-0",
-                  ESTAGIO_CORES[estagio],
-                  qtd === 0 && "opacity-30",
-                  isAtivo && "ring-2 ring-foreground/40 ring-inset",
+                  "group relative text-left rounded-lg border bg-card p-4 transition-all duration-200",
+                  "hover:shadow-md hover:border-[hsl(var(--gold)/0.5)]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--gold))]",
+                  isAtivo
+                    ? "border-[hsl(var(--gold))] shadow-md bg-[hsl(var(--gold)/0.04)]"
+                    : "border-border"
                 )}
               >
-                {qtd > 0 ? qtd : ""}
+                {/* Borda esquerda colorida */}
+                <div
+                  className={cn(
+                    "absolute left-0 top-0 bottom-0 w-1 rounded-l-lg",
+                    ESTAGIO_CORES[estagio]
+                  )}
+                />
+
+                <div className="pl-2 space-y-2">
+                  {/* Estágio */}
+                  <div className="text-xs text-muted-foreground font-medium truncate">
+                    {ESTAGIO_LABELS[estagio]}
+                  </div>
+
+                  {/* Quantidade — destaque principal */}
+                  <div
+                    className={cn(
+                      "text-2xl font-display font-semibold leading-none",
+                      isAtivo ? "text-[hsl(var(--gold))]" : "text-foreground"
+                    )}
+                  >
+                    {qtd}
+                  </div>
+
+                  {/* Valor */}
+                  <div className="text-sm text-muted-foreground font-medium">
+                    {fmtBRL(valor)}
+                  </div>
+
+                  {/* SLA badge */}
+                  {sla > 0 && (
+                    <div className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600 dark:bg-red-950/40">
+                      <AlertTriangle className="h-3 w-3" />
+                      {sla} SLA
+                    </div>
+                  )}
+                </div>
+
+                {/* Linha dourada de foco no hover */}
+                <div className="absolute bottom-0 left-1 right-1 h-0.5 rounded-full bg-[hsl(var(--gold))] opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               </button>
             );
           })}
         </div>
-
-        {/* Legenda — todos os estágios do pipeline principal */}
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-          {consolidado.map(({ estagio, qtd, valor, sla }) => (
-            <div key={estagio} className="flex items-center gap-1">
-              <span className={cn("h-2 w-2 rounded-sm", ESTAGIO_CORES[estagio])} />
-              <span>{ESTAGIO_LABELS[estagio]}</span>
-              <span className="font-medium text-foreground">· {qtd}</span>
-              {qtd > 0 && <span>· {fmtBRL(valor)}</span>}
-              {sla > 0 && (
-                <span className="text-red-600 font-medium">· {sla} SLA</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
