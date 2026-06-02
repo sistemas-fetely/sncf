@@ -4,7 +4,8 @@ import type { EstagioPedido } from "@/types/pedido";
  * Matriz de transições válidas POR INICIATIVA HUMANA.
  *
  * Transições silenciosas (via trigger do banco) NÃO estão aqui:
- *   - analise_credito.status_final = 'aprovado' → pedido vai pra credito_aprovado → pre_faturado
+ *   - analise_credito.status_final = 'aprovado' → pedido vai pra credito_aprovado
+ *   - pagamento confirmado → aguardando_pagamento → pre_faturado (trigger)
  *   - sync Bling atualiza em_separacao/faturado/em_transporte/entregue (futuro F-5)
  *
  * Aqui só ficam as transições que UM HUMANO opera explicitamente.
@@ -20,7 +21,15 @@ export const TRANSICOES_VALIDAS: Record<EstagioPedido, EstagioPedido[]> = {
     // credito_aprovado é silencioso (trigger quando análise vira aprovada)
   ],
   credito_aprovado: [
-    "pre_faturado",         // SOps move (raro — geralmente trigger faz)
+    "cobranca",             // SOps materializa proposta de cobrança
+    "cancelado",
+  ],
+  cobranca: [
+    "aguardando_pagamento", // SOps confirma materialização / envia link
+    "cancelado",
+  ],
+  aguardando_pagamento: [
+    "pre_faturado",         // SOps força avanço (raro — geralmente trigger de pagamento)
     "cancelado",
   ],
   pre_faturado: [

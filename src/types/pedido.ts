@@ -1,14 +1,16 @@
-// Estágios canônicos do pedido (D5 + estados pré/terminais).
+// Estágios canônicos do pedido.
 // Alinhado com check constraint em public.pedidos.estagio (F-1).
 export type EstagioPedido =
-  | "recebido"               // veio do FOP, sem análise
-  | "em_analise_credito"     // análise em andamento
-  | "credito_aprovado"       // D5 #1 — análise aprovou
-  | "pre_faturado"           // D5 #2 — títulos gerados, aguarda envio Bling
-  | "em_separacao"           // D5 #3 — Bling separando
-  | "faturado"               // D5 #4 — NF emitida
-  | "em_transporte"          // D5 #5 — saiu pra entrega
-  | "entregue"               // D5 #6 — final
+  | "recebido"               // veio do FOP, aguarda triagem SOps
+  | "em_analise_credito"     // análise em andamento (módulo Crédito)
+  | "credito_aprovado"       // análise aprovou — trigger avança pra cobranca
+  | "cobranca"               // SOps materializa proposta de cobrança
+  | "aguardando_pagamento"   // aguarda 1ª parcela/link pago (PIX, cartão, boleto c/ entrada)
+  | "pre_faturado"           // títulos gerados, aguarda envio Bling
+  | "em_separacao"           // Bling separando
+  | "faturado"               // NF emitida
+  | "em_transporte"          // saiu pra entrega
+  | "entregue"               // final feliz
   | "cancelado"              // terminal
   | "recuperacao_venda";     // entrada não paga → time comercial recupera
 
@@ -20,6 +22,8 @@ export const ESTAGIO_LABELS: Record<EstagioPedido, string> = {
   recebido: "Recebido",
   em_analise_credito: "Em análise crédito",
   credito_aprovado: "Crédito aprovado",
+  cobranca: "Cobrança",
+  aguardando_pagamento: "Aguardando pagamento",
   pre_faturado: "Pré-faturamento",
   em_separacao: "Em separação",
   faturado: "Faturado",
@@ -37,11 +41,13 @@ export const AREA_LABELS: Record<AreaPedido, string> = {
   nenhuma: "—",
 };
 
-/** Pipeline visual: ordem dos estágios "ativos" no fluxo principal */
+/** Pipeline visual: ordem dos estágios no fluxo principal */
 export const PIPELINE_PRINCIPAL: readonly EstagioPedido[] = [
   "recebido",
   "em_analise_credito",
   "credito_aprovado",
+  "cobranca",
+  "aguardando_pagamento",
   "pre_faturado",
   "em_separacao",
   "faturado",
@@ -64,6 +70,8 @@ export const ESTAGIO_AREA: Record<EstagioPedido, AreaPedido> = {
   recebido: "sistema",
   em_analise_credito: "credito",
   credito_aprovado: "sops",
+  cobranca: "sops",
+  aguardando_pagamento: "sops",
   pre_faturado: "sops",
   em_separacao: "bling",
   faturado: "bling",
