@@ -18,6 +18,7 @@ import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
 import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
 import { EstagioBadge, FormatoIdade } from "@/components/pedidos/BadgesPedido";
 import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
+import { BadgesContextuais } from "@/components/credito/BadgesContextuais";
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
@@ -145,7 +146,7 @@ export default function PedidoDetalhe() {
   if (isLoading) return <div className="p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
 
-  const { pedido, parceiro, itens, eventos, analiseCredito, idade_minutos, sla_estourado } = data;
+  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, idade_minutos, sla_estourado } = data;
   const estagio = pedido.estagio as EstagioPedido;
   const estagioFinal = isEstagioFinal(estagio);
 
@@ -196,12 +197,13 @@ export default function PedidoDetalhe() {
                 <div><p className="text-muted-foreground uppercase tracking-wide mb-0.5">Condição</p><p className="font-semibold">{pedido.condicao_solicitada}</p></div>
                 <div><p className="text-muted-foreground uppercase tracking-wide mb-0.5">Forma</p><p className="font-semibold">{pedido.forma_solicitada}</p></div>
               </div>
-              {(parceiro?.bandeira_vermelha || parceiro?.cadastro_incompleto) && (
-                <div className="flex gap-2 flex-wrap">
-                  {parceiro?.bandeira_vermelha && <Badge variant="destructive">🚩 Bandeira vermelha</Badge>}
-                  {parceiro?.cadastro_incompleto && <Badge className="bg-amber-500 text-white border-0">⚠️ Cadastro incompleto</Badge>}
-                </div>
-              )}
+              <div className="pt-1">
+                <BadgesContextuais
+                  parceiro={parceiro || {}}
+                  analisesAnteriores={analisesAnteriores}
+                  valorPedido={pedido?.valor_liquido}
+                />
+              </div>
             </div>
           )}
 

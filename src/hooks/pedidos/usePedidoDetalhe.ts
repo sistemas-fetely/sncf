@@ -12,6 +12,8 @@ export interface PedidoDetalhe {
   eventos: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   analiseCredito: any | null;
+  /** Histórico de análises do parceiro (alimenta badges de recepção: cliente novo, cooldown). */
+  analisesAnteriores: Array<{ status_final: string | null; decidido_em: string | null }>;
   idade_minutos: number;
   sla_estourado: boolean;
 }
@@ -60,6 +62,20 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         .limit(1)
         .maybeSingle();
 
+      // Histórico de análises do MESMO parceiro (pros badges de recepção).
+      // A análise atual entra aqui com status_final = null, e o BadgesContextuais
+      // ignora as abertas (só conta as com status_final !== null), então não polui.
+      let analisesAnteriores: Array<{ status_final: string | null; decidido_em: string | null }> = [];
+      if (pedido.parceiro_id) {
+        const { data: hist } = await sb
+          .from("analises_credito")
+          .select("status_final, decidido_em")
+          .eq("parceiro_id", pedido.parceiro_id)
+          .order("criado_em", { ascending: false })
+          .limit(50);
+        analisesAnteriores = hist || [];
+      }
+
       const recebidoEm = new Date(pedido.recebido_em).getTime();
       const fimEm = new Date(pedido.faturado_em || pedido.cancelado_em || Date.now()).getTime();
       const idade_minutos = Math.max(0, Math.round((fimEm - recebidoEm) / 60000));
@@ -73,6 +89,7 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         itens: itens || [],
         eventos: eventos || [],
         analiseCredito: analiseCredito || null,
+        analisesAnteriores,
         idade_minutos,
         sla_estourado,
       };
