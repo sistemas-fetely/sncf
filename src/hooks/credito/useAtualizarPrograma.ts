@@ -32,6 +32,7 @@ export function useAtualizarPrograma() {
     onSuccess: ({ parceiro_id }) => {
       qc.invalidateQueries({ queryKey: ["analise-detalhe"] });
       qc.invalidateQueries({ queryKey: ["cliente-detalhe", parceiro_id] });
+      qc.invalidateQueries({ queryKey: ["pedido-detalhe"] });
       toast({ title: "Programa atualizado" });
     },
     onError: (e: Error) => {
