@@ -197,12 +197,13 @@ export default function PedidoDetalhe() {
                 <div><p className="text-muted-foreground uppercase tracking-wide mb-0.5">Condição</p><p className="font-semibold">{pedido.condicao_solicitada}</p></div>
                 <div><p className="text-muted-foreground uppercase tracking-wide mb-0.5">Forma</p><p className="font-semibold">{pedido.forma_solicitada}</p></div>
               </div>
-              {(parceiro?.bandeira_vermelha || parceiro?.cadastro_incompleto) && (
-                <div className="flex gap-2 flex-wrap">
-                  {parceiro?.bandeira_vermelha && <Badge variant="destructive">🚩 Bandeira vermelha</Badge>}
-                  {parceiro?.cadastro_incompleto && <Badge className="bg-amber-500 text-white border-0">⚠️ Cadastro incompleto</Badge>}
-                </div>
-              )}
+              <div className="pt-1">
+                <BadgesContextuais
+                  parceiro={parceiro || {}}
+                  analisesAnteriores={analisesAnteriores}
+                  valorPedido={pedido?.valor_liquido}
+                />
+              </div>
             </div>
           )}
 
