@@ -92,10 +92,9 @@ export function PipelineHorizontal({ onClickEstagio, estagioAtivo }: Props) {
                 onClick={() => onClickEstagio?.(estagio)}
                 className={cn(
                   "group relative text-left rounded-lg border bg-card p-4 transition-all duration-200",
-                  "hover:shadow-md hover:border-[hsl(var(--gold)/0.5)]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--gold))]",
+                  "gold-border-hover",
                   isAtivo
-                    ? "border-[hsl(var(--gold))] shadow-md bg-[hsl(var(--gold)/0.04)]"
+                    ? "gold-border bg-gold-soft shadow-sm"
                     : "border-border"
                 )}
               >
