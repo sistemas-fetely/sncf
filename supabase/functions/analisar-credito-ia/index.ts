@@ -54,7 +54,7 @@ ESTRUTURA OBRIGATÓRIA:
   "resumo": "3-5 linhas em prosa humana resumindo o caso",
   "pontos_atencao": ["item curto 1", "item curto 2"],
   "sugestao": {
-    "perfil_aplicado": "novo_entrada"|"novo_qualificado"|"recorrente_bom_pagador"|"premium"|"bandeira_vermelha",
+    "perfil_aplicado": "novo_entrada"|"novo_qualificado"|"recorrente_bom_pagador"|"premium",
     "limite_concedido": number,
     "prazo_max_dias": int,
     "formas_aceitas": ["boleto","pix","cartao"],
