@@ -26,6 +26,15 @@ const err = (msg: string, status = 400) =>
 
 const soDigitos = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
 
+// Lê o claim "role" de um JWT sem verificar assinatura (o platform já validou via verify_jwt).
+const jwtRole = (token: string): string | null => {
+  try {
+    return JSON.parse(atob((token.split(".")[1] || ""))).role ?? null;
+  } catch {
+    return null;
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -63,10 +72,12 @@ serve(async (req) => {
       );
       if (!allowed) return err("Sem permissão (sops, admin_rh ou super_admin)", 403);
     } else {
-      // automatico / backfill: exige a service role key, não um JWT de usuário
-      if (authRaw !== Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!) {
-        return err("Sync automático/backfill requer service role", 403);
-      }
+      // automatico / backfill: exige um JWT com role service_role.
+      // Aceita tanto a env exata quanto qualquer JWT service_role (vault e env podem diferir).
+      const isService =
+        authRaw === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
+        jwtRole(authRaw) === "service_role";
+      if (!isService) return err("Sync automático/backfill requer service role", 403);
     }
 
     // 1. Parceiro
