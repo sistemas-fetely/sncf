@@ -2,7 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   LayoutGrid, Inbox, Shield, CheckCircle2, Receipt,
-  Clock, FileClock, Factory, Undo2, PackageCheck, XCircle,
+  Clock, FileClock, Factory, FileText, Truck, PackageCheck, XCircle,
 } from "lucide-react";
 import { PedidosStatsCards } from "@/components/pedidos/PedidosStatsCards";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
@@ -11,7 +11,8 @@ import type { EstagioPedido } from "@/types/pedido";
 
 const TABS_VALIDAS = [
   "todas", "recebido", "analise", "aprovado", "cobranca",
-  "aguardando", "pre_faturado", "bling", "recuperacao", "entregues", "cancelados",
+  "aguardando", "pre_faturado", "separacao", "faturado",
+  "transporte", "entregues", "cancelados",
 ];
 
 export default function PedidosIndex() {
@@ -74,36 +75,36 @@ export default function PedidosIndex() {
           </TabsTrigger>
           <TabsTrigger value="aguardando" className="gap-1.5">
             <Clock className="h-4 w-4" />
-            Aguardando pgto
+            Aguardando PG
           </TabsTrigger>
           <TabsTrigger value="pre_faturado" className="gap-1.5">
             <FileClock className="h-4 w-4" />
-            Pré-faturamento
+            Pré-Faturado
           </TabsTrigger>
-          <TabsTrigger value="bling" className="gap-1.5">
+          <TabsTrigger value="separacao" className="gap-1.5">
             <Factory className="h-4 w-4" />
-            No Bling
+            Em Separação
           </TabsTrigger>
-          <TabsTrigger value="recuperacao" className="gap-1.5">
-            <Undo2 className="h-4 w-4" />
-            Recuperação
+          <TabsTrigger value="faturado" className="gap-1.5">
+            <FileText className="h-4 w-4" />
+            Faturado
+          </TabsTrigger>
+          <TabsTrigger value="transporte" className="gap-1.5">
+            <Truck className="h-4 w-4" />
+            Em Transporte
           </TabsTrigger>
           <TabsTrigger value="entregues" className="gap-1.5">
             <PackageCheck className="h-4 w-4" />
-            Entregues
+            Entregue
           </TabsTrigger>
           <TabsTrigger value="cancelados" className="gap-1.5">
             <XCircle className="h-4 w-4" />
-            Cancelados
+            Cancelado
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="todas">
-          <FilaPedidosPorArea
-            area="todas"
-            estagioInicial={estagioParam ?? "todos"}
-            apenasAtivos={false}
-          />
+          <FilaPedidosPorArea area="todas" estagioInicial={estagioParam ?? "todos"} apenasAtivos={false} />
         </TabsContent>
         <TabsContent value="recebido">
           <FilaPedidosPorArea area="todas" estagios={["recebido"]} apenasAtivos />
@@ -123,15 +124,14 @@ export default function PedidosIndex() {
         <TabsContent value="pre_faturado">
           <FilaPedidosPorArea area="todas" estagios={["pre_faturado"]} apenasAtivos />
         </TabsContent>
-        <TabsContent value="bling">
-          <FilaPedidosPorArea
-            area="todas"
-            estagios={["em_separacao", "faturado", "em_transporte"]}
-            apenasAtivos
-          />
+        <TabsContent value="separacao">
+          <FilaPedidosPorArea area="todas" estagios={["em_separacao"]} apenasAtivos />
         </TabsContent>
-        <TabsContent value="recuperacao">
-          <FilaPedidosPorArea area="todas" estagios={["recuperacao_venda"]} apenasAtivos />
+        <TabsContent value="faturado">
+          <FilaPedidosPorArea area="todas" estagios={["faturado"]} apenasAtivos />
+        </TabsContent>
+        <TabsContent value="transporte">
+          <FilaPedidosPorArea area="todas" estagios={["em_transporte"]} apenasAtivos />
         </TabsContent>
         <TabsContent value="entregues">
           <FilaPedidosPorArea area="todas" estagios={["entregue"]} apenasAtivos={false} />
