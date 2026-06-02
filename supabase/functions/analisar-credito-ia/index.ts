@@ -30,6 +30,7 @@ REGRAS DE PONDERAÇÃO:
 - Bandeira vermelha ativa: alerta forte na justificativa, mas pondere razão e atualidade. Não é veto automático.
 - Cooldown (reprovação <90 dias): pondere motivo anterior. Calote = reprovar de novo. "Valor alto sem histórico" + valor menor agora = à vista.
 - Grupo econômico com vencidos: alerta visual, decisão humana fica contextual. Não bloqueie por isso sozinho.
+- NUNCA retorne perfil_aplicado = bandeira_vermelha. Para casos de risco alto (valor elevado, bureau ruim, flag manual ativo), use um perfil conservador (ex.: novo_entrada) E a decisao_sugerida apropriada (reprovar, aprovar_com_ressalva ou somente à vista). O perfil reflete o relacionamento; o risco vai na decisão e na justificativa, não no perfil.
 
 CONFIANÇA (0-100):
 - ≥85: caso claro, sinais coerentes (Serasa limpo + sem vencidos + valor compatível)
