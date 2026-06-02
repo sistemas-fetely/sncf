@@ -3,7 +3,6 @@ import { useAnaliseDetalhe } from "@/hooks/credito/useAnaliseDetalhe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BadgesContextuais } from "./BadgesContextuais";
 import { PainelIaConsolidado } from "./PainelIaConsolidado";
@@ -16,7 +15,7 @@ import { ReprovarDialog } from "./dialogs/ReprovarDialog";
 import { DevolverParaAnaliseDialog } from "./dialogs/DevolverParaAnaliseDialog";
 import { DevolverParaEntradaDialog } from "./dialogs/DevolverParaEntradaDialog";
 import { CancelarAnaliseDialog } from "./dialogs/CancelarAnaliseDialog";
-import { ArrowLeft } from "lucide-react";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { AnaliseIaJson, PerfilCredito, FormaPagamento } from "@/types/credito";
@@ -65,7 +64,7 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in space-y-6">
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-48 w-full" />
         <Skeleton className="h-96 w-full" />
@@ -73,7 +72,13 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
     );
   }
 
-  if (!data) return <p className="text-muted-foreground">Análise não encontrada.</p>;
+  if (!data) {
+    return (
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8">
+        <p className="text-muted-foreground">Análise não encontrada.</p>
+      </div>
+    );
+  }
 
   const {
     analise,
@@ -88,47 +93,45 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
     transicoes,
   } = data;
 
+  const razao = parceiro?.razao_social || "Cliente sem razão";
+
   return (
-    <div className="space-y-6 pb-32">
-      {/* Header */}
-      <div className="space-y-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 -ml-2"
-          onClick={() => navigate("/credito?tab=decisao")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Fila (Decisão)
-        </Button>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">
-              <button
-                type="button"
-                onClick={() => parceiro?.id && navigate(`/credito/clientes/${parceiro.id}`)}
-                className="hover:underline text-left"
-              >
-                {parceiro?.razao_social || "Cliente sem razão"}
-              </button>
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              CNPJ {parceiro?.cnpj} · Pedido {pedido?.id_externo} ·{" "}
-              <Badge variant="secondary">Decisão</Badge>
-            </p>
-          </div>
-          <div className="text-right">
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in space-y-6 pb-32">
+      <CasaPageHeader
+        breadcrumb={[
+          { label: "Casa", to: "/" },
+          { label: "Crédito", to: "/credito?tab=decisao" },
+          { label: razao },
+        ]}
+        title={razao}
+        subtitle={`Análise ${analise.id.slice(0, 8)}… · Pedido ${pedido?.id_externo ?? "—"}`}
+        actions={
+          <div className="flex flex-col items-end gap-1">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">
               Valor líquido
             </p>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold text-gold font-serif">
               {fmtBRL.format(Number(pedido?.valor_liquido || 0))}
             </p>
             <p className="text-xs text-muted-foreground">
               {pedido?.condicao_solicitada} · {pedido?.forma_solicitada}
             </p>
+            {parceiro?.id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-1"
+                onClick={() => navigate(`/credito/clientes/${parceiro.id}`)}
+              >
+                Ver cliente
+              </Button>
+            )}
           </div>
-        </div>
+        }
+      />
+
+      {/* Ribbon de badges */}
+      <div className="flex flex-wrap items-center gap-2">
         <BadgesContextuais
           parceiro={parceiro || {}}
           analisesAnteriores={analisesAnteriores}
@@ -137,14 +140,25 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
         />
       </div>
 
-      {/* Box devolução, se aplicável */}
       <BoxDevolucaoRecente transicoes={transicoes} estagioAtual="decisao" />
 
-      {/* 3 painéis de informação */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card>
+      {/* PAINEL DA IA — herói no topo do conteúdo */}
+      <div className="rounded-lg bg-gold-soft gold-border p-1">
+        <PainelIaConsolidado
+          iaJson={iaJson}
+          iaResumo={analise.analise_ia_resumo ?? null}
+          iaConfianca={analise.analise_ia_confianca ?? null}
+          iaProcessadaEm={analise.analise_ia_processada_em ?? null}
+        />
+      </div>
+
+      {/* Contexto em volta */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="gold-border">
           <CardHeader>
-            <CardTitle className="text-base">Financeiro do cliente</CardTitle>
+            <CardTitle className="text-base font-serif text-gold">
+              Financeiro do cliente
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {kpisFinanceiros ? (
@@ -172,9 +186,9 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gold-border">
           <CardHeader>
-            <CardTitle className="text-base">Grupo econômico</CardTitle>
+            <CardTitle className="text-base font-serif text-gold">Grupo econômico</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {kpisGrupo ? (
@@ -199,9 +213,9 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gold-border">
           <CardHeader>
-            <CardTitle className="text-base">Cliente · Sócios</CardTitle>
+            <CardTitle className="text-base font-serif text-gold">Cliente · Sócios</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <Linha label="CNPJ" value={parceiro?.cnpj} />
@@ -231,7 +245,7 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
         </Card>
       </div>
 
-      {/* Bureaus anexados */}
+      {/* Bureaus */}
       <ScoresAnexados scores={scores} analiseId={analiseId} />
 
       {/* Histórico */}
@@ -240,21 +254,15 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
         marcos={marcos}
       />
 
-      {/* PAINEL IA — vem antes da decisão (info → IA → decisão) */}
-      <PainelIaConsolidado
-        iaJson={iaJson}
-        iaResumo={analise.analise_ia_resumo ?? null}
-        iaConfianca={analise.analise_ia_confianca ?? null}
-        iaProcessadaEm={analise.analise_ia_processada_em ?? null}
-      />
-
       {/* FORMULÁRIO DE DECISÃO */}
-      <FormDecisaoCredito valores={campos} sugestaoIA={sugestaoIA} onChange={setCampos} />
+      <div className="rounded-lg gold-border p-1">
+        <FormDecisaoCredito valores={campos} sugestaoIA={sugestaoIA} onChange={setCampos} />
+      </div>
 
       {/* AÇÕES — barra fixa */}
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 z-40">
-        <div className="container max-w-screen-2xl mx-auto py-3 px-4 flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-xs text-muted-foreground max-w-md">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-gold/30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 z-40">
+        <div className="max-w-[1400px] mx-auto py-3 px-4 md:px-8 flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-xs text-muted-foreground max-w-md italic">
             Joseph tem autonomia total. Programa é norte, não bloqueio.
           </p>
           <div className="flex gap-2 flex-wrap">

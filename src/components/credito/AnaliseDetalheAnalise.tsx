@@ -3,7 +3,6 @@ import { useConfirmarPreAprovacao } from "@/hooks/credito/useConfirmarPreAprovac
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { BadgesContextuais } from "./BadgesContextuais";
 import { UploadBureauZone } from "./UploadBureauZone";
 import { ScoresAnexados } from "./ScoresAnexados";
@@ -11,9 +10,10 @@ import { AnaliseIaCard } from "./AnaliseIaCard";
 import { EncaminharParaDecisaoDialog } from "./dialogs/EncaminharParaDecisaoDialog";
 import { DevolverParaEntradaDialog } from "./dialogs/DevolverParaEntradaDialog";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
-import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { cn } from "@/lib/utils";
 import type { AnaliseIaJson, PreAprovacaoPayload } from "@/types/credito";
 
@@ -32,9 +32,9 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in space-y-6">
         <Skeleton className="h-20 w-full" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Skeleton className="h-96" />
           <Skeleton className="h-96 lg:col-span-2" />
         </div>
@@ -42,7 +42,13 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
     );
   }
 
-  if (!data) return <p className="text-muted-foreground">Análise não encontrada.</p>;
+  if (!data) {
+    return (
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8">
+        <p className="text-muted-foreground">Análise não encontrada.</p>
+      </div>
+    );
+  }
 
   const {
     analise,
@@ -60,45 +66,54 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
   const iaProcessada = !!analise.analise_ia_processada_em;
   const podeEncaminhar = scores.length > 0 && iaProcessada;
 
+  const razao = parceiro?.razao_social || "Cliente sem razão";
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 -ml-2"
-          onClick={() => navigate("/credito?tab=analise")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Fila (Análise)
-        </Button>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">
-              <button
-                type="button"
-                onClick={() => parceiro?.id && navigate(`/credito/clientes/${parceiro.id}`)}
-                className="hover:underline text-left"
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in space-y-6">
+      <CasaPageHeader
+        breadcrumb={[
+          { label: "Casa", to: "/" },
+          { label: "Crédito", to: "/credito?tab=analise" },
+          { label: razao },
+        ]}
+        title={razao}
+        subtitle={`Análise ${analise.id.slice(0, 8)}… · Pedido ${pedido?.id_externo ?? "—"}`}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            {parceiro?.id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(`/credito/clientes/${parceiro.id}`)}
               >
-                {parceiro?.razao_social || "Cliente sem razão"}
-              </button>
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Análise {analise.id.slice(0, 8)}... · Estágio:{" "}
-              <Badge variant="secondary">Análise</Badge> · Pedido {pedido?.id_externo}
-            </p>
+                Ver cliente
+              </Button>
+            )}
+            <DevolverParaEntradaDialog analise_id={analise.id} />
+            <EncaminharParaDecisaoDialog
+              analise_id={analise.id}
+              disabled={!podeEncaminhar}
+              disabledReason={
+                !podeEncaminhar
+                  ? "Anexe bureau e gere análise IA antes de encaminhar"
+                  : undefined
+              }
+            />
           </div>
-          <BadgesContextuais
-            parceiro={parceiro || {}}
-            analisesAnteriores={analisesAnteriores}
-            kpisGrupo={kpisGrupo}
-            valorPedido={pedido?.valor_liquido}
-          />
-        </div>
+        }
+      />
+
+      {/* Ribbon de badges contextuais */}
+      <div className="flex flex-wrap items-center gap-2">
+        <BadgesContextuais
+          parceiro={parceiro || {}}
+          analisesAnteriores={analisesAnteriores}
+          kpisGrupo={kpisGrupo}
+          valorPedido={pedido?.valor_liquido}
+        />
       </div>
 
-      {/* Card de pré-aprovação (Joseph confirma 1-clique) */}
+      {/* Pré-aprovação (Joseph confirma 1-clique) */}
       {analise.pre_aprovado_regra_id && !analise.status_final && (
         <PreAprovacaoCard
           payload={analise.pre_aprovacao_payload as PreAprovacaoPayload | null}
@@ -111,16 +126,14 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
         />
       )}
 
-      {/* Box devolução, se aplicável */}
       <BoxDevolucaoRecente transicoes={transicoes} estagioAtual="analise" />
 
-      {/* 2 colunas */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna esquerda — info compacta */}
-        <div className="space-y-4">
-          <Card>
+        <div className="space-y-6">
+          <Card className="gold-border">
             <CardHeader>
-              <CardTitle className="text-base">Pedido</CardTitle>
+              <CardTitle className="text-base font-serif text-gold">Pedido</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Linha label="ID Externo" value={pedido?.id_externo} />
@@ -137,13 +150,16 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="gold-border">
             <CardHeader>
-              <CardTitle className="text-base">Cliente</CardTitle>
+              <CardTitle className="text-base font-serif text-gold">Cliente</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Linha label="CNPJ" value={parceiro?.cnpj} />
-              <Linha label="Cidade/UF" value={`${parceiro?.cidade || "—"} / ${parceiro?.uf || "—"}`} />
+              <Linha
+                label="Cidade/UF"
+                value={`${parceiro?.cidade || "—"} / ${parceiro?.uf || "—"}`}
+              />
               <Linha label="Situação" value={parceiro?.situacao_cadastral} />
               <Linha label="Nível Programa" value={parceiro?.nivel_programa} />
               {socios.length > 0 && (
@@ -164,9 +180,11 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
           </Card>
 
           {kpisFinanceiros && (
-            <Card>
+            <Card className="gold-border">
               <CardHeader>
-                <CardTitle className="text-base">Histórico Fetely</CardTitle>
+                <CardTitle className="text-base font-serif text-gold">
+                  Histórico Fetely
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Linha label="Em aberto" value={fmtBRL.format(kpisFinanceiros.em_aberto)} />
@@ -184,43 +202,22 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
           )}
         </div>
 
-        {/* Coluna direita — área de operação */}
-        <div className="lg:col-span-2 space-y-4">
+        {/* Centro + direita — operação */}
+        <div className="lg:col-span-2 space-y-6">
           <UploadBureauZone analise_id={analise.id} />
           <ScoresAnexados scores={scores} analiseId={analiseId} />
-          <AnaliseIaCard
-            analise_id={analise.id}
-            scoresCount={scores.length}
-            iaJson={iaJson}
-            iaResumo={analise.analise_ia_resumo ?? null}
-            iaConfianca={analise.analise_ia_confianca ?? null}
-            iaProcessadaEm={analise.analise_ia_processada_em ?? null}
-          />
-        </div>
-      </div>
-
-      {/* Ações */}
-      <Card>
-        <CardContent className="pt-6 flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            {iaProcessada
-              ? "Análise IA pronta. Encaminhe pra Joseph decidir."
-              : "Anexe ao menos um bureau e gere a análise IA antes de encaminhar."}
-          </p>
-          <div className="flex gap-2">
-            <DevolverParaEntradaDialog analise_id={analise.id} />
-            <EncaminharParaDecisaoDialog
+          <div className="rounded-lg bg-gold-soft gold-border p-1">
+            <AnaliseIaCard
               analise_id={analise.id}
-              disabled={!podeEncaminhar}
-              disabledReason={
-                !podeEncaminhar
-                  ? "Anexe bureau e gere análise IA antes de encaminhar"
-                  : undefined
-              }
+              scoresCount={scores.length}
+              iaJson={iaJson}
+              iaResumo={analise.analise_ia_resumo ?? null}
+              iaConfianca={analise.analise_ia_confianca ?? null}
+              iaProcessadaEm={analise.analise_ia_processada_em ?? null}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
