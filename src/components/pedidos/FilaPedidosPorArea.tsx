@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Send, Loader2, Sparkles } from "lucide-react";
+import { Search, Send, Loader2, Sparkles, ExternalLink } from "lucide-react";
+import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { Button } from "@/components/ui/button";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import {
@@ -256,30 +258,60 @@ export function FilaPedidosPorArea({
                   <TableCell className="text-sm text-muted-foreground">
                     {p.proxima_acao || <span className="opacity-50">—</span>}
                   </TableCell>
-                  <TableCell className="text-right">
-                    {p.estagio === "pre_faturado" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={enviarBling.isPending && enviarBling.variables === p.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          enviarBling.mutate(p.id);
-                        }}
-                      >
-                        {enviarBling.isPending && enviarBling.variables === p.id ? (
-                          <>
-                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            Enviando…
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-3 w-3 mr-1" />
-                            Enviar Bling
-                          </>
-                        )}
-                      </Button>
-                    )}
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-1.5">
+                      {p.estagio === "recebido" && (
+                        <TriarPedidoDialog
+                          pedido_id={p.id}
+                          perfil_credito={null}
+                          estagio_atual={p.estagio}
+                          triggerLabel="Triar"
+                          triggerVariant="outline"
+                        />
+                      )}
+
+                      {p.estagio === "cobranca" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/recebimento/cobranca/${p.id}`)}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Cobrança
+                        </Button>
+                      )}
+
+                      {p.estagio === "aguardando_pagamento" && (
+                        <ConfirmarPagamentoDialog
+                          pedido_id={p.id}
+                          valor_pedido={p.valor_liquido}
+                        />
+                      )}
+
+                      {p.estagio === "pre_faturado" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={enviarBling.isPending && enviarBling.variables === p.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            enviarBling.mutate(p.id);
+                          }}
+                        >
+                          {enviarBling.isPending && enviarBling.variables === p.id ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              Enviando…
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-3 w-3 mr-1" />
+                              Enviar Bling
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
