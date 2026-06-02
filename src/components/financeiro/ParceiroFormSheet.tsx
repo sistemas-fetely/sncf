@@ -22,8 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X, AlertTriangle, FolderOpen, Building2 } from "lucide-react";
+import { X, AlertTriangle, FolderOpen, Building2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useNavigate } from "react-router-dom";
 import { fetchCep } from "@/lib/viacep";
 import { CategoriaCombobox, CategoriaOption } from "@/components/financeiro/CategoriaCombobox";
@@ -114,6 +115,8 @@ function maskCep(v: string) {
 export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onSaved, prefill, obrigatorio }: Props) {
   const qc = useQueryClient();
   const isEdit = !!editing;
+  const syncContato = useSyncContato();
+  const blingId = (editing as any)?.bling_id as string | null | undefined;
 
   const { data: centrosCusto = [] } = useCentrosCusto();
   const { data: canaisVenda = [] } = useCanaisVenda();
@@ -402,6 +405,31 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
               : "Cadastro unificado de fornecedores, clientes e parceiros da Fetely."}
           </SheetDescription>
         </SheetHeader>
+
+        {isEdit && editing && (
+          <div className="mt-3 flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Bling:</span>
+            {blingId ? (
+              <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
+                {blingId}
+              </Badge>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5"
+                disabled={syncContato.isPending}
+                onClick={() => syncContato.mutate(editing.id)}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${syncContato.isPending ? "animate-spin" : ""}`} />
+                {syncContato.isPending ? "Sincronizando..." : "Sincronizar contato no Bling"}
+              </Button>
+            )}
+          </div>
+        )}
+
+
 
         {editing?.cadastro_incompleto && (
           <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
