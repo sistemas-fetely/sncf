@@ -4,7 +4,6 @@ import {
   LayoutGrid, Inbox, Shield, CheckCircle2, Receipt,
   Clock, FileClock, Factory, FileText, Truck, PackageCheck, XCircle,
 } from "lucide-react";
-import { PedidosStatsCards } from "@/components/pedidos/PedidosStatsCards";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
 import type { EstagioPedido } from "@/types/pedido";
@@ -43,8 +42,6 @@ export default function PedidosIndex() {
           Portal único de pedidos B2B — recebimento, triagem, crédito, cobrança, faturamento.
         </p>
       </div>
-
-      <PedidosStatsCards />
 
       <PipelineHorizontal
         onClickEstagio={handlePipelineClick}

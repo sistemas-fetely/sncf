@@ -39,7 +39,7 @@ export function PipelineHorizontal({ onClickEstagio, estagioAtivo }: Props) {
   }, [data]);
 
   const ativos = estagios.filter(
-    (e) => e.qtd > 0 && e.estagio !== "entregue"
+    (e) => e.estagio !== "entregue" && e.estagio !== "cancelado" && e.estagio !== "recuperacao_venda"
   );
   const totalOperacao = estagios
     .filter((e) => e.estagio !== "entregue")
