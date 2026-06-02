@@ -215,12 +215,19 @@ export default function PedidoDetalhe() {
               <Linha label="Via" value={pedido.recebido_via} />
               <Linha label="Vendedor" value={pedido.vendedor} />
               <Linha label="Valor bruto" value={fmtBRL.format(pedido.valor_bruto || 0)} />
-              {(pedido.desconto_pct > 0) && (
-                <Linha
-                  label="Desconto"
-                  value={`${pedido.desconto_pct}% (−${fmtBRL.format((pedido.valor_bruto || 0) * pedido.desconto_pct / 100)})`}
-                />
-              )}
+              {(() => {
+                const bruto = pedido.valor_bruto || 0;
+                const liquido = pedido.valor_liquido || 0;
+                const diff = bruto - liquido;
+                if (diff <= 0.01) return null;
+                const pct = ((diff / bruto) * 100).toFixed(2);
+                return (
+                  <Linha
+                    label="Desconto"
+                    value={`${pct}% (−${fmtBRL.format(diff)})`}
+                  />
+                );
+              })()}
               <Linha label="Valor líquido" value={fmtBRL.format(pedido.valor_liquido || 0)} destaque />
               {pedido.valor_frete > 0 && (
                 <Linha label="Frete" value={fmtBRL.format(pedido.valor_frete)} />
