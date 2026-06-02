@@ -20,7 +20,18 @@ export function useEnviarBling() {
         "enviar-pedido-bling",
         { body: { pedido_id } },
       );
-      if (error) throw new Error(error.message);
+      if (error) {
+        // Em não-2xx, a mensagem real da function vem no corpo (error.context),
+        // não em error.message (que é o genérico "non-2xx status code").
+        let msg = error.message;
+        try {
+          const body = await (error as any).context?.json?.();
+          if (body?.erro) msg = body.erro;
+        } catch {
+          // corpo não-JSON: mantém a mensagem genérica
+        }
+        throw new Error(msg);
+      }
       if (!data?.sucesso) throw new Error(data?.erro || "Falha ao enviar pro Bling");
       return data;
     },
