@@ -72,12 +72,23 @@ serve(async (req) => {
       );
       if (!allowed) return err("Sem permissão (sops, admin_rh ou super_admin)", 403);
     } else {
-      // automatico / backfill: exige um JWT com role service_role.
-      // Aceita tanto a env exata quanto qualquer JWT service_role (vault e env podem diferir).
+      // automatico / backfill: aceita service_role JWT OU o segredo compartilhado do vault.
+      let sharedOk = false;
+      const sharedHeader = req.headers.get("x-sync-secret") || "";
+      if (sharedHeader) {
+        const { data: vaultSecret } = await supabase.rpc("get_vault_secret", {
+          p_name: "SYNC_CONTATO_SECRET",
+        });
+        sharedOk =
+          typeof vaultSecret === "string" &&
+          vaultSecret.length > 0 &&
+          sharedHeader === vaultSecret;
+      }
       const isService =
         authRaw === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
-        jwtRole(authRaw) === "service_role";
-      if (!isService) return err("Sync automático/backfill requer service role", 403);
+        jwtRole(authRaw) === "service_role" ||
+        sharedOk;
+      if (!isService) return err("Sync automático/backfill não autorizado", 403);
     }
 
     // 1. Parceiro
