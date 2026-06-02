@@ -88,7 +88,7 @@ export const CASA_APPS: CasaApp[] = [
   {
     id: "recebimento",
     label: "Vendas",
-    defaultRoute: "/recebimento",
+    defaultRoute: "/pedidos",
     routeMatchers: ["/recebimento", "/pedidos", "/administrativo-fetely/parceiros"],
     icon: HandCoins,
     permModule: null,

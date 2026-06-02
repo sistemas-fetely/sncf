@@ -1,6 +1,8 @@
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Users } from "lucide-react";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
+import { Button } from "@/components/ui/button";
 import type { EstagioPedido } from "@/types/pedido";
 
 export default function PedidosIndex() {
