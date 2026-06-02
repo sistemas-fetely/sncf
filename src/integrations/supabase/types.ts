@@ -707,6 +707,73 @@ export type Database = {
           },
         ]
       }
+      bling_contatos_log: {
+        Row: {
+          acionado_por: string | null
+          bling_id_retornado: string | null
+          duracao_ms: number | null
+          erro_msg: string | null
+          id: string
+          origem: string
+          parceiro_id: string
+          payload_enviado: Json | null
+          resposta_body: Json | null
+          resposta_status: number | null
+          sucesso: boolean
+          tentativa_em: string
+        }
+        Insert: {
+          acionado_por?: string | null
+          bling_id_retornado?: string | null
+          duracao_ms?: number | null
+          erro_msg?: string | null
+          id?: string
+          origem: string
+          parceiro_id: string
+          payload_enviado?: Json | null
+          resposta_body?: Json | null
+          resposta_status?: number | null
+          sucesso?: boolean
+          tentativa_em?: string
+        }
+        Update: {
+          acionado_por?: string | null
+          bling_id_retornado?: string | null
+          duracao_ms?: number | null
+          erro_msg?: string | null
+          id?: string
+          origem?: string
+          parceiro_id?: string
+          payload_enviado?: Json | null
+          resposta_body?: Json | null
+          resposta_status?: number | null
+          sucesso?: boolean
+          tentativa_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_contatos_log_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_contatos_log_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bling_contatos_log_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       bling_envios_log: {
         Row: {
           bling_id_retornado: number | null
