@@ -189,7 +189,7 @@ serve(async (req) => {
       const timeUp = () => Date.now() - startTs > MAX_EXEC_MS;
 
       const { data: logRow } = await supabase.from("integracoes_sync_log").insert({
-        sistema: "bling", tipo: entidades.join(","), status: "executando", iniciado_por: user.id,
+        sistema: "bling", tipo: entidades.join(","), status: "executando", iniciado_por: user?.id ?? null,
       }).select("id").maybeSingle();
       const logId = logRow?.id ?? null;
 
