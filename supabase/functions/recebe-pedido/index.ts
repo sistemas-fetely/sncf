@@ -107,6 +107,7 @@ Deno.serve(async (req) => {
       p_tags: body.tags ?? null,
       p_observacao: body.observacao ?? null,
       p_premissas: body.premissas ?? null,
+      p_observacao_pedido: body.observacao_pedido ?? null,
     });
 
     if (error) {

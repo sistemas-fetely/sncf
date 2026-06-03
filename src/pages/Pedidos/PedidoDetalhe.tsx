@@ -8,6 +8,7 @@ import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -319,6 +320,18 @@ export default function PedidoDetalhe() {
                 <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
                 <CancelarPedidoDialog pedido_id={pedido.id} />
               </div>
+            )}
+
+            {pedido.observacao_pedido && pedido.observacao_pedido.trim().length > 0 && (
+              <Card className="border-border/60">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-[10px] uppercase tracking-widest text-muted-foreground font-normal">Observação do pedido</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  <p className="text-sm whitespace-pre-wrap">{pedido.observacao_pedido}</p>
+                  <p className="text-xs text-muted-foreground">Registrada pelo vendedor no FOP.</p>
+                </CardContent>
+              </Card>
             )}
 
             <Separator />
