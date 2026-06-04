@@ -80,7 +80,25 @@ export default function EstoqueVirtual() {
     direction: "asc",
   });
   const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
+  const [autoPageSize, setAutoPageSize] = useState<number>(20);
+  const tableWrapperRef = useRef<HTMLDivElement | null>(null);
+  const pageSize = pageSizeOpt === "auto" ? autoPageSize : pageSizeOpt;
+
+  useLayoutEffect(() => {
+    function recompute() {
+      const el = tableWrapperRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      const available = window.innerHeight - top - FOOTER_RESERVE;
+      // ~48px do header da tabela
+      const rows = Math.max(5, Math.floor((available - 48) / ROW_HEIGHT));
+      setAutoPageSize(rows);
+    }
+    recompute();
+    window.addEventListener("resize", recompute);
+    return () => window.removeEventListener("resize", recompute);
+  }, []);
 
   const produtosQuery = useQuery({
     queryKey: ["vw_produtos_estoque_virtual"],
