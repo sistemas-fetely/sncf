@@ -39,8 +39,11 @@ const STATUS_CLASS: Record<string, string> = {
   indisponivel: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
 
-const PAGE_SIZE_OPTIONS = [50, 100, 200, 500] as const;
-const DEFAULT_PAGE_SIZE = 100;
+const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
+type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
+const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
+const ROW_HEIGHT = 53; // px aprox (p-4 + linha)
+const FOOTER_RESERVE = 80; // espaço pra rodapé de paginação
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
