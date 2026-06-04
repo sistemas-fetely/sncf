@@ -77,6 +77,7 @@ export default function EstoqueVirtual() {
     direction: "asc",
   });
   const [pagina, setPagina] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const produtosQuery = useQuery({
     queryKey: ["vw_produtos_estoque_virtual"],
