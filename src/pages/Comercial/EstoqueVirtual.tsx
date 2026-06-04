@@ -39,7 +39,7 @@ const STATUS_CLASS: Record<string, string> = {
   indisponivel: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100;
 
 function formatNum(n: number | null | undefined) {
   const v = Number(n ?? 0);
