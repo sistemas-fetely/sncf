@@ -11,7 +11,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { SortableTableHead, type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import { RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProdutoEstoqueVirtual {
@@ -39,7 +39,20 @@ const STATUS_CLASS: Record<string, string> = {
   indisponivel: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE_OPTIONS = [50, 100, 200, 500] as const;
+const DEFAULT_PAGE_SIZE = 100;
+
+function buildPageRange(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "…")[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push("…");
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (end < total - 1) pages.push("…");
+  pages.push(total);
+  return pages;
+}
 
 function formatNum(n: number | null | undefined) {
   const v = Number(n ?? 0);
@@ -64,6 +77,7 @@ export default function EstoqueVirtual() {
     direction: "asc",
   });
   const [pagina, setPagina] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const produtosQuery = useQuery({
     queryKey: ["vw_produtos_estoque_virtual"],
@@ -114,12 +128,15 @@ export default function EstoqueVirtual() {
     });
   }, [produtosQuery.data, busca, statusFiltro, sort]);
 
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const pageItems = filtrados.slice(
-    (paginaAtual - 1) * PAGE_SIZE,
-    paginaAtual * PAGE_SIZE,
+    (paginaAtual - 1) * pageSize,
+    paginaAtual * pageSize,
   );
+  const inicioRange = filtrados.length === 0 ? 0 : (paginaAtual - 1) * pageSize + 1;
+  const fimRange = Math.min(paginaAtual * pageSize, filtrados.length);
+  const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
   function handleAtualizar() {
     produtosQuery.refetch();
@@ -241,29 +258,98 @@ export default function EstoqueVirtual() {
         </Table>
       </div>
 
-      {totalPaginas > 1 && (
-        <div className="flex items-center justify-end gap-2 mt-4 text-sm">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={paginaAtual <= 1}
-            onClick={() => setPagina((p) => Math.max(1, p - 1))}
-          >
-            Anterior
-          </Button>
-          <span className="text-muted-foreground">
-            Página {paginaAtual} de {totalPaginas}
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-4 text-sm">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <span>
+            {filtrados.length === 0
+              ? "Nenhum resultado"
+              : <>Mostrando <span className="font-medium text-foreground tabular-nums">{inicioRange}</span>–<span className="font-medium text-foreground tabular-nums">{fimRange}</span> de <span className="font-medium text-foreground tabular-nums">{filtrados.length}</span></>}
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={paginaAtual >= totalPaginas}
-            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-          >
-            Próxima
-          </Button>
+          <span className="hidden sm:inline">·</span>
+          <div className="hidden sm:flex items-center gap-1.5">
+            <span>Por página:</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => { setPageSize(Number(v)); setPagina(1); }}
+            >
+              <FilterSelectTrigger className="h-8 w-[80px]">
+                <SelectValue />
+              </FilterSelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      )}
+
+        {totalPaginas > 1 && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={paginaAtual <= 1}
+              onClick={() => setPagina(1)}
+              aria-label="Primeira página"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={paginaAtual <= 1}
+              onClick={() => setPagina((p) => Math.max(1, p - 1))}
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {pageRange.map((p, idx) =>
+              p === "…" ? (
+                <span key={`e-${idx}`} className="px-2 text-muted-foreground select-none">…</span>
+              ) : (
+                <Button
+                  key={p}
+                  variant={p === paginaAtual ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-8 min-w-8 px-2 tabular-nums",
+                    p === paginaAtual && "pointer-events-none",
+                  )}
+                  onClick={() => setPagina(p)}
+                  aria-current={p === paginaAtual ? "page" : undefined}
+                >
+                  {p}
+                </Button>
+              ),
+            )}
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={paginaAtual >= totalPaginas}
+              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              aria-label="Próxima página"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={paginaAtual >= totalPaginas}
+              onClick={() => setPagina(totalPaginas)}
+              aria-label="Última página"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
