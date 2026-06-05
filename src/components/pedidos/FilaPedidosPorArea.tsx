@@ -22,6 +22,7 @@ import {
   EstagioBadge, FormatoIdade,
 } from "./BadgesPedido";
 import { BadgePriorizacao } from "./BadgePriorizacao";
+import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
 import {
   ESTAGIO_LABELS, ESTAGIO_AREA, PIPELINE_PRINCIPAL,
   ESTAGIOS_TERMINAIS, ESTAGIOS_RECUPERAVEIS,
@@ -55,6 +56,7 @@ export function FilaPedidosPorArea({
 }: Props) {
   const [busca, setBusca] = useState("");
   const [estagioFilter, setEstagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
+  const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("cronologico");
   const navigate = useNavigate();
   const enviarBling = useEnviarBling();
@@ -92,7 +94,10 @@ export function FilaPedidosPorArea({
   }, [priorizados]);
 
   const linhas = useMemo(() => {
-    const base: PedidoFilaItem[] = data || [];
+    let base: PedidoFilaItem[] = data || [];
+    if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
+    else if (marcacaoFilter === "com") base = base.filter((p) => !!p.marcacao);
+    else if (marcacaoFilter !== "todas") base = base.filter((p) => p.marcacao === marcacaoFilter);
     if (ordenacao !== "prioridade_ia") return base;
     return [...base].sort((a, b) => {
       const sa = scoreMap.get(a.id)?.score ?? -1;
@@ -100,7 +105,13 @@ export function FilaPedidosPorArea({
       if (sb !== sa) return sb - sa;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, ordenacao, scoreMap]);
+  }, [data, ordenacao, scoreMap, marcacaoFilter]);
+
+  const marcacoesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (data || []).forEach((p) => { if (p.marcacao) set.add(p.marcacao); });
+    return Array.from(set).sort();
+  }, [data]);
 
   // Estágio da análise de crédito por pedido (somente para pedidos em em_analise_credito)
   const pedidoIdsEmAnalise = useMemo(
@@ -154,6 +165,19 @@ export function FilaPedidosPorArea({
             </SelectContent>
           </Select>
         )}
+        <Select value={marcacaoFilter} onValueChange={setMarcacaoFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Marcação" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Marcação: Todas</SelectItem>
+            <SelectItem value="sem">Sem marcação</SelectItem>
+            <SelectItem value="com">Com marcação</SelectItem>
+            {marcacoesDisponiveis.length > 0 && marcacoesDisponiveis.map((m) => (
+              <SelectItem key={m} value={m}>{m}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={ordenacao} onValueChange={(v) => setOrdenacao(v as OrdenacaoFila)}>
           <SelectTrigger className="w-full sm:w-52">
             <SelectValue />
@@ -246,6 +270,7 @@ export function FilaPedidosPorArea({
                           Em análise
                         </Badge>
                       )}
+                      <MarcacaoBadge marcacao={p.marcacao} />
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
@@ -256,6 +281,8 @@ export function FilaPedidosPorArea({
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1.5">
+                      <MarcacaoPedido pedidoId={p.id} marcacao={p.marcacao} iconOnly />
+
                       {p.estagio === "recebido" && (
                         <TriarPedidoDialog
                           pedido_id={p.id}
