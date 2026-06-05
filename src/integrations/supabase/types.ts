@@ -13501,6 +13501,7 @@ export type Database = {
           id: string | null
           id_externo: string | null
           idade_minutos: number | null
+          marcacao: string | null
           nivel_programa: string | null
           origem: string | null
           parceiro_cnpj: string | null
