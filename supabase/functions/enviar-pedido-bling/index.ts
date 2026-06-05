@@ -104,26 +104,11 @@ serve(async (req) => {
       return err("Pedido sem títulos gerados — engine F-2 deveria ter gerado em pre_faturado", 409);
     }
 
-    // 5. Itens (estruturados ou fallback genérico)
-    // Não enviar "codigo" do item: evita que o Bling tente criar/atualizar produto
-    // no catálogo (erro code 27). Para pedidos FOP, itens são avulsos.
-    const { data: itens } = await supabase
+    // 5. Contagem de itens (para descrição)
+    const { count: totalItens } = await supabase
       .from("pedido_itens")
-      .select("descricao, sku, quantidade, valor_unitario")
-      .eq("pedido_id", pedido_id)
-      .order("ordem");
-
-    const blingItens = (itens && itens.length > 0)
-      ? itens.map((it: any) => ({
-          descricao: it.descricao,
-          quantidade: Number(it.quantidade),
-          valor: Number(it.valor_unitario),
-        }))
-      : [{
-          descricao: `Pedido FOP #${pedido.id_externo}`,
-          quantidade: 1,
-          valor: Number(pedido.valor_liquido),
-        }];
+      .select("id", { count: "exact", head: true })
+      .eq("pedido_id", pedido_id);
 
     // 6. Config Bling + cliente
     const { data: cfg } = await supabase
@@ -185,33 +170,48 @@ serve(async (req) => {
     }
 
     // 8. Parcelas (uma por título)
-    // IMPORTANTE: arredondar valor_bruto para 2 casas ANTES de somar.
-    // Bling rejeita se sum(parcelas) ≠ total, mesmo por diferença de centavos
-    // causada por casas decimais extras no banco (code 22).
+    // Arredonda para 2 casas antes de somar (valor_bruto pode ter mais casas no banco).
     const blingParcelas = titulos.map((t: any) => ({
       dataVencimento: t.data_vencimento_original,
       valor: parseFloat(Number(t.valor_bruto).toFixed(2)),
       formaPagamento: { id: Number(blingFormaId) },
     }));
 
-    // Ajuste de centavos na última parcela para fechar o total exato
-    const totalParcelas = blingParcelas.reduce((s, p) => s + p.valor, 0);
-    const diff = parseFloat((Number(pedido.valor_liquido) - totalParcelas).toFixed(2));
+    // Ajuste de centavos na última parcela
+    const somaParcelas = blingParcelas.reduce((s, p) => s + p.valor, 0);
+    const diff = parseFloat((Number(pedido.valor_liquido) - somaParcelas).toFixed(2));
     if (Math.abs(diff) >= 0.01 && blingParcelas.length > 0) {
       blingParcelas[blingParcelas.length - 1].valor = parseFloat(
         (blingParcelas[blingParcelas.length - 1].valor + diff).toFixed(2),
       );
     }
 
-    // 9. Payload final
+    // Total exato = sum das parcelas após ajuste (garante consistência com Bling)
+    const totalExato = parseFloat(
+      blingParcelas.reduce((s, p) => s + p.valor, 0).toFixed(2),
+    );
+
+    // 9. Item único: sum(itens) = sum(parcelas) = total por definição.
+    // Bling valida sum(item.valor × qtd) == sum(parcelas) — se enviássemos itens
+    // individuais com preços pré-desconto a soma divergiria (code 22).
+    const nItens = totalItens ?? 0;
+    const blingItens = [{
+      descricao: nItens > 0
+        ? `Pedido FOP #${pedido.id_externo} (${nItens} ${nItens === 1 ? "item" : "itens"})`
+        : `Pedido FOP #${pedido.id_externo}`,
+      quantidade: 1,
+      valor: totalExato,
+    }];
+
+    // 10. Payload final
     const payload = {
       numeroLoja: pedido.id_externo,
       data: pedido.data_pedido,
       contato: { id: Number(parceiro.bling_id) },
       itens: blingItens,
       parcelas: blingParcelas,
-      totalProdutos: Number(pedido.valor_liquido),
-      total: Number(pedido.valor_liquido),
+      totalProdutos: totalExato,
+      total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
     };
 
