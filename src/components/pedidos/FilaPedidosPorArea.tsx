@@ -288,6 +288,7 @@ export function FilaPedidosPorArea({
                           pedido_id={p.id}
                           perfil_credito={null}
                           estagio_atual={p.estagio}
+                          forma_solicitada={p.forma_solicitada}
                           triggerLabel="Triar"
                           triggerVariant="outline"
                         />

@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ArrowRight, Zap, X, GitBranch, Undo2 } from "lucide-react";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
 import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
-import { podePularAnaliseCredito } from "@/lib/pedidoTransicoes";
+import { podePularAnaliseCredito, ehFormaAVista } from "@/lib/pedidoTransicoes";
 import type { EstagioPedido } from "@/types/pedido";
 
 type Acao = "analise" | "pular" | "corrigir" | "cancelar";
@@ -19,6 +19,7 @@ interface Props {
   pedido_id: string;
   perfil_credito: string | null | undefined;
   estagio_atual: EstagioPedido;
+  forma_solicitada?: string | null;
   triggerLabel?: string;
   triggerVariant?: "default" | "outline" | "ghost";
 }
@@ -27,6 +28,7 @@ export function TriarPedidoDialog({
   pedido_id,
   perfil_credito,
   estagio_atual: _estagio_atual,
+  forma_solicitada,
   triggerLabel = "Triar pedido",
   triggerVariant = "default",
 }: Props) {
@@ -36,7 +38,8 @@ export function TriarPedidoDialog({
 
   const transicionar = useTransicionarPedido();
   const registrar = useRegistrarOperacaoPedido();
-  const podePular = podePularAnaliseCredito(perfil_credito);
+  const aVista = ehFormaAVista(forma_solicitada);
+  const podePular = aVista || podePularAnaliseCredito(perfil_credito);
 
   // F-3.2: parser de condicao + trigger tr_pedido_pular_analise cravados.
   // Pular análise cria análise shell, parseia condição e gera títulos automaticamente.
@@ -119,9 +122,11 @@ export function TriarPedidoDialog({
                     icone={<Zap className="h-5 w-5 text-emerald-600" />}
                     titulo="Pular Análise (perfil dispensa)"
                     descricao={
-                      podePular
-                        ? `Perfil ${perfil_credito} dispensa análise — aprovação direta.`
-                        : "Disponível pra perfis Premium e Recorrente Bom Pagador."
+                      aVista
+                        ? "À vista (pix/cartão) — sem crédito a analisar, segue direto."
+                        : podePularAnaliseCredito(perfil_credito)
+                          ? `Perfil ${perfil_credito} dispensa análise — aprovação direta.`
+                          : "Disponível pra perfis Premium e Recorrente Bom Pagador."
                     }
                   />
                 </div>

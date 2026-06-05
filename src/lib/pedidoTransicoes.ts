@@ -81,3 +81,11 @@ export function podePularAnaliseCredito(
 
 /** @deprecated Use podePularAnaliseCredito. Mantido pra compat retroativa. */
 export const podePularAnaliseParaBoleto = podePularAnaliseCredito;
+
+/**
+ * Forma à vista (PIX / cartão) — não há crédito a analisar, pula análise direto.
+ */
+export function ehFormaAVista(forma: string | null | undefined): boolean {
+  const f = (forma ?? "").toLowerCase().trim();
+  return f.includes("pix") || f.includes("cartao") || f.includes("cartão");
+}
