@@ -28,6 +28,7 @@ import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedid
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
+import { DadosPagadorCard } from "@/components/cart/DadosPagadorCard";
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
 import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy } from "lucide-react";
@@ -328,6 +329,7 @@ export default function PedidoDetalhe() {
               <Button variant="outline" size="sm" className="w-full gap-2 mt-2" onClick={() => parceiro?.id && navigate(`/parceiros/${parceiro.id}`, { state: { from: location.pathname } })}>
                 <ExternalLink className="h-3.5 w-3.5" />Ver perfil completo
               </Button>
+              {parceiro && <DadosPagadorCard parceiro={parceiro} />}
             </div>
           </div>
 
