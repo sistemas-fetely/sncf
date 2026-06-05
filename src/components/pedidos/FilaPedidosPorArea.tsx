@@ -397,11 +397,103 @@ export function FilaPedidosPorArea({
         </Table>
       </div>
 
-      {linhas && linhas.length > 0 && (
-        <p className="text-xs text-muted-foreground text-right">
-          {linhas.length} pedido{linhas.length !== 1 ? "s" : ""}
-        </p>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-4 text-sm">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <span>
+            {totalLinhas === 0
+              ? "Nenhum resultado"
+              : <>Mostrando <span className="font-medium text-foreground tabular-nums">{inicioRange}</span>–<span className="font-medium text-foreground tabular-nums">{fimRange}</span> de <span className="font-medium text-foreground tabular-nums">{totalLinhas}</span></>}
+          </span>
+          <span className="hidden sm:inline">·</span>
+          <div className="hidden sm:flex items-center gap-1.5">
+            <span>Por página:</span>
+            <Select
+              value={String(pageSizeOpt)}
+              onValueChange={(v) => {
+                setPageSizeOpt(v === "auto" ? "auto" : (Number(v) as PageSizeOption));
+                setPagina(1);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[110px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n === "auto" ? `Auto (${autoPageSize})` : n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {totalPaginas > 1 && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={paginaAtual <= 1}
+              onClick={() => setPagina(1)}
+              aria-label="Primeira página"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={paginaAtual <= 1}
+              onClick={() => setPagina((p) => Math.max(1, p - 1))}
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {pageRange.map((p, idx) =>
+              p === "…" ? (
+                <span key={`e-${idx}`} className="px-2 text-muted-foreground select-none">…</span>
+              ) : (
+                <Button
+                  key={p}
+                  variant={p === paginaAtual ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-8 min-w-8 px-2 tabular-nums",
+                    p === paginaAtual && "pointer-events-none",
+                  )}
+                  onClick={() => setPagina(p)}
+                  aria-current={p === paginaAtual ? "page" : undefined}
+                >
+                  {p}
+                </Button>
+              ),
+            )}
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={paginaAtual >= totalPaginas}
+              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              aria-label="Próxima página"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={paginaAtual >= totalPaginas}
+              onClick={() => setPagina(totalPaginas)}
+              aria-label="Última página"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
