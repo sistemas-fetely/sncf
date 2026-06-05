@@ -127,6 +127,7 @@ export interface PedidoFilaItem {
   idade_minutos: number;
   sla_estourado: boolean;
   analise_credito_id: string | null;
+  marcacao: string | null;
 }
 
 export interface PipelineItem {
