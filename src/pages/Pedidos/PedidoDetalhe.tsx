@@ -329,6 +329,7 @@ export default function PedidoDetalhe() {
               <Button variant="outline" size="sm" className="w-full gap-2 mt-2" onClick={() => parceiro?.id && navigate(`/parceiros/${parceiro.id}`, { state: { from: location.pathname } })}>
                 <ExternalLink className="h-3.5 w-3.5" />Ver perfil completo
               </Button>
+              {parceiro && <DadosPagadorCard parceiro={parceiro} />}
             </div>
           </div>
 
