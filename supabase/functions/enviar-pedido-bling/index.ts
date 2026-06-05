@@ -120,10 +120,12 @@ serve(async (req) => {
       .eq("pedido_id", pedido_id)
       .order("ordem");
 
+    // Não enviar "codigo" do item: evita que o Bling tente criar/atualizar produto
+    // no catálogo (erro code 27 quando SKU já existe com dados diferentes).
+    // Para pedidos FOP, itens são avulsos — descricao + qtd + valor é suficiente.
     const blingItens = (itens && itens.length > 0)
       ? itens.map((it: any) => ({
           descricao: it.descricao,
-          codigo: it.sku || undefined,
           quantidade: Number(it.quantidade),
           valor: Number(it.valor_unitario),
         }))
@@ -134,11 +136,19 @@ serve(async (req) => {
         }];
 
     // 6. Parcelas (uma por título)
+    // Ajuste de centavos na última parcela para garantir que
+    // sum(parcelas) === valor_liquido exato (Bling rejeita se diferir — code 22).
     const blingParcelas = titulos.map((t: any) => ({
       dataVencimento: t.data_vencimento_original,
       valor: Number(t.valor_bruto),
       formaPagamento: { id: Number(forma.bling_id_forma_pagamento) },
     }));
+    const totalParcelas = blingParcelas.reduce((s, p) => s + p.valor, 0);
+    const diff = parseFloat((Number(pedido.valor_liquido) - totalParcelas).toFixed(2));
+    if (Math.abs(diff) >= 0.01 && blingParcelas.length > 0) {
+      blingParcelas[blingParcelas.length - 1].valor =
+        parseFloat((blingParcelas[blingParcelas.length - 1].valor + diff).toFixed(2));
+    }
 
     // 7. Payload final
     const payload = {
