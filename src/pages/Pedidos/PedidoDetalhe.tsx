@@ -1,9 +1,11 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { usePedidoPriorizado } from "@/hooks/pedidos/useFilaPedidosPriorizada";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
+import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
