@@ -249,7 +249,25 @@ export default function PedidoDetalhe() {
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Cliente</p>
               <Linha label="Razão social" value={parceiro?.razao_social} />
-              <Linha label="CNPJ" value={parceiro?.cnpj} />
+              <div className="flex justify-between gap-3 text-sm py-1.5 border-b border-border/40">
+                <span className="text-muted-foreground shrink-0">CNPJ</span>
+                <span className="text-right flex items-center gap-1.5">
+                  {parceiro?.cnpj ?? "—"}
+                  {parceiro?.cnpj && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(parceiro.cnpj!);
+                        toast({ title: "CNPJ copiado" });
+                      }}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      title="Copiar CNPJ"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </span>
+              </div>
               {(() => {
                 const emails: { label: string; email: string }[] = [];
                 const push = (label: string, email?: string | null) => {
