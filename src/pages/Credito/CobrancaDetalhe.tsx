@@ -38,7 +38,7 @@ function usePedidoMinimo(pedidoId: string | undefined) {
         .from("pedidos")
         .select(`
           id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada,
-          parceiro:parceiros_comerciais(razao_social, cnpj)
+          parceiro:parceiros_comerciais(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf)
         `)
         .eq("id", pedidoId)
         .maybeSingle();
@@ -46,6 +46,35 @@ function usePedidoMinimo(pedidoId: string | undefined) {
       return data;
     },
   });
+}
+
+function LinhaInfo({ label, value, copiavel }: { label: string; value: string; copiavel?: string }) {
+  const [copiado, setCopiado] = useState(false);
+  function copiar() {
+    if (!copiavel) return;
+    navigator.clipboard.writeText(copiavel).then(() => {
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1400);
+    });
+  }
+  return (
+    <div className="flex justify-between gap-3 text-xs py-1 border-b border-border/40 last:border-0">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className="text-right flex items-center gap-1.5 font-medium">
+        {value}
+        {copiavel && (
+          <button
+            type="button"
+            onClick={copiar}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title="Copiar"
+          >
+            {copiado ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          </button>
+        )}
+      </span>
+    </div>
+  );
 }
 
 export default function CobrancaDetalhe() {
