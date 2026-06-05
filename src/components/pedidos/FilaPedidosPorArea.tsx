@@ -94,7 +94,10 @@ export function FilaPedidosPorArea({
   }, [priorizados]);
 
   const linhas = useMemo(() => {
-    const base: PedidoFilaItem[] = data || [];
+    let base: PedidoFilaItem[] = data || [];
+    if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
+    else if (marcacaoFilter === "com") base = base.filter((p) => !!p.marcacao);
+    else if (marcacaoFilter !== "todas") base = base.filter((p) => p.marcacao === marcacaoFilter);
     if (ordenacao !== "prioridade_ia") return base;
     return [...base].sort((a, b) => {
       const sa = scoreMap.get(a.id)?.score ?? -1;
@@ -102,7 +105,13 @@ export function FilaPedidosPorArea({
       if (sb !== sa) return sb - sa;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, ordenacao, scoreMap]);
+  }, [data, ordenacao, scoreMap, marcacaoFilter]);
+
+  const marcacoesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (data || []).forEach((p) => { if (p.marcacao) set.add(p.marcacao); });
+    return Array.from(set).sort();
+  }, [data]);
 
   // Estágio da análise de crédito por pedido (somente para pedidos em em_analise_credito)
   const pedidoIdsEmAnalise = useMemo(
