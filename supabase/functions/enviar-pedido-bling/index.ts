@@ -79,29 +79,20 @@ serve(async (req) => {
       .select("id, bling_id, razao_social, cnpj")
       .eq("id", pedido.parceiro_id)
       .maybeSingle();
-    if (!parceiro) return err("Parceiro do pedido não encontrado", 404);
-    if (!parceiro.bling_id) {
-      return err(
-        `Parceiro "${parceiro.razao_social}" sem bling_id — rodar sync_contatos antes`,
-        409,
-      );
+    if (!parceiro?.bling_id) {
+      return err("Parceiro sem bling_id — sincronize o parceiro no Bling antes", 409);
     }
 
-    // 3. Forma de pagamento (match por codigo)
+    // 3. Forma de pagamento
     const { data: forma } = await supabase
       .from("formas_pagamento")
-      .select("id, codigo, bling_id_forma_pagamento")
+      .select("id, codigo, nome, bling_id_forma_pagamento")
       .eq("codigo", pedido.forma_solicitada)
       .maybeSingle();
     if (!forma) {
       return err(`Forma de pagamento "${pedido.forma_solicitada}" não encontrada em formas_pagamento`, 409);
     }
-    if (!forma.bling_id_forma_pagamento) {
-      return err(
-        `Forma "${forma.codigo}" sem bling_id_forma_pagamento parametrizado — peça pro admin configurar`,
-        409,
-      );
-    }
+    // Nota: bling_id_forma_pagamento pode ser null aqui — lookup dinâmico abaixo resolve.
 
     // 4. Títulos
     const { data: titulos } = await supabase
@@ -114,15 +105,14 @@ serve(async (req) => {
     }
 
     // 5. Itens (estruturados ou fallback genérico)
+    // Não enviar "codigo" do item: evita que o Bling tente criar/atualizar produto
+    // no catálogo (erro code 27). Para pedidos FOP, itens são avulsos.
     const { data: itens } = await supabase
       .from("pedido_itens")
       .select("descricao, sku, quantidade, valor_unitario")
       .eq("pedido_id", pedido_id)
       .order("ordem");
 
-    // Não enviar "codigo" do item: evita que o Bling tente criar/atualizar produto
-    // no catálogo (erro code 27 quando SKU já existe com dados diferentes).
-    // Para pedidos FOP, itens são avulsos — descricao + qtd + valor é suficiente.
     const blingItens = (itens && itens.length > 0)
       ? itens.map((it: any) => ({
           descricao: it.descricao,
@@ -135,34 +125,7 @@ serve(async (req) => {
           valor: Number(pedido.valor_liquido),
         }];
 
-    // 6. Parcelas (uma por título)
-    // Ajuste de centavos na última parcela para garantir que
-    // sum(parcelas) === valor_liquido exato (Bling rejeita se diferir — code 22).
-    const blingParcelas = titulos.map((t: any) => ({
-      dataVencimento: t.data_vencimento_original,
-      valor: Number(t.valor_bruto),
-      formaPagamento: { id: Number(forma.bling_id_forma_pagamento) },
-    }));
-    const totalParcelas = blingParcelas.reduce((s, p) => s + p.valor, 0);
-    const diff = parseFloat((Number(pedido.valor_liquido) - totalParcelas).toFixed(2));
-    if (Math.abs(diff) >= 0.01 && blingParcelas.length > 0) {
-      blingParcelas[blingParcelas.length - 1].valor =
-        parseFloat((blingParcelas[blingParcelas.length - 1].valor + diff).toFixed(2));
-    }
-
-    // 7. Payload final
-    const payload = {
-      numeroLoja: pedido.id_externo,
-      data: pedido.data_pedido,
-      contato: { id: Number(parceiro.bling_id) },
-      itens: blingItens,
-      parcelas: blingParcelas,
-      totalProdutos: Number(pedido.valor_liquido),
-      total: Number(pedido.valor_liquido),
-      observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
-    };
-
-    // 8. Config Bling
+    // 6. Config Bling + cliente
     const { data: cfg } = await supabase
       .from("integracoes_config")
       .select("*")
@@ -175,7 +138,84 @@ serve(async (req) => {
     const freshToken = await ensureFreshToken(supabase, cfg);
     const client = makeBlingClient(supabase, cfg, freshToken);
 
-    // 9. POST Bling
+    // 7. ID da forma de pagamento — lookup dinâmico no Bling (auto-corretivo)
+    // GET /formas-pagamentos retorna as formas reais desta conta.
+    // Isso resolve IDs desatualizados em formas_pagamento.bling_id_forma_pagamento.
+    const FORMA_KEYWORDS: Record<string, string[]> = {
+      boleto:         ["boleto"],
+      pix:            ["pix"],
+      transferencia:  ["transferência", "transferencia", "ted", "doc"],
+      cartao_credito: ["crédito", "credito"],
+      cartao_debito:  ["débito", "debito"],
+      deposito:       ["depósito", "deposito"],
+      dinheiro:       ["dinheiro"],
+      cheque:         ["cheque"],
+      sem_pagamento:  ["sem pagamento"],
+      outro:          ["outro"],
+    };
+
+    let blingFormaId: number | null = forma.bling_id_forma_pagamento ?? null;
+
+    try {
+      const formasData = await client.get("/formas-pagamentos");
+      const formasList: any[] = formasData?.data || [];
+      const kws = FORMA_KEYWORDS[forma.codigo] || [forma.nome.toLowerCase()];
+      const match = formasList.find((bf: any) =>
+        kws.some((k) => bf.descricao?.toLowerCase().includes(k))
+      );
+      if (match?.id) {
+        // Auto-corrige o banco se o ID mudou
+        if (match.id !== forma.bling_id_forma_pagamento) {
+          await supabase
+            .from("formas_pagamento")
+            .update({ bling_id_forma_pagamento: match.id })
+            .eq("codigo", forma.codigo);
+        }
+        blingFormaId = match.id;
+      }
+    } catch (_) {
+      // GET /formas-pagamentos falhou: usa o ID salvo no banco como fallback
+    }
+
+    if (!blingFormaId) {
+      return err(
+        `Forma "${forma.codigo}" sem ID Bling — não encontrada no banco nem via API. Configure em /parametros.`,
+        409,
+      );
+    }
+
+    // 8. Parcelas (uma por título)
+    // IMPORTANTE: arredondar valor_bruto para 2 casas ANTES de somar.
+    // Bling rejeita se sum(parcelas) ≠ total, mesmo por diferença de centavos
+    // causada por casas decimais extras no banco (code 22).
+    const blingParcelas = titulos.map((t: any) => ({
+      dataVencimento: t.data_vencimento_original,
+      valor: parseFloat(Number(t.valor_bruto).toFixed(2)),
+      formaPagamento: { id: Number(blingFormaId) },
+    }));
+
+    // Ajuste de centavos na última parcela para fechar o total exato
+    const totalParcelas = blingParcelas.reduce((s, p) => s + p.valor, 0);
+    const diff = parseFloat((Number(pedido.valor_liquido) - totalParcelas).toFixed(2));
+    if (Math.abs(diff) >= 0.01 && blingParcelas.length > 0) {
+      blingParcelas[blingParcelas.length - 1].valor = parseFloat(
+        (blingParcelas[blingParcelas.length - 1].valor + diff).toFixed(2),
+      );
+    }
+
+    // 9. Payload final
+    const payload = {
+      numeroLoja: pedido.id_externo,
+      data: pedido.data_pedido,
+      contato: { id: Number(parceiro.bling_id) },
+      itens: blingItens,
+      parcelas: blingParcelas,
+      totalProdutos: Number(pedido.valor_liquido),
+      total: Number(pedido.valor_liquido),
+      observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
+    };
+
+    // 10. POST Bling
     let blingId: number | null = null;
     let respStatus: number | null = null;
     let respBody: any = null;
@@ -198,7 +238,7 @@ serve(async (req) => {
 
     const duracaoMs = Date.now() - t0;
 
-    // 10. Log
+    // 11. Log
     await supabase.from("bling_envios_log").insert({
       pedido_id,
       enviado_por: userId,
@@ -212,7 +252,7 @@ serve(async (req) => {
     });
 
     if (sucesso) {
-      // 11. Carimba pedido
+      // 12. Carimba pedido
       await supabase.from("pedidos").update({
         bling_id_destino: blingId,
         bling_enviado_em: new Date().toISOString(),
@@ -227,7 +267,7 @@ serve(async (req) => {
         duracao_ms: duracaoMs,
       });
     } else {
-      // 12. Carimba erro no pedido (sem mover estágio)
+      // 13. Carimba erro no pedido (sem mover estágio)
       await supabase.from("pedidos").update({
         bling_envio_erro: erroMsg,
       }).eq("id", pedido_id);
