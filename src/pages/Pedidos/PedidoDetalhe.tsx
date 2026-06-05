@@ -28,7 +28,7 @@ import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedid
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
-import { DadosPagadorCard } from "@/components/cart/DadosPagadorCard";
+
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
 import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy } from "lucide-react";
