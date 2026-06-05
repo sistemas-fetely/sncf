@@ -278,7 +278,7 @@ export function FilaPedidosPorArea({
                 </TableCell>
               </TableRow>
             )}
-            {linhas?.map((p) => {
+            {pageItems.map((p) => {
               const sc = scoreMap.get(p.id);
               return (
                 <TableRow
