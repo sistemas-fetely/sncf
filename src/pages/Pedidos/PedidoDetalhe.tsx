@@ -28,7 +28,8 @@ import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialo
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) => s ? new Date(s + (s.length === 10 ? "T00:00:00" : "")).toLocaleDateString("pt-BR") : "—";
@@ -249,7 +250,25 @@ export default function PedidoDetalhe() {
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Cliente</p>
               <Linha label="Razão social" value={parceiro?.razao_social} />
-              <Linha label="CNPJ" value={parceiro?.cnpj} />
+              <div className="flex justify-between gap-3 text-sm py-1.5 border-b border-border/40">
+                <span className="text-muted-foreground shrink-0">CNPJ</span>
+                <span className="text-right flex items-center gap-1.5">
+                  {parceiro?.cnpj ?? "—"}
+                  {parceiro?.cnpj && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(parceiro.cnpj!);
+                        toast({ title: "CNPJ copiado" });
+                      }}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      title="Copiar CNPJ"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </span>
+              </div>
               {(() => {
                 const emails: { label: string; email: string }[] = [];
                 const push = (label: string, email?: string | null) => {

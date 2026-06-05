@@ -8814,6 +8814,7 @@ export type Database = {
           id: string
           id_externo: string
           itens_json: Json | null
+          marcacao: string | null
           observacao: string | null
           observacao_pedido: string | null
           origem: string | null
@@ -8864,6 +8865,7 @@ export type Database = {
           id?: string
           id_externo: string
           itens_json?: Json | null
+          marcacao?: string | null
           observacao?: string | null
           observacao_pedido?: string | null
           origem?: string | null
@@ -8914,6 +8916,7 @@ export type Database = {
           id?: string
           id_externo?: string
           itens_json?: Json | null
+          marcacao?: string | null
           observacao?: string | null
           observacao_pedido?: string | null
           origem?: string | null
@@ -15314,88 +15317,46 @@ export type Database = {
         Args: { p_stage_id: string }
         Returns: undefined
       }
-      receber_pedido_externo:
-        | {
-            Args: {
-              p_bairro?: string
-              p_canal_fop?: string
-              p_cep?: string
-              p_cidade?: string
-              p_cnpj: string
-              p_complemento?: string
-              p_condicao_solicitada: string
-              p_contatos?: Json
-              p_data_pedido: string
-              p_desconto_pct?: number
-              p_email?: string
-              p_endereco_entrega?: Json
-              p_forma_solicitada: string
-              p_id_externo: string
-              p_inscricao_estadual?: string
-              p_isento_ie?: boolean
-              p_itens_json?: Json
-              p_logradouro?: string
-              p_nome_fantasia?: string
-              p_numero?: string
-              p_observacao?: string
-              p_observacao_pedido?: string
-              p_origem?: string
-              p_premissas?: Json
-              p_razao_social?: string
-              p_recebido_via?: string
-              p_regiao_atuacao?: string
-              p_segmento?: string
-              p_situacao_cadastral?: string
-              p_tags?: string[]
-              p_telefone?: string
-              p_uf?: string
-              p_valor_bruto: number
-              p_valor_liquido: number
-              p_vendedor?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_bairro?: string
-              p_canal_fop?: string
-              p_cep?: string
-              p_cidade?: string
-              p_cnpj: string
-              p_complemento?: string
-              p_condicao_solicitada: string
-              p_contatos?: Json
-              p_data_pedido: string
-              p_desconto_pct?: number
-              p_email?: string
-              p_endereco_entrega?: Json
-              p_forma_solicitada: string
-              p_frete_tipo?: string
-              p_id_externo: string
-              p_inscricao_estadual?: string
-              p_isento_ie?: boolean
-              p_itens_json?: Json
-              p_logradouro?: string
-              p_nome_fantasia?: string
-              p_numero?: string
-              p_observacao?: string
-              p_origem?: string
-              p_premissas?: Json
-              p_razao_social?: string
-              p_recebido_via?: string
-              p_regiao_atuacao?: string
-              p_segmento?: string
-              p_situacao_cadastral?: string
-              p_tags?: string[]
-              p_telefone?: string
-              p_uf?: string
-              p_valor_bruto: number
-              p_valor_frete?: number
-              p_valor_liquido: number
-              p_vendedor?: string
-            }
-            Returns: Json
-          }
+      receber_pedido_externo: {
+        Args: {
+          p_bairro?: string
+          p_canal_fop?: string
+          p_cep?: string
+          p_cidade?: string
+          p_cnpj: string
+          p_complemento?: string
+          p_condicao_solicitada: string
+          p_contatos?: Json
+          p_data_pedido: string
+          p_desconto_pct?: number
+          p_email?: string
+          p_endereco_entrega?: Json
+          p_forma_solicitada: string
+          p_id_externo: string
+          p_inscricao_estadual?: string
+          p_isento_ie?: boolean
+          p_itens_json?: Json
+          p_logradouro?: string
+          p_nome_fantasia?: string
+          p_numero?: string
+          p_observacao?: string
+          p_observacao_pedido?: string
+          p_origem?: string
+          p_premissas?: Json
+          p_razao_social?: string
+          p_recebido_via?: string
+          p_regiao_atuacao?: string
+          p_segmento?: string
+          p_situacao_cadastral?: string
+          p_tags?: string[]
+          p_telefone?: string
+          p_uf?: string
+          p_valor_bruto: number
+          p_valor_liquido: number
+          p_vendedor?: string
+        }
+        Returns: Json
+      }
       registrar_aceite_termo_uso: {
         Args: { _versao: string }
         Returns: undefined
