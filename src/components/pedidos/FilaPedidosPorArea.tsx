@@ -32,6 +32,24 @@ import type { AreaPedido, EstagioPedido, PedidoFilaItem, ScoreBreakdown } from "
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
+type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
+const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
+const ROW_HEIGHT = 73; // px aprox (linhas mais altas com 2 linhas de texto)
+const FOOTER_RESERVE = 120;
+
+function buildPageRange(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "…")[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push("…");
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (end < total - 1) pages.push("…");
+  pages.push(total);
+  return pages;
+}
+
 interface Props {
   area: AreaPedido | "todas";
   estagioInicial?: EstagioPedido | "todos";
