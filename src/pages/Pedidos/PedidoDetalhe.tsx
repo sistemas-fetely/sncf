@@ -177,7 +177,12 @@ export default function PedidoDetalhe() {
         </div>
       </div>
 
-      <div className="px-6 pb-4"><PedidoStepper estagioAtual={estagio} /></div>
+      <div className="px-6 pb-4">
+        <PedidoStepper
+          estagioAtual={estagio}
+          onClickEstagio={(e) => navigate(`/pedidos?estagio=${e}`)}
+        />
+      </div>
 
       <Separator />
 

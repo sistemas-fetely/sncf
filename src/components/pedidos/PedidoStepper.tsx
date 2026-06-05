@@ -9,9 +9,10 @@ import type { EstagioPedido } from "@/types/pedido";
 
 interface Props {
   estagioAtual: EstagioPedido;
+  onClickEstagio?: (estagio: EstagioPedido) => void;
 }
 
-export function PedidoStepper({ estagioAtual }: Props) {
+export function PedidoStepper({ estagioAtual, onClickEstagio }: Props) {
   const foraDoPipeline =
     estagioAtual === "cancelado" || estagioAtual === "recuperacao_venda";
 
@@ -51,6 +52,7 @@ export function PedidoStepper({ estagioAtual }: Props) {
           const completo = !foraDoPipeline && i < idxAtual;
           const atual = !foraDoPipeline && i === idxAtual;
           const cor = ESTAGIO_CORES[e];
+          const clicavel = !!onClickEstagio;
           return (
             <div key={e} className="flex-1 flex flex-col items-center min-w-0">
               <div className="flex items-center w-full">
@@ -61,22 +63,28 @@ export function PedidoStepper({ estagioAtual }: Props) {
                     completo || atual ? "bg-emerald-500" : "bg-border"
                   )}
                 />
-                <div
+                <button
+                  type="button"
+                  disabled={!clicavel}
+                  onClick={() => onClickEstagio?.(e)}
                   className={cn(
-                    "h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 border-2",
+                    "h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 border-2 transition-transform",
                     foraDoPipeline
                       ? "bg-transparent border-border text-muted-foreground"
                       : completo || atual
                       ? `${cor} border-transparent`
-                      : "bg-transparent border-border text-muted-foreground"
+                      : "bg-transparent border-border text-muted-foreground",
+                    clicavel && "hover:scale-110 cursor-pointer",
+                    !clicavel && "cursor-default"
                   )}
+                  title={clicavel ? `Ver pedidos em "${ESTAGIO_LABELS_CURTO[e]}"` : undefined}
                 >
                   {completo ? (
                     <Check className="h-3.5 w-3.5" />
                   ) : atual ? (
                     <span className="h-2 w-2 rounded-full bg-white" />
                   ) : null}
-                </div>
+                </button>
                 <div
                   className={cn(
                     "flex-1 h-0.5",
@@ -85,19 +93,24 @@ export function PedidoStepper({ estagioAtual }: Props) {
                   )}
                 />
               </div>
-              <span
+              <button
+                type="button"
+                disabled={!clicavel}
+                onClick={() => onClickEstagio?.(e)}
                 className={cn(
                   "mt-1.5 text-[10px] text-center px-0.5 truncate w-full",
                   atual
                     ? "font-bold text-foreground"
                     : completo
                     ? "text-foreground/80"
-                    : "text-muted-foreground"
+                    : "text-muted-foreground",
+                  clicavel && "hover:underline cursor-pointer",
+                  !clicavel && "cursor-default"
                 )}
-                title={ESTAGIO_LABELS_CURTO[e]}
+                title={clicavel ? `Ver pedidos em "${ESTAGIO_LABELS_CURTO[e]}"` : ESTAGIO_LABELS_CURTO[e]}
               >
                 {ESTAGIO_LABELS_CURTO[e]}
-              </span>
+              </button>
             </div>
           );
         })}
@@ -116,6 +129,7 @@ export function PedidoStepper({ estagioAtual }: Props) {
           const ini = Math.max(0, idxAtual - 1);
           const fim = Math.min(estagios.length, idxAtual + 2);
           const visiveis = estagios.slice(ini, fim);
+          const clicavel = !!onClickEstagio;
           return (
             <>
               {ini > 0 && <span className="text-xs text-muted-foreground">…</span>}
@@ -126,24 +140,35 @@ export function PedidoStepper({ estagioAtual }: Props) {
                 const cor = ESTAGIO_CORES[e];
                 return (
                   <div key={e} className="flex flex-col items-center min-w-0 flex-1">
-                    <div
+                    <button
+                      type="button"
+                      disabled={!clicavel}
+                      onClick={() => onClickEstagio?.(e)}
                       className={cn(
-                        "h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold border-2",
+                        "h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold border-2 transition-transform",
                         completo || atual
                           ? `${cor} border-transparent`
-                          : "bg-transparent border-border text-muted-foreground"
+                          : "bg-transparent border-border text-muted-foreground",
+                        clicavel && "hover:scale-110 cursor-pointer",
+                        !clicavel && "cursor-default"
                       )}
+                      title={clicavel ? `Ver pedidos em "${ESTAGIO_LABELS_CURTO[e]}"` : undefined}
                     >
                       {completo ? <Check className="h-3.5 w-3.5" /> : atual ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
-                    </div>
-                    <span
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!clicavel}
+                      onClick={() => onClickEstagio?.(e)}
                       className={cn(
                         "mt-1 text-[10px] text-center truncate w-full",
-                        atual ? "font-bold" : "text-muted-foreground"
+                        atual ? "font-bold" : "text-muted-foreground",
+                        clicavel && "hover:underline cursor-pointer",
+                        !clicavel && "cursor-default"
                       )}
                     >
                       {ESTAGIO_LABELS_CURTO[e]}
-                    </span>
+                    </button>
                   </div>
                 );
               })}
