@@ -22,6 +22,7 @@ import {
   EstagioBadge, FormatoIdade,
 } from "./BadgesPedido";
 import { BadgePriorizacao } from "./BadgePriorizacao";
+import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
 import {
   ESTAGIO_LABELS, ESTAGIO_AREA, PIPELINE_PRINCIPAL,
   ESTAGIOS_TERMINAIS, ESTAGIOS_RECUPERAVEIS,
