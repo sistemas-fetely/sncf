@@ -240,12 +240,45 @@ export default function CobrancaDetalhe() {
           <CardTitle className="text-base">Resumo do pedido</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-muted-foreground text-xs">Cliente</p>
-            <p className="font-medium">{pedido.parceiro?.razao_social ?? "—"}</p>
-            <p className="text-xs text-muted-foreground">
-              {pedido.parceiro?.cnpj ? formatCNPJ(pedido.parceiro.cnpj) : ""}
-            </p>
+          <div className="md:col-span-2">
+            <p className="text-muted-foreground text-xs mb-1">Cliente</p>
+            {pedido.parceiro?.razao_social && (
+              <LinhaInfo label="Razão social" value={pedido.parceiro.razao_social} copiavel={pedido.parceiro.razao_social} />
+            )}
+            {pedido.parceiro?.nome_fantasia && pedido.parceiro.nome_fantasia !== pedido.parceiro.razao_social && (
+              <LinhaInfo label="Nome fantasia" value={pedido.parceiro.nome_fantasia} copiavel={pedido.parceiro.nome_fantasia} />
+            )}
+            {pedido.parceiro?.cnpj && (
+              <LinhaInfo label="CNPJ" value={formatCNPJ(pedido.parceiro.cnpj)} copiavel={pedido.parceiro.cnpj} />
+            )}
+            {pedido.parceiro?.cpf && (
+              <LinhaInfo label="CPF" value={pedido.parceiro.cpf} copiavel={pedido.parceiro.cpf} />
+            )}
+            {pedido.parceiro?.email && (
+              <LinhaInfo label="E-mail" value={pedido.parceiro.email} copiavel={pedido.parceiro.email} />
+            )}
+            {pedido.parceiro?.telefone && (
+              <LinhaInfo label="Telefone" value={pedido.parceiro.telefone} copiavel={pedido.parceiro.telefone} />
+            )}
+            {pedido.parceiro?.cep && (
+              <LinhaInfo label="CEP" value={pedido.parceiro.cep} copiavel={pedido.parceiro.cep} />
+            )}
+            {(pedido.parceiro?.logradouro || pedido.parceiro?.numero) && (
+              <LinhaInfo
+                label="Logradouro"
+                value={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
+                copiavel={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
+              />
+            )}
+            {pedido.parceiro?.bairro && (
+              <LinhaInfo label="Bairro" value={pedido.parceiro.bairro} copiavel={pedido.parceiro.bairro} />
+            )}
+            {pedido.parceiro?.cidade && (
+              <LinhaInfo label="Cidade" value={pedido.parceiro.cidade} copiavel={pedido.parceiro.cidade} />
+            )}
+            {pedido.parceiro?.uf && (
+              <LinhaInfo label="UF" value={pedido.parceiro.uf} copiavel={pedido.parceiro.uf} />
+            )}
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Valor total</p>
