@@ -35,8 +35,8 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
-const ROW_HEIGHT = 73; // px aprox (linhas mais altas com 2 linhas de texto)
-const FOOTER_RESERVE = 140;
+const ROW_HEIGHT = 90; // px aprox (linhas mais altas com 2 linhas de texto)
+const FOOTER_RESERVE = 200;
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -91,7 +91,7 @@ export function FilaPedidosPorArea({
       if (!el) return;
       const top = el.getBoundingClientRect().top;
       const available = window.innerHeight - top - FOOTER_RESERVE;
-      const rows = Math.max(5, Math.floor((available - 48) / ROW_HEIGHT));
+      const rows = Math.max(3, Math.floor((available - 48) / ROW_HEIGHT) - 1);
       setAutoPageSize(rows);
     }
     recompute();
