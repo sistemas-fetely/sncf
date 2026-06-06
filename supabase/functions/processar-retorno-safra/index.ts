@@ -34,7 +34,7 @@ function parseLinha(linha: string): LinhaRetorno | null {
 }
 
 const OCORRENCIA_CONFIRMADA  = "02";
-const OCORRENCIAS_LIQUIDACAO = ["06", "09"]; // 06 = Liquidado / 09 = Baixa por liquidação
+const OCORRENCIAS_LIQUIDACAO = ["06", "09"];
 const OCORRENCIAS_REJEICAO   = ["03", "15", "16", "17"];
 
 const MOTIVOS_REJEICAO: Record<string, string> = {
@@ -95,6 +95,18 @@ serve(async (req) => {
         const { data: remessa } = await sb.from("remessas_safra").select("id").eq("nro_sequencial", nroSeq).maybeSingle();
         remessaId = (remessa as { id: string } | null)?.id ?? null;
       }
+    }
+
+    // PB-1: Buscar conta bancária Safra (banco_codigo 422) — usada nos registros de movimentação
+    const { data: safraConta } = await sb
+      .from("contas_bancarias")
+      .select("id")
+      .eq("banco_codigo", "422")
+      .eq("ativo", true)
+      .maybeSingle();
+
+    if (!safraConta) {
+      console.warn("[retorno-safra] Conta bancária Safra (422) não encontrada — movimentacoes_bancarias não serão gravadas");
     }
 
     let confirmados = 0, rejeitados = 0, liquidados = 0, emailsEnviados = 0;
@@ -182,7 +194,6 @@ serve(async (req) => {
       // ── Ocorrências 06/09: Liquidação ─────────────────────────────────────
       } else if (OCORRENCIAS_LIQUIDACAO.includes(linha.ocorrencia)) {
 
-        // IDEMPOTÊNCIA: SOps já confirmou manualmente — não duplica baixa
         if (t.boleto_status === "pago_manual") {
           console.log(`[retorno-safra] Título ${t.id} já pago_manual — ocorrência ${linha.ocorrencia} ignorada`);
           liquidados++;
@@ -191,7 +202,7 @@ serve(async (req) => {
 
         const agora = new Date().toISOString();
 
-        // 1. marcar_titulo_pago: status='pago' + cascade CPR (SECURITY DEFINER)
+        // 1. marcar_titulo_pago: status='pago' + cascade CPR
         const { error: errMarca } = await sb.rpc("marcar_titulo_pago" as string, {
           p_titulo_id: t.id,
           p_data_pagamento: agora,
@@ -201,7 +212,7 @@ serve(async (req) => {
           continue;
         }
 
-        // 2. Campos específicos do ciclo boleto
+        // 2. Atualiza campos específicos do ciclo boleto
         const { error: errBoleto } = await sb
           .from("titulo_a_receber")
           .update({ boleto_status: "pago_banco", data_pagamento_banco: agora })
@@ -210,7 +221,28 @@ serve(async (req) => {
           console.error(`[retorno-safra] update boleto_status falhou para ${t.id}:`, errBoleto);
         }
 
-        // 3. Avança pedido para pre_faturado (non-fatal — pode já estar em estágio posterior)
+        // 3. Grava crédito no razão financeiro — idempotente via hash_unico (23505 = já gravado, ok)
+        if (safraConta) {
+          const { error: errMov } = await sb
+            .from("movimentacoes_bancarias")
+            .insert({
+              conta_bancaria_id:  safraConta.id,
+              data_transacao:     agora.slice(0, 10),
+              descricao:          `Boleto ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"} — ${parceiro?.razao_social ?? "Cliente"}`,
+              valor:              Number(t.valor_bruto),
+              tipo:               "credito",
+              origem:             "csv_safra",
+              hash_unico:         `safra_boleto_${t.id}`,
+              id_transacao_banco: linha.nossoNumero || null,
+              conciliado:         true,
+              conciliado_em:      agora,
+            });
+          if (errMov && errMov.code !== "23505") {
+            console.error(`[retorno-safra] insert movimentacao_bancaria falhou para ${t.id}:`, errMov);
+          }
+        }
+
+        // 4. Avança pedido para pre_faturado (non-fatal)
         if (t.pedido_id) {
           const { error: errTransicao } = await sb.rpc("transicionar_pedido" as string, {
             p_pedido_id: t.pedido_id,
