@@ -8826,6 +8826,7 @@ export type Database = {
           proxima_acao: string | null
           recebido_em: string
           recebido_via: string
+          regra_pagamento_id: string | null
           tipo_pagamento: string | null
           triado_em: string | null
           urgencia_declarada: string
@@ -8877,6 +8878,7 @@ export type Database = {
           proxima_acao?: string | null
           recebido_em?: string
           recebido_via?: string
+          regra_pagamento_id?: string | null
           tipo_pagamento?: string | null
           triado_em?: string | null
           urgencia_declarada?: string
@@ -8928,6 +8930,7 @@ export type Database = {
           proxima_acao?: string | null
           recebido_em?: string
           recebido_via?: string
+          regra_pagamento_id?: string | null
           tipo_pagamento?: string | null
           triado_em?: string | null
           urgencia_declarada?: string
@@ -8958,6 +8961,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "pedidos_regra_pagamento_id_fkey"
+            columns: ["regra_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "regras_pagamento_pedido"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -10823,6 +10833,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      regras_pagamento_pedido: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          espera_pagamento: boolean
+          forma: string
+          id: string
+          nome: string
+          ordem: number
+          parcela_unica: boolean
+          passa_por_analise: boolean
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          espera_pagamento: boolean
+          forma: string
+          id?: string
+          nome: string
+          ordem?: number
+          parcela_unica: boolean
+          passa_por_analise: boolean
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          espera_pagamento?: boolean
+          forma?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          parcela_unica?: boolean
+          passa_por_analise?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       remessas_contador: {
         Row: {
@@ -14895,6 +14947,14 @@ export type Database = {
         Args: { p_analise_id: string }
         Returns: string
       }
+      fn_classificar_pagamento: {
+        Args: {
+          p_condicao_solicitada: string
+          p_forma_solicitada: string
+          p_valor_liquido: number
+        }
+        Returns: string
+      }
       fn_criar_analise_desde_pedido: {
         Args: { p_pedido_id: string }
         Returns: string
@@ -15486,6 +15546,7 @@ export type Database = {
         Args: { p_ged_documento_id: string }
         Returns: Json
       }
+      rotear_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       score_match_nf: {
         Args: {
           p_cnpj_a: string

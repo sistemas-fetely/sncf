@@ -193,7 +193,7 @@ serve(async (req) => {
     );
 
     // 9. Monta itens individuais para o Bling
-    // - Sem "codigo": evita code 27 (Bling tentaria criar produto no catálogo)
+    // - "codigo" = it.sku: Bling vincula ao catálogo (se existir) ou cria produto novo
     // - Sem sufixo "(Xun.)" na descrição: evita poluir catálogo com variantes por qtd
     // - Preços pré-desconto (valor_unitario original do FOP)
     const stripQtdSuffix = (d: string) =>
@@ -202,6 +202,8 @@ serve(async (req) => {
     const rawItens = (itens && itens.length > 0)
       ? itens.map((it: any) => ({
           descricao: stripQtdSuffix(it.descricao),
+          codigo: it.sku || undefined,   // SKU do produto — Bling vincula ao catálogo
+          unidade: "UN",                 // Unidade de medida padrão para produtos físicos
           quantidade: Number(it.quantidade),
           valor: parseFloat(Number(it.valor_unitario).toFixed(2)),
         }))
