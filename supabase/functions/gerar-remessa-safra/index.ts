@@ -62,7 +62,7 @@ function montarLinhaDigitavel(
   params: Record<string, string>
 ): { linha: string; barras: string } {
   const agencia   = params.agencia ?? "0005";
-  const conta7d   = (params.conta_com_dv ?? "000050058044406").slice(5, 12);
+  const conta7d   = params.conta_7d ?? "5804446";
   const c1Base    = params.campo1_fixo ?? "422970050";
   const sufixoC3  = params.sufixo_campo3 ?? "2";
 
