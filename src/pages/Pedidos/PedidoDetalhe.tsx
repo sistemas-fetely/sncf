@@ -159,6 +159,13 @@ export default function PedidoDetalhe() {
         </Button>
       </div>
 
+      <div className="px-6 pb-4">
+        <PedidoStepper
+          estagioAtual={estagio}
+          onClickEstagio={(e) => navigate(`/pedidos?estagio=${e}`)}
+        />
+      </div>
+
       <div className="px-6 pt-2 pb-4 flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1 min-w-0">
           <h1 className="text-xl font-bold truncate">{parceiro?.razao_social || pedido.cliente_nome_snapshot || "Cliente"}</h1>
@@ -175,13 +182,6 @@ export default function PedidoDetalhe() {
           <p className="text-2xl font-bold">{fmtBRL.format(pedido.valor_liquido || 0)}</p>
           <p className="text-xs text-muted-foreground mt-0.5">{pedido.condicao_solicitada} · {pedido.forma_solicitada}</p>
         </div>
-      </div>
-
-      <div className="px-6 pb-4">
-        <PedidoStepper
-          estagioAtual={estagio}
-          onClickEstagio={(e) => navigate(`/pedidos?estagio=${e}`)}
-        />
       </div>
 
       <Separator />
