@@ -12398,6 +12398,7 @@ export type Database = {
           data_criacao: string
           data_emissao_nf: string | null
           data_pagamento: string | null
+          data_pagamento_banco: string | null
           data_proxima_acao_regua: string | null
           data_vencimento_atual: string
           data_vencimento_original: string
@@ -12447,6 +12448,7 @@ export type Database = {
           data_criacao?: string
           data_emissao_nf?: string | null
           data_pagamento?: string | null
+          data_pagamento_banco?: string | null
           data_proxima_acao_regua?: string | null
           data_vencimento_atual: string
           data_vencimento_original: string
@@ -12496,6 +12498,7 @@ export type Database = {
           data_criacao?: string
           data_emissao_nf?: string | null
           data_pagamento?: string | null
+          data_pagamento_banco?: string | null
           data_proxima_acao_regua?: string | null
           data_vencimento_atual?: string
           data_vencimento_original?: string
