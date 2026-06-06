@@ -36,7 +36,7 @@ const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
 const ROW_HEIGHT = 80; // px aprox (linhas com 2 linhas de texto)
-const FOOTER_RESERVE = 120;
+const FOOTER_RESERVE = 80;
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
