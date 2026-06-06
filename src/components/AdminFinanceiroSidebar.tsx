@@ -46,6 +46,7 @@ const caixaBancoItems: MenuItem[] = [
   { title: "Contratos Recorrentes", url: "/administrativo/compromissos", icon: Receipt },
   { title: "Fluxo Futuro Investimento", url: "/administrativo/fluxo-futuro-investimento", icon: Target },
   { title: "Fluxo Futuro", url: "/administrativo/fluxo-futuro", icon: Calendar },
+  { title: "Banco Safra", url: "/administrativo/banco-safra", icon: Building2 },
   { title: "Contas Bancárias", url: "/administrativo/caixa-banco/contas", icon: Landmark },
   { title: "Investimento de Lançamento", url: "/administrativo/investimento-lancamento", icon: Target },
 ];

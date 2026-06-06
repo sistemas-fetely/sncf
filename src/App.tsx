@@ -117,6 +117,7 @@ const BlingCallback = lazy(() => import("@/pages/administrativo/BlingCallback"))
 
 const Produtos = lazy(() => import("@/pages/administrativo/Produtos"));
 const CaixaBanco = lazy(() => import("@/pages/administrativo/CaixaBanco"));
+const BancoSafra = lazy(() => import("@/pages/administrativo/BancoSafra"));
 const ContasBancarias = lazy(() => import("@/pages/administrativo/ContasBancarias"));
 const Conciliacao = lazy(() => import("@/pages/administrativo/Conciliacao"));
 const RegrasOFX = lazy(() => import("@/pages/administrativo/RegrasOFX"));
@@ -501,6 +502,7 @@ const App = () => (
               <Route path="fluxo-caixa" element={<FluxoCaixa />} />
               <Route path="contas-pagar" element={<ContasPagar />} />
               <Route path="caixa-banco" element={<CaixaBanco />} />
+              <Route path="banco-safra" element={<BancoSafra />} />
               <Route path="caixa-banco/contas" element={<ContasBancarias />} />
               <Route path="conciliacao" element={<Conciliacao />} />
               <Route path="regras-ofx" element={<RegrasOFX />} />
