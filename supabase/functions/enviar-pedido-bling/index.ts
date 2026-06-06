@@ -222,39 +222,46 @@ serve(async (req) => {
       if (!it.sku || cacheMap[it.sku]) continue;
 
       const nome = stripQtdSuffix(it.descricao);
-      const skuEncoded = encodeURIComponent(it.sku);
+      const normNome = (s: string) =>
+        s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-      // Tenta encontrar no Bling pelo código exato
       let blingId: number | null = null;
-      try {
-        const found = await client.get(`/produtos?q=${skuEncoded}&limite=5`);
-        const match = (found?.data || []).find(
-          (p: any) => p.codigo === it.sku
-        );
-        if (match?.id) blingId = match.id;
-      } catch (_) { /* segue */ }
 
-      // Fallback: busca pelo nome normalizado (resolve ü, ã, etc. em query string)
+      // Busca 1: código exato (criterio=2 = campo código no Bling)
+      try {
+        const r = await client.get(
+          `/produtos?criterio=2&q=${encodeURIComponent(it.sku)}&situacao=A&limite=10`
+        );
+        const m = (r?.data || []).find((p: any) => p.codigo === it.sku);
+        if (m?.id) blingId = m.id;
+      } catch (_) {}
+
+      // Busca 2: nome via palavras ASCII (ç/º/ã causam problema no query string do Bling)
       if (!blingId) {
         try {
-          const nomeNorm = nome
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .slice(0, 40);
-          const found = await client.get(
-            `/produtos?q=${encodeURIComponent(nomeNorm)}&limite=10`
-          );
-          const match = (found?.data || []).find(
-            (p: any) =>
-              p.nome?.toLowerCase().trim() === nome.toLowerCase().trim() ||
-              p.nome?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() ===
-                nomeNorm.toLowerCase()
-          );
-          if (match?.id) blingId = match.id;
-        } catch (_) { /* segue para criação */ }
+          const searchWords = normNome(nome)
+            .replace(/[^a-zA-Z0-9 ]/g, " ")
+            .split(" ")
+            .filter((w) => w.length > 3)
+            .slice(0, 3)
+            .join(" ")
+            .trim();
+
+          if (searchWords) {
+            const r = await client.get(
+              `/produtos?q=${encodeURIComponent(searchWords)}&limite=20`
+            );
+            const m = (r?.data || []).find(
+              (p: any) =>
+                normNome(p.nome || "").toLowerCase().trim() ===
+                normNome(nome).toLowerCase().trim()
+            );
+            if (m?.id) blingId = m.id;
+          }
+        } catch (_) {}
       }
 
-      // Só cria se não encontrou nem por código nem por nome
+      // Busca 3: cria o produto no Bling se não encontrou
       if (!blingId) {
         try {
           const created = await client.post("/produtos", {
