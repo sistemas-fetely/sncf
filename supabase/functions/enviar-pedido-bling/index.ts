@@ -224,17 +224,29 @@ serve(async (req) => {
       const nome = stripQtdSuffix(it.descricao);
       const skuEncoded = encodeURIComponent(it.sku);
 
-      // Tenta encontrar no Bling pelo código
+      // Tenta encontrar no Bling pelo código exato
       let blingId: number | null = null;
       try {
-        const found = await client.get(`/produtos?criterio=2&q=${skuEncoded}&limite=5`);
+        const found = await client.get(`/produtos?q=${skuEncoded}&limite=5`);
         const match = (found?.data || []).find(
-          (p: any) => p.codigo === it.sku || p.codigo?.toLowerCase() === it.sku.toLowerCase()
+          (p: any) => p.codigo === it.sku
         );
         if (match?.id) blingId = match.id;
-      } catch (_) { /* segue para criação */ }
+      } catch (_) { /* segue */ }
 
-      // Se não encontrou: cria no Bling
+      // Fallback: busca pelo nome exato (produto existe no Bling com código diferente)
+      if (!blingId) {
+        try {
+          const nomeEncoded = encodeURIComponent(nome);
+          const found = await client.get(`/produtos?q=${nomeEncoded}&limite=5`);
+          const match = (found?.data || []).find(
+            (p: any) => p.nome?.toLowerCase().trim() === nome.toLowerCase().trim()
+          );
+          if (match?.id) blingId = match.id;
+        } catch (_) { /* segue para criação */ }
+      }
+
+      // Só cria se não encontrou nem por código nem por nome
       if (!blingId) {
         try {
           const created = await client.post("/produtos", {
