@@ -147,6 +147,7 @@ export default function CaixaBanco() {
   const [buscarNFValor, setBuscarNFValor] = useState(0);
   const [filaIAOpen, setFilaIAOpen] = useState(false);
   const [filtroQual, setFiltroQual] = useState<FiltroQualidade>("todos");
+  const [receitaSubView, setReceitaSubView] = useState<"a_receber" | "recebido">("a_receber");
   const [modalDocNfId, setModalDocNfId] = useState<string | null>(null);
   const [modalDocOpen, setModalDocOpen] = useState(false);
   const [sort, setSort] = useState<SortState<
