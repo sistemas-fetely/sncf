@@ -327,3 +327,75 @@ export interface RegraCadencia {
   criado_em: string;
   criado_por?: string;
 }
+
+// ──────────────────────────────────────────────────────────────────
+// Remessa Safra
+// ──────────────────────────────────────────────────────────────────
+
+export type BoletoStatus =
+  | "pendente"
+  | "remessa_gerada"
+  | "registrado"
+  | "rejeitado";
+
+export type RemessaStatus =
+  | "gerada"
+  | "enviada"
+  | "processada"
+  | "com_rejeicoes";
+
+export interface TituloBoletoPendente {
+  titulo_id: string;
+  numero_titulo: string;
+  numero_parcela: number;
+  total_parcelas: number;
+  valor_bruto: number;
+  data_vencimento: string;
+  boleto_status: BoletoStatus;
+  boleto_codigo_rejeicao: string | null;
+  remessa_safra_id: string | null;
+  nosso_numero_safra: string | null;
+  boleto_enviado_em: string | null;
+  pedido_id: string;
+  pedido_id_externo: string;
+  parceiro_id: string;
+  parceiro_nome: string;
+  parceiro_cnpj: string;
+  parceiro_email: string | null;
+  cadastro_incompleto: boolean;
+}
+
+export interface RemessaSafra {
+  id: string;
+  nro_sequencial: number;
+  gerado_em: string;
+  qtd_titulos: number;
+  valor_total: number;
+  status: RemessaStatus;
+  arquivo_nome: string;
+  retorno_processado_em: string | null;
+}
+
+export interface ValidacaoRemessa {
+  titulo_id: string;
+  numero_titulo: string;
+  parceiro_nome: string;
+  numero_parcela: number;
+  total_parcelas: number;
+  valor_bruto: number;
+  data_vencimento: string;
+  valido: boolean;
+  motivo_bloqueio: string | null;
+}
+
+export interface ResultadoRetorno {
+  confirmados: number;
+  rejeitados: number;
+  emails_enviados: number;
+  detalhes_rejeicao: Array<{
+    numero_titulo: string;
+    parceiro_nome: string;
+    codigo_rejeicao: string;
+    motivo: string;
+  }>;
+}
