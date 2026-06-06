@@ -13663,6 +13663,7 @@ export type Database = {
           analise_credito_id: string | null
           area_atual: string | null
           bandeira_vermelha: boolean | null
+          bling_id_destino: string | null
           cancelado_em: string | null
           cancelado_motivo: string | null
           categoria_ka: string | null
