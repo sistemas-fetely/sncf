@@ -268,6 +268,7 @@ serve(async (req) => {
             nome,
             codigo: it.sku,
             tipo: "P",
+            formato: "S",
             unidade: "UN",
             preco: parseFloat(Number(it.valor_unitario).toFixed(2)),
             situacao: "A",
@@ -276,10 +277,10 @@ serve(async (req) => {
           const d = created?.data;
           blingId = d?.id ?? (typeof d === "number" ? d : null) ?? created?.id ?? null;
           if (!blingId) {
-            console.error(`[produto-sync] POST /produtos ok mas sem id: sku=${it.sku} resp=${JSON.stringify(created).slice(0,200)}`);
+            console.error(`[produto-sync] POST /produtos ok mas sem id: sku=${it.sku} resp=${JSON.stringify(created).slice(0,500)}`);
           }
         } catch (e) {
-          console.error(`[produto-sync] POST /produtos falhou: sku=${it.sku} err=${(e as Error).message?.slice(0,200)}`);
+          console.error(`[produto-sync] POST /produtos falhou: sku=${it.sku} err=${(e as Error).message?.slice(0,500)}`);
         }
       }
 
