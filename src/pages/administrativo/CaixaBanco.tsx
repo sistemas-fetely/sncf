@@ -211,6 +211,43 @@ export default function CaixaBanco() {
     return receitas.filter((r) => (r.descricao || "").toLowerCase().includes(t));
   }, [receitas, busca]);
 
+  // A receber — títulos em aberto (sem FK conta_bancaria — filtro de banco não se aplica aqui)
+  const { data: titulosAReceber = [] } = useQuery<TituloAReceber[]>({
+    queryKey: ["titulos-a-receber-caixa"],
+    enabled: tipoParam === "receitas" && receitaSubView === "a_receber",
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("titulo_a_receber")
+        .select(`
+          id, numero_titulo, data_vencimento_atual, valor_atual, valor_bruto,
+          boleto_status, tipo_pagamento,
+          conta:contas_pagar_receber(
+            parceiro:parceiros_comerciais(razao_social)
+          )
+        `)
+        .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao,baixado_por_perda)")
+        .order("data_vencimento_atual", { ascending: true });
+      if (error) throw error;
+      return (data || []) as TituloAReceber[];
+    },
+  });
+
+  const titulosFiltrados = useMemo(() => {
+    if (!busca.trim()) return titulosAReceber;
+    const q = busca.toLowerCase();
+    return titulosAReceber.filter(
+      (t) =>
+        (t.numero_titulo || "").toLowerCase().includes(q) ||
+        (t.conta?.parceiro?.razao_social || "").toLowerCase().includes(q),
+    );
+  }, [titulosAReceber, busca]);
+
+  const totalAReceber = useMemo(
+    () => titulosFiltrados.reduce((s, t) => s + Number(t.valor_atual ?? t.valor_bruto ?? 0), 0),
+    [titulosFiltrados],
+  );
+
   const totalReceitas = useMemo(
     () => receitasFiltradas.reduce((acc, r) => acc + Number(r.valor || 0), 0),
     [receitasFiltradas],
