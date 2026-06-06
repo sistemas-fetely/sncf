@@ -233,6 +233,9 @@ export default function PedidoDetalhe() {
                 );
               })()}
               <Linha label="Valor líquido" value={fmtBRL.format(pedido.valor_liquido || 0)} destaque />
+              <Linha label="Condição" value={pedido.condicao_solicitada} />
+              <Linha label="Forma" value={pedido.forma_solicitada} />
+
               <Linha
                 label="Frete"
                 value={pedido.valor_frete > 0 ? fmtBRL.format(pedido.valor_frete) : "—"}
