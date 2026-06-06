@@ -33,8 +33,9 @@ function parseLinha(linha: string): LinhaRetorno | null {
   };
 }
 
-const OCORRENCIA_CONFIRMADA = "02";
-const OCORRENCIAS_REJEICAO = ["03", "15", "16", "17"];
+const OCORRENCIA_CONFIRMADA  = "02";
+const OCORRENCIAS_LIQUIDACAO = ["06", "09"]; // 06 = Liquidado / 09 = Baixa por liquidação
+const OCORRENCIAS_REJEICAO   = ["03", "15", "16", "17"];
 
 const MOTIVOS_REJEICAO: Record<string, string> = {
   "001": "Código do banco inválido",
@@ -80,14 +81,12 @@ serve(async (req) => {
       return new Response(JSON.stringify({ ok: false, erro: "arquivo_conteudo é obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Parsear linhas
-    const linhas  = arquivoConteudo.split(/\r?\n/).filter((l) => l.length >= 400);
+    const linhas   = arquivoConteudo.split(/\r?\n/).filter((l) => l.length >= 400);
     const detalhes = linhas.map(parseLinha).filter((l): l is LinhaRetorno => l !== null);
     if (detalhes.length === 0) {
       return new Response(JSON.stringify({ ok: false, erro: "Nenhuma linha de detalhe encontrada" }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Identificar remessa pelo nro_sequencial do header
     const headerLinha = linhas.find((l) => l[0] === "0");
     let remessaId: string | null = null;
     if (headerLinha && headerLinha.length >= 394) {
@@ -98,7 +97,7 @@ serve(async (req) => {
       }
     }
 
-    let confirmados = 0, rejeitados = 0, emailsEnviados = 0;
+    let confirmados = 0, rejeitados = 0, liquidados = 0, emailsEnviados = 0;
     const detalhesRejeicao: Array<{ numero_titulo: string; parceiro_nome: string; codigo_rejeicao: string; motivo: string }> = [];
 
     for (const linha of detalhes) {
@@ -106,7 +105,7 @@ serve(async (req) => {
         .from("titulo_a_receber")
         .select(`
           id, numero_titulo, numero_parcela, total_parcelas,
-          valor_bruto, data_vencimento_atual, boleto_status,
+          valor_bruto, data_vencimento_atual, boleto_status, pedido_id,
           nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
           conta:contas_pagar_receber(
             parceiro:parceiros_comerciais(razao_social, email)
@@ -124,78 +123,109 @@ serve(async (req) => {
       const t = titulo as any;
       const parceiro = t.conta?.parceiro;
 
+      // ── Ocorrência 02: Registro confirmado ────────────────────────────────
       if (linha.ocorrencia === OCORRENCIA_CONFIRMADA) {
-        await sb.from("titulo_a_receber")
-          .update({ boleto_status: "registrado" })
-          .eq("id", t.id);
+        await sb.from("titulo_a_receber").update({ boleto_status: "registrado" }).eq("id", t.id);
         confirmados++;
 
-        // Gerar PDF e enviar email
         if (parceiro?.email) {
           try {
-            // 1. Gerar PDF
             let pdfBase64: string | null = null;
             let nomeArquivo = `boleto_${t.nosso_numero_seq ?? t.numero_titulo}.pdf`;
 
             if (t.nosso_numero_seq && t.linha_digitavel && t.codigo_barras_boleto) {
-              const pdfResp = await fetch(
-                `${supabaseUrl}/functions/v1/gerar-boleto-pdf`,
-                {
-                  method: "POST",
-                  headers: { Authorization: authHeader, "Content-Type": "application/json", apikey: anonKey },
-                  body: JSON.stringify({ titulo_id: t.id }),
-                }
-              );
+              const pdfResp = await fetch(`${supabaseUrl}/functions/v1/gerar-boleto-pdf`, {
+                method: "POST",
+                headers: { Authorization: authHeader, "Content-Type": "application/json", apikey: anonKey },
+                body: JSON.stringify({ titulo_id: t.id }),
+              });
               if (pdfResp.ok) {
                 const pdfData = await pdfResp.json();
                 pdfBase64 = pdfData.pdf_base64 ?? null;
                 nomeArquivo = pdfData.nome_arquivo ?? nomeArquivo;
-              } else {
-                console.error(`[retorno-safra] Falha ao gerar PDF título ${t.id}`);
               }
             }
 
-            // 2. Enviar email
             const attachments = pdfBase64
               ? [{ filename: nomeArquivo, content: pdfBase64, content_type: "application/pdf" }]
               : [];
 
-            const emailResp = await fetch(
-              `${supabaseUrl}/functions/v1/send-transactional-email`,
-              {
-                method: "POST",
-                headers: { Authorization: authHeader, "Content-Type": "application/json", apikey: anonKey },
-                body: JSON.stringify({
-                  templateName: "boleto-safra",
-                  recipientEmail: parceiro.email,
-                  idempotencyKey: `boleto-${t.id}-reg`,
-                  templateData: {
-                    parceiro_nome:    parceiro.razao_social ?? "—",
-                    numero_parcela:   String(t.numero_parcela),
-                    total_parcelas:   String(t.total_parcelas),
-                    valor:            formatBRL(Number(t.valor_bruto)),
-                    vencimento:       formatDateBR(t.data_vencimento_atual),
-                    linha_digitavel:  t.linha_digitavel ?? "—",
-                    pedido_id_externo: t.numero_titulo ?? "—",
-                  },
-                  attachments,
-                }),
-              }
-            );
+            const emailResp = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+              method: "POST",
+              headers: { Authorization: authHeader, "Content-Type": "application/json", apikey: anonKey },
+              body: JSON.stringify({
+                templateName: "boleto-safra",
+                recipientEmail: parceiro.email,
+                idempotencyKey: `boleto-${t.id}-reg`,
+                templateData: {
+                  parceiro_nome:     parceiro.razao_social ?? "—",
+                  numero_parcela:    String(t.numero_parcela),
+                  total_parcelas:    String(t.total_parcelas),
+                  valor:             formatBRL(Number(t.valor_bruto)),
+                  vencimento:        formatDateBR(t.data_vencimento_atual),
+                  linha_digitavel:   t.linha_digitavel ?? "—",
+                  pedido_id_externo: t.numero_titulo ?? "—",
+                },
+                attachments,
+              }),
+            });
 
             if (emailResp.ok) {
-              await sb.from("titulo_a_receber")
-                .update({ boleto_enviado_em: new Date().toISOString() })
-                .eq("id", t.id);
+              await sb.from("titulo_a_receber").update({ boleto_enviado_em: new Date().toISOString() }).eq("id", t.id);
               emailsEnviados++;
-            } else {
-              console.error(`[retorno-safra] Falha ao enviar email título ${t.id}`);
             }
           } catch (emailErr) {
             console.error(`[retorno-safra] Erro email/pdf título ${t.id}`, emailErr);
           }
         }
 
+      // ── Ocorrências 06/09: Liquidação ─────────────────────────────────────
+      } else if (OCORRENCIAS_LIQUIDACAO.includes(linha.ocorrencia)) {
+
+        // IDEMPOTÊNCIA: SOps já confirmou manualmente — não duplica baixa
+        if (t.boleto_status === "pago_manual") {
+          console.log(`[retorno-safra] Título ${t.id} já pago_manual — ocorrência ${linha.ocorrencia} ignorada`);
+          liquidados++;
+          continue;
+        }
+
+        const agora = new Date().toISOString();
+
+        // 1. marcar_titulo_pago: status='pago' + cascade CPR (SECURITY DEFINER)
+        const { error: errMarca } = await sb.rpc("marcar_titulo_pago" as string, {
+          p_titulo_id: t.id,
+          p_data_pagamento: agora,
+        });
+        if (errMarca) {
+          console.error(`[retorno-safra] marcar_titulo_pago falhou para ${t.id}:`, errMarca);
+          continue;
+        }
+
+        // 2. Campos específicos do ciclo boleto
+        const { error: errBoleto } = await sb
+          .from("titulo_a_receber")
+          .update({ boleto_status: "pago_banco", data_pagamento_banco: agora })
+          .eq("id", t.id);
+        if (errBoleto) {
+          console.error(`[retorno-safra] update boleto_status falhou para ${t.id}:`, errBoleto);
+        }
+
+        // 3. Avança pedido para pre_faturado (non-fatal — pode já estar em estágio posterior)
+        if (t.pedido_id) {
+          const { error: errTransicao } = await sb.rpc("transicionar_pedido" as string, {
+            p_pedido_id: t.pedido_id,
+            p_para_estagio: "pre_faturado",
+            p_proxima_acao: "Pronto pra enviar pro Bling",
+            p_motivo: `Liquidação confirmada pelo Safra — ocorrência ${linha.ocorrencia}`,
+          });
+          if (errTransicao) {
+            console.warn(`[retorno-safra] transicionar_pedido falhou para ${t.pedido_id}:`, errTransicao);
+          }
+        }
+
+        liquidados++;
+
+      // ── Rejeições ─────────────────────────────────────────────────────────
       } else if (OCORRENCIAS_REJEICAO.includes(linha.ocorrencia) || linha.motivoRejeicao !== "000") {
         await sb.from("titulo_a_receber")
           .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
@@ -210,23 +240,23 @@ serve(async (req) => {
       }
     }
 
-    // Atualizar status da remessa
     if (remessaId) {
-      await sb.from("remessas_safra")
-        .update({
-          status: rejeitados > 0 ? "com_rejeicoes" : "processada",
-          retorno_processado_em: new Date().toISOString(),
-        })
-        .eq("id", remessaId);
+      await sb.from("remessas_safra").update({
+        status: rejeitados > 0 ? "com_rejeicoes" : "processada",
+        retorno_processado_em: new Date().toISOString(),
+      }).eq("id", remessaId);
     }
 
     return new Response(
-      JSON.stringify({ ok: true, confirmados, rejeitados, emails_enviados: emailsEnviados, detalhes_rejeicao: detalhesRejeicao, remessa_id: remessaId }),
+      JSON.stringify({ ok: true, confirmados, liquidados, rejeitados, emails_enviados: emailsEnviados, detalhes_rejeicao: detalhesRejeicao, remessa_id: remessaId }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (e) {
     console.error("processar-retorno-safra erro fatal", e);
-    return new Response(JSON.stringify({ ok: false, erro: e instanceof Error ? e.message : String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({ ok: false, erro: e instanceof Error ? e.message : String(e) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
