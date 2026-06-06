@@ -7958,6 +7958,33 @@ export type Database = {
           },
         ]
       }
+      parametros_remessa_safra: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          chave: string
+          descricao: string | null
+          id: string
+          valor: string
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          chave: string
+          descricao?: string | null
+          id?: string
+          valor: string
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          chave?: string
+          descricao?: string | null
+          id?: string
+          valor?: string
+        }
+        Relationships: []
+      }
       parceiro_eventos_externos: {
         Row: {
           data_evento: string
@@ -11028,6 +11055,45 @@ export type Database = {
           },
         ]
       }
+      remessas_safra: {
+        Row: {
+          arquivo_nome: string
+          gerado_em: string
+          gerado_por: string | null
+          id: string
+          nro_sequencial: number
+          observacao: string | null
+          qtd_titulos: number
+          retorno_processado_em: string | null
+          status: string
+          valor_total: number
+        }
+        Insert: {
+          arquivo_nome: string
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          nro_sequencial: number
+          observacao?: string | null
+          qtd_titulos: number
+          retorno_processado_em?: string | null
+          status?: string
+          valor_total: number
+        }
+        Update: {
+          arquivo_nome?: string
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          nro_sequencial?: number
+          observacao?: string | null
+          qtd_titulos?: number
+          retorno_processado_em?: string | null
+          status?: string
+          valor_total?: number
+        }
+        Relationships: []
+      }
       remuneracoes: {
         Row: {
           atualizado_em: string
@@ -12320,6 +12386,9 @@ export type Database = {
         Row: {
           analise_credito_id: string | null
           autorizacao_cartao: string | null
+          boleto_codigo_rejeicao: string | null
+          boleto_enviado_em: string | null
+          boleto_status: string | null
           chave_pix: string | null
           codigo_barras_boleto: string | null
           condicao_pagamento: string | null
@@ -12337,13 +12406,16 @@ export type Database = {
           flag_grupo_economico_inadimplente: boolean
           id: string
           justificativa_renegociacao: string | null
+          linha_digitavel: string | null
           modalidade_renegociacao: number | null
           movimentacao_baixa_id: string | null
           nf_id: string | null
+          nosso_numero_safra: string | null
           numero_parcela: number
           numero_titulo: string
           pausa_regua_automatica: boolean
           pedido_id: string
+          remessa_safra_id: string | null
           status: string
           subestado_atraso: string
           tipo_pagamento: string
@@ -12362,6 +12434,9 @@ export type Database = {
         Insert: {
           analise_credito_id?: string | null
           autorizacao_cartao?: string | null
+          boleto_codigo_rejeicao?: string | null
+          boleto_enviado_em?: string | null
+          boleto_status?: string | null
           chave_pix?: string | null
           codigo_barras_boleto?: string | null
           condicao_pagamento?: string | null
@@ -12379,13 +12454,16 @@ export type Database = {
           flag_grupo_economico_inadimplente?: boolean
           id?: string
           justificativa_renegociacao?: string | null
+          linha_digitavel?: string | null
           modalidade_renegociacao?: number | null
           movimentacao_baixa_id?: string | null
           nf_id?: string | null
+          nosso_numero_safra?: string | null
           numero_parcela?: number
           numero_titulo: string
           pausa_regua_automatica?: boolean
           pedido_id: string
+          remessa_safra_id?: string | null
           status?: string
           subestado_atraso?: string
           tipo_pagamento: string
@@ -12404,6 +12482,9 @@ export type Database = {
         Update: {
           analise_credito_id?: string | null
           autorizacao_cartao?: string | null
+          boleto_codigo_rejeicao?: string | null
+          boleto_enviado_em?: string | null
+          boleto_status?: string | null
           chave_pix?: string | null
           codigo_barras_boleto?: string | null
           condicao_pagamento?: string | null
@@ -12421,13 +12502,16 @@ export type Database = {
           flag_grupo_economico_inadimplente?: boolean
           id?: string
           justificativa_renegociacao?: string | null
+          linha_digitavel?: string | null
           modalidade_renegociacao?: number | null
           movimentacao_baixa_id?: string | null
           nf_id?: string | null
+          nosso_numero_safra?: string | null
           numero_parcela?: number
           numero_titulo?: string
           pausa_regua_automatica?: boolean
           pedido_id?: string
+          remessa_safra_id?: string | null
           status?: string
           subestado_atraso?: string
           tipo_pagamento?: string
@@ -12533,6 +12617,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_remessa_safra_id_fkey"
+            columns: ["remessa_safra_id"]
+            isOneToOne: false
+            referencedRelation: "remessas_safra"
             referencedColumns: ["id"]
           },
           {
