@@ -234,13 +234,21 @@ serve(async (req) => {
         if (match?.id) blingId = match.id;
       } catch (_) { /* segue */ }
 
-      // Fallback: busca pelo nome exato (produto existe no Bling com código diferente)
+      // Fallback: busca pelo nome normalizado (resolve ü, ã, etc. em query string)
       if (!blingId) {
         try {
-          const nomeEncoded = encodeURIComponent(nome);
-          const found = await client.get(`/produtos?q=${nomeEncoded}&limite=5`);
+          const nomeNorm = nome
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .slice(0, 40);
+          const found = await client.get(
+            `/produtos?q=${encodeURIComponent(nomeNorm)}&limite=10`
+          );
           const match = (found?.data || []).find(
-            (p: any) => p.nome?.toLowerCase().trim() === nome.toLowerCase().trim()
+            (p: any) =>
+              p.nome?.toLowerCase().trim() === nome.toLowerCase().trim() ||
+              p.nome?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() ===
+                nomeNorm.toLowerCase()
           );
           if (match?.id) blingId = match.id;
         } catch (_) { /* segue para criação */ }
@@ -258,7 +266,7 @@ serve(async (req) => {
             situacao: "A",
           });
           blingId = created?.data?.id ?? created?.id ?? null;
-        } catch (_) { /* item ficará sem produto.id — enviado como avulso */ }
+        } catch (_) { /* produto não criado — item seguirá como avulso */ }
       }
 
       if (blingId) {
@@ -283,8 +291,8 @@ serve(async (req) => {
           return {
             descricao: stripQtdSuffix(it.descricao),
             ...(blingProdId
-              ? { produto: { id: blingProdId } }           // produto cadastrado → sem aviso
-              : it.sku ? { codigo: it.sku } : {}),          // fallback: código ou avulso
+              ? { produto: { id: blingProdId } }  // produto no catálogo Bling → Código preenchido
+              : {}),                               // sync falhou → avulso (sem codigo, evita code 27)
             unidade: "UN",
             quantidade: Number(it.quantidade),
             valor: parseFloat(Number(it.valor_unitario).toFixed(2)),
