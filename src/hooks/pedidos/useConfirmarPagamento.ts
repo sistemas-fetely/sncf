@@ -16,10 +16,10 @@ export function useConfirmarPagamento() {
 
   return useMutation({
     mutationFn: async ({ pedido_id, data_pagamento, valor, comprovante_link, observacao }: Args) => {
-      // 1. Registra evento de pagamento confirmado
       const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
       const dataBR = new Date(data_pagamento + "T00:00:00").toLocaleDateString("pt-BR");
 
+      // 1. Registra evento de pagamento confirmado na timeline do pedido
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: errEvento } = await (supabase as any).rpc("registrar_operacao_pedido", {
         p_pedido_id: pedido_id,
@@ -35,7 +35,41 @@ export function useConfirmarPagamento() {
       });
       if (errEvento) throw errEvento;
 
-      // 2. Avança estágio pra pre_faturado (engine F-2 gera os títulos)
+      // 2. Baixa títulos boleto do pedido — se existirem (idempotente)
+      //    Só processa títulos com boleto_status não nulo e ainda não pagos
+      const { data: boletoTitulos, error: errBusca } = await supabase
+        .from("titulo_a_receber")
+        .select("id")
+        .eq("pedido_id", pedido_id)
+        .not("boleto_status", "is", null)
+        .not("boleto_status", "in", "(pago_manual,pago_banco)");
+
+      if (errBusca) throw errBusca;
+
+      if (boletoTitulos && boletoTitulos.length > 0) {
+        const dataPagTS = new Date(data_pagamento + "T12:00:00").toISOString();
+
+        for (const t of boletoTitulos) {
+          // 2a. marcar_titulo_pago: seta status='pago' no título + cascade CPR
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: errMarca } = await (supabase as any).rpc("marcar_titulo_pago", {
+            p_titulo_id: t.id,
+            p_data_pagamento: dataPagTS,
+            p_observacao: observacao || null,
+          });
+          if (errMarca) throw errMarca;
+
+          // 2b. Seta boleto_status = 'pago_manual' (ciclo Safra — campo separado do status financeiro)
+          //     Garante que retorno bancário posterior (ocorrência 06/09) ignore este título
+          const { error: errBoleto } = await supabase
+            .from("titulo_a_receber")
+            .update({ boleto_status: "pago_manual" })
+            .eq("id", t.id);
+          if (errBoleto) throw errBoleto;
+        }
+      }
+
+      // 3. Avança pedido para pre_faturado (libera pro Bling)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: errTransicao } = await (supabase as any).rpc("transicionar_pedido", {
         p_pedido_id: pedido_id,
@@ -47,17 +81,20 @@ export function useConfirmarPagamento() {
 
       return { ok: true };
     },
+
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      qc.invalidateQueries({ queryKey: ["contas-receber-titulos"] });
       toast({
         title: "Pagamento confirmado",
         description: "Pedido pronto pro Bling.",
       });
     },
+
     onError: (e: Error) => {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
+      toast({ title: "Erro ao confirmar pagamento", description: e.message, variant: "destructive" });
     },
   });
 }
