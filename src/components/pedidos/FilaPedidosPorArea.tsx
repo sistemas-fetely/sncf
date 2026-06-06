@@ -397,7 +397,7 @@ export function FilaPedidosPorArea({
         </Table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 text-sm bg-background border-t border-border">
+      <div className="sticky bottom-0 z-30 flex flex-wrap items-center justify-between gap-3 px-6 py-3 text-sm bg-background border-t border-border shadow-[0_-2px_8px_-4px_hsl(var(--foreground)/0.1)]">
         <div className="flex items-center gap-2 text-muted-foreground">
           <span>
             {totalLinhas === 0
