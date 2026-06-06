@@ -8873,6 +8873,7 @@ export type Database = {
           observacao_pedido: string | null
           origem: string | null
           parceiro_id: string
+          peso_bruto_total: number | null
           pre_faturado_em: string | null
           premissas: Json | null
           prioridade_motivo: string | null
@@ -8882,6 +8883,7 @@ export type Database = {
           recebido_via: string
           regra_pagamento_id: string | null
           tipo_pagamento: string | null
+          transportadora_id: string | null
           triado_em: string | null
           urgencia_declarada: string
           urgencia_observacao: string | null
@@ -8925,6 +8927,7 @@ export type Database = {
           observacao_pedido?: string | null
           origem?: string | null
           parceiro_id: string
+          peso_bruto_total?: number | null
           pre_faturado_em?: string | null
           premissas?: Json | null
           prioridade_motivo?: string | null
@@ -8934,6 +8937,7 @@ export type Database = {
           recebido_via?: string
           regra_pagamento_id?: string | null
           tipo_pagamento?: string | null
+          transportadora_id?: string | null
           triado_em?: string | null
           urgencia_declarada?: string
           urgencia_observacao?: string | null
@@ -8977,6 +8981,7 @@ export type Database = {
           observacao_pedido?: string | null
           origem?: string | null
           parceiro_id?: string
+          peso_bruto_total?: number | null
           pre_faturado_em?: string | null
           premissas?: Json | null
           prioridade_motivo?: string | null
@@ -8986,6 +8991,7 @@ export type Database = {
           recebido_via?: string
           regra_pagamento_id?: string | null
           tipo_pagamento?: string | null
+          transportadora_id?: string | null
           triado_em?: string | null
           urgencia_declarada?: string
           urgencia_observacao?: string | null
@@ -9022,6 +9028,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "regras_pagamento_pedido"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
           },
         ]
       }
