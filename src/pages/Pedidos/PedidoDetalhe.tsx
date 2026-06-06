@@ -1,11 +1,11 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { usePedidoPriorizado } from "@/hooks/pedidos/useFilaPedidosPriorizada";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
-import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
+
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -123,36 +123,9 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
       <Clock className="h-4 w-4 mt-0.5 shrink-0" /><span>Em análise de crédito — aguardando decisão.</span>
     </div>
   );
-  if (estagio === "credito_aprovado") return <BotaoAvancarCobranca pedidoId={pedido.id} />;
   return null;
 }
 
-function BotaoAvancarCobranca({ pedidoId }: { pedidoId: string }) {
-  const transicionar = useTransicionarPedido();
-  const qc = useQueryClient();
-  const handleClick = () => {
-    transicionar.mutate(
-      {
-        pedido_id: pedidoId,
-        para_estagio: "cobranca",
-        proxima_acao: "Materializar proposta de cobrança",
-        motivo: "Avanço manual para cobrança (SOps)",
-      },
-      {
-        onSuccess: () => {
-          qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-          qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-        },
-      }
-    );
-  };
-  return (
-    <Button className="w-full gap-2" onClick={handleClick} disabled={transicionar.isPending}>
-      {transicionar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Receipt className="h-4 w-4" />}
-      Avançar pra Cobrança
-    </Button>
-  );
-}
 
 export default function PedidoDetalhe() {
   const { id } = useParams<{ id: string }>();

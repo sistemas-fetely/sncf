@@ -6,11 +6,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowRight, Zap, X, GitBranch, Undo2 } from "lucide-react";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
 import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
-import { podePularAnaliseCredito, ehFormaAVista } from "@/lib/pedidoTransicoes";
+import { useRotearPedido } from "@/hooks/pedidos/useRotearPedido";
+import { useToast } from "@/hooks/use-toast";
 import type { EstagioPedido } from "@/types/pedido";
 
 type Acao = "analise" | "pular" | "corrigir" | "cancelar";
@@ -26,9 +26,9 @@ interface Props {
 
 export function TriarPedidoDialog({
   pedido_id,
-  perfil_credito,
+  perfil_credito: _perfil_credito,
   estagio_atual: _estagio_atual,
-  forma_solicitada,
+  forma_solicitada: _forma_solicitada,
   triggerLabel = "Triar pedido",
   triggerVariant = "default",
 }: Props) {
@@ -38,17 +38,10 @@ export function TriarPedidoDialog({
 
   const transicionar = useTransicionarPedido();
   const registrar = useRegistrarOperacaoPedido();
-  const aVista = ehFormaAVista(forma_solicitada);
-  const podePular = aVista || podePularAnaliseCredito(perfil_credito);
+  const rotear = useRotearPedido();
+  const { toast } = useToast();
 
-  // F-3.2: parser de condicao + trigger tr_pedido_pular_analise cravados.
-  // Pular análise cria análise shell, parseia condição e gera títulos automaticamente.
-  const pularDisponivel = true;
-
-  // "Pedir correção / devolver ao vendedor": dado errado no pedido. Não é transição —
-  // o pedido continua em 'recebido' (na mão do SOps/vendedor). Registra anotação na
-  // timeline com o motivo. (Notificação por email ao vendedor entra com o Resend / Fase E1.)
-  const aplicando = transicionar.isPending || registrar.isPending;
+  const aplicando = transicionar.isPending || registrar.isPending || rotear.isPending;
 
   const handleConfirm = async () => {
     if (!acao) return;
@@ -69,10 +62,25 @@ export function TriarPedidoDialog({
       return;
     }
 
-    let destino: EstagioPedido;
-    if (acao === "analise") destino = "em_analise_credito";
-    else if (acao === "pular") destino = "credito_aprovado";
-    else destino = "cancelado";
+    if (acao === "pular") {
+      // Liberar: a RPC decide o destino pela regra de forma/condição.
+      const res = await rotear.mutateAsync({ p_pedido_id: pedido_id });
+      if (!res?.ok) {
+        toast({
+          title: "Não foi possível liberar o pedido",
+          description: res?.mensagem || res?.motivo || "Verifique a forma de pagamento do pedido.",
+          variant: "destructive",
+        });
+        return; // mantém o dialog aberto pro usuário ajustar
+      }
+      toast({ title: "Pedido liberado", description: res.destino ? `Destino: ${res.destino}` : undefined });
+      setOpen(false);
+      setAcao(null);
+      setMotivo("");
+      return;
+    }
+
+    const destino: EstagioPedido = acao === "analise" ? "em_analise_credito" : "cancelado";
 
     await transicionar.mutateAsync({
       pedido_id,
@@ -97,8 +105,8 @@ export function TriarPedidoDialog({
         <DialogHeader>
           <DialogTitle>Triar pedido</DialogTitle>
           <DialogDescription>
-            Decida o próximo passo: encaminha pra análise de crédito, pula análise
-            (perfis dispensados), pede correção ao vendedor ou cancela.
+            Decida o próximo passo: encaminha pra análise de crédito, libera pela
+            regra de pagamento, pede correção ao vendedor ou cancela.
           </DialogDescription>
         </DialogHeader>
 
@@ -111,33 +119,13 @@ export function TriarPedidoDialog({
             descricao="Padrão. Análise verifica limite, prazo e perfil antes de aprovar."
           />
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <AcaoCard
-                    ativa={acao === "pular"}
-                    onClick={() => pularDisponivel && podePular && setAcao("pular")}
-                    desabilitada={!pularDisponivel || !podePular}
-                    icone={<Zap className="h-5 w-5 text-emerald-600" />}
-                    titulo="Pular Análise (perfil dispensa)"
-                    descricao={
-                      aVista
-                        ? "À vista (pix/cartão) — sem crédito a analisar, segue direto."
-                        : podePularAnaliseCredito(perfil_credito)
-                          ? `Perfil ${perfil_credito} dispensa análise — aprovação direta.`
-                          : "Disponível pra perfis Premium e Recorrente Bom Pagador."
-                    }
-                  />
-                </div>
-              </TooltipTrigger>
-              {!podePular && (
-                <TooltipContent side="bottom" className="max-w-xs">
-                  Perfil <strong>{perfil_credito || "indefinido"}</strong> precisa passar pela análise.
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <AcaoCard
+            ativa={acao === "pular"}
+            onClick={() => setAcao("pular")}
+            icone={<Zap className="h-5 w-5 text-emerald-600" />}
+            titulo="Liberar (rotear pela regra)"
+            descricao="Aplica a regra de pagamento: à vista vai pra Cobrança, boleto a prazo vai pra Análise."
+          />
 
           <AcaoCard
             ativa={acao === "corrigir"}
