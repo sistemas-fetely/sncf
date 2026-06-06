@@ -192,21 +192,92 @@ serve(async (req) => {
       blingParcelas.reduce((s, p) => s + p.valor, 0).toFixed(2),
     );
 
-    // 9. Monta itens individuais para o Bling
-    // - "codigo" = it.sku: Bling vincula ao catálogo (se existir) ou cria produto novo
-    // - Sem sufixo "(Xun.)" na descrição: evita poluir catálogo com variantes por qtd
-    // - Preços pré-desconto (valor_unitario original do FOP)
+    // 9. Sync de produtos: cache → Bling GET → Bling POST (auto-cadastro)
+    // Garante que cada item tenha produto.id no Bling antes do pedido de venda.
+    // bling_produtos_cache evita chamadas repetidas para produtos já sincronizados.
     const stripQtdSuffix = (d: string) =>
       (d || "").replace(/\s*\(\d+\s*un\.?\)\s*$/i, "").trim();
 
+    // 9a. Bulk lookup no cache local
+    const skusComCodigo = [...new Set(
+      (itens || []).map((it: any) => it.sku).filter(Boolean)
+    )] as string[];
+
+    const { data: cachedRows } = skusComCodigo.length > 0
+      ? await supabase
+          .from("bling_produtos_cache")
+          .select("sku, bling_produto_id")
+          .in("sku", skusComCodigo)
+      : { data: [] };
+
+    const cacheMap: Record<string, number> = {};
+    for (const row of (cachedRows || [])) {
+      cacheMap[row.sku] = row.bling_produto_id;
+    }
+
+    // 9b. Para SKUs não em cache: GET no Bling → se não existir → POST /produtos
+    const novosCacheEntries: { sku: string; bling_produto_id: number; nome: string }[] = [];
+
+    for (const it of (itens || [])) {
+      if (!it.sku || cacheMap[it.sku]) continue;
+
+      const nome = stripQtdSuffix(it.descricao);
+      const skuEncoded = encodeURIComponent(it.sku);
+
+      // Tenta encontrar no Bling pelo código
+      let blingId: number | null = null;
+      try {
+        const found = await client.get(`/produtos?criterio=2&q=${skuEncoded}&limite=5`);
+        const match = (found?.data || []).find(
+          (p: any) => p.codigo === it.sku || p.codigo?.toLowerCase() === it.sku.toLowerCase()
+        );
+        if (match?.id) blingId = match.id;
+      } catch (_) { /* segue para criação */ }
+
+      // Se não encontrou: cria no Bling
+      if (!blingId) {
+        try {
+          const created = await client.post("/produtos", {
+            nome,
+            codigo: it.sku,
+            tipo: "P",
+            unidade: "UN",
+            preco: parseFloat(Number(it.valor_unitario).toFixed(2)),
+            situacao: "A",
+          });
+          blingId = created?.data?.id ?? created?.id ?? null;
+        } catch (_) { /* item ficará sem produto.id — enviado como avulso */ }
+      }
+
+      if (blingId) {
+        cacheMap[it.sku] = blingId;
+        novosCacheEntries.push({ sku: it.sku, bling_produto_id: blingId, nome });
+      }
+    }
+
+    // 9c. Persiste novas entradas no cache (fire-and-forget — não bloqueia o envio)
+    if (novosCacheEntries.length > 0) {
+      supabase
+        .from("bling_produtos_cache")
+        .upsert(novosCacheEntries, { onConflict: "sku" })
+        .then(() => {})
+        .catch(() => {});
+    }
+
+    // 9d. Monta itens com produto.id (catálogo) ou fallback avulso
     const rawItens = (itens && itens.length > 0)
-      ? itens.map((it: any) => ({
-          descricao: stripQtdSuffix(it.descricao),
-          codigo: it.sku || undefined,   // SKU do produto — Bling vincula ao catálogo
-          unidade: "UN",                 // Unidade de medida padrão para produtos físicos
-          quantidade: Number(it.quantidade),
-          valor: parseFloat(Number(it.valor_unitario).toFixed(2)),
-        }))
+      ? itens.map((it: any) => {
+          const blingProdId = it.sku ? cacheMap[it.sku] : null;
+          return {
+            descricao: stripQtdSuffix(it.descricao),
+            ...(blingProdId
+              ? { produto: { id: blingProdId } }           // produto cadastrado → sem aviso
+              : it.sku ? { codigo: it.sku } : {}),          // fallback: código ou avulso
+            unidade: "UN",
+            quantidade: Number(it.quantidade),
+            valor: parseFloat(Number(it.valor_unitario).toFixed(2)),
+          };
+        })
       : null;
 
     // totalProdutos = sum de cada linha (qtd × valor), arredondado por linha
@@ -218,8 +289,7 @@ serve(async (req) => {
         )
       : totalExato;
 
-    // descontoValor = diferença entre preços originais e total real das parcelas
-    // Garante por construção: totalProdutos - desconto = totalExato = sum(parcelas)
+    // descontoValor: garante totalProdutos - desconto = totalExato = sum(parcelas)
     const descontoValor = parseFloat((totalProdutosCalc - totalExato).toFixed(2));
 
     const blingItens = rawItens ?? [{
@@ -240,7 +310,6 @@ serve(async (req) => {
       observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
     };
 
-    // Adiciona desconto só se houver diferença real (pedidos com desconto de pedido)
     if (descontoValor >= 0.01) {
       payload.desconto = { tipo: "VALOR", valor: descontoValor };
     }

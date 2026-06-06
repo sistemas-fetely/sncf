@@ -838,6 +838,33 @@ export type Database = {
           },
         ]
       }
+      bling_produtos_cache: {
+        Row: {
+          atualizado_em: string | null
+          bling_produto_id: number
+          criado_em: string | null
+          id: string
+          nome: string | null
+          sku: string
+        }
+        Insert: {
+          atualizado_em?: string | null
+          bling_produto_id: number
+          criado_em?: string | null
+          id?: string
+          nome?: string | null
+          sku: string
+        }
+        Update: {
+          atualizado_em?: string | null
+          bling_produto_id?: number
+          criado_em?: string | null
+          id?: string
+          nome?: string | null
+          sku?: string
+        }
+        Relationships: []
+      }
       boleto_stage: {
         Row: {
           ancorado_em: string | null
