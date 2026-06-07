@@ -351,11 +351,16 @@ serve(async (req) => {
     const temFrete = Number(pedido.valor_frete ?? 0) > 0;
     const valorFrete = temFrete ? Number(pedido.valor_frete) : 0;
 
-    // Fator de desconto aplicado por linha — garante sum(itens) == sum(parcelas) (validação Bling).
-    // Bling não subtrai o campo desconto na validação: itens devem chegar já com preço líquido.
+    // Fator de desconto frete-aware:
+    // sem frete → itens somam valor_liquido (desconto simples)
+    // com frete → itens somam (valor_liquido − valor_frete) para que
+    //             sum(itens) + transporte.frete == valor_liquido == sum(parcelas) → sem Code 22
+    const baseItens = valorFrete > 0
+      ? Math.max(0, pedido.valor_liquido - valorFrete)
+      : pedido.valor_liquido;
     const descontoFator =
-      pedido.valor_bruto > 0 && pedido.valor_liquido < pedido.valor_bruto
-        ? pedido.valor_liquido / pedido.valor_bruto
+      pedido.valor_bruto > 0 && baseItens < pedido.valor_bruto
+        ? baseItens / pedido.valor_bruto
         : 1;
 
     const rawItens = (itens && itens.length > 0)
@@ -422,6 +427,7 @@ serve(async (req) => {
       payload.transporte = {
         fretePorConta: tipoFrete,
         ...(blingTransportadoraId ? { transportadora: blingTransportadoraId } : transpNome ? { transportadora: { nome: transpNome } } : {}),
+        ...(valorFrete > 0 ? { frete: parseFloat(valorFrete.toFixed(2)) } : {}),
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
       };
