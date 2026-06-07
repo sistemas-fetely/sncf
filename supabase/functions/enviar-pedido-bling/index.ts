@@ -351,8 +351,7 @@ serve(async (req) => {
     const temFrete = Number(pedido.valor_frete ?? 0) > 0;
     const valorFrete = temFrete ? Number(pedido.valor_frete) : 0;
 
-    // Fator de desconto: SEMPRE padrão (valor_liquido/valor_bruto)
-    // O desconto no Bling absorve o frete automaticamente no cálculo
+    // Fator de desconto padrão (o que funcionava antes)
     const descontoFator =
       pedido.valor_bruto > 0 && pedido.valor_liquido < pedido.valor_bruto
         ? pedido.valor_liquido / pedido.valor_bruto
@@ -361,16 +360,12 @@ serve(async (req) => {
     const rawItens = (itens && itens.length > 0)
       ? itens.map((it: any) => {
           const blingProdId = it.sku ? cacheMap[it.sku] : null;
-          const qty = Number(it.quantidade);
-          const val_exact = Number(it.valor_unitario) * descontoFator;
-          // CEILING garante sum(items) >= expectedProd → desconto sempre >= 0 → sem code 22
-          const valor = Math.ceil(val_exact * 100) / 100;
           return {
             descricao: stripQtdSuffix(it.descricao),
             ...(blingProdId ? { produto: { id: blingProdId } } : {}),
             unidade: "UN",
-            quantidade: qty,
-            valor,
+            quantidade: Number(it.quantidade),
+            valor: parseFloat((Number(it.valor_unitario) * descontoFator).toFixed(2)),
           };
         })
       : null;
@@ -383,11 +378,8 @@ serve(async (req) => {
         )
       : totalExato;
 
-    // desconto = totalProdutos + frete - totalExato (cobre residual de arredondamento + frete no NF)
-    // Resultado: NF mostra produtos (c/desconto), frete separado, desconto total que fecha o total
-    const descontoValorCalc = parseFloat(
-      (totalProdutosCalc + valorFrete - totalExato).toFixed(2)
-    );
+    // Desconto residual de arredondamento (normalmente poucos centavos)
+    const descontoValorCalc = parseFloat((totalProdutosCalc - totalExato).toFixed(2));
 
     const blingItens = rawItens ?? [{
       descricao: `Pedido FOP #${pedido.id_externo}`,
@@ -395,8 +387,8 @@ serve(async (req) => {
       valor: totalExato,
     }];
 
-    // 10. Payload final
-    // Bling valida: totalProdutos + frete - desconto = total = sum(parcelas) ✓
+    // 10. Payload final — frete = 0 no pedido de venda (Bling não aceita frete sem parcelas incluírem)
+    // O valor do frete é preenchido diretamente na NF no Bling na hora de faturar
     const payload: Record<string, any> = {
       numeroLoja: pedido.id_externo,
       data: pedido.data_pedido,
@@ -405,7 +397,6 @@ serve(async (req) => {
       itens: blingItens,
       parcelas: blingParcelas,
       totalProdutos: rawItens ? totalProdutosCalc : totalExato,
-      ...(valorFrete > 0 ? { frete: valorFrete } : {}),
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
     };
@@ -415,7 +406,7 @@ serve(async (req) => {
     }
 
     // CIF=0 (remetente/Fetely paga), FOB=1 (destinatário/cliente paga), sem frete=9
-    const tipoFrete = !temFrete ? 9 : (pedido.frete_tipo === "FOB" ? 1 : 0);
+    const tipoFrete = valorFrete === 0 ? 9 : (pedido.frete_tipo === "FOB" ? 1 : 0);
     const pesoReal = Number(pedido.peso_bruto_total ?? 0);
 
     if (transpNome || valorFrete > 0 || pesoReal > 0) {
