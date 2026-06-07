@@ -16,7 +16,7 @@ export function useAguardandoPagamentoFila(opts: Options = {}) {
         .from("pedidos")
         .select(`
           id, id_externo, valor_liquido, estagio_atualizado_em,
-          parceiro:parceiros_comerciais(razao_social, cnpj),
+          parceiro:parceiros_comerciais!parceiro_id(razao_social, cnpj),
           titulos:titulo_a_receber(id, status, eh_entrada)
         `)
         .eq("estagio", "aguardando_pagamento")

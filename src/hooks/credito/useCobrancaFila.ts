@@ -16,7 +16,7 @@ export function useCobrancaFila(opts: Options = {}) {
         .from("pedidos")
         .select(`
           id, id_externo, valor_liquido, condicao_solicitada, estagio_atualizado_em,
-          parceiro:parceiros_comerciais(razao_social, cnpj),
+          parceiro:parceiros_comerciais!parceiro_id(razao_social, cnpj),
           analises:analises_credito(perfil_aplicado, decidido_em)
         `)
         .eq("estagio", "cobranca")

@@ -38,7 +38,7 @@ function usePedidoMinimo(pedidoId: string | undefined) {
         .from("pedidos")
         .select(`
           id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada,
-          parceiro:parceiros_comerciais(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf)
+          parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf)
         `)
         .eq("id", pedidoId)
         .maybeSingle();
