@@ -412,8 +412,8 @@ serve(async (req) => {
     if (transpNome || valorFrete > 0 || pesoReal > 0) {
       payload.transporte = {
         fretePorConta: tipoFrete,
-        // Só nome: Bling faz lookup pelo nome cadastrado — ID de contato não preenche o campo
-        ...(transpNome ? { transportadora: { nome: transpNome } } : {}),
+        // Tenta as duas estruturas — Bling v3 pode aceitar nome direto ou dentro de transportadora
+        ...(transpNome ? { nome: transpNome, transportadora: { nome: transpNome } } : {}),
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
       };
