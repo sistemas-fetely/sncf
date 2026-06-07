@@ -170,6 +170,22 @@ export default function CobrancaDetalhe() {
     );
   }
 
+  // Erro ao carregar pedido (query falhou)
+  if (pedidoQ.error) {
+    return (
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-4">
+        <Alert variant="destructive">
+          <AlertDescription>
+            Erro ao carregar pedido: {(pedidoQ.error as Error).message}
+          </AlertDescription>
+        </Alert>
+        <Button variant="ghost" onClick={() => navigate("/recebimento/cobranca")}>
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </Button>
+      </div>
+    );
+  }
+
   // Pedido não encontrado
   if (!pedidoQ.data) {
     return (
