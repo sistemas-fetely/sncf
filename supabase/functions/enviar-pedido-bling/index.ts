@@ -360,12 +360,17 @@ serve(async (req) => {
     const rawItens = (itens && itens.length > 0)
       ? itens.map((it: any) => {
           const blingProdId = it.sku ? cacheMap[it.sku] : null;
+          const qty = Number(it.quantidade);
+          // Calcula pelo TOTAL DA LINHA (não por preço unitário)
+          // round(val_unit × qty × fator, 2) → erro máx ±0,005/linha
+          // vs round(val_unit × fator, 2) × qty → erro cresce com qty (0,77 no SHOP FEST)
+          const lineTotal = parseFloat((Number(it.valor_unitario) * qty * descontoFator).toFixed(2));
           return {
             descricao: stripQtdSuffix(it.descricao),
             ...(blingProdId ? { produto: { id: blingProdId } } : {}),
             unidade: "UN",
-            quantidade: Number(it.quantidade),
-            valor: parseFloat((Number(it.valor_unitario) * descontoFator).toFixed(2)),
+            quantidade: qty,
+            valor: parseFloat((lineTotal / qty).toFixed(4)), // 4 casas: Bling soma × qty sem re-arredondar
           };
         })
       : null;
@@ -378,7 +383,6 @@ serve(async (req) => {
         )
       : totalExato;
 
-    // Desconto residual de arredondamento (normalmente poucos centavos)
     const descontoValorCalc = parseFloat((totalProdutosCalc - totalExato).toFixed(2));
 
     const blingItens = rawItens ?? [{
