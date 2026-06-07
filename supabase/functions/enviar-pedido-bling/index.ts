@@ -429,7 +429,8 @@ serve(async (req) => {
         ...transpBlock,
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
-        ...(valorFrete > 0 ? { frete: valorFrete } : {}),
+        // frete omitido — Bling soma ao total e quebra sum(parcelas) ≠ total (code 22)
+        // O valor de frete vai no campo da NF diretamente no Bling na hora de faturar
       };
     }
 
