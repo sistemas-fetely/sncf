@@ -338,22 +338,25 @@ serve(async (req) => {
     }
 
     // 9d. Monta itens com produto.id (catálogo) ou fallback avulso
-    // AMBOS CIF e FOB: frete aparece no Bling como campo separado.
+    // CIF (cliente paga frete embutido no valor_liquido):
+    //   totalProdutos = valor_liquido - valor_frete
+    //   frete_bling   = valor_frete
+    //   total         = valor_liquido = sum(parcelas) → sem code 22
+    //   NF: produtos separados do frete, tributação correta
+    //
+    // AMBOS CIF e FOB: frete aparece no Bling (R$570,67)
     // totalProdutos = valor_liquido - valor_frete → frete separado no payload
     // total = totalProdutos + frete = valor_liquido = sum(parcelas) → sem code 22
     // Diferença CIF vs FOB: apenas fretePorConta (0=remetente/Fetely, 1=destinatário/cliente)
     const temFrete = Number(pedido.valor_frete ?? 0) > 0;
     const valorFrete = temFrete ? Number(pedido.valor_frete) : 0;
 
-    // Fator sempre retira o frete da base dos produtos (quando há frete)
-    const baseDescontoFator =
+    // Fator de desconto: SEMPRE padrão (valor_liquido/valor_bruto)
+    // O desconto no Bling absorve o frete automaticamente no cálculo
+    const descontoFator =
       pedido.valor_bruto > 0 && pedido.valor_liquido < pedido.valor_bruto
         ? pedido.valor_liquido / pedido.valor_bruto
         : 1;
-
-    const descontoFator = temFrete && pedido.valor_bruto > 0
-      ? (pedido.valor_liquido - valorFrete) / pedido.valor_bruto
-      : baseDescontoFator;
 
     const rawItens = (itens && itens.length > 0)
       ? itens.map((it: any) => {
@@ -361,7 +364,6 @@ serve(async (req) => {
           const qty = Number(it.quantidade);
           const val_exact = Number(it.valor_unitario) * descontoFator;
           // CEILING garante sum(items) >= expectedProd → desconto sempre >= 0 → sem code 22
-          // Máximo extra: 0,01/item × 49 itens = R$0,49 de desconto residual no máximo
           const valor = Math.ceil(val_exact * 100) / 100;
           return {
             descricao: stripQtdSuffix(it.descricao),
@@ -381,17 +383,20 @@ serve(async (req) => {
         )
       : totalExato;
 
-    // Residual sempre >= 0 com ceiling → desconto sempre positivo → total = sum(parcelas) ✓
-    const expectedProd = totalExato - valorFrete;
-    const descontoValorCalc = parseFloat((totalProdutosCalc - expectedProd).toFixed(2));
+    // desconto = totalProdutos + frete - totalExato (cobre residual de arredondamento + frete no NF)
+    // Resultado: NF mostra produtos (c/desconto), frete separado, desconto total que fecha o total
+    const descontoValorCalc = parseFloat(
+      (totalProdutosCalc + valorFrete - totalExato).toFixed(2)
+    );
 
     const blingItens = rawItens ?? [{
       descricao: `Pedido FOP #${pedido.id_externo}`,
       quantidade: 1,
-      valor: temFrete ? (totalExato - valorFrete) : totalExato,
+      valor: totalExato,
     }];
 
     // 10. Payload final
+    // Bling valida: totalProdutos + frete - desconto = total = sum(parcelas) ✓
     const payload: Record<string, any> = {
       numeroLoja: pedido.id_externo,
       data: pedido.data_pedido,
@@ -399,7 +404,7 @@ serve(async (req) => {
       ...(blingLojaId ? { loja: { id: blingLojaId }, canal: { id: blingLojaId } } : {}),
       itens: blingItens,
       parcelas: blingParcelas,
-      totalProdutos: rawItens ? totalProdutosCalc : (temFrete ? totalExato - valorFrete : totalExato),
+      totalProdutos: rawItens ? totalProdutosCalc : totalExato,
       ...(valorFrete > 0 ? { frete: valorFrete } : {}),
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
