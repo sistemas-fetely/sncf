@@ -524,26 +524,6 @@ export default function PedidoDetalhe() {
             </div>
           )}
         </div>
-
-        {/* COLUNA DIREITA — sidebar sticky */}
-        <div className="w-full lg:w-80 xl:w-96 border-t lg:border-t-0 lg:border-l border-border">
-          <div className="sticky top-14 max-h-[calc(100vh-56px)] overflow-y-auto px-5 py-5 space-y-5">
-
-
-            {pedido.observacao_pedido && pedido.observacao_pedido.trim().length > 0 && (
-              <Card className="border-border/60">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] uppercase tracking-widest text-muted-foreground font-normal">Observação do pedido</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1">
-                  <p className="text-sm whitespace-pre-wrap">{pedido.observacao_pedido}</p>
-                  <p className="text-xs text-muted-foreground">Registrada pelo vendedor no FOP.</p>
-                </CardContent>
-              </Card>
-            )}
-
-          </div>
-        </div>
       </div>
     </div>
   );
