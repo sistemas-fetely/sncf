@@ -513,18 +513,6 @@ export default function PedidoDetalhe() {
         <div className="w-full lg:w-80 xl:w-96 border-t lg:border-t-0 lg:border-l border-border">
           <div className="sticky top-14 max-h-[calc(100vh-56px)] overflow-y-auto px-5 py-5 space-y-5">
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estágio</p>
-                <EstagioBadge estagio={estagio} />
-              </div>
-              <div className="text-right space-y-1">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Área</p>
-                <p className="text-sm font-medium">{AREA_LABELS[pedido.area_atual as AreaPedido] || pedido.area_atual}</p>
-              </div>
-            </div>
-
-            <Separator />
 
             {!estagioFinal && (
               <div className="space-y-2">
