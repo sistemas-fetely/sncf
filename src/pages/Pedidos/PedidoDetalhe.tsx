@@ -377,12 +377,28 @@ export default function PedidoDetalhe() {
                   </Button>
                 </div>
 
-                {pedido.frete_tipo && (
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Frete: {pedido.frete_tipo}
-                    {pedido.valor_frete > 0 && <> · R$ {pedido.valor_frete.toFixed(2).replace(".", ",")}</>}
-                  </p>
-                )}
+    <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/40">
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Tipo frete</p>
+        <p className="text-sm font-medium">{pedido.frete_tipo ?? "—"}</p>
+      </div>
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor frete</p>
+        <p className="text-sm font-medium">
+          {pedido.valor_frete > 0
+            ? `R$ ${Number(pedido.valor_frete).toFixed(2).replace(".", ",")}`
+            : "—"}
+        </p>
+      </div>
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cubagem</p>
+        <p className="text-sm font-medium">
+          {pedido.cubagem_total > 0
+            ? `${Number(pedido.cubagem_total).toFixed(3)} kg`
+            : "—"}
+        </p>
+      </div>
+    </div>
               </CardContent>
             </Card>
           )}
