@@ -428,8 +428,8 @@ export default function PedidoDetalhe() {
             <SelectValue placeholder="Selecionar..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="CIF">CIF — Frete cobrado do cliente</SelectItem>
-            <SelectItem value="FOB">FOB — Benefício comercial (Fetely absorve)</SelectItem>
+            <SelectItem value="FOB">FOB — Frete cobrado do cliente</SelectItem>
+            <SelectItem value="CIF">CIF — Benefício comercial (Fetely absorve)</SelectItem>
           </SelectContent>
         </Select>
       </div>
