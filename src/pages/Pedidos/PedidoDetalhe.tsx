@@ -119,7 +119,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
   );
   if (estagio === "aguardando_pagamento") return <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />;
   if (estagio === "pre_faturado" && !pedido.bling_id_destino) return (
-    <EnviarBlingDialog pedido_id={pedido.id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} forma_solicitada={pedido.forma_solicitada} />
+    <EnviarBlingDialog pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} forma_solicitada={pedido.forma_solicitada} />
   );
   if (estagio === "em_analise_credito") return (
     <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-700 dark:text-blue-300 flex gap-2">
