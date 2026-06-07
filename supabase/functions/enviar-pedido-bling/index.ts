@@ -394,14 +394,16 @@ serve(async (req) => {
     // 1 = FOB (destinatário paga) quando há valor de frete cobrado
     // 9 = Sem ocorrência de transporte quando frete = 0
     const tipoFrete = valorFrete > 0 ? 1 : 9;
+    const pesoReal = Number(pedido.peso_bruto_total ?? 0);
+    const pesoCubagem = Number(pedido.cubagem_total ?? 0) * 300; // m³ × 300 = kg
+    const pesoCobrado = Math.max(pesoReal, pesoCubagem);         // transportadora cobra o maior
 
-    if (blingTransportadoraId || valorFrete > 0 || Number(pedido.peso_bruto_total ?? 0) > 0) {
+    if (blingTransportadoraId || valorFrete > 0 || pesoCobrado > 0) {
       payload.transporte = {
         tipo: tipoFrete,
         ...(blingTransportadoraId ? { transportadora: { id: blingTransportadoraId } } : {}),
-        ...(Number(pedido.peso_bruto_total ?? 0) > 0
-          ? { pesoBruto: Number(pedido.peso_bruto_total) }
-          : {}),
+        ...(pesoCobrado > 0 ? { pesoBruto: parseFloat(pesoCobrado.toFixed(3)) } : {}),
+        ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
       };
     }
 
