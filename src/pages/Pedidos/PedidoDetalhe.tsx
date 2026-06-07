@@ -388,6 +388,28 @@ export default function PedidoDetalhe() {
                   </Button>
                 </div>
 
+                {freteEst.isLoading && transportadoraId && (
+                  <p className="text-xs text-muted-foreground mt-3">Calculando frete...</p>
+                )}
+                {freteEst.data && freteEst.data.erro && (
+                  <p className="text-xs text-destructive mt-3">{freteEst.data.erro}</p>
+                )}
+                {freteEst.data && !freteEst.data.erro && (
+                  <div className="mt-3 rounded-md border border-border/60 bg-muted/30 p-3 space-y-1">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estimativa Icaro</p>
+                    <p className="text-base font-semibold">
+                      {freteEst.data.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Prazo {freteEst.data.prazo_dias}d · {freteEst.data.tarifa_code}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Base: R$ {freteEst.data.breakdown.base.toFixed(2)} · GRIS: R$ {freteEst.data.breakdown.gris.toFixed(2)} · Pedágio: R$ {freteEst.data.breakdown.pedagio.toFixed(2)} · TAS: R$ {freteEst.data.breakdown.tas.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+
+
     <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40">
       <div>
         <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Tipo frete</p>
