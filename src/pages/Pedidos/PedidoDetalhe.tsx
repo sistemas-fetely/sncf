@@ -273,12 +273,15 @@ export default function PedidoDetalhe() {
 
               {/* Resumo financeiro agrupado */}
               {(() => {
-                const bruto = pedido.valor_bruto || 0;
-                const liquido = pedido.valor_liquido || 0;
-                const desconto = bruto - liquido;
-                const temDesconto = desconto > 0.01;
-                const frete = Number(pedido.valor_frete) || 0;
-                const temFrete = frete > 0.01;
+                const bruto          = pedido.valor_bruto || 0;
+                const liquido        = pedido.valor_liquido || 0;
+                const frete          = Number(pedido.valor_frete) || 0;
+                const celebra        = Number((pedido as any).desconto_celebra_valor) || 0;
+                const pix            = Number((pedido as any).bonus_pix_valor) || 0;
+                const temBreakdown   = celebra > 0.01 || pix > 0.01;
+                // Fallback: desconto derivado quando não tem breakdown
+                const descontoSimples = Math.max(0, bruto + frete - liquido);
+                const temFrete       = frete > 0.01;
                 return (
                   <div className="mt-3 rounded-md bg-muted/40 border border-border/50 px-3 py-2.5 space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-0.5">
@@ -288,14 +291,33 @@ export default function PedidoDetalhe() {
                       <span className="text-muted-foreground">Valor bruto</span>
                       <span>{fmtBRL.format(bruto)}</span>
                     </div>
-                    {temDesconto && (
+                    {temBreakdown ? (
+                      <>
+                        {celebra > 0.01 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Desconto ({((celebra / bruto) * 100).toFixed(2)}%)
+                            </span>
+                            <span className="text-destructive">−{fmtBRL.format(celebra)}</span>
+                          </div>
+                        )}
+                        {pix > 0.01 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Desconto PIX ({(celebra > 0.01 ? (pix / (bruto - celebra)) * 100 : (pix / bruto) * 100).toFixed(2)}%)
+                            </span>
+                            <span className="text-destructive">−{fmtBRL.format(pix)}</span>
+                          </div>
+                        )}
+                      </>
+                    ) : descontoSimples > 0.01 ? (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">
-                          Desconto ({((desconto / bruto) * 100).toFixed(2)}%)
+                          Desconto ({((descontoSimples / bruto) * 100).toFixed(2)}%)
                         </span>
-                        <span className="text-destructive">−{fmtBRL.format(desconto)}</span>
+                        <span className="text-destructive">−{fmtBRL.format(descontoSimples)}</span>
                       </div>
-                    )}
+                    ) : null}
                     {temFrete && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">

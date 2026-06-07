@@ -8848,6 +8848,7 @@ export type Database = {
           bling_enviado_por: string | null
           bling_envio_erro: string | null
           bling_id_destino: string | null
+          bonus_pix_valor: number
           cancelado_em: string | null
           cancelado_motivo: string | null
           cancelado_por: string | null
@@ -8856,6 +8857,7 @@ export type Database = {
           contexto_anotacoes: string | null
           cubagem_total: number | null
           data_pedido: string
+          desconto_celebra_valor: number
           desconto_pct: number | null
           endereco_entrega: Json | null
           entregue_em: string | null
@@ -8903,6 +8905,7 @@ export type Database = {
           bling_enviado_por?: string | null
           bling_envio_erro?: string | null
           bling_id_destino?: string | null
+          bonus_pix_valor?: number
           cancelado_em?: string | null
           cancelado_motivo?: string | null
           cancelado_por?: string | null
@@ -8911,6 +8914,7 @@ export type Database = {
           contexto_anotacoes?: string | null
           cubagem_total?: number | null
           data_pedido: string
+          desconto_celebra_valor?: number
           desconto_pct?: number | null
           endereco_entrega?: Json | null
           entregue_em?: string | null
@@ -8958,6 +8962,7 @@ export type Database = {
           bling_enviado_por?: string | null
           bling_envio_erro?: string | null
           bling_id_destino?: string | null
+          bonus_pix_valor?: number
           cancelado_em?: string | null
           cancelado_motivo?: string | null
           cancelado_por?: string | null
@@ -8966,6 +8971,7 @@ export type Database = {
           contexto_anotacoes?: string | null
           cubagem_total?: number | null
           data_pedido?: string
+          desconto_celebra_valor?: number
           desconto_pct?: number | null
           endereco_entrega?: Json | null
           entregue_em?: string | null
