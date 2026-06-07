@@ -377,7 +377,7 @@ export default function PedidoDetalhe() {
                   </Button>
                 </div>
 
-    <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/40">
+    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40">
       <div>
         <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Tipo frete</p>
         <p className="text-sm font-medium">{pedido.frete_tipo ?? "—"}</p>
@@ -394,7 +394,15 @@ export default function PedidoDetalhe() {
         <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cubagem</p>
         <p className="text-sm font-medium">
           {pedido.cubagem_total > 0
-            ? `${Number(pedido.cubagem_total).toFixed(3)} kg`
+            ? `${Number(pedido.cubagem_total).toFixed(4)} m³`
+            : "—"}
+        </p>
+      </div>
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Peso Cubagem</p>
+        <p className="text-sm font-medium">
+          {pedido.cubagem_total > 0
+            ? `${(Number(pedido.cubagem_total) * 300).toFixed(3)} kg`
             : "—"}
         </p>
       </div>
