@@ -473,6 +473,18 @@ serve(async (req) => {
         bling_envio_erro: null,
       }).eq("id", pedido_id);
 
+      // 12b. Avança estágio → em_separacao
+      // Fail-soft: Bling já recebeu o pedido. Se a transição falhar, não desfaz o envio.
+      const { error: errTransicao } = await supabase.rpc("transicionar_pedido" as string, {
+        p_pedido_id: pedido_id,
+        p_para_estagio: "em_separacao",
+        p_proxima_acao: "Pedido no armazém — aguardar NF",
+        p_motivo: `Enviado ao Bling (id ${blingId})`,
+      });
+      if (errTransicao) {
+        console.warn(`[enviar-pedido-bling] transicionar_pedido falhou: ${errTransicao.message}`);
+      }
+
       return ok({
         sucesso: true,
         bling_id: blingId,
