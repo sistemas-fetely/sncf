@@ -389,6 +389,10 @@ serve(async (req) => {
 
     // 10. Payload final — frete = 0 no pedido de venda (Bling não aceita frete sem parcelas incluírem)
     // O valor do frete é preenchido diretamente na NF no Bling na hora de faturar
+    const obsInternas = transpNome
+      ? `Transportadora: ${transpNome}${transpCnpj ? ` | CNPJ: ${transpCnpj}` : ""}`
+      : undefined;
+
     const payload: Record<string, any> = {
       numeroLoja: pedido.id_externo,
       data: pedido.data_pedido,
@@ -399,6 +403,7 @@ serve(async (req) => {
       totalProdutos: rawItens ? totalProdutosCalc : totalExato,
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
+      ...(obsInternas ? { observacoesInternas: obsInternas } : {}),
     };
 
     if (descontoValorCalc >= 0.01) {
