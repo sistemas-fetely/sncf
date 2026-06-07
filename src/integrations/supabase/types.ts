@@ -8854,6 +8854,7 @@ export type Database = {
           cliente_nome_snapshot: string | null
           condicao_solicitada: string
           contexto_anotacoes: string | null
+          cubagem_total: number | null
           data_pedido: string
           desconto_pct: number | null
           endereco_entrega: Json | null
@@ -8908,6 +8909,7 @@ export type Database = {
           cliente_nome_snapshot?: string | null
           condicao_solicitada: string
           contexto_anotacoes?: string | null
+          cubagem_total?: number | null
           data_pedido: string
           desconto_pct?: number | null
           endereco_entrega?: Json | null
@@ -8962,6 +8964,7 @@ export type Database = {
           cliente_nome_snapshot?: string | null
           condicao_solicitada?: string
           contexto_anotacoes?: string | null
+          cubagem_total?: number | null
           data_pedido?: string
           desconto_pct?: number | null
           endereco_entrega?: Json | null
