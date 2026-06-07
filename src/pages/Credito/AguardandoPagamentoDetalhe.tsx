@@ -32,7 +32,7 @@ function usePedidoAguardando(pedidoId: string | undefined) {
         .from("pedidos")
         .select(`
           id, id_externo, estagio, estagio_atualizado_em, valor_liquido,
-          parceiro:parceiros_comerciais(razao_social, cnpj)
+          parceiro:parceiros_comerciais!parceiro_id(razao_social, cnpj)
         `)
         .eq("id", pedidoId)
         .maybeSingle();
