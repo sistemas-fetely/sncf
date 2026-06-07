@@ -417,8 +417,8 @@ serve(async (req) => {
     if (transpNome || valorFrete > 0 || pesoReal > 0) {
       payload.transporte = {
         fretePorConta: tipoFrete,
-        // Tenta as duas estruturas — Bling v3 pode aceitar nome direto ou dentro de transportadora
-        ...(transpNome ? { nome: transpNome, transportadora: { nome: transpNome } } : {}),
+        // Tenta ID numérico puro (sem sub-objeto) — formato que alguns endpoints Bling v3 aceitam
+        ...(blingTransportadoraId ? { transportadora: blingTransportadoraId } : transpNome ? { transportadora: { nome: transpNome } } : {}),
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
       };
