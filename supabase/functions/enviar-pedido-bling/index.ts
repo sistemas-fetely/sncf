@@ -390,11 +390,12 @@ serve(async (req) => {
       valor: totalExato,
     }];
 
-    // 10. Payload final — frete = 0 no pedido de venda (Bling não aceita frete sem parcelas incluírem)
-    // O valor do frete é preenchido diretamente na NF no Bling na hora de faturar
-    const obsInternas = transpNome
-      ? `Transportadora: ${transpNome}${transpCnpj ? ` | CNPJ: ${transpCnpj}` : ""}`
-      : undefined;
+    // transporte.frete NÃO vai no payload — Bling soma ao total e quebra validação sum(parcelas).
+    // Valor do frete vai nas observacoesInternas para referência na hora de emitir a NF.
+    const obsPartes: string[] = [];
+    if (transpNome) obsPartes.push(`Transportadora: ${transpNome}${transpCnpj ? ` | CNPJ: ${transpCnpj}` : ""}`);
+    if (valorFrete > 0) obsPartes.push(`Frete ${pedido.frete_tipo || ""}${pedido.frete_tipo ? ":" : ""} R$ ${valorFrete.toFixed(2)}`);
+    const obsInternas = obsPartes.length > 0 ? obsPartes.join(" | ") : undefined;
 
     const payload: Record<string, any> = {
       numeroLoja: pedido.id_externo,
@@ -421,7 +422,6 @@ serve(async (req) => {
       payload.transporte = {
         fretePorConta: tipoFrete,
         ...(blingTransportadoraId ? { transportadora: blingTransportadoraId } : transpNome ? { transportadora: { nome: transpNome } } : {}),
-        ...(valorFrete > 0 ? { frete: parseFloat(valorFrete.toFixed(2)) } : {}),
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
       };
