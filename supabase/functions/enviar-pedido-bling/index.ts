@@ -411,20 +411,25 @@ serve(async (req) => {
 
     // Fix 5: pesoBruto na NF = peso REAL (não peso cubagem)
     // peso cubagem serve só para calcular custo do frete, não vai na NF
-    if (blingTransportadoraId || transpCnpj || valorFrete > 0 || pesoReal > 0) {
+    if (blingTransportadoraId || transpNome || valorFrete > 0 || pesoReal > 0) {
       const transpBlock: Record<string, any> = {};
       if (blingTransportadoraId) {
-        transpBlock.transportadora = { id: blingTransportadoraId };
-      } else if (transpCnpj) {
-        // Sem bling_id: tenta enviar dados básicos — Bling pode ignorar sem id válido
-        transpBlock.transportadora = { id: 0, nome: transpNome, cpfCnpj: transpCnpj };
+        // ID + nome: Bling usa ID para vincular e nome para exibir no campo
+        transpBlock.transportadora = {
+          id: blingTransportadoraId,
+          ...(transpNome ? { nome: transpNome } : {}),
+        };
+      } else if (transpNome) {
+        // Sem bling_id: nome exato conforme cadastro no Bling — faz lookup pelo texto
+        transpBlock.transportadora = { nome: transpNome };
       }
 
       payload.transporte = {
-        fretePorConta: tipoFrete,   // campo correto Bling v3 (era "tipo" — erro de nomenclatura)
+        fretePorConta: tipoFrete,
         ...transpBlock,
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
+        ...(valorFrete > 0 ? { frete: valorFrete } : {}),
       };
     }
 
