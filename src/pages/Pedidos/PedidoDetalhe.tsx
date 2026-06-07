@@ -525,15 +525,6 @@ export default function PedidoDetalhe() {
           <div className="sticky top-14 max-h-[calc(100vh-56px)] overflow-y-auto px-5 py-5 space-y-5">
 
 
-            {!estagioFinal && (
-              <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Próxima ação</p>
-                {pedido.proxima_acao && <p className="text-xs text-muted-foreground italic">{pedido.proxima_acao}</p>}
-                <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
-                <CancelarPedidoDialog pedido_id={pedido.id} />
-              </div>
-            )}
-
             {pedido.observacao_pedido && pedido.observacao_pedido.trim().length > 0 && (
               <Card className="border-border/60">
                 <CardHeader className="pb-2">
