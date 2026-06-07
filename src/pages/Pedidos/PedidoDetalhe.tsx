@@ -459,6 +459,7 @@ export default function PedidoDetalhe() {
                 <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
                 <TabsTrigger value="analise">Análise IA</TabsTrigger>
                 <TabsTrigger value="timeline">Histórico</TabsTrigger>
+                <TabsTrigger value="urgencia">Urgência</TabsTrigger>
               </TabsList>
 
               <TabsContent value="parcelas"><ParcelasTab pedidoId={pedido.id} /></TabsContent>
@@ -466,36 +467,38 @@ export default function PedidoDetalhe() {
                 <CardAnalisePedido pedido_id={pedido.id} status={pedido.analise_pedido_status ?? null} motivo={pedido.analise_pedido_motivo ?? null} detalhes={pedido.analise_pedido_detalhes ?? null} executada_em={pedido.analise_pedido_executada_em ?? null} />
               </TabsContent>
               <TabsContent value="timeline"><PedidoTimeline eventos={eventos} /></TabsContent>
+              <TabsContent value="urgencia">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Urgência</p>
+                  </div>
+                  <Select value={urgencia} onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-gray-400" />{URGENCIA_LABELS.normal}</span></SelectItem>
+                      <SelectItem value="alta"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-yellow-500" />{URGENCIA_LABELS.alta}</span></SelectItem>
+                      <SelectItem value="critica"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500" />{URGENCIA_LABELS.critica}</span></SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <textarea
+                    value={obsUrgencia}
+                    onChange={(e) => setObsUrgencia(e.target.value)}
+                    placeholder="Justificativa opcional…"
+                    rows={2}
+                    className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                  />
+                  <Button size="sm" variant="outline" className="w-full"
+                    onClick={() => id && atualizarUrgencia.mutate({ pedidoId: id, urgencia, observacao: obsUrgencia })}
+                    disabled={atualizarUrgencia.isPending}>
+                    {atualizarUrgencia.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Salvar urgência"}
+                  </Button>
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
 
-          {/* Urgência */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Urgência</p>
-            </div>
-            <Select value={urgencia} onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)}>
-              <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-gray-400" />{URGENCIA_LABELS.normal}</span></SelectItem>
-                <SelectItem value="alta"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-yellow-500" />{URGENCIA_LABELS.alta}</span></SelectItem>
-                <SelectItem value="critica"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500" />{URGENCIA_LABELS.critica}</span></SelectItem>
-              </SelectContent>
-            </Select>
-            <textarea
-              value={obsUrgencia}
-              onChange={(e) => setObsUrgencia(e.target.value)}
-              placeholder="Justificativa opcional…"
-              rows={2}
-              className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
-            />
-            <Button size="sm" variant="outline" className="w-full"
-              onClick={() => id && atualizarUrgencia.mutate({ pedidoId: id, urgencia, observacao: obsUrgencia })}
-              disabled={atualizarUrgencia.isPending}>
-              {atualizarUrgencia.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Salvar urgência"}
-            </Button>
-          </div>
+
 
 
           {estagioFinal && (
