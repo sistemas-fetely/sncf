@@ -318,6 +318,75 @@ export default function PedidoDetalhe() {
             </div>
           </div>
 
+          {estagio === "pre_faturado" && (
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                  Dados de Envio
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-[1fr_180px_auto] md:items-end">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Transportadora</label>
+                    <Select value={transportadoraId || "__none__"} onValueChange={(v) => setTransportadoraId(v === "__none__" ? "" : v)}>
+                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Nenhuma —</SelectItem>
+                        {(transportadoras.data ?? []).map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.razao_social}
+                            {t.cnpj && <span className="text-muted-foreground ml-2 text-xs">{t.cnpj}</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Peso bruto total (kg)</label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      value={pesoBruto}
+                      onChange={(e) => setPesoBruto(e.target.value)}
+                      placeholder="0.000"
+                      className="w-full h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+
+                  <Button
+                    size="sm"
+                    className="h-9"
+                    disabled={salvarDadosEnvio.isPending}
+                    onClick={() =>
+                      id && salvarDadosEnvio.mutate({
+                        pedidoId: id,
+                        transportadoraId: transportadoraId || null,
+                        pesoBrutoTotal: parseFloat(pesoBruto) || 0,
+                      })
+                    }
+                  >
+                    {salvarDadosEnvio.isPending ? (
+                      <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>
+                    ) : (
+                      "Salvar"
+                    )}
+                  </Button>
+                </div>
+
+                {pedido.frete_tipo && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Frete: {pedido.frete_tipo}
+                    {pedido.valor_frete > 0 && <> · R$ {pedido.valor_frete.toFixed(2).replace(".", ",")}</>}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Separator />
 
           {/* Itens */}
@@ -400,76 +469,6 @@ export default function PedidoDetalhe() {
               </Card>
             )}
 
-            {estagio === "pre_faturado" && (
-              <>
-                <Card className="border-border/60">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] uppercase tracking-widest text-muted-foreground font-normal flex items-center gap-1.5">
-                      <Truck className="h-3.5 w-3.5" />
-                      Dados de Envio
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Transportadora</label>
-                      <Select value={transportadoraId || "__none__"} onValueChange={(v) => setTransportadoraId(v === "__none__" ? "" : v)}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">— Nenhuma —</SelectItem>
-                          {(transportadoras.data ?? []).map((t) => (
-                            <SelectItem key={t.id} value={t.id}>
-                              {t.razao_social}
-                              {t.cnpj && <span className="text-muted-foreground ml-2 text-xs">{t.cnpj}</span>}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Peso bruto total (kg)</label>
-                      <input
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        value={pesoBruto}
-                        onChange={(e) => setPesoBruto(e.target.value)}
-                        placeholder="0.000"
-                        className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring"
-                      />
-                    </div>
-
-                    {pedido.frete_tipo && (
-                      <p className="text-xs text-muted-foreground">
-                        Frete: {pedido.frete_tipo}
-                        {pedido.valor_frete > 0 && <> · R$ {pedido.valor_frete.toFixed(2).replace(".", ",")}</>}
-                      </p>
-                    )}
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                      disabled={salvarDadosEnvio.isPending}
-                      onClick={() =>
-                        id && salvarDadosEnvio.mutate({
-                          pedidoId: id,
-                          transportadoraId: transportadoraId || null,
-                          pesoBrutoTotal: parseFloat(pesoBruto) || 0,
-                        })
-                      }
-                    >
-                      {salvarDadosEnvio.isPending ? (
-                        <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>
-                      ) : (
-                        "Salvar dados de envio"
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-                <Separator />
-              </>
-            )}
 
             <Separator />
 
