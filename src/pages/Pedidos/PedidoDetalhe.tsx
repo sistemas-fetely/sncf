@@ -397,9 +397,16 @@ export default function PedidoDetalhe() {
                 {freteEst.data && !freteEst.data.erro && (
                   <div className="mt-3 rounded-md border border-border/60 bg-muted/30 p-3 space-y-1">
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estimativa Icaro</p>
-                    <p className="text-base font-semibold">
-                      {freteEst.data.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-base font-semibold">
+                        {freteEst.data.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                      {pedido.valor_bruto > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          ({((freteEst.data.valor_estimado / pedido.valor_bruto) * 100).toFixed(2)}% do bruto)
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Prazo {freteEst.data.prazo_dias}d · {freteEst.data.tarifa_code}
                     </p>
