@@ -267,32 +267,52 @@ export default function PedidoDetalhe() {
               <Linha label="Recebido em" value={fmtDateTime(pedido.recebido_em)} />
               <Linha label="Via" value={pedido.recebido_via} />
               <Linha label="Vendedor" value={pedido.vendedor} />
-              <Linha label="Valor bruto" value={fmtBRL.format(pedido.valor_bruto || 0)} />
+              <Linha label="Condição" value={pedido.condicao_solicitada} />
+              <Linha label="Forma" value={pedido.forma_solicitada} />
+              {pedido.bling_id_destino && <Linha label="Bling ID" value={`#${pedido.bling_id_destino}`} />}
+
+              {/* Resumo financeiro agrupado */}
               {(() => {
                 const bruto = pedido.valor_bruto || 0;
                 const liquido = pedido.valor_liquido || 0;
-                const diff = bruto - liquido;
-                if (diff <= 0.01) return null;
-                const pct = ((diff / bruto) * 100).toFixed(2);
+                const desconto = bruto - liquido;
+                const temDesconto = desconto > 0.01;
+                const frete = Number(pedido.valor_frete) || 0;
+                const temFrete = frete > 0.01;
                 return (
-                  <Linha
-                    label="Desconto"
-                    value={`${pct}% (−${fmtBRL.format(diff)})`}
-                  />
+                  <div className="mt-3 rounded-md bg-muted/40 border border-border/50 px-3 py-2.5 space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-0.5">
+                      Resumo financeiro
+                    </p>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Valor bruto</span>
+                      <span>{fmtBRL.format(bruto)}</span>
+                    </div>
+                    {temDesconto && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Desconto ({((desconto / bruto) * 100).toFixed(2)}%)
+                        </span>
+                        <span className="text-destructive">−{fmtBRL.format(desconto)}</span>
+                      </div>
+                    )}
+                    {temFrete && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Frete{pedido.frete_tipo ? ` (${pedido.frete_tipo})` : ""}
+                        </span>
+                        <span>+{fmtBRL.format(frete)}</span>
+                      </div>
+                    )}
+                    <div className="border-t border-border/60 pt-2">
+                      <div className="flex justify-between text-sm font-semibold">
+                        <span>Valor líquido</span>
+                        <span>{fmtBRL.format(liquido)}</span>
+                      </div>
+                    </div>
+                  </div>
                 );
               })()}
-              <Linha label="Valor líquido" value={fmtBRL.format(pedido.valor_liquido || 0)} destaque />
-              <Linha label="Condição" value={pedido.condicao_solicitada} />
-              <Linha label="Forma" value={pedido.forma_solicitada} />
-
-              <Linha
-                label="Frete"
-                value={pedido.valor_frete > 0 ? fmtBRL.format(pedido.valor_frete) : "—"}
-              />
-              {pedido.frete_tipo && (
-                <Linha label="Tipo frete" value={pedido.frete_tipo} />
-              )}
-              {pedido.bling_id_destino && <Linha label="Bling ID" value={`#${pedido.bling_id_destino}`} />}
             </div>
             {estagio !== "cancelado" && (
               <Card className="border-border/60">
