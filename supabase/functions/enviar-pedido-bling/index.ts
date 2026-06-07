@@ -429,7 +429,7 @@ serve(async (req) => {
         ...transpBlock,
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
-        ...(valorFrete > 0 ? { frete: valorFrete } : {}),
+        // frete NÃO vai aqui — Bling soma ao total e quebra sum(parcelas) ≠ total
       };
     }
 
