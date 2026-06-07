@@ -338,25 +338,20 @@ serve(async (req) => {
     }
 
     // 9d. Monta itens com produto.id (catálogo) ou fallback avulso
-    // CIF (cliente paga frete embutido no valor_liquido):
-    //   totalProdutos = valor_liquido - valor_frete
-    //   frete_bling   = valor_frete
-    //   total         = valor_liquido = sum(parcelas) → sem code 22
-    //   NF: produtos separados do frete, tributação correta
-    //
-    // FOB = cliente paga frete (Free On Board — destinatário) → frete entra no total NF
-    // CIF = Fetely absorve frete (Cost Insurance Freight — remetente) → sem frete no total
-    const isFreteCliente = (pedido.frete_tipo === "FOB") && (Number(pedido.valor_frete ?? 0) > 0);
-    const valorFrete = isFreteCliente ? Number(pedido.valor_frete) : 0;
+    // AMBOS CIF e FOB: frete aparece no Bling como campo separado.
+    // totalProdutos = valor_liquido - valor_frete → frete separado no payload
+    // total = totalProdutos + frete = valor_liquido = sum(parcelas) → sem code 22
+    // Diferença CIF vs FOB: apenas fretePorConta (0=remetente/Fetely, 1=destinatário/cliente)
+    const temFrete = Number(pedido.valor_frete ?? 0) > 0;
+    const valorFrete = temFrete ? Number(pedido.valor_frete) : 0;
 
-    // Fator de desconto por modalidade
+    // Fator sempre retira o frete da base dos produtos (quando há frete)
     const baseDescontoFator =
       pedido.valor_bruto > 0 && pedido.valor_liquido < pedido.valor_bruto
         ? pedido.valor_liquido / pedido.valor_bruto
         : 1;
 
-    // FOB: retira frete do base de itens → itens somam (valor_liquido - valor_frete)
-    const descontoFator = isFreteCliente && pedido.valor_bruto > 0
+    const descontoFator = temFrete && pedido.valor_bruto > 0
       ? (pedido.valor_liquido - valorFrete) / pedido.valor_bruto
       : baseDescontoFator;
 
@@ -393,7 +388,7 @@ serve(async (req) => {
     const blingItens = rawItens ?? [{
       descricao: `Pedido FOP #${pedido.id_externo}`,
       quantidade: 1,
-      valor: isFreteCliente ? (totalExato - valorFrete) : totalExato,
+      valor: temFrete ? (totalExato - valorFrete) : totalExato,
     }];
 
     // 10. Payload final
@@ -404,7 +399,7 @@ serve(async (req) => {
       ...(blingLojaId ? { loja: { id: blingLojaId }, canal: { id: blingLojaId } } : {}),
       itens: blingItens,
       parcelas: blingParcelas,
-      totalProdutos: rawItens ? totalProdutosCalc : (isFreteCliente ? totalExato - valorFrete : totalExato),
+      totalProdutos: rawItens ? totalProdutosCalc : (temFrete ? totalExato - valorFrete : totalExato),
       ...(valorFrete > 0 ? { frete: valorFrete } : {}),
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
@@ -414,32 +409,17 @@ serve(async (req) => {
       payload.desconto = { tipo: "VALOR", valor: descontoValorCalc };
     }
 
-    // FOB (cliente paga) → fretePorConta = 1 (destinatário); CIF (Fetely absorve) → 9 (sem ocorrência)
-    const tipoFrete = isFreteCliente ? 1 : 9;
+    // CIF=0 (remetente/Fetely paga), FOB=1 (destinatário/cliente paga), sem frete=9
+    const tipoFrete = !temFrete ? 9 : (pedido.frete_tipo === "FOB" ? 1 : 0);
     const pesoReal = Number(pedido.peso_bruto_total ?? 0);
 
-    // Fix 5: pesoBruto na NF = peso REAL (não peso cubagem)
-    // peso cubagem serve só para calcular custo do frete, não vai na NF
-    if (blingTransportadoraId || transpNome || valorFrete > 0 || pesoReal > 0) {
-      const transpBlock: Record<string, any> = {};
-      if (blingTransportadoraId) {
-        // ID + nome: Bling usa ID para vincular e nome para exibir no campo
-        transpBlock.transportadora = {
-          id: blingTransportadoraId,
-          ...(transpNome ? { nome: transpNome } : {}),
-        };
-      } else if (transpNome) {
-        // Sem bling_id: nome exato conforme cadastro no Bling — faz lookup pelo texto
-        transpBlock.transportadora = { nome: transpNome };
-      }
-
+    if (transpNome || valorFrete > 0 || pesoReal > 0) {
       payload.transporte = {
         fretePorConta: tipoFrete,
-        ...transpBlock,
+        // Só nome: Bling faz lookup pelo nome cadastrado — ID de contato não preenche o campo
+        ...(transpNome ? { transportadora: { nome: transpNome } } : {}),
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
-        // frete omitido — Bling soma ao total e quebra sum(parcelas) ≠ total (code 22)
-        // O valor de frete vai no campo da NF diretamente no Bling na hora de faturar
       };
     }
 
