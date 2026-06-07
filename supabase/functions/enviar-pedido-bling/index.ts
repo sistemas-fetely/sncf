@@ -338,7 +338,9 @@ serve(async (req) => {
     }
 
     // 9d. Monta itens com produto.id (catálogo) ou fallback avulso
-    // Aplica desconto por linha para NF fiscal correta (imposto sobre valor líquido)
+    // Aplica desconto por TOTAL DE LINHA (não por preço unitário)
+    // lineTotal = round(val_unit × qty × fator, 2) → erro máx ±0,005/linha
+    // vs round(val_unit × fator, 2) × qty → erro máx ±0,005×qty/linha (R$0,77 no SHOP FEST)
     const descontoFator =
       pedido.valor_bruto > 0 && pedido.valor_liquido < pedido.valor_bruto
         ? pedido.valor_liquido / pedido.valor_bruto
@@ -347,19 +349,21 @@ serve(async (req) => {
     const rawItens = (itens && itens.length > 0)
       ? itens.map((it: any) => {
           const blingProdId = it.sku ? cacheMap[it.sku] : null;
+          const qty       = Number(it.quantidade);
+          const lineTotal = parseFloat((Number(it.valor_unitario) * qty * descontoFator).toFixed(2));
           return {
             descricao: stripQtdSuffix(it.descricao),
             ...(blingProdId
-              ? { produto: { id: blingProdId } }  // produto no catálogo Bling → Código preenchido
-              : {}),                               // sync falhou → avulso (sem codigo, evita code 27)
+              ? { produto: { id: blingProdId } }
+              : {}),
             unidade: "UN",
-            quantidade: Number(it.quantidade),
-            valor: parseFloat((Number(it.valor_unitario) * descontoFator).toFixed(2)),
+            quantidade: qty,
+            valor: parseFloat((lineTotal / qty).toFixed(4)), // 4 casas p/ Bling recalcular corretamente
           };
         })
       : null;
 
-    // totalProdutos = sum de cada linha (qtd × valor), arredondado por linha
+    // totalProdutos = sum dos lineTotals (base de arredondamento correta)
     const totalProdutosCalc = rawItens
       ? parseFloat(
           rawItens
