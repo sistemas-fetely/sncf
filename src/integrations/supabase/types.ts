@@ -12678,6 +12678,184 @@ export type Database = {
           },
         ]
       }
+      transp_tabela_atendimento: {
+        Row: {
+          cep_final: number
+          cep_inicial: number
+          cidade: string | null
+          id: string
+          prazo: number | null
+          tabela_id: string
+          tarifa_code: string
+          tda_risco: number | null
+          uf: string
+          zona: string
+        }
+        Insert: {
+          cep_final: number
+          cep_inicial: number
+          cidade?: string | null
+          id?: string
+          prazo?: number | null
+          tabela_id: string
+          tarifa_code: string
+          tda_risco?: number | null
+          uf: string
+          zona: string
+        }
+        Update: {
+          cep_final?: number
+          cep_inicial?: number
+          cidade?: string | null
+          id?: string
+          prazo?: number | null
+          tabela_id?: string
+          tarifa_code?: string
+          tda_risco?: number | null
+          uf?: string
+          zona?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_tabela_atendimento_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "transp_tabelas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_tabela_generalidades: {
+        Row: {
+          codigo: string
+          descricao: string | null
+          id: string
+          tabela_id: string
+          tipo: string | null
+          valor: number | null
+        }
+        Insert: {
+          codigo: string
+          descricao?: string | null
+          id?: string
+          tabela_id: string
+          tipo?: string | null
+          valor?: number | null
+        }
+        Update: {
+          codigo?: string
+          descricao?: string | null
+          id?: string
+          tabela_id?: string
+          tipo?: string | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_tabela_generalidades_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "transp_tabelas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_tabela_tarifas: {
+        Row: {
+          adv_pct: number
+          gris_pct: number
+          id: string
+          kg_adicional: number
+          pesos: Json
+          tabela_id: string
+          tarifa_code: string
+          tipo: string
+          uf: string
+        }
+        Insert: {
+          adv_pct?: number
+          gris_pct?: number
+          id?: string
+          kg_adicional?: number
+          pesos: Json
+          tabela_id: string
+          tarifa_code: string
+          tipo: string
+          uf: string
+        }
+        Update: {
+          adv_pct?: number
+          gris_pct?: number
+          id?: string
+          kg_adicional?: number
+          pesos?: Json
+          tabela_id?: string
+          tarifa_code?: string
+          tipo?: string
+          uf?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_tabela_tarifas_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "transp_tabelas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_tabelas: {
+        Row: {
+          ativo: boolean
+          criado_em: string | null
+          id: string
+          nome: string
+          transportadora_id: string
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string | null
+          id?: string
+          nome: string
+          transportadora_id: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string | null
+          id?: string
+          nome?: string
+          transportadora_id?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_tabelas_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_tabelas_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_tabelas_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       unidades: {
         Row: {
           ativa: boolean
@@ -15125,6 +15303,14 @@ export type Database = {
           saldo_conservador: number
           saldo_otimista: number
         }[]
+      }
+      fn_frete_estimado: {
+        Args: {
+          p_cep_destino: string
+          p_peso_cobrado: number
+          p_transportadora_id: string
+        }
+        Returns: Json
       }
       fn_gerar_cprs_de_contrato: {
         Args: { p_contrato_id: string }

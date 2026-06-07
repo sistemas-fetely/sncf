@@ -35,6 +35,7 @@ import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock
 import { toast } from "@/hooks/use-toast";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
+import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) => s ? new Date(s + (s.length === 10 ? "T00:00:00" : "")).toLocaleDateString("pt-BR") : "—";
@@ -142,6 +143,16 @@ export default function PedidoDetalhe() {
   const [pesoBruto, setPesoBruto] = useState("");
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
+
+  const pesoBrutoNum = parseFloat(pesoBruto) || Number(data?.pedido?.peso_bruto_total) || 0;
+  const cubagemTotal = Number(data?.pedido?.cubagem_total) || 0;
+  const pesoCobradoEst = cubagemTotal > 0 ? Math.max(pesoBrutoNum, cubagemTotal * 300) : pesoBrutoNum;
+  const cepEstimativa = data?.pedido?.endereco_entrega?.cep ?? data?.parceiro?.cep ?? null;
+  const freteEst = useFreteEstimado(
+    transportadoraId || null,
+    cepEstimativa,
+    pesoCobradoEst > 0 ? pesoCobradoEst : null
+  );
 
   useEffect(() => {
     if (priorizado) {
@@ -376,6 +387,28 @@ export default function PedidoDetalhe() {
                     )}
                   </Button>
                 </div>
+
+                {freteEst.isLoading && transportadoraId && (
+                  <p className="text-xs text-muted-foreground mt-3">Calculando frete...</p>
+                )}
+                {freteEst.data && freteEst.data.erro && (
+                  <p className="text-xs text-destructive mt-3">{freteEst.data.erro}</p>
+                )}
+                {freteEst.data && !freteEst.data.erro && (
+                  <div className="mt-3 rounded-md border border-border/60 bg-muted/30 p-3 space-y-1">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estimativa Icaro</p>
+                    <p className="text-base font-semibold">
+                      {freteEst.data.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Prazo {freteEst.data.prazo_dias}d · {freteEst.data.tarifa_code}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Base: R$ {freteEst.data.breakdown.base.toFixed(2)} · GRIS: R$ {freteEst.data.breakdown.gris.toFixed(2)} · Pedágio: R$ {freteEst.data.breakdown.pedagio.toFixed(2)} · TAS: R$ {freteEst.data.breakdown.tas.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+
 
     <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40">
       <div>
