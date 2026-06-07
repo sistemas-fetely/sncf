@@ -547,30 +547,6 @@ export default function PedidoDetalhe() {
               </Card>
             )}
 
-            <Separator />
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Notas & Histórico</p>
-                <AnotarPedidoDialog pedido_id={pedido.id} />
-              </div>
-              {eventos && eventos.length > 0 ? (
-                <div className="space-y-3">
-                  {eventos.slice(0, 30).map((ev: any) => (
-                    <div key={ev.id} className="flex gap-2.5">
-                      <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-border shrink-0" />
-                      <div className="min-w-0 space-y-0.5">
-                        <p className="text-xs font-medium leading-snug">{ev.descricao || ev.tipo}</p>
-                        {ev.detalhe && <p className="text-[11px] text-muted-foreground leading-snug">{ev.detalhe}</p>}
-                        <p className="text-[10px] text-muted-foreground">{fmtDateTime(ev.criado_em)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-4">Nenhum evento ainda.</p>
-              )}
-            </div>
           </div>
         </div>
       </div>
