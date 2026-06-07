@@ -366,20 +366,20 @@ serve(async (req) => {
       ? itens.map((it: any) => {
           const blingProdId = it.sku ? cacheMap[it.sku] : null;
           const qty = Number(it.quantidade);
-          // 2dp obrigatório: Bling arredonda internamente antes de × qty
-          // lineTotal garante base de arredondamento por LINHA (não por unitário)
-          const lineTotal = parseFloat((Number(it.valor_unitario) * qty * descontoFator).toFixed(2));
+          const val_exact = Number(it.valor_unitario) * descontoFator;
+          // CEILING garante sum(items) >= expectedProd → desconto sempre >= 0 → sem code 22
+          // Máximo extra: 0,01/item × 49 itens = R$0,49 de desconto residual no máximo
+          const valor = Math.ceil(val_exact * 100) / 100;
           return {
             descricao: stripQtdSuffix(it.descricao),
             ...(blingProdId ? { produto: { id: blingProdId } } : {}),
             unidade: "UN",
             quantidade: qty,
-            valor: parseFloat((lineTotal / qty).toFixed(2)), // 2dp — Bling multiplica de volta corretamente
+            valor,
           };
         })
       : null;
 
-    // totalProdutosCalc com valores já em 2dp (= o que Bling vai computar)
     const totalProdutosCalc = rawItens
       ? parseFloat(
           rawItens
@@ -388,9 +388,8 @@ serve(async (req) => {
         )
       : totalExato;
 
-    // Residual CIF: totalProdutos + frete - desconto = totalExato = sum(parcelas) → sem code 22
-    // Residual FOB: totalProdutos - desconto = totalExato → sem code 22
-    const expectedProd = totalExato - valorFrete; // CIF: prod+frete=total; FOB: expectedProd=total
+    // Residual sempre >= 0 com ceiling → desconto sempre positivo → total = sum(parcelas) ✓
+    const expectedProd = totalExato - valorFrete;
     const descontoValorCalc = parseFloat((totalProdutosCalc - expectedProd).toFixed(2));
 
     const blingItens = rawItens ?? [{
