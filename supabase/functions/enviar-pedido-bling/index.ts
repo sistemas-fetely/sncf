@@ -390,10 +390,14 @@ serve(async (req) => {
       payload.desconto = { tipo: "VALOR", valor: descontoValor };
     }
 
-    // Bloco transporte — FOB sempre (padrão fiscal Fetely)
+    // Bloco transporte — tipo baseado no valor do frete:
+    // 1 = FOB (destinatário paga) quando há valor de frete cobrado
+    // 9 = Sem ocorrência de transporte quando frete = 0
+    const tipoFrete = valorFrete > 0 ? 1 : 9;
+
     if (blingTransportadoraId || valorFrete > 0 || Number(pedido.peso_bruto_total ?? 0) > 0) {
       payload.transporte = {
-        tipo: 1, // 1 = FOB (destinatário paga) — NF sempre FOB na Fetely
+        tipo: tipoFrete,
         ...(blingTransportadoraId ? { transportadora: { id: blingTransportadoraId } } : {}),
         ...(Number(pedido.peso_bruto_total ?? 0) > 0
           ? { pesoBruto: Number(pedido.peso_bruto_total) }
