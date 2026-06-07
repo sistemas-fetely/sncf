@@ -351,26 +351,18 @@ serve(async (req) => {
     const temFrete = Number(pedido.valor_frete ?? 0) > 0;
     const valorFrete = temFrete ? Number(pedido.valor_frete) : 0;
 
-    // Fator de desconto padrão (o que funcionava antes)
-    const descontoFator =
-      pedido.valor_bruto > 0 && pedido.valor_liquido < pedido.valor_bruto
-        ? pedido.valor_liquido / pedido.valor_bruto
-        : 1;
-
+    // Itens ao preço de lista (sem desconto por item).
+    // O desconto real (valor_bruto - valor_liquido) vai no campo payload.desconto.
+    // Validação Bling: sum(itens) - desconto == sum(parcelas) == totalExato ✓
     const rawItens = (itens && itens.length > 0)
       ? itens.map((it: any) => {
           const blingProdId = it.sku ? cacheMap[it.sku] : null;
-          const qty = Number(it.quantidade);
-          // Calcula pelo TOTAL DA LINHA (não por preço unitário)
-          // round(val_unit × qty × fator, 2) → erro máx ±0,005/linha
-          // vs round(val_unit × fator, 2) × qty → erro cresce com qty (0,77 no SHOP FEST)
-          const lineTotal = parseFloat((Number(it.valor_unitario) * qty * descontoFator).toFixed(2));
           return {
             descricao: stripQtdSuffix(it.descricao),
             ...(blingProdId ? { produto: { id: blingProdId } } : {}),
             unidade: "UN",
-            quantidade: qty,
-            valor: parseFloat((lineTotal / qty).toFixed(4)), // 4 casas: Bling soma × qty sem re-arredondar
+            quantidade: Number(it.quantidade),
+            valor: parseFloat(Number(it.valor_unitario).toFixed(4)),
           };
         })
       : null;
@@ -421,8 +413,8 @@ serve(async (req) => {
     if (transpNome || valorFrete > 0 || pesoReal > 0) {
       payload.transporte = {
         fretePorConta: tipoFrete,
-        // Tenta ID numérico puro (sem sub-objeto) — formato que alguns endpoints Bling v3 aceitam
         ...(blingTransportadoraId ? { transportadora: blingTransportadoraId } : transpNome ? { transportadora: { nome: transpNome } } : {}),
+        ...(valorFrete > 0 ? { frete: parseFloat(valorFrete.toFixed(2)) } : {}),
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
       };
