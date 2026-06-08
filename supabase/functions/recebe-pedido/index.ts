@@ -54,15 +54,8 @@ Deno.serve(async (req) => {
     }
 
     // ── Branch: sincronização de catálogo de produtos ─────────────────────
+    // Autenticação já validada acima via FOP_INBOUND_TOKEN
     if (body.tipo === "catalogo" && Array.isArray(body.produtos)) {
-      const authHeader = req.headers.get("authorization") ?? "";
-      const token = authHeader.replace("Bearer ", "");
-      const { data: expectedToken } = await supabase.rpc("get_vault_secret", {
-        p_name: "SNCF_OUTBOUND_TOKEN",
-      });
-      if (!expectedToken || token !== expectedToken) {
-        return jsonResponse(401, { error: "Token inválido" });
-      }
       const { error: upsertErr } = await (supabase as any)
         .from("sncf_produtos")
         .upsert(
@@ -156,19 +149,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Persiste frete (RPC não tem esses params — UPDATE direto pós-inserção)
-    // Regra Fetely: se valor_frete = 0, calcula 5% do valor_bruto (frete CIF padrão)
-      const descontoCelebraValor = Number(body.desconto_celebra_valor ?? 0);
-      const bonusPixValor        = Number(body.bonus_pix_valor        ?? 0);
+    // Persiste frete e descontos (RPC não tem esses params — UPDATE direto pós-inserção)
+    const valorFreteFinal      = Number(body.valor_frete ?? 0);
+    const descontoCelebraValor = Number(body.desconto_celebra_valor ?? 0);
+    const bonusPixValor        = Number(body.bonus_pix_valor        ?? 0);
 
-      if (body.frete_tipo != null || valorFreteFinal > 0 || descontoCelebraValor > 0 || bonusPixValor > 0) {
-        await supabase.from("pedidos").update({
-          valor_frete:            valorFreteFinal,
-          frete_tipo:             body.frete_tipo ?? null,
-          ...(descontoCelebraValor > 0 ? { desconto_celebra_valor: descontoCelebraValor } : {}),
-          ...(bonusPixValor        > 0 ? { bonus_pix_valor:        bonusPixValor        } : {}),
-        }).eq("id", data.pedido_id);
-      }
+    if (body.frete_tipo != null || valorFreteFinal > 0 || descontoCelebraValor > 0 || bonusPixValor > 0) {
+      await supabase.from("pedidos").update({
+        valor_frete:            valorFreteFinal,
+        frete_tipo:             body.frete_tipo ?? null,
+        ...(descontoCelebraValor > 0 ? { desconto_celebra_valor: descontoCelebraValor } : {}),
+        ...(bonusPixValor        > 0 ? { bonus_pix_valor:        bonusPixValor        } : {}),
+      }).eq("id", data.pedido_id);
     }
 
     console.log("[recebe-pedido] Sucesso", {
