@@ -27,6 +27,7 @@ import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialo
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
+import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
@@ -478,9 +479,21 @@ export default function PedidoDetalhe() {
           {/* Itens + Tabs lado a lado */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold">Itens do pedido</p>
-                <span className="text-xs text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold">Itens do pedido</p>
+                  <span className="text-xs text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
+                </div>
+                <EditarItensDialog
+                  pedidoId={pedido.id}
+                  estagioAtual={estagio}
+                  itensAtuais={itens.map((i: any) => ({
+                    sku: i.sku,
+                    descricao: i.descricao,
+                    quantidade: i.quantidade,
+                    valor_unitario: i.valor_unitario,
+                  }))}
+                />
               </div>
               {itens.length === 0
                 ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
