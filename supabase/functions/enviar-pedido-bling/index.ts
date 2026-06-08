@@ -387,7 +387,10 @@ serve(async (req) => {
         )
       : totalExato;
 
-    const descontoValorCalc = parseFloat((totalProdutosCalc - parseFloat((totalExato - valorFrete).toFixed(2))).toFixed(2));
+    const totalProdutosPayload = rawItens
+      ? parseFloat((totalExato - valorFrete).toFixed(2))
+      : totalExato;
+    const descontoValorCalc = parseFloat((totalProdutosCalc - totalProdutosPayload).toFixed(2));
 
     const blingItens = rawItens ?? [{
       descricao: `Pedido FOP #${pedido.id_externo}`,
@@ -409,7 +412,7 @@ serve(async (req) => {
       ...(blingLojaId ? { loja: { id: blingLojaId }, canal: { id: blingLojaId } } : {}),
       itens: blingItens,
       parcelas: blingParcelas,
-      totalProdutos: rawItens ? parseFloat((totalExato - valorFrete).toFixed(2)) : totalExato,
+      totalProdutos: totalProdutosPayload,
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
       ...(obsInternas ? { observacoesInternas: obsInternas } : {}),
