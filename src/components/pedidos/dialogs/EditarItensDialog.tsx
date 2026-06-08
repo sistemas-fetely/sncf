@@ -154,7 +154,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                 {item.sku && <p className="text-xs text-muted-foreground">{item.sku}</p>}
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <span className="text-xs text-muted-foreground">Qtd:</span>
                 <Input
                   type="number"
@@ -172,7 +172,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-destructive hover:text-destructive"
+                className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
                 onClick={() => remover(idx)}
               >
                 <Trash2 className="h-3.5 w-3.5" />
