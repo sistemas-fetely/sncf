@@ -137,7 +137,7 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
           Split
         </Button>
       )}
-      <SplitPedidoDialog open={splitOpen} onOpenChange={setSplitOpen} pedido_id={pedido.id} />
+      <SplitPedidoDialog open={splitOpen} onOpenChange={setSplitOpen} pedido_id={pedido.id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} valor_bruto={pedido.valor_bruto} />
     </div>
   );
 }
@@ -324,7 +324,7 @@ export default function PedidoDetalhe() {
               <Linha label="Condição" value={pedido.condicao_solicitada} />
               <Linha label="Forma" value={pedido.forma_solicitada} />
               {pedido.bling_id_destino && <Linha label="Bling ID" value={`#${pedido.bling_id_destino}`} />}
-              <RemessasSection pedidoId={pedido.id} />
+              <RemessasSection pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} id_externo={pedido.id_externo} />
 
               {/* Resumo financeiro agrupado */}
               {(() => {
