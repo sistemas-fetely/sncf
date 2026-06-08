@@ -542,8 +542,39 @@ function TitulosBoletoTab() {
 
 function RemessasSafraTab() {
   const [importarOpen, setImportarOpen] = useState(false);
+  const [baixandoId, setBaixandoId] = useState<string | null>(null);
   const qc = useQueryClient();
+  const { toast } = useToast();
   const { data: remessas = [], isLoading } = useRemessasSafra();
+
+  async function baixarNovamente(remessaId: string, arquivoNome: string) {
+    setBaixandoId(remessaId);
+    try {
+      const { data, error } = await supabase.functions.invoke("baixar-remessa-safra", {
+        body: { remessa_id: remessaId },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.erro || "Falha ao gerar arquivo");
+      const blob = new Blob([data.arquivo_conteudo], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.arquivo_nome || arquivoNome;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Arquivo baixado", description: arquivoNome });
+    } catch (e) {
+      toast({
+        title: "Erro ao baixar remessa",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setBaixandoId(null);
+    }
+  }
 
   const statusMap: Record<string, { label: string; className: string }> = {
     gerada: { label: "Gerada", className: "bg-amber-50 text-amber-700 border border-amber-200" },
@@ -557,6 +588,7 @@ function RemessasSafraTab() {
       className: "bg-red-50 text-red-700 border border-red-200",
     },
   };
+
 
   return (
     <div className="space-y-4">
