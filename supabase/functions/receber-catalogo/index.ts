@@ -22,7 +22,7 @@ serve(async (req) => {
     );
 
     const { data: tokenEsperado } = await supabase.rpc("get_vault_secret", {
-      p_name: "SNCF_OUTBOUND_TOKEN",
+      p_name: "SNCF_CATALOGO_TOKEN",
     });
 
     if (!tokenEsperado || token !== tokenEsperado) {
