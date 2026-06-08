@@ -11500,6 +11500,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sncf_produtos: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          multiplos: number
+          nome_comercial: string
+          peso_g: number
+          preco_atacado: number
+          sku: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          multiplos?: number
+          nome_comercial: string
+          peso_g?: number
+          preco_atacado?: number
+          sku: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          multiplos?: number
+          nome_comercial?: string
+          peso_g?: number
+          preco_atacado?: number
+          sku?: string
+        }
+        Relationships: []
+      }
       sncf_sistemas: {
         Row: {
           ativo: boolean
@@ -15895,6 +15925,10 @@ export type Database = {
         Returns: Json
       }
       rotear_pedido: { Args: { p_pedido_id: string }; Returns: Json }
+      salvar_itens_pedido: {
+        Args: { p_itens: Json; p_pedido_id: string }
+        Returns: Json
+      }
       score_match_nf: {
         Args: {
           p_cnpj_a: string
