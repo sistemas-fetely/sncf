@@ -45,3 +45,5 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
     verify_jwt = true
   [functions.recebe-pedido]
     verify_jwt = false
+  [functions.receber-catalogo]
+    verify_jwt = false
