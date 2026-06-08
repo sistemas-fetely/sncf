@@ -142,6 +142,9 @@ export function FilaPedidosPorArea({
     if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
     else if (marcacaoFilter === "com") base = base.filter((p) => !!p.marcacao);
     else if (marcacaoFilter !== "todas") base = base.filter((p) => p.marcacao === marcacaoFilter);
+    if (formaPgtoFilter !== "todas") {
+      base = base.filter((p) => (p.forma_solicitada || "").toLowerCase() === formaPgtoFilter);
+    }
     if (ordenacao !== "prioridade_ia") return base;
     return [...base].sort((a, b) => {
       const sa = scoreMap.get(a.id)?.score ?? -1;
@@ -149,7 +152,13 @@ export function FilaPedidosPorArea({
       if (sb !== sa) return sb - sa;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, ordenacao, scoreMap, marcacaoFilter]);
+  }, [data, ordenacao, scoreMap, marcacaoFilter, formaPgtoFilter]);
+
+  const formasPgtoDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (data || []).forEach((p) => { if (p.forma_solicitada) set.add(p.forma_solicitada.toLowerCase()); });
+    return Array.from(set).sort();
+  }, [data]);
 
   const marcacoesDisponiveis = useMemo(() => {
     const set = new Set<string>();
