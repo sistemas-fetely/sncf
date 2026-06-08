@@ -62,7 +62,7 @@ function montarPayload(p: any, documento: string) {
     fantasia: p.nome_fantasia || undefined,
     tipo,
     numeroDocumento: documento,
-    ie: p.inscricao_estadual || undefined,
+    ie: p.inscricao_estadual || (p.isento_ie ? "ISENTO" : undefined),
     indicadorIe,
     email: p.email || undefined,
     telefone: primeiroFone(p.telefone),
