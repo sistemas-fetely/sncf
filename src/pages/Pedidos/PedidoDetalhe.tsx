@@ -161,7 +161,7 @@ export default function PedidoDetalhe() {
       if (!error && data != null) {
         setPesoBruto(String(data.peso ?? data));
         // Invalida a query do pedido para que cubagem_total seja atualizado na tela
-        queryClient.invalidateQueries({ queryKey: ["pedido", id] });
+        queryClient.invalidateQueries({ queryKey: ["pedido-detalhe", id] });
       }
     } finally {
       setRecalculandoPeso(false);
