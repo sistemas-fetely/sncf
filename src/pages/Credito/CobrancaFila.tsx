@@ -620,14 +620,14 @@ function RemessasSafraTab() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="py-6">
+                <TableCell colSpan={7} className="py-6">
                   <Skeleton className="h-10 w-full" />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && remessas.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   Nenhuma remessa gerada ainda.
                 </TableCell>
               </TableRow>
@@ -652,9 +652,21 @@ function RemessasSafraTab() {
                       {s.label}
                     </span>
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={baixandoId === r.id}
+                      onClick={() => baixarNovamente(r.id, r.arquivo_nome)}
+                    >
+                      <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                      {baixandoId === r.id ? "Baixando..." : "Baixar"}
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
+
           </TableBody>
         </Table>
       </div>
