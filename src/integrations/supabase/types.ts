@@ -8779,6 +8779,79 @@ export type Database = {
           },
         ]
       }
+      pedido_remessa: {
+        Row: {
+          bling_pedido_id: string | null
+          criado_em: string
+          criado_por: string | null
+          data_entrega_prevista: string | null
+          delta_financeiro: number | null
+          id: string
+          itens_json: Json
+          nf_data: string | null
+          nf_numero: string | null
+          observacao: string | null
+          pedido_id: string
+          sequencia: number
+          status: string
+          valor_remessa: number | null
+        }
+        Insert: {
+          bling_pedido_id?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          data_entrega_prevista?: string | null
+          delta_financeiro?: number | null
+          id?: string
+          itens_json?: Json
+          nf_data?: string | null
+          nf_numero?: string | null
+          observacao?: string | null
+          pedido_id: string
+          sequencia?: number
+          status?: string
+          valor_remessa?: number | null
+        }
+        Update: {
+          bling_pedido_id?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          data_entrega_prevista?: string | null
+          delta_financeiro?: number | null
+          id?: string
+          itens_json?: Json
+          nf_data?: string | null
+          nf_numero?: string | null
+          observacao?: string | null
+          pedido_id?: string
+          sequencia?: number
+          status?: string
+          valor_remessa?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_remessa_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_remessa_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_remessa_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_transicoes: {
         Row: {
           acao: string
@@ -8877,6 +8950,7 @@ export type Database = {
           observacao_pedido: string | null
           origem: string | null
           parceiro_id: string
+          pedido_origem_id: string | null
           peso_bruto_total: number | null
           pre_faturado_em: string | null
           premissas: Json | null
@@ -8935,6 +9009,7 @@ export type Database = {
           observacao_pedido?: string | null
           origem?: string | null
           parceiro_id: string
+          pedido_origem_id?: string | null
           peso_bruto_total?: number | null
           pre_faturado_em?: string | null
           premissas?: Json | null
@@ -8993,6 +9068,7 @@ export type Database = {
           observacao_pedido?: string | null
           origem?: string | null
           parceiro_id?: string
+          pedido_origem_id?: string | null
           peso_bruto_total?: number | null
           pre_faturado_em?: string | null
           premissas?: Json | null
@@ -9033,6 +9109,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "pedidos_pedido_origem_id_fkey"
+            columns: ["pedido_origem_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_pedido_origem_id_fkey"
+            columns: ["pedido_origem_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_pedido_origem_id_fkey"
+            columns: ["pedido_origem_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_regra_pagamento_id_fkey"
@@ -15072,6 +15169,18 @@ export type Database = {
           p_justificativa?: string
           p_linha_investimento_id?: string
           p_parceiro_preferencial_id?: string
+        }
+        Returns: Json
+      }
+      criar_remessa: {
+        Args: {
+          p_data_entrega_prevista?: string
+          p_delta_financeiro?: number
+          p_itens_json?: Json
+          p_observacao?: string
+          p_pedido_id: string
+          p_status?: string
+          p_valor_remessa?: number
         }
         Returns: Json
       }

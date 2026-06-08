@@ -1,6 +1,7 @@
 // Edge Function: enviar-pedido-bling
 // F-3.3 — POST /pedidos/vendas no Bling a partir de pedido em pre_faturado.
-// Idempotente via pedido.bling_id_destino. Log em bling_envios_log.
+// v2: suporte a remessas — lazy /01 automática + split explícito via remessa_id.
+// Idempotente via pedido_remessa.bling_pedido_id. Log em bling_envios_log.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
@@ -56,6 +57,7 @@ serve(async (req) => {
     // Input
     const body = await req.json().catch(() => ({}));
     const pedido_id = body?.pedido_id;
+    const remessa_id_input: string | null = body?.remessa_id ?? null;
     if (!pedido_id) return err("pedido_id obrigatório");
 
     // 1. Pedido
@@ -66,12 +68,56 @@ serve(async (req) => {
       .maybeSingle();
     if (pedErr || !pedido) return err("Pedido não encontrado", 404);
 
-    if (pedido.estagio !== "pre_faturado") {
-      return err(`Pedido em estágio "${pedido.estagio}" — só envia em pre_faturado`);
+    // pre_faturado: envio inicial
+    // em_separacao: envio de remessa adicional (/02+) em split
+    const estagiosPermitidos = ["pre_faturado", "em_separacao"];
+    if (!estagiosPermitidos.includes(pedido.estagio)) {
+      return err(`Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio`);
     }
-    if (pedido.bling_id_destino) {
-      return err(`Pedido já enviado pro Bling (id ${pedido.bling_id_destino})`, 409);
+
+    // 1b. Remessa: usa a fornecida ou cria lazy /01
+    let remessa: any = null;
+
+    if (remessa_id_input) {
+      // Remessa explícita (split)
+      const { data: rem } = await supabase
+        .from("pedido_remessa")
+        .select("*")
+        .eq("id", remessa_id_input)
+        .eq("pedido_id", pedido_id)
+        .maybeSingle();
+
+      if (!rem) return err("Remessa não encontrada ou não pertence a este pedido", 404);
+      if (rem.bling_pedido_id) return err(`Remessa já enviada ao Bling (id ${rem.bling_pedido_id})`, 409);
+      if (rem.status === "cancelada") return err("Remessa cancelada — não pode ser enviada", 409);
+      remessa = rem;
+    } else {
+      // Lazy: verifica idempotência antes de criar /01
+      if (pedido.bling_id_destino) {
+        return err(`Pedido já enviado pro Bling (id ${pedido.bling_id_destino})`, 409);
+      }
+
+      const { data: rpcResult, error: rpcErr } = await supabase.rpc("criar_remessa" as string, {
+        p_pedido_id: pedido_id,
+        p_status: "pronta_para_envio",
+        p_observacao: "Remessa /01 criada automaticamente no envio ao Bling",
+      });
+      if (rpcErr || !rpcResult?.remessa_id) {
+        return err(`Falha ao criar remessa /01: ${rpcErr?.message ?? "sem remessa_id"}`, 500);
+      }
+
+      const { data: rem } = await supabase
+        .from("pedido_remessa")
+        .select("*")
+        .eq("id", rpcResult.remessa_id)
+        .maybeSingle();
+      if (!rem) return err("Remessa /01 criada mas não encontrada", 500);
+      remessa = rem;
     }
+
+    // Código e valor da remessa
+    const remessaCodigo = `${pedido.id_externo}/${String(remessa.sequencia).padStart(2, "0")}`;
+    const remessaValor = Number(remessa.valor_remessa ?? pedido.valor_liquido);
 
     // 2. Parceiro (cliente)
     const { data: parceiro } = await supabase
@@ -83,7 +129,7 @@ serve(async (req) => {
       return err("Parceiro sem bling_id — sincronize o parceiro no Bling antes", 409);
     }
 
-    // 2b. Transportadora (opcional — só se selecionada no Pré-faturamento)
+    // 2b. Transportadora (opcional)
     let blingTransportadoraId: number | null = null;
     let transpCnpj: string | null = null;
     let transpNome: string | null = null;
@@ -107,9 +153,8 @@ serve(async (req) => {
     if (!forma) {
       return err(`Forma de pagamento "${pedido.forma_solicitada}" não encontrada em formas_pagamento`, 409);
     }
-    // Nota: bling_id_forma_pagamento pode ser null aqui — lookup dinâmico abaixo resolve.
 
-    // 4. Títulos
+    // 4. Títulos (sempre do pedido — cobrança não fragmenta por remessa em v1)
     const { data: titulos } = await supabase
       .from("titulo_a_receber")
       .select("id, numero_parcela, valor_bruto, data_vencimento_original, tipo_pagamento, eh_entrada")
@@ -119,14 +164,10 @@ serve(async (req) => {
       return err("Pedido sem títulos gerados — engine F-2 deveria ter gerado em pre_faturado", 409);
     }
 
-    // 5. Itens individuais do pedido
-    const { data: itens } = await supabase
-      .from("pedido_itens")
-      .select("descricao, sku, quantidade, valor_unitario")
-      .eq("pedido_id", pedido_id)
-      .order("ordem");
+    // 5. Itens da remessa (formato normalizado: {descricao, sku, quantidade, valor_unitario})
+    const itens: any[] = Array.isArray(remessa.itens_json) ? remessa.itens_json : [];
 
-    // 6. Config Bling + cliente
+    // 6. Config Bling
     const { data: cfg } = await supabase
       .from("integracoes_config")
       .select("*")
@@ -140,8 +181,6 @@ serve(async (req) => {
     const client = makeBlingClient(supabase, cfg, freshToken);
 
     // 7. ID da forma de pagamento — lookup dinâmico no Bling (auto-corretivo)
-    // GET /formas-pagamentos retorna as formas reais desta conta.
-    // Isso resolve IDs desatualizados em formas_pagamento.bling_id_forma_pagamento.
     const FORMA_KEYWORDS: Record<string, string[]> = {
       boleto:         ["boleto"],
       pix:            ["pix"],
@@ -166,7 +205,6 @@ serve(async (req) => {
         kws.some((k) => bf.descricao?.toLowerCase().includes(k))
       );
       if (match?.id) {
-        // Auto-corrige o banco se o ID mudou
         if (match.id !== forma.bling_id_forma_pagamento) {
           await supabase
             .from("formas_pagamento")
@@ -186,7 +224,7 @@ serve(async (req) => {
       );
     }
 
-    // 7.5 Canal/Loja Fetely — Bling v3 pode usar "canal" ou "loja" — tenta os dois endpoints
+    // 7.5 Canal/Loja Fetely
     let blingLojaId: number | null = (cfg.config as any)?.loja_bling_id ?? null;
     if (!blingLojaId) {
       for (const endpoint of ["/canais-venda", "/lojas"]) {
@@ -208,37 +246,33 @@ serve(async (req) => {
       }
     }
 
-    // 8. Parcelas (uma por título)
-    // Arredonda para 2 casas antes de somar (valor_bruto pode ter mais casas no banco).
+    // 8. Parcelas — baseadas no remessaValor
+    // Lazy /01 (não-split): remessaValor = valor_liquido → soma das parcelas = total. Consistente.
+    // Split /02+ (futuro, Fase 3): split proporcional de parcelas tratado lá.
     const blingParcelas = titulos.map((t: any) => ({
       dataVencimento: t.data_vencimento_original,
       valor: parseFloat(Number(t.valor_bruto).toFixed(2)),
       formaPagamento: { id: Number(blingFormaId) },
     }));
 
-    // Ajuste de centavos na última parcela
     const somaParcelas = blingParcelas.reduce((s, p) => s + p.valor, 0);
-    const diff = parseFloat((Number(pedido.valor_liquido) - somaParcelas).toFixed(2));
+    const diff = parseFloat((remessaValor - somaParcelas).toFixed(2));
     if (Math.abs(diff) >= 0.01 && blingParcelas.length > 0) {
       blingParcelas[blingParcelas.length - 1].valor = parseFloat(
         (blingParcelas[blingParcelas.length - 1].valor + diff).toFixed(2),
       );
     }
 
-    // Total exato = sum das parcelas após ajuste (garante consistência com Bling)
     const totalExato = parseFloat(
       blingParcelas.reduce((s, p) => s + p.valor, 0).toFixed(2),
     );
 
     // 9. Sync de produtos: cache → Bling GET → Bling POST (auto-cadastro)
-    // Garante que cada item tenha produto.id no Bling antes do pedido de venda.
-    // bling_produtos_cache evita chamadas repetidas para produtos já sincronizados.
     const stripQtdSuffix = (d: string) =>
       (d || "").replace(/\s*\(\d+\s*un\.?\)\s*$/i, "").trim();
 
-    // 9a. Bulk lookup no cache local
     const skusComCodigo = [...new Set(
-      (itens || []).map((it: any) => it.sku).filter(Boolean)
+      itens.map((it: any) => it.sku).filter(Boolean)
     )] as string[];
 
     const { data: cachedRows } = skusComCodigo.length > 0
@@ -253,29 +287,26 @@ serve(async (req) => {
       cacheMap[row.sku] = row.bling_produto_id;
     }
 
-    // 9b. Para SKUs não em cache: GET no Bling → se não existir → POST /produtos
     const novosCacheEntries: { sku: string; bling_produto_id: number; nome: string }[] = [];
 
-    for (const it of (itens || [])) {
+    for (const it of itens) {
       if (!it.sku || cacheMap[it.sku]) continue;
 
       const nome = stripQtdSuffix(it.descricao);
       const normNome = (s: string) =>
         s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-      let blingId: number | null = null;
+      let blingProdId: number | null = null;
 
-      // Busca 1: código exato (criterio=2 = campo código no Bling)
       try {
         const r = await client.get(
           `/produtos?criterio=2&q=${encodeURIComponent(it.sku)}&situacao=A&limite=10`
         );
         const m = (r?.data || []).find((p: any) => p.codigo === it.sku);
-        if (m?.id) blingId = m.id;
+        if (m?.id) blingProdId = m.id;
       } catch (_) {}
 
-      // Busca 2: nome via palavras ASCII (ç/º/ã causam problema no query string do Bling)
-      if (!blingId) {
+      if (!blingProdId) {
         try {
           const searchWords = normNome(nome)
             .replace(/[^a-zA-Z0-9 ]/g, " ")
@@ -294,13 +325,12 @@ serve(async (req) => {
                 normNome(p.nome || "").toLowerCase().trim() ===
                 normNome(nome).toLowerCase().trim()
             );
-            if (m?.id) blingId = m.id;
+            if (m?.id) blingProdId = m.id;
           }
         } catch (_) {}
       }
 
-      // Busca 3: cria o produto no Bling se não encontrou
-      if (!blingId) {
+      if (!blingProdId) {
         try {
           const created = await client.post("/produtos", {
             nome,
@@ -311,11 +341,10 @@ serve(async (req) => {
             preco: parseFloat(Number(it.valor_unitario).toFixed(2)),
             situacao: "A",
           });
-          // Parseia resposta defensivamente (Bling v3: {data:{id}} ou {data:number} ou {id})
           const d = created?.data;
-          blingId = d?.id ?? (typeof d === "number" ? d : null) ?? created?.id ?? null;
-          if (!blingId) {
-            console.error(`[produto-sync] POST /produtos ok mas sem id: sku=${it.sku} resp=${JSON.stringify(created).slice(0,500)}`);
+          blingProdId = d?.id ?? (typeof d === "number" ? d : null) ?? created?.id ?? null;
+          if (!blingProdId) {
+            console.error(`[produto-sync] POST /produtos ok mas sem id: sku=${it.sku} resp=${JSON.stringify(created).slice(0, 500)}`);
           }
         } catch (e) {
           const errClean = ((e as Error).message || "").replace(/[\n\r]/g, " ").slice(0, 800);
@@ -323,13 +352,12 @@ serve(async (req) => {
         }
       }
 
-      if (blingId) {
-        cacheMap[it.sku] = blingId;
-        novosCacheEntries.push({ sku: it.sku, bling_produto_id: blingId, nome });
+      if (blingProdId) {
+        cacheMap[it.sku] = blingProdId;
+        novosCacheEntries.push({ sku: it.sku, bling_produto_id: blingProdId, nome });
       }
     }
 
-    // 9c. Persiste novas entradas no cache (fire-and-forget — não bloqueia o envio)
     if (novosCacheEntries.length > 0) {
       supabase
         .from("bling_produtos_cache")
@@ -339,36 +367,21 @@ serve(async (req) => {
     }
 
     // 9d. Monta itens com produto.id (catálogo) ou fallback avulso
-    // CIF (cliente paga frete embutido no valor_liquido):
-    //   totalProdutos = valor_liquido - valor_frete
-    //   frete_bling   = valor_frete
-    //   total         = valor_liquido = sum(parcelas) → sem code 22
-    //   NF: produtos separados do frete, tributação correta
-    //
-    // AMBOS CIF e FOB: frete aparece no Bling (R$570,67)
-    // totalProdutos = valor_liquido - valor_frete → frete separado no payload
-    // total = totalProdutos + frete = valor_liquido = sum(parcelas) → sem code 22
-    // Diferença CIF vs FOB: apenas fretePorConta (0=remetente/Fetely, 1=destinatário/cliente)
     const temFrete = Number(pedido.valor_frete ?? 0) > 0;
     const valorFrete = temFrete ? Number(pedido.valor_frete) : 0;
 
-    // Fator de desconto frete-aware:
-    // sem frete → itens somam valor_liquido (desconto simples)
-    // com frete → itens somam (valor_liquido − valor_frete) para que
-    //             sum(itens) + transporte.frete == valor_liquido == sum(parcelas) → sem Code 22
     const baseItens = valorFrete > 0
-      ? Math.max(0, pedido.valor_liquido - valorFrete)
-      : pedido.valor_liquido;
+      ? Math.max(0, remessaValor - valorFrete)
+      : remessaValor;
     const descontoFator =
       pedido.valor_bruto > 0 && baseItens < pedido.valor_bruto
         ? baseItens / pedido.valor_bruto
         : 1;
 
-    const rawItens = (itens && itens.length > 0)
+    const rawItens = itens.length > 0
       ? itens.map((it: any) => {
           const blingProdId = it.sku ? cacheMap[it.sku] : null;
           const qty = Number(it.quantidade);
-          // Total da linha com desconto proporcional (evita acúmulo de erro por unidade)
           const lineTotal = parseFloat((Number(it.valor_unitario) * qty * descontoFator).toFixed(2));
           return {
             descricao: stripQtdSuffix(it.descricao),
@@ -392,8 +405,6 @@ serve(async (req) => {
       ? parseFloat((totalExato - valorFrete).toFixed(2))
       : totalExato;
 
-    // Ajuste de centavos no último item — garante sum(itens) == totalProdutosPayload
-    // (mesmo padrão do ajuste de centavos nas parcelas)
     const diffItens = parseFloat((totalProdutosPayload - totalProdutosCalc).toFixed(2));
     if (Math.abs(diffItens) >= 0.01 && rawItens && rawItens.length > 0) {
       const last = rawItens[rawItens.length - 1];
@@ -403,23 +414,19 @@ serve(async (req) => {
       last.valor = parseFloat((valorLinhaAjustado / last.quantidade).toFixed(4));
     }
 
-    const descontoValorCalc = 0; // descontos já embutidos nos itens via descontoFator
-
     const blingItens = rawItens ?? [{
-      descricao: `Pedido FOP #${pedido.id_externo}`,
+      descricao: `Pedido FOP #${remessaCodigo}`,
       quantidade: 1,
       valor: totalExato,
     }];
 
-    // transporte.frete NÃO vai no payload — Bling soma ao total e quebra validação sum(parcelas).
-    // Valor do frete vai nas observacoesInternas para referência na hora de emitir a NF.
     const obsPartes: string[] = [];
     if (transpNome) obsPartes.push(`Transportadora: ${transpNome}${transpCnpj ? ` | CNPJ: ${transpCnpj}` : ""}`);
     if (valorFrete > 0) obsPartes.push(`Frete ${pedido.frete_tipo || ""}${pedido.frete_tipo ? ":" : ""} R$ ${valorFrete.toFixed(2)}`);
     const obsInternas = obsPartes.length > 0 ? obsPartes.join(" | ") : undefined;
 
     const payload: Record<string, any> = {
-      numeroLoja: pedido.id_externo,
+      numeroLoja: remessaCodigo,
       data: pedido.data_pedido,
       contato: { id: Number(parceiro.bling_id) },
       ...(blingLojaId ? { loja: { id: blingLojaId }, canal: { id: blingLojaId } } : {}),
@@ -427,15 +434,10 @@ serve(async (req) => {
       parcelas: blingParcelas,
       totalProdutos: totalProdutosPayload,
       total: totalExato,
-      observacoes: pedido.contexto_anotacoes || `Pedido ${pedido.id_externo} via SNCF`,
+      observacoes: pedido.contexto_anotacoes || `Pedido ${remessaCodigo} via SNCF`,
       ...(obsInternas ? { observacoesInternas: obsInternas } : {}),
     };
 
-    if (descontoValorCalc >= 0.01) {
-      payload.desconto = { tipo: "VALOR", valor: descontoValorCalc };
-    }
-
-    // CIF=0 (remetente/Fetely paga), FOB=1 (destinatário/cliente paga), sem frete=9
     const tipoFrete = valorFrete === 0 ? 9 : (pedido.frete_tipo === "FOB" ? 1 : 0);
     const pesoReal = Number(pedido.peso_bruto_total ?? 0);
 
@@ -486,34 +488,44 @@ serve(async (req) => {
     });
 
     if (sucesso) {
-      // 12. Carimba pedido
-      await supabase.from("pedidos").update({
-        bling_id_destino: blingId,
-        bling_enviado_em: new Date().toISOString(),
-        bling_enviado_por: userId,
-        bling_envio_erro: null,
-      }).eq("id", pedido_id);
+      // 12a. Atualiza remessa
+      await supabase.from("pedido_remessa").update({
+        bling_pedido_id: String(blingId),
+        status: "enviada_bling",
+      }).eq("id", remessa.id);
 
-      // 12b. Avança estágio → em_separacao
-      // Fail-soft: Bling já recebeu o pedido. Se a transição falhar, não desfaz o envio.
-      const { error: errTransicao } = await supabase.rpc("transicionar_pedido" as string, {
-        p_pedido_id: pedido_id,
-        p_para_estagio: "em_separacao",
-        p_proxima_acao: "Pedido no armazém — aguardar NF",
-        p_motivo: `Enviado ao Bling (id ${blingId})`,
-      });
-      if (errTransicao) {
-        console.warn(`[enviar-pedido-bling] transicionar_pedido falhou: ${errTransicao.message}`);
+      // 12b. Carimba pedido apenas na primeira remessa enviada
+      if (!pedido.bling_id_destino) {
+        await supabase.from("pedidos").update({
+          bling_id_destino: blingId,
+          bling_enviado_em: new Date().toISOString(),
+          bling_enviado_por: userId,
+          bling_envio_erro: null,
+        }).eq("id", pedido_id);
+      }
+
+      // 12c. Transição de estágio — apenas se ainda em pre_faturado
+      if (pedido.estagio === "pre_faturado") {
+        const { error: errTransicao } = await supabase.rpc("transicionar_pedido" as string, {
+          p_pedido_id: pedido_id,
+          p_para_estagio: "em_separacao",
+          p_proxima_acao: "Pedido no armazém — aguardar NF",
+          p_motivo: `Remessa ${remessaCodigo} enviada ao Bling (id ${blingId})`,
+        });
+        if (errTransicao) {
+          console.warn(`[enviar-pedido-bling] transicionar_pedido falhou: ${errTransicao.message}`);
+        }
       }
 
       return ok({
         sucesso: true,
         bling_id: blingId,
-        mensagem: `Pedido enviado pro Bling (id ${blingId})`,
+        remessa_id: remessa.id,
+        remessa_codigo: remessaCodigo,
+        mensagem: `Remessa ${remessaCodigo} enviada pro Bling (id ${blingId})`,
         duracao_ms: duracaoMs,
       });
     } else {
-      // 13. Carimba erro no pedido (sem mover estágio)
       await supabase.from("pedidos").update({
         bling_envio_erro: erroMsg,
       }).eq("id", pedido_id);
