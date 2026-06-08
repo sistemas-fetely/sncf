@@ -14886,6 +14886,7 @@ export type Database = {
         Returns: Json
       }
       calcular_docs_status: { Args: { p_conta_id: string }; Returns: string }
+      calcular_peso_pedido: { Args: { p_pedido_id: string }; Returns: number }
       cancelar_conta_pagar: { Args: { p_conta_id: string }; Returns: Json }
       cancelar_item_pedido: {
         Args: { p_item_id: string; p_motivo: string }

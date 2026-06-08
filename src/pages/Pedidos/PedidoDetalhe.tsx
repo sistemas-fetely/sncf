@@ -2,6 +2,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
+import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { usePedidoPriorizado } from "@/hooks/pedidos/useFilaPedidosPriorizada";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
@@ -32,7 +33,7 @@ import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/Confirmar
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
@@ -142,10 +143,26 @@ export default function PedidoDetalhe() {
   const [obsUrgencia, setObsUrgencia] = useState("");
   const [transportadoraId, setTransportadoraId] = useState("");
   const [pesoBruto, setPesoBruto] = useState("");
+  const [recalculandoPeso, setRecalculandoPeso] = useState(false);
   const [freteTipo, setFreteTipo] = useState("");
   const [valorFrete, setValorFrete] = useState("");
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
+
+  const recalcularPeso = async () => {
+    if (!id) return;
+    setRecalculandoPeso(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("calcular_peso_pedido", {
+        p_pedido_id: id,
+      });
+      if (!error && data != null) {
+        setPesoBruto(String(data));
+      }
+    } finally {
+      setRecalculandoPeso(false);
+    }
+  };
 
   const pesoBrutoNum = parseFloat(pesoBruto) || Number(data?.pedido?.peso_bruto_total) || 0;
   const cubagemTotal = Number(data?.pedido?.cubagem_total) || 0;
@@ -365,15 +382,30 @@ export default function PedidoDetalhe() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Peso bruto total (kg)</label>
-                      <input
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        value={pesoBruto}
-                        onChange={(e) => setPesoBruto(e.target.value)}
-                        placeholder="0.000"
-                        className="w-full h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring"
-                      />
+                      <div className="flex gap-1">
+                        <input
+                          type="number"
+                          step="0.001"
+                          min="0"
+                          value={pesoBruto}
+                          onChange={(e) => setPesoBruto(e.target.value)}
+                          placeholder="0.000"
+                          className="flex-1 h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-9 w-9 p-0"
+                          title="Recalcular peso a partir dos itens"
+                          disabled={recalculandoPeso}
+                          onClick={recalcularPeso}
+                        >
+                          {recalculandoPeso
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <RefreshCw className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
                     </div>
 
                     <Button
