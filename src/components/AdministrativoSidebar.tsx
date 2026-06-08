@@ -9,7 +9,7 @@
  * sncf_documentacao slug "arquitetura-sistemas-fetely" v2 → seção 3 → Administrativo Fetely.
  */
 
-import { Building2, ShieldCheck, FileSignature, FolderArchive, Package, ShoppingCart, ClipboardList, UsersRound, Landmark, Users, Upload, Layers, FileWarning } from "lucide-react";
+import { Building2, ShieldCheck, FileSignature, FolderArchive, ShoppingCart, ClipboardList, UsersRound, Landmark, Users, Upload, Layers, FileWarning } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
@@ -43,11 +43,8 @@ const patrimonioItems: MenuItem[] = [
 // Grupo 2: Parceiros & Rede — "Parceiros Comerciais" migrado pro app Vendas em 31/05/2026.
 const parceirosItems: MenuItem[] = [];
 
-// Grupo 3: Vendas & Produtos (provisórios — ⚠️ a revisar)
-// "Pedidos de Venda" migrado pro app Vendas em 31/05/2026.
-const vendasItems: MenuItem[] = [
-  { title: "Produtos", url: "/administrativo-fetely/produtos", icon: Package, badge: "⚠️" },
-];
+// Grupo 3: Vendas & Produtos — "Produtos" migrado pro app Vendas em 08/06/2026.
+const vendasItems: MenuItem[] = [];
 
 // Grupo 4: Documentos (migrado de Finanças em 31/05/2026)
 const documentosItems: MenuItem[] = [
@@ -167,8 +164,6 @@ export function AdministrativoSidebar() {
         <div className="mx-4 border-t border-sidebar-border/40" />
 
         {renderGroup("Ativos & Patrimônio", patrimonioItems)}
-        <div className="mx-4 border-t border-sidebar-border/40" />
-        {renderGroup("Vendas & Produtos", vendasItems)}
         <div className="mx-4 border-t border-sidebar-border/40" />
         {renderGroup("Documentos", documentosItems)}
       </SidebarContent>
