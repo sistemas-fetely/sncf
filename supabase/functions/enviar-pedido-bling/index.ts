@@ -390,7 +390,19 @@ serve(async (req) => {
     const totalProdutosPayload = rawItens
       ? parseFloat((totalExato - valorFrete).toFixed(2))
       : totalExato;
-    const descontoValorCalc = parseFloat((totalProdutosCalc - totalProdutosPayload).toFixed(2));
+
+    // Ajuste de centavos no último item — garante sum(itens) == totalProdutosPayload
+    // (mesmo padrão do ajuste de centavos nas parcelas)
+    const diffItens = parseFloat((totalProdutosPayload - totalProdutosCalc).toFixed(2));
+    if (Math.abs(diffItens) >= 0.01 && rawItens && rawItens.length > 0) {
+      const last = rawItens[rawItens.length - 1];
+      const valorLinhaAjustado = parseFloat(
+        (last.valor * last.quantidade + diffItens).toFixed(2)
+      );
+      last.valor = parseFloat((valorLinhaAjustado / last.quantidade).toFixed(4));
+    }
+
+    const descontoValorCalc = 0; // descontos já embutidos nos itens via descontoFator
 
     const blingItens = rawItens ?? [{
       descricao: `Pedido FOP #${pedido.id_externo}`,
