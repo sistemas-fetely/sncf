@@ -54,7 +54,7 @@ export function EnviarBlingDialog({
 
   const handleEnviar = async () => {
     try {
-      await enviar.mutateAsync(pedido_id);
+      await enviar.mutateAsync({ pedido_id });
       setOpen(false);
     } catch {
       // erro tratado no hook
