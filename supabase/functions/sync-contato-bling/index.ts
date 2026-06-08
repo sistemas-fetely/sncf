@@ -131,6 +131,7 @@ async function syncOne(supabase: any, client: any, p: any, origem: string, acion
       respBody = busca;
       respStatus = 200;
       sucesso = true;
+    } else {
       let criado = await client.post("/contatos", payload);
 
       // Retry sem IE se o Bling rejeitar por inscrição estadual inválida
