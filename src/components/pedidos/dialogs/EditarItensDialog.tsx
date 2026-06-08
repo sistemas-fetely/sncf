@@ -137,7 +137,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
           Editar itens
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Editar itens do pedido</DialogTitle>
         </DialogHeader>
