@@ -8871,6 +8871,7 @@ export type Database = {
           id: string
           id_externo: string
           itens_json: Json | null
+          link_pagamento: string | null
           marcacao: string | null
           observacao: string | null
           observacao_pedido: string | null
@@ -8928,6 +8929,7 @@ export type Database = {
           id?: string
           id_externo: string
           itens_json?: Json | null
+          link_pagamento?: string | null
           marcacao?: string | null
           observacao?: string | null
           observacao_pedido?: string | null
@@ -8985,6 +8987,7 @@ export type Database = {
           id?: string
           id_externo?: string
           itens_json?: Json | null
+          link_pagamento?: string | null
           marcacao?: string | null
           observacao?: string | null
           observacao_pedido?: string | null
@@ -12474,6 +12477,7 @@ export type Database = {
           id: string
           justificativa_renegociacao: string | null
           linha_digitavel: string | null
+          link_pagamento: string | null
           modalidade_renegociacao: number | null
           movimentacao_baixa_id: string | null
           nf_id: string | null
@@ -12524,6 +12528,7 @@ export type Database = {
           id?: string
           justificativa_renegociacao?: string | null
           linha_digitavel?: string | null
+          link_pagamento?: string | null
           modalidade_renegociacao?: number | null
           movimentacao_baixa_id?: string | null
           nf_id?: string | null
@@ -12574,6 +12579,7 @@ export type Database = {
           id?: string
           justificativa_renegociacao?: string | null
           linha_digitavel?: string | null
+          link_pagamento?: string | null
           modalidade_renegociacao?: number | null
           movimentacao_baixa_id?: string | null
           nf_id?: string | null
