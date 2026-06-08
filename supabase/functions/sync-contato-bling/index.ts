@@ -28,6 +28,21 @@ const err = (msg: string, status = 400) =>
 const soDigitos = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Extrai e limpa o primeiro número de uma string que pode ter vários (ex: "2124714678 / 2124734896")
+const primeiroFone = (s: string | null | undefined): string | undefined => {
+  const primeiro = (s || "").split(/[\/,]|(?:\s{2,})/)[0];
+  const digits = soDigitos(primeiro);
+  return digits.length >= 8 ? digits : undefined;
+};
+
+// Extrai o segundo número se existir
+const segundoFone = (s: string | null | undefined): string | undefined => {
+  const partes = (s || "").split(/[\/,]|(?:\s{2,})/);
+  if (partes.length < 2) return undefined;
+  const digits = soDigitos(partes[1]);
+  return digits.length >= 8 ? digits : undefined;
+};
+
 const jwtRole = (token: string): string | null => {
   try {
     return JSON.parse(atob((token.split(".")[1] || ""))).role ?? null;
@@ -50,8 +65,8 @@ function montarPayload(p: any, documento: string) {
     ie: p.inscricao_estadual || undefined,
     indicadorIe,
     email: p.email || undefined,
-    telefone: p.telefone || undefined,
-    celular: p.telefone || undefined,
+    telefone: primeiroFone(p.telefone),
+    celular: segundoFone(p.telefone) ?? primeiroFone(p.telefone),
     situacao: "A",
     endereco: {
       geral: {
