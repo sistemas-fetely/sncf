@@ -31,10 +31,16 @@ import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDia
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
+import { RemessasSection } from "@/components/pedidos/RemessasSection";
+import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
+import { useRemessas } from "@/hooks/pedidos/useRemessas";
+import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
+import { useAuth } from "@/contexts/AuthContext";
+
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
@@ -110,6 +116,32 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   );
 }
 
+function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: any }) {
+  const [splitOpen, setSplitOpen] = useState(false);
+  const { data: remessas } = useRemessas(pedido.id);
+  const { data: permissoes } = usePermissoesDoUsuario();
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const podeSplit = isSuperAdmin || (permissoes?.has("operacao.split_pedido") ?? false);
+
+  const temRemessas = remessas && remessas.length > 0;
+
+  return (
+    <div className="space-y-2">
+      {!temRemessas && (
+        <EnviarBlingDialog pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} forma_solicitada={pedido.forma_solicitada} />
+      )}
+      {podeSplit && !temRemessas && (
+        <Button variant="outline" className="w-full gap-2" onClick={() => setSplitOpen(true)}>
+          <Scissors className="h-4 w-4" />
+          Split
+        </Button>
+      )}
+      <SplitPedidoDialog open={splitOpen} onOpenChange={setSplitOpen} pedido_id={pedido.id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} valor_bruto={pedido.valor_bruto} />
+    </div>
+  );
+}
+
 function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: any; estagio: EstagioPedido }) {
   const navigate = useNavigate();
   if (estagio === "recebido") return (
@@ -121,9 +153,9 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
     </Button>
   );
   if (estagio === "aguardando_pagamento") return <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />;
-  if (estagio === "pre_faturado" && !pedido.bling_id_destino) return (
-    <EnviarBlingDialog pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} forma_solicitada={pedido.forma_solicitada} />
-  );
+  if (estagio === "pre_faturado" && !pedido.bling_id_destino) {
+    return <AcoesPedidoPreFaturado pedido={pedido} parceiro={parceiro} />;
+  }
   if (estagio === "em_analise_credito") return (
     <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-700 dark:text-blue-300 flex gap-2">
       <Clock className="h-4 w-4 mt-0.5 shrink-0" /><span>Em análise de crédito — aguardando decisão.</span>
@@ -292,6 +324,7 @@ export default function PedidoDetalhe() {
               <Linha label="Condição" value={pedido.condicao_solicitada} />
               <Linha label="Forma" value={pedido.forma_solicitada} />
               {pedido.bling_id_destino && <Linha label="Bling ID" value={`#${pedido.bling_id_destino}`} />}
+              <RemessasSection pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} id_externo={pedido.id_externo} />
 
               {/* Resumo financeiro agrupado */}
               {(() => {
