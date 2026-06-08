@@ -53,6 +53,39 @@ Deno.serve(async (req) => {
       return jsonResponse(400, { error: "Corpo JSON malformado" });
     }
 
+    // ── Branch: sincronização de catálogo de produtos ─────────────────────
+    if (body.tipo === "catalogo" && Array.isArray(body.produtos)) {
+      const authHeader = req.headers.get("authorization") ?? "";
+      const token = authHeader.replace("Bearer ", "");
+      const { data: expectedToken } = await supabase.rpc("get_vault_secret", {
+        p_name: "SNCF_OUTBOUND_TOKEN",
+      });
+      if (!expectedToken || token !== expectedToken) {
+        return jsonResponse(401, { error: "Token inválido" });
+      }
+      const { error: upsertErr } = await (supabase as any)
+        .from("sncf_produtos")
+        .upsert(
+          body.produtos.map((p: any) => ({
+            sku:            p.sku,
+            nome_comercial: p.nome_comercial,
+            preco_atacado:  p.preco_atacado,
+            peso_g:         p.peso_g,
+            multiplos:      p.multiplos,
+            ativo:          p.ativo,
+            atualizado_em:  new Date().toISOString(),
+          })),
+          { onConflict: "sku" }
+        );
+      if (upsertErr) {
+        console.error("[recebe-pedido] upsert catálogo:", upsertErr);
+        return jsonResponse(500, { error: upsertErr.message });
+      }
+      console.log(`[recebe-pedido] catálogo: ${body.produtos.length} produtos upsertados`);
+      return jsonResponse(200, { ok: true, upsertados: body.produtos.length });
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     const obrigatorios = [
       "cnpj",
       "id_externo",
