@@ -1,4 +1,4 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins } from "lucide-react";
+import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +30,7 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/vendas/nfs" icon={FileText} label="NFs de Venda" />
               <FinancasSidebarItem to="/administrativo-fetely/parceiros" icon={Building2} label="Parceiros" />
               <FinancasSidebarItem to="/comercial/estoque-virtual" icon={Boxes} label="Estoque Virtual" />
+              <FinancasSidebarItem to="/vendas/produtos" icon={Package} label="Produtos" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

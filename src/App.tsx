@@ -247,6 +247,7 @@ const App = () => (
                 <Route path="/pedidos" element={<PedidosIndex />} />
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
+                <Route path="/vendas/produtos" element={<Produtos />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
               </Route>
@@ -524,7 +525,7 @@ const App = () => (
                   Redirects logo abaixo mantêm compatibilidade com URLs antigas. */}
               {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
               <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-              <Route path="produtos" element={<Navigate to="/administrativo-fetely/produtos" replace />} />
+              <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
               <Route path="contratos" element={<Navigate to="/administrativo-fetely/contratos" replace />} />
               <Route path="imoveis" element={<Navigate to="/administrativo-fetely/imoveis" replace />} />
               <Route path="seguros" element={<Navigate to="/administrativo-fetely/seguros" replace />} />
@@ -543,7 +544,7 @@ const App = () => (
               <Route path="ged" element={<AdminGED />} />
               {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
               <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-              <Route path="produtos" element={<Produtos />} />
+              <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
               {/* parceiros movido para VendasLayout */}
               <Route path="importar" element={<ImportarDados />} />
               <Route path="nfs-stage" element={<NFsStage />} />
