@@ -1,12 +1,9 @@
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
-import { Button } from "@/components/ui/button";
 import type { EstagioPedido } from "@/types/pedido";
 
 export default function PedidosIndex() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
 
@@ -27,20 +24,6 @@ export default function PedidosIndex() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold">Casa dos Pedidos</h1>
-        <p className="text-sm text-muted-foreground">
-          Portal único de pedidos B2B — recebimento, triagem, crédito, cobrança, faturamento.
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-muted-foreground"
-            onClick={() => navigate("/administrativo-fetely/parceiros")}
-          >
-            <Users className="h-4 w-4" />
-            Parceiros Comerciais
-          </Button>
-        </div>
       </div>
 
       {/* Pipeline sticky */}
