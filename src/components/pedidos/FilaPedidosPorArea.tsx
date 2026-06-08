@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Send, Loader2, Sparkles, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Search, Sparkles, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
