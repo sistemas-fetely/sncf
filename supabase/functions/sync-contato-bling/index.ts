@@ -150,6 +150,7 @@ async function syncOne(supabase: any, client: any, p: any, origem: string, acion
       respStatus = 200;
       sucesso = !!blingId;
       if (!sucesso) erroMsg = "Bling retornou sem id de contato";
+    }
   } catch (e) {
     erroMsg = (e as Error).message;
     const m = erroMsg?.match(/(\d{3}):/);
