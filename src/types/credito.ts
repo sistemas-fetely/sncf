@@ -251,6 +251,7 @@ export interface TituloProposto {
   valor_bruto: number;
   data_vencimento: string; // YYYY-MM-DD
   condicao_pagamento: string;
+  link_pagamento?: string;
 }
 
 export interface PropostaCobranca {

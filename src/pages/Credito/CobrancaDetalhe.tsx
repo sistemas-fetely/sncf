@@ -330,6 +330,7 @@ export default function CobrancaDetalhe() {
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Condição</TableHead>
+                  <TableHead>Link pagamento</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -392,6 +393,17 @@ export default function CobrancaDetalhe() {
                       <TableCell className="text-xs text-muted-foreground">
                         {t.condicao_pagamento}
                       </TableCell>
+                      <TableCell>
+                        <Input
+                          type="url"
+                          placeholder="https://..."
+                          value={t.link_pagamento ?? ""}
+                          onChange={(e) =>
+                            atualizarTitulo(idx, { link_pagamento: e.target.value || undefined })
+                          }
+                          className="h-9 w-56 text-xs"
+                        />
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -412,7 +424,7 @@ export default function CobrancaDetalhe() {
                   >
                     {fmtBRL.format(totalEditado)}
                   </TableCell>
-                  <TableCell colSpan={2} className="text-xs text-muted-foreground">
+                  <TableCell colSpan={3} className="text-xs text-muted-foreground">
                     Pedido: {fmtBRL.format(valorPedido)}
                     {Math.abs(diff) > 0.005 && (
                       <> · diferença {fmtBRL.format(diff)}</>
