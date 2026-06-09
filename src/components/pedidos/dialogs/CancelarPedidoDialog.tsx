@@ -47,6 +47,13 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
 
   const handleOpenChange = (v: boolean) => {
     if (!v) {
+      // Só invalida ao fechar se o cancelamento foi concluído (passo 2)
+      // Isso evita que o re-render do pai desmonte o dialog antes do passo 2 aparecer
+      if (step === "result") {
+        qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
+        qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+        qc.invalidateQueries({ queryKey: ["pedido", pedido_id] });
+      }
       setMotivo("");
       setStep("confirm");
       setResultado(null);
