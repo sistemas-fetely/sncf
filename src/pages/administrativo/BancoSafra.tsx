@@ -25,8 +25,12 @@ import {
   FileSpreadsheet,
   Landmark,
   Loader2,
+  Mail,
+  MailCheck,
   Upload,
 } from "lucide-react";
+import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ContaSafra = { id: string; nome_exibicao: string; saldo_atual: number | null };
 
@@ -46,6 +50,7 @@ type TitulosBoleto = {
   data_vencimento_atual: string | null;
   valor_bruto: number | null;
   boleto_status: string | null;
+  boleto_enviado_em: string | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
 };
 
@@ -58,6 +63,49 @@ const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   rejeitado: { label: "Rejeitado", cls: "bg-red-100 text-red-800" },
   vencido: { label: "Vencido", cls: "bg-orange-100 text-orange-800" },
 };
+
+function BotaoEmailBoleto({ boleto }: { boleto: any }) {
+  const enviar = useEnviarEmailBoleto();
+  if (boleto.boleto_status !== "registrado") return null;
+
+  if (boleto.boleto_enviado_em) {
+    const dt = new Date(boleto.boleto_enviado_em).toLocaleDateString("pt-BR");
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center text-green-600">
+              <MailCheck className="h-4 w-4" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Boleto enviado em {dt}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={enviar.isPending}
+            onClick={() => enviar.mutate(boleto.id)}
+          >
+            {enviar.isPending
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Mail className="h-4 w-4 text-muted-foreground" />
+            }
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Enviar boleto por email</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 async function gerarHashSafra(data: string, descricao: string, valor: number): Promise<string> {
   const base = `${data}|${(descricao || "").trim()}|${Math.abs(valor).toFixed(2)}`;
@@ -120,7 +168,7 @@ export default function BancoSafra() {
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(
-          "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social))",
+          "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social))",
         )
         .not("boleto_status", "is", null)
         .order("data_vencimento_atual", { ascending: true });
@@ -504,6 +552,7 @@ export default function BancoSafra() {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -530,6 +579,9 @@ export default function BancoSafra() {
                           </TableCell>
                           <TableCell className="text-right font-mono">
                             {formatBRL(Number(b.valor_bruto || 0))}
+                          </TableCell>
+                          <TableCell>
+                            <BotaoEmailBoleto boleto={b} />
                           </TableCell>
                         </TableRow>
                       );
