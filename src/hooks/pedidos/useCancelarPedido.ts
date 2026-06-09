@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,7 +17,6 @@ export interface CancelarPedidoResult {
 }
 
 export function useCancelarPedido() {
-  const qc = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
@@ -30,10 +29,9 @@ export function useCancelarPedido() {
       if (error) throw error;
       return data as CancelarPedidoResult;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
-    },
+    // Invalidação deliberadamente removida daqui.
+    // CancelarPedidoDialog invalida no onClose para não desmontar
+    // o dialog antes do passo 2 ser exibido.
     onError: (e: Error) => {
       toast({
         title: "Erro ao cancelar",
