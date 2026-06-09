@@ -11605,37 +11605,88 @@ export type Database = {
           altura_cm: number | null
           ativo: boolean
           atualizado_em: string
+          cest: string | null
+          colecao: string | null
+          cor_nome: string | null
+          descricao_produto: string | null
+          ean: string | null
+          grupo: string | null
           largura_cm: number | null
+          linha: string | null
+          marca: string | null
+          material: string | null
+          material_descritivo: string | null
           multiplos: number
+          ncm: string | null
           nome_comercial: string
+          nome_completo: string | null
+          origem_fisc: string | null
+          origem_prod: string | null
           peso_g: number
           preco_atacado: number
           profundidade_cm: number | null
           sku: string
+          tamanho_numero: string | null
+          tipo: string | null
+          tipo_embalagem: string | null
         }
         Insert: {
           altura_cm?: number | null
           ativo?: boolean
           atualizado_em?: string
+          cest?: string | null
+          colecao?: string | null
+          cor_nome?: string | null
+          descricao_produto?: string | null
+          ean?: string | null
+          grupo?: string | null
           largura_cm?: number | null
+          linha?: string | null
+          marca?: string | null
+          material?: string | null
+          material_descritivo?: string | null
           multiplos?: number
+          ncm?: string | null
           nome_comercial: string
+          nome_completo?: string | null
+          origem_fisc?: string | null
+          origem_prod?: string | null
           peso_g?: number
           preco_atacado?: number
           profundidade_cm?: number | null
           sku: string
+          tamanho_numero?: string | null
+          tipo?: string | null
+          tipo_embalagem?: string | null
         }
         Update: {
           altura_cm?: number | null
           ativo?: boolean
           atualizado_em?: string
+          cest?: string | null
+          colecao?: string | null
+          cor_nome?: string | null
+          descricao_produto?: string | null
+          ean?: string | null
+          grupo?: string | null
           largura_cm?: number | null
+          linha?: string | null
+          marca?: string | null
+          material?: string | null
+          material_descritivo?: string | null
           multiplos?: number
+          ncm?: string | null
           nome_comercial?: string
+          nome_completo?: string | null
+          origem_fisc?: string | null
+          origem_prod?: string | null
           peso_g?: number
           preco_atacado?: number
           profundidade_cm?: number | null
           sku?: string
+          tamanho_numero?: string | null
+          tipo?: string | null
+          tipo_embalagem?: string | null
         }
         Relationships: []
       }
