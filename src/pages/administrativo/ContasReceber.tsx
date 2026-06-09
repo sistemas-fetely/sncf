@@ -30,9 +30,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownToLine, Copy, CheckCheck, Inbox } from "lucide-react";
+import { ArrowDownToLine, Copy, CheckCheck, Inbox, Mail, MailCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Titulo = {
   id: string;
@@ -49,6 +51,8 @@ type Titulo = {
   tipo_pagamento: string | null;
   boleto_status: string | null;
   linha_digitavel: string | null;
+  link_pagamento: string | null;
+  email_cobranca_enviado_em: string | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
 };
 
@@ -156,6 +160,49 @@ function BaixaManualDialog({ titulo, onClose }: { titulo: Titulo; onClose: () =>
   );
 }
 
+function BotaoEmailCobranca({ titulo }: { titulo: Titulo }) {
+  const enviar = useEnviarEmailCobranca();
+  const tipos = ["cartao", "cartao_credito", "cartao_debito", "pix"];
+  if (!tipos.includes(titulo.tipo_pagamento ?? "")) return null;
+  if (!titulo.link_pagamento) return null;
+  if (titulo.status === "pago" || titulo.status === "baixado") return null;
+
+  if (titulo.email_cobranca_enviado_em) {
+    const dt = new Date(titulo.email_cobranca_enviado_em).toLocaleDateString("pt-BR");
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center text-green-600">
+              <MailCheck className="h-4 w-4" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Email enviado em {dt}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={enviar.isPending}
+            onClick={() => enviar.mutate(titulo.id)}
+          >
+            <Mail className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Enviar link de pagamento por email</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export default function ContasReceber() {
   const { toast } = useToast();
   const [filtroGrupo, setFiltroGrupo] = useState<"todos" | GrupoStatus>("todos");
@@ -178,6 +225,7 @@ export default function ContasReceber() {
           data_vencimento_atual, data_pagamento, data_pagamento_banco,
           valor_bruto, valor_atual, status, numero_parcela, total_parcelas,
           tipo_pagamento, boleto_status, linha_digitavel,
+          link_pagamento, email_cobranca_enviado_em,
           conta:contas_pagar_receber(
             parceiro:parceiros_comerciais(razao_social)
           )
@@ -564,6 +612,7 @@ export default function ContasReceber() {
                                 )}
                               </Button>
                             )}
+                            <BotaoEmailCobranca titulo={t} />
                           </div>
                         </TableCell>
                       </TableRow>
