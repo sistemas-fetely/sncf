@@ -19,7 +19,7 @@ export function useEnviarEmailPedidoCobranca() {
         .eq("id", pedido_id)
         .maybeSingle();
       if (errP || !pedido) throw new Error("Pedido não encontrado");
-      if (pedido.estagio !== "cobranca") throw new Error("Pedido não está em cobrança");
+      
 
       const { data: parceiro } = await (supabase as any)
         .from("parceiros_comerciais")
