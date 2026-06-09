@@ -144,24 +144,23 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
   );
 }
 
-function BotaoEmailCobrancaPedido({ pedido_id }: { pedido_id: string }) {
-  const enviar = useEnviarEmailPedidoCobranca();
+function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: string; parceiro_id: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      className="w-full gap-1.5"
-      disabled={enviar.isPending}
-      onClick={() => enviar.mutate(pedido_id)}
-    >
-      {enviar.isPending ? (
-        <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
-      ) : (
-        <><Mail className="h-4 w-4" />Enviar cobrança</>
-      )}
-    </Button>
+    <>
+      <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => setOpen(true)}>
+        <Mail className="h-4 w-4" />Enviar cobrança
+      </Button>
+      <EnviarEmailCobrancaDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedido_id={pedido_id}
+        parceiro_id={parceiro_id}
+      />
+    </>
   );
 }
+
 
 function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: any; estagio: EstagioPedido }) {
   const navigate = useNavigate();
