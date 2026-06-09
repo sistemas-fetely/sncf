@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
+import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -362,6 +363,15 @@ export function FilaPedidosPorArea({
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1.5">
                       <MarcacaoPedido pedidoId={p.id} marcacao={p.marcacao} iconOnly />
+
+                      <TabelaCadastroDialog
+                        pedido_id={p.id}
+                        id_externo={p.id_externo}
+                        parceiro_id={p.parceiro_id}
+                        parceiro_nome={p.parceiro_razao}
+                      />
+
+
 
                       {p.estagio === "recebido" && (
                         <TriarPedidoDialog
