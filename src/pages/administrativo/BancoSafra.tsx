@@ -62,6 +62,8 @@ const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   pago_banco: { label: "Pago (Safra)", cls: "bg-green-700 text-white" },
   rejeitado: { label: "Rejeitado", cls: "bg-red-100 text-red-800" },
   vencido: { label: "Vencido", cls: "bg-orange-100 text-orange-800" },
+  baixa_solicitada: { label: "Baixa pendente", cls: "bg-orange-200 text-orange-900" },
+  baixa_remessa_gerada: { label: "Baixa enviada", cls: "bg-purple-100 text-purple-800" },
 };
 
 function BotaoEmailBoleto({ boleto }: { boleto: any }) {
@@ -161,7 +163,7 @@ export default function BancoSafra() {
     },
   });
 
-  const { data: boletos = [], isLoading: loadingBoletos } = useQuery<TitulosBoleto[]>({
+  const { data: boletos = [], isLoading: loadingBoletos, refetch: refetchBoletos } = useQuery<TitulosBoleto[]>({
     queryKey: ["boletos-safra"],
     enabled: activeTab === "boletos",
     queryFn: async () => {
@@ -176,6 +178,31 @@ export default function BancoSafra() {
       return (data as unknown as TitulosBoleto[]) ?? [];
     },
   });
+
+  const [gerandoBaixa, setGerandoBaixa] = useState(false);
+  const handleGerarBaixa = async () => {
+    setGerandoBaixa(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
+        body: { tipo: "baixa" },
+      });
+      if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de baixa");
+      const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.arquivo_nome;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: `Remessa de baixa gerada: ${data.qtd_titulos} boleto(s)` });
+      refetchBoletos();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erro ao gerar baixa", description: msg, variant: "destructive" });
+    } finally {
+      setGerandoBaixa(false);
+    }
+  };
 
   const kpis = useMemo(() => {
     const primeiroDia = new Date();
@@ -201,11 +228,13 @@ export default function BancoSafra() {
     let registrados = 0;
     let pagosMes = 0;
     let vencidos = 0;
+    let baixaPendente = 0;
     for (const b of boletos) {
       const s = b.boleto_status || "";
       if (s === "pendente" || s === "remessa_gerada") pendentes++;
       else if (s === "registrado") registrados++;
       else if (s === "vencido") vencidos++;
+      else if (s === "baixa_solicitada") baixaPendente++;
       if (
         (s === "pago_manual" || s === "pago_banco") &&
         b.data_vencimento_atual &&
@@ -214,7 +243,7 @@ export default function BancoSafra() {
         pagosMes++;
       }
     }
-    return { pendentes, registrados, pagosMes, vencidos };
+    return { pendentes, registrados, pagosMes, vencidos, baixaPendente };
   }, [boletos]);
 
   function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
