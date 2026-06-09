@@ -47,6 +47,8 @@ import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
 import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
 import { useEnviarEmailPedidoCobranca } from "@/hooks/pedidos/useEnviarEmailPedidoCobranca";
+import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
+
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) => s ? new Date(s + (s.length === 10 ? "T00:00:00" : "")).toLocaleDateString("pt-BR") : "—";
@@ -144,24 +146,23 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
   );
 }
 
-function BotaoEmailCobrancaPedido({ pedido_id }: { pedido_id: string }) {
-  const enviar = useEnviarEmailPedidoCobranca();
+function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: string; parceiro_id: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      className="w-full gap-1.5"
-      disabled={enviar.isPending}
-      onClick={() => enviar.mutate(pedido_id)}
-    >
-      {enviar.isPending ? (
-        <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
-      ) : (
-        <><Mail className="h-4 w-4" />Enviar cobrança</>
-      )}
-    </Button>
+    <>
+      <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => setOpen(true)}>
+        <Mail className="h-4 w-4" />Enviar cobrança
+      </Button>
+      <EnviarEmailCobrancaDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedido_id={pedido_id}
+        parceiro_id={parceiro_id}
+      />
+    </>
   );
 }
+
 
 function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: any; estagio: EstagioPedido }) {
   const navigate = useNavigate();
@@ -176,14 +177,14 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
   if (estagio === "aguardando_pagamento") return (
     <div className="flex flex-col gap-2 w-full">
       <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />
-      <BotaoEmailCobrancaPedido pedido_id={pedido.id} />
+      <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
     </div>
   );
   if (estagio === "pre_faturado" && !pedido.bling_id_destino) {
     return (
       <div className="flex flex-col gap-2 w-full">
         <AcoesPedidoPreFaturado pedido={pedido} parceiro={parceiro} />
-        <BotaoEmailCobrancaPedido pedido_id={pedido.id} />
+        <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
       </div>
     );
   }

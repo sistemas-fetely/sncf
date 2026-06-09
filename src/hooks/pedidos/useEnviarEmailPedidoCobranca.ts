@@ -12,7 +12,7 @@ export function useEnviarEmailPedidoCobranca() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (pedido_id: string) => {
+    mutationFn: async ({ pedido_id, emails }: { pedido_id: string; emails: string[] }) => {
       const { data: pedido, error: errP } = await (supabase as any)
         .from("pedidos")
         .select("*")
@@ -26,7 +26,7 @@ export function useEnviarEmailPedidoCobranca() {
         .select("razao_social, email")
         .eq("id", pedido.parceiro_id)
         .maybeSingle();
-      if (!parceiro?.email) throw new Error("Parceiro sem email cadastrado");
+
 
       const { data: itens } = await (supabase as any)
         .from("pedido_itens")
@@ -50,7 +50,7 @@ export function useEnviarEmailPedidoCobranca() {
       const pdfBase64 = gerarPedidoPdf({
         id_externo: pedido.id_externo,
         data_pedido: fmtDate(pedido.data_pedido),
-        parceiro_nome: parceiro.razao_social,
+        parceiro_nome: parceiro?.razao_social,
         forma_pagamento: pedido.forma_solicitada ?? "",
         condicao_pagamento: pedido.condicao_solicitada ?? undefined,
         valor_bruto: Number(pedido.valor_bruto ?? 0),
@@ -63,7 +63,7 @@ export function useEnviarEmailPedidoCobranca() {
       const descontoValor =
         Number(pedido.valor_bruto ?? 0) * (Number(pedido.desconto_pct ?? 0) / 100);
       const templateData: Record<string, any> = {
-        parceiro_nome: parceiro.razao_social,
+        parceiro_nome: parceiro?.razao_social,
         pedido_id_externo: pedido.id_externo,
         data_pedido: fmtDate(pedido.data_pedido),
         forma_pagamento: pedido.forma_solicitada ?? "",
@@ -80,7 +80,8 @@ export function useEnviarEmailPedidoCobranca() {
       const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "cobranca-pedido",
-          recipientEmail: parceiro.email,
+          recipientEmail: emails[0],
+          ...(emails.length > 1 ? { cc: emails.slice(1) } : {}),
           idempotencyKey: `cobranca-pedido-${pedido_id}-${Date.now()}`,
           templateData,
           attachments: [
@@ -93,7 +94,8 @@ export function useEnviarEmailPedidoCobranca() {
       });
       if (errEmail) throw new Error(`Falha ao enviar email: ${errEmail.message}`);
 
-      return { email: parceiro.email, id_externo: pedido.id_externo };
+      return { email: emails[0], id_externo: pedido.id_externo };
+
     },
     onSuccess: (data) => {
       toast({
