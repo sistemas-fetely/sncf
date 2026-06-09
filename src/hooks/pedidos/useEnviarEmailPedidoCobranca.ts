@@ -80,7 +80,8 @@ export function useEnviarEmailPedidoCobranca() {
       const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "cobranca-pedido",
-          recipientEmail: parceiro.email,
+          recipientEmail: emails[0],
+          ...(emails.length > 1 ? { cc: emails.slice(1) } : {}),
           idempotencyKey: `cobranca-pedido-${pedido_id}-${Date.now()}`,
           templateData,
           attachments: [
@@ -93,7 +94,8 @@ export function useEnviarEmailPedidoCobranca() {
       });
       if (errEmail) throw new Error(`Falha ao enviar email: ${errEmail.message}`);
 
-      return { email: parceiro.email, id_externo: pedido.id_externo };
+      return { email: emails[0], id_externo: pedido.id_externo };
+
     },
     onSuccess: (data) => {
       toast({
