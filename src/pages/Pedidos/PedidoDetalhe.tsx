@@ -169,16 +169,23 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
     <TriarPedidoDialog pedido_id={pedido.id} perfil_credito={parceiro?.perfil_credito} estagio_atual={estagio} forma_solicitada={pedido.forma_solicitada} triggerLabel="Encaminhar pedido" triggerVariant="default" />
   );
   if (estagio === "cobranca") return (
-    <div className="space-y-2">
-      <Button className="w-full gap-2" onClick={() => navigate(`/recebimento/cobranca/${pedido.id}`)}>
-        <Package className="h-4 w-4" />Operacionar cobrança
-      </Button>
+    <Button className="w-full gap-2" onClick={() => navigate(`/recebimento/cobranca/${pedido.id}`)}>
+      <Package className="h-4 w-4" />Operacionar cobrança
+    </Button>
+  );
+  if (estagio === "aguardando_pagamento") return (
+    <div className="flex flex-col gap-2 w-full">
+      <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />
       <BotaoEmailCobrancaPedido pedido_id={pedido.id} />
     </div>
   );
-  if (estagio === "aguardando_pagamento") return <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />;
   if (estagio === "pre_faturado" && !pedido.bling_id_destino) {
-    return <AcoesPedidoPreFaturado pedido={pedido} parceiro={parceiro} />;
+    return (
+      <div className="flex flex-col gap-2 w-full">
+        <AcoesPedidoPreFaturado pedido={pedido} parceiro={parceiro} />
+        <BotaoEmailCobrancaPedido pedido_id={pedido.id} />
+      </div>
+    );
   }
   if (estagio === "em_analise_credito") return (
     <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-700 dark:text-blue-300 flex gap-2">
