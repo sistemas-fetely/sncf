@@ -177,14 +177,14 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
   if (estagio === "aguardando_pagamento") return (
     <div className="flex flex-col gap-2 w-full">
       <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />
-      <BotaoEmailCobrancaPedido pedido_id={pedido.id} />
+      <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
     </div>
   );
   if (estagio === "pre_faturado" && !pedido.bling_id_destino) {
     return (
       <div className="flex flex-col gap-2 w-full">
         <AcoesPedidoPreFaturado pedido={pedido} parceiro={parceiro} />
-        <BotaoEmailCobrancaPedido pedido_id={pedido.id} />
+        <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
       </div>
     );
   }
