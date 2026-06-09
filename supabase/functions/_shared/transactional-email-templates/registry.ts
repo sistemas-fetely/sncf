@@ -25,6 +25,7 @@ import { template as recuperacaoSenha } from './recuperacao-senha.tsx'
 import { template as pagamentoSolicitacao } from './pagamento-solicitacao.tsx'
 import { template as pacoteFiscalContador } from './pacote-fiscal-contador.tsx'
 import { template as boletoSafra } from './boleto-safra.tsx'
+import { template as cobrancaPedido } from './cobranca-pedido.tsx'
 import { template as linkCobranca } from './link-cobranca.tsx'
 import { template as catalogoLojista } from './catalogo-lojista.tsx'
 
@@ -45,6 +46,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'pagamento-solicitacao': pagamentoSolicitacao,
   'pacote-fiscal-contador': pacoteFiscalContador,
   'boleto-safra': boletoSafra,
+  'cobranca-pedido': cobrancaPedido,
   'link-cobranca': linkCobranca,
   'catalogo-lojista': catalogoLojista,
 }
