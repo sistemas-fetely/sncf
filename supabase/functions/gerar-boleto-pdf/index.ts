@@ -348,21 +348,40 @@ serve(async (req) => {
       parceiro?.uf,     parceiro?.cep,
     ].filter(Boolean).join(", ");
 
+    // Instrucoes: multa + juros calculados dos parametros + politica de aceite
     const instrucoes: string[] = [];
-    if (params.instrucao_linha_1) instrucoes.push(params.instrucao_linha_1);
-    if (params.instrucao_linha_2) instrucoes.push(params.instrucao_linha_2);
-    if (instrucoes.length === 0) {
-      const map: Record<string, string> = {
-        "08": "Nao receber apos 30 dias do vencimento.",
-        "09": "Protestar apos 3 dias do vencimento.",
-        "00": "",
-      };
-      const i1 = map[params.politica_instrucao_1 ?? "00"] ?? "";
-      const i2 = map[params.politica_instrucao_2 ?? "00"] ?? "";
-      if (i1) instrucoes.push(i1);
-      if (i2) instrucoes.push(i2);
+
+    // 1. Multa
+    const multaNum = parseInt(params.multa_percentual ?? "0", 10);
+    if (multaNum > 0) {
+      const multaInt = Math.floor(multaNum / 100);
+      const multaDec = String(multaNum % 100).padStart(2, "0");
+      const dataMultaObj = new Date(t.data_vencimento_atual + "T00:00:00");
+      dataMultaObj.setDate(dataMultaObj.getDate() + 1);
+      const dataMultaStr = dataMultaObj.toLocaleDateString("pt-BR");
+      instrucoes.push(`MULTA DE ${multaInt},${multaDec}% A PARTIR DE ${dataMultaStr}`);
     }
-    if (instrucoes.length === 0) instrucoes.push("Nao receber apos 30 dias do vencimento.");
+
+    // 2. Juros de mora (centavos por dia → R$/dia)
+    const jurosCents = parseInt(params.juros_mora_dia_centavos ?? "0", 10);
+    if (jurosCents > 0) {
+      const jurosInt = Math.floor(jurosCents / 100);
+      const jurosDec = String(jurosCents % 100).padStart(2, "0");
+      instrucoes.push(`JUROS DE MORA: R$ ${jurosInt},${jurosDec} AO DIA APOS O VENCIMENTO`);
+    }
+
+    // 3. Politica de nao aceitar / protesto
+    const instrMap: Record<string, string> = {
+      "08": "NAO RECEBER APOS 30 DIAS DO VENCIMENTO.",
+      "09": "PROTESTAR APOS 3 DIAS DO VENCIMENTO.",
+      "00": "",
+    };
+    const i1 = instrMap[params.politica_instrucao_1 ?? "00"] ?? "";
+    const i2 = instrMap[params.politica_instrucao_2 ?? "00"] ?? "";
+    if (i1) instrucoes.push(i1);
+    if (i2 && i2 !== i1) instrucoes.push(i2);
+
+    if (instrucoes.length === 0) instrucoes.push("NAO RECEBER APOS 30 DIAS DO VENCIMENTO.");
 
     const dados: DadosBoleto = {
       beneficiario_nome: "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA",
