@@ -160,6 +160,49 @@ function BaixaManualDialog({ titulo, onClose }: { titulo: Titulo; onClose: () =>
   );
 }
 
+function BotaoEmailCobranca({ titulo }: { titulo: Titulo }) {
+  const enviar = useEnviarEmailCobranca();
+  const tipos = ["cartao", "cartao_credito", "cartao_debito", "pix"];
+  if (!tipos.includes(titulo.tipo_pagamento ?? "")) return null;
+  if (!titulo.link_pagamento) return null;
+  if (titulo.status === "pago" || titulo.status === "baixado") return null;
+
+  if (titulo.email_cobranca_enviado_em) {
+    const dt = new Date(titulo.email_cobranca_enviado_em).toLocaleDateString("pt-BR");
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center text-green-600">
+              <MailCheck className="h-4 w-4" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Email enviado em {dt}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={enviar.isPending}
+            onClick={() => enviar.mutate(titulo.id)}
+          >
+            <Mail className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Enviar link de pagamento por email</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export default function ContasReceber() {
   const { toast } = useToast();
   const [filtroGrupo, setFiltroGrupo] = useState<"todos" | GrupoStatus>("todos");
