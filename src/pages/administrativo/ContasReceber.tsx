@@ -182,6 +182,7 @@ export default function ContasReceber() {
           data_vencimento_atual, data_pagamento, data_pagamento_banco,
           valor_bruto, valor_atual, status, numero_parcela, total_parcelas,
           tipo_pagamento, boleto_status, linha_digitavel,
+          link_pagamento, email_cobranca_enviado_em,
           conta:contas_pagar_receber(
             parceiro:parceiros_comerciais(razao_social)
           )
