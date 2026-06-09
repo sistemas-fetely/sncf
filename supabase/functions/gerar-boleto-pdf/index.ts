@@ -73,7 +73,8 @@ function desenharCodigoBarras(
 ): void {
   const digits = codigoBarras.length % 2 === 0 ? codigoBarras : "0" + codigoBarras;
   const bars   = encodeI25(digits);
-  const mod    = largura / bars.length;
+  const totalModulos = bars.reduce((sum: number, wide: boolean) => sum + (wide ? 2.5 : 1), 0);
+  const mod = largura / totalModulos;
   let   xAtual = x;
   for (let i = 0; i < bars.length; i++) {
     const w = bars[i] ? mod * 2.5 : mod;
