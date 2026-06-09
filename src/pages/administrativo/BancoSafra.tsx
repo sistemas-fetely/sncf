@@ -552,6 +552,30 @@ export default function BancoSafra() {
                 <div className="text-2xl font-bold text-orange-700">{boletosKpis.vencidos}</div>
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">Baixas pendentes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-700">{boletosKpis.baixaPendente}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={handleGerarBaixa}
+              disabled={boletosKpis.baixaPendente === 0 || gerandoBaixa}
+              className="gap-2"
+            >
+              {gerandoBaixa ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpFromLine className="h-4 w-4" />
+              )}
+              Gerar Remessa de Baixa
+            </Button>
           </div>
 
           <Card>
