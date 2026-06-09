@@ -11202,6 +11202,7 @@ export type Database = {
           qtd_titulos: number
           retorno_processado_em: string | null
           status: string
+          tipo: string
           valor_total: number
         }
         Insert: {
@@ -11214,6 +11215,7 @@ export type Database = {
           qtd_titulos: number
           retorno_processado_em?: string | null
           status?: string
+          tipo?: string
           valor_total: number
         }
         Update: {
@@ -11226,6 +11228,7 @@ export type Database = {
           qtd_titulos?: number
           retorno_processado_em?: string | null
           status?: string
+          tipo?: string
           valor_total?: number
         }
         Relationships: []
@@ -15068,6 +15071,7 @@ export type Database = {
         Args: { p_motivo: string; p_pedido_id: string }
         Returns: Json
       }
+      clonar_pedido_cancelado: { Args: { p_pedido_id: string }; Returns: Json }
       comentar_pedido: {
         Args: { p_conteudo: string; p_pedido_id: string }
         Returns: Json
