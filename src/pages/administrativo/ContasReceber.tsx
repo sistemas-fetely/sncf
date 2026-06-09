@@ -51,6 +51,8 @@ type Titulo = {
   tipo_pagamento: string | null;
   boleto_status: string | null;
   linha_digitavel: string | null;
+  link_pagamento: string | null;
+  email_cobranca_enviado_em: string | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
 };
 
