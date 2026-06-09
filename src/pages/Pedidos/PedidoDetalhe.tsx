@@ -33,6 +33,7 @@ import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialo
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { RemessasSection } from "@/components/pedidos/RemessasSection";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
+import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
