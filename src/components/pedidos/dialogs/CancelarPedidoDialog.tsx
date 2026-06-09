@@ -26,6 +26,7 @@ interface Props {
 const ESTAGIOS_BLOQUEADOS = ["faturado", "em_transporte", "entregue"];
 
 export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) {
+  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [step, setStep] = useState<"confirm" | "result">("confirm");
