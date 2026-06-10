@@ -78,6 +78,48 @@ function LinhaInfo({ label, value, copiavel }: { label: string; value: string; c
   );
 }
 
+function CobrancaStepper({ fase }: { fase: 1 | 2 | 3 }) {
+  const ativo  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 bg-primary border-primary text-primary-foreground";
+  const feito  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 bg-emerald-500 border-emerald-500 text-white";
+  const futuro = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 bg-background border-border text-muted-foreground";
+  const linhaVerde = "flex-1 h-0.5 mx-3 bg-emerald-400";
+  const linhaCinza = "flex-1 h-0.5 mx-3 bg-border";
+
+  return (
+    <div className="flex items-center py-3 px-4 bg-muted/30 rounded-lg border border-border/50">
+      {/* Step 1 */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className={fase > 1 ? feito : fase === 1 ? ativo : futuro}>
+          {fase > 1 ? <Check className="h-3.5 w-3.5" /> : "1"}
+        </div>
+        <span className={"text-sm " + (fase === 1 ? "font-semibold" : fase > 1 ? "text-emerald-600" : "text-muted-foreground")}>
+          Criar link / boleto
+        </span>
+      </div>
+      <div className={fase > 1 ? linhaVerde : linhaCinza} />
+      {/* Step 2 */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className={fase > 2 ? feito : fase === 2 ? ativo : futuro}>
+          {fase > 2 ? <Check className="h-3.5 w-3.5" /> : "2"}
+        </div>
+        <span className={"text-sm " + (fase === 2 ? "font-semibold" : fase > 2 ? "text-emerald-600" : "text-muted-foreground")}>
+          Link / boleto criado
+        </span>
+      </div>
+      <div className={fase > 2 ? linhaVerde : linhaCinza} />
+      {/* Step 3 */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className={fase === 3 ? feito : futuro}>
+          {fase === 3 ? <Check className="h-3.5 w-3.5" /> : "3"}
+        </div>
+        <span className={"text-sm " + (fase === 3 ? "text-emerald-600 font-semibold" : "text-muted-foreground")}>
+          Link / boleto enviado
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -90,7 +132,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("titulo_a_receber")
-        .select("id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, tipo_pagamento, status, link_pagamento")
+        .select("id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, tipo_pagamento, status, link_pagamento, boleto_status, email_cobranca_enviado_em, boleto_enviado_em")
         .eq("pedido_id", pedido.id)
         .not("status", "in", "(cancelado,pago,pago_com_atraso,pago_judicial,baixado_por_perda)")
         .order("numero_parcela");
@@ -105,6 +147,13 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       titulosQ.data.forEach((t: any) => { init[t.id] = t.link_pagamento ?? ""; });
       setLinks(init);
     }
+  }, [titulosQ.data]);
+
+  const fasePagamento: 1 | 2 | 3 = useMemo(() => {
+    const ts = titulosQ.data ?? [];
+    if (ts.some((t: any) => t.email_cobranca_enviado_em || t.boleto_enviado_em)) return 3;
+    if (ts.some((t: any) => t.link_pagamento || t.boleto_status === "registrado")) return 2;
+    return 1;
   }, [titulosQ.data]);
 
   const handleSalvar = async () => {
@@ -141,6 +190,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
         title={`Links de Pagamento — ${pedido.id_externo ?? ""}`}
         subtitle="Edite o link de pagamento dos títulos em aberto."
       />
+
+      <CobrancaStepper fase={fasePagamento} />
 
       <Card>
         <CardHeader>
@@ -394,6 +445,8 @@ export default function CobrancaDetalhe() {
         title={`Cobrança — ${pedido.id_externo ?? ""}`}
         subtitle="Edite a proposta de títulos antes de materializar."
       />
+
+      <CobrancaStepper fase={titulos.some((t) => t.link_pagamento) ? 2 : 1} />
 
       {/* Resumo */}
       <Card>
