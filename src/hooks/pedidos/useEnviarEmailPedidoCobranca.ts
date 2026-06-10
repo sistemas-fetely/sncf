@@ -12,7 +12,7 @@ export function useEnviarEmailPedidoCobranca() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ pedido_id, emails }: { pedido_id: string; emails: string[] }) => {
+    mutationFn: async ({ pedido_id, emails, cc }: { pedido_id: string; emails: string[]; cc?: string[] }) => {
       const { data: pedido, error: errP } = await (supabase as any)
         .from("pedidos")
         .select("*")
@@ -70,7 +70,7 @@ export function useEnviarEmailPedidoCobranca() {
         condicao_pagamento: pedido.condicao_solicitada ?? undefined,
         valor_bruto: fmtBRL.format(Number(pedido.valor_bruto ?? 0)),
         valor_liquido: fmtBRL.format(Number(pedido.valor_liquido ?? 0)),
-        itens: itensArr.slice(0, 15),
+        
       };
       if (descontoValor > 0) templateData.desconto = `-${fmtBRL.format(descontoValor)}`;
       if (Number(pedido.valor_frete ?? 0) > 0)
@@ -90,6 +90,7 @@ export function useEnviarEmailPedidoCobranca() {
               content: pdfBase64,
             },
           ],
+          ...(cc && cc.length > 0 ? { cc } : {}),
         },
       });
       if (errEmail) throw new Error(`Falha ao enviar email: ${errEmail.message}`);

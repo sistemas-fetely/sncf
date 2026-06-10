@@ -46,8 +46,8 @@ export function EnviarEmailCobrancaDialog({ open, onOpenChange, pedido_id, parce
   };
 
   const handleEnviar = async () => {
-    const todosEmails = [emailPrincipal, ...emailsAdicionais].filter(Boolean);
-    await enviar.mutateAsync({ pedido_id, emails: todosEmails });
+    const [principal, ...resto] = [emailPrincipal, ...emailsAdicionais].filter(Boolean);
+    await enviar.mutateAsync({ pedido_id, emails: [principal], cc: resto });
     onOpenChange(false);
   };
 

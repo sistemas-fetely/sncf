@@ -1,15 +1,8 @@
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Button, Container, Head, Html, Preview, Text, Hr, Section, Row, Column, Heading,
+  Body, Button, Container, Head, Html, Preview, Text, Hr, Section, Row, Column, Heading, Link,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
-
-interface ItemPedido {
-  descricao: string
-  quantidade: number
-  valor_unitario: number
-  subtotal: number
-}
 
 interface CobrancaPedidoProps {
   parceiro_nome?: string
@@ -22,7 +15,6 @@ interface CobrancaPedidoProps {
   valor_frete?: string
   valor_liquido?: string
   link_pagamento?: string
-  itens?: ItemPedido[]
 }
 
 const Verde = '#2d5a27'
@@ -40,7 +32,6 @@ const CobrancaPedidoEmail = ({
   valor_frete,
   valor_liquido,
   link_pagamento,
-  itens = [],
 }: CobrancaPedidoProps) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
@@ -104,39 +95,8 @@ const CobrancaPedidoEmail = ({
             )}
           </Section>
 
-          {/* Itens do pedido */}
-          {itens.length > 0 && (
-            <Section style={{ marginBottom: '24px' }}>
-              <Text style={sectionTitle}>Itens do Pedido</Text>
-              <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th style={{ ...thStyle, width: '60%' }}>Produto</th>
-                    <th style={{ ...thStyle, width: '15%', textAlign: 'center' }}>Qtd</th>
-                    <th style={{ ...thStyle, width: '25%', textAlign: 'right' }}>Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {itens.slice(0, 10).map((it, i) => (
-                    <tr key={i} style={i % 2 === 0 ? trEvenStyle : trOddStyle}>
-                      <td style={{ ...tdStyle, width: '60%' }}>{it.descricao}</td>
-                      <td style={{ ...tdStyle, width: '15%', textAlign: 'center' }}>{it.quantidade}</td>
-                      <td style={{ ...tdStyle, width: '25%', textAlign: 'right' }}>
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(it.subtotal)}
-                      </td>
-                    </tr>
-                  ))}
-                  {itens.length > 10 && (
-                    <tr style={trOddStyle}>
-                      <td colSpan={3} style={{ ...tdStyle, textAlign: 'center', fontStyle: 'italic', color: '#888' }}>
-                        + {itens.length - 10} outros itens (ver PDF em anexo)
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </Section>
-          )}
+
+
 
           {/* Resumo financeiro */}
           <Section style={resumoSection}>
@@ -180,7 +140,8 @@ const CobrancaPedidoEmail = ({
             <Section style={{ marginTop: '24px', marginBottom: '16px' }}>
               <Text style={{ fontSize: '14px', color: '#555', lineHeight: '1.6' }}>
                 O PDF completo do pedido está em anexo neste email.
-                <br /><br />
+              </Text>
+              <Text style={{ fontSize: '14px', color: '#555', lineHeight: '1.6' }}>
                 Siga as instruções de pagamento conforme combinado com nossa equipe comercial.
               </Text>
             </Section>
@@ -194,6 +155,9 @@ const CobrancaPedidoEmail = ({
           </Text>
           <Text style={{ ...footerText, fontWeight: 700, color: '#ffffff' }}>
             #celebreoqueimporta
+          </Text>
+          <Text style={footerText}>
+            Dúvidas? Fale conosco: <Link href="mailto:contato@fetely.com.br" style={{ color: 'rgba(255,255,255,0.9)' }}>contato@fetely.com.br</Link>
           </Text>
         </Section>
       </Container>
