@@ -263,6 +263,7 @@ export default function PedidoDetalhe() {
   const [valorFrete, setValorFrete] = useState("");
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
+  const { data: titulosData } = usePedidoTitulos(id);
 
   const recalcularPeso = async () => {
     if (!id) return;
