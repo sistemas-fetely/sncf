@@ -5,7 +5,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 // Resend via direct API. Credential lives in vault as 'RESEND_API_KEY' (Doutrina #77).
-const SITE_NAME = 'people-fetely'
+const SITE_NAME = 'Fetély'
 const FROM_DOMAIN = 'notify.fetelycorp.com.br'
 const FROM_ADDRESS = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`
 const RESEND_API_URL = 'https://api.resend.com/emails'
