@@ -191,6 +191,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
         subtitle="Edite o link de pagamento dos títulos em aberto."
       />
 
+      <CobrancaStepper fase={fasePagamento} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Títulos em aberto</CardTitle>
@@ -443,6 +445,8 @@ export default function CobrancaDetalhe() {
         title={`Cobrança — ${pedido.id_externo ?? ""}`}
         subtitle="Edite a proposta de títulos antes de materializar."
       />
+
+      <CobrancaStepper fase={titulos.some((t) => t.link_pagamento) ? 2 : 1} />
 
       {/* Resumo */}
       <Card>
