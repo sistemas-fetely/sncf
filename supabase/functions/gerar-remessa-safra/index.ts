@@ -66,10 +66,11 @@ function montarLinhaDigitavel(
   const c1Base   = params.campo1_fixo ?? "422970050";
   const sufixoC3 = params.sufixo_campo3 ?? "2";
 
-  const contaMeio = conta7d.slice(1, -1);
-  const contaDv   = conta7d.slice(-1);
-
-  const c2Base = agencia + contaMeio + contaDv;
+  // Campo livre Safra: F(1) + AG(5) + CONTA(9) + NOSSO(9) + SUFIXO(1)
+  // c2Base = último dígito da agência 5d + conta 9d (total 10 chars)
+  const agencia5d = agencia.padStart(5, "0");
+  const conta9d   = conta7d.padStart(9, "0");
+  const c2Base    = agencia5d.slice(-1) + conta9d;
   const c3Base = nossoNumero + sufixoC3;
 
   const dv1 = dvMod10(c1Base);
