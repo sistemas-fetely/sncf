@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
   let templateData: Record<string, any> = {}
   let emailMetadata: Record<string, any> | null = null
   let attachments: Array<{ filename: string; content: string }> = []
+  let cc: string[] = []
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -67,7 +68,6 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') templateData = body.templateData
     if (body.metadata && typeof body.metadata === 'object') emailMetadata = body.metadata
-    let cc: string[] = []
     if (Array.isArray(body.cc) && body.cc.length > 0) {
       cc = body.cc.filter((e: any) => typeof e === 'string' && e.includes('@'))
     }
