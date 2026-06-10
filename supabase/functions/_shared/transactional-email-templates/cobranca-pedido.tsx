@@ -4,13 +4,6 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
-interface ItemPedido {
-  descricao: string
-  quantidade: number
-  valor_unitario: number
-  subtotal: number
-}
-
 interface CobrancaPedidoProps {
   parceiro_nome?: string
   pedido_id_externo?: string
@@ -22,7 +15,6 @@ interface CobrancaPedidoProps {
   valor_frete?: string
   valor_liquido?: string
   link_pagamento?: string
-  itens?: ItemPedido[]
 }
 
 const Verde = '#2d5a27'
