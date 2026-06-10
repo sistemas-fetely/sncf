@@ -70,7 +70,7 @@ export function useEnviarEmailPedidoCobranca() {
         condicao_pagamento: pedido.condicao_solicitada ?? undefined,
         valor_bruto: fmtBRL.format(Number(pedido.valor_bruto ?? 0)),
         valor_liquido: fmtBRL.format(Number(pedido.valor_liquido ?? 0)),
-        itens: itensArr.slice(0, 15),
+        
       };
       if (descontoValor > 0) templateData.desconto = `-${fmtBRL.format(descontoValor)}`;
       if (Number(pedido.valor_frete ?? 0) > 0)
