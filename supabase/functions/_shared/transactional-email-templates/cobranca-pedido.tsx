@@ -228,7 +228,7 @@ const badgeStyle    = {
   borderRadius:    '60px',
   padding:         '14px 40px',
   border:          `2.5px solid ${Creme}`,
-  boxShadow:       '0 2px 12px rgba(0,0,0,0.18)`,
+  boxShadow:       '0 2px 12px rgba(0,0,0,0.18)',
 }
 const badgeText     = {
   fontSize:   '26px',
