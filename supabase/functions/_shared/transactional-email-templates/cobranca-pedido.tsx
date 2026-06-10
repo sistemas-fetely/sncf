@@ -156,6 +156,9 @@ const CobrancaPedidoEmail = ({
           <Text style={{ ...footerText, fontWeight: 700, color: '#ffffff' }}>
             #celebreoqueimporta
           </Text>
+          <Text style={footerText}>
+            Dúvidas? Fale conosco: <Link href="mailto:contato@fetely.com.br" style={{ color: 'rgba(255,255,255,0.9)' }}>contato@fetely.com.br</Link>
+          </Text>
         </Section>
       </Container>
     </Body>
