@@ -77,7 +77,147 @@ function LinhaInfo({ label, value, copiavel }: { label: string; value: string; c
   );
 }
 
+function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [links, setLinks] = useState<Record<string, string>>({});
+  const [salvando, setSalvando] = useState(false);
+
+  const titulosQ = useQuery({
+    queryKey: ["gerenciar-links", pedido.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("titulo_a_receber")
+        .select("id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, tipo_pagamento, status, link_pagamento")
+        .eq("pedido_id", pedido.id)
+        .not("status", "in", "(cancelado,pago,pago_com_atraso,pago_judicial,baixado_por_perda)")
+        .order("numero_parcela");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  useEffect(() => {
+    if (titulosQ.data) {
+      const init: Record<string, string> = {};
+      titulosQ.data.forEach((t: any) => { init[t.id] = t.link_pagamento ?? ""; });
+      setLinks(init);
+    }
+  }, [titulosQ.data]);
+
+  const handleSalvar = async () => {
+    setSalvando(true);
+    try {
+      for (const t of titulosQ.data ?? []) {
+        const novo = links[t.id] ?? "";
+        const atual = t.link_pagamento ?? "";
+        if (novo !== atual) {
+          const { error } = await (supabase as any)
+            .from("titulo_a_receber")
+            .update({ link_pagamento: novo || null })
+            .eq("id", t.id);
+          if (error) throw error;
+        }
+      }
+      toast({ title: "Links salvos!", description: "Links de pagamento atualizados com sucesso." });
+    } catch (err) {
+      toast({ title: "Erro ao salvar", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
+      <CasaPageHeader
+        breadcrumb={[
+          { label: "Casa", to: "/" },
+          { label: "Recebimento", to: "/recebimento" },
+          { label: "Cobrança", to: "/recebimento/cobranca" },
+          { label: pedido.id_externo ?? "—" },
+        ]}
+        title={`Links de Pagamento — ${pedido.id_externo ?? ""}`}
+        subtitle="Edite o link de pagamento dos títulos em aberto."
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Títulos em aberto</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {titulosQ.isLoading && <Skeleton className="h-40 w-full" />}
+
+          {!titulosQ.isLoading && titulosQ.data?.length === 0 && (
+            <p className="text-sm text-muted-foreground py-4">Nenhum título em aberto para este pedido.</p>
+          )}
+
+          {titulosQ.data && titulosQ.data.length > 0 && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">Parcela</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Link de pagamento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {titulosQ.data.map((t: any) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="text-sm font-medium">
+                        {t.numero_parcela}/{t.total_parcelas}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {fmtBRL.format(Number(t.valor_bruto))}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {t.data_vencimento_atual
+                          ? new Date(t.data_vencimento_atual + "T00:00:00").toLocaleDateString("pt-BR")
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm capitalize">
+                        {t.tipo_pagamento ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="url"
+                          placeholder="https://..."
+                          value={links[t.id] ?? ""}
+                          onChange={(e) =>
+                            setLinks((prev) => ({ ...prev, [t.id]: e.target.value }))
+                          }
+                          className="h-8 w-80 text-xs"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <div className="flex justify-between mt-6">
+            <Button variant="ghost" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+            <Button
+              onClick={handleSalvar}
+              disabled={salvando || titulosQ.isLoading || titulosQ.data?.length === 0}
+            >
+              {salvando && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Salvar links
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function CobrancaDetalhe() {
+
   const { pedidoId } = useParams<{ pedidoId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -200,23 +340,11 @@ export default function CobrancaDetalhe() {
     );
   }
 
-  // Pedido já saiu de 'cobranca'
+  // Pedido já saiu de 'cobranca' — modo edição de links
   if (pedidoQ.data.estagio !== "cobranca") {
-    return (
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-4">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Esta cobrança já foi materializada (estágio atual:{" "}
-            <strong>{pedidoQ.data.estagio}</strong>).
-          </AlertDescription>
-        </Alert>
-        <Button variant="ghost" onClick={() => navigate("/recebimento/cobranca")}>
-          <ArrowLeft className="h-4 w-4" /> Voltar à fila
-        </Button>
-      </div>
-    );
+    return <GerenciarLinksPagamento pedido={pedidoQ.data} />;
   }
+
 
   // Erro na RPC de proposta
   if (propostaQ.error) {
