@@ -21,7 +21,8 @@ export function usePedidoTitulos(pedidoId: string | undefined) {
           "id, numero_titulo, conta_id, pedido_id, nf_id, analise_credito_id, " +
             "valor_bruto, valor_desconto, valor_juros, valor_multa, valor_correcao, valor_atual, " +
             "data_criacao, data_emissao_nf, data_vencimento_original, data_vencimento_atual, data_pagamento, " +
-            "numero_parcela, total_parcelas, tipo_pagamento, eh_entrada, status, subestado_atraso, flag_bandeira_amarela"
+            "numero_parcela, total_parcelas, tipo_pagamento, eh_entrada, status, subestado_atraso, flag_bandeira_amarela, " +
+            "link_pagamento"
         )
         .eq("pedido_id", pedidoId)
         .order("numero_parcela", { ascending: true });

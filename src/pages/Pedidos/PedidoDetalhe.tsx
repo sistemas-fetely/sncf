@@ -43,7 +43,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, ShieldAlert } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, ShieldAlert, MessageCircle, Link2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
@@ -166,6 +166,53 @@ function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: strin
 }
 
 
+function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] }) {
+  const statusPagos = ["pago", "pago_com_atraso", "pago_judicial", "baixado_por_perda", "cancelado"];
+  const tiposComLink = ["pix", "cartao", "cartao_credito", "cartao_debito"];
+
+  const link =
+    titulos
+      .filter((t) => tiposComLink.includes(t.tipo_pagamento ?? "") && !statusPagos.includes(t.status) && t.link_pagamento)
+      .map((t) => t.link_pagamento as string)[0] ??
+    (pedido.link_pagamento as string | null | undefined) ??
+    null;
+
+  if (!link) return null;
+
+  const handleCopiar = () => {
+    navigator.clipboard.writeText(link).then(() => {
+      toast({ title: "Link copiado!", description: "Cole no WhatsApp ou onde preferir." });
+    });
+  };
+
+  const handleWhatsApp = () => {
+    const texto = `Olá! Segue o link de pagamento do pedido ${pedido.id_externo}:\n${link}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
+  };
+
+  return (
+    <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-2">
+      <div className="flex items-center gap-1.5">
+        <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Link de pagamento</p>
+      </div>
+      <p className="text-xs text-muted-foreground truncate max-w-[220px]" title={link}>
+        {link}
+      </p>
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1.5 text-xs" onClick={handleCopiar}>
+          <Copy className="h-3 w-3" />
+          Copiar
+        </Button>
+        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1.5 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:text-green-800" onClick={handleWhatsApp}>
+          <MessageCircle className="h-3 w-3" />
+          WhatsApp
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: any; estagio: EstagioPedido }) {
   const navigate = useNavigate();
   if (estagio === "recebido") return (
@@ -216,6 +263,7 @@ export default function PedidoDetalhe() {
   const [valorFrete, setValorFrete] = useState("");
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
+  const { data: titulosData } = usePedidoTitulos(id);
 
   const recalcularPeso = async () => {
     if (!id) return;
@@ -305,6 +353,7 @@ export default function PedidoDetalhe() {
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Próxima ação</p>
               {pedido.proxima_acao && <p className="text-xs text-muted-foreground italic">{pedido.proxima_acao}</p>}
               <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
+              <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
               <CancelarPedidoDialog
                 pedido_id={pedido.id}
                 id_externo={pedido.id_externo}
