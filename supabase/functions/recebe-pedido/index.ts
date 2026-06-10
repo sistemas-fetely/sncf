@@ -27,6 +27,84 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return jsonResponse(400, { error: "Corpo JSON malformado" });
+    }
+
+    // ── Branch pull-catalogo (chamado pelo cron sync-catalogo-diario) ──
+    if (body?.tipo === "pull-catalogo") {
+      const supabasePull = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const { data: fopKey } = await supabasePull.rpc("get_vault_secret", {
+        p_name: "FOP_SERVICE_ROLE_KEY",
+      });
+      if (!fopKey) {
+        return new Response(
+          JSON.stringify({ error: "FOP_SERVICE_ROLE_KEY não configurado no vault" }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const FOP_URL = "https://onalegxugtuxpfhonayq.supabase.co";
+      const resp = await fetch(
+        `${FOP_URL}/rest/v1/products?select=sku,nome_comercial,preco_atacado,peso_g,multiplos,ativo&ativo=eq.true&limit=2000`,
+        { headers: { apikey: fopKey, Authorization: `Bearer ${fopKey}` } }
+      );
+      if (!resp.ok) {
+        const err = await resp.text();
+        return new Response(
+          JSON.stringify({ error: `FOP respondeu ${resp.status}: ${err}` }),
+          { status: 502, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const produtos = await resp.json() as Array<{
+        sku: string; nome_comercial: string; preco_atacado: number;
+        peso_g: number; multiplos: number; ativo: boolean;
+      }>;
+
+      if (!produtos || produtos.length === 0) {
+        return new Response(
+          JSON.stringify({ ok: true, upsertados: 0, mensagem: "Nenhum produto ativo" }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const LOTE = 500;
+      let total = 0;
+      for (let i = 0; i < produtos.length; i += LOTE) {
+        const lote = produtos.slice(i, i + LOTE);
+        const { error } = await (supabasePull as any)
+          .from("sncf_produtos")
+          .upsert(
+            lote.map((p) => ({
+              sku:            p.sku,
+              nome_comercial: p.nome_comercial,
+              preco_atacado:  p.preco_atacado,
+              peso_g:         p.peso_g,
+              multiplos:      p.multiplos,
+              ativo:          p.ativo,
+              atualizado_em:  new Date().toISOString(),
+            })),
+            { onConflict: "sku" }
+          );
+        if (error) throw error;
+        total += lote.length;
+      }
+
+      return new Response(
+        JSON.stringify({ ok: true, upsertados: total, mensagem: `${total} produtos sincronizados` }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    // ── fim branch pull-catalogo ──
+
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonResponse(401, { error: "Authorization Bearer ausente ou malformado" });
@@ -44,13 +122,6 @@ Deno.serve(async (req) => {
     if (senhaRecebida !== senhaEsperada) {
       console.warn("[recebe-pedido] Senha inválida");
       return jsonResponse(401, { error: "Senha inválida" });
-    }
-
-    let body: any;
-    try {
-      body = await req.json();
-    } catch {
-      return jsonResponse(400, { error: "Corpo JSON malformado" });
     }
 
     // ── Branch: sincronização de catálogo de produtos ─────────────────────
