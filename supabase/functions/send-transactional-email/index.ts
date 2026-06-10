@@ -67,6 +67,10 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') templateData = body.templateData
     if (body.metadata && typeof body.metadata === 'object') emailMetadata = body.metadata
+    let cc: string[] = []
+    if (Array.isArray(body.cc) && body.cc.length > 0) {
+      cc = body.cc.filter((e: any) => typeof e === 'string' && e.includes('@'))
+    }
     if (Array.isArray(body.attachments)) {
       attachments = body.attachments.filter((a: any) =>
         a && typeof a.filename === 'string' && typeof a.content === 'string'
