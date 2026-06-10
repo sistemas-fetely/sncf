@@ -132,7 +132,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("titulo_a_receber")
-        .select("id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, tipo_pagamento, status, link_pagamento")
+        .select("id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, tipo_pagamento, status, link_pagamento, boleto_status, email_cobranca_enviado_em, boleto_enviado_em")
         .eq("pedido_id", pedido.id)
         .not("status", "in", "(cancelado,pago,pago_com_atraso,pago_judicial,baixado_por_perda)")
         .order("numero_parcela");
