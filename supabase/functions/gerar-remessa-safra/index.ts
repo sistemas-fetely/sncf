@@ -184,14 +184,15 @@ function gerarDetalhe(titulo: any, nossoNumero: string, params: Record<string, s
   d += fmtDDMMAA(titulo.data_vencimento_atual);
   d += fmtValor(Number(titulo.valor_bruto), 13);
   d += "422";
-  d += zeroLeft(params.agencia ?? "00005", 5);
+  d += zeroLeft(params.agencia ?? "00500", 5);
   d += (params.especie_titulo ?? "01");
   d += "N";
   d += fmtDDMMAA(new Date().toISOString().slice(0, 10));
   d += instrucao1; d += instrucao2;
   d += jurosDia;
   d += "000000"; d += "0000000000000"; d += "0000000000000";
-  d += dataMulta; d += multaPct; d += "000";
+  const tipoMulta = parseInt(multaPct, 10) > 0 ? "2" : "0";
+  d += dataMulta; d += multaPct; d += tipoMulta + "00";
   d += tipoInscricaoPagador;
   d += zeroLeft(docPagador, 14);
   d += spaceRight(parceiro.razao_social ?? "", 40);
