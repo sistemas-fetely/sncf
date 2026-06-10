@@ -31,7 +31,7 @@ function getConteudo(tipo?: TipoPagamento) {
   const t = (tipo ?? '').toLowerCase()
   if (t === 'pix') return {
     headline:   'Pagamento à vista.\nRápido, simples e garantido.',
-    subline:    'Seu pedido está confirmado. Use o QR Code ou o link abaixo para concluir o pagamento via PIX agora.',
+    subline:    'Seu pedido está confirmado. Escaneie o QR Code ou copie o código PIX abaixo para concluir o pagamento.',
     ctaLabel:   '',
     ctaColor:   '#1a73e8',
   }
@@ -188,9 +188,8 @@ const CobrancaPedidoEmail = ({
                 )}
                 {link_pagamento && (
                   <Section style={pixLinkBox}>
-                    <Link href={link_pagamento} style={pixLinkStyle}>
-                      Clique aqui para acessar o pagamento via PIX
-                    </Link>
+                    <Text style={pixLabelStyle}>Código PIX — copie e cole no seu banco:</Text>
+                    <Text style={pixCopiavel}>{link_pagamento}</Text>
                   </Section>
                 )}
                 <Text style={ctaNote}>
@@ -277,7 +276,8 @@ const resumoValor   = { fontSize: '13px', color: '#222', textAlign: 'right' as c
 const ctaButton     = { color: '#ffffff', fontSize: '15px', fontWeight: '700', padding: '14px 36px', borderRadius: '6px', textDecoration: 'none', display: 'inline-block' }
 const ctaNote       = { fontSize: '12px', color: '#999', textAlign: 'center' as const, marginTop: '10px' }
 const pixLinkBox    = { backgroundColor: '#f0f7ee', borderRadius: '8px', padding: '12px 20px', marginBottom: '12px', border: '1px solid #c8e0c4' }
-const pixLinkStyle  = { fontSize: '14px', color: '#2d5a27', fontWeight: '600', textDecoration: 'underline', textAlign: 'center' as const }
+const pixLabelStyle = { fontSize: '11px', color: '#5a7a54', textAlign: 'center' as const, margin: '0 0 6px', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
+const pixCopiavel   = { fontSize: '11px', color: '#2d5a27', fontFamily: 'monospace, Courier, "Courier New"', wordBreak: 'break-all' as const, textAlign: 'center' as const, margin: '0', fontWeight: '600' as const }
 const footer        = { backgroundColor: VerdeEscuro, padding: '20px 32px' }
 const footerText    = { fontSize: '11px', color: 'rgba(255,255,255,0.65)', margin: '0 0 5px', textAlign: 'center' as const }
 
