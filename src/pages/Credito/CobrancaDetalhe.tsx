@@ -78,6 +78,48 @@ function LinhaInfo({ label, value, copiavel }: { label: string; value: string; c
   );
 }
 
+function CobrancaStepper({ fase }: { fase: 1 | 2 | 3 }) {
+  const ativo  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 bg-primary border-primary text-primary-foreground";
+  const feito  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 bg-emerald-500 border-emerald-500 text-white";
+  const futuro = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 bg-background border-border text-muted-foreground";
+  const linhaVerde = "flex-1 h-0.5 mx-3 bg-emerald-400";
+  const linhaCinza = "flex-1 h-0.5 mx-3 bg-border";
+
+  return (
+    <div className="flex items-center py-3 px-4 bg-muted/30 rounded-lg border border-border/50">
+      {/* Step 1 */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className={fase > 1 ? feito : fase === 1 ? ativo : futuro}>
+          {fase > 1 ? <Check className="h-3.5 w-3.5" /> : "1"}
+        </div>
+        <span className={"text-sm " + (fase === 1 ? "font-semibold" : fase > 1 ? "text-emerald-600" : "text-muted-foreground")}>
+          Criar link / boleto
+        </span>
+      </div>
+      <div className={fase > 1 ? linhaVerde : linhaCinza} />
+      {/* Step 2 */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className={fase > 2 ? feito : fase === 2 ? ativo : futuro}>
+          {fase > 2 ? <Check className="h-3.5 w-3.5" /> : "2"}
+        </div>
+        <span className={"text-sm " + (fase === 2 ? "font-semibold" : fase > 2 ? "text-emerald-600" : "text-muted-foreground")}>
+          Link / boleto criado
+        </span>
+      </div>
+      <div className={fase > 2 ? linhaVerde : linhaCinza} />
+      {/* Step 3 */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className={fase === 3 ? feito : futuro}>
+          {fase === 3 ? <Check className="h-3.5 w-3.5" /> : "3"}
+        </div>
+        <span className={"text-sm " + (fase === 3 ? "text-emerald-600 font-semibold" : "text-muted-foreground")}>
+          Link / boleto enviado
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const navigate = useNavigate();
   const { toast } = useToast();
