@@ -96,6 +96,13 @@ export function useEnviarEmailPedidoCobranca() {
       });
       if (errEmail) throw new Error(`Falha ao enviar email: ${errEmail.message}`);
 
+      // Marca os títulos em aberto como "email enviado"
+      await (supabase as any)
+        .from("titulo_a_receber")
+        .update({ email_cobranca_enviado_em: new Date().toISOString() })
+        .eq("pedido_id", pedido_id)
+        .not("status", "in", "(cancelado,pago,pago_com_atraso,pago_judicial,baixado_por_perda)");
+
       return { email: emails[0], id_externo: pedido.id_externo };
 
     },
