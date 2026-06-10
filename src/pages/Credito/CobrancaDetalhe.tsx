@@ -223,6 +223,12 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           </div>
         </CardContent>
       </Card>
+      <EnviarEmailCobrancaDialog
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        pedido_id={pedido.id}
+        parceiro_id={pedido.parceiro_id}
+      />
     </div>
   );
 }
