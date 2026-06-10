@@ -1,6 +1,6 @@
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Button, Container, Head, Html, Preview, Text, Hr, Section, Row, Column, Link,
+  Body, Button, Container, Head, Html, Preview, Text, Hr, Section, Row, Column, Link, Img,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
@@ -18,6 +18,7 @@ interface CobrancaPedidoProps {
   valor_liquido?:    string
   link_pagamento?:   string
   tipo_pagamento?:   TipoPagamento
+  qr_code_pix?:      string
 }
 
 const Verde      = '#2d5a27'
@@ -29,14 +30,14 @@ const TextoVerde = '#2d4a24'
 function getConteudo(tipo?: TipoPagamento) {
   const t = (tipo ?? '').toLowerCase()
   if (t === 'pix') return {
-    headline:   'Pagamento instantâneo.\nCelebração garantida.',
-    subline:    'Use o link abaixo para pagar via PIX. Em instantes, seu pedido estará confirmado.',
-    ctaLabel:   'Pagar via PIX',
+    headline:   'Pagamento à vista.\nRápido, simples e garantido.',
+    subline:    'Seu pedido está confirmado. Use o QR Code ou o link abaixo para concluir o pagamento via PIX agora.',
+    ctaLabel:   '',
     ctaColor:   '#1a73e8',
   }
   if (t.includes('cartao') || t.includes('cartão')) return {
-    headline:   'Tudo parcelado.\nNada esquecido.',
-    subline:    'Clique no botão abaixo para concluir o pagamento com cartão. Rápido, seguro e simples — como deve ser.',
+    headline:   'Tudo no cartão.\nNada esquecido.',
+    subline:    'Segue o link para concluir o pagamento. Rápido, seguro e simples — como deve ser.',
     ctaLabel:   'Pagar com Cartão',
     ctaColor:   Verde,
   }
@@ -67,8 +68,12 @@ const CobrancaPedidoEmail = ({
   valor_liquido,
   link_pagamento,
   tipo_pagamento,
+  qr_code_pix,
 }: CobrancaPedidoProps) => {
   const { headline, subline, ctaLabel, ctaColor } = getConteudo(tipo_pagamento)
+  const tipoPag = (tipo_pagamento ?? '').toLowerCase()
+  const isPix     = tipoPag === 'pix'
+  const isCartao  = tipoPag.includes('cart')
 
   return (
     <Html lang="pt-BR" dir="ltr">
@@ -175,8 +180,27 @@ const CobrancaPedidoEmail = ({
               </Section>
             )}
 
-            {/* CTA — só para PIX e Cartão */}
-            {link_pagamento && ctaLabel && (
+            {/* PIX: QR Code + link como texto */}
+            {isPix && (
+              <Section style={{ textAlign: 'center', marginTop: '24px' }}>
+                {qr_code_pix && (
+                  <Img src={qr_code_pix} alt="QR Code PIX" style={{ margin: '0 auto 16px', display: 'block' }} />
+                )}
+                {link_pagamento && (
+                  <Section style={pixLinkBox}>
+                    <Link href={link_pagamento} style={pixLinkStyle}>
+                      Clique aqui para acessar o pagamento via PIX
+                    </Link>
+                  </Section>
+                )}
+                <Text style={ctaNote}>
+                  O PDF completo do pedido está em anexo neste email.
+                </Text>
+              </Section>
+            )}
+
+            {/* Cartão: botão com link */}
+            {isCartao && link_pagamento && (
               <Section style={{ textAlign: 'center', marginTop: '24px' }}>
                 <Button href={link_pagamento} style={{ ...ctaButton, backgroundColor: ctaColor }}>
                   {ctaLabel}
@@ -187,8 +211,8 @@ const CobrancaPedidoEmail = ({
               </Section>
             )}
 
-            {/* Boleto / sem link */}
-            {(!link_pagamento || !ctaLabel) && (
+            {/* Boleto / fallback sem link */}
+            {!isPix && !isCartao && (
               <Section style={{ textAlign: 'center', marginTop: '24px' }}>
                 <Text style={ctaNote}>
                   O PDF completo do pedido está em anexo neste email.
@@ -252,6 +276,8 @@ const resumoLabel   = { fontSize: '13px', color: '#666', paddingBottom: '5px' }
 const resumoValor   = { fontSize: '13px', color: '#222', textAlign: 'right' as const, paddingBottom: '5px' }
 const ctaButton     = { color: '#ffffff', fontSize: '15px', fontWeight: '700', padding: '14px 36px', borderRadius: '6px', textDecoration: 'none', display: 'inline-block' }
 const ctaNote       = { fontSize: '12px', color: '#999', textAlign: 'center' as const, marginTop: '10px' }
+const pixLinkBox    = { backgroundColor: '#f0f7ee', borderRadius: '8px', padding: '12px 20px', marginBottom: '12px', border: '1px solid #c8e0c4' }
+const pixLinkStyle  = { fontSize: '14px', color: '#2d5a27', fontWeight: '600', textDecoration: 'underline', textAlign: 'center' as const }
 const footer        = { backgroundColor: VerdeEscuro, padding: '20px 32px' }
 const footerText    = { fontSize: '11px', color: 'rgba(255,255,255,0.65)', margin: '0 0 5px', textAlign: 'center' as const }
 
