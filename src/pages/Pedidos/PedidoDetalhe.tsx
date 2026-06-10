@@ -648,10 +648,16 @@ export default function PedidoDetalhe() {
               }
             </div>
 
-            <Tabs defaultValue="parcelas" className="space-y-3">
+            <Tabs defaultValue={analiseCredito?.ressalva ? "credito" : "parcelas"} className="space-y-3">
               <TabsList>
                 <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
                 <TabsTrigger value="analise">Análise IA</TabsTrigger>
+                <TabsTrigger value="credito" className="gap-1.5">
+                  Crédito
+                  {analiseCredito?.ressalva && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="timeline">Histórico</TabsTrigger>
                 <TabsTrigger value="urgencia">Urgência</TabsTrigger>
               </TabsList>
@@ -659,6 +665,9 @@ export default function PedidoDetalhe() {
               <TabsContent value="parcelas"><ParcelasTab pedidoId={pedido.id} /></TabsContent>
               <TabsContent value="analise">
                 <CardAnalisePedido pedido_id={pedido.id} status={pedido.analise_pedido_status ?? null} motivo={pedido.analise_pedido_motivo ?? null} detalhes={pedido.analise_pedido_detalhes ?? null} executada_em={pedido.analise_pedido_executada_em ?? null} />
+              </TabsContent>
+              <TabsContent value="credito">
+                <CreditoTab analise={analiseCredito} />
               </TabsContent>
               <TabsContent value="timeline"><PedidoTimeline eventos={eventos} /></TabsContent>
               <TabsContent value="urgencia">
