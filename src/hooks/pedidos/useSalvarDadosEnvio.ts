@@ -29,6 +29,10 @@ export function useSalvarDadosEnvio() {
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
       toast.success("Dados de envio salvos");
     },
-    onError: () => toast.error("Erro ao salvar dados de envio"),
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("useSalvarDadosEnvio error:", msg);
+      toast.error(`Erro ao salvar dados de envio: ${msg}`);
+    },
   });
 }
