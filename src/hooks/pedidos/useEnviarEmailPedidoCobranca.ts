@@ -12,7 +12,7 @@ export function useEnviarEmailPedidoCobranca() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ pedido_id, emails }: { pedido_id: string; emails: string[] }) => {
+    mutationFn: async ({ pedido_id, emails, cc }: { pedido_id: string; emails: string[]; cc?: string[] }) => {
       const { data: pedido, error: errP } = await (supabase as any)
         .from("pedidos")
         .select("*")
