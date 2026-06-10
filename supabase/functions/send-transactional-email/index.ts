@@ -1,7 +1,8 @@
-// v3 — suporta template cobranca-pedido (bundle trigger)
+// v4 — QR Code PIX + redesign cobranca-pedido
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import QRCode from 'npm:qrcode'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 // Resend via direct API. Credential lives in vault as 'RESEND_API_KEY' (Doutrina #77).
@@ -173,6 +174,21 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: 'Resend credential not configured' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
+  }
+
+  // Gera QR code PIX se aplicável
+  const tipoPag = (templateData.tipo_pagamento ?? '').toString().toLowerCase()
+  if (tipoPag === 'pix' && templateData.link_pagamento) {
+    try {
+      const qrDataUrl: string = await QRCode.toDataURL(templateData.link_pagamento, {
+        margin: 2,
+        width: 200,
+        color: { dark: '#2d5a27', light: '#ffffff' },
+      })
+      templateData.qr_code_pix = qrDataUrl
+    } catch (_e) {
+      // QR não-crítico: segue sem ele
+    }
   }
 
   // Render templates
