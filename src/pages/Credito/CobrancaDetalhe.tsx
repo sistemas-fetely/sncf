@@ -16,7 +16,7 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
@@ -25,6 +25,7 @@ import type { TituloProposto } from "@/types/credito";
 import { formatCNPJ } from "@/lib/cnpj";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -37,7 +38,7 @@ function usePedidoMinimo(pedidoId: string | undefined) {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(`
-          id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada,
+          id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada, parceiro_id,
           parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf)
         `)
         .eq("id", pedidoId)
@@ -82,6 +83,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const { toast } = useToast();
   const [links, setLinks] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const titulosQ = useQuery({
     queryKey: ["gerenciar-links", pedido.id],
