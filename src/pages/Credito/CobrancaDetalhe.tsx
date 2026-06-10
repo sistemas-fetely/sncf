@@ -149,6 +149,13 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     }
   }, [titulosQ.data]);
 
+  const fasePagamento: 1 | 2 | 3 = useMemo(() => {
+    const ts = titulosQ.data ?? [];
+    if (ts.some((t: any) => t.email_cobranca_enviado_em || t.boleto_enviado_em)) return 3;
+    if (ts.some((t: any) => t.link_pagamento || t.boleto_status === "registrado")) return 2;
+    return 1;
+  }, [titulosQ.data]);
+
   const handleSalvar = async () => {
     setSalvando(true);
     try {
