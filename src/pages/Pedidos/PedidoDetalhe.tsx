@@ -16,6 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CreditoTab } from "@/components/pedidos/CreditoTab";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PedidoStepper } from "@/components/pedidos/PedidoStepper";
@@ -41,7 +43,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, ShieldAlert } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
@@ -320,6 +322,31 @@ export default function PedidoDetalhe() {
 
         {/* COLUNA ESQUERDA */}
         <div className="flex-1 min-w-0 px-6 py-5 space-y-6">
+
+          {analiseCredito?.status_final && analiseCredito.status_final !== "aprovado" && (
+            <Alert className={cn(
+              analiseCredito.status_final === "reprovado"
+                ? "border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800"
+                : "border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800"
+            )}>
+              <ShieldAlert className={cn(
+                "h-4 w-4",
+                analiseCredito.status_final === "reprovado" ? "text-red-600" : "text-amber-600"
+              )} />
+              <AlertDescription className={cn(
+                analiseCredito.status_final === "reprovado"
+                  ? "text-red-900 dark:text-red-200"
+                  : "text-amber-900 dark:text-amber-200"
+              )}>
+                <p className="font-semibold mb-0.5">
+                  {analiseCredito.status_final === "reprovado"
+                    ? "Crédito reprovado"
+                    : "Crédito aprovado com ressalva"}
+                </p>
+                <p className="text-sm">{analiseCredito.ressalva || "Consulte a aba Crédito para detalhes."}</p>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {estagio === "recebido" && (
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
@@ -621,10 +648,16 @@ export default function PedidoDetalhe() {
               }
             </div>
 
-            <Tabs defaultValue="parcelas" className="space-y-3">
+            <Tabs defaultValue={analiseCredito?.ressalva ? "credito" : "parcelas"} className="space-y-3">
               <TabsList>
                 <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
                 <TabsTrigger value="analise">Análise IA</TabsTrigger>
+                <TabsTrigger value="credito" className="gap-1.5">
+                  Crédito
+                  {analiseCredito?.ressalva && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="timeline">Histórico</TabsTrigger>
                 <TabsTrigger value="urgencia">Urgência</TabsTrigger>
               </TabsList>
@@ -632,6 +665,9 @@ export default function PedidoDetalhe() {
               <TabsContent value="parcelas"><ParcelasTab pedidoId={pedido.id} /></TabsContent>
               <TabsContent value="analise">
                 <CardAnalisePedido pedido_id={pedido.id} status={pedido.analise_pedido_status ?? null} motivo={pedido.analise_pedido_motivo ?? null} detalhes={pedido.analise_pedido_detalhes ?? null} executada_em={pedido.analise_pedido_executada_em ?? null} />
+              </TabsContent>
+              <TabsContent value="credito">
+                <CreditoTab analise={analiseCredito} />
               </TabsContent>
               <TabsContent value="timeline"><PedidoTimeline eventos={eventos} /></TabsContent>
               <TabsContent value="urgencia">
