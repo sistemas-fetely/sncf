@@ -216,6 +216,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   );
 }
 
+export default function CobrancaDetalhe() {
 
   const { pedidoId } = useParams<{ pedidoId: string }>();
   const navigate = useNavigate();
@@ -339,23 +340,11 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     );
   }
 
-  // Pedido já saiu de 'cobranca'
+  // Pedido já saiu de 'cobranca' — modo edição de links
   if (pedidoQ.data.estagio !== "cobranca") {
-    return (
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-4">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Esta cobrança já foi materializada (estágio atual:{" "}
-            <strong>{pedidoQ.data.estagio}</strong>).
-          </AlertDescription>
-        </Alert>
-        <Button variant="ghost" onClick={() => navigate("/recebimento/cobranca")}>
-          <ArrowLeft className="h-4 w-4" /> Voltar à fila
-        </Button>
-      </div>
-    );
+    return <GerenciarLinksPagamento pedido={pedidoQ.data} />;
   }
+
 
   // Erro na RPC de proposta
   if (propostaQ.error) {
