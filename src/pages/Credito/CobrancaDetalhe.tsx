@@ -204,13 +204,22 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
             <Button variant="ghost" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
-            <Button
-              onClick={handleSalvar}
-              disabled={salvando || titulosQ.isLoading || titulosQ.data?.length === 0}
-            >
-              {salvando && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Salvar links
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEmailOpen(true)}
+                disabled={!pedido.parceiro_id}
+              >
+                <Mail className="h-4 w-4 mr-1" /> Enviar cobrança
+              </Button>
+              <Button
+                onClick={handleSalvar}
+                disabled={salvando || titulosQ.isLoading || titulosQ.data?.length === 0}
+              >
+                {salvando && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                Salvar links
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
