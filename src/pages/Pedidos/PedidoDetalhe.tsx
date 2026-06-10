@@ -167,6 +167,7 @@ function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: strin
 
 
 function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] }) {
+  const navigate = useNavigate();
   const statusPagos = ["pago", "pago_com_atraso", "pago_judicial", "baixado_por_perda", "cancelado"];
   const tiposComLink = ["pix", "cartao", "cartao_credito", "cartao_debito"];
 
@@ -177,10 +178,10 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
     (pedido.link_pagamento as string | null | undefined) ??
     null;
 
-  if (!link) return null;
+  const irParaCobranca = () => navigate(`/recebimento/cobranca/${pedido.id}`);
 
   const handleCopiar = () => {
-    navigator.clipboard.writeText(link).then(() => {
+    navigator.clipboard.writeText(link!).then(() => {
       toast({ title: "Link copiado!", description: "Cole no WhatsApp ou onde preferir." });
     });
   };
@@ -189,6 +190,29 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
     const texto = `Olá! Segue o link de pagamento do pedido ${pedido.id_externo}:\n${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
   };
+
+  if (!link) {
+    return (
+      <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Link de pagamento</p>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">Nenhum link cadastrado.</p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full h-7 gap-1.5 text-xs"
+          onClick={irParaCobranca}
+        >
+          <ExternalLink className="h-3 w-3" />
+          Cadastrar na tela de cobrança
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-2">
@@ -199,14 +223,17 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
       <p className="text-xs text-muted-foreground truncate max-w-[220px]" title={link}>
         {link}
       </p>
-      <div className="flex gap-2">
-        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1.5 text-xs" onClick={handleCopiar}>
+      <div className="flex gap-1.5">
+        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1 text-xs" onClick={handleCopiar}>
           <Copy className="h-3 w-3" />
           Copiar
         </Button>
-        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1.5 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:text-green-800" onClick={handleWhatsApp}>
+        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:text-green-800" onClick={handleWhatsApp}>
           <MessageCircle className="h-3 w-3" />
           WhatsApp
+        </Button>
+        <Button size="sm" variant="outline" className="h-7 w-7 p-0" title="Editar na tela de cobrança" onClick={irParaCobranca}>
+          <ExternalLink className="h-3 w-3" />
         </Button>
       </div>
     </div>
