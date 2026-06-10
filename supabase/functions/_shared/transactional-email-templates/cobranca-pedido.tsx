@@ -1,25 +1,59 @@
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Button, Container, Head, Html, Preview, Text, Hr, Section, Row, Column, Heading, Link,
+  Body, Button, Container, Head, Html, Preview, Text, Hr, Section, Row, Column, Link,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
+type TipoPagamento = 'pix' | 'cartao' | 'cartao_credito' | 'cartao_debito' | 'boleto' | string
+
 interface CobrancaPedidoProps {
-  parceiro_nome?: string
+  parceiro_nome?:    string
   pedido_id_externo?: string
-  data_pedido?: string
-  forma_pagamento?: string
+  data_pedido?:      string
+  forma_pagamento?:  string
   condicao_pagamento?: string
-  valor_bruto?: string
-  desconto?: string
-  valor_frete?: string
-  valor_liquido?: string
-  link_pagamento?: string
+  valor_bruto?:      string
+  desconto?:         string
+  valor_frete?:      string
+  valor_liquido?:    string
+  link_pagamento?:   string
+  tipo_pagamento?:   TipoPagamento
 }
 
-const Verde = '#2d5a27'
-const Creme = '#f0ecd8'
+const Verde      = '#2d5a27'
+const VerdeEscuro = '#234820'
+const Creme      = '#f0ecd8'
 const TextoVerde = '#2d4a24'
+
+// ── Textos por tipo de pagamento ─────────────────────────────
+function getConteudo(tipo?: TipoPagamento) {
+  const t = (tipo ?? '').toLowerCase()
+  if (t === 'pix') return {
+    headline:   'Pagamento instantâneo.\nCelebração garantida.',
+    subline:    'Use o link abaixo para pagar via PIX. Em instantes, seu pedido estará confirmado.',
+    ctaLabel:   'Pagar via PIX',
+    ctaColor:   '#1a73e8',
+  }
+  if (t.includes('cartao') || t.includes('cartão')) return {
+    headline:   'Tudo parcelado.\nNada esquecido.',
+    subline:    'Clique no botão abaixo para concluir o pagamento com cartão. Rápido, seguro e simples — como deve ser.',
+    ctaLabel:   'Pagar com Cartão',
+    ctaColor:   Verde,
+  }
+  if (t === 'boleto') return {
+    headline:   'Quase lá.\nSó falta confirmar o pagamento.',
+    subline:    'Seu boleto está em anexo a este email. Pague até o vencimento para garantir a sua entrega.',
+    ctaLabel:   '',
+    ctaColor:   Verde,
+  }
+  // fallback genérico
+  return {
+    headline:   'Toda grande celebração\ncomeça com uma escolha...\nA sua já foi feita!',
+    subline:    'Siga as instruções abaixo para concluir o seu pedido.',
+    ctaLabel:   'Realizar Pagamento',
+    ctaColor:   Verde,
+  }
+}
 
 const CobrancaPedidoEmail = ({
   parceiro_nome,
@@ -32,193 +66,211 @@ const CobrancaPedidoEmail = ({
   valor_frete,
   valor_liquido,
   link_pagamento,
-}: CobrancaPedidoProps) => (
-  <Html lang="pt-BR" dir="ltr">
-    <Head />
-    <Preview>Fetély · Toda grande celebração começa com uma escolha... A sua já foi feita!</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        {/* Header verde */}
-        <Section style={headerTop} />
+  tipo_pagamento,
+}: CobrancaPedidoProps) => {
+  const { headline, subline, ctaLabel, ctaColor } = getConteudo(tipo_pagamento)
 
-        {/* Badge logo */}
-        <Section style={logoSection}>
-          <div style={badgeWrap}>
-            <Text style={badgeName}>Fetély.</Text>
-          </div>
-        </Section>
+  return (
+    <Html lang="pt-BR" dir="ltr">
+      <Head />
+      <Preview>Fetély · {headline.split('\n')[0]}</Preview>
+      <Body style={main}>
+        <Container style={container}>
 
-        {/* Banner verde inferior do header */}
-        <Section style={headerBottom} />
-
-        {/* Corpo principal */}
-        <Section style={body}>
-          <Text style={headline}>
-            Toda grande celebração começa<br />
-            com uma escolha...<br />
-            <span style={highlight}>A sua já foi feita!</span>
-          </Text>
-
-          <Text style={subline}>
-            Siga as instruções abaixo para concluir o seu pedido.
-          </Text>
-
-          <Hr style={divider} />
-
-          {/* Dados do pedido */}
-          <Section style={cardSection}>
-            {parceiro_nome && (
-              <Row style={infoRow}>
-                <Column style={infoLabel}>Cliente</Column>
-                <Column style={infoValue}>{parceiro_nome}</Column>
-              </Row>
-            )}
-            {pedido_id_externo && (
-              <Row style={infoRow}>
-                <Column style={infoLabel}>Pedido</Column>
-                <Column style={infoValue}>{pedido_id_externo}</Column>
-              </Row>
-            )}
-            {data_pedido && (
-              <Row style={infoRow}>
-                <Column style={infoLabel}>Data</Column>
-                <Column style={infoValue}>{data_pedido}</Column>
-              </Row>
-            )}
-            {forma_pagamento && (
-              <Row style={infoRow}>
-                <Column style={infoLabel}>Pagamento</Column>
-                <Column style={infoValue}>
-                  {forma_pagamento}{condicao_pagamento ? ` · ${condicao_pagamento}` : ''}
-                </Column>
-              </Row>
-            )}
+          {/* ── Header: faixa verde larga com badge interno ── */}
+          <Section style={headerSection}>
+            <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+              <tr>
+                <td align="center" style={{ padding: '32px 0 24px' }}>
+                  <div style={badgeStyle}>
+                    <Text style={badgeText}>
+                      Fetély.
+                    </Text>
+                  </div>
+                </td>
+              </tr>
+            </table>
           </Section>
 
+          {/* ── Corpo ── */}
+          <Section style={body}>
 
+            {/* Headline dinâmica */}
+            <Text style={headlineNormal}>
+                {headline.split('\n').map((linha, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <br />}
+                    {i === headline.split('\n').length - 1 ? (
+                      <span style={headlineBold}>
+                        {linha}
+                      </span>
+                    ) : (
+                      linha
+                    )}
+                  </React.Fragment>
+                ))}
+              </Text>
 
+            <Text style={sublineStyle}>
+              {subline}
+            </Text>
 
-          {/* Resumo financeiro */}
-          <Section style={resumoSection}>
-            {valor_bruto && (
-              <Row>
-                <Column style={resumoLabel}>Valor bruto</Column>
-                <Column style={resumoValor}>{valor_bruto}</Column>
-              </Row>
-            )}
-            {desconto && (
-              <Row>
-                <Column style={resumoLabel}>Desconto</Column>
-                <Column style={resumoValor}>{desconto}</Column>
-              </Row>
-            )}
-            {valor_frete && (
-              <Row>
-                <Column style={resumoLabel}>Frete</Column>
-                <Column style={resumoValor}>{valor_frete}</Column>
-              </Row>
-            )}
+            <Hr style={divider} />
+
+            {/* Card dados do pedido */}
+            <Section style={cardSection}>
+              {parceiro_nome && (
+                <Row style={infoRow}>
+                  <Column style={infoLabel}>Cliente</Column>
+                  <Column style={infoValue}>{parceiro_nome}</Column>
+                </Row>
+              )}
+              {pedido_id_externo && (
+                <Row style={infoRow}>
+                  <Column style={infoLabel}>Pedido</Column>
+                  <Column style={infoValue}>{pedido_id_externo}</Column>
+                </Row>
+              )}
+              {data_pedido && (
+                <Row style={infoRow}>
+                  <Column style={infoLabel}>Data</Column>
+                  <Column style={infoValue}>{data_pedido}</Column>
+                </Row>
+              )}
+              {(forma_pagamento || condicao_pagamento) && (
+                <Row style={infoRow}>
+                  <Column style={infoLabel}>Pagamento</Column>
+                  <Column style={infoValue}>
+                    {forma_pagamento}{condicao_pagamento ? ` · ${condicao_pagamento}` : ''}
+                  </Column>
+                </Row>
+              )}
+            </Section>
+
+            {/* Resumo financeiro */}
             {valor_liquido && (
-              <Row>
-                <Column style={{ ...resumoLabel, fontWeight: 700, color: TextoVerde }}>Total</Column>
-                <Column style={{ ...resumoValor, fontWeight: 700, color: TextoVerde }}>{valor_liquido}</Column>
-              </Row>
+              <Section style={resumoSection}>
+                {valor_bruto && (
+                  <Row>
+                    <Column style={resumoLabel}>Valor bruto</Column>
+                    <Column style={resumoValor}>{valor_bruto}</Column>
+                  </Row>
+                )}
+                {desconto && (
+                  <Row>
+                    <Column style={resumoLabel}>Desconto</Column>
+                    <Column style={resumoValor}>{desconto}</Column>
+                  </Row>
+                )}
+                {valor_frete && (
+                  <Row>
+                    <Column style={resumoLabel}>Frete</Column>
+                    <Column style={resumoValor}>{valor_frete}</Column>
+                  </Row>
+                )}
+                <Row>
+                  <Column style={{ ...resumoLabel, color: TextoVerde, fontWeight: 700 }}>Total</Column>
+                  <Column style={{ ...resumoValor, color: TextoVerde, fontWeight: 700 }}>{valor_liquido}</Column>
+                </Row>
+              </Section>
             )}
+
+            {/* CTA — só para PIX e Cartão */}
+            {link_pagamento && ctaLabel && (
+              <Section style={{ textAlign: 'center', marginTop: '24px' }}>
+                <Button href={link_pagamento} style={{ ...ctaButton, backgroundColor: ctaColor }}>
+                  {ctaLabel}
+                </Button>
+                <Text style={ctaNote}>
+                  O PDF completo do pedido está em anexo neste email.
+                </Text>
+              </Section>
+            )}
+
+            {/* Boleto / sem link */}
+            {(!link_pagamento || !ctaLabel) && (
+              <Section style={{ textAlign: 'center', marginTop: '24px' }}>
+                <Text style={ctaNote}>
+                  O PDF completo do pedido está em anexo neste email.
+                </Text>
+              </Section>
+            )}
+
           </Section>
 
-          {/* CTA pagamento */}
-          {link_pagamento && (
-            <Section style={{ textAlign: 'center', marginTop: '28px', marginBottom: '16px' }}>
-              <Button href={link_pagamento} style={ctaButton}>
-                Realizar Pagamento
-              </Button>
-              <Text style={ctaNote}>O PDF completo do pedido está em anexo neste email.</Text>
-            </Section>
-          )}
+          {/* ── Footer ── */}
+          <Section style={footer}>
+            <Text style={footerText}>
+              Fetely Comércio Importação e Exportação Ltda · CNPJ 63.591.078/0001-48
+            </Text>
+            <Text style={footerText}>
+              #celebreoqueimporta
+            </Text>
+            <Text style={footerText}>
+              Dúvidas? Fale conosco:{' '}
+              <Link href="mailto:sac@fetely.com.br" style={{ color: 'rgba(255,255,255,0.9)' }}>sac@fetely.com.br</Link>
+            </Text>
+          </Section>
 
-          {!link_pagamento && (
-            <Section style={{ marginTop: '24px', marginBottom: '16px' }}>
-              <Text style={{ fontSize: '14px', color: '#555', lineHeight: '1.6' }}>
-                O PDF completo do pedido está em anexo neste email.
-              </Text>
-              <Text style={{ fontSize: '14px', color: '#555', lineHeight: '1.6' }}>
-                Siga as instruções de pagamento conforme combinado com nossa equipe comercial.
-              </Text>
-            </Section>
-          )}
-        </Section>
-
-        {/* Footer */}
-        <Section style={footer}>
-          <Text style={footerText}>
-            Fetely Comércio Importação e Exportação Ltda · CNPJ 63.591.078/0001-48
-          </Text>
-          <Text style={{ ...footerText, fontWeight: 700, color: '#ffffff' }}>
-            #celebreoqueimporta
-          </Text>
-          <Text style={footerText}>
-            Dúvidas? Fale conosco: <Link href="mailto:contato@fetely.com.br" style={{ color: 'rgba(255,255,255,0.9)' }}>contato@fetely.com.br</Link>
-          </Text>
-        </Section>
-      </Container>
-    </Body>
-  </Html>
-)
-
-const main = { backgroundColor: '#f4f4f0', fontFamily: 'Georgia, serif' }
-const container = { maxWidth: '580px', margin: '0 auto', backgroundColor: '#ffffff' }
-const headerTop = { backgroundColor: Verde, height: '60px', display: 'block' }
-const logoSection = { backgroundColor: '#ffffff', textAlign: 'center' as const, padding: '24px 0 16px' }
-const badgeWrap = {
-  display: 'inline-block',
-  backgroundColor: Creme,
-  border: `2px solid ${Verde}`,
-  borderRadius: '50px 50px 50px 50px',
-  padding: '12px 28px',
-  margin: '0 auto',
+        </Container>
+      </Body>
+    </Html>
+  )
 }
-const badgeName = { fontSize: '28px', color: TextoVerde, margin: '0', fontFamily: 'Georgia, "Times New Roman", serif', fontStyle: 'italic', fontWeight: '700' }
-const headerBottom = { backgroundColor: Verde, height: '12px', display: 'block' }
-const body = { padding: '36px 40px 24px' }
-const headline = { fontSize: '22px', color: TextoVerde, lineHeight: '1.5', textAlign: 'center' as const, fontFamily: 'Georgia, serif', fontWeight: '400', margin: '0 0 16px' }
-const highlight = { fontWeight: '700' }
-const subline = { fontSize: '15px', color: '#444', textAlign: 'center' as const, marginBottom: '28px', lineHeight: '1.6' }
-const divider = { borderColor: '#e5e0d0', margin: '0 0 24px' }
-const cardSection = { backgroundColor: '#faf8f3', borderRadius: '8px', padding: '16px 20px', marginBottom: '24px' }
-const infoRow = { marginBottom: '8px' }
-const infoLabel = { fontSize: '12px', color: '#888', width: '40%', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
-const infoValue = { fontSize: '14px', color: '#222', fontWeight: '600' }
-const sectionTitle = { fontSize: '13px', fontWeight: '700', color: TextoVerde, textTransform: 'uppercase' as const, letterSpacing: '1px', marginBottom: '8px' }
-const tableStyle = { width: '100%', borderCollapse: 'collapse' as const, fontSize: '13px' }
-const thStyle = { backgroundColor: Verde, color: '#fff', padding: '8px 10px', textAlign: 'left' as const, fontWeight: '600', fontSize: '12px' }
-const tdStyle = { padding: '7px 10px', color: '#333', borderBottom: '1px solid #eee' }
-const trEvenStyle = { backgroundColor: '#ffffff' }
-const trOddStyle = { backgroundColor: '#f9f7f2' }
-const resumoSection = { backgroundColor: '#faf8f3', borderRadius: '8px', padding: '16px 20px', marginTop: '20px' }
-const resumoLabel = { fontSize: '13px', color: '#666', paddingBottom: '6px' }
-const resumoValor = { fontSize: '13px', color: '#222', textAlign: 'right' as const, paddingBottom: '6px' }
-const ctaButton = { backgroundColor: Verde, color: '#ffffff', fontSize: '15px', fontWeight: '700', padding: '14px 36px', borderRadius: '6px', textDecoration: 'none', display: 'inline-block' }
-const ctaNote = { fontSize: '12px', color: '#888', textAlign: 'center' as const, marginTop: '12px' }
-const footer = { backgroundColor: Verde, padding: '20px 32px' }
-const footerText = { fontSize: '11px', color: 'rgba(255,255,255,0.7)', margin: '0 0 4px', textAlign: 'center' as const }
+
+// ── Estilos ──────────────────────────────────────────────────
+const main          = { backgroundColor: '#f4f4f0', fontFamily: 'Georgia, "Times New Roman", serif' }
+const container     = { maxWidth: '580px', margin: '0 auto', backgroundColor: '#ffffff' }
+const headerSection = { backgroundColor: Verde, display: 'block' as const }
+const badgeStyle    = {
+  display:         'inline-block',
+  backgroundColor: Creme,
+  borderRadius:    '60px',
+  padding:         '14px 40px',
+  border:          `2.5px solid ${Creme}`,
+  boxShadow:       '0 2px 12px rgba(0,0,0,0.18)',
+}
+const badgeText     = {
+  fontSize:   '26px',
+  color:      TextoVerde,
+  fontFamily: 'Georgia, "Times New Roman", serif',
+  fontStyle:  'italic',
+  fontWeight: '700',
+  lineHeight: '1',
+}
+const body          = { padding: '36px 40px 24px' }
+const headlineNormal = { fontSize: '21px', color: TextoVerde, lineHeight: '1.45', textAlign: 'center' as const, fontWeight: '400', margin: '0 0 4px' }
+const headlineBold   = { fontSize: '21px', color: TextoVerde, lineHeight: '1.45', textAlign: 'center' as const, fontWeight: '700', margin: '0 0 16px' }
+const sublineStyle  = { fontSize: '14px', color: '#555', textAlign: 'center' as const, lineHeight: '1.65', margin: '0 0 24px' }
+const divider       = { borderColor: '#e5e0d0', margin: '0 0 20px' }
+const cardSection   = { backgroundColor: '#faf8f3', borderRadius: '8px', padding: '16px 20px', marginBottom: '16px' }
+const infoRow       = { marginBottom: '7px' }
+const infoLabel     = { fontSize: '11px', color: '#888', width: '38%', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
+const infoValue     = { fontSize: '13px', color: '#222', fontWeight: '600' }
+const resumoSection = { backgroundColor: '#faf8f3', borderRadius: '8px', padding: '14px 20px', marginTop: '4px' }
+const resumoLabel   = { fontSize: '13px', color: '#666', paddingBottom: '5px' }
+const resumoValor   = { fontSize: '13px', color: '#222', textAlign: 'right' as const, paddingBottom: '5px' }
+const ctaButton     = { color: '#ffffff', fontSize: '15px', fontWeight: '700', padding: '14px 36px', borderRadius: '6px', textDecoration: 'none', display: 'inline-block' }
+const ctaNote       = { fontSize: '12px', color: '#999', textAlign: 'center' as const, marginTop: '10px' }
+const footer        = { backgroundColor: VerdeEscuro, padding: '20px 32px' }
+const footerText    = { fontSize: '11px', color: 'rgba(255,255,255,0.65)', margin: '0 0 5px', textAlign: 'center' as const }
 
 export const template: TemplateEntry = {
   component: CobrancaPedidoEmail,
-  subject: (data) => `Fetély · Seu pedido está pronto para pagamento${data.pedido_id_externo ? ` · ${data.pedido_id_externo}` : ''}`,
+  subject: (data) =>
+    `Fetély · Seu pedido está pronto para pagamento${data.pedido_id_externo ? ` · ${data.pedido_id_externo}` : ''}`,
   displayName: 'Cobrança ao Cliente (Pedido)',
   previewData: {
-    parceiro_nome: 'Bella Decorações',
-    pedido_id_externo: 'PED-1780516269250',
-    data_pedido: '03/06/2026',
-    forma_pagamento: 'Boleto',
-    condicao_pagamento: '0/30 (2x)',
-    valor_bruto: 'R$ 5.006,65',
-    desconto: '-R$ 150,20',
-    valor_frete: '+R$ 242,82',
-    valor_liquido: 'R$ 5.099,27',
-    itens: [
-      { descricao: 'Travessa Retangular Lemon Blue 30cm', quantidade: 3, valor_unitario: 23.47, subtotal: 70.41 },
-      { descricao: 'Prato Sobremesa Azul', quantidade: 6, valor_unitario: 18.50, subtotal: 111.00 },
-    ],
+    parceiro_nome:    'Bella Decorações',
+    pedido_id_externo: 'PED-1780249308300',
+    data_pedido:      '06/06/2026',
+    forma_pagamento:  'PIX',
+    condicao_pagamento: 'À vista',
+    valor_bruto:      'R$ 4.807,65',
+    desconto:         '-R$ 144,23',
+    valor_frete:      '+R$ 96,00',
+    valor_liquido:    'R$ 4.759,42',
+    link_pagamento:   'https://pag.ae/exemplo',
+    tipo_pagamento:   'pix',
   },
 }

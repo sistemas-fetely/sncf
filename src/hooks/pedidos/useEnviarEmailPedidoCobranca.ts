@@ -67,6 +67,7 @@ export function useEnviarEmailPedidoCobranca() {
         pedido_id_externo: pedido.id_externo,
         data_pedido: fmtDate(pedido.data_pedido),
         forma_pagamento: pedido.forma_solicitada ?? "",
+        tipo_pagamento: pedido.forma_solicitada ?? "",
         condicao_pagamento: pedido.condicao_solicitada ?? undefined,
         valor_bruto: fmtBRL.format(Number(pedido.valor_bruto ?? 0)),
         valor_liquido: fmtBRL.format(Number(pedido.valor_liquido ?? 0)),
