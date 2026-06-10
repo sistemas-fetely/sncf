@@ -140,7 +140,8 @@ const CobrancaPedidoEmail = ({
             <Section style={{ marginTop: '24px', marginBottom: '16px' }}>
               <Text style={{ fontSize: '14px', color: '#555', lineHeight: '1.6' }}>
                 O PDF completo do pedido está em anexo neste email.
-                <br /><br />
+              </Text>
+              <Text style={{ fontSize: '14px', color: '#555', lineHeight: '1.6' }}>
                 Siga as instruções de pagamento conforme combinado com nossa equipe comercial.
               </Text>
             </Section>
