@@ -90,6 +90,7 @@ export function useEnviarEmailPedidoCobranca() {
               content: pdfBase64,
             },
           ],
+          ...(cc && cc.length > 0 ? { cc } : {}),
         },
       });
       if (errEmail) throw new Error(`Falha ao enviar email: ${errEmail.message}`);
