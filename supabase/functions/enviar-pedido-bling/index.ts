@@ -331,8 +331,11 @@ serve(async (req) => {
       let blingProdId: number | null = null;
 
       try {
+        // Busca sem filtro situacao: produto pode existir como inativo no Bling.
+        // situacao=A excluía produtos cadastrados mas desativados, causando falha
+        // no POST subsequente ("código já cadastrado").
         const r = await client.get(
-          `/produtos?criterio=2&q=${encodeURIComponent(it.sku)}&situacao=A&limite=10`
+          `/produtos?criterio=2&q=${encodeURIComponent(it.sku)}&limite=10`
         );
         const m = (r?.data || []).find((p: any) => p.codigo === it.sku);
         if (m?.id) blingProdId = m.id;
