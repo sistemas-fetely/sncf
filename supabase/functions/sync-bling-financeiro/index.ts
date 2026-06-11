@@ -217,7 +217,7 @@ serve(async (req) => {
       const algumNaoFinalizou = resultados.some((r) => !r.finalizada);
       const statusFinal = totais.erros > 0 ? "parcial" : algumNaoFinalizou ? "parcial" : "sucesso";
       const detalhe = resultados.map((r) =>
-        `${r.entidade}: ${r.criados}n/${r.atualizados}a/${r.erros}e${r.finalizada ? "" : "↪"}`
+        `${r.entidade}: ${r.criados}n/${r.atualizados}a/${r.erros}e${r.finalizada ? "" : "↪"}${r.ultimoErro ? ` [ERR: ${String(r.ultimoErro).slice(0, 120)}]` : ""}`
       ).join(" | ");
 
       if (logId) await supabase.from("integracoes_sync_log").update({
