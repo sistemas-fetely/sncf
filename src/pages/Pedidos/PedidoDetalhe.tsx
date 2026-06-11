@@ -719,18 +719,55 @@ export default function PedidoDetalhe() {
                   }))}
                 />
               </div>
-              {itens.length === 0
-                ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
-                : itens.map((item: any) => (
-                  <div key={item.id} className="flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{item.descricao}</p>
-                      <p className="text-xs text-muted-foreground">{item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}</p>
-                    </div>
-                    <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
-                  </div>
-                ))
-              }
+              {(() => {
+                const SKUS_DESTAQUE = [
+                  "PRTSBRBW.LG.15/01510",
+                  "PRTSBRBW.CS.15/01501",
+                ];
+                const temDestaque = itens.some((i: any) => SKUS_DESTAQUE.includes(i.sku));
+                return (
+                  <>
+                    {temDestaque && (
+                      <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3">
+                        <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                        <p className="text-xs text-amber-800 dark:text-amber-200">
+                          Este pedido contém produto(s) de destaque — verifique atenção especial na separação.
+                        </p>
+                      </div>
+                    )}
+                    {itens.length === 0
+                      ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
+                      : itens.map((item: any) => {
+                          const ehDestaque = SKUS_DESTAQUE.includes(item.sku);
+                          return (
+                            <div
+                              key={item.id}
+                              className={cn(
+                                "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
+                                ehDestaque && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
+                              )}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium truncate">{item.descricao}</p>
+                                  {ehDestaque && (
+                                    <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
+                                      Destaque
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
+                                </p>
+                              </div>
+                              <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
+                            </div>
+                          );
+                        })
+                    }
+                  </>
+                );
+              })()}
             </div>
 
             <Tabs defaultValue={analiseCredito?.ressalva ? "credito" : "parcelas"} className="space-y-3">
