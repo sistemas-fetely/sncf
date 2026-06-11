@@ -382,8 +382,30 @@ serve(async (req) => {
             console.error(`[produto-sync] POST /produtos ok mas sem id: sku=${it.sku} resp=${JSON.stringify(created).slice(0, 500)}`);
           }
         } catch (e) {
-          const errClean = ((e as Error).message || "").replace(/[\n\r]/g, " ").slice(0, 800);
-          console.error(`[produto-sync] POST /produtos falhou: sku=${it.sku} err=${errClean}`);
+          const errMsg = (e as Error).message || "";
+          // Código já cadastrado (Bling code 4): o produto existe mas não foi
+          // encontrado pela busca acima (ex: nome diferente). Busca pelo código
+          // sem qualquer filtro para recuperar o id e seguir.
+          if (errMsg.includes("já foi cadastrado") || errMsg.includes('"code":4')) {
+            try {
+              console.warn(`[produto-sync] Código já existe no Bling — recuperando id: sku=${it.sku}`);
+              const r2 = await client.get(
+                `/produtos?criterio=2&q=${encodeURIComponent(it.sku)}&limite=10`
+              );
+              const m2 = (r2?.data || []).find((p: any) => p.codigo === it.sku);
+              if (m2?.id) {
+                blingProdId = m2.id;
+                console.warn(`[produto-sync] id recuperado: sku=${it.sku} id=${blingProdId}`);
+              } else {
+                console.error(`[produto-sync] Código já existe mas GET não retornou id: sku=${it.sku}`);
+              }
+            } catch (e2) {
+              console.error(`[produto-sync] Falha no GET de recuperação: sku=${it.sku} err=${((e2 as Error).message || "").slice(0, 300)}`);
+            }
+          } else {
+            const errClean = errMsg.replace(/[\n\r]/g, " ").slice(0, 800);
+            console.error(`[produto-sync] POST /produtos falhou: sku=${it.sku} err=${errClean}`);
+          }
         }
       }
 
