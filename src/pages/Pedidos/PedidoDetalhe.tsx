@@ -781,7 +781,7 @@ export default function PedidoDetalhe() {
                 </div>
               </TabsContent>
               <TabsContent value="obs_sop">
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center gap-1.5">
                     <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Observações SOPs (internas)</p>
@@ -814,6 +814,37 @@ export default function PedidoDetalhe() {
                   >
                     {registrarEvento.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Registrar na timeline"}
                   </Button>
+
+                  {(() => {
+                    const sopEventos = (eventos || []).filter((ev: any) =>
+                      ev.tipo_evento === "anotacao" &&
+                      (ev?.metadata?.categoria === "sop" || (typeof ev.descricao === "string" && ev.descricao.startsWith("[SOP]")))
+                    );
+                    if (sopEventos.length === 0) {
+                      return (
+                        <p className="text-[11px] text-muted-foreground italic pt-2 border-t">
+                          Nenhuma observação SOP registrada ainda.
+                        </p>
+                      );
+                    }
+                    return (
+                      <div className="space-y-2 pt-2 border-t">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          Histórico SOP ({sopEventos.length})
+                        </p>
+                        <ul className="space-y-2">
+                          {sopEventos.map((ev: any) => (
+                            <li key={ev.id} className="text-xs rounded-md border border-border bg-muted/40 px-2.5 py-2">
+                              <p className="whitespace-pre-wrap">{String(ev.descricao || "").replace(/^\[SOP\]\s*/, "")}</p>
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {new Date(ev.criado_em).toLocaleString("pt-BR")}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })()}
                 </div>
               </TabsContent>
               <TabsContent value="tarefas">
