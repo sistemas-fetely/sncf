@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +8,29 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "@/hooks/use-toast";
 import { Tag, Loader2 } from "lucide-react";
 
-const SUGESTOES = ["Resolver hoje", "Aguardando info", "Em análise"];
+const SUGESTOES_PADRAO = ["Resolver hoje", "Aguardando info", "Em análise"];
+
+function useSugestoesMarcacao() {
+  return useQuery({
+    queryKey: ["marcacoes-sugestoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pedidos")
+        .select("marcacao")
+        .not("marcacao", "is", null)
+        .neq("marcacao", "");
+      if (error) throw error;
+      const usadas = [...new Set((data ?? []).map((r) => r.marcacao as string))].sort();
+      const extras = usadas.filter((s) => !SUGESTOES_PADRAO.includes(s));
+      return [...SUGESTOES_PADRAO, ...extras];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
 
 interface Props {
   pedidoId: string;
   marcacao: string | null;
-  /** Variante compacta: só o ícone (pra usar em tabela). */
   iconOnly?: boolean;
 }
 
@@ -33,6 +50,8 @@ export function MarcacaoPedido({ pedidoId, marcacao, iconOnly = false }: Props) 
   const [valor, setValor] = useState(marcacao ?? "");
   const [saving, setSaving] = useState(false);
 
+  const { data: sugestoes = SUGESTOES_PADRAO } = useSugestoesMarcacao();
+
   const persist = async (novo: string | null) => {
     setSaving(true);
     const { error } = await supabase
@@ -47,6 +66,7 @@ export function MarcacaoPedido({ pedidoId, marcacao, iconOnly = false }: Props) 
     toast({ title: novo ? "Marcação salva" : "Marcação removida" });
     qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
     qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
+    qc.invalidateQueries({ queryKey: ["marcacoes-sugestoes"] });
     setOpen(false);
   };
 
@@ -78,7 +98,7 @@ export function MarcacaoPedido({ pedidoId, marcacao, iconOnly = false }: Props) 
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {SUGESTOES.map((s) => (
+          {sugestoes.map((s) => (
             <button
               key={s}
               type="button"
