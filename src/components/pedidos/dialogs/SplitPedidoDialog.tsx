@@ -98,6 +98,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
       estagio_inicial:       estagio,
       data_entrega_prevista: dataEntrega || null,
       observacao:            observacao || null,
+      financeiro_coberto:    financeiroCoberto,
     });
     onOpenChange(false);
   };
