@@ -264,9 +264,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
     <TriarPedidoDialog pedido_id={pedido.id} perfil_credito={parceiro?.perfil_credito} estagio_atual={estagio} forma_solicitada={pedido.forma_solicitada} triggerLabel="Encaminhar pedido" triggerVariant="default" />
   );
   if (estagio === "cobranca") return (
-    <Button className="w-full gap-2" onClick={() => navigate(`/recebimento/cobranca/${pedido.id}`)}>
-      <Package className="h-4 w-4" />Operacionar cobrança
-    </Button>
+    <AcoesPedidoCobranca pedido={pedido} parceiro={parceiro} />
   );
   if (estagio === "aguardando_pagamento") return (
     <div className="flex flex-col gap-2 w-full">
