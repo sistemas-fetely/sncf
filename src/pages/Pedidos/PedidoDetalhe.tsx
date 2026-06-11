@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { usePedidoPriorizado } from "@/hooks/pedidos/useFilaPedidosPriorizada";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
+import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
 
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import { cn } from "@/lib/utils";
