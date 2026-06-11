@@ -5,6 +5,7 @@ import { useCobrancaFila } from "@/hooks/credito/useCobrancaFila";
 import { useTitulosBoleto } from "@/hooks/credito/useTitulosBoleto";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import BancoSafra from "@/pages/administrativo/BancoSafra";
+import ContasReceber from "@/pages/administrativo/ContasReceber";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -805,6 +806,7 @@ export default function CobrancaFila() {
             { value: "titulos", label: `Títulos${totalTitulos > 0 ? ` · ${totalTitulos}` : ""}` },
             { value: "remessas", label: "Remessas Safra" },
             { value: "banco-safra", label: "Banco Safra" },
+            { value: "contas-receber", label: "Contas a Receber" },
           ].map((tab) => (
             <TabsTrigger
               key={tab.value}
@@ -830,6 +832,10 @@ export default function CobrancaFila() {
 
         <TabsContent value="banco-safra">
           <BancoSafra />
+        </TabsContent>
+
+        <TabsContent value="contas-receber">
+          <ContasReceber />
         </TabsContent>
       </Tabs>
     </div>
