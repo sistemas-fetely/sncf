@@ -9,11 +9,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Scissors, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarSplit } from "@/hooks/pedidos/useCriarSplit";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+type EstagioSplit = "aguardando_estoque" | "pre_faturado" | "cobranca";
+
+const ESTAGIO_OPTIONS: { value: EstagioSplit; label: string; desc: string }[] = [
+  { value: "aguardando_estoque", label: "Aguardando estoque", desc: "Item sem estoque no momento" },
+  { value: "pre_faturado",       label: "Pré-faturado",       desc: "Item disponível, atraso só logístico" },
+  { value: "cobranca",           label: "Cobrança",           desc: "Precisa renegociar condições de pagamento" },
+];
 
 interface ItemPedido {
   descricao: string;
@@ -33,7 +44,8 @@ interface Props {
 
 export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, valor_liquido }: Props) {
   const criarSplit = useCriarSplit();
-  const [qtd02, setQtd02] = useState<Record<string, number>>({});
+  const [qtdSplit, setQtdSplit] = useState<Record<string, number>>({});
+  const [estagio, setEstagio] = useState<EstagioSplit>("aguardando_estoque");
   const [dataEntrega, setDataEntrega] = useState("");
   const [observacao, setObservacao] = useState("");
 
@@ -51,40 +63,42 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
     enabled: open && !!pedido_id,
   });
 
-  const getQtd02 = (sku: string, total: number) =>
-    Math.min(Math.max(0, qtd02[sku] ?? 0), total);
+  const getQtdSplit = (sku: string, total: number) =>
+    Math.min(Math.max(0, qtdSplit[sku] ?? 0), total);
 
-  const itens01 = (itens ?? [])
-    .map((it) => ({ ...it, quantidade: it.quantidade - getQtd02(it.sku, it.quantidade) }))
+  const itensOriginal = (itens ?? [])
+    .map((it) => ({ ...it, quantidade: it.quantidade - getQtdSplit(it.sku, it.quantidade) }))
     .filter((it) => it.quantidade > 0);
 
-  const itens02 = (itens ?? [])
-    .map((it) => ({ ...it, quantidade: getQtd02(it.sku, it.quantidade) }))
+  const itensSplit = (itens ?? [])
+    .map((it) => ({ ...it, quantidade: getQtdSplit(it.sku, it.quantidade) }))
     .filter((it) => it.quantidade > 0);
 
   const totalBruto = (itens ?? []).reduce((s, it) => s + it.quantidade * it.valor_unitario, 0);
   const fator = totalBruto > 0 ? valor_liquido / totalBruto : 1;
+  const brutoOrig = itensOriginal.reduce((s, it) => s + it.quantidade * it.valor_unitario, 0);
+  const brutoSplit = itensSplit.reduce((s, it) => s + it.quantidade * it.valor_unitario, 0);
+  const valorOrig = Math.round(brutoOrig * fator * 100) / 100;
+  const valorSplit = Math.round(brutoSplit * fator * 100) / 100;
 
-  const bruto01 = itens01.reduce((s, it) => s + it.quantidade * it.valor_unitario, 0);
-  const bruto02 = itens02.reduce((s, it) => s + it.quantidade * it.valor_unitario, 0);
-  const valor01 = Math.round(bruto01 * fator * 100) / 100;
-  const valor02 = Math.round(bruto02 * fator * 100) / 100;
-
-  const temItens02 = itens02.length > 0;
-  const podeConfirmar = temItens02 && itens01.length > 0;
+  const temItensSplit = itensSplit.length > 0;
+  const podeConfirmar = temItensSplit && itensOriginal.length > 0;
 
   const handleConfirmar = async () => {
     await criarSplit.mutateAsync({
       pedido_id,
-      itens_01: itens01,
-      itens_02: itens02,
-      valor_01: valor01,
-      valor_02: valor02,
-      data_entrega_prevista_02: dataEntrega || null,
-      observacao: observacao || null,
+      itens_original:        itensOriginal,
+      itens_split:           itensSplit,
+      valor_original:        valorOrig,
+      valor_split:           valorSplit,
+      estagio_inicial:       estagio,
+      data_entrega_prevista: dataEntrega || null,
+      observacao:            observacao || null,
     });
     onOpenChange(false);
   };
+
+  const estagioSelecionado = ESTAGIO_OPTIONS.find((e) => e.value === estagio);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!criarSplit.isPending) onOpenChange(v); }}>
@@ -92,134 +106,151 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
         <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/40 shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Scissors className="h-5 w-5" />
-            Split do pedido #{id_externo}
+            Split do pedido {id_externo}
           </DialogTitle>
           <DialogDescription>
-            Defina quantas unidades de cada item vão na /02 (aguardando estoque). O restante vai na /01 (pronta entrega).
+            Defina quantas unidades de cada item vão no novo pedido split.
+            O pedido original {id_externo} mantém o número — o split recebe {id_externo}/01 (ou próxima sequência).
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
-
-
-        {isLoading ? (
-          <div className="flex items-center gap-2 py-8 justify-center text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Carregando itens...
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="rounded-md border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-2">Produto</th>
-                    <th className="text-right p-2 w-16">Total</th>
-                    <th className="text-right p-2 w-16">/01</th>
-                    <th className="text-right p-2 w-28">Qtd /02</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(itens ?? []).map((it) => {
-                    const q02 = getQtd02(it.sku, it.quantidade);
-                    const q01 = it.quantidade - q02;
-                    return (
-                      <tr key={it.sku} className="border-t">
-                        <td className="p-2">
-                          <div className="font-medium">{it.descricao}</div>
-                          <div className="text-xs text-muted-foreground">{it.sku}</div>
-                        </td>
-                        <td className="p-2 text-right">{it.quantidade}</td>
-                        <td className="p-2 text-right">{q01}</td>
-                        <td className="p-2 text-right">
-                          <Input
-                            type="number"
-                            min={0}
-                            max={it.quantidade}
-                            value={q02}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value) || 0;
-                              setQtd02((prev) => ({ ...prev, [it.sku]: Math.min(val, it.quantidade) }));
-                            }}
-                            className="h-8 w-20 ml-auto text-right"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          {isLoading ? (
+            <div className="flex items-center gap-2 py-8 justify-center text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando itens...
             </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-md border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-2">Produto</th>
+                      <th className="text-right p-2 w-16">Total</th>
+                      <th className="text-right p-2 w-16">Original</th>
+                      <th className="text-right p-2 w-28">Qtd Split</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(itens ?? []).map((it) => {
+                      const qSplit = getQtdSplit(it.sku, it.quantidade);
+                      const qOrig = it.quantidade - qSplit;
+                      return (
+                        <tr key={it.sku} className="border-t">
+                          <td className="p-2">
+                            <div className="font-medium">{it.descricao}</div>
+                            <div className="text-xs text-muted-foreground">{it.sku}</div>
+                          </td>
+                          <td className="p-2 text-right">{it.quantidade}</td>
+                          <td className="p-2 text-right">{qOrig}</td>
+                          <td className="p-2 text-right">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={it.quantidade}
+                              value={qSplit}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 0;
+                                setQtdSplit((prev) => ({ ...prev, [it.sku]: Math.min(val, it.quantidade) }));
+                              }}
+                              className="h-8 w-20 ml-auto text-right"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-            {(temItens02 || itens01.length > 0) && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-md border p-3 bg-blue-50/50">
-                  <div className="text-xs font-medium text-blue-900">
-                    {id_externo}/01 — Pronta entrega
+              {(temItensSplit || itensOriginal.length > 0) && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-md border p-3 bg-blue-50/50">
+                    <div className="text-xs font-medium text-blue-900">
+                      {id_externo} — Pedido original (fica)
+                    </div>
+                    <div className="text-lg font-semibold mt-1">{fmtBRL.format(valorOrig)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {itensOriginal.length} {itensOriginal.length === 1 ? "item" : "itens"}
+                    </div>
                   </div>
-                  <div className="text-lg font-semibold mt-1">{fmtBRL.format(valor01)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {itens01.length} {itens01.length === 1 ? "item" : "itens"}
+                  <div className="rounded-md border p-3 bg-yellow-50/50">
+                    <div className="text-xs font-medium text-yellow-900">
+                      {id_externo}/01 — Novo pedido (split)
+                    </div>
+                    <div className="text-lg font-semibold mt-1">{fmtBRL.format(valorSplit)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {itensSplit.length} {itensSplit.length === 1 ? "item" : "itens"}
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-md border p-3 bg-yellow-50/50">
-                  <div className="text-xs font-medium text-yellow-900">
-                    {id_externo}/02 — Aguardando estoque
-                  </div>
-                  <div className="text-lg font-semibold mt-1">{fmtBRL.format(valor02)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {itens02.length} {itens02.length === 1 ? "item" : "itens"}
-                  </div>
+              )}
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label>Estágio inicial do novo pedido</Label>
+                <Select value={estagio} onValueChange={(v) => setEstagio(v as EstagioSplit)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ESTAGIO_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {estagioSelecionado && (
+                  <p className="text-xs text-muted-foreground">{estagioSelecionado.desc}</p>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="data-entrega">Data prevista de chegada / entrega</Label>
+                  <Input
+                    id="data-entrega"
+                    type="date"
+                    value={dataEntrega}
+                    onChange={(e) => setDataEntrega(e.target.value)}
+                    className="w-48 mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="obs">Observação</Label>
+                  <Textarea
+                    id="obs"
+                    value={observacao}
+                    onChange={(e) => setObservacao(e.target.value)}
+                    rows={2}
+                    className="mt-1"
+                  />
                 </div>
               </div>
-            )}
 
-            <Separator />
-
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="data-entrega">Data prevista de chegada (/02)</Label>
-                <Input
-                  id="data-entrega"
-                  type="date"
-                  value={dataEntrega}
-                  onChange={(e) => setDataEntrega(e.target.value)}
-                  className="w-48 mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="obs">Observação</Label>
-                <Textarea
-                  id="obs"
-                  value={observacao}
-                  onChange={(e) => setObservacao(e.target.value)}
-                  rows={2}
-                  className="mt-1"
-                />
-              </div>
+              {!temItensSplit && (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Defina a quantidade de pelo menos um item na coluna "Qtd Split" para criar o pedido.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
-
-            {!temItens02 && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Defina a quantidade de pelo menos um item na coluna /02 para criar o split.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
-        )}
+          )}
         </div>
 
         <DialogFooter className="px-6 py-4 border-t border-border/40 shrink-0">
-
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={criarSplit.isPending}>
             Cancelar
           </Button>
           <Button onClick={handleConfirmar} disabled={!podeConfirmar || criarSplit.isPending} className="gap-1.5">
             {criarSplit.isPending ? (
-              <><Loader2 className="h-4 w-4 animate-spin" />Criando split…</>
+              <><Loader2 className="h-4 w-4 animate-spin" />Criando…</>
             ) : (
-              <><Scissors className="h-4 w-4" />Criar split</>
+              <><Scissors className="h-4 w-4" />Criar pedido split</>
             )}
           </Button>
         </DialogFooter>

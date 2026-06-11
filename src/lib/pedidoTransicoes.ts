@@ -27,7 +27,12 @@ export const TRANSICOES_VALIDAS: Record<EstagioPedido, EstagioPedido[]> = {
   ],
   pre_faturado: [
     "em_separacao",
+    "aguardando_estoque",
     "recuperacao_venda",
+    "cancelado",
+  ],
+  aguardando_estoque: [
+    "pre_faturado",
     "cancelado",
   ],
   em_separacao: [
