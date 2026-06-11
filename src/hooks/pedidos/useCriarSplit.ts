@@ -11,6 +11,7 @@ interface SplitParams {
   estagio_inicial: "aguardando_estoque" | "pre_faturado" | "cobranca";
   data_entrega_prevista?: string | null;
   observacao?: string | null;
+  financeiro_coberto?: boolean;
 }
 
 interface SplitResult {
@@ -34,6 +35,7 @@ export function useCriarSplit() {
         p_estagio_inicial:       p.estagio_inicial,
         p_data_entrega_prevista: p.data_entrega_prevista ?? null,
         p_observacao:            p.observacao ?? null,
+        p_financeiro_coberto:    p.financeiro_coberto ?? false,
       });
       if (error) throw error;
       return data as SplitResult;

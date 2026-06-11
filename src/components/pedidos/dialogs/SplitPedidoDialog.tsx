@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -50,6 +51,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
   const [estagio, setEstagio] = useState<EstagioSplit>("aguardando_estoque");
   const [dataEntrega, setDataEntrega] = useState("");
   const [observacao, setObservacao] = useState("");
+  const [financeiroCoberto, setFinanceiroCoberto] = useState(false);
 
   const { data: itens, isLoading } = useQuery({
     queryKey: ["pedido-itens-split", pedido_id],
@@ -96,6 +98,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
       estagio_inicial:       estagio,
       data_entrega_prevista: dataEntrega || null,
       observacao:            observacao || null,
+      financeiro_coberto:    financeiroCoberto,
     });
     onOpenChange(false);
   };
@@ -236,7 +239,24 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                 </div>
               </div>
 
-              {!temItensSplit && (
+              <div className="flex items-start gap-3 rounded-md border p-3">
+                <Checkbox
+                  id="financeiro-coberto"
+                  checked={financeiroCoberto}
+                  onCheckedChange={(v) => setFinanceiroCoberto(v === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="financeiro-coberto" className="font-medium cursor-pointer">
+                    Financeiro coberto pelo pedido original
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Os itens do split já foram pagos junto com o pedido original. O título nasce pago e vinculado ao título pai.
+                  </p>
+                </div>
+              </div>
+
+            {!temItensSplit && (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
