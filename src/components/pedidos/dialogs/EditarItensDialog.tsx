@@ -146,47 +146,79 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
 
         {/* Lista de itens */}
         <div className="space-y-1">
-          {itens.map((item, idx) => (
-            <div
-              key={`${item.sku ?? "x"}-${idx}`}
-              className="flex items-center gap-2 py-2 border-b border-border/40 last:border-0"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{item.descricao}</p>
-                {item.sku && <p className="text-xs text-muted-foreground">{item.sku}</p>}
-              </div>
+          {(() => {
+            const SKUS_DESTAQUE = [
+              "PRTSBRBW.LG.15/01510",
+              "PRTSBRBW.CS.15/01501",
+            ];
+            const temDestaque = itens.some((i) => SKUS_DESTAQUE.includes(i.sku ?? ""));
+            return (
+              <>
+                {temDestaque && (
+                  <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3">
+                    <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      Este pedido contém produto(s) de destaque — verifique atenção especial na separação.
+                    </p>
+                  </div>
+                )}
+                {itens.map((item, idx) => {
+                  const ehDestaque = SKUS_DESTAQUE.includes(item.sku ?? "");
+                  return (
+                    <div
+                      key={`${item.sku ?? "x"}-${idx}`}
+                      className={cn(
+                        "flex items-center gap-2 py-2 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
+                        ehDestaque && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
+                      )}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{item.descricao}</p>
+                          {ehDestaque && (
+                            <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
+                              Destaque
+                            </Badge>
+                          )}
+                        </div>
+                        {item.sku && <p className="text-xs text-muted-foreground">{item.sku}</p>}
+                      </div>
 
-              <div className="flex items-center gap-1 shrink-0">
-                <span className="text-xs text-muted-foreground">Qtd:</span>
-                <Input
-                  type="number"
-                  min={1}
-                  value={item.quantidade}
-                  onChange={(e) => atualizarQtd(idx, e.target.value)}
-                  className="w-16 h-7 text-sm text-center"
-                />
-              </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-xs text-muted-foreground">Qtd:</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={item.quantidade}
+                          onChange={(e) => atualizarQtd(idx, e.target.value)}
+                          className="w-16 h-7 text-sm text-center"
+                        />
+                      </div>
 
-              <p className="text-sm font-semibold shrink-0 w-24 text-right">
-                {fmtBRL.format(item.quantidade * item.valor_unitario)}
-              </p>
+                      <p className="text-sm font-semibold shrink-0 w-24 text-right">
+                        {fmtBRL.format(item.quantidade * item.valor_unitario)}
+                      </p>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
-                onClick={() => remover(idx)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ))}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                        onClick={() => remover(idx)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
 
-          {itens.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              Nenhum item. Adicione pelo menos 1 produto.
-            </p>
-          )}
+                {itens.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Nenhum item. Adicione pelo menos 1 produto.
+                  </p>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* Total */}
