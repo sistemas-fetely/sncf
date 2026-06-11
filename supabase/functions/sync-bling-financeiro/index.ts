@@ -54,7 +54,7 @@ async function runEntity(
     else if (entidade === "estoques") result = await syncEstoques(supabase, client, timeUp, cursor);
     else if (entidade === "contas_receber") result = await syncContasReceber(supabase, client, timeUp, cursor, ultimaSync);
     else if (entidade === "pedidos") result = await syncPedidos(supabase, client, timeUp, cursor, ultimaSync);
-    else if (entidade === "nfe") result = await syncNfe(supabase, client, timeUp, cursor, ultimaSync);
+    else if (entidade === "nfe") result = await syncNfe(supabase, client, timeUp, cursor);
   } finally {
     const finalizada = result?.proximaPagina === 0;
     await supabase.from("integracoes_sync_cursor").update({

@@ -40,14 +40,11 @@ export async function syncNfe(
   let criados = 0, atualizados = 0, erros = 0;
   let pagina = Math.max(cursor.ultima_pagina + 1, 1);
   let ultimoErro = "";
-  const corteISO = cursor.ultima_data_corte || ultimaSync || null;
-  const corteDate = corteISO ? corteISO.split("T")[0] : null;
 
   while (!timeUp()) {
     let data: any;
     try {
-      const filtro = corteDate ? `&dataEmissaoInicial=${corteDate}` : "";
-      data = await client.get(`/nfe?limite=100&pagina=${pagina}${filtro}`);
+      data = await client.get(`/nfe?limite=100&pagina=${pagina}`);
     } catch (e) {
       ultimoErro = `pagina ${pagina}: ${(e as Error).message}`;
       break;
