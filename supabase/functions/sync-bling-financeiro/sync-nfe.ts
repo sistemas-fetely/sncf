@@ -17,7 +17,7 @@ async function resolveParceiroId(supabase: any, contato: any): Promise<string | 
     tipo:         "pj",
     tipo_pessoa:  doc.length === 11 ? "PF" : "PJ",
     tipos:        ["cliente"],
-    origem:       "api_bling",
+    origem:       "bling",
     bling_id:     blingId,
     cpf:          doc.length === 11 ? doc : null,
     cnpj:         doc.length === 14 ? doc : null,
@@ -124,7 +124,7 @@ export async function syncNfe(
           xml_url: nf.xml || null,
           pdf_url: nf.linkPDF || null,
           raw: nf,
-          origem: "api_bling",
+          origem: "bling",
           updated_at: new Date().toISOString(),
         };
         if (pedido_venda_id !== null) {
