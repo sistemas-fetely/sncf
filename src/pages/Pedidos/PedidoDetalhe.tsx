@@ -738,11 +738,9 @@ export default function PedidoDetalhe() {
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="timeline">Histórico</TabsTrigger>
-                <TsTrigPlaceholder/>
                 <TabsTrigger value="urgencia">Urgência</TabsTrigger>
                 <TabsTrigger value="obs_sop">Obs SOPs</TabsTrigger>
               </TabsList>
-              <PlaceholderRemove/>
 
               <TabsContent value="parcelas"><ParcelasTab pedidoId={pedido.id} /></TabsContent>
               <TabsContent value="analise">
