@@ -804,6 +804,7 @@ export default function CobrancaFila() {
             { value: "pedidos", label: `Pedidos${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulos > 0 ? ` · ${totalTitulos}` : ""}` },
             { value: "remessas", label: "Remessas Safra" },
+            { value: "banco-safra", label: "Banco Safra" },
           ].map((tab) => (
             <TabsTrigger
               key={tab.value}
@@ -825,6 +826,10 @@ export default function CobrancaFila() {
 
         <TabsContent value="remessas">
           <RemessasSafraTab />
+        </TabsContent>
+
+        <TabsContent value="banco-safra">
+          <BancoSafra />
         </TabsContent>
       </Tabs>
     </div>
