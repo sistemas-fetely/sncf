@@ -37,6 +37,7 @@ import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialo
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { RemessasSection } from "@/components/pedidos/RemessasSection";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
+import { TransicionarPedidoDialog } from "@/components/pedidos/dialogs/TransicionarPedidoDialog";
 import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
@@ -385,6 +386,10 @@ export default function PedidoDetalhe() {
               {pedido.proxima_acao && <p className="text-xs text-muted-foreground italic">{pedido.proxima_acao}</p>}
               <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
               <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
+              <TransicionarPedidoDialog
+                pedido_id={pedido.id}
+                estagio_atual={estagio}
+              />
               <CancelarPedidoDialog
                 pedido_id={pedido.id}
                 id_externo={pedido.id_externo}

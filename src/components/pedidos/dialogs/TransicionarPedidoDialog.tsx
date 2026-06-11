@@ -5,7 +5,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -20,99 +19,98 @@ interface Props {
   pedido_id: string;
   estagio_atual: EstagioPedido;
   triggerLabel?: string;
+  triggerVariant?: "default" | "outline" | "secondary" | "ghost";
 }
 
 export function TransicionarPedidoDialog({
-  pedido_id, estagio_atual, triggerLabel,
+  pedido_id, estagio_atual, triggerLabel, triggerVariant,
 }: Props) {
   const [open, setOpen] = useState(false);
+
   const transicoes = transicoesPara(estagio_atual).filter((e) => e !== "cancelado");
+  const destino_unico = transicoes.length === 1 ? transicoes[0] : null;
 
   const [para, setPara] = useState<EstagioPedido | "">(transicoes[0] || "");
-  const [proximaAcao, setProximaAcao] = useState("");
   const [motivo, setMotivo] = useState("");
 
   const transicionar = useTransicionarPedido();
 
   if (transicoes.length === 0) return null;
 
-  const motivoObrigatorio = para === "cancelado" || para === "recuperacao_venda";
-  const motivoFaltando = motivoObrigatorio && !motivo.trim();
+  const label = triggerLabel ?? "Avançar fase →";
+  const variant = triggerVariant ?? "outline";
 
   const handleConfirm = async () => {
-    if (!para) return;
-    if (motivoFaltando) return;
+    const destino = destino_unico ?? (para as EstagioPedido);
+    if (!destino) return;
     await transicionar.mutateAsync({
       pedido_id,
-      para_estagio: para as EstagioPedido,
-      proxima_acao: proximaAcao || undefined,
+      para_estagio: destino,
       motivo: motivo || undefined,
     });
     setOpen(false);
     setMotivo("");
-    setProximaAcao("");
+    setPara(transicoes[0] || "");
   };
-
-  const label = triggerLabel || (estagio_atual === "recebido" ? "Triar e encaminhar" : "Avançar estágio");
-
-  // Triar é ação primária do recebido → destaque. Avançar estágio é fallback genérico → outline.
-  const isAcaoPrimaria = estagio_atual === "recebido" || !!triggerLabel;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2" variant={isAcaoPrimaria ? "default" : "outline"}>
+        <Button className="gap-2 w-full" variant={variant}>
           <ArrowRight className="h-4 w-4" />
-          {label}
+          {destino_unico
+            ? `${label} ${ESTAGIO_LABELS[destino_unico]}`
+            : label}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{label}</DialogTitle>
+          <DialogTitle>Avançar fase do pedido</DialogTitle>
           <DialogDescription>
-            Estágio atual: <strong>{ESTAGIO_LABELS[estagio_atual]}</strong>. Escolha o próximo estágio.
+            Estágio atual: <strong>{ESTAGIO_LABELS[estagio_atual]}</strong>.
+            {destino_unico
+              ? <> Próximo estágio: <strong>{ESTAGIO_LABELS[destino_unico]}</strong>.</>
+              : " Escolha o próximo estágio."}
           </DialogDescription>
         </DialogHeader>
+
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Próximo estágio</Label>
-            <Select value={para} onValueChange={(v) => setPara(v as EstagioPedido)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {transicoes.map((e) => (
-                  <SelectItem key={e} value={e}>{ESTAGIO_LABELS[e]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Próxima ação (opcional)</Label>
-            <Input
-              value={proximaAcao}
-              onChange={(e) => setProximaAcao(e.target.value)}
-              placeholder="Ex: Emitir boleto, esperar pagamento, etc."
-            />
-          </div>
+          {!destino_unico && (
+            <div className="space-y-2">
+              <Label>Próximo estágio</Label>
+              <Select value={para} onValueChange={(v) => setPara(v as EstagioPedido)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {transicoes.map((e) => (
+                    <SelectItem key={e} value={e}>{ESTAGIO_LABELS[e]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>
-              Motivo/observação{motivoObrigatorio ? <span className="text-destructive"> *</span> : <span className="text-muted-foreground"> (opcional)</span>}
+              Motivo / observação{" "}
+              <span className="text-muted-foreground">(opcional)</span>
             </Label>
             <Textarea
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
-              placeholder={
-                motivoObrigatorio
-                  ? "Obrigatório — descreva o motivo. Vai pro audit trail."
-                  : "Por que está avançando? Vai pro audit trail."
-              }
+              placeholder="Registrado no audit trail do pedido."
+              rows={3}
             />
           </div>
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={handleConfirm} disabled={!para || motivoFaltando || transicionar.isPending}>
+          <Button
+            onClick={handleConfirm}
+            disabled={(!destino_unico && !para) || transicionar.isPending}
+          >
             {transicionar.isPending ? "Avançando..." : "Confirmar"}
           </Button>
         </DialogFooter>
