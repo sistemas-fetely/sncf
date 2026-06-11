@@ -11,8 +11,6 @@ export const COLUNAS_ESPERADAS = [
   "QUANTIDADE","PRECO","TOTAL",
 ];
 
-const FASES_VALIDAS = new Set([5, 6, 7, 8, 9, 10]);
-const TIPOS_VALIDOS = new Set([4, 5, 7]);
 
 export type PreviewArquivo = {
   arquivo: File;
@@ -27,7 +25,22 @@ export type PreviewArquivo = {
 function num(v: any): number | null {
   if (v === null || v === undefined || v === "") return null;
   if (typeof v === "number") return isNaN(v) ? null : v;
-  const n = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
+  const s = String(v).trim();
+  if (s === "") return null;
+  const temVirgula = s.includes(",");
+  const temPonto = s.includes(".");
+  let normalizado: string;
+  if (temVirgula && temPonto) {
+    // formato BR completo: "1.234,56" → ponto = milhar, vírgula = decimal
+    normalizado = s.replace(/\./g, "").replace(",", ".");
+  } else if (temVirgula) {
+    // só vírgula: "1234,56" → vírgula = decimal
+    normalizado = s.replace(",", ".");
+  } else {
+    // só ponto ou só dígitos: "5.700" → ponto = decimal. NUNCA remover.
+    normalizado = s;
+  }
+  const n = parseFloat(normalizado);
   return isNaN(n) ? null : n;
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
