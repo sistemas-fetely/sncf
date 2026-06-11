@@ -15669,34 +15669,20 @@ export type Database = {
         }
         Returns: Json
       }
-      criar_split_pedido:
-        | {
-            Args: {
-              p_data_entrega_prevista?: string
-              p_estagio_inicial?: string
-              p_itens_original: Json
-              p_itens_split: Json
-              p_observacao?: string
-              p_pedido_id: string
-              p_valor_original: number
-              p_valor_split: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_data_entrega_prevista?: string
-              p_estagio_inicial?: string
-              p_financeiro_coberto?: boolean
-              p_itens_original: Json
-              p_itens_split: Json
-              p_observacao?: string
-              p_pedido_id: string
-              p_valor_original: number
-              p_valor_split: number
-            }
-            Returns: Json
-          }
+      criar_split_pedido: {
+        Args: {
+          p_data_entrega_prevista?: string
+          p_estagio_inicial?: string
+          p_financeiro_coberto?: boolean
+          p_itens_original: Json
+          p_itens_split: Json
+          p_observacao?: string
+          p_pedido_id: string
+          p_valor_original: number
+          p_valor_split: number
+        }
+        Returns: Json
+      }
       criar_tarefa_aprovacao_nf_pj: {
         Args: { _nota_id: string }
         Returns: string

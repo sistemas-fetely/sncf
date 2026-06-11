@@ -406,6 +406,22 @@ serve(async (req) => {
       : totalExato;
 
     const diffItens = parseFloat((totalProdutosPayload - totalProdutosCalc).toFixed(2));
+
+    // Guardrail diff — FAIL-LOUD: diferença > R$ 5,00 indica inconsistência
+    // real nos preços (ex: itens_json com preço tabela vs valor_liquido com desconto).
+    // Se silenciado, a diferença cai inteira no último item gerando preço negativo.
+    // Corrija a origem dos preços em itens_json antes de reenviar.
+    if (Math.abs(diffItens) > 5.00) {
+      return err(
+        `Inconsistência de valor: diferença de R$ ${Math.abs(diffItens).toFixed(2)} entre ` +
+        `soma dos itens (R$ ${totalProdutosCalc.toFixed(2)}) e valor do pedido ` +
+        `(R$ ${totalProdutosPayload.toFixed(2)}). ` +
+        `Verifique os preços nos itens_json da remessa — provável uso de preço tabela onde se espera preço descontado.`,
+        409,
+      );
+    }
+
+    // Ajuste de centavos de arredondamento (|diff| <= R$ 5,00): aplica no último item
     if (Math.abs(diffItens) >= 0.01 && rawItens && rawItens.length > 0) {
       const last = rawItens[rawItens.length - 1];
       const valorLinhaAjustado = parseFloat(
