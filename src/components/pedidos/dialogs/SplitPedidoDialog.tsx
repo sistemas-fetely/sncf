@@ -239,7 +239,24 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                 </div>
               </div>
 
-              {!temItensSplit && (
+              <div className="flex items-start gap-3 rounded-md border p-3">
+                <Checkbox
+                  id="financeiro-coberto"
+                  checked={financeiroCoberto}
+                  onCheckedChange={(v) => setFinanceiroCoberto(v === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="financeiro-coberto" className="font-medium cursor-pointer">
+                    Financeiro coberto pelo pedido original
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Os itens do split já foram pagos junto com o pedido original. O título nasce pago e vinculado ao título pai.
+                  </p>
+                </div>
+              </div>
+
+            {!temItensSplit && (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
