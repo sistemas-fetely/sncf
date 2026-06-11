@@ -28,11 +28,12 @@ const err = (msg: string, status = 400) =>
 const soDigitos = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Extrai e limpa o primeiro número de uma string que pode ter vários (ex: "2124714678 / 2124734896")
+// Bling exige DDD + número: mínimo 10 dígitos. Números com 8-9 dígitos
+// (sem DDD) são omitidos — evita erro de validação 400 no POST /contatos.
 const primeiroFone = (s: string | null | undefined): string | undefined => {
   const primeiro = (s || "").split(/[\/,]|(?:\s{2,})/)[0];
   const digits = soDigitos(primeiro);
-  return digits.length >= 8 ? digits : undefined;
+  return digits.length >= 10 ? digits : undefined;
 };
 
 // Extrai o segundo número se existir
@@ -40,7 +41,7 @@ const segundoFone = (s: string | null | undefined): string | undefined => {
   const partes = (s || "").split(/[\/,]|(?:\s{2,})/);
   if (partes.length < 2) return undefined;
   const digits = soDigitos(partes[1]);
-  return digits.length >= 8 ? digits : undefined;
+  return digits.length >= 10 ? digits : undefined;
 };
 
 const jwtRole = (token: string): string | null => {
@@ -142,6 +143,19 @@ async function syncOne(supabase: any, client: any, p: any, origem: string, acion
         console.warn("[sync-contato-bling] IE rejeitada pelo Bling — retry sem IE");
         const payloadSemIE = { ...payload, ie: undefined, indicadorIe: 9 };
         criado = await client.post("/contatos", payloadSemIE);
+      }
+
+      // Retry sem telefone/celular se o Bling rejeitar por validação de fone
+      // (número sem DDD, formato especial, ou campo ausente mas obrigatório no Bling)
+      if (
+        criado?.error &&
+        (JSON.stringify(criado.error).toLowerCase().includes("fone") ||
+         JSON.stringify(criado.error).toLowerCase().includes("celular") ||
+         JSON.stringify(criado.error).toLowerCase().includes("telefone"))
+      ) {
+        console.warn("[sync-contato-bling] Fone rejeitado pelo Bling — retry sem telefone/celular");
+        const payloadSemFone = { ...payload, telefone: undefined, celular: undefined };
+        criado = await client.post("/contatos", payloadSemFone);
       }
 
       respBody = criado;
