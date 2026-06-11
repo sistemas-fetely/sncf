@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { usePedidoPriorizado } from "@/hooks/pedidos/useFilaPedidosPriorizada";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
+import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
 
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import { cn } from "@/lib/utils";
@@ -283,6 +284,8 @@ export default function PedidoDetalhe() {
   const atualizarUrgencia = useAtualizarUrgencia();
   const [urgencia, setUrgencia] = useState<UrgenciaDeclarada>("normal");
   const [obsUrgencia, setObsUrgencia] = useState("");
+  const registrarEvento = useRegistrarEventoPedido();
+  const [obsSop, setObsSop] = useState("");
   const [transportadoraId, setTransportadoraId] = useState("");
   const [pesoBruto, setPesoBruto] = useState("");
   const [recalculandoPeso, setRecalculandoPeso] = useState(false);
@@ -736,6 +739,7 @@ export default function PedidoDetalhe() {
                 </TabsTrigger>
                 <TabsTrigger value="timeline">Histórico</TabsTrigger>
                 <TabsTrigger value="urgencia">Urgência</TabsTrigger>
+                <TabsTrigger value="obs_sop">Obs SOPs</TabsTrigger>
               </TabsList>
 
               <TabsContent value="parcelas"><ParcelasTab pedidoId={pedido.id} /></TabsContent>
@@ -771,6 +775,42 @@ export default function PedidoDetalhe() {
                     onClick={() => id && atualizarUrgencia.mutate({ pedidoId: id, urgencia, observacao: obsUrgencia })}
                     disabled={atualizarUrgencia.isPending}>
                     {atualizarUrgencia.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Salvar urgência"}
+                  </Button>
+                </div>
+              </TabsContent>
+              <TabsContent value="obs_sop">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Observações SOPs (internas)</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Notas internas de SOP. Ao salvar, fica registrado na linha do tempo do pedido com autor e data.
+                  </p>
+                  <textarea
+                    value={obsSop}
+                    onChange={(e) => setObsSop(e.target.value)}
+                    placeholder="Ex.: cliente exige NF antes do envio; conferir lote XYZ; SOP de embalagem dupla…"
+                    rows={4}
+                    className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    disabled={!obsSop.trim() || registrarEvento.isPending}
+                    onClick={async () => {
+                      if (!id || !obsSop.trim()) return;
+                      await registrarEvento.mutateAsync({
+                        pedido_id: id,
+                        tipo_evento: "anotacao",
+                        descricao: `[SOP] ${obsSop.trim()}`,
+                        metadata: { categoria: "sop" },
+                      });
+                      setObsSop("");
+                    }}
+                  >
+                    {registrarEvento.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Registrar na timeline"}
                   </Button>
                 </div>
               </TabsContent>
