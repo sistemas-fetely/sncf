@@ -130,6 +130,21 @@ export function useImportarPlanilhaWns() {
         .eq("id", importacaoId);
     }
 
+    setEtapa("Carregando dimensões…");
+    const [fasesRes, tiposRes] = await Promise.all([
+      sb.from("wns_fases_xpm").select("wns_id"),
+      sb.from("wns_tipos_pedido").select("codigo"),
+    ]);
+    if (fasesRes.error || tiposRes.error) {
+      const msg = fasesRes.error?.message ?? tiposRes.error?.message ?? "erro ao ler dimensões";
+      await marcarErro(msg);
+      setProcessando(false);
+      toast.error("Erro ao carregar dimensões: " + msg);
+      return;
+    }
+    const fasesValidas = new Set<number>((fasesRes.data ?? []).map((f: { wns_id: number }) => f.wns_id));
+    const tiposValidos = new Set<number>((tiposRes.data ?? []).map((t: { codigo: number }) => t.codigo));
+
     // Normalizar
     const linhas = preview.rawRows.map((r) => {
       const evento = extrairCodigo(r.EVENTO_XPM);
@@ -137,13 +152,13 @@ export function useImportarPlanilhaWns() {
       return {
         pedidowns: int(r.PEDIDOWNS),
         prefaturamento_xpm: int(r.PREFATURAMENTO_XPM),
-        evento_wns_id: evento.codigo != null && FASES_VALIDAS.has(evento.codigo) ? evento.codigo : null,
+        evento_wns_id: evento.codigo != null && fasesValidas.has(evento.codigo) ? evento.codigo : null,
         evento_xpm_raw: evento.raw,
         data_pre: parseDataPre(r.DATA_PRE),
         prefaturamento: int(r.PREFATURAMENTO),
         nota_numero: int(r.NOTA_NUMERO),
         n_pedido_cliente: str(r.N_PEDIDO_CLIENTE),
-        tipo_pedido_codigo: tipo.codigo != null && TIPOS_VALIDOS.has(tipo.codigo) ? tipo.codigo : null,
+        tipo_pedido_codigo: tipo.codigo != null && tiposValidos.has(tipo.codigo) ? tipo.codigo : null,
         tipo_pedido_raw: tipo.raw,
         filial: int(r.FILIAL),
         cliente_wns_id: int(r.CLIENTE),
