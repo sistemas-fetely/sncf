@@ -139,11 +139,12 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
           Editar itens
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/40 shrink-0">
           <DialogTitle>Editar itens do pedido</DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
         {/* Lista de itens */}
         <div className="space-y-1">
           {(() => {
@@ -288,8 +289,10 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
             <AlertDescription>{(salvar.error as Error).message}</AlertDescription>
           </Alert>
         )}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t border-border/40 shrink-0">
+
           <Button variant="outline" onClick={() => setOpen(false)} disabled={salvar.isPending}>
             Cancelar
           </Button>
