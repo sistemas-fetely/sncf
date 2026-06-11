@@ -5,13 +5,31 @@ function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 async function resolveParceiroId(supabase: any, contato: any): Promise<string | null> {
   if (!contato?.id) return null;
   const blingId = String(contato.id);
+
   const { data: found } = await supabase
     .from("parceiros_comerciais").select("id").eq("bling_id", blingId).maybeSingle();
   if (found) return found.id;
   if (!contato.nome) return null;
-  const { data: novo } = await supabase.from("parceiros_comerciais").insert({
-    razao_social: contato.nome, tipo: "pj", tipos: ["cliente"], origem: "api_bling", bling_id: blingId,
+
+  const doc = (contato.numeroDocumento || "").replace(/\D/g, "");
+  const { data: novo, error: insErr } = await supabase.from("parceiros_comerciais").insert({
+    razao_social: contato.nome,
+    tipo:         "pj",
+    tipo_pessoa:  doc.length === 11 ? "PF" : "PJ",
+    tipos:        ["cliente"],
+    origem:       "api_bling",
+    bling_id:     blingId,
+    cpf:          doc.length === 11 ? doc : null,
+    cnpj:         doc.length === 14 ? doc : null,
+    email:        contato.email    || null,
+    telefone:     contato.telefone || null,
   }).select("id").maybeSingle();
+
+  if (insErr) {
+    // Não derruba o sync de NFe — NF entra sem parceiro vinculado
+    console.error(`resolveParceiroId INSERT failed [bling_id=${blingId}]: ${insErr.message}`);
+    return null;
+  }
   return novo?.id ?? null;
 }
 
@@ -76,6 +94,22 @@ export async function syncNfe(
         const parceiro_id = await resolveParceiroId(supabase, nf.contato);
         const pedido_venda_id = await resolvePedidoId(supabase, nf.numeroLoja);
         const sitNum = typeof nf.situacao === "object" ? nf.situacao?.valor : nf.situacao;
+
+        const { data: existing } = await supabase
+          .from("nfs_emitidas").select("id, valor_nota").eq("bling_id", blingId).maybeSingle();
+
+        // Busca detalhe se NF é nova ou ainda sem valor (endpoint lista não retorna valor)
+        const semValor = !existing || !existing.valor_nota || Number(existing.valor_nota) === 0;
+        if (semValor) {
+          try {
+            const det = await client.get(`/nfe/${nf.id}`);
+            const d = det?.data;
+            if (d) {
+              nf._valorResolvido = Number(d.totalProdutos ?? d.valor ?? d.totalNota ?? 0) || 0;
+            }
+          } catch (_) { /* continua sem valor se detalhe falhar */ }
+        }
+
         const registro: any = {
           bling_id: blingId,
           numero: nf.numero != null ? String(nf.numero) : null,
@@ -85,7 +119,7 @@ export async function syncNfe(
           situacao: SITUACAO_MAP[Number(sitNum)] || String(sitNum || ""),
           data_emissao: parseBlingDate(nf.dataEmissao),
           data_saida:   parseBlingDate(nf.dataOperacao),
-          valor_nota: Number(nf.valorNota) || 0,
+          valor_nota: nf._valorResolvido ?? Number(nf.valorNota) ?? 0,
           parceiro_id,
           xml_url: nf.xml || null,
           pdf_url: nf.linkPDF || null,
@@ -96,8 +130,6 @@ export async function syncNfe(
         if (pedido_venda_id !== null) {
           registro.pedido_venda_id = pedido_venda_id;
         }
-        const { data: existing } = await supabase
-          .from("nfs_emitidas").select("id").eq("bling_id", blingId).maybeSingle();
         if (existing) {
           const { error: updErr } = await supabase.from("nfs_emitidas").update(registro).eq("id", existing.id);
           if (updErr) throw new Error("UPDATE nfs_emitidas: " + updErr.message);
