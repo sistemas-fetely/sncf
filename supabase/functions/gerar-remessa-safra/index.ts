@@ -158,7 +158,7 @@ function gerarDetalhe(titulo: any, nossoNumero: string, params: Record<string, s
   const seuNumero = spaceRight(titulo.numero_titulo ?? "", 10);
   const usoLivre  = spaceRight(titulo.id ?? "", 25);
   const instrucao1 = (params.politica_instrucao_1 ?? "08").padStart(2, "0");
-  const instrucao2 = (params.politica_instrucao_2 ?? "00").padStart(2, "0");
+  const instrucao2 = (params.politica_instrucao_2 ?? "16").padStart(2, "0");
   const jurosDia  = zeroLeft(params.juros_mora_dia_centavos ?? "0", 13);
   const dataMulta = (() => {
     const d = new Date(titulo.data_vencimento_atual + "T00:00:00");
@@ -191,8 +191,7 @@ function gerarDetalhe(titulo: any, nossoNumero: string, params: Record<string, s
   d += instrucao1; d += instrucao2;
   d += jurosDia;
   d += "000000"; d += "0000000000000"; d += "0000000000000";
-  const tipoMulta = parseInt(multaPct, 10) > 0 ? "2" : "0";
-  d += dataMulta; d += multaPct; d += tipoMulta + "00";
+  d += dataMulta; d += multaPct; d += "000";
   d += tipoInscricaoPagador;
   d += zeroLeft(docPagador, 14);
   d += spaceRight(parceiro.razao_social ?? "", 40);
