@@ -231,6 +231,7 @@ export function useImportarPlanilhaWns() {
     );
     qc.invalidateQueries({ queryKey: ["wns-pedidos"] });
     qc.invalidateQueries({ queryKey: ["wns-linhas-pedido"] });
+    qc.invalidateQueries({ queryKey: ["wns-skus"] });
   }
 
   return { processando, etapa, resultado, importar, reset: () => setResultado(null) };
