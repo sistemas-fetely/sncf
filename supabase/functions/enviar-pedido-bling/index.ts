@@ -390,15 +390,32 @@ serve(async (req) => {
       }
     }
 
-    if (novosCacheEntries.length > 0) {
-      supabase
-        .from("bling_produtos_cache")
-        .upsert(novosCacheEntries, { onConflict: "sku" })
-        .then(() => {})
-        .catch(() => {});
-    }
+if (novosCacheEntries.length > 0) {
+  supabase
+    .from("bling_produtos_cache")
+    .upsert(novosCacheEntries, { onConflict: "sku" })
+    .then(() => {})
+    .catch(() => {});
+}
 
-    // 9d. Monta itens com produto.id (catálogo) ou fallback avulso
+// Guardrail pós-sync — FAIL-LOUD: produtos com SKU que não foram resolvidos
+// (não encontrados nem criados no Bling) iriam como avulsos sem código.
+// Bloqueamos o envio e listamos os produtos para correção manual.
+const itensSemProdutoBling = itens.filter(
+  (it: any) => it.sku && !cacheMap[it.sku]
+);
+if (itensSemProdutoBling.length > 0) {
+  const nomes = itensSemProdutoBling
+    .map((it: any) => `${it.descricao ?? "(sem descrição)"} [${it.sku}]`)
+    .join(" | ");
+  return err(
+    `${itensSemProdutoBling.length} produto(s) não encontrado(s) nem criado(s) no Bling — ` +
+    `verifique os logs do Bling e cadastre manualmente antes de reenviar: ${nomes}`,
+    409,
+  );
+}
+
+// 9d. Monta itens com produto.id (catálogo) ou fallback avulso
     const temFrete = Number(pedido.valor_frete ?? 0) > 0;
     const valorFrete = temFrete ? Number(pedido.valor_frete) : 0;
 
