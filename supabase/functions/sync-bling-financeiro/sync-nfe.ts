@@ -81,10 +81,12 @@ export async function syncNfe(
         const { data: existing } = await supabase
           .from("nfs_emitidas").select("id").eq("bling_id", blingId).maybeSingle();
         if (existing) {
-          await supabase.from("nfs_emitidas").update(registro).eq("id", existing.id);
+          const { error: updErr } = await supabase.from("nfs_emitidas").update(registro).eq("id", existing.id);
+          if (updErr) throw new Error("UPDATE nfs_emitidas: " + updErr.message);
           atualizados++;
         } else {
-          await supabase.from("nfs_emitidas").insert(registro);
+          const { error: insErr } = await supabase.from("nfs_emitidas").insert(registro);
+          if (insErr) throw new Error("INSERT nfs_emitidas [bling_id=" + blingId + "]: " + insErr.message);
           criados++;
         }
       } catch (e) {
