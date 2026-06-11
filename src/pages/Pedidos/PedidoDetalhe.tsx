@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PedidoStepper } from "@/components/pedidos/PedidoStepper";
 import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
+import { PedidoTarefasTab } from "@/components/pedidos/PedidoTarefasTab";
 import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
 import { EstagioBadge, FormatoIdade } from "@/components/pedidos/BadgesPedido";
 import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
@@ -740,6 +741,7 @@ export default function PedidoDetalhe() {
                 <TabsTrigger value="timeline">Histórico</TabsTrigger>
                 <TabsTrigger value="urgencia">Urgência</TabsTrigger>
                 <TabsTrigger value="obs_sop">Obs SOPs</TabsTrigger>
+                <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
               </TabsList>
 
               <TabsContent value="parcelas"><ParcelasTab pedidoId={pedido.id} /></TabsContent>
@@ -813,6 +815,9 @@ export default function PedidoDetalhe() {
                     {registrarEvento.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Registrar na timeline"}
                   </Button>
                 </div>
+              </TabsContent>
+              <TabsContent value="tarefas">
+                <PedidoTarefasTab pedidoId={pedido.id} />
               </TabsContent>
             </Tabs>
           </div>
