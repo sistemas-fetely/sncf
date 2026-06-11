@@ -94,6 +94,22 @@ export async function syncNfe(
         const parceiro_id = await resolveParceiroId(supabase, nf.contato);
         const pedido_venda_id = await resolvePedidoId(supabase, nf.numeroLoja);
         const sitNum = typeof nf.situacao === "object" ? nf.situacao?.valor : nf.situacao;
+
+        const { data: existing } = await supabase
+          .from("nfs_emitidas").select("id, valor_nota").eq("bling_id", blingId).maybeSingle();
+
+        // Busca detalhe se NF é nova ou ainda sem valor (endpoint lista não retorna valor)
+        const semValor = !existing || !existing.valor_nota || Number(existing.valor_nota) === 0;
+        if (semValor) {
+          try {
+            const det = await client.get(`/nfe/${nf.id}`);
+            const d = det?.data;
+            if (d) {
+              nf._valorResolvido = Number(d.totalProdutos ?? d.valor ?? d.totalNota ?? 0) || 0;
+            }
+          } catch (_) { /* continua sem valor se detalhe falhar */ }
+        }
+
         const registro: any = {
           bling_id: blingId,
           numero: nf.numero != null ? String(nf.numero) : null,
@@ -103,7 +119,7 @@ export async function syncNfe(
           situacao: SITUACAO_MAP[Number(sitNum)] || String(sitNum || ""),
           data_emissao: parseBlingDate(nf.dataEmissao),
           data_saida:   parseBlingDate(nf.dataOperacao),
-          valor_nota: Number(nf.valorNota) || 0,
+          valor_nota: nf._valorResolvido ?? Number(nf.valorNota) ?? 0,
           parceiro_id,
           xml_url: nf.xml || null,
           pdf_url: nf.linkPDF || null,
@@ -114,8 +130,6 @@ export async function syncNfe(
         if (pedido_venda_id !== null) {
           registro.pedido_venda_id = pedido_venda_id;
         }
-        const { data: existing } = await supabase
-          .from("nfs_emitidas").select("id").eq("bling_id", blingId).maybeSingle();
         if (existing) {
           const { error: updErr } = await supabase.from("nfs_emitidas").update(registro).eq("id", existing.id);
           if (updErr) throw new Error("UPDATE nfs_emitidas: " + updErr.message);
