@@ -8,13 +8,14 @@ interface EnviarBlingResponse {
   remessa_id?: string;
   remessa_codigo?: string;
   mensagem?: string;
+  aviso_transicao?: string;
   erro?: string;
   duracao_ms?: number;
 }
 
 interface EnviarBlingParams {
   pedido_id: string;
-  remessa_id?: string; // opcional: envia remessa específica (split)
+  remessa_id?: string;
 }
 
 export function useEnviarBling() {
@@ -45,7 +46,17 @@ export function useEnviarBling() {
       const desc = data.remessa_codigo
         ? `Remessa ${data.remessa_codigo} · id Bling: ${data.bling_id}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`
         : `id Bling: ${data.bling_id}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`;
+
       toast({ title: "Enviado pro Bling", description: desc });
+
+      if (data.aviso_transicao) {
+        toast({
+          title: "Atenção — estágio não avançou",
+          description: data.aviso_transicao,
+          variant: "destructive",
+        });
+      }
+
       qc.invalidateQueries({ queryKey: ["pedido"] });
       qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });

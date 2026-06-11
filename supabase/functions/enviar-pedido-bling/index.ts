@@ -565,6 +565,7 @@ serve(async (req) => {
       }
 
       // 12c. Transição de estágio — apenas se ainda em pre_faturado
+      let avisoTransicao: string | undefined;
       if (pedido.estagio === "pre_faturado") {
         const { error: errTransicao } = await supabase.rpc("transicionar_pedido" as string, {
           p_pedido_id: pedido_id,
@@ -573,7 +574,8 @@ serve(async (req) => {
           p_motivo: `Remessa ${remessaCodigo} enviada ao Bling (id ${blingId})`,
         });
         if (errTransicao) {
-          console.warn(`[enviar-pedido-bling] transicionar_pedido falhou: ${errTransicao.message}`);
+          console.error(`[enviar-pedido-bling] transicionar_pedido falhou: ${errTransicao.message}`);
+          avisoTransicao = `Pedido enviado ao Bling mas estágio não avançou automaticamente — ${errTransicao.message}`;
         }
       }
 
@@ -583,6 +585,7 @@ serve(async (req) => {
         remessa_id: remessa.id,
         remessa_codigo: remessaCodigo,
         mensagem: `Remessa ${remessaCodigo} enviada pro Bling (id ${blingId})`,
+        ...(avisoTransicao ? { aviso_transicao: avisoTransicao } : {}),
         duracao_ms: duracaoMs,
       });
     } else {
