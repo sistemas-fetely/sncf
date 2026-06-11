@@ -11,9 +11,11 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Upload, Info, ChevronRight, ChevronDown } from "lucide-react";
 import { ImportarPlanilhaWnsDialog } from "@/components/wns/ImportarPlanilhaWnsDialog";
 import { WnsPedidoRemessasRow } from "@/components/wns/WnsPedidoRemessasRow";
+import { WnsProdutosTable } from "@/components/wns/WnsProdutosTable";
 import {
   useWnsFases, useWnsPedidos, useWnsTiposPedido,
 } from "@/hooks/wns/useWnsPedidos";
