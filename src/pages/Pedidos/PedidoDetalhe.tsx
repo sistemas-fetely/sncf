@@ -778,6 +778,42 @@ export default function PedidoDetalhe() {
                   </Button>
                 </div>
               </TabsContent>
+              <TabsContent value="obs_sop">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Observações SOPs (internas)</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Notas internas de SOP. Ao salvar, fica registrado na linha do tempo do pedido com autor e data.
+                  </p>
+                  <textarea
+                    value={obsSop}
+                    onChange={(e) => setObsSop(e.target.value)}
+                    placeholder="Ex.: cliente exige NF antes do envio; conferir lote XYZ; SOP de embalagem dupla…"
+                    rows={4}
+                    className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    disabled={!obsSop.trim() || registrarEvento.isPending}
+                    onClick={async () => {
+                      if (!id || !obsSop.trim()) return;
+                      await registrarEvento.mutateAsync({
+                        pedido_id: id,
+                        tipo_evento: "anotacao",
+                        descricao: `[SOP] ${obsSop.trim()}`,
+                        metadata: { categoria: "sop" },
+                      });
+                      setObsSop("");
+                    }}
+                  >
+                    {registrarEvento.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Registrar na timeline"}
+                  </Button>
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
 
