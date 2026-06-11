@@ -604,7 +604,7 @@ export default function PedidoDetalhe() {
                             transportadoraId: transportadoraId || null,
                             pesoBrutoTotal: parseFloat(pesoBruto) || 0,
                             freteTipo: freteTipo || null,
-                            valorFrete: parseFloat(valorFrete) || null,
+                            valorFrete: parseFloat(valorFrete) || 0,
                           })
                         }
                       >
