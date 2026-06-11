@@ -289,8 +289,10 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
             <AlertDescription>{(salvar.error as Error).message}</AlertDescription>
           </Alert>
         )}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t border-border/40 shrink-0">
+
           <Button variant="outline" onClick={() => setOpen(false)} disabled={salvar.isPending}>
             Cancelar
           </Button>
