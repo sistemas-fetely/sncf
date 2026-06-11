@@ -36,7 +36,6 @@ export async function syncNfe(
   client: BlingClient,
   timeUp: () => boolean,
   cursor: { ultima_pagina: number; ultima_data_corte: string | null },
-  ultimaSync: string | null,
 ) {
   let criados = 0, atualizados = 0, erros = 0;
   let pagina = Math.max(cursor.ultima_pagina + 1, 1);
