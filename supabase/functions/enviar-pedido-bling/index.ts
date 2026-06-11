@@ -383,24 +383,52 @@ serve(async (req) => {
           }
         } catch (e) {
           const errMsg = (e as Error).message || "";
-          // Código já cadastrado (Bling code 4): o produto existe mas não foi
-          // encontrado pela busca acima (ex: nome diferente). Busca pelo código
-          // sem qualquer filtro para recuperar o id e seguir.
+          // Código já cadastrado (Bling code 4): o SKU pertence a uma VARIAÇÃO
+          // de produto existente. O GET por criterio=2 busca apenas o codigo do
+          // produto principal — variações ficam invisíveis nessa busca.
+          // Estratégia: extrair nome do produto pai do erro → buscar produto pai
+          // → buscar variações → pegar id da variação com o SKU correto.
           if (errMsg.includes("já foi cadastrado") || errMsg.includes('"code":4')) {
             try {
-              console.warn(`[produto-sync] Código já existe no Bling — recuperando id: sku=${it.sku}`);
-              const r2 = await client.get(
-                `/produtos?criterio=2&q=${encodeURIComponent(it.sku)}&limite=10`
-              );
-              const m2 = (r2?.data || []).find((p: any) => p.codigo === it.sku);
-              if (m2?.id) {
-                blingProdId = m2.id;
-                console.warn(`[produto-sync] id recuperado: sku=${it.sku} id=${blingProdId}`);
+              // Extrai nome do produto pai da mensagem de erro do Bling:
+              // "O código X já foi cadastrado para o produto NOME_PAI"
+              const matchNome = errMsg.match(/cadastrado para o produto ([^"\\n}]+)/i);
+              const nomePai = matchNome?.[1]?.trim();
+
+              if (nomePai) {
+                console.warn(`[produto-sync] SKU é variação — buscando pai "${nomePai}": sku=${it.sku}`);
+
+                // Busca o produto pai pelo nome
+                const normPai = nomePai.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const rPai = await client.get(
+                  `/produtos?criterio=1&q=${encodeURIComponent(normPai)}&limite=10`
+                );
+                const prodPai = (rPai?.data || []).find(
+                  (p: any) => p.nome?.toUpperCase().trim() === nomePai.toUpperCase().trim()
+                );
+
+                if (prodPai?.id) {
+                  // Busca as variações do produto pai
+                  const rVar = await client.get(`/produtos/${prodPai.id}/variacoes?limite=200`);
+                  const variacoes: any[] = rVar?.data || [];
+                  const variacao = variacoes.find((v: any) => v.codigo === it.sku);
+
+                  if (variacao?.id) {
+                    blingProdId = variacao.id;
+                    console.warn(`[produto-sync] Variação encontrada: sku=${it.sku} varId=${blingProdId} paiId=${prodPai.id}`);
+                  } else {
+                    // Fallback: usa o produto pai (subótimo mas não avulso)
+                    blingProdId = prodPai.id;
+                    console.warn(`[produto-sync] Variação não achada em ${variacoes.length} vars — usando pai: sku=${it.sku} paiId=${blingProdId}`);
+                  }
+                } else {
+                  console.error(`[produto-sync] Produto pai não encontrado: nome="${nomePai}" sku=${it.sku}`);
+                }
               } else {
-                console.error(`[produto-sync] Código já existe mas GET não retornou id: sku=${it.sku}`);
+                console.error(`[produto-sync] Não foi possível extrair nome do pai do erro: sku=${it.sku} err=${errMsg.slice(0, 300)}`);
               }
             } catch (e2) {
-              console.error(`[produto-sync] Falha no GET de recuperação: sku=${it.sku} err=${((e2 as Error).message || "").slice(0, 300)}`);
+              console.error(`[produto-sync] Falha buscando variação: sku=${it.sku} err=${((e2 as Error).message || "").slice(0, 300)}`);
             }
           } else {
             const errClean = errMsg.replace(/[\n\r]/g, " ").slice(0, 800);
