@@ -7,7 +7,7 @@ interface DadosEnvio {
   transportadoraId: string | null;
   pesoBrutoTotal: number;
   freteTipo: string | null;
-  valorFrete: number | null;
+  valorFrete: number;
 }
 
 export function useSalvarDadosEnvio() {
@@ -20,7 +20,7 @@ export function useSalvarDadosEnvio() {
           transportadora_id: transportadoraId || null,
           peso_bruto_total: pesoBrutoTotal,
           frete_tipo: freteTipo || null,
-          valor_frete: valorFrete ?? null,
+          valor_frete: valorFrete,
         })
         .eq("id", pedidoId);
       if (error) throw error;
@@ -30,8 +30,10 @@ export function useSalvarDadosEnvio() {
       toast.success("Dados de envio salvos");
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("useSalvarDadosEnvio error:", msg);
+      const msg = err instanceof Error
+        ? err.message
+        : (err as any)?.message ?? JSON.stringify(err);
+      console.error("useSalvarDadosEnvio error:", err);
       toast.error(`Erro ao salvar dados de envio: ${msg}`);
     },
   });
