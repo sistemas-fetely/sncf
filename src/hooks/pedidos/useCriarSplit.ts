@@ -11,6 +11,7 @@ interface SplitParams {
   estagio_inicial: "aguardando_estoque" | "pre_faturado" | "cobranca";
   data_entrega_prevista?: string | null;
   observacao?: string | null;
+  financeiro_coberto?: boolean;
 }
 
 interface SplitResult {
