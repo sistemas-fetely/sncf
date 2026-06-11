@@ -720,11 +720,7 @@ export default function PedidoDetalhe() {
                 />
               </div>
               {(() => {
-                const SKUS_DESTAQUE = [
-                  "PRTSBRBW.LG.15/01510",
-                  "PRTSBRBW.CS.15/01501",
-                ];
-                const temDestaque = itens.some((i: any) => SKUS_DESTAQUE.includes(i.sku));
+                const temDestaque = itens.some((i: any) => isSkuDestaque(i.sku));
                 return (
                   <>
                     {temDestaque && (
@@ -738,7 +734,7 @@ export default function PedidoDetalhe() {
                     {itens.length === 0
                       ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
                       : itens.map((item: any) => {
-                          const ehDestaque = SKUS_DESTAQUE.includes(item.sku);
+                          const ehDestaque = isSkuDestaque(item.sku);
                           return (
                             <div
                               key={item.id}
