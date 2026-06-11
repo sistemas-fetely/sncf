@@ -25,6 +25,14 @@ async function resolvePedidoId(supabase: any, numeroLoja: any): Promise<string |
   return pedido?.id ?? null;
 }
 
+/** Converte data do Bling para string ISO (YYYY-MM-DD) ou null.
+ *  Rejeita "0000-00-00" — valor MySQL legado retornado pelo Bling quando a data não existe. */
+function parseBlingDate(val: unknown): string | null {
+  if (!val) return null;
+  const s = String(val).split("T")[0];
+  return s.startsWith("0000") ? null : s;
+}
+
 // Bling NFe situação: 1=Pendente, 2=Emitida, 3=Cancelada, 4=Em digitação, 5=Rejeitada, 6=Autorizada, 7=Inutilizada, 8=Denegada
 const SITUACAO_MAP: Record<number, string> = {
   1: "pendente", 2: "emitida", 3: "cancelada", 4: "rascunho",
@@ -65,8 +73,8 @@ export async function syncNfe(
           chave_acesso: nf.chaveAcesso || null,
           tipo: nf.tipo === 0 ? "entrada" : "saida",
           situacao: SITUACAO_MAP[Number(sitNum)] || String(sitNum || ""),
-          data_emissao: nf.dataEmissao ? String(nf.dataEmissao).split("T")[0] : null,
-          data_saida: nf.dataOperacao ? String(nf.dataOperacao).split("T")[0] : null,
+          data_emissao: parseBlingDate(nf.dataEmissao),
+          data_saida:   parseBlingDate(nf.dataOperacao),
           valor_nota: Number(nf.valorNota) || 0,
           parceiro_id,
           xml_url: nf.xml || null,
