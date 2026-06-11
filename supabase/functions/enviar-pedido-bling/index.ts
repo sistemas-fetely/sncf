@@ -92,9 +92,28 @@ serve(async (req) => {
       if (rem.status === "cancelada") return err("Remessa cancelada — não pode ser enviada", 409);
       remessa = rem;
     } else {
-      // Lazy: verifica idempotência antes de criar /01
+      // Lazy: verifica idempotência via bling_id_destino
       if (pedido.bling_id_destino) {
         return err(`Pedido já enviado pro Bling (id ${pedido.bling_id_destino})`, 409);
+      }
+
+      // Guardrail remessas existentes — FAIL-LOUD: se já existem remessas manuais
+      // não-canceladas, não cria lazy por cima. Selecione explicitamente via remessa_id.
+      const { data: remessasExistentes } = await supabase
+        .from("pedido_remessa")
+        .select("id, sequencia, status, bling_pedido_id")
+        .eq("pedido_id", pedido_id)
+        .neq("status", "cancelada");
+
+      if (remessasExistentes && remessasExistentes.length > 0) {
+        const lista = remessasExistentes
+          .map((r: any) => `seq ${r.sequencia} (${r.status}${r.bling_pedido_id ? ` — Bling ${r.bling_pedido_id}` : ""})`)
+          .join(", ");
+        return err(
+          `Pedido já possui ${remessasExistentes.length} remessa(s) ativa(s): ${lista}. ` +
+          `Selecione uma remessa específica para enviar ao invés de criar nova automaticamente.`,
+          409,
+        );
       }
 
       const { data: rpcResult, error: rpcErr } = await supabase.rpc("criar_remessa" as string, {
@@ -166,6 +185,19 @@ serve(async (req) => {
 
     // 5. Itens da remessa (formato normalizado: {descricao, sku, quantidade, valor_unitario})
     const itens: any[] = Array.isArray(remessa.itens_json) ? remessa.itens_json : [];
+
+    // 5b. Guardrail SKU — FAIL-LOUD: item sem SKU chegaria ao Bling como avulso
+    // (sem produto.id e sem código), gerando aviso amarelo ⚠️. Corrija o catálogo.
+    const itensSemSku = itens.filter((it: any) => !it.sku || String(it.sku).trim() === "");
+    if (itensSemSku.length > 0) {
+      const nomes = itensSemSku
+        .map((it: any) => it.descricao ?? "(sem descrição)")
+        .join(" | ");
+      return err(
+        `${itensSemSku.length} item(s) sem SKU — corrija o catálogo antes de enviar ao Bling: ${nomes}`,
+        409,
+      );
+    }
 
     // 6. Config Bling
     const { data: cfg } = await supabase
@@ -373,9 +405,21 @@ serve(async (req) => {
     const baseItens = valorFrete > 0
       ? Math.max(0, remessaValor - valorFrete)
       : remessaValor;
+
+    // Soma real dos itens_json — denominador correto para o descontoFator.
+    // Usar pedido.valor_bruto era incorreto: quando o desconto master é aplicado
+    // só no total (não por linha), valor_bruto = valor_liquido e descontoFator = 1,
+    // mas a soma dos itens pode ser maior — causando diff enorme e preço negativo
+    // no último item. A soma real dos itens é sempre o denominador certo.
+    const somaItensJson = parseFloat(
+      itens.reduce((s: number, it: any) =>
+        s + Number(it.valor_unitario) * Number(it.quantidade), 0
+      ).toFixed(2)
+    );
+
     const descontoFator =
-      pedido.valor_bruto > 0 && baseItens < pedido.valor_bruto
-        ? baseItens / pedido.valor_bruto
+      somaItensJson > 0 && baseItens < somaItensJson
+        ? parseFloat((baseItens / somaItensJson).toFixed(6))
         : 1;
 
     const rawItens = itens.length > 0
