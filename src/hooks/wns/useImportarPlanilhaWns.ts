@@ -11,8 +11,6 @@ export const COLUNAS_ESPERADAS = [
   "QUANTIDADE","PRECO","TOTAL",
 ];
 
-const FASES_VALIDAS = new Set([5, 6, 7, 8, 9, 10]);
-const TIPOS_VALIDOS = new Set([4, 5, 7]);
 
 export type PreviewArquivo = {
   arquivo: File;
@@ -27,7 +25,22 @@ export type PreviewArquivo = {
 function num(v: any): number | null {
   if (v === null || v === undefined || v === "") return null;
   if (typeof v === "number") return isNaN(v) ? null : v;
-  const n = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
+  const s = String(v).trim();
+  if (s === "") return null;
+  const temVirgula = s.includes(",");
+  const temPonto = s.includes(".");
+  let normalizado: string;
+  if (temVirgula && temPonto) {
+    // formato BR completo: "1.234,56" → ponto = milhar, vírgula = decimal
+    normalizado = s.replace(/\./g, "").replace(",", ".");
+  } else if (temVirgula) {
+    // só vírgula: "1234,56" → vírgula = decimal
+    normalizado = s.replace(",", ".");
+  } else {
+    // só ponto ou só dígitos: "5.700" → ponto = decimal. NUNCA remover.
+    normalizado = s;
+  }
+  const n = parseFloat(normalizado);
   return isNaN(n) ? null : n;
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,6 +130,21 @@ export function useImportarPlanilhaWns() {
         .eq("id", importacaoId);
     }
 
+    setEtapa("Carregando dimensões…");
+    const [fasesRes, tiposRes] = await Promise.all([
+      sb.from("wns_fases_xpm").select("wns_id"),
+      sb.from("wns_tipos_pedido").select("codigo"),
+    ]);
+    if (fasesRes.error || tiposRes.error) {
+      const msg = fasesRes.error?.message ?? tiposRes.error?.message ?? "erro ao ler dimensões";
+      await marcarErro(msg);
+      setProcessando(false);
+      toast.error("Erro ao carregar dimensões: " + msg);
+      return;
+    }
+    const fasesValidas = new Set<number>((fasesRes.data ?? []).map((f: { wns_id: number }) => f.wns_id));
+    const tiposValidos = new Set<number>((tiposRes.data ?? []).map((t: { codigo: number }) => t.codigo));
+
     // Normalizar
     const linhas = preview.rawRows.map((r) => {
       const evento = extrairCodigo(r.EVENTO_XPM);
@@ -124,13 +152,13 @@ export function useImportarPlanilhaWns() {
       return {
         pedidowns: int(r.PEDIDOWNS),
         prefaturamento_xpm: int(r.PREFATURAMENTO_XPM),
-        evento_wns_id: evento.codigo != null && FASES_VALIDAS.has(evento.codigo) ? evento.codigo : null,
+        evento_wns_id: evento.codigo != null && fasesValidas.has(evento.codigo) ? evento.codigo : null,
         evento_xpm_raw: evento.raw,
         data_pre: parseDataPre(r.DATA_PRE),
         prefaturamento: int(r.PREFATURAMENTO),
         nota_numero: int(r.NOTA_NUMERO),
         n_pedido_cliente: str(r.N_PEDIDO_CLIENTE),
-        tipo_pedido_codigo: tipo.codigo != null && TIPOS_VALIDOS.has(tipo.codigo) ? tipo.codigo : null,
+        tipo_pedido_codigo: tipo.codigo != null && tiposValidos.has(tipo.codigo) ? tipo.codigo : null,
         tipo_pedido_raw: tipo.raw,
         filial: int(r.FILIAL),
         cliente_wns_id: int(r.CLIENTE),
