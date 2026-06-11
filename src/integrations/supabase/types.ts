@@ -8990,6 +8990,7 @@ export type Database = {
           condicao_solicitada: string
           contexto_anotacoes: string | null
           cubagem_total: number | null
+          data_entrega_prevista: string | null
           data_pedido: string
           desconto_celebra_valor: number
           desconto_pct: number | null
@@ -9007,6 +9008,8 @@ export type Database = {
           itens_json: Json | null
           link_pagamento: string | null
           marcacao: string | null
+          nf_data: string | null
+          nf_numero: string | null
           observacao: string | null
           observacao_pedido: string | null
           origem: string | null
@@ -9021,6 +9024,7 @@ export type Database = {
           recebido_em: string
           recebido_via: string
           regra_pagamento_id: string | null
+          split_de_pedido_id: string | null
           tipo_pagamento: string | null
           transportadora_id: string | null
           triado_em: string | null
@@ -9049,6 +9053,7 @@ export type Database = {
           condicao_solicitada: string
           contexto_anotacoes?: string | null
           cubagem_total?: number | null
+          data_entrega_prevista?: string | null
           data_pedido: string
           desconto_celebra_valor?: number
           desconto_pct?: number | null
@@ -9066,6 +9071,8 @@ export type Database = {
           itens_json?: Json | null
           link_pagamento?: string | null
           marcacao?: string | null
+          nf_data?: string | null
+          nf_numero?: string | null
           observacao?: string | null
           observacao_pedido?: string | null
           origem?: string | null
@@ -9080,6 +9087,7 @@ export type Database = {
           recebido_em?: string
           recebido_via?: string
           regra_pagamento_id?: string | null
+          split_de_pedido_id?: string | null
           tipo_pagamento?: string | null
           transportadora_id?: string | null
           triado_em?: string | null
@@ -9108,6 +9116,7 @@ export type Database = {
           condicao_solicitada?: string
           contexto_anotacoes?: string | null
           cubagem_total?: number | null
+          data_entrega_prevista?: string | null
           data_pedido?: string
           desconto_celebra_valor?: number
           desconto_pct?: number | null
@@ -9125,6 +9134,8 @@ export type Database = {
           itens_json?: Json | null
           link_pagamento?: string | null
           marcacao?: string | null
+          nf_data?: string | null
+          nf_numero?: string | null
           observacao?: string | null
           observacao_pedido?: string | null
           origem?: string | null
@@ -9139,6 +9150,7 @@ export type Database = {
           recebido_em?: string
           recebido_via?: string
           regra_pagamento_id?: string | null
+          split_de_pedido_id?: string | null
           tipo_pagamento?: string | null
           transportadora_id?: string | null
           triado_em?: string | null
@@ -9197,6 +9209,27 @@ export type Database = {
             columns: ["regra_pagamento_id"]
             isOneToOne: false
             referencedRelation: "regras_pagamento_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["split_de_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["split_de_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["split_de_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
           },
           {
@@ -15636,18 +15669,32 @@ export type Database = {
         }
         Returns: Json
       }
-      criar_split_pedido: {
-        Args: {
-          p_data_entrega_prevista_02?: string
-          p_itens_01: Json
-          p_itens_02: Json
-          p_observacao?: string
-          p_pedido_id: string
-          p_valor_01: number
-          p_valor_02: number
-        }
-        Returns: Json
-      }
+      criar_split_pedido:
+        | {
+            Args: {
+              p_data_entrega_prevista_02?: string
+              p_itens_01: Json
+              p_itens_02: Json
+              p_observacao?: string
+              p_pedido_id: string
+              p_valor_01: number
+              p_valor_02: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_data_entrega_prevista?: string
+              p_estagio_inicial?: string
+              p_itens_original: Json
+              p_itens_split: Json
+              p_observacao?: string
+              p_pedido_id: string
+              p_valor_original: number
+              p_valor_split: number
+            }
+            Returns: Json
+          }
       criar_tarefa_aprovacao_nf_pj: {
         Args: { _nota_id: string }
         Returns: string
