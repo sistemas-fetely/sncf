@@ -284,6 +284,8 @@ export default function PedidoDetalhe() {
   const atualizarUrgencia = useAtualizarUrgencia();
   const [urgencia, setUrgencia] = useState<UrgenciaDeclarada>("normal");
   const [obsUrgencia, setObsUrgencia] = useState("");
+  const registrarEvento = useRegistrarEventoPedido();
+  const [obsSop, setObsSop] = useState("");
   const [transportadoraId, setTransportadoraId] = useState("");
   const [pesoBruto, setPesoBruto] = useState("");
   const [recalculandoPeso, setRecalculandoPeso] = useState(false);
