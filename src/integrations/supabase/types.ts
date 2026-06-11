@@ -13423,6 +13423,339 @@ export type Database = {
           },
         ]
       }
+      wns_fases_xpm: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string
+          icone: string | null
+          sequencia: number
+          wns_id: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao: string
+          icone?: string | null
+          sequencia: number
+          wns_id: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string
+          icone?: string | null
+          sequencia?: number
+          wns_id?: number
+        }
+        Relationships: []
+      }
+      wns_importacoes: {
+        Row: {
+          arquivo_nome: string | null
+          concluida_em: string | null
+          criada_em: string
+          erro_detalhe: string | null
+          id: string
+          linhas_atualizadas: number | null
+          linhas_novas: number | null
+          status: string
+          total_linhas: number | null
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          concluida_em?: string | null
+          criada_em?: string
+          erro_detalhe?: string | null
+          id?: string
+          linhas_atualizadas?: number | null
+          linhas_novas?: number | null
+          status?: string
+          total_linhas?: number | null
+        }
+        Update: {
+          arquivo_nome?: string | null
+          concluida_em?: string | null
+          criada_em?: string
+          erro_detalhe?: string | null
+          id?: string
+          linhas_atualizadas?: number | null
+          linhas_novas?: number | null
+          status?: string
+          total_linhas?: number | null
+        }
+        Relationships: []
+      }
+      wns_linhas: {
+        Row: {
+          barra: string | null
+          cidade: string | null
+          cliente_nome: string | null
+          cliente_wns_id: number | null
+          cpf_cnpj: string | null
+          created_at: string
+          data_pre: string | null
+          estado: string | null
+          evento_wns_id: number | null
+          evento_xpm_raw: string | null
+          filial: number | null
+          frete_pedido: number | null
+          frete_pre: number | null
+          id: string
+          importacao_id: string | null
+          n_pedido_cliente: string | null
+          nota_numero: number | null
+          numero: string | null
+          pedidowns: number
+          preco: number | null
+          prefaturamento: number | null
+          prefaturamento_xpm: number
+          produto_id: number | null
+          quantidade: number
+          sku: string
+          tipo_empresa: number | null
+          tipo_pedido_codigo: number | null
+          tipo_pedido_raw: string | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          barra?: string | null
+          cidade?: string | null
+          cliente_nome?: string | null
+          cliente_wns_id?: number | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_pre?: string | null
+          estado?: string | null
+          evento_wns_id?: number | null
+          evento_xpm_raw?: string | null
+          filial?: number | null
+          frete_pedido?: number | null
+          frete_pre?: number | null
+          id?: string
+          importacao_id?: string | null
+          n_pedido_cliente?: string | null
+          nota_numero?: number | null
+          numero?: string | null
+          pedidowns: number
+          preco?: number | null
+          prefaturamento?: number | null
+          prefaturamento_xpm: number
+          produto_id?: number | null
+          quantidade?: number
+          sku: string
+          tipo_empresa?: number | null
+          tipo_pedido_codigo?: number | null
+          tipo_pedido_raw?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          barra?: string | null
+          cidade?: string | null
+          cliente_nome?: string | null
+          cliente_wns_id?: number | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_pre?: string | null
+          estado?: string | null
+          evento_wns_id?: number | null
+          evento_xpm_raw?: string | null
+          filial?: number | null
+          frete_pedido?: number | null
+          frete_pre?: number | null
+          id?: string
+          importacao_id?: string | null
+          n_pedido_cliente?: string | null
+          nota_numero?: number | null
+          numero?: string | null
+          pedidowns?: number
+          preco?: number | null
+          prefaturamento?: number | null
+          prefaturamento_xpm?: number
+          produto_id?: number | null
+          quantidade?: number
+          sku?: string
+          tipo_empresa?: number | null
+          tipo_pedido_codigo?: number | null
+          tipo_pedido_raw?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wns_linhas_evento_wns_id_fkey"
+            columns: ["evento_wns_id"]
+            isOneToOne: false
+            referencedRelation: "wns_fases_xpm"
+            referencedColumns: ["wns_id"]
+          },
+          {
+            foreignKeyName: "wns_linhas_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "wns_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wns_linhas_tipo_pedido_codigo_fkey"
+            columns: ["tipo_pedido_codigo"]
+            isOneToOne: false
+            referencedRelation: "wns_tipos_pedido"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      wns_pedidos: {
+        Row: {
+          cidade: string | null
+          cliente_nome: string | null
+          cliente_wns_id: number | null
+          cpf_cnpj: string | null
+          estado: string | null
+          evento_atual_wns_id: number | null
+          filial: number | null
+          n_pedido_cliente: string | null
+          notas_fiscais: number[] | null
+          pedido_sncf_id: string | null
+          pedidowns: number
+          primeira_data: string | null
+          tipo_pedido_codigo: number | null
+          total_linhas: number
+          total_quantidade: number
+          total_remessas: number
+          ultima_data: string | null
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          cidade?: string | null
+          cliente_nome?: string | null
+          cliente_wns_id?: number | null
+          cpf_cnpj?: string | null
+          estado?: string | null
+          evento_atual_wns_id?: number | null
+          filial?: number | null
+          n_pedido_cliente?: string | null
+          notas_fiscais?: number[] | null
+          pedido_sncf_id?: string | null
+          pedidowns: number
+          primeira_data?: string | null
+          tipo_pedido_codigo?: number | null
+          total_linhas?: number
+          total_quantidade?: number
+          total_remessas?: number
+          ultima_data?: string | null
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          cidade?: string | null
+          cliente_nome?: string | null
+          cliente_wns_id?: number | null
+          cpf_cnpj?: string | null
+          estado?: string | null
+          evento_atual_wns_id?: number | null
+          filial?: number | null
+          n_pedido_cliente?: string | null
+          notas_fiscais?: number[] | null
+          pedido_sncf_id?: string | null
+          pedidowns?: number
+          primeira_data?: string | null
+          tipo_pedido_codigo?: number | null
+          total_linhas?: number
+          total_quantidade?: number
+          total_remessas?: number
+          ultima_data?: string | null
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wns_pedidos_evento_atual_wns_id_fkey"
+            columns: ["evento_atual_wns_id"]
+            isOneToOne: false
+            referencedRelation: "wns_fases_xpm"
+            referencedColumns: ["wns_id"]
+          },
+          {
+            foreignKeyName: "wns_pedidos_tipo_pedido_codigo_fkey"
+            columns: ["tipo_pedido_codigo"]
+            isOneToOne: false
+            referencedRelation: "wns_tipos_pedido"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      wns_skus: {
+        Row: {
+          barra: string | null
+          produto_id: number | null
+          sku: string
+          tipo_pedido_codigo: number
+          total_pedidos: number
+          total_quantidade: number
+          total_remessas: number
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          barra?: string | null
+          produto_id?: number | null
+          sku: string
+          tipo_pedido_codigo: number
+          total_pedidos?: number
+          total_quantidade?: number
+          total_remessas?: number
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          barra?: string | null
+          produto_id?: number | null
+          sku?: string
+          tipo_pedido_codigo?: number
+          total_pedidos?: number
+          total_quantidade?: number
+          total_remessas?: number
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wns_skus_tipo_pedido_codigo_fkey"
+            columns: ["tipo_pedido_codigo"]
+            isOneToOne: false
+            referencedRelation: "wns_tipos_pedido"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      wns_tipos_pedido: {
+        Row: {
+          ativo: boolean
+          codigo: number
+          compoe_receita: boolean
+          descricao: string
+          movimenta_estoque: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: number
+          compoe_receita?: boolean
+          descricao: string
+          movimenta_estoque?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: number
+          compoe_receita?: boolean
+          descricao?: string
+          movimenta_estoque?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       contas_pagar: {
@@ -15589,6 +15922,7 @@ export type Database = {
         }
         Returns: string
       }
+      fn_wns_consolidar: { Args: never; Returns: Json }
       gerar_celebracoes_aniversario_mural: { Args: never; Returns: number }
       gerar_celebracoes_tempo_casa_mural: { Args: never; Returns: number }
       gerar_movimentacao_de_conta: {

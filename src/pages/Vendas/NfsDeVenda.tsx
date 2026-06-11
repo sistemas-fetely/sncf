@@ -9,8 +9,11 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNfsEmitidas, type NfEmitida } from "@/hooks/vendas/useNfsEmitidas";
-import { FileText, ExternalLink, Search } from "lucide-react";
+import { FileText, ExternalLink, Search, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -57,9 +60,31 @@ function SkeletonRow() {
 
 export default function NfsDeVenda() {
   const navigate = useNavigate();
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [busca, setBusca] = useState("");
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todas");
-  const { data: nfs = [], isLoading } = useNfsEmitidas();
+  const [syncing, setSyncing] = useState(false);
+  const { data: nfs = [], isLoading, refetch } = useNfsEmitidas();
+
+  async function handleSincronizar() {
+    setSyncing(true);
+    try {
+      if (isSuperAdmin) {
+        const { data, error } = await supabase.functions.invoke("sync-bling-financeiro", {
+          body: { tipo: "sync", entidades: ["nfe"] },
+        });
+        if (error) throw error;
+        const msg = `${data?.criados || 0} novas · ${data?.atualizados || 0} atualizadas`;
+        toast.success(`Sincronizado: ${msg}${data?.continuar ? " (continua)" : ""}`);
+      }
+      await refetch();
+    } catch (e: any) {
+      toast.error("Falha na sincronização: " + (e?.message || String(e)));
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -115,6 +140,16 @@ export default function NfsDeVenda() {
         <span className="text-xs text-muted-foreground ml-auto">
           {filtrados.length} {filtrados.length === 1 ? "NF" : "NFs"}
         </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8"
+          disabled={syncing}
+          onClick={handleSincronizar}
+        >
+          <RefreshCw className={`h-4 w-4 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Sincronizando…" : "Sincronizar"}
+        </Button>
       </div>
 
       <div className="rounded-md border bg-card">
