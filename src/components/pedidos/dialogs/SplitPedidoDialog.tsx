@@ -88,8 +88,8 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!criarSplit.isPending) onOpenChange(v); }}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/40 shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Scissors className="h-5 w-5" />
             Split do pedido #{id_externo}
@@ -98,6 +98,9 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
             Defina quantas unidades de cada item vão na /02 (aguardando estoque). O restante vai na /01 (pronta entrega).
           </DialogDescription>
         </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+
 
         {isLoading ? (
           <div className="flex items-center gap-2 py-8 justify-center text-sm text-muted-foreground">
@@ -205,8 +208,10 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
             )}
           </div>
         )}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t border-border/40 shrink-0">
+
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={criarSplit.isPending}>
             Cancelar
           </Button>
