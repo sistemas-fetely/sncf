@@ -208,7 +208,7 @@ export function FilaPedidosPorArea({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por cliente, CNPJ ou ID externo…"
+            placeholder="Buscar por cliente, CNPJ ou nº do pedido…"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="pl-10"
