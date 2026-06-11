@@ -133,29 +133,28 @@ async function syncOne(supabase: any, client: any, p: any, origem: string, acion
       respStatus = 200;
       sucesso = true;
     } else {
-      let criado = await client.post("/contatos", payload);
-
-      // Retry sem IE se o Bling rejeitar por inscrição estadual inválida
-      if (
-        criado?.error &&
-        JSON.stringify(criado.error).toLowerCase().includes("inscri")
-      ) {
-        console.warn("[sync-contato-bling] IE rejeitada pelo Bling — retry sem IE");
-        const payloadSemIE = { ...payload, ie: undefined, indicadorIe: 9 };
-        criado = await client.post("/contatos", payloadSemIE);
-      }
-
-      // Retry sem telefone/celular se o Bling rejeitar por validação de fone
-      // (número sem DDD, formato especial, ou campo ausente mas obrigatório no Bling)
-      if (
-        criado?.error &&
-        (JSON.stringify(criado.error).toLowerCase().includes("fone") ||
-         JSON.stringify(criado.error).toLowerCase().includes("celular") ||
-         JSON.stringify(criado.error).toLowerCase().includes("telefone"))
-      ) {
-        console.warn("[sync-contato-bling] Fone rejeitado pelo Bling — retry sem telefone/celular");
-        const payloadSemFone = { ...payload, telefone: undefined, celular: undefined };
-        criado = await client.post("/contatos", payloadSemFone);
+      // POST com retries progressivos para erros de validação do Bling.
+      // O bling-client lança exceção em qualquer 4xx — criado?.error nunca
+      // é populado. Os retries precisam de try-catch explícito.
+      // Ordem: payload completo → sem IE → sem telefone/celular.
+      let criado: any;
+      let postPayload = { ...payload };
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          criado = await client.post("/contatos", postPayload);
+          break; // sucesso — sai do loop
+        } catch (postErr) {
+          const msg = ((postErr as Error).message || "").toLowerCase();
+          if (attempt === 0 && msg.includes("inscri")) {
+            console.warn("[sync-contato-bling] IE rejeitada — retry sem IE");
+            postPayload = { ...postPayload, ie: undefined, indicadorIe: 9 };
+          } else if (attempt <= 1 && (msg.includes("fone") || msg.includes("celular") || msg.includes("telefone"))) {
+            console.warn("[sync-contato-bling] Fone rejeitado — retry sem telefone/celular");
+            postPayload = { ...postPayload, telefone: undefined, celular: undefined };
+          } else {
+            throw postErr; // propaga para o catch externo da função
+          }
+        }
       }
 
       respBody = criado;
