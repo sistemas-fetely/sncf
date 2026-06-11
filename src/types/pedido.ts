@@ -1,17 +1,18 @@
 // Estágios canônicos do pedido.
 // Alinhado com check constraint em public.pedidos.estagio (F-1).
 export type EstagioPedido =
-  | "recebido"               // veio do FOP, aguarda triagem SOps
-  | "em_analise_credito"     // análise em andamento (módulo Crédito)
-  | "cobranca"               // SOps materializa proposta de cobrança
-  | "aguardando_pagamento"   // aguarda 1ª parcela/link pago (PIX, cartão, boleto c/ entrada)
-  | "pre_faturado"           // títulos gerados, aguarda envio Bling
-  | "em_separacao"           // Bling separando
-  | "faturado"               // NF emitida
-  | "em_transporte"          // saiu pra entrega
-  | "entregue"               // final feliz
-  | "cancelado"              // terminal
-  | "recuperacao_venda";     // entrada não paga → time comercial recupera
+  | "recebido"
+  | "em_analise_credito"
+  | "cobranca"
+  | "aguardando_pagamento"
+  | "pre_faturado"
+  | "aguardando_estoque"
+  | "em_separacao"
+  | "faturado"
+  | "em_transporte"
+  | "entregue"
+  | "cancelado"
+  | "recuperacao_venda";
 
 export type AreaPedido = "sops" | "credito" | "bling" | "sistema" | "nenhuma";
 
@@ -20,10 +21,10 @@ export type TipoPagamento = "a_prazo" | "a_vista";
 export const ESTAGIO_LABELS: Record<EstagioPedido, string> = {
   recebido: "Recebido",
   em_analise_credito: "Em análise crédito",
-  
   cobranca: "Cobrança",
   aguardando_pagamento: "Aguardando pagamento",
   pre_faturado: "Pré-faturamento",
+  aguardando_estoque: "Aguardando estoque",
   em_separacao: "Em separação",
   faturado: "Faturado",
   em_transporte: "Em transporte",
@@ -32,14 +33,13 @@ export const ESTAGIO_LABELS: Record<EstagioPedido, string> = {
   recuperacao_venda: "Recuperação de venda",
 };
 
-/** Labels curtos — usados no stepper, pipeline cards e tabs. Mesma comunicação em todo lugar. */
 export const ESTAGIO_LABELS_CURTO: Record<EstagioPedido, string> = {
   recebido: "Recebido",
   em_analise_credito: "Em Análise",
-  
   cobranca: "Cobrança",
   aguardando_pagamento: "Aguardando PG",
   pre_faturado: "Pré-Faturado",
+  aguardando_estoque: "Ag. Estoque",
   em_separacao: "Em Separação",
   faturado: "Faturado",
   em_transporte: "Em Transporte",
@@ -56,21 +56,19 @@ export const AREA_LABELS: Record<AreaPedido, string> = {
   nenhuma: "—",
 };
 
-/** Pipeline visual: ordem dos estágios no fluxo principal */
 export const PIPELINE_PRINCIPAL: readonly EstagioPedido[] = [
   "recebido",
   "em_analise_credito",
-  
   "cobranca",
   "aguardando_pagamento",
   "pre_faturado",
+  "aguardando_estoque",
   "em_separacao",
   "faturado",
   "em_transporte",
   "entregue",
 ] as const;
 
-/** Estágios fora do fluxo principal */
 export const ESTAGIOS_TERMINAIS: readonly EstagioPedido[] = [
   "entregue",
   "cancelado",
@@ -80,14 +78,13 @@ export const ESTAGIOS_RECUPERAVEIS: readonly EstagioPedido[] = [
   "recuperacao_venda",
 ] as const;
 
-/** Mapeamento estágio → área responsável */
 export const ESTAGIO_AREA: Record<EstagioPedido, AreaPedido> = {
   recebido: "sistema",
   em_analise_credito: "credito",
-  
   cobranca: "sops",
   aguardando_pagamento: "sops",
   pre_faturado: "sops",
+  aguardando_estoque: "sops",
   em_separacao: "bling",
   faturado: "bling",
   em_transporte: "bling",
@@ -138,10 +135,6 @@ export interface PipelineItem {
   soma_valor: number;
 }
 
-// ─────────────────────────────────────────────
-// Tipos de Priorização IA (Fase IA-1/IA-2)
-// ─────────────────────────────────────────────
-
 export type UrgenciaDeclarada = "normal" | "alta" | "critica";
 
 export const URGENCIA_LABELS: Record<UrgenciaDeclarada, string> = {
@@ -179,10 +172,6 @@ export interface PedidoPriorizado {
   score_total: number;
   score_breakdown: ScoreBreakdown;
 }
-
-// ─────────────────────────────────────────────
-// Tipos do Sub-módulo Contas a Receber (5.2)
-// ─────────────────────────────────────────────
 
 export type StatusTitulo =
   | "aguardando_pagamento"

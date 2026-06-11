@@ -4,12 +4,19 @@ import { useToast } from "@/hooks/use-toast";
 
 interface SplitParams {
   pedido_id: string;
-  itens_01: { descricao: string; sku: string; quantidade: number; valor_unitario: number }[];
-  itens_02: { descricao: string; sku: string; quantidade: number; valor_unitario: number }[];
-  valor_01: number;
-  valor_02: number;
-  data_entrega_prevista_02?: string | null;
+  itens_original: { descricao: string; sku: string; quantidade: number; valor_unitario: number }[];
+  itens_split:    { descricao: string; sku: string; quantidade: number; valor_unitario: number }[];
+  valor_original: number;
+  valor_split:    number;
+  estagio_inicial: "aguardando_estoque" | "pre_faturado" | "cobranca";
+  data_entrega_prevista?: string | null;
   observacao?: string | null;
+}
+
+interface SplitResult {
+  novo_pedido_id:  string;
+  novo_id_externo: string;
+  sequencia:       number;
 }
 
 export function useCriarSplit() {
@@ -17,36 +24,35 @@ export function useCriarSplit() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (p: SplitParams) => {
+    mutationFn: async (p: SplitParams): Promise<SplitResult> => {
       const { data, error } = await (supabase as any).rpc("criar_split_pedido", {
-        p_pedido_id: p.pedido_id,
-        p_itens_01: p.itens_01,
-        p_itens_02: p.itens_02,
-        p_valor_01: p.valor_01,
-        p_valor_02: p.valor_02,
-        p_data_entrega_prevista_02: p.data_entrega_prevista_02 ?? null,
-        p_observacao: p.observacao ?? null,
+        p_pedido_id:             p.pedido_id,
+        p_itens_original:        p.itens_original,
+        p_itens_split:           p.itens_split,
+        p_valor_original:        p.valor_original,
+        p_valor_split:           p.valor_split,
+        p_estagio_inicial:       p.estagio_inicial,
+        p_data_entrega_prevista: p.data_entrega_prevista ?? null,
+        p_observacao:            p.observacao ?? null,
       });
       if (error) throw error;
-      return data as {
-        remessa_01_id: string;
-        remessa_01_codigo: string;
-        remessa_02_id: string;
-        remessa_02_codigo: string;
-        delta_financeiro: number;
-      };
+      return data as SplitResult;
     },
     onSuccess: (data, vars) => {
       toast({
         title: "Split criado com sucesso",
-        description: `${data.remessa_01_codigo} (pronta) + ${data.remessa_02_codigo} (aguardando estoque)${data.delta_financeiro > 0 ? ` · ⚠️ Delta R$ ${data.delta_financeiro.toFixed(2)}` : ""}`,
+        description: `Novo pedido ${data.novo_id_externo} criado`,
       });
-      qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
+      qc.invalidateQueries({ queryKey: ["splits", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedido", vars.pedido_id] });
+      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
     },
-    onError: (e: Error) => {
-      toast({ title: "Erro ao criar split", description: e.message, variant: "destructive" });
+    onError: (err: unknown) => {
+      const msg = err instanceof Error
+        ? err.message
+        : (err as any)?.message ?? JSON.stringify(err);
+      toast({ title: "Erro ao criar split", description: msg, variant: "destructive" });
     },
   });
 }
