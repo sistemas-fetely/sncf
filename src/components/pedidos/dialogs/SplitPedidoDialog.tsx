@@ -208,8 +208,10 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
             )}
           </div>
         )}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t border-border/40 shrink-0">
+
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={criarSplit.isPending}>
             Cancelar
           </Button>
