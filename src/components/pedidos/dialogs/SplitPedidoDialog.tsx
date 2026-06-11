@@ -15,6 +15,8 @@ import {
 import { Loader2, Scissors, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarSplit } from "@/hooks/pedidos/useCriarSplit";
+import { isSkuDestaque } from "@/lib/pedidoDestaque";
+import { Sparkles } from "lucide-react";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -135,10 +137,14 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                     {(itens ?? []).map((it) => {
                       const qSplit = getQtdSplit(it.sku, it.quantidade);
                       const qOrig = it.quantidade - qSplit;
+                      const destaque = isSkuDestaque(it.sku);
                       return (
-                        <tr key={it.sku} className="border-t">
+                        <tr key={it.sku} className={`border-t ${destaque ? "bg-amber-50/60" : ""}`}>
                           <td className="p-2">
-                            <div className="font-medium">{it.descricao}</div>
+                            <div className="font-medium flex items-center gap-1.5">
+                              {destaque && <Sparkles className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
+                              {it.descricao}
+                            </div>
                             <div className="text-xs text-muted-foreground">{it.sku}</div>
                           </td>
                           <td className="p-2 text-right">{it.quantidade}</td>
