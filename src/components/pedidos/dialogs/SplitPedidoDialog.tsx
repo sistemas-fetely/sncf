@@ -51,6 +51,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
   const [estagio, setEstagio] = useState<EstagioSplit>("aguardando_estoque");
   const [dataEntrega, setDataEntrega] = useState("");
   const [observacao, setObservacao] = useState("");
+  const [financeiroCoberto, setFinanceiroCoberto] = useState(false);
 
   const { data: itens, isLoading } = useQuery({
     queryKey: ["pedido-itens-split", pedido_id],
