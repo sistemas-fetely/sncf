@@ -60,9 +60,31 @@ function SkeletonRow() {
 
 export default function NfsDeVenda() {
   const navigate = useNavigate();
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [busca, setBusca] = useState("");
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todas");
-  const { data: nfs = [], isLoading } = useNfsEmitidas();
+  const [syncing, setSyncing] = useState(false);
+  const { data: nfs = [], isLoading, refetch } = useNfsEmitidas();
+
+  async function handleSincronizar() {
+    setSyncing(true);
+    try {
+      if (isSuperAdmin) {
+        const { data, error } = await supabase.functions.invoke("sync-bling-financeiro", {
+          body: { tipo: "sync", entidades: ["nfe"] },
+        });
+        if (error) throw error;
+        const msg = `${data?.criados || 0} novas · ${data?.atualizados || 0} atualizadas`;
+        toast.success(`Sincronizado: ${msg}${data?.continuar ? " (continua)" : ""}`);
+      }
+      await refetch();
+    } catch (e: any) {
+      toast.error("Falha na sincronização: " + (e?.message || String(e)));
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
