@@ -26,9 +26,10 @@ export function useTransicionarPedido() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      qc.invalidateQueries({ queryKey: ["pedido-detalhe", variables.pedido_id] });
       toast({ title: "Pedido avançado" });
     },
     onError: (e: Error) => {
