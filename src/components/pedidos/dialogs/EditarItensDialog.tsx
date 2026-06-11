@@ -11,6 +11,7 @@ import { Pencil, Plus, Trash2, Loader2, Search, AlertCircle } from "lucide-react
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { isSkuDestaque } from "@/lib/pedidoDestaque";
 
 interface Item {
   sku: string | null;
@@ -148,11 +149,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
         {/* Lista de itens */}
         <div className="space-y-1">
           {(() => {
-            const SKUS_DESTAQUE = [
-              "PRTSBRBW.LG.15/01510",
-              "PRTSBRBW.CS.15/01501",
-            ];
-            const temDestaque = itens.some((i) => SKUS_DESTAQUE.includes(i.sku ?? ""));
+            const temDestaque = itens.some((i) => isSkuDestaque(i.sku));
             return (
               <>
                 {temDestaque && (
@@ -164,7 +161,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                   </div>
                 )}
                 {itens.map((item, idx) => {
-                  const ehDestaque = SKUS_DESTAQUE.includes(item.sku ?? "");
+                  const ehDestaque = isSkuDestaque(item.sku);
                   return (
                     <div
                       key={`${item.sku ?? "x"}-${idx}`}
