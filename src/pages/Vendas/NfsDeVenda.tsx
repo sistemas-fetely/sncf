@@ -140,6 +140,16 @@ export default function NfsDeVenda() {
         <span className="text-xs text-muted-foreground ml-auto">
           {filtrados.length} {filtrados.length === 1 ? "NF" : "NFs"}
         </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8"
+          disabled={syncing}
+          onClick={handleSincronizar}
+        >
+          <RefreshCw className={`h-4 w-4 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Sincronizando…" : "Sincronizar"}
+        </Button>
       </div>
 
       <div className="rounded-md border bg-card">
