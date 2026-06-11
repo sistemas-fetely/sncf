@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCobrancaFila } from "@/hooks/credito/useCobrancaFila";
 import { useTitulosBoleto } from "@/hooks/credito/useTitulosBoleto";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
+import BancoSafra from "@/pages/administrativo/BancoSafra";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
