@@ -8852,6 +8852,67 @@ export type Database = {
           },
         ]
       }
+      pedido_tarefas: {
+        Row: {
+          concluida: boolean
+          concluida_em: string | null
+          concluida_por: string | null
+          created_at: string
+          criada_por: string | null
+          id: string
+          ordem: number
+          pedido_id: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          concluida?: boolean
+          concluida_em?: string | null
+          concluida_por?: string | null
+          created_at?: string
+          criada_por?: string | null
+          id?: string
+          ordem?: number
+          pedido_id: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          concluida?: boolean
+          concluida_em?: string | null
+          concluida_por?: string | null
+          created_at?: string
+          criada_por?: string | null
+          id?: string
+          ordem?: number
+          pedido_id?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_tarefas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_tarefas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_tarefas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_transicoes: {
         Row: {
           acao: string
