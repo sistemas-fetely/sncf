@@ -40,7 +40,7 @@ import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { TransicionarPedidoDialog } from "@/components/pedidos/dialogs/TransicionarPedidoDialog";
 import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
-import { useRemessas } from "@/hooks/pedidos/useRemessas";
+
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -128,20 +128,18 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
 
 function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: any }) {
   const [splitOpen, setSplitOpen] = useState(false);
-  const { data: remessas } = useRemessas(pedido.id);
+  
   const { data: permissoes } = usePermissoesDoUsuario();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const podeSplit = isSuperAdmin || (permissoes?.has("operacao.split_pedido") ?? false);
 
-  const temRemessas = remessas && remessas.length > 0;
+  
 
   return (
     <div className="space-y-2">
-      {!temRemessas && (
-        <EnviarBlingDialog pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} forma_solicitada={pedido.forma_solicitada} />
-      )}
-      {podeSplit && !temRemessas && (
+      <EnviarBlingDialog pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} forma_solicitada={pedido.forma_solicitada} />
+      {podeSplit && (
         <Button variant="outline" className="w-full gap-2" onClick={() => setSplitOpen(true)}>
           <Scissors className="h-4 w-4" />
           Split
