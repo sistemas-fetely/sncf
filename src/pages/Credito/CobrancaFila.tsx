@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCobrancaFila } from "@/hooks/credito/useCobrancaFila";
 import { useTitulosBoleto } from "@/hooks/credito/useTitulosBoleto";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
+import BancoSafra from "@/pages/administrativo/BancoSafra";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -803,6 +804,7 @@ export default function CobrancaFila() {
             { value: "pedidos", label: `Pedidos${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulos > 0 ? ` · ${totalTitulos}` : ""}` },
             { value: "remessas", label: "Remessas Safra" },
+            { value: "banco-safra", label: "Banco Safra" },
           ].map((tab) => (
             <TabsTrigger
               key={tab.value}
@@ -824,6 +826,10 @@ export default function CobrancaFila() {
 
         <TabsContent value="remessas">
           <RemessasSafraTab />
+        </TabsContent>
+
+        <TabsContent value="banco-safra">
+          <BancoSafra />
         </TabsContent>
       </Tabs>
     </div>
