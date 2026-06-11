@@ -11,6 +11,7 @@ import { Pencil, Plus, Trash2, Loader2, Search, AlertCircle } from "lucide-react
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { isSkuDestaque } from "@/lib/pedidoDestaque";
 
 interface Item {
   sku: string | null;
