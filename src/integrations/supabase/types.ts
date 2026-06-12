@@ -11449,6 +11449,190 @@ export type Database = {
           },
         ]
       }
+      shopify_frete_sla: {
+        Row: {
+          ativo: boolean
+          descricao: string | null
+          dias_corridos: number
+          modalidade: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          descricao?: string | null
+          dias_corridos: number
+          modalidade: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          descricao?: string | null
+          dias_corridos?: number
+          modalidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shopify_importacoes: {
+        Row: {
+          created_at: string
+          id: string
+          mensagem_erro: string | null
+          status: string
+          total_itens: number | null
+          total_linhas: number | null
+          total_pedidos: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mensagem_erro?: string | null
+          status: string
+          total_itens?: number | null
+          total_linhas?: number | null
+          total_pedidos?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mensagem_erro?: string | null
+          status?: string
+          total_itens?: number | null
+          total_linhas?: number | null
+          total_pedidos?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shopify_itens: {
+        Row: {
+          created_at: string
+          fulfillment_status: string | null
+          id: string
+          pedido_id: string
+          product_name: string | null
+          quantity: number
+          sku: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          fulfillment_status?: string | null
+          id?: string
+          pedido_id: string
+          product_name?: string | null
+          quantity?: number
+          sku?: string | null
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          fulfillment_status?: string | null
+          id?: string
+          pedido_id?: string
+          product_name?: string | null
+          quantity?: number
+          sku?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "shopify_pedidos"
+            referencedColumns: ["shopify_id"]
+          },
+        ]
+      }
+      shopify_pedidos: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          created_at_shopify: string
+          discount_amount: number
+          financial_status: string
+          fulfilled_at: string | null
+          fulfillment_status: string | null
+          importacao_id: string | null
+          order_name: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_method_raw: string | null
+          refunded_amount: number
+          shipping_city: string | null
+          shipping_cost: number
+          shipping_method: string | null
+          shipping_province: string | null
+          shipping_zip: string | null
+          shopify_id: string
+          subtotal: number
+          total: number
+          updated_at: string
+          wns_pedido_id: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          created_at_shopify: string
+          discount_amount?: number
+          financial_status: string
+          fulfilled_at?: string | null
+          fulfillment_status?: string | null
+          importacao_id?: string | null
+          order_name: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_method_raw?: string | null
+          refunded_amount?: number
+          shipping_city?: string | null
+          shipping_cost?: number
+          shipping_method?: string | null
+          shipping_province?: string | null
+          shipping_zip?: string | null
+          shopify_id: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          wns_pedido_id?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          created_at_shopify?: string
+          discount_amount?: number
+          financial_status?: string
+          fulfilled_at?: string | null
+          fulfillment_status?: string | null
+          importacao_id?: string | null
+          order_name?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_method_raw?: string | null
+          refunded_amount?: number
+          shipping_city?: string | null
+          shipping_cost?: number
+          shipping_method?: string | null
+          shipping_province?: string | null
+          shipping_zip?: string | null
+          shopify_id?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          wns_pedido_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_pedidos_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "shopify_importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sistema_reportes: {
         Row: {
           atribuido_a: string | null
