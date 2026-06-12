@@ -225,6 +225,7 @@ Deno.serve(async (req) => {
       p_observacao: body.observacao ?? null,
       p_premissas: body.premissas ?? null,
       p_observacao_pedido: body.observacao_pedido ?? null,
+      p_observacao_cliente: body.observacao_cliente ?? null,
     });
 
     if (error) {
