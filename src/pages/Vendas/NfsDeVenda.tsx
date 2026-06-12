@@ -107,7 +107,7 @@ export default function NfsDeVenda() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "Vendas" },
+          { label: "SOPs" },
           { label: "NFs de Venda" },
         ]}
         title="NFs de Venda"

@@ -25,9 +25,9 @@ export default function RecebimentoLayout() {
           <CasaPageHeader
             breadcrumb={[
               { label: "Casa", to: "/" },
-              { label: "Vendas" },
+              { label: "SOPs" },
             ]}
-            title="Vendas"
+            title="SOPs"
             subtitle="Pedidos de venda e parceiros comerciais"
           />
 
