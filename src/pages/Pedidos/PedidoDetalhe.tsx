@@ -40,6 +40,7 @@ import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { TransicionarPedidoDialog } from "@/components/pedidos/dialogs/TransicionarPedidoDialog";
 import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
+import { RemessasSection } from "@/components/pedidos/RemessasSection";
 
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
@@ -702,6 +703,11 @@ export default function PedidoDetalhe() {
         </div>
                   </CardContent>
                 </Card>
+                <RemessasSection
+                  pedido_id={pedido.id}
+                  id_externo={pedido.id_externo}
+                  parceiro_id={pedido.parceiro_id}
+                />
                 <ComplementarSection
                   pedido_id={pedido.id}
                   pedido_origem_id={pedido.pedido_origem_id ?? null}
