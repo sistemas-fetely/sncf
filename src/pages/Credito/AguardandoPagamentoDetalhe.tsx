@@ -22,6 +22,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
 import type { TituloEntradaPedido } from "@/types/credito";
 import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
+import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
 
 function usePedidoAguardando(pedidoId: string | undefined) {
   return useQuery({
@@ -61,6 +62,7 @@ export default function AguardandoPagamentoDetalhe() {
   );
   const [observacao, setObservacao] = useState("");
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
+  const [reverterOpen, setReverterOpen] = useState(false);
 
   const titulos = titulosQ.data ?? [];
   const pendentes = useMemo(
@@ -279,14 +281,24 @@ export default function AguardandoPagamentoDetalhe() {
             >
               <ArrowLeft className="h-4 w-4" /> Voltar à fila
             </Button>
-            {!jaSaiu && (
-              <Button
-                variant="ghost"
-                onClick={() => setAlterarPagtoOpen(true)}
-              >
-                Alterar pagamento
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {!jaSaiu && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setReverterOpen(true)}
+                >
+                  Voltar para cobrança
+                </Button>
+              )}
+              {!jaSaiu && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setAlterarPagtoOpen(true)}
+                >
+                  Alterar pagamento
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -297,6 +309,14 @@ export default function AguardandoPagamentoDetalhe() {
         pedidoId={pedido.id}
         idExterno={pedido.id_externo}
         temTitulosComEmailEnviado={false}
+      />
+
+      <ReverterParaCobrancaDialog
+        open={reverterOpen}
+        onClose={() => setReverterOpen(false)}
+        pedidoId={pedido.id}
+        idExterno={pedido.id_externo}
+        estagio="aguardando_pagamento"
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
