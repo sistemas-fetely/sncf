@@ -132,9 +132,17 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
   const [reverterOpen, setReverterOpen] = useState(false);
   return (
     <div className="space-y-2">
+      <EnviarBlingDialog
+        pedido_id={pedido.id}
+        parceiro_id={pedido.parceiro_id}
+        id_externo={pedido.id_externo}
+        valor_liquido={pedido.valor_liquido}
+        forma_solicitada={pedido.forma_solicitada}
+      />
       <Button
-        variant="outline"
-        className="w-full gap-1.5"
+        variant="ghost"
+        size="sm"
+        className="w-full text-muted-foreground hover:text-foreground"
         onClick={() => setReverterOpen(true)}
       >
         Voltar para cobrança
@@ -146,7 +154,6 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
         idExterno={pedido.id_externo}
         estagio="pre_faturado"
       />
-      <EnviarBlingDialog pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} forma_solicitada={pedido.forma_solicitada} />
     </div>
   );
 }
