@@ -624,6 +624,9 @@ export default function CobrancaDetalhe() {
                   </TableCell>
                   <TableCell colSpan={3} className="text-xs text-muted-foreground">
                     Pedido: {fmtBRL.format(valorPedido)}
+                    {titulos.length > 0 && (
+                      <> · {titulos.length}x de {fmtBRL.format(valorPedido / titulos.length)}</>
+                    )}
                     {Math.abs(diff) > 0.005 && (
                       <> · diferença {fmtBRL.format(diff)}</>
                     )}
