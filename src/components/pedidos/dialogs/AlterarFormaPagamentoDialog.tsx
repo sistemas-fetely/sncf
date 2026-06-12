@@ -55,6 +55,17 @@ function condicaoDefault(forma: string): string {
   }
 }
 
+function buildCondicao(codigo: string, parc: number, interv: number): string {
+  if (codigo === "boleto_com_entrada") {
+    return Array.from({ length: parc + 1 }, (_, i) => i * interv).join("/");
+  }
+  if (codigo === "boleto_sem_entrada") {
+    return Array.from({ length: parc }, (_, i) => (i + 1) * interv).join("/");
+  }
+  return "";
+}
+
+
 export function AlterarFormaPagamentoDialog({
   open,
   onClose,
@@ -64,6 +75,9 @@ export function AlterarFormaPagamentoDialog({
 }: Props) {
   const [regraId, setRegraId] = useState("");
   const [condicao, setCondicao] = useState("");
+  const [parcelas, setParcelas] = useState(3);
+  const [intervalo, setIntervalo] = useState(30);
+
   const [erroRpc, setErroRpc] = useState<string | null>(null);
 
   const { data: regras } = useQuery({
@@ -94,8 +108,20 @@ export function AlterarFormaPagamentoDialog({
     setRegraId(novoId);
     const r = regras?.find((x) => x.id === novoId);
     setCondicao(r ? condicaoDefault(r.codigo) : "");
+    setParcelas(3);
+    setIntervalo(30);
     setErroRpc(null);
   }
+
+  useEffect(() => {
+    if (!regraSelecionada) return;
+    if (
+      regraSelecionada.codigo === "boleto_com_entrada" ||
+      regraSelecionada.codigo === "boleto_sem_entrada"
+    ) {
+      setCondicao(buildCondicao(regraSelecionada.codigo, parcelas, intervalo));
+    }
+  }, [parcelas, intervalo, regraSelecionada]);
 
   const duplicar = useDuplicarPedidoAlterarPagamento();
 
@@ -147,14 +173,65 @@ export function AlterarFormaPagamentoDialog({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Condição de pagamento</label>
-            <Input
-              value={condicao}
-              onChange={(e) => setCondicao(e.target.value)}
-              placeholder={formaEntradaLivre ? "Ex: 30/60/90" : ""}
-            />
-          </div>
+          {/* Builder de parcelas para boleto a prazo */}
+          {formaEntradaLivre && (
+            <div className="space-y-3 rounded-md border p-3 bg-muted/40">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    {regraSelecionada?.codigo === "boleto_com_entrada"
+                      ? "Parcelas adicionais"
+                      : "Número de parcelas"}
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={parcelas}
+                    onChange={(e) =>
+                      setParcelas(Math.max(1, Math.min(12, Number(e.target.value))))
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Intervalo (dias)</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={360}
+                    value={intervalo}
+                    onChange={(e) => setIntervalo(Math.max(1, Number(e.target.value)))}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Condição gerada:{" "}
+                <span className="font-mono font-medium text-foreground">{condicao}</span>
+                {regraSelecionada?.codigo === "boleto_com_entrada" && (
+                  <span className="ml-1">
+                    ({parcelas + 1} títulos: entrada + {parcelas} parcelas)
+                  </span>
+                )}
+                {regraSelecionada?.codigo === "boleto_sem_entrada" && (
+                  <span className="ml-1">
+                    ({parcelas} título{parcelas > 1 ? "s" : ""})
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
+          {/* Condição livre para tipos simples */}
+          {!formaEntradaLivre && regraId && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Condição de pagamento</label>
+              <Input
+                value={condicao}
+                onChange={(e) => setCondicao(e.target.value)}
+                placeholder="Ex: PIX, Cartão à vista..."
+              />
+            </div>
+          )}
 
           {regraSelecionada?.passa_por_analise && (
             <div className="flex items-start gap-2">
