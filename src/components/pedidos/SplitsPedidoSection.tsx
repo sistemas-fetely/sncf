@@ -63,7 +63,7 @@ export function SplitsPedidoSection({ pedido_id }: Props) {
                 <div className="flex items-center gap-2">
                   <button
                     className="font-medium inline-flex items-center gap-1 hover:underline"
-                    onClick={() => navigate(`/casa-dos-pedidos/${sp.id}`)}
+                    onClick={() => navigate(`/pedidos/${sp.id}`)}
                   >
                     {sp.id_externo}
                     <ExternalLink className="h-3 w-3" />
@@ -86,7 +86,7 @@ export function SplitsPedidoSection({ pedido_id }: Props) {
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                onClick={() => navigate(`/casa-dos-pedidos/${sp.id}`)}
+                onClick={() => navigate(`/pedidos/${sp.id}`)}
               >
                 <ExternalLink className="h-3 w-3" />
                 Abrir pedido
