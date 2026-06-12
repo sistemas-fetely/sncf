@@ -15837,6 +15837,14 @@ export type Database = {
           total_valor: number
         }[]
       }
+      duplicar_pedido_alterar_pagamento: {
+        Args: {
+          p_nova_condicao: string
+          p_nova_regra_id: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       editar_comentario_pedido: {
         Args: { p_comentario_id: string; p_conteudo_novo: string }
         Returns: Json
