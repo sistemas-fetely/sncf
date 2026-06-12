@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
 import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
+import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -315,7 +316,7 @@ export default function CobrancaDetalhe() {
 
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
+  const [editarCondicaoOpen, setEditarCondicaoOpen] = useState(false);
 
   // hidrata estado local quando a proposta chega
   useEffect(() => {
@@ -676,7 +677,7 @@ export default function CobrancaDetalhe() {
           <div className="flex justify-end gap-3 mt-6">
             <Button
               variant="ghost"
-              onClick={() => setAlterarPagtoOpen(true)}
+              onClick={() => setEditarCondicaoOpen(true)}
               disabled={materializar.isPending}
             >
               Alterar pagamento
@@ -720,12 +721,11 @@ export default function CobrancaDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <AlterarFormaPagamentoDialog
-        open={alterarPagtoOpen}
-        onClose={() => setAlterarPagtoOpen(false)}
+      <EditarCondicaoPagamentoDialog
+        open={editarCondicaoOpen}
+        onClose={() => setEditarCondicaoOpen(false)}
         pedidoId={pedidoQ.data?.id ?? ""}
         idExterno={pedidoQ.data?.id_externo ?? ""}
-        temTitulosComEmailEnviado={false}
       />
     </div>
   );
