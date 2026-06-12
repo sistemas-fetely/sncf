@@ -93,15 +93,15 @@ export function AlterarFormaPagamentoDialog({
   function handleChangeRegra(novoId: string) {
     setRegraId(novoId);
     const r = regras?.find((x) => x.id === novoId);
-    setCondicao(r ? condicaoDefault(r.forma) : "");
+    setCondicao(r ? condicaoDefault(r.codigo) : "");
     setErroRpc(null);
   }
 
   const duplicar = useDuplicarPedidoAlterarPagamento();
 
   const formaEntradaLivre =
-    regraSelecionada?.forma === "boleto_com_entrada" ||
-    regraSelecionada?.forma === "boleto_sem_entrada";
+    regraSelecionada?.codigo === "boleto_com_entrada" ||
+    regraSelecionada?.codigo === "boleto_sem_entrada";
 
   async function handleConfirmar() {
     setErroRpc(null);
