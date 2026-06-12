@@ -32,7 +32,7 @@ export function SplitsPedidoSection({ pedido_id }: Props) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("pedidos")
-        .select("id, id_externo, estagio, valor_liquido, itens_json, data_entrega_prevista")
+        .select("id, id_externo, estagio, valor_bruto, valor_liquido, desconto_pct, itens_json, data_entrega_prevista")
         .eq("split_de_pedido_id", pedido_id)
         .order("id_externo");
       if (error) throw error;
@@ -76,13 +76,31 @@ export function SplitsPedidoSection({ pedido_id }: Props) {
                 </div>
               </div>
 
-              {sp.data_entrega_prevista && (
-                <div className="text-xs text-muted-foreground">
-                  Previsão: {new Date(sp.data_entrega_prevista + "T12:00:00").toLocaleDateString("pt-BR")}
-                </div>
-              )}
+          {/* Resumo financeiro — mesmo formato do pedido pai */}
+          {sp.valor_bruto > 0 && sp.valor_bruto !== sp.valor_liquido && (
+            <div className="rounded-md bg-muted/40 px-3 py-2 space-y-1 text-sm">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Valor bruto</span>
+                <span>{fmtBRL.format(sp.valor_bruto)}</span>
+              </div>
+              <div className="flex justify-between text-destructive">
+                <span>Desconto ({Number(sp.desconto_pct ?? 0).toFixed(2)}%)</span>
+                <span>−{fmtBRL.format(sp.valor_bruto - sp.valor_liquido)}</span>
+              </div>
+              <div className="flex justify-between font-semibold border-t pt-1">
+                <span>Valor líquido</span>
+                <span>{fmtBRL.format(sp.valor_liquido)}</span>
+              </div>
+            </div>
+          )}
 
-              <Button
+          {sp.data_entrega_prevista && (
+            <div className="text-xs text-muted-foreground">
+              Previsão: {new Date(sp.data_entrega_prevista + "T12:00:00").toLocaleDateString("pt-BR")}
+            </div>
+          )}
+
+          <Button
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
