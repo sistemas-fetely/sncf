@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Send, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Send, Loader2, AlertTriangle, RefreshCw, Package } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +41,23 @@ export function EnviarBlingDialog({
     enabled: open && !!parceiro_id,
   });
 
+  const { data: remessasAtivas, isLoading: checkingRemessas } = useQuery({
+    queryKey: ["remessas-ativas-check", pedido_id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("pedido_remessa")
+        .select("id, sequencia, status")
+        .eq("pedido_id", pedido_id)
+        .eq("status", "pronta_para_envio")
+        .is("bling_pedido_id", null);
+      return data ?? [];
+    },
+    enabled: open,
+  });
+
   const temBlingId = !!parceiroStatus?.bling_id;
+  const temRemessaAtiva = Array.isArray(remessasAtivas) && remessasAtivas.length > 0;
+  const carregando = checkingBling || checkingRemessas;
 
   const handleSincronizar = async () => {
     try {
@@ -77,11 +93,19 @@ export function EnviarBlingDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {checkingBling ? (
+        {carregando ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Verificando cadastro no Bling...
+            Verificando pedido...
           </div>
+        ) : temRemessaAtiva ? (
+          <Alert>
+            <Package className="h-4 w-4" />
+            <AlertDescription>
+              Este pedido já tem {remessasAtivas!.length === 1 ? "1 remessa ativa" : `${remessasAtivas!.length} remessas ativas`} aguardando envio.
+              Abra o detalhe do pedido e use os botões na seção Remessas para enviar cada uma ao Bling individualmente.
+            </AlertDescription>
+          </Alert>
         ) : !temBlingId ? (
           <div className="space-y-3">
             <Alert variant="destructive">
@@ -123,7 +147,7 @@ export function EnviarBlingDialog({
           >
             Cancelar
           </Button>
-          {temBlingId && (
+          {temBlingId && !temRemessaAtiva && (
             <Button onClick={handleEnviar} disabled={enviar.isPending} className="gap-1.5">
               {enviar.isPending ? (
                 <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
