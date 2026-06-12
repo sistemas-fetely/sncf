@@ -16,7 +16,7 @@ export function VendasSidebar() {
         <div className="flex items-center gap-2 px-2 py-1.5">
           <HandCoins className="h-5 w-5 text-gold flex-shrink-0" />
           <span className="font-serif text-lg text-foreground group-data-[collapsible=icon]:hidden">
-            Vendas
+            SOPs
           </span>
         </div>
       </SidebarHeader>

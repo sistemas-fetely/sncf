@@ -241,7 +241,7 @@ const App = () => (
               <Route path="/parceiros/:id" element={<ParceiroDetalhe />} />
 
               {/* ═══════════════════════════════════════════════
-                  App Vendas — com sidebar lateral
+                  App SOPs — com sidebar lateral
                   Absorve: Pedidos, Cobrança, NFs, Parceiros, Estoque Virtual
                   ═══════════════════════════════════════════════ */}
               <Route element={<VendasLayout />}>
@@ -547,7 +547,7 @@ const App = () => (
               {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
               <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
               <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
-              {/* parceiros movido para VendasLayout */}
+              {/* parceiros movido para SOPsLayout */}
               <Route path="importar" element={<ImportarDados />} />
               <Route path="nfs-stage" element={<NFsStage />} />
               <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
