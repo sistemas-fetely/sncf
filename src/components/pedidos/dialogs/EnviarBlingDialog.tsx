@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -27,6 +28,7 @@ export function EnviarBlingDialog({
   const [open, setOpen] = useState(false);
   const enviar = useEnviarBling();
   const sync = useSyncContato();
+  const navigate = useNavigate();
 
   const { data: parceiroStatus, isLoading: checkingBling, refetch: recheckBling } = useQuery({
     queryKey: ["parceiro-bling-check", parceiro_id],
@@ -99,13 +101,25 @@ export function EnviarBlingDialog({
             Verificando pedido...
           </div>
         ) : temRemessaAtiva ? (
-          <Alert>
-            <Package className="h-4 w-4" />
-            <AlertDescription>
-              Este pedido já tem {remessasAtivas!.length === 1 ? "1 remessa ativa" : `${remessasAtivas!.length} remessas ativas`} aguardando envio.
-              Feche este diálogo e role a página até a seção <strong>Remessas</strong> para enviá-la ao Bling.
-            </AlertDescription>
-          </Alert>
+          <div className="space-y-3">
+            <Alert>
+              <Package className="h-4 w-4" />
+              <AlertDescription>
+                Este pedido já tem {remessasAtivas!.length === 1 ? "1 remessa ativa" : `${remessasAtivas!.length} remessas ativas`} aguardando envio.
+                Use a seção <strong>Remessas</strong> no detalhe do pedido para enviar ao Bling.
+              </AlertDescription>
+            </Alert>
+            <Button
+              className="w-full gap-1.5"
+              onClick={() => {
+                setOpen(false);
+                navigate(`/pedidos/${pedido_id}`);
+              }}
+            >
+              <Package className="h-4 w-4" />
+              Abrir pedido
+            </Button>
+          </div>
         ) : !temBlingId ? (
           <div className="space-y-3">
             <Alert variant="destructive">
