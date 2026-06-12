@@ -26,6 +26,7 @@ import { formatCNPJ } from "@/lib/cnpj";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
+import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
