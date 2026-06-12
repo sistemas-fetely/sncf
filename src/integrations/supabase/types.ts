@@ -13603,7 +13603,7 @@ export type Database = {
           pedidowns: number
           preco: number | null
           prefaturamento: number | null
-          prefaturamento_xpm: number
+          prefaturamento_xpm: number | null
           produto_id: number | null
           quantidade: number
           sku: string
@@ -13635,7 +13635,7 @@ export type Database = {
           pedidowns: number
           preco?: number | null
           prefaturamento?: number | null
-          prefaturamento_xpm: number
+          prefaturamento_xpm?: number | null
           produto_id?: number | null
           quantidade?: number
           sku: string
@@ -13667,7 +13667,7 @@ export type Database = {
           pedidowns?: number
           preco?: number | null
           prefaturamento?: number | null
-          prefaturamento_xpm?: number
+          prefaturamento_xpm?: number | null
           produto_id?: number | null
           quantidade?: number
           sku?: string

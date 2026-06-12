@@ -180,10 +180,17 @@ export function useImportarPlanilhaWns() {
       };
     });
 
+    // Linhas com prefaturamento_xpm: upsert com conflict key completo
+    // Linhas sem prefaturamento_xpm: insert simples (NULL != NULL no PostgreSQL,
+    // portanto nunca conflitariam de qualquer forma — insert é correto e seguro)
+    const linhasComXpm = linhas.filter((l) => l.prefaturamento_xpm != null);
+    const linhasSemXpm = linhas.filter((l) => l.prefaturamento_xpm == null);
+
     const CHUNK = 500;
-    for (let i = 0; i < linhas.length; i += CHUNK) {
-      const lote = linhas.slice(i, i + CHUNK);
-      setEtapa(`Enviando linhas ${Math.min(i + CHUNK, linhas.length)}/${linhas.length}…`);
+
+    for (let i = 0; i < linhasComXpm.length; i += CHUNK) {
+      const lote = linhasComXpm.slice(i, i + CHUNK);
+      setEtapa(`Enviando linhas (com XPM) ${Math.min(i + CHUNK, linhasComXpm.length)}/${linhasComXpm.length}…`);
       const { error } = await sb
         .from("wns_linhas")
         .upsert(lote, { onConflict: "pedidowns,prefaturamento_xpm,sku" });
@@ -191,6 +198,20 @@ export function useImportarPlanilhaWns() {
         await marcarErro(error.message);
         setProcessando(false);
         toast.error("Erro ao gravar linhas: " + error.message);
+        return;
+      }
+    }
+
+    for (let i = 0; i < linhasSemXpm.length; i += CHUNK) {
+      const lote = linhasSemXpm.slice(i, i + CHUNK);
+      setEtapa(`Enviando linhas (sem XPM) ${Math.min(i + CHUNK, linhasSemXpm.length)}/${linhasSemXpm.length}…`);
+      const { error } = await sb
+        .from("wns_linhas")
+        .insert(lote);
+      if (error) {
+        await marcarErro(error.message);
+        setProcessando(false);
+        toast.error("Erro ao gravar linhas (sem XPM): " + error.message);
         return;
       }
     }
