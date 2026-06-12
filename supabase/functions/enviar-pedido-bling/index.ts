@@ -390,22 +390,44 @@ serve(async (req) => {
           // → buscar variações → pegar id da variação com o SKU correto.
           if (errMsg.includes("já foi cadastrado") || errMsg.includes('"code":4')) {
             try {
-              // Extrai nome do produto pai da mensagem de erro do Bling:
-              // "O código X já foi cadastrado para o produto NOME_PAI"
-              const matchNome = errMsg.match(/cadastrado para o produto ([^"\\n}]+)/i);
-              const nomePai = matchNome?.[1]?.trim();
+              // O bling-client retorna JSON bruto com unicode escapes (\u00c9).
+              // A regex anterior falhava ao excluir "n" da captura (flag /i + [^\\n]).
+              // Solução: parsear o JSON do erro e extrair o nome do campo fields[].msg.
+              let nomePai: string | undefined;
+              try {
+                const jsonStart = errMsg.indexOf("{");
+                if (jsonStart >= 0) {
+                  const errJson = JSON.parse(errMsg.slice(jsonStart));
+                  const field = (errJson?.error?.fields ?? []).find(
+                    (f: any) => f.code === 4 || String(f.msg).includes("cadastrado")
+                  );
+                  const m = (field?.msg || "").match(/cadastrado para o produto (.+)$/i);
+                  nomePai = m?.[1]?.trim();
+                }
+              } catch (_) {}
+
+              // Fallback: regex simples sem exclusão de letras
+              if (!nomePai) {
+                const m2 = errMsg.match(/cadastrado para o produto ([^"]+?)(?=\\"|",|"$|\\\\n|$)/i);
+                nomePai = m2?.[1]?.trim();
+              }
 
               if (nomePai) {
                 console.warn(`[produto-sync] SKU é variação — buscando pai "${nomePai}": sku=${it.sku}`);
 
-                // Busca o produto pai pelo nome
-                const normPai = nomePai.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                // Normaliza para busca: remove acentos e caracteres especiais
+                const searchPai = nomePai
+                  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                  .replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
                 const rPai = await client.get(
-                  `/produtos?criterio=1&q=${encodeURIComponent(normPai)}&limite=10`
+                  `/produtos?q=${encodeURIComponent(searchPai)}&limite=10`
                 );
-                const prodPai = (rPai?.data || []).find(
-                  (p: any) => p.nome?.toUpperCase().trim() === nomePai.toUpperCase().trim()
-                );
+                const nomePaiNorm = nomePai.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+                const prodPai = (rPai?.data || []).find((p: any) => {
+                  const nProd = (p.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+                  return nProd === nomePaiNorm || nProd.includes(searchPai.toUpperCase());
+                });
 
                 if (prodPai?.id) {
                   // Busca as variações do produto pai
@@ -417,15 +439,14 @@ serve(async (req) => {
                     blingProdId = variacao.id;
                     console.warn(`[produto-sync] Variação encontrada: sku=${it.sku} varId=${blingProdId} paiId=${prodPai.id}`);
                   } else {
-                    // Fallback: usa o produto pai (subótimo mas não avulso)
                     blingProdId = prodPai.id;
                     console.warn(`[produto-sync] Variação não achada em ${variacoes.length} vars — usando pai: sku=${it.sku} paiId=${blingProdId}`);
                   }
                 } else {
-                  console.error(`[produto-sync] Produto pai não encontrado: nome="${nomePai}" sku=${it.sku}`);
+                  console.error(`[produto-sync] Produto pai não encontrado: nome="${nomePai}" search="${searchPai}" sku=${it.sku}`);
                 }
               } else {
-                console.error(`[produto-sync] Não foi possível extrair nome do pai do erro: sku=${it.sku} err=${errMsg.slice(0, 300)}`);
+                console.error(`[produto-sync] Nome do pai não extraído: sku=${it.sku} err=${errMsg.slice(0, 300)}`);
               }
             } catch (e2) {
               console.error(`[produto-sync] Falha buscando variação: sku=${it.sku} err=${((e2 as Error).message || "").slice(0, 300)}`);
