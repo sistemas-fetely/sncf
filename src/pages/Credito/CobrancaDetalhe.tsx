@@ -127,6 +127,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
 
   const titulosQ = useQuery({
     queryKey: ["gerenciar-links", pedido.id],
@@ -196,7 +197,16 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Títulos em aberto</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">Títulos em aberto</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAlterarPagtoOpen(true)}
+            >
+              Alterar pagamento
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {titulosQ.isLoading && <Skeleton className="h-40 w-full" />}
@@ -281,6 +291,13 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
         pedido_id={pedido.id}
         parceiro_id={pedido.parceiro_id}
       />
+      <AlterarFormaPagamentoDialog
+        open={alterarPagtoOpen}
+        onClose={() => setAlterarPagtoOpen(false)}
+        pedidoId={pedido.id}
+        idExterno={pedido.id_externo}
+        temTitulosComEmailEnviado={(titulosQ.data ?? []).some((t: any) => t.email_cobranca_enviado_em != null)}
+      />
     </div>
   );
 }
@@ -298,6 +315,7 @@ export default function CobrancaDetalhe() {
 
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
 
   // hidrata estado local quando a proposta chega
   useEffect(() => {
@@ -656,6 +674,13 @@ export default function CobrancaDetalhe() {
           )}
 
           <div className="flex justify-end gap-3 mt-6">
+            <Button
+              variant="ghost"
+              onClick={() => setAlterarPagtoOpen(true)}
+              disabled={materializar.isPending}
+            >
+              Alterar pagamento
+            </Button>
             <Button variant="outline" onClick={() => navigate("/recebimento/cobranca")}>
               Cancelar
             </Button>
@@ -695,6 +720,13 @@ export default function CobrancaDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlterarFormaPagamentoDialog
+        open={alterarPagtoOpen}
+        onClose={() => setAlterarPagtoOpen(false)}
+        pedidoId={pedidoQ.data?.id ?? ""}
+        idExterno={pedidoQ.data?.id_externo ?? ""}
+        temTitulosComEmailEnviado={false}
+      />
     </div>
   );
 }
