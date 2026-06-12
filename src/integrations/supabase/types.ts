@@ -15396,6 +15396,14 @@ export type Database = {
         Args: { _nota_id: string; _observacao_rh?: string }
         Returns: Json
       }
+      atualizar_condicao_pagamento: {
+        Args: {
+          p_nova_condicao: string
+          p_nova_regra_id: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       atualizar_conta_pagar_v2: {
         Args: {
           p_centro_custo?: string
