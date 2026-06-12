@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
 import type { TituloEntradaPedido } from "@/types/credito";
+import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
 
 function usePedidoAguardando(pedidoId: string | undefined) {
   return useQuery({
@@ -59,6 +60,7 @@ export default function AguardandoPagamentoDetalhe() {
     new Date().toISOString().slice(0, 10),
   );
   const [observacao, setObservacao] = useState("");
+  const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
 
   const titulos = titulosQ.data ?? [];
   const pendentes = useMemo(
@@ -270,16 +272,32 @@ export default function AguardandoPagamentoDetalhe() {
             </div>
           )}
 
-          <div className="flex justify-start mt-6">
+          <div className="flex justify-between mt-6">
             <Button
               variant="outline"
               onClick={() => navigate("/recebimento/aguardando-pagamento")}
             >
               <ArrowLeft className="h-4 w-4" /> Voltar à fila
             </Button>
+            {!jaSaiu && (
+              <Button
+                variant="ghost"
+                onClick={() => setAlterarPagtoOpen(true)}
+              >
+                Alterar pagamento
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      <AlterarFormaPagamentoDialog
+        open={alterarPagtoOpen}
+        onClose={() => setAlterarPagtoOpen(false)}
+        pedidoId={pedido.id}
+        idExterno={pedido.id_externo}
+        temTitulosComEmailEnviado={false}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
