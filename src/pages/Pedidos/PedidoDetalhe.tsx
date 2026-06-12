@@ -41,6 +41,7 @@ import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialo
 import { TransicionarPedidoDialog } from "@/components/pedidos/dialogs/TransicionarPedidoDialog";
 import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
 import { RemessasSection } from "@/components/pedidos/RemessasSection";
+import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
 
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
@@ -128,8 +129,23 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
 }
 
 function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: any }) {
+  const [reverterOpen, setReverterOpen] = useState(false);
   return (
     <div className="space-y-2">
+      <Button
+        variant="outline"
+        className="w-full gap-1.5"
+        onClick={() => setReverterOpen(true)}
+      >
+        Voltar para cobrança
+      </Button>
+      <ReverterParaCobrancaDialog
+        open={reverterOpen}
+        onClose={() => setReverterOpen(false)}
+        pedidoId={pedido.id}
+        idExterno={pedido.id_externo}
+        estagio="pre_faturado"
+      />
       <EnviarBlingDialog pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} id_externo={pedido.id_externo} valor_liquido={pedido.valor_liquido} forma_solicitada={pedido.forma_solicitada} />
     </div>
   );
