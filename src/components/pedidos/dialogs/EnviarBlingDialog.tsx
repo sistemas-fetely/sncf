@@ -103,7 +103,7 @@ export function EnviarBlingDialog({
             <Package className="h-4 w-4" />
             <AlertDescription>
               Este pedido já tem {remessasAtivas!.length === 1 ? "1 remessa ativa" : `${remessasAtivas!.length} remessas ativas`} aguardando envio.
-              Abra o detalhe do pedido e use os botões na seção Remessas para enviar cada uma ao Bling individualmente.
+              Feche este diálogo e role a página até a seção <strong>Remessas</strong> para enviá-la ao Bling.
             </AlertDescription>
           </Alert>
         ) : !temBlingId ? (
