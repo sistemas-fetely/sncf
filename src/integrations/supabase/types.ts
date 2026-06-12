@@ -9011,6 +9011,7 @@ export type Database = {
           nf_data: string | null
           nf_numero: string | null
           observacao: string | null
+          observacao_cliente: string | null
           observacao_pedido: string | null
           origem: string | null
           parceiro_id: string
@@ -9074,6 +9075,7 @@ export type Database = {
           nf_data?: string | null
           nf_numero?: string | null
           observacao?: string | null
+          observacao_cliente?: string | null
           observacao_pedido?: string | null
           origem?: string | null
           parceiro_id: string
@@ -9137,6 +9139,7 @@ export type Database = {
           nf_data?: string | null
           nf_numero?: string | null
           observacao?: string | null
+          observacao_cliente?: string | null
           observacao_pedido?: string | null
           origem?: string | null
           parceiro_id?: string
@@ -16412,6 +16415,7 @@ export type Database = {
           p_nome_fantasia?: string
           p_numero?: string
           p_observacao?: string
+          p_observacao_cliente?: string
           p_observacao_pedido?: string
           p_origem?: string
           p_premissas?: Json

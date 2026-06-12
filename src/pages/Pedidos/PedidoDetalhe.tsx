@@ -742,6 +742,23 @@ export default function PedidoDetalhe() {
 
           <Separator />
 
+          {(pedido.observacao_pedido?.trim() || (pedido as any).observacao_cliente?.trim()) && (
+            <div className="grid gap-3 md:grid-cols-2">
+              {pedido.observacao_pedido?.trim() && (
+                <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Obs. Fetély (interna)</p>
+                  <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">{pedido.observacao_pedido}</p>
+                </div>
+              )}
+              {(pedido as any).observacao_cliente?.trim() && (
+                <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Obs. do Cliente</p>
+                  <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">{(pedido as any).observacao_cliente}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Itens + Tabs lado a lado */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
