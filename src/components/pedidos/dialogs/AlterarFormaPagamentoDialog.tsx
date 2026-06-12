@@ -53,7 +53,16 @@ function condicaoDefault(forma: string): string {
     default:
       return "";
   }
+}
+
+function buildCondicao(codigo: string, parc: number, interv: number): string {
+  if (codigo === "boleto_com_entrada") {
+    return Array.from({ length: parc + 1 }, (_, i) => i * interv).join("/");
   }
+  if (codigo === "boleto_sem_entrada") {
+    return Array.from({ length: parc }, (_, i) => (i + 1) * interv).join("/");
+  }
+  return "";
 }
 
 function buildCondicao(codigo: string, parc: number, interv: number): string {
