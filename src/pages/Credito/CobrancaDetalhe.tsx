@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -16,7 +18,7 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
@@ -31,6 +33,31 @@ import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/Edit
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+function parseDiasCondicao(condicao: string | undefined | null): number {
+  if (!condicao) return 0;
+  const m = String(condicao).match(/(\d+)\s*dia/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function addDiasISO(iso: string, dias: number): string {
+  if (!iso) return iso;
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+function redistribuirValoresIguais<T extends { valor_bruto: number }>(titulos: T[], total: number): T[] {
+  const n = titulos.length;
+  if (n === 0) return titulos;
+  const totalCent = Math.round(Number(total || 0) * 100);
+  const baseCent = Math.floor(totalCent / n);
+  const restoCent = totalCent - baseCent * n;
+  return titulos.map((t, i) => ({
+    ...t,
+    valor_bruto: (i === n - 1 ? baseCent + restoCent : baseCent) / 100,
+  }));
+}
+
 function usePedidoMinimo(pedidoId: string | undefined) {
   return useQuery({
     queryKey: ["cobranca-pedido-minimo", pedidoId],
@@ -41,7 +68,9 @@ function usePedidoMinimo(pedidoId: string | undefined) {
         .from("pedidos")
         .select(`
           id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada, parceiro_id,
-          parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf)
+          itens_json, frete_tipo, valor_frete,
+          parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf),
+          analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em)
         `)
         .eq("id", pedidoId)
         .maybeSingle();
@@ -333,13 +362,20 @@ export default function CobrancaDetalhe() {
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editarCondicaoOpen, setEditarCondicaoOpen] = useState(false);
+  const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
+  const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
 
   // hidrata estado local quando a proposta chega
   useEffect(() => {
     if (propostaQ.data?.titulos_propostos) {
-      setTitulos(propostaQ.data.titulos_propostos.map((t) => ({ ...t })));
+      const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
+      setTitulos(novos);
+      const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
+      const novoTotal = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
+      setValorTotalCobrar(novoTotal);
+      setParcelasIguais(false);
     }
-  }, [propostaQ.data]);
+  }, [propostaQ.data, pedidoQ.data?.valor_liquido]);
 
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
   const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
@@ -360,6 +396,66 @@ export default function CobrancaDetalhe() {
 
   const atualizarTitulo = (idx: number, patch: Partial<TituloProposto>) => {
     setTitulos((prev) => prev.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
+  };
+
+  const handleValorTotalChange = (v: number) => {
+    setValorTotalCobrar(v);
+    if (parcelasIguais) {
+      setTitulos((prev) => redistribuirValoresIguais(prev, v));
+    }
+  };
+
+  const handleParcelasIguaisChange = (checked: boolean) => {
+    setParcelasIguais(checked);
+    if (checked) {
+      setTitulos((prev) => redistribuirValoresIguais(prev, valorTotalCobrar));
+    }
+  };
+
+  const handleDataChange = (idx: number, novaData: string) => {
+    if (idx !== 0) {
+      atualizarTitulo(idx, { data_vencimento: novaData });
+      return;
+    }
+    setTitulos((prev) =>
+      prev.map((t, i) => {
+        if (i === 0) return { ...t, data_vencimento: novaData };
+        const offset = parseDiasCondicao(t.condicao_pagamento);
+        return { ...t, data_vencimento: addDiasISO(novaData, offset) };
+      }),
+    );
+  };
+
+  const renumerar = (lista: TituloProposto[]): TituloProposto[] => {
+    const n = lista.length;
+    return lista.map((t, i) => ({ ...t, ordem: i, numero_parcela: i + 1, total_parcelas: n }));
+  };
+
+  const handleAdicionarParcela = () => {
+    setTitulos((prev) => {
+      const ultima = prev[prev.length - 1];
+      const novaData = ultima ? addDiasISO(ultima.data_vencimento, 30) : new Date().toISOString().slice(0, 10);
+      const novo: TituloProposto = {
+        ordem: prev.length,
+        numero_parcela: prev.length + 1,
+        total_parcelas: prev.length + 1,
+        eh_entrada: false,
+        tipo_pagamento: ultima?.tipo_pagamento ?? "boleto",
+        valor_bruto: 0,
+        data_vencimento: novaData,
+        condicao_pagamento: ultima?.condicao_pagamento ?? "",
+      };
+      const nova = renumerar([...prev, novo]);
+      return parcelasIguais ? redistribuirValoresIguais(nova, valorTotalCobrar) : nova;
+    });
+  };
+
+  const handleRemoverParcela = (idx: number) => {
+    setTitulos((prev) => {
+      if (prev.length <= 1) return prev;
+      const nova = renumerar(prev.filter((_, i) => i !== idx));
+      return parcelasIguais ? redistribuirValoresIguais(nova, valorTotalCobrar) : nova;
+    });
   };
 
   const podeMaterializar =
@@ -469,6 +565,39 @@ export default function CobrancaDetalhe() {
   const proposta = propostaQ.data!;
   const pedido = pedidoQ.data;
 
+  // ─── Cálculos enriquecidos para resumo (regra crítica: pedido.valor_bruto envenenado) ───
+  const itensPedido = Array.isArray(pedido.itens_json) ? (pedido.itens_json as any[]) : [];
+  const valorBrutoCalc = itensPedido.reduce(
+    (acc, it) => acc + Number(it?.quantidade ?? 0) * Number(it?.valor_unitario ?? 0),
+    0,
+  );
+  const qtdItens = itensPedido.reduce((acc, it) => acc + Number(it?.quantidade ?? 0), 0);
+  const descontoRS = Math.max(0, valorBrutoCalc - valorPedido);
+  const descontoPct = valorBrutoCalc > 0 ? (descontoRS / valorBrutoCalc) * 100 : 0;
+
+  const analisesPedido = (Array.isArray(pedido.analises_credito) ? pedido.analises_credito : []) as Array<{
+    parecer_final: string | null;
+    status_final: string | null;
+    decidido_em: string | null;
+  }>;
+  const analiseEscolhida = (() => {
+    if (!analisesPedido.length) return null;
+    const cmp = (a: typeof analisesPedido[number], b: typeof analisesPedido[number]) =>
+      (b.decidido_em ?? "").localeCompare(a.decidido_em ?? "");
+    const aprovadas = analisesPedido.filter((a) => a.status_final === "aprovado").sort(cmp);
+    if (aprovadas.length) return aprovadas[0];
+    return [...analisesPedido].sort(cmp)[0];
+  })();
+  const obsCredito = analiseEscolhida?.parecer_final?.trim() || "—";
+
+  const freteLabel = (() => {
+    const tipo = (pedido.frete_tipo ?? "").toString().trim();
+    const valor = Number(pedido.valor_frete ?? 0);
+    if (!tipo && !valor) return "—";
+    if (!tipo) return fmtBRL.format(valor);
+    return `${tipo.toUpperCase()} · ${fmtBRL.format(valor)}`;
+  })();
+
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
       <CasaPageHeader
@@ -531,8 +660,28 @@ export default function CobrancaDetalhe() {
             )}
           </div>
           <div>
+            <p className="text-muted-foreground text-xs">Valor bruto</p>
+            <p className="font-medium">{fmtBRL.format(valorBrutoCalc)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Desconto</p>
+            <p className="font-medium">
+              {descontoRS > 0
+                ? `${descontoPct.toFixed(descontoPct >= 10 ? 0 : 1)}% · ${fmtBRL.format(descontoRS)}`
+                : "—"}
+            </p>
+          </div>
+          <div>
             <p className="text-muted-foreground text-xs">Valor total</p>
             <p className="font-medium">{fmtBRL.format(valorPedido)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Frete</p>
+            <p className="font-medium">{freteLabel}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Qtd de itens</p>
+            <p className="font-medium">{qtdItens}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Condição original</p>
@@ -549,6 +698,10 @@ export default function CobrancaDetalhe() {
             <p className="text-muted-foreground text-xs">Tem entrada?</p>
             <p className="font-medium">{proposta.tem_entrada ? "Sim" : "Não"}</p>
           </div>
+          <div className="md:col-span-4">
+            <p className="text-muted-foreground text-xs">Obs crédito</p>
+            <p className="font-medium text-xs whitespace-pre-wrap text-foreground/80">{obsCredito}</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -561,6 +714,34 @@ export default function CobrancaDetalhe() {
           </Button>
         </CardHeader>
         <CardContent>
+          {/* Faixa de controles: total a cobrar + parcelas iguais */}
+          <div className="flex flex-wrap items-end gap-4 mb-4 p-3 rounded-md border bg-muted/30">
+            <div className="space-y-1">
+              <Label htmlFor="valor-total-cobrar" className="text-xs text-muted-foreground">
+                Valor total a cobrar
+              </Label>
+              <Input
+                id="valor-total-cobrar"
+                type="number"
+                step="0.01"
+                min="0"
+                value={valorTotalCobrar}
+                onChange={(e) => handleValorTotalChange(Number(e.target.value))}
+                className="h-9 w-40"
+              />
+            </div>
+            <div className="flex items-center gap-2 pb-2">
+              <Checkbox
+                id="parcelas-iguais"
+                checked={parcelasIguais}
+                onCheckedChange={(c) => handleParcelasIguaisChange(c === true)}
+              />
+              <Label htmlFor="parcelas-iguais" className="text-sm cursor-pointer">
+                Parcelas iguais
+              </Label>
+            </div>
+          </div>
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -572,6 +753,7 @@ export default function CobrancaDetalhe() {
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Condição</TableHead>
                   <TableHead>Link pagamento</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -615,6 +797,8 @@ export default function CobrancaDetalhe() {
                           step="0.01"
                           min="0"
                           value={t.valor_bruto}
+                          disabled={parcelasIguais}
+                          readOnly={parcelasIguais}
                           onChange={(e) =>
                             atualizarTitulo(idx, { valor_bruto: Number(e.target.value) })
                           }
@@ -625,9 +809,7 @@ export default function CobrancaDetalhe() {
                         <Input
                           type="date"
                           value={t.data_vencimento}
-                          onChange={(e) =>
-                            atualizarTitulo(idx, { data_vencimento: e.target.value })
-                          }
+                          onChange={(e) => handleDataChange(idx, e.target.value)}
                           className={`h-9 w-40 ${dataInvalida ? "border-destructive" : ""}`}
                         />
                       </TableCell>
@@ -644,6 +826,18 @@ export default function CobrancaDetalhe() {
                           }
                           className="h-9 w-56 text-xs"
                         />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleRemoverParcela(idx)}
+                          disabled={titulos.length <= 1}
+                          title="Remover parcela"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -665,7 +859,7 @@ export default function CobrancaDetalhe() {
                   >
                     {fmtBRL.format(totalEditado)}
                   </TableCell>
-                  <TableCell colSpan={3} className="text-xs text-muted-foreground">
+                  <TableCell colSpan={4} className="text-xs text-muted-foreground">
                     Pedido: {fmtBRL.format(valorPedido)}
                     {titulos.length > 0 && (
                       <> · {titulos.length}x de {fmtBRL.format(valorPedido / titulos.length)}</>
@@ -678,6 +872,13 @@ export default function CobrancaDetalhe() {
               </TableFooter>
             </Table>
           </div>
+
+          <div className="mt-3">
+            <Button variant="outline" size="sm" onClick={handleAdicionarParcela}>
+              <Plus className="h-4 w-4" /> Adicionar parcela
+            </Button>
+          </div>
+
 
           {(temDivergenciaGrave || temValorInvalido || temDataPassada) && (
             <Alert variant="destructive" className="mt-4">
