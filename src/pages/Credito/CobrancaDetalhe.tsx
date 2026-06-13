@@ -362,13 +362,20 @@ export default function CobrancaDetalhe() {
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editarCondicaoOpen, setEditarCondicaoOpen] = useState(false);
+  const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
+  const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
 
   // hidrata estado local quando a proposta chega
   useEffect(() => {
     if (propostaQ.data?.titulos_propostos) {
-      setTitulos(propostaQ.data.titulos_propostos.map((t) => ({ ...t })));
+      const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
+      setTitulos(novos);
+      const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
+      const novoTotal = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
+      setValorTotalCobrar(novoTotal);
+      setParcelasIguais(false);
     }
-  }, [propostaQ.data]);
+  }, [propostaQ.data, pedidoQ.data?.valor_liquido]);
 
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
   const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
@@ -389,6 +396,66 @@ export default function CobrancaDetalhe() {
 
   const atualizarTitulo = (idx: number, patch: Partial<TituloProposto>) => {
     setTitulos((prev) => prev.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
+  };
+
+  const handleValorTotalChange = (v: number) => {
+    setValorTotalCobrar(v);
+    if (parcelasIguais) {
+      setTitulos((prev) => redistribuirValoresIguais(prev, v));
+    }
+  };
+
+  const handleParcelasIguaisChange = (checked: boolean) => {
+    setParcelasIguais(checked);
+    if (checked) {
+      setTitulos((prev) => redistribuirValoresIguais(prev, valorTotalCobrar));
+    }
+  };
+
+  const handleDataChange = (idx: number, novaData: string) => {
+    if (idx !== 0) {
+      atualizarTitulo(idx, { data_vencimento: novaData });
+      return;
+    }
+    setTitulos((prev) =>
+      prev.map((t, i) => {
+        if (i === 0) return { ...t, data_vencimento: novaData };
+        const offset = parseDiasCondicao(t.condicao_pagamento);
+        return { ...t, data_vencimento: addDiasISO(novaData, offset) };
+      }),
+    );
+  };
+
+  const renumerar = (lista: TituloProposto[]): TituloProposto[] => {
+    const n = lista.length;
+    return lista.map((t, i) => ({ ...t, ordem: i, numero_parcela: i + 1, total_parcelas: n }));
+  };
+
+  const handleAdicionarParcela = () => {
+    setTitulos((prev) => {
+      const ultima = prev[prev.length - 1];
+      const novaData = ultima ? addDiasISO(ultima.data_vencimento, 30) : new Date().toISOString().slice(0, 10);
+      const novo: TituloProposto = {
+        ordem: prev.length,
+        numero_parcela: prev.length + 1,
+        total_parcelas: prev.length + 1,
+        eh_entrada: false,
+        tipo_pagamento: ultima?.tipo_pagamento ?? "boleto",
+        valor_bruto: 0,
+        data_vencimento: novaData,
+        condicao_pagamento: ultima?.condicao_pagamento ?? "",
+      };
+      const nova = renumerar([...prev, novo]);
+      return parcelasIguais ? redistribuirValoresIguais(nova, valorTotalCobrar) : nova;
+    });
+  };
+
+  const handleRemoverParcela = (idx: number) => {
+    setTitulos((prev) => {
+      if (prev.length <= 1) return prev;
+      const nova = renumerar(prev.filter((_, i) => i !== idx));
+      return parcelasIguais ? redistribuirValoresIguais(nova, valorTotalCobrar) : nova;
+    });
   };
 
   const podeMaterializar =
