@@ -565,6 +565,39 @@ export default function CobrancaDetalhe() {
   const proposta = propostaQ.data!;
   const pedido = pedidoQ.data;
 
+  // ─── Cálculos enriquecidos para resumo (regra crítica: pedido.valor_bruto envenenado) ───
+  const itensPedido = Array.isArray(pedido.itens_json) ? (pedido.itens_json as any[]) : [];
+  const valorBrutoCalc = itensPedido.reduce(
+    (acc, it) => acc + Number(it?.quantidade ?? 0) * Number(it?.valor_unitario ?? 0),
+    0,
+  );
+  const qtdItens = itensPedido.reduce((acc, it) => acc + Number(it?.quantidade ?? 0), 0);
+  const descontoRS = Math.max(0, valorBrutoCalc - valorPedido);
+  const descontoPct = valorBrutoCalc > 0 ? (descontoRS / valorBrutoCalc) * 100 : 0;
+
+  const analisesPedido = (Array.isArray(pedido.analises_credito) ? pedido.analises_credito : []) as Array<{
+    parecer_final: string | null;
+    status_final: string | null;
+    decidido_em: string | null;
+  }>;
+  const analiseEscolhida = (() => {
+    if (!analisesPedido.length) return null;
+    const cmp = (a: typeof analisesPedido[number], b: typeof analisesPedido[number]) =>
+      (b.decidido_em ?? "").localeCompare(a.decidido_em ?? "");
+    const aprovadas = analisesPedido.filter((a) => a.status_final === "aprovado").sort(cmp);
+    if (aprovadas.length) return aprovadas[0];
+    return [...analisesPedido].sort(cmp)[0];
+  })();
+  const obsCredito = analiseEscolhida?.parecer_final?.trim() || "—";
+
+  const freteLabel = (() => {
+    const tipo = (pedido.frete_tipo ?? "").toString().trim();
+    const valor = Number(pedido.valor_frete ?? 0);
+    if (!tipo && !valor) return "—";
+    if (!tipo) return fmtBRL.format(valor);
+    return `${tipo.toUpperCase()} · ${fmtBRL.format(valor)}`;
+  })();
+
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
       <CasaPageHeader
