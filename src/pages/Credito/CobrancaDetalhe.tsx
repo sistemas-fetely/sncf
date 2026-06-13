@@ -126,6 +126,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [links, setLinks] = useState<Record<string, string>>({});
+  const [datas, setDatas] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
@@ -137,7 +138,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
         .from("titulo_a_receber")
         .select("id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, tipo_pagamento, status, link_pagamento, boleto_status, email_cobranca_enviado_em, boleto_enviado_em")
         .eq("pedido_id", pedido.id)
-        .not("status", "in", "(cancelado,pago,pago_com_atraso,pago_judicial,baixado_por_perda)")
+        .not("status", "in", "(cancelado,cancelado_recuperacao,renegociado,pago,pago_com_atraso,pago_judicial,baixado_por_perda)")
         .order("numero_parcela");
       if (error) throw error;
       return (data ?? []) as any[];
@@ -146,9 +147,14 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
   useEffect(() => {
     if (titulosQ.data) {
-      const init: Record<string, string> = {};
-      titulosQ.data.forEach((t: any) => { init[t.id] = t.link_pagamento ?? ""; });
-      setLinks(init);
+      const initLinks: Record<string, string> = {};
+      const initDatas: Record<string, string> = {};
+      titulosQ.data.forEach((t: any) => {
+        initLinks[t.id] = t.link_pagamento ?? "";
+        initDatas[t.id] = t.data_vencimento_atual ?? "";
+      });
+      setLinks(initLinks);
+      setDatas(initDatas);
     }
   }, [titulosQ.data]);
 
@@ -163,17 +169,22 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     setSalvando(true);
     try {
       for (const t of titulosQ.data ?? []) {
-        const novo = links[t.id] ?? "";
-        const atual = t.link_pagamento ?? "";
-        if (novo !== atual) {
+        const novoLink = links[t.id] ?? "";
+        const atualLink = t.link_pagamento ?? "";
+        const novaData = datas[t.id] ?? "";
+        const atualData = t.data_vencimento_atual ?? "";
+        const changed: Record<string, any> = {};
+        if (novoLink !== atualLink) changed.link_pagamento = novoLink || null;
+        if (novaData && novaData !== atualData) changed.data_vencimento_atual = novaData;
+        if (Object.keys(changed).length > 0) {
           const { error } = await (supabase as any)
             .from("titulo_a_receber")
-            .update({ link_pagamento: novo || null })
+            .update(changed)
             .eq("id", t.id);
           if (error) throw error;
         }
       }
-      toast({ title: "Links salvos!", description: "Links de pagamento atualizados com sucesso." });
+      toast({ title: "Salvo!", description: "Títulos atualizados com sucesso." });
     } catch (err) {
       toast({ title: "Erro ao salvar", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -237,11 +248,16 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
                       <TableCell className="text-sm">
                         {fmtBRL.format(Number(t.valor_bruto))}
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {t.data_vencimento_atual
-                          ? new Date(t.data_vencimento_atual + "T00:00:00").toLocaleDateString("pt-BR")
-                          : "—"}
-                      </TableCell>
+                  <TableCell>
+                    <Input
+                      type="date"
+                      value={datas[t.id] ?? ""}
+                      onChange={(e) =>
+                        setDatas((prev) => ({ ...prev, [t.id]: e.target.value }))
+                      }
+                      className="h-8 w-36 text-xs"
+                    />
+                  </TableCell>
                       <TableCell className="text-sm capitalize">
                         {t.tipo_pagamento ?? "—"}
                       </TableCell>
