@@ -22,7 +22,7 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Pencil, Trash2, Loader2, Monitor, Package, Settings2, FileText, Search, Heart, ChevronDown, ExternalLink, MoreHorizontal, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Monitor, Package, Settings2, FileText, Search, Heart, ChevronDown, ExternalLink, MoreHorizontal, X, CalendarClock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
