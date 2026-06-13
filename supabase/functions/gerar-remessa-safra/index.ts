@@ -316,7 +316,7 @@ serve(async (req) => {
       linhas.push(gerarTrailer(nroSeq, (titulos as any[]).length, valorTotal, nroReg));
       const arquivoConteudo = linhas.join("\r\n") + "\r\n";
       const seqFormatado   = String(nroSeq).padStart(3, "0");
-      const arquivoNome    = `FETELY_BAIXA_SAFRA_${hoje.replace(/-/g, "")}_${seqFormatado}.txt`;
+      const arquivoNome    = `SAFRAB${seqFormatado}.txt`;
 
       const { data: remessa, error: remessaErr } = await sb
         .from("remessas_safra")
@@ -419,7 +419,7 @@ serve(async (req) => {
     linhas.push(gerarTrailer(nroSeq, titulos.length, valorTotal, nroReg));
     const arquivoConteudo = linhas.join("\r\n") + "\r\n";
     const seqFormatado   = String(nroSeq).padStart(3, "0");
-    const arquivoNome    = `FETELY_REMESSA_SAFRA_${hoje.replace(/-/g, "")}_${seqFormatado}.txt`;
+    const arquivoNome    = `SAFRA_${seqFormatado}.txt`;
 
     const { data: remessa, error: remessaErr } = await sb
       .from("remessas_safra")
