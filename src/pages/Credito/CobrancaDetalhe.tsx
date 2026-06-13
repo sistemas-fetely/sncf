@@ -27,9 +27,16 @@ import type { TituloProposto } from "@/types/credito";
 import { formatCNPJ } from "@/lib/cnpj";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useParametros } from "@/hooks/useParametros";
 import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
 import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
+
+const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
