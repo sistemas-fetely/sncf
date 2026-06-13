@@ -18,7 +18,20 @@ Rejeita "0000-00-00" — valor MySQL legado retornado pelo Bling quando a data n
 
 Bling retorna tanto "2026-06-10T03:00:00-03:00" quanto "2026-06-10 16:23:32". */ function parseBlingDate(val: unknown): string | null { if (!val) return null; const s = String(val).split(/[T ]/)[0]; return s.startsWith("0000") ? null : s; }
 
-// Bling v3 — situação como inteiro puro (documentação confirmada) const SITUACAO_MAP: Record<number, string> = { 1: "pendente", 2: "emitida", // Emitida DANFE 3: "cancelada", 4: "rascunho", 5: "autorizada", // Autorizada (era mapeada errado como "rejeitada") 6: "pendente", // aguardando autorização 7: "inutilizada", 8: "denegada", 9: "rejeitada", 10: "emitida", // em digitação 11: "bloqueada", // status Bling-específico };
+// Bling v3 — situação como inteiro puro (documentação confirmada)
+const SITUACAO_MAP: Record<number, string> = {
+  1:  "pendente",
+  2:  "emitida",      // Emitida DANFE
+  3:  "cancelada",
+  4:  "rascunho",
+  5:  "autorizada",   // Autorizada (era mapeada errado como "rejeitada")
+  6:  "pendente",     // aguardando autorização
+  7:  "inutilizada",
+  8:  "denegada",
+  9:  "rejeitada",
+  10: "emitida",      // em digitação
+  11: "bloqueada",    // status Bling-específico
+};
 
 export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, ) { let criados = 0, atualizados = 0, erros = 0; let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
 
