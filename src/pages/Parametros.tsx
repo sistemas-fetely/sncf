@@ -63,6 +63,10 @@ const CATEGORIAS_PJ: CategoriaConfig[] = [
   { value: "forma_pagamento", label: "Formas de Pagamento", icon: Settings2, description: "Formas de pagamento para prestadores PJ" },
 ];
 
+const CATEGORIAS_FINANCEIRO: CategoriaConfig[] = [
+  { value: "dias_primeiro_pagamento", label: "Dias do 1º Pagamento", icon: CalendarClock, description: "Margem em dias para o vencimento do 1º pagamento na cobrança (padrão 9 = 7 dias úteis)" },
+];
+
 // NOVAS ABAS: adicionar aqui conforme novos módulos forem ativados
 // Exemplos futuros: Financeiro, Benefícios, Recrutamento, Operacional
 
@@ -70,7 +74,7 @@ const MODULO_MAP: Record<string, { label: string; categorias: CategoriaConfig[] 
   geral: { label: "Geral", categorias: CATEGORIAS_GERAL },
   clt: { label: "CLT", categorias: CATEGORIAS_CLT },
   pj: { label: "PJ", categorias: CATEGORIAS_PJ },
-  financeiro: { label: "Financeiro", categorias: [] },
+  financeiro: { label: "Financeiro", categorias: CATEGORIAS_FINANCEIRO },
 };
 
 /* ── Usage counts hook ── */
