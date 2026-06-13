@@ -385,7 +385,8 @@ serve(async (req) => {
       if (p.cadastro_incompleto) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Cadastro incompleto" });
       if (!p.email) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "E-mail não cadastrado" });
       if (Number(t.valor_bruto) <= 0) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Valor inválido" });
-      if (new Date(t.data_vencimento_atual + "T00:00:00") < new Date(new Date().toDateString())) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Vencimento no passado" });
+      const hojeISO = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      if (t.data_vencimento_atual < hojeISO) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Vencimento no passado" });
       if (t.tipo_pagamento !== "boleto") erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Não é boleto" });
       if (t.boleto_status !== "pendente") erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: `Status inválido: ${t.boleto_status}` });
     }
