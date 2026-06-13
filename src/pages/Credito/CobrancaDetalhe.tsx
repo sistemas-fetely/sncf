@@ -859,7 +859,7 @@ export default function CobrancaDetalhe() {
                   >
                     {fmtBRL.format(totalEditado)}
                   </TableCell>
-                  <TableCell colSpan={3} className="text-xs text-muted-foreground">
+                  <TableCell colSpan={4} className="text-xs text-muted-foreground">
                     Pedido: {fmtBRL.format(valorPedido)}
                     {titulos.length > 0 && (
                       <> · {titulos.length}x de {fmtBRL.format(valorPedido / titulos.length)}</>
@@ -872,6 +872,13 @@ export default function CobrancaDetalhe() {
               </TableFooter>
             </Table>
           </div>
+
+          <div className="mt-3">
+            <Button variant="outline" size="sm" onClick={handleAdicionarParcela}>
+              <Plus className="h-4 w-4" /> Adicionar parcela
+            </Button>
+          </div>
+
 
           {(temDivergenciaGrave || temValorInvalido || temDataPassada) && (
             <Alert variant="destructive" className="mt-4">
