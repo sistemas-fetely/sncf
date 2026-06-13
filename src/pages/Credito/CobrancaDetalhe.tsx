@@ -522,6 +522,13 @@ export default function CobrancaDetalhe() {
             <p className="text-muted-foreground text-xs">Condição original</p>
             <p className="font-medium">{proposta.condicao_original}</p>
           </div>
+          {pedido.condicao_solicitada &&
+            pedido.condicao_solicitada !== proposta.condicao_original && (
+            <div>
+              <p className="text-muted-foreground text-xs">Condição nova</p>
+              <p className="font-medium text-amber-600">{pedido.condicao_solicitada}</p>
+            </div>
+          )}
           <div>
             <p className="text-muted-foreground text-xs">Tem entrada?</p>
             <p className="font-medium">{proposta.tem_entrada ? "Sim" : "Não"}</p>
