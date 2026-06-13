@@ -235,6 +235,7 @@ export type Database = {
           encaminhado_analise_em: string | null
           encaminhado_decisao_em: string | null
           estagio_atual: string
+          exige_portao: boolean
           formas_aceitas: string[] | null
           id: string
           limite_concedido: number | null
@@ -263,6 +264,7 @@ export type Database = {
           encaminhado_analise_em?: string | null
           encaminhado_decisao_em?: string | null
           estagio_atual?: string
+          exige_portao?: boolean
           formas_aceitas?: string[] | null
           id?: string
           limite_concedido?: number | null
@@ -291,6 +293,7 @@ export type Database = {
           encaminhado_analise_em?: string | null
           encaminhado_decisao_em?: string | null
           estagio_atual?: string
+          exige_portao?: boolean
           formas_aceitas?: string[] | null
           id?: string
           limite_concedido?: number | null
@@ -8779,6 +8782,76 @@ export type Database = {
           },
         ]
       }
+      pedido_portao: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_vencimento: string
+          id: string
+          link_pagamento: string | null
+          observacao: string | null
+          pago_em: string | null
+          pedido_id: string
+          sequencia: number
+          status: string
+          tipo_pagamento: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_vencimento: string
+          id?: string
+          link_pagamento?: string | null
+          observacao?: string | null
+          pago_em?: string | null
+          pedido_id: string
+          sequencia?: number
+          status?: string
+          tipo_pagamento?: string | null
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_vencimento?: string
+          id?: string
+          link_pagamento?: string | null
+          observacao?: string | null
+          pago_em?: string | null
+          pedido_id?: string
+          sequencia?: number
+          status?: string
+          tipo_pagamento?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_portao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_portao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_portao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_remessa: {
         Row: {
           bling_pedido_id: string | null
@@ -8999,6 +9072,7 @@ export type Database = {
           estagio: string
           estagio_atualizado_em: string | null
           estagio_atualizado_por: string | null
+          exige_portao: boolean
           exportado_bling_em: string | null
           faturado_em: string | null
           forma_solicitada: string
@@ -9063,6 +9137,7 @@ export type Database = {
           estagio?: string
           estagio_atualizado_em?: string | null
           estagio_atualizado_por?: string | null
+          exige_portao?: boolean
           exportado_bling_em?: string | null
           faturado_em?: string | null
           forma_solicitada: string
@@ -9127,6 +9202,7 @@ export type Database = {
           estagio?: string
           estagio_atualizado_em?: string | null
           estagio_atualizado_por?: string | null
+          exige_portao?: boolean
           exportado_bling_em?: string | null
           faturado_em?: string | null
           forma_solicitada?: string
