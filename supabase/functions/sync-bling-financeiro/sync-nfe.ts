@@ -10,7 +10,18 @@ const doc = (contato.numeroDocumento || "").replace(/\D/g, ""); const { data: no
 
 if (insErr) { console.error(`resolveParceiroId INSERT failed [bling_id=${blingId}]: ${insErr.message}`); return null; } return novo?.id ?? null; }
 
-async function resolvePedidoId(supabase: any, numeroLoja: any): Promise<string | null> { if (numeroLoja === null || numeroLoja === undefined || numeroLoja === "") return null; // Remessas são enviadas ao Bling com sufixo "/NN" (ex: "PED-1780233338599/01"). // O id_externo no banco não tem o sufixo — strip antes de buscar. const baseId = String(numeroLoja).replace(/\/\d+$/, ""); const { data: pedido } = await supabase .from("pedidos") .select("id") .eq("id_externo", baseId) .maybeSingle(); return pedido?.id ?? null; }
+async function resolvePedidoId(supabase: any, numeroLoja: any): Promise<string | null> {
+  if (numeroLoja === null || numeroLoja === undefined || numeroLoja === "") return null;
+  // Remessas são enviadas ao Bling com sufixo "/NN" (ex: "PED-1780233338599/01").
+  // O id_externo no banco não tem o sufixo — strip antes de buscar.
+  const baseId = String(numeroLoja).replace(/\/\d+$/, "");
+  const { data: pedido } = await supabase
+    .from("pedidos")
+    .select("id")
+    .eq("id_externo", baseId)
+    .maybeSingle();
+  return pedido?.id ?? null;
+}
 
 /** Converte data do Bling para string ISO (YYYY-MM-DD) ou null.
 
