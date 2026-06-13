@@ -20,6 +20,7 @@ interface Regra {
   nome: string;
   codigo: string;
   forma: string;
+  parcela_unica: boolean;
   passa_por_analise: boolean;
 }
 
@@ -30,25 +31,38 @@ interface Props {
   idExterno: string;
 }
 
-function buildCondicao(codigo: string, parcelas: number, intervalo: number): string {
-  if (codigo === "boleto_com_entrada") {
+/** Retorna true quando a regra exige inputs estruturados de parcelas */
+function ehParcelado(r: Regra | undefined): boolean {
+  if (!r) return false;
+  return (
+    r.codigo === "boleto_com_entrada" ||
+    r.codigo === "boleto_sem_entrada" ||
+    (r.forma === "cartao" && !r.parcela_unica)
+  );
+}
+
+/** Gera a string de condição no formato que fn_parse_condicao entende ("0", "30", "30/60/90") */
+function buildCondicao(r: Regra, parcelas: number, intervalo: number): string {
+  if (r.codigo === "boleto_com_entrada") {
     return Array.from({ length: parcelas + 1 }, (_, i) => i * intervalo).join("/");
   }
-  if (codigo === "boleto_sem_entrada") {
+  if (r.codigo === "boleto_sem_entrada") {
+    return Array.from({ length: parcelas }, (_, i) => (i + 1) * intervalo).join("/");
+  }
+  if (r.forma === "cartao" && !r.parcela_unica) {
+    // 1x cartão = à vista; Nx = intervalos mensais
+    if (parcelas === 1) return "0";
     return Array.from({ length: parcelas }, (_, i) => (i + 1) * intervalo).join("/");
   }
   return "";
 }
 
-function condicaoFixa(codigo: string): string {
-  if (codigo === "pix")           return "PIX";
-  if (codigo === "cartao")        return "Cartão à vista";
-  if (codigo === "boleto_avista") return "Boleto à vista";
+function condicaoFixa(r: Regra): string {
+  if (r.codigo === "pix")            return "PIX";
+  if (r.forma === "cartao" && r.parcela_unica) return "Cartão à vista";
+  if (r.codigo === "boleto_avista")  return "Boleto à vista";
   return "";
 }
-
-const ehBoletoAPrazo = (codigo: string) =>
-  codigo === "boleto_com_entrada" || codigo === "boleto_sem_entrada";
 
 export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExterno }: Props) {
   const [regraId, setRegraId]     = useState("");
@@ -62,7 +76,7 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("regras_pagamento_pedido")
-        .select("id, nome, codigo, forma, passa_por_analise")
+        .select("id, nome, codigo, forma, parcela_unica, passa_por_analise")
         .eq("ativo", true)
         .order("ordem");
       return data as Regra[];
@@ -70,14 +84,11 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
   });
 
   const atualizar = useAtualizarCondicaoPagamento(pedidoId);
-
   const regraSelecionada = regras?.find((r) => r.id === regraId);
 
   useEffect(() => {
-    if (!regraSelecionada) return;
-    if (ehBoletoAPrazo(regraSelecionada.codigo)) {
-      setCondicao(buildCondicao(regraSelecionada.codigo, parcelas, intervalo));
-    }
+    if (!regraSelecionada || !ehParcelado(regraSelecionada)) return;
+    setCondicao(buildCondicao(regraSelecionada, parcelas, intervalo));
   }, [parcelas, intervalo, regraSelecionada]);
 
   function handleChangeRegra(novoId: string) {
@@ -85,12 +96,12 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
     setErroRpc(null);
     const r = regras?.find((x) => x.id === novoId);
     if (!r) return;
-    if (ehBoletoAPrazo(r.codigo)) {
+    if (ehParcelado(r)) {
       setParcelas(3);
       setIntervalo(30);
-      setCondicao(buildCondicao(r.codigo, 3, 30));
+      setCondicao(buildCondicao(r, 3, 30));
     } else {
-      setCondicao(condicaoFixa(r.codigo));
+      setCondicao(condicaoFixa(r));
     }
   }
 
@@ -113,6 +124,8 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
   }
 
   const podeSalvar = !!regraId && !!condicao && !atualizar.isPending;
+
+  const isCartaoParcelado = regraSelecionada?.forma === "cartao" && !regraSelecionada?.parcela_unica;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
@@ -139,7 +152,7 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
             </Select>
           </div>
 
-          {regraSelecionada && ehBoletoAPrazo(regraSelecionada.codigo) && (
+          {regraSelecionada && ehParcelado(regraSelecionada) && (
             <div className="space-y-3 rounded-md border p-3 bg-muted/30">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -158,15 +171,22 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
                     }
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Intervalo (dias)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={intervalo}
-                    onChange={(e) => setIntervalo(Math.max(1, Number(e.target.value)))}
-                  />
-                </div>
+                {!isCartaoParcelado || parcelas > 1 ? (
+                  <div className="space-y-2">
+                    <Label>Intervalo (dias)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={intervalo}
+                      onChange={(e) => setIntervalo(Math.max(1, Number(e.target.value)))}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Intervalo</Label>
+                    <p className="text-sm text-muted-foreground pt-2">À vista (1 parcela)</p>
+                  </div>
+                )}
               </div>
               <div className="text-xs text-muted-foreground">
                 Condição gerada: <span className="font-mono">{condicao}</span>{" "}
@@ -176,17 +196,23 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
                 {regraSelecionada.codigo === "boleto_sem_entrada" && (
                   <span>({parcelas} título{parcelas > 1 ? "s" : ""})</span>
                 )}
+                {isCartaoParcelado && parcelas === 1 && (
+                  <span>(à vista)</span>
+                )}
+                {isCartaoParcelado && parcelas > 1 && (
+                  <span>({parcelas}x cartão)</span>
+                )}
               </div>
             </div>
           )}
 
-          {regraSelecionada && !ehBoletoAPrazo(regraSelecionada.codigo) && (
+          {regraSelecionada && !ehParcelado(regraSelecionada) && (
             <div className="space-y-2">
               <Label>Condição</Label>
               <Input
                 value={condicao}
-                onChange={(e) => setCondicao(e.target.value)}
-                placeholder="Ex: PIX, Cartão à vista..."
+                readOnly
+                className="bg-muted/40 text-muted-foreground cursor-default"
               />
             </div>
           )}
