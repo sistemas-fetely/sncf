@@ -714,6 +714,34 @@ export default function CobrancaDetalhe() {
           </Button>
         </CardHeader>
         <CardContent>
+          {/* Faixa de controles: total a cobrar + parcelas iguais */}
+          <div className="flex flex-wrap items-end gap-4 mb-4 p-3 rounded-md border bg-muted/30">
+            <div className="space-y-1">
+              <Label htmlFor="valor-total-cobrar" className="text-xs text-muted-foreground">
+                Valor total a cobrar
+              </Label>
+              <Input
+                id="valor-total-cobrar"
+                type="number"
+                step="0.01"
+                min="0"
+                value={valorTotalCobrar}
+                onChange={(e) => handleValorTotalChange(Number(e.target.value))}
+                className="h-9 w-40"
+              />
+            </div>
+            <div className="flex items-center gap-2 pb-2">
+              <Checkbox
+                id="parcelas-iguais"
+                checked={parcelasIguais}
+                onCheckedChange={(c) => handleParcelasIguaisChange(c === true)}
+              />
+              <Label htmlFor="parcelas-iguais" className="text-sm cursor-pointer">
+                Parcelas iguais
+              </Label>
+            </div>
+          </div>
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -725,6 +753,7 @@ export default function CobrancaDetalhe() {
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Condição</TableHead>
                   <TableHead>Link pagamento</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -768,6 +797,8 @@ export default function CobrancaDetalhe() {
                           step="0.01"
                           min="0"
                           value={t.valor_bruto}
+                          disabled={parcelasIguais}
+                          readOnly={parcelasIguais}
                           onChange={(e) =>
                             atualizarTitulo(idx, { valor_bruto: Number(e.target.value) })
                           }
@@ -778,9 +809,7 @@ export default function CobrancaDetalhe() {
                         <Input
                           type="date"
                           value={t.data_vencimento}
-                          onChange={(e) =>
-                            atualizarTitulo(idx, { data_vencimento: e.target.value })
-                          }
+                          onChange={(e) => handleDataChange(idx, e.target.value)}
                           className={`h-9 w-40 ${dataInvalida ? "border-destructive" : ""}`}
                         />
                       </TableCell>
@@ -797,6 +826,18 @@ export default function CobrancaDetalhe() {
                           }
                           className="h-9 w-56 text-xs"
                         />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleRemoverParcela(idx)}
+                          disabled={titulos.length <= 1}
+                          title="Remover parcela"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
