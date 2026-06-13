@@ -20,6 +20,15 @@
 
 ---
 
+## ✅ Entregue nesta sessão
+
+| # | Título | Data | Notas |
+|---|---|---|---|
+| FOP→SNCF | Campo `meta.observacoesCliente` (obs visível ao cliente no PDF/email do FOP) agora transmitido, gravado em `pedidos.observacao_cliente` e exibido no `PedidoDetalhe`. `observacao_pedido` (obs interna Fetély) também passou a ser exibido — existia no banco desde 03/06 mas nunca tinha sido renderizado. RPC `receber_pedido_externo` recriada com 36º param. Backfill 1/1. | 12/06/2026 | — |
+| B-57 (parcial) | "Observação do pedido acionável → tarefa/alerta" — os dois campos agora aparecem read-only no detalhe. A parte de "tornar acionável (tarefa/alerta)" continua em aberto no backlog. | 12/06/2026 | Movido para Concluído parcial. |
+
+---
+
 ## 🔴 Fila — Próximo Sprint
 
 *(itens aprovados pelo Arquiteto para implementar em breve)*
@@ -64,4 +73,4 @@
 ---
 
 *Atualizar a cada sessão. Itens identificados no meio de sprint entram aqui, não direto no código.*
-*Última atualização: 19/05/2026*
+*Última atualização: 12/06/2026*
