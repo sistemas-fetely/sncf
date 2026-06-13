@@ -33,6 +33,31 @@ import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/Edit
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+function parseDiasCondicao(condicao: string | undefined | null): number {
+  if (!condicao) return 0;
+  const m = String(condicao).match(/(\d+)\s*dia/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function addDiasISO(iso: string, dias: number): string {
+  if (!iso) return iso;
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+function redistribuirValoresIguais<T extends { valor_bruto: number }>(titulos: T[], total: number): T[] {
+  const n = titulos.length;
+  if (n === 0) return titulos;
+  const totalCent = Math.round(Number(total || 0) * 100);
+  const baseCent = Math.floor(totalCent / n);
+  const restoCent = totalCent - baseCent * n;
+  return titulos.map((t, i) => ({
+    ...t,
+    valor_bruto: (i === n - 1 ? baseCent + restoCent : baseCent) / 100,
+  }));
+}
+
 function usePedidoMinimo(pedidoId: string | undefined) {
   return useQuery({
     queryKey: ["cobranca-pedido-minimo", pedidoId],
@@ -43,7 +68,9 @@ function usePedidoMinimo(pedidoId: string | undefined) {
         .from("pedidos")
         .select(`
           id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada, parceiro_id,
-          parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf)
+          itens_json, frete_tipo, valor_frete,
+          parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf),
+          analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em)
         `)
         .eq("id", pedidoId)
         .maybeSingle();
