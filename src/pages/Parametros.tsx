@@ -22,7 +22,7 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Pencil, Trash2, Loader2, Monitor, Package, Settings2, FileText, Search, Heart, ChevronDown, ExternalLink, MoreHorizontal, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Monitor, Package, Settings2, FileText, Search, Heart, ChevronDown, ExternalLink, MoreHorizontal, X, CalendarClock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -63,6 +63,10 @@ const CATEGORIAS_PJ: CategoriaConfig[] = [
   { value: "forma_pagamento", label: "Formas de Pagamento", icon: Settings2, description: "Formas de pagamento para prestadores PJ" },
 ];
 
+const CATEGORIAS_FINANCEIRO: CategoriaConfig[] = [
+  { value: "dias_primeiro_pagamento", label: "Dias do 1º Pagamento", icon: CalendarClock, description: "Margem em dias para o vencimento do 1º pagamento na cobrança (padrão 9 = 7 dias úteis)" },
+];
+
 // NOVAS ABAS: adicionar aqui conforme novos módulos forem ativados
 // Exemplos futuros: Financeiro, Benefícios, Recrutamento, Operacional
 
@@ -70,7 +74,7 @@ const MODULO_MAP: Record<string, { label: string; categorias: CategoriaConfig[] 
   geral: { label: "Geral", categorias: CATEGORIAS_GERAL },
   clt: { label: "CLT", categorias: CATEGORIAS_CLT },
   pj: { label: "PJ", categorias: CATEGORIAS_PJ },
-  financeiro: { label: "Financeiro", categorias: [] },
+  financeiro: { label: "Financeiro", categorias: CATEGORIAS_FINANCEIRO },
 };
 
 /* ── Usage counts hook ── */
@@ -525,9 +529,12 @@ export default function Parametros() {
 
         {Object.entries(MODULO_MAP).map(([key]) => (
           <TabsContent key={key} value={key}>
-            {key === "financeiro" ? (
-              <ParametrosFinanceiroTab />
-            ) : isLoading ? (
+            {key === "financeiro" && (
+              <div className="mb-6">
+                <ParametrosFinanceiroTab />
+              </div>
+            )}
+            {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>

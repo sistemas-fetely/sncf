@@ -27,9 +27,16 @@ import type { TituloProposto } from "@/types/credito";
 import { formatCNPJ } from "@/lib/cnpj";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useParametros } from "@/hooks/useParametros";
 import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
 import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
+
+const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -364,18 +371,54 @@ export default function CobrancaDetalhe() {
   const [editarCondicaoOpen, setEditarCondicaoOpen] = useState(false);
   const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
   const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
+  const [diasPrimeiroPagamento, setDiasPrimeiroPagamento] = useState<number>(DIAS_PRIMEIRO_PAGAMENTO_FALLBACK);
+
+  const paramDiasQ = useParametros("dias_primeiro_pagamento");
+
+  // Aplica 1ª data = hoje + dias e cascateia as demais a partir dela (preserva 30/60/90)
+  const aplicarPrimeiraDataECascata = (
+    lista: TituloProposto[],
+    dias: number,
+  ): TituloProposto[] => {
+    if (lista.length === 0) return lista;
+    const primeiraData = addDiasISO(todayISO(), dias);
+    return lista.map((t, i) => {
+      if (i === 0) return { ...t, data_vencimento: primeiraData };
+      const offset = parseDiasCondicao(t.condicao_pagamento);
+      return { ...t, data_vencimento: addDiasISO(primeiraData, offset) };
+    });
+  };
+
+  // Quando o parâmetro chega, atualiza o estado caso ainda esteja no fallback
+  useEffect(() => {
+    const v = Number(paramDiasQ.data?.[0]?.valor);
+    if (Number.isFinite(v) && v >= 0) {
+      setDiasPrimeiroPagamento((curr) =>
+        curr === DIAS_PRIMEIRO_PAGAMENTO_FALLBACK ? v : curr,
+      );
+    }
+  }, [paramDiasQ.data]);
 
   // hidrata estado local quando a proposta chega
   useEffect(() => {
     if (propostaQ.data?.titulos_propostos) {
       const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
-      setTitulos(novos);
+      setTitulos(aplicarPrimeiraDataECascata(novos, diasPrimeiroPagamento));
       const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
       const novoTotal = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
       setValorTotalCobrar(novoTotal);
       setParcelasIguais(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propostaQ.data, pedidoQ.data?.valor_liquido]);
+
+  // Reaplica 1ª data + cascata sempre que diasPrimeiroPagamento mudar
+  useEffect(() => {
+    setTitulos((prev) =>
+      prev.length ? aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento) : prev,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diasPrimeiroPagamento]);
 
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
   const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
@@ -727,6 +770,23 @@ export default function CobrancaDetalhe() {
                 min="0"
                 value={valorTotalCobrar}
                 onChange={(e) => handleValorTotalChange(Number(e.target.value))}
+                className="h-9 w-40"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="dias-primeiro-pagamento" className="text-xs text-muted-foreground">
+                Dias do primeiro pagamento
+              </Label>
+              <Input
+                id="dias-primeiro-pagamento"
+                type="number"
+                min="0"
+                step="1"
+                value={diasPrimeiroPagamento}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value, 10);
+                  setDiasPrimeiroPagamento(Number.isFinite(n) && n >= 0 ? n : 0);
+                }}
                 className="h-9 w-40"
               />
             </div>
