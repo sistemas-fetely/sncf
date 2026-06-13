@@ -660,8 +660,28 @@ export default function CobrancaDetalhe() {
             )}
           </div>
           <div>
+            <p className="text-muted-foreground text-xs">Valor bruto</p>
+            <p className="font-medium">{fmtBRL.format(valorBrutoCalc)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Desconto</p>
+            <p className="font-medium">
+              {descontoRS > 0
+                ? `${descontoPct.toFixed(descontoPct >= 10 ? 0 : 1)}% · ${fmtBRL.format(descontoRS)}`
+                : "—"}
+            </p>
+          </div>
+          <div>
             <p className="text-muted-foreground text-xs">Valor total</p>
             <p className="font-medium">{fmtBRL.format(valorPedido)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Frete</p>
+            <p className="font-medium">{freteLabel}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Qtd de itens</p>
+            <p className="font-medium">{qtdItens}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Condição original</p>
@@ -677,6 +697,10 @@ export default function CobrancaDetalhe() {
           <div>
             <p className="text-muted-foreground text-xs">Tem entrada?</p>
             <p className="font-medium">{proposta.tem_entrada ? "Sim" : "Não"}</p>
+          </div>
+          <div className="md:col-span-4">
+            <p className="text-muted-foreground text-xs">Obs crédito</p>
+            <p className="font-medium text-xs whitespace-pre-wrap text-foreground/80">{obsCredito}</p>
           </div>
         </CardContent>
       </Card>
