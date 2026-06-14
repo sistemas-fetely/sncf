@@ -22,6 +22,8 @@ import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus,
 import { useQueryClient } from "@tanstack/react-query";
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
+import { useMaterializarComHaver } from "@/hooks/credito/useMaterializarComHaver";
+import { useHaverDisponivelCliente } from "@/hooks/credito/useHaverDisponivelCliente";
 import { useCriarPortaoProvisorio } from "@/hooks/credito/useCriarPortaoProvisorio";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Switch } from "@/components/ui/switch";
@@ -368,10 +370,15 @@ export default function CobrancaDetalhe() {
   const pedidoQ = usePedidoMinimo(pedidoId);
   const propostaQ = usePropostaCobranca(pedidoId);
   const materializar = useMaterializarCobranca();
+  const materializarComHaver = useMaterializarComHaver();
   const criarPortao = useCriarPortaoProvisorio();
   const { isSuperAdmin } = usePermissions();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const exigePortao = !!(pedidoQ.data as any)?.exige_portao;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const haverCliente = useHaverDisponivelCliente((pedidoQ.data as any)?.parceiro_id);
+  const haverSaldo = haverCliente?.saldo ?? 0;
+  const haverDisponivel = !exigePortao && haverSaldo > 0;
 
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -379,6 +386,17 @@ export default function CobrancaDetalhe() {
   const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
   const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
   const [diasPrimeiroPagamento, setDiasPrimeiroPagamento] = useState<number>(DIAS_PRIMEIRO_PAGAMENTO_FALLBACK);
+  const [valorHaverAplicar, setValorHaverAplicar] = useState<number>(0);
+  const maxHaver = Math.min(haverSaldo, Number((pedidoQ.data as any)?.valor_liquido ?? 0));
+
+  const handleAplicarHaver = (v: number) => {
+    const aplicar = Math.max(0, Math.min(Number.isFinite(v) ? v : 0, maxHaver));
+    setValorHaverAplicar(aplicar);
+    const base = Number((pedidoQ.data as any)?.valor_liquido ?? 0);
+    const novoTotal = Math.max(0, base - aplicar);
+    setValorTotalCobrar(novoTotal);
+    setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
+  };
 
   const paramDiasQ = useParametros("dias_primeiro_pagamento");
 
@@ -539,11 +557,16 @@ export default function CobrancaDetalhe() {
 
   const handleConfirmar = () => {
     if (!pedidoId) return;
-    const mut = exigePortao ? criarPortao : materializar;
-    mut.mutate(
-      { pedidoId, titulosEditados: titulos },
-      { onSettled: () => setConfirmOpen(false) },
-    );
+    if (exigePortao) {
+      criarPortao.mutate({ pedidoId, titulosEditados: titulos }, { onSettled: () => setConfirmOpen(false) });
+    } else if (valorHaverAplicar > 0 && haverCliente?.haverId) {
+      materializarComHaver.mutate(
+        { pedidoId, titulosEditados: titulos, haverId: haverCliente.haverId, valorHaver: valorHaverAplicar },
+        { onSettled: () => setConfirmOpen(false) },
+      );
+    } else {
+      materializar.mutate({ pedidoId, titulosEditados: titulos }, { onSettled: () => setConfirmOpen(false) });
+    }
   };
 
   const handleTogglePortao = async (valor: boolean) => {
@@ -852,7 +875,32 @@ export default function CobrancaDetalhe() {
                 Parcelas iguais
               </Label>
             </div>
+            {haverDisponivel && (
+              <div className="space-y-1 ml-auto rounded-md border bg-emerald-50/50 dark:bg-emerald-950/20 p-3">
+                <Label htmlFor="aplicar-haver" className="text-xs font-medium">
+                  Crédito do cliente (haver)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {fmtBRL.format(haverSaldo)} disponível
+                </p>
+                <Input
+                  id="aplicar-haver"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={maxHaver}
+                  value={valorHaverAplicar}
+                  onChange={(e) => handleAplicarHaver(Number(e.target.value))}
+                  placeholder="Aplicar"
+                  className="h-9 w-40"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Líquido a cobrar: {fmtBRL.format(valorTotalCobrar)}
+                </p>
+              </div>
+            )}
           </div>
+
 
           <div className="rounded-md border">
             <Table>
@@ -1014,7 +1062,7 @@ export default function CobrancaDetalhe() {
             <Button
               variant="ghost"
               onClick={() => setEditarCondicaoOpen(true)}
-              disabled={materializar.isPending || criarPortao.isPending}
+              disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
             >
               Alterar pagamento
             </Button>
@@ -1023,9 +1071,9 @@ export default function CobrancaDetalhe() {
             </Button>
             <Button
               onClick={handleAceitar}
-              disabled={!podeMaterializar || materializar.isPending || criarPortao.isPending}
+              disabled={!podeMaterializar || materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
             >
-              {(materializar.isPending || criarPortao.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+              {(materializar.isPending || criarPortao.isPending || materializarComHaver.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
               {exigePortao ? "Aceitar e gerar portão" : "Aceitar e materializar"}
             </Button>
           </div>
@@ -1044,6 +1092,9 @@ export default function CobrancaDetalhe() {
                   Esta operação é irreversível. Serão criados <strong>{titulos.length}</strong>{" "}
                   título{titulos.length !== 1 ? "s" : ""} totalizando{" "}
                   <strong>{fmtBRL.format(totalEditado)}</strong>.
+                  {valorHaverAplicar > 0 && (
+                    <> {" "}Haver aplicado: <strong>{fmtBRL.format(valorHaverAplicar)}</strong>.</>
+                  )}
                 </>
               )}
             </DialogDescription>
@@ -1052,12 +1103,12 @@ export default function CobrancaDetalhe() {
             <Button
               variant="outline"
               onClick={() => setConfirmOpen(false)}
-              disabled={materializar.isPending || criarPortao.isPending}
+              disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
             >
               Voltar
             </Button>
-            <Button onClick={handleConfirmar} disabled={materializar.isPending || criarPortao.isPending}>
-              {(materializar.isPending || criarPortao.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Button onClick={handleConfirmar} disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}>
+              {(materializar.isPending || criarPortao.isPending || materializarComHaver.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
               Confirmar
             </Button>
           </DialogFooter>
