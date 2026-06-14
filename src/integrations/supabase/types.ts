@@ -15822,6 +15822,14 @@ export type Database = {
         Args: { p_conta_pagar_id: string; p_pagamento_id: string }
         Returns: Json
       }
+      confirmar_portao_pago: {
+        Args: {
+          p_data_pagamento?: string
+          p_observacao?: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       confirmar_pre_aprovacao: { Args: { p_analise_id: string }; Returns: Json }
       contar_boletos_pendentes_mesmo_parceiro: {
         Args: { p_boleto_stage_id_referencia: string }
