@@ -370,6 +370,8 @@ export default function CobrancaDetalhe() {
   const materializar = useMaterializarCobranca();
   const criarPortao = useCriarPortaoProvisorio();
   const { isSuperAdmin } = usePermissions();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const exigePortao = !!(pedidoQ.data as any)?.exige_portao;
 
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
