@@ -23,7 +23,7 @@ for (const nf of items) {
 
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome")
+      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json")
       .eq("bling_id", blingId)
       .maybeSingle();
 
