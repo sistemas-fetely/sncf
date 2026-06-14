@@ -773,7 +773,34 @@ export default function CobrancaDetalhe() {
         </CardContent>
       </Card>
 
+      {/* Portão — primeiro pagamento à vista */}
+      <Card>
+        <CardContent className="py-4 space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-sm">Portão — primeiro pagamento à vista para liberar a NF</p>
+              {creditoRecomendaPortao && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Crédito recomendou portão para este pedido.
+                </p>
+              )}
+            </div>
+            <Switch
+              checked={exigePortao}
+              onCheckedChange={handleTogglePortao}
+              disabled={!isSuperAdmin}
+            />
+          </div>
+          {exigePortao && (
+            <p className="text-xs text-muted-foreground">
+              O primeiro título será o portão (libera a NF ao ser pago). Os demais ficam aguardando NF.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Proposta editável */}
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Proposta de títulos</CardTitle>
