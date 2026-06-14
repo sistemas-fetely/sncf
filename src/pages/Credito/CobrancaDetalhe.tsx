@@ -557,11 +557,16 @@ export default function CobrancaDetalhe() {
 
   const handleConfirmar = () => {
     if (!pedidoId) return;
-    const mut = exigePortao ? criarPortao : materializar;
-    mut.mutate(
-      { pedidoId, titulosEditados: titulos },
-      { onSettled: () => setConfirmOpen(false) },
-    );
+    if (exigePortao) {
+      criarPortao.mutate({ pedidoId, titulosEditados: titulos }, { onSettled: () => setConfirmOpen(false) });
+    } else if (valorHaverAplicar > 0 && haverCliente?.haverId) {
+      materializarComHaver.mutate(
+        { pedidoId, titulosEditados: titulos, haverId: haverCliente.haverId, valorHaver: valorHaverAplicar },
+        { onSettled: () => setConfirmOpen(false) },
+      );
+    } else {
+      materializar.mutate({ pedidoId, titulosEditados: titulos }, { onSettled: () => setConfirmOpen(false) });
+    }
   };
 
   const handleTogglePortao = async (valor: boolean) => {
