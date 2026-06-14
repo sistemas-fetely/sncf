@@ -154,6 +154,8 @@ export async function syncNfe(
           parceiro_id,
           xml_url:      nf.xml     || null,
           pdf_url:      nf.linkPDF || null,
+          valor_frete:        nf._valorFrete        ?? null,
+          transportadora_nome: nf._transportadoraNome ?? null,
           raw:          nf,
           origem:       "bling",
           updated_at:   new Date().toISOString(),
