@@ -63,6 +63,23 @@ for (const nf of items) {
           
           nf._transportadoraNome = d.transporte?.transportador?.nome ?? d.transporte?.transportadora?.nome ?? d.transporte?.nome ?? null;
           nf._transportadoraCnpj = d.transporte?.transportador?.numeroDocumento ?? null;
+
+          // Debug: testa endpoint de volumes para buscar tracking
+          const volumeId = d.transporte?.volumes?.[0]?.id;
+          if (volumeId) {
+            try {
+              const vol = await client.get(`/volumes/${volumeId}`);
+              nf.volume_debug = vol?.data ?? vol ?? null;
+            } catch (_) {
+              try {
+                const vol2 = await client.get(`/nfe/volumes/${volumeId}`);
+                nf.volume_debug = vol2?.data ?? vol2 ?? null;
+              } catch (_) {
+                nf._volume_debug = { erro: "endpoint nao encontrado", id: volumeId };
+              }
+            }
+          }
+
           nf._itens = Array.isArray(d.itens) && d.itens.length > 0 ? d.itens.map((it: any) => ({ codigo: it.codigo ?? null, descricao: it.descricao ?? null, quantidade: it.quantidade ?? 0, valor: it.valor ?? 0, valor_total: it.valorTotal ?? 0, unidade: it.unidade ?? null, cfop: it.cfop ?? null, ncm: it.classificacaoFiscal ?? null, peso_bruto: it.pesoBruto ?? null, icms_valor: it.impostos?.icms?.valor ?? null, icms_aliquota: it.impostos?.icms?.aliquota ?? null, })) : null;
 
           // XML/PDF
