@@ -8792,6 +8792,7 @@ export type Database = {
           observacao: string | null
           pago_em: string | null
           pedido_id: string
+          plano_restante: Json
           sequencia: number
           status: string
           tipo_pagamento: string | null
@@ -8807,6 +8808,7 @@ export type Database = {
           observacao?: string | null
           pago_em?: string | null
           pedido_id: string
+          plano_restante?: Json
           sequencia?: number
           status?: string
           tipo_pagamento?: string | null
@@ -8822,6 +8824,7 @@ export type Database = {
           observacao?: string | null
           pago_em?: string | null
           pedido_id?: string
+          plano_restante?: Json
           sequencia?: number
           status?: string
           tipo_pagamento?: string | null
@@ -15926,6 +15929,10 @@ export type Database = {
           p_linha_investimento_id?: string
           p_parceiro_preferencial_id?: string
         }
+        Returns: Json
+      }
+      criar_portao_provisorio: {
+        Args: { p_pedido_id: string; p_titulos_editados: Json }
         Returns: Json
       }
       criar_remessa: {
