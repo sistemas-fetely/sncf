@@ -41,11 +41,16 @@ for (const nf of items) {
         const det = await client.get(`/nfe/${nf.id}`);
         const d = det?.data;
         if (d) {
-          // Situação: detalhe tem o estado atual real (cancelada não aparece na lista)
+          // Bling retorna situacao=5 (autorizada) mesmo após cancelamento.
+          // O cancelamento real está em d.situacaoCancelamento ou d.cancelamento.
           const detSitNum = typeof d.situacao === "object" ? d.situacao?.valor : d.situacao;
-          if (detSitNum != null) {
+          const estaCancelada = d.situacaoCancelamento != null || d.cancelamento != null || d.dataCancelamento != null || Number(detSitNum) === 3;
+          if (estaCancelada) {
+            situacaoDetalhe = "cancelada";
+          } else if (detSitNum != null) {
             situacaoDetalhe = SITUACAO_MAP[Number(detSitNum)] || null;
           }
+
 
           // Valor
           if (semValor) {
@@ -58,6 +63,7 @@ for (const nf of items) {
           // Frete e transportadora
           nf._valorFrete = d.valorFrete != null ? Number(d.valorFrete) : null;
           nf._transportadoraNome = d.transporte?.transportadora?.nome
+            ?? d.transporte?.transportador?.nome
             ?? d.transporte?.nome
             ?? null;
 
