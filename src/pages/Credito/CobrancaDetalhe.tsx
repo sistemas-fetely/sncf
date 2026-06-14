@@ -585,7 +585,11 @@ export default function CobrancaDetalhe() {
   };
 
   const handleRecalcular = () => {
-    qc.invalidateQueries({ queryKey: ["cobranca-proposta", pedidoId] });
+    setTitulos((prev) => {
+      if (prev.length === 0) return prev;
+      const comDatas = aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento);
+      return redistribuirValoresIguais(comDatas, valorTotalCobrar);
+    });
   };
 
   // Loading
