@@ -127,6 +127,11 @@ export async function syncNfe(
               if (d.xml)      nf.xml     = d.xml;
               if (d.linkPDF)  nf.linkPDF = d.linkPDF;
               if (d.linkDanfe && !nf.linkPDF) nf.linkPDF = d.linkDanfe;
+              // Frete e transportadora (do detalhe)
+              nf._valorFrete        = d.valorFrete != null ? Number(d.valorFrete) : null;
+              nf._transportadoraNome = d.transporte?.transportadora?.nome
+                ?? d.transporte?.nome
+                ?? null;
             }
           } catch (_) { /* detalhe falhou — continua sem valor/link */ }
         }
@@ -149,6 +154,8 @@ export async function syncNfe(
           parceiro_id,
           xml_url:      nf.xml     || null,
           pdf_url:      nf.linkPDF || null,
+          valor_frete:        nf._valorFrete        ?? null,
+          transportadora_nome: nf._transportadoraNome ?? null,
           raw:          nf,
           origem:       "bling",
           updated_at:   new Date().toISOString(),
