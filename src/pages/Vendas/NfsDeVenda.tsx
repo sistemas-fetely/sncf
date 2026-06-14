@@ -185,6 +185,7 @@ export default function NfsDeVenda() {
               <TableHead className="w-[120px]">Data</TableHead>
               <TableHead>Parceiro</TableHead>
               <TableHead className="w-[140px] text-right">Valor</TableHead>
+              <TableHead className="w-[120px] text-right">Frete</TableHead>
               <TableHead className="w-[120px]">Situação</TableHead>
               <TableHead className="w-[100px] text-right">Ações</TableHead>
             </TableRow>
