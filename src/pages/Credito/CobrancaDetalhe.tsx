@@ -875,7 +875,32 @@ export default function CobrancaDetalhe() {
                 Parcelas iguais
               </Label>
             </div>
+            {haverDisponivel && (
+              <div className="space-y-1 ml-auto rounded-md border bg-emerald-50/50 dark:bg-emerald-950/20 p-3">
+                <Label htmlFor="aplicar-haver" className="text-xs font-medium">
+                  Crédito do cliente (haver)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {fmtBRL.format(haverSaldo)} disponível
+                </p>
+                <Input
+                  id="aplicar-haver"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={maxHaver}
+                  value={valorHaverAplicar}
+                  onChange={(e) => handleAplicarHaver(Number(e.target.value))}
+                  placeholder="Aplicar"
+                  className="h-9 w-40"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Líquido a cobrar: {fmtBRL.format(valorTotalCobrar)}
+                </p>
+              </div>
+            )}
           </div>
+
 
           <div className="rounded-md border">
             <Table>
