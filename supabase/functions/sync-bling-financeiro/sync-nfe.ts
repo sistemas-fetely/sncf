@@ -76,13 +76,25 @@ for (const nf of items) {
         const det = await client.get(`/nfe/${nf.id}`);
         const d = det?.data;
         if (d) {
-          // Valor: Bling v3 retorna sob d.total.{produtos,nota}, não d.totalProdutos
+          // DEBUG TEMPORÁRIO — captura estrutura real do detalhe Bling
+          nf._detailDebug = {
+            chaves: Object.keys(d),
+            totalProdutos: (d as any).totalProdutos,
+            totalNota: (d as any).totalNota,
+            total: (d as any).total,
+            valor: (d as any).valor,
+            valorNota: (d as any).valorNota,
+            pedidoVenda: (d as any).pedidoVenda,
+          };
+          // Valor: tenta múltiplos caminhos conhecidos do Bling v3
           if (semValor) {
             nf._valorResolvido = Number(
-              d.total?.produtos ?? d.total?.nota ??
-              d.totalProdutos   ?? d.valor       ?? d.totalNota ?? 0
+              (d as any).total?.produtos ?? (d as any).total?.nota ??
+              (d as any).totalProdutos   ?? (d as any).valor       ??
+              (d as any).totalNota       ?? (d as any).valorNota   ?? 0
             ) || 0;
           }
+
 
           // Linkage via detalhe: endpoint de lista nunca traz pedidoVenda
           if (semPedido) {
