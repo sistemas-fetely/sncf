@@ -68,6 +68,7 @@ function SkeletonRow() {
       <TableCell><Skeleton className="h-4 w-48" /></TableCell>
       <TableCell><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
       <TableCell><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
+      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
       <TableCell><Skeleton className="h-4 w-16" /></TableCell>
     </TableRow>
