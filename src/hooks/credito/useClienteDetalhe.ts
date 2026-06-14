@@ -8,6 +8,16 @@ import type {
   SocioParceiro,
 } from "@/types/credito";
 
+export interface HaverCliente {
+  id: string;
+  valor: number;
+  saldo: number;
+  status: string;
+  origem_descricao: string | null;
+  data_expiracao: string | null;
+  created_at: string;
+}
+
 export interface ClienteDetalhe {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parceiro: any;
@@ -16,6 +26,7 @@ export interface ClienteDetalhe {
   kpisGrupo: KpiFinanceiroGrupo | null;
   analises: AnaliseListItem[];
   marcos: ParceiroMarco[];
+  haveres: HaverCliente[];
 }
 
 export function useClienteDetalhe(parceiroId: string | undefined) {
@@ -96,6 +107,13 @@ export function useClienteDetalhe(parceiroId: string | undefined) {
         .order("criado_em", { ascending: false })
         .limit(100);
 
+      const { data: haveresData } = await sb
+        .from("haver_cliente")
+        .select("id, valor, saldo, status, origem_descricao, data_expiracao, created_at")
+        .eq("parceiro_id", parceiroId)
+        .in("status", ["disponivel", "parcial"])
+        .order("created_at", { ascending: false });
+
       return {
         parceiro: parceiroData,
         socios: (sociosData || []) as SocioParceiro[],
@@ -103,6 +121,7 @@ export function useClienteDetalhe(parceiroId: string | undefined) {
         kpisGrupo,
         analises,
         marcos: (marcosData || []) as ParceiroMarco[],
+        haveres: (haveresData as HaverCliente[]) || [],
       };
     },
   });
