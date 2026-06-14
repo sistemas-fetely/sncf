@@ -24,11 +24,17 @@ export function useHaverDisponivelCliente(parceiroId: string | undefined) {
       const row = (data || [])[0];
       if (!row) return null;
       return {
-        haverId: row.id,
+        haverId: row.id as string,
         saldo: Number(row.saldo || 0),
-        dataExpiracao: row.data_expiracao ?? null,
+        dataExpiracao: (row.data_expiracao ?? null) as string | null,
       };
     },
   });
-  return { ...(q.data ?? null) as HaverDisponivel | null extends never ? never : HaverDisponivel | null, haverId: q.data?.haverId, saldo: q.data?.saldo ?? 0, dataExpiracao: q.data?.dataExpiracao ?? null, isLoading: q.isLoading, data: q.data ?? null };
+  return {
+    haverId: q.data?.haverId,
+    saldo: q.data?.saldo ?? 0,
+    dataExpiracao: q.data?.dataExpiracao ?? null,
+    isLoading: q.isLoading,
+    data: q.data ?? null,
+  };
 }
