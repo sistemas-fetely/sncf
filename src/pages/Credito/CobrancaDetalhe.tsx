@@ -78,9 +78,9 @@ function usePedidoMinimo(pedidoId: string | undefined) {
         .from("pedidos")
         .select(`
           id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada, parceiro_id,
-          itens_json, frete_tipo, valor_frete,
+          itens_json, frete_tipo, valor_frete, exige_portao,
           parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf),
-          analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em)
+          analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em, exige_portao)
         `)
         .eq("id", pedidoId)
         .maybeSingle();
