@@ -22,6 +22,9 @@ import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus,
 import { useQueryClient } from "@tanstack/react-query";
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
+import { useCriarPortaoProvisorio } from "@/hooks/credito/useCriarPortaoProvisorio";
+import { usePermissions } from "@/hooks/usePermissions";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import type { TituloProposto } from "@/types/credito";
 import { formatCNPJ } from "@/lib/cnpj";
@@ -75,9 +78,9 @@ function usePedidoMinimo(pedidoId: string | undefined) {
         .from("pedidos")
         .select(`
           id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada, parceiro_id,
-          itens_json, frete_tipo, valor_frete,
+          itens_json, frete_tipo, valor_frete, exige_portao,
           parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf),
-          analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em)
+          analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em, exige_portao)
         `)
         .eq("id", pedidoId)
         .maybeSingle();
@@ -365,6 +368,10 @@ export default function CobrancaDetalhe() {
   const pedidoQ = usePedidoMinimo(pedidoId);
   const propostaQ = usePropostaCobranca(pedidoId);
   const materializar = useMaterializarCobranca();
+  const criarPortao = useCriarPortaoProvisorio();
+  const { isSuperAdmin } = usePermissions();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const exigePortao = !!(pedidoQ.data as any)?.exige_portao;
 
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -532,10 +539,26 @@ export default function CobrancaDetalhe() {
 
   const handleConfirmar = () => {
     if (!pedidoId) return;
-    materializar.mutate(
+    const mut = exigePortao ? criarPortao : materializar;
+    mut.mutate(
       { pedidoId, titulosEditados: titulos },
       { onSettled: () => setConfirmOpen(false) },
     );
+  };
+
+  const handleTogglePortao = async (valor: boolean) => {
+    if (!pedidoId) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("definir_exige_portao", {
+      p_pedido_id: pedidoId,
+      p_valor: valor,
+    });
+    if (error) {
+      toast({ title: "Não foi possível alterar o portão", description: error.message, variant: "destructive" });
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["cobranca-pedido-minimo", pedidoId] });
+    toast({ title: valor ? "Portão ativado" : "Portão desativado" });
   };
 
   const handleRecalcular = () => {
@@ -622,6 +645,7 @@ export default function CobrancaDetalhe() {
     parecer_final: string | null;
     status_final: string | null;
     decidido_em: string | null;
+    exige_portao: boolean | null;
   }>;
   const analiseEscolhida = (() => {
     if (!analisesPedido.length) return null;
@@ -632,6 +656,7 @@ export default function CobrancaDetalhe() {
     return [...analisesPedido].sort(cmp)[0];
   })();
   const obsCredito = analiseEscolhida?.parecer_final?.trim() || "—";
+  const creditoRecomendaPortao = !!analiseEscolhida?.exige_portao;
 
   const freteLabel = (() => {
     const tipo = (pedido.frete_tipo ?? "").toString().trim();
@@ -748,7 +773,34 @@ export default function CobrancaDetalhe() {
         </CardContent>
       </Card>
 
+      {/* Portão — primeiro pagamento à vista */}
+      <Card>
+        <CardContent className="py-4 space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-sm">Portão — primeiro pagamento à vista para liberar a NF</p>
+              {creditoRecomendaPortao && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Crédito recomendou portão para este pedido.
+                </p>
+              )}
+            </div>
+            <Switch
+              checked={exigePortao}
+              onCheckedChange={handleTogglePortao}
+              disabled={!isSuperAdmin}
+            />
+          </div>
+          {exigePortao && (
+            <p className="text-xs text-muted-foreground">
+              O primeiro título será o portão (libera a NF ao ser pago). Os demais ficam aguardando NF.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Proposta editável */}
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Proposta de títulos</CardTitle>
@@ -962,7 +1014,7 @@ export default function CobrancaDetalhe() {
             <Button
               variant="ghost"
               onClick={() => setEditarCondicaoOpen(true)}
-              disabled={materializar.isPending}
+              disabled={materializar.isPending || criarPortao.isPending}
             >
               Alterar pagamento
             </Button>
@@ -971,10 +1023,10 @@ export default function CobrancaDetalhe() {
             </Button>
             <Button
               onClick={handleAceitar}
-              disabled={!podeMaterializar || materializar.isPending}
+              disabled={!podeMaterializar || materializar.isPending || criarPortao.isPending}
             >
-              {materializar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Aceitar e materializar
+              {(materializar.isPending || criarPortao.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+              {exigePortao ? "Aceitar e gerar portão" : "Aceitar e materializar"}
             </Button>
           </div>
         </CardContent>
@@ -983,28 +1035,35 @@ export default function CobrancaDetalhe() {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar materialização</DialogTitle>
+            <DialogTitle>{exigePortao ? "Confirmar criação do portão" : "Confirmar materialização"}</DialogTitle>
             <DialogDescription>
-              Esta operação é irreversível. Serão criados <strong>{titulos.length}</strong>{" "}
-              título{titulos.length !== 1 ? "s" : ""} totalizando{" "}
-              <strong>{fmtBRL.format(totalEditado)}</strong>.
+              {exigePortao ? (
+                <>Vamos criar o portão. O pedido ficará aguardando o primeiro pagamento à vista antes de liberar a NF.</>
+              ) : (
+                <>
+                  Esta operação é irreversível. Serão criados <strong>{titulos.length}</strong>{" "}
+                  título{titulos.length !== 1 ? "s" : ""} totalizando{" "}
+                  <strong>{fmtBRL.format(totalEditado)}</strong>.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setConfirmOpen(false)}
-              disabled={materializar.isPending}
+              disabled={materializar.isPending || criarPortao.isPending}
             >
               Voltar
             </Button>
-            <Button onClick={handleConfirmar} disabled={materializar.isPending}>
-              {materializar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Button onClick={handleConfirmar} disabled={materializar.isPending || criarPortao.isPending}>
+              {(materializar.isPending || criarPortao.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
               Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <EditarCondicaoPagamentoDialog
         open={editarCondicaoOpen}
         onClose={() => setEditarCondicaoOpen(false)}
