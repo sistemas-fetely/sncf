@@ -5988,6 +5988,62 @@ export type Database = {
           },
         ]
       }
+      haver_aplicacao: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          haver_id: string
+          id: string
+          pedido_id: string
+          valor_aplicado: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          haver_id: string
+          id?: string
+          pedido_id: string
+          valor_aplicado: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          haver_id?: string
+          id?: string
+          pedido_id?: string
+          valor_aplicado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haver_aplicacao_haver_id_fkey"
+            columns: ["haver_id"]
+            isOneToOne: false
+            referencedRelation: "haver_cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haver_aplicacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haver_aplicacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haver_aplicacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       haver_cliente: {
         Row: {
           created_at: string
@@ -16635,6 +16691,15 @@ export type Database = {
       }
       materializar_cobranca: {
         Args: { p_pedido_id: string; p_titulos_editados: Json }
+        Returns: Json
+      }
+      materializar_cobranca_com_haver: {
+        Args: {
+          p_haver_id: string
+          p_pedido_id: string
+          p_titulos_editados: Json
+          p_valor_haver: number
+        }
         Returns: Json
       }
       merge_contas_duplicadas: {
