@@ -92,6 +92,7 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
       titulos_cancelados: data.titulos_cancelados ?? 0,
       boletos_baixa_pendente: data.boletos_baixa_pendente ?? 0,
       valor_credito_pendente: data.valor_credito_pendente ?? 0,
+      haver_id: data.haver_id ?? null,
     });
     setStep("result");
   };
