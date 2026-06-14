@@ -1092,6 +1092,9 @@ export default function CobrancaDetalhe() {
                   Esta operação é irreversível. Serão criados <strong>{titulos.length}</strong>{" "}
                   título{titulos.length !== 1 ? "s" : ""} totalizando{" "}
                   <strong>{fmtBRL.format(totalEditado)}</strong>.
+                  {valorHaverAplicar > 0 && (
+                    <> {" "}Haver aplicado: <strong>{fmtBRL.format(valorHaverAplicar)}</strong>.</>
+                  )}
                 </>
               )}
             </DialogDescription>
