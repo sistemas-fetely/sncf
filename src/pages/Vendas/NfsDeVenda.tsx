@@ -201,7 +201,7 @@ export default function NfsDeVenda() {
               </>
             ) : filtrados.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                   Nenhuma NF encontrada.
                 </TableCell>
               </TableRow>
@@ -218,10 +218,13 @@ export default function NfsDeVenda() {
                   <TableCell className="text-right tabular-nums text-sm">
                     {formatCurrency(n.valor_nota)}
                   </TableCell>
+                  <TableCell className="text-right tabular-nums text-sm">
+                    {n.valor_frete ? formatCurrency(n.valor_frete) : "—"}
+                  </TableCell>
                   <TableCell>
                     {n.situacao ? (
-                      <Badge variant="outline" className={cn("font-normal", SITUACAO_CLASS[n.situacao] ?? "bg-muted text-muted-foreground border-muted")}>
-                        {SITUACAO_LABELS[n.situacao] ?? n.situacao}
+                      <Badge variant="outline" className={cn("font-normal", getSituacaoBadge(n).className)}>
+                        {getSituacaoBadge(n).label}
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground text-sm">—</span>
