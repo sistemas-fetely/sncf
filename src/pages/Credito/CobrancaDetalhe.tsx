@@ -22,6 +22,9 @@ import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus,
 import { useQueryClient } from "@tanstack/react-query";
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
+import { useCriarPortaoProvisorio } from "@/hooks/credito/useCriarPortaoProvisorio";
+import { usePermissions } from "@/hooks/usePermissions";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import type { TituloProposto } from "@/types/credito";
 import { formatCNPJ } from "@/lib/cnpj";
