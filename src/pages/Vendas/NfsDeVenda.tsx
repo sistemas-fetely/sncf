@@ -58,7 +58,7 @@ function getSituacaoBadge(n: NfEmitida) {
 }
 
 
-const SITUACAO_OPTIONS = ["todas", "emitida", "autorizada", "cancelada"] as const;
+const SITUACAO_OPTIONS = ["todas", "autorizada", "cancelada"] as const;
 
 function SkeletonRow() {
   return (
@@ -106,7 +106,10 @@ export default function NfsDeVenda() {
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     const filtered = nfs.filter((n) => {
-      if (situacaoFiltro !== "todas" && n.situacao !== situacaoFiltro) return false;
+      if (situacaoFiltro !== "todas") {
+        const badge = getSituacaoBadge(n);
+        if (badge.label.toLowerCase() !== situacaoFiltro) return false;
+      }
       if (!q) return true;
       const nfText = `${n.serie ?? ""}-${n.numero ?? ""}`.toLowerCase();
       const parceiroText = n.parceiro?.razao_social?.toLowerCase() ?? "";
