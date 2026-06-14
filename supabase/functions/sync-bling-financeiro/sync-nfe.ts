@@ -23,7 +23,7 @@ for (const nf of items) {
 
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome")
+      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json")
       .eq("bling_id", blingId)
       .maybeSingle();
 
@@ -61,9 +61,9 @@ for (const nf of items) {
           // Frete e transportadora
           nf._valorFrete = d.valorFrete != null ? Number(d.valorFrete) : null;
           
-          nf._transporte_full = d.transporte ?? null; // debug temporário
-          nf._itens_debug = d.itens ?? null; // debug temporário
-          nf._transportadoraNome = d.transporte?.transportadora?.nome ?? d.transporte?.transportador?.nome ?? d.transporte?.nome ?? null;
+          nf._transportadoraNome = d.transporte?.transportador?.nome ?? d.transporte?.transportadora?.nome ?? d.transporte?.nome ?? null;
+          nf._transportadoraCnpj = d.transporte?.transportador?.numeroDocumento ?? null;
+          nf._itens = Array.isArray(d.itens) && d.itens.length > 0 ? d.itens.map((it: any) => ({ codigo: it.codigo ?? null, descricao: it.descricao ?? null, quantidade: it.quantidade ?? 0, valor: it.valor ?? 0, valor_total: it.valorTotal ?? 0, unidade: it.unidade ?? null, cfop: it.cfop ?? null, ncm: it.classificacaoFiscal ?? null, peso_bruto: it.pesoBruto ?? null, icms_valor: it.impostos?.icms?.valor ?? null, icms_aliquota: it.impostos?.icms?.aliquota ?? null, })) : null;
 
           // XML/PDF
           if (d.xml)      nf.xml     = d.xml;
@@ -119,6 +119,8 @@ for (const nf of items) {
       valor_nota:          valorNota,
       valor_frete:         valorFrete,
       transportadora_nome: transportadoraNome,
+      transportadora_cnpj: nf._transportadoraCnpj ?? existing?.transportadora_cnpj ?? null,
+      itens_json: nf._itens ?? existing?.itens_json ?? null,
       parceiro_id,
       xml_url:             nf.xml     || null,
       pdf_url:             nf.linkPDF || null,

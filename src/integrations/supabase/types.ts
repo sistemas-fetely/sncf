@@ -7085,6 +7085,7 @@ export type Database = {
           data_emissao: string | null
           data_saida: string | null
           id: string
+          itens_json: Json | null
           numero: string | null
           observacoes: string | null
           origem: string | null
@@ -7095,6 +7096,7 @@ export type Database = {
           serie: string | null
           situacao: string | null
           tipo: string | null
+          transportadora_cnpj: string | null
           transportadora_nome: string | null
           updated_at: string
           valor_frete: number | null
@@ -7108,6 +7110,7 @@ export type Database = {
           data_emissao?: string | null
           data_saida?: string | null
           id?: string
+          itens_json?: Json | null
           numero?: string | null
           observacoes?: string | null
           origem?: string | null
@@ -7118,6 +7121,7 @@ export type Database = {
           serie?: string | null
           situacao?: string | null
           tipo?: string | null
+          transportadora_cnpj?: string | null
           transportadora_nome?: string | null
           updated_at?: string
           valor_frete?: number | null
@@ -7131,6 +7135,7 @@ export type Database = {
           data_emissao?: string | null
           data_saida?: string | null
           id?: string
+          itens_json?: Json | null
           numero?: string | null
           observacoes?: string | null
           origem?: string | null
@@ -7141,6 +7146,7 @@ export type Database = {
           serie?: string | null
           situacao?: string | null
           tipo?: string | null
+          transportadora_cnpj?: string | null
           transportadora_nome?: string | null
           updated_at?: string
           valor_frete?: number | null
