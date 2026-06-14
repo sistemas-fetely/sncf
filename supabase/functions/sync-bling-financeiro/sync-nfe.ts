@@ -62,10 +62,8 @@ for (const nf of items) {
 
           // Frete e transportadora
           nf._valorFrete = d.valorFrete != null ? Number(d.valorFrete) : null;
-          nf._transportadoraNome = d.transporte?.transportadora?.nome
-            ?? d.transporte?.transportador?.nome
-            ?? d.transporte?.nome
-            ?? null;
+          nf._transporte_debug = d.transporte ?? null;
+          nf._transportadoraNome = d.transporte?.transportadora?.nome ?? d.transporte?.transportador?.nome ?? d.transporte?.nome ?? null;
 
           // XML/PDF
           if (d.xml)      nf.xml     = d.xml;
