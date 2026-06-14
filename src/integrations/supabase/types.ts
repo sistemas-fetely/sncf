@@ -6951,7 +6951,9 @@ export type Database = {
           serie: string | null
           situacao: string | null
           tipo: string | null
+          transportadora_nome: string | null
           updated_at: string
+          valor_frete: number | null
           valor_nota: number | null
           xml_url: string | null
         }
@@ -6972,7 +6974,9 @@ export type Database = {
           serie?: string | null
           situacao?: string | null
           tipo?: string | null
+          transportadora_nome?: string | null
           updated_at?: string
+          valor_frete?: number | null
           valor_nota?: number | null
           xml_url?: string | null
         }
@@ -6993,7 +6997,9 @@ export type Database = {
           serie?: string | null
           situacao?: string | null
           tipo?: string | null
+          transportadora_nome?: string | null
           updated_at?: string
+          valor_frete?: number | null
           valor_nota?: number | null
           xml_url?: string | null
         }
