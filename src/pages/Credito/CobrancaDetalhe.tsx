@@ -370,10 +370,15 @@ export default function CobrancaDetalhe() {
   const pedidoQ = usePedidoMinimo(pedidoId);
   const propostaQ = usePropostaCobranca(pedidoId);
   const materializar = useMaterializarCobranca();
+  const materializarComHaver = useMaterializarComHaver();
   const criarPortao = useCriarPortaoProvisorio();
   const { isSuperAdmin } = usePermissions();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const exigePortao = !!(pedidoQ.data as any)?.exige_portao;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const haverCliente = useHaverDisponivelCliente((pedidoQ.data as any)?.parceiro_id);
+  const haverSaldo = haverCliente?.saldo ?? 0;
+  const haverDisponivel = !exigePortao && haverSaldo > 0;
 
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
