@@ -61,9 +61,9 @@ for (const nf of items) {
           // Frete e transportadora
           nf._valorFrete = d.valorFrete != null ? Number(d.valorFrete) : null;
           
-          nf._transporte_full = d.transporte ?? null; // debug temporário
-          nf._itens_debug = d.itens ?? null; // debug temporário
-          nf._transportadoraNome = d.transporte?.transportadora?.nome ?? d.transporte?.transportador?.nome ?? d.transporte?.nome ?? null;
+          nf._transportadoraNome = d.transporte?.transportador?.nome ?? d.transporte?.transportadora?.nome ?? d.transporte?.nome ?? null;
+          nf._transportadoraCnpj = d.transporte?.transportador?.numeroDocumento ?? null;
+          nf._itens = Array.isArray(d.itens) && d.itens.length > 0 ? d.itens.map((it: any) => ({ codigo: it.codigo ?? null, descricao: it.descricao ?? null, quantidade: it.quantidade ?? 0, valor: it.valor ?? 0, valor_total: it.valorTotal ?? 0, unidade: it.unidade ?? null, cfop: it.cfop ?? null, ncm: it.classificacaoFiscal ?? null, peso_bruto: it.pesoBruto ?? null, icms_valor: it.impostos?.icms?.valor ?? null, icms_aliquota: it.impostos?.icms?.aliquota ?? null, })) : null;
 
           // XML/PDF
           if (d.xml)      nf.xml     = d.xml;
