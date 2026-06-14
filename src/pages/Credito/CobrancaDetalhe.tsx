@@ -368,6 +368,8 @@ export default function CobrancaDetalhe() {
   const pedidoQ = usePedidoMinimo(pedidoId);
   const propostaQ = usePropostaCobranca(pedidoId);
   const materializar = useMaterializarCobranca();
+  const criarPortao = useCriarPortaoProvisorio();
+  const { isSuperAdmin } = usePermissions();
 
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
