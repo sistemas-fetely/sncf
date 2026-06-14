@@ -88,12 +88,20 @@ export default function NfsDeVenda() {
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return nfs.filter((n) => {
+    const filtered = nfs.filter((n) => {
       if (situacaoFiltro !== "todas" && n.situacao !== situacaoFiltro) return false;
       if (!q) return true;
       const nfText = `${n.serie ?? ""}-${n.numero ?? ""}`.toLowerCase();
       const parceiroText = n.parceiro?.razao_social?.toLowerCase() ?? "";
       return nfText.includes(q) || parceiroText.includes(q);
+    });
+    return [...filtered].sort((a, b) => {
+      const na = parseInt(a.numero ?? "", 10);
+      const nb = parseInt(b.numero ?? "", 10);
+      const aNum = isNaN(na) ? 0 : na;
+      const bNum = isNaN(nb) ? 0 : nb;
+      if (bNum !== aNum) return bNum - aNum;
+      return (a.serie ?? "").localeCompare(b.serie ?? "") || (b.data_emissao ?? "").localeCompare(a.data_emissao ?? "");
     });
   }, [nfs, busca, situacaoFiltro]);
 
