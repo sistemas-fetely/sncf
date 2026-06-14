@@ -803,6 +803,7 @@ export default function CobrancaFila() {
         <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-6">
           {[
             { value: "pedidos", label: `Pedidos${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
+            { value: "primeiro-pagamento", label: "Primeiro Pagamento" },
             { value: "titulos", label: `Títulos${totalTitulos > 0 ? ` · ${totalTitulos}` : ""}` },
             { value: "remessas", label: "Remessas Safra" },
             { value: "banco-safra", label: "Banco Safra" },
@@ -820,6 +821,10 @@ export default function CobrancaFila() {
 
         <TabsContent value="pedidos">
           <PedidosCobrancaTab />
+        </TabsContent>
+
+        <TabsContent value="primeiro-pagamento">
+          <PrimeiroPagamentoTab />
         </TabsContent>
 
         <TabsContent value="titulos">

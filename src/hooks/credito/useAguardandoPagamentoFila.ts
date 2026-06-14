@@ -20,6 +20,7 @@ export function useAguardandoPagamentoFila(opts: Options = {}) {
           titulos:titulo_a_receber(id, status, eh_entrada)
         `)
         .eq("estagio", "aguardando_pagamento")
+        .eq("exige_portao", false)
         .order("estagio_atualizado_em", { ascending: true });
 
       if (error) throw error;
