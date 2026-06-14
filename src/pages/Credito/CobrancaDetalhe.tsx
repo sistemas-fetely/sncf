@@ -1062,7 +1062,7 @@ export default function CobrancaDetalhe() {
             <Button
               variant="ghost"
               onClick={() => setEditarCondicaoOpen(true)}
-              disabled={materializar.isPending || criarPortao.isPending}
+              disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
             >
               Alterar pagamento
             </Button>
@@ -1071,9 +1071,9 @@ export default function CobrancaDetalhe() {
             </Button>
             <Button
               onClick={handleAceitar}
-              disabled={!podeMaterializar || materializar.isPending || criarPortao.isPending}
+              disabled={!podeMaterializar || materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
             >
-              {(materializar.isPending || criarPortao.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+              {(materializar.isPending || criarPortao.isPending || materializarComHaver.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
               {exigePortao ? "Aceitar e gerar portão" : "Aceitar e materializar"}
             </Button>
           </div>
@@ -1100,12 +1100,12 @@ export default function CobrancaDetalhe() {
             <Button
               variant="outline"
               onClick={() => setConfirmOpen(false)}
-              disabled={materializar.isPending || criarPortao.isPending}
+              disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
             >
               Voltar
             </Button>
-            <Button onClick={handleConfirmar} disabled={materializar.isPending || criarPortao.isPending}>
-              {(materializar.isPending || criarPortao.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Button onClick={handleConfirmar} disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}>
+              {(materializar.isPending || criarPortao.isPending || materializarComHaver.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
               Confirmar
             </Button>
           </DialogFooter>
