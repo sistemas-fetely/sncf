@@ -17305,6 +17305,7 @@ export type Database = {
         Args: { p_ofx_id: string; p_planilha_ids: string[] }
         Returns: Json
       }
+      vincular_titulos_nf: { Args: never; Returns: number }
     }
     Enums: {
       app_role:
