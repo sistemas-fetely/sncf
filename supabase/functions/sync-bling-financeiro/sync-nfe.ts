@@ -35,7 +35,7 @@ for (const nf of items) {
     // Pedido linkage tenta junto quando já estamos no detalhe, mas não aciona sozinho.
     let situacaoDetalhe: string | null = null;
 
-    if (semValor || semFrete) {
+    if (semValor || semFrete || semPedido) {
       try {
         await sleep(120); // respeita rate limit do Bling (~3 req/s)
         const det = await client.get(`/nfe/${nf.id}`);
