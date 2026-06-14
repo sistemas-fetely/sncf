@@ -645,6 +645,7 @@ export default function CobrancaDetalhe() {
     parecer_final: string | null;
     status_final: string | null;
     decidido_em: string | null;
+    exige_portao: boolean | null;
   }>;
   const analiseEscolhida = (() => {
     if (!analisesPedido.length) return null;
@@ -655,6 +656,7 @@ export default function CobrancaDetalhe() {
     return [...analisesPedido].sort(cmp)[0];
   })();
   const obsCredito = analiseEscolhida?.parecer_final?.trim() || "—";
+  const creditoRecomendaPortao = !!analiseEscolhida?.exige_portao;
 
   const freteLabel = (() => {
     const tipo = (pedido.frete_tipo ?? "").toString().trim();
