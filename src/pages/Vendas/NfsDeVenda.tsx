@@ -43,6 +43,21 @@ const SITUACAO_CLASS: Record<string, string> = {
   cancelada: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
 
+function getSituacaoBadge(n: NfEmitida) {
+  const valorZero = n.valor_nota === 0 || n.valor_nota === null;
+  if (n.situacao === "autorizada" && valorZero) {
+    return { label: "Cancelada", className: SITUACAO_CLASS.cancelada };
+  }
+  if (n.situacao === "pendente" || n.situacao === "emitida") {
+    return { label: "Autorizada", className: SITUACAO_CLASS.autorizada };
+  }
+  return {
+    label: SITUACAO_LABELS[n.situacao] ?? n.situacao,
+    className: SITUACAO_CLASS[n.situacao] ?? "bg-muted text-muted-foreground border-muted",
+  };
+}
+
+
 const SITUACAO_OPTIONS = ["todas", "emitida", "autorizada", "cancelada"] as const;
 
 function SkeletonRow() {
@@ -52,11 +67,13 @@ function SkeletonRow() {
       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
       <TableCell><Skeleton className="h-4 w-48" /></TableCell>
       <TableCell><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
+      <TableCell><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
       <TableCell><Skeleton className="h-4 w-16" /></TableCell>
     </TableRow>
   );
 }
+
 
 export default function NfsDeVenda() {
   const navigate = useNavigate();
@@ -168,6 +185,7 @@ export default function NfsDeVenda() {
               <TableHead className="w-[120px]">Data</TableHead>
               <TableHead>Parceiro</TableHead>
               <TableHead className="w-[140px] text-right">Valor</TableHead>
+              <TableHead className="w-[120px] text-right">Frete</TableHead>
               <TableHead className="w-[120px]">Situação</TableHead>
               <TableHead className="w-[100px] text-right">Ações</TableHead>
             </TableRow>
@@ -183,7 +201,7 @@ export default function NfsDeVenda() {
               </>
             ) : filtrados.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                   Nenhuma NF encontrada.
                 </TableCell>
               </TableRow>
@@ -200,10 +218,13 @@ export default function NfsDeVenda() {
                   <TableCell className="text-right tabular-nums text-sm">
                     {formatCurrency(n.valor_nota)}
                   </TableCell>
+                  <TableCell className="text-right tabular-nums text-sm">
+                    {n.valor_frete ? formatCurrency(n.valor_frete) : "—"}
+                  </TableCell>
                   <TableCell>
                     {n.situacao ? (
-                      <Badge variant="outline" className={cn("font-normal", SITUACAO_CLASS[n.situacao] ?? "bg-muted text-muted-foreground border-muted")}>
-                        {SITUACAO_LABELS[n.situacao] ?? n.situacao}
+                      <Badge variant="outline" className={cn("font-normal", getSituacaoBadge(n).className)}>
+                        {getSituacaoBadge(n).label}
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground text-sm">—</span>

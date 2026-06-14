@@ -44,12 +44,10 @@ for (const nf of items) {
           // Bling retorna situacao=5 (autorizada) mesmo após cancelamento.
           // O cancelamento real está em d.situacaoCancelamento ou d.cancelamento.
           const detSitNum = typeof d.situacao === "object" ? d.situacao?.valor : d.situacao;
-          const estaCancelada = d.situacaoCancelamento != null || d.cancelamento != null || d.dataCancelamento != null || Number(detSitNum) === 3;
-          if (estaCancelada) {
-            situacaoDetalhe = "cancelada";
-          } else if (detSitNum != null) {
+          if (detSitNum != null) {
             situacaoDetalhe = SITUACAO_MAP[Number(detSitNum)] || null;
           }
+
 
 
           // Valor
