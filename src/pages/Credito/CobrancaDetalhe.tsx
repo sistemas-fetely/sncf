@@ -537,10 +537,26 @@ export default function CobrancaDetalhe() {
 
   const handleConfirmar = () => {
     if (!pedidoId) return;
-    materializar.mutate(
+    const mut = exigePortao ? criarPortao : materializar;
+    mut.mutate(
       { pedidoId, titulosEditados: titulos },
       { onSettled: () => setConfirmOpen(false) },
     );
+  };
+
+  const handleTogglePortao = async (valor: boolean) => {
+    if (!pedidoId) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("definir_exige_portao", {
+      p_pedido_id: pedidoId,
+      p_valor: valor,
+    });
+    if (error) {
+      toast({ title: "Não foi possível alterar o portão", description: error.message, variant: "destructive" });
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["cobranca-pedido-minimo", pedidoId] });
+    toast({ title: valor ? "Portão ativado" : "Portão desativado" });
   };
 
   const handleRecalcular = () => {
