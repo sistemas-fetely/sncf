@@ -85,18 +85,23 @@ Deno.serve(async (req) => {
   const raw = await req.text();
   const hmacHeader = req.headers.get("X-Shopify-Hmac-Sha256");
   const topic = req.headers.get("X-Shopify-Topic") ?? "desconhecido";
+  console.log("[shopify-webhook] recebido", { topic, bytes: raw.length, temHmac: !!hmacHeader });
 
   // 2. Segredo do vault.
   const { data: secret, error: secErr } = await supabase.rpc("get_vault_secret", {
     p_name: "SHOPIFY_WEBHOOK_SECRET",
   });
   if (secErr || !secret) {
+    console.error("[shopify-webhook] SHOPIFY_WEBHOOK_SECRET ausente no vault", secErr?.message);
     return jsonResponse(500, { error: "SHOPIFY_WEBHOOK_SECRET ausente no vault" });
   }
 
   // 3. Verifica assinatura.
   const valido = await verificarHmac(raw, hmacHeader, secret as string);
-  if (!valido) return jsonResponse(401, { error: "Assinatura HMAC inválida" });
+  if (!valido) {
+    console.error("[shopify-webhook] HMAC inválido", { topic, temHmac: !!hmacHeader });
+    return jsonResponse(401, { error: "Assinatura HMAC inválida" });
+  }
 
   // 4. Parse.
   let order: any;
@@ -206,8 +211,10 @@ Deno.serve(async (req) => {
       if (insErr) return jsonResponse(500, { error: `Falha gravar itens: ${insErr.message}` });
     }
 
+    console.log("[shopify-webhook] OK", { topic, shopify_id, order_name: pedido.order_name, itens: itens.length });
     return jsonResponse(200, { ok: true, topic, shopify_id, itens: itens.length });
   } catch (e) {
+    console.error("[shopify-webhook] erro inesperado", e);
     return jsonResponse(500, { error: String((e as any)?.message ?? e) });
   }
 });
