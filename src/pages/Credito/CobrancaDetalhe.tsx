@@ -987,7 +987,7 @@ export default function CobrancaDetalhe() {
             <Button
               variant="ghost"
               onClick={() => setEditarCondicaoOpen(true)}
-              disabled={materializar.isPending}
+              disabled={materializar.isPending || criarPortao.isPending}
             >
               Alterar pagamento
             </Button>
@@ -996,10 +996,10 @@ export default function CobrancaDetalhe() {
             </Button>
             <Button
               onClick={handleAceitar}
-              disabled={!podeMaterializar || materializar.isPending}
+              disabled={!podeMaterializar || materializar.isPending || criarPortao.isPending}
             >
-              {materializar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Aceitar e materializar
+              {(materializar.isPending || criarPortao.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+              {exigePortao ? "Aceitar e gerar portão" : "Aceitar e materializar"}
             </Button>
           </div>
         </CardContent>
@@ -1008,28 +1008,35 @@ export default function CobrancaDetalhe() {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar materialização</DialogTitle>
+            <DialogTitle>{exigePortao ? "Confirmar criação do portão" : "Confirmar materialização"}</DialogTitle>
             <DialogDescription>
-              Esta operação é irreversível. Serão criados <strong>{titulos.length}</strong>{" "}
-              título{titulos.length !== 1 ? "s" : ""} totalizando{" "}
-              <strong>{fmtBRL.format(totalEditado)}</strong>.
+              {exigePortao ? (
+                <>Vamos criar o portão. O pedido ficará aguardando o primeiro pagamento à vista antes de liberar a NF.</>
+              ) : (
+                <>
+                  Esta operação é irreversível. Serão criados <strong>{titulos.length}</strong>{" "}
+                  título{titulos.length !== 1 ? "s" : ""} totalizando{" "}
+                  <strong>{fmtBRL.format(totalEditado)}</strong>.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setConfirmOpen(false)}
-              disabled={materializar.isPending}
+              disabled={materializar.isPending || criarPortao.isPending}
             >
               Voltar
             </Button>
-            <Button onClick={handleConfirmar} disabled={materializar.isPending}>
-              {materializar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Button onClick={handleConfirmar} disabled={materializar.isPending || criarPortao.isPending}>
+              {(materializar.isPending || criarPortao.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
               Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <EditarCondicaoPagamentoDialog
         open={editarCondicaoOpen}
         onClose={() => setEditarCondicaoOpen(false)}
