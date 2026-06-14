@@ -11678,6 +11678,30 @@ export type Database = {
           },
         ]
       }
+      shopify_eventos_raw: {
+        Row: {
+          em: string
+          event_id: string | null
+          id: number
+          payload: Json | null
+          topic: string | null
+        }
+        Insert: {
+          em?: string
+          event_id?: string | null
+          id?: never
+          payload?: Json | null
+          topic?: string | null
+        }
+        Update: {
+          em?: string
+          event_id?: string | null
+          id?: never
+          payload?: Json | null
+          topic?: string | null
+        }
+        Relationships: []
+      }
       shopify_frete_sla: {
         Row: {
           ativo: boolean
@@ -16380,6 +16404,7 @@ export type Database = {
         }
         Returns: Json
       }
+      expirar_haveres_vencidos: { Args: never; Returns: Json }
       exportar_pacote_documentos: {
         Args: { p_periodo_fim: string; p_periodo_inicio: string }
         Returns: {

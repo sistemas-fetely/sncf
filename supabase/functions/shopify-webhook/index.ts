@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-shopify-hmac-sha256, x-shopify-topic",
+    "authorization, x-client-info, apikey, content-type, x-shopify-hmac-sha256, x-shopify-topic, x-shopify-event-id",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -97,22 +97,19 @@ Deno.serve(async (req) => {
   const raw = await req.text();
   const hmacHeader = req.headers.get("X-Shopify-Hmac-Sha256");
   const topic = req.headers.get("X-Shopify-Topic") ?? "desconhecido";
+  const eventId = req.headers.get("X-Shopify-Event-Id");
 
   await registrarLog(supabase, {
     topic,
     etapa: "recebido",
-    detalhe: { bytes: raw.length, temHmac: !!hmacHeader },
+    detalhe: { bytes: raw.length, temHmac: !!hmacHeader, eventId },
   });
 
   const { data: secret, error: secErr } = await supabase.rpc("get_vault_secret", {
     p_name: "SHOPIFY_WEBHOOK_SECRET",
   });
   if (secErr || !secret) {
-    await registrarLog(supabase, {
-      topic,
-      etapa: "secret_ausente",
-      detalhe: { err: secErr?.message ?? null },
-    });
+    await registrarLog(supabase, { topic, etapa: "secret_ausente", detalhe: { err: secErr?.message ?? null } });
     return jsonResponse(500, { error: "SHOPIFY_WEBHOOK_SECRET ausente no vault" });
   }
 
@@ -124,30 +121,48 @@ Deno.serve(async (req) => {
   const hexok = hmacHeader && hexBytes
     ? timingEq(await hmacBase64(raw, hexBytes), hmacHeader)
     : false;
-  const valido = utf8ok || hexok;
-
-  if (!valido) {
+  if (!(utf8ok || hexok)) {
     await registrarLog(supabase, {
       topic,
       etapa: "hmac_invalido",
-      detalhe: {
-        utf8ok,
-        hexok,
-        headerPrefix: hmacHeader?.slice(0, 12) ?? null,
-        secretLen: (secret as string).length,
-      },
+      detalhe: { utf8ok, hexok, headerPrefix: hmacHeader?.slice(0, 12) ?? null },
     });
     return jsonResponse(401, { error: "Assinatura HMAC inválida" });
   }
 
-  let order: any;
+  let evento: any;
   try {
-    order = JSON.parse(raw);
+    evento = JSON.parse(raw);
   } catch {
     await registrarLog(supabase, { topic, etapa: "json_malformado" });
     return jsonResponse(400, { error: "JSON malformado" });
   }
 
+  // POUSO RAW + DEDUP por event_id
+  let duplicado = false;
+  try {
+    const ins = await supabase.from("shopify_eventos_raw").insert({ event_id: eventId, topic, payload: evento });
+    if (ins.error) {
+      if (ins.error.code === "23505") duplicado = true;
+      else await registrarLog(supabase, { topic, etapa: "erro_raw", detalhe: { msg: ins.error.message } });
+    }
+  } catch (_) {
+    // pouso raw nunca bloqueia o processamento
+  }
+
+  if (duplicado) {
+    await registrarLog(supabase, { topic, etapa: "duplicado", detalhe: { eventId } });
+    return jsonResponse(200, { ok: true, duplicado: true });
+  }
+
+  // ROTEAMENTO: por enquanto só orders/* é estruturado; o resto fica no raw.
+  if (!topic.startsWith("orders/")) {
+    await registrarLog(supabase, { topic, etapa: "ok_raw", detalhe: { eventId } });
+    return jsonResponse(200, { ok: true, somente_raw: true, topic });
+  }
+
+  // ===== orders/* — fluxo estruturado (inalterado) =====
+  const order = evento;
   try {
     const shopify_id = str(order.id);
     if (!shopify_id) {
@@ -186,9 +201,7 @@ Deno.serve(async (req) => {
 
     const addr = order.shipping_address ?? {};
     const shipLine =
-      Array.isArray(order.shipping_lines) && order.shipping_lines.length
-        ? order.shipping_lines[0]
-        : null;
+      Array.isArray(order.shipping_lines) && order.shipping_lines.length ? order.shipping_lines[0] : null;
 
     const pedido = {
       shopify_id,
@@ -221,10 +234,7 @@ Deno.serve(async (req) => {
       return jsonResponse(500, { error: `Falha upsert pedido: ${upErr.message}` });
     }
 
-    const { error: delErr } = await supabase
-      .from("shopify_itens")
-      .delete()
-      .eq("pedido_id", shopify_id);
+    const { error: delErr } = await supabase.from("shopify_itens").delete().eq("pedido_id", shopify_id);
     if (delErr) {
       await registrarLog(supabase, { topic, etapa: "erro_delete_itens", shopify_id, detalhe: { msg: delErr.message } });
       return jsonResponse(500, { error: `Falha limpar itens: ${delErr.message}` });
