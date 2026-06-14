@@ -14,6 +14,7 @@ export interface CancelarPedidoResult {
   titulos_cancelados: number;
   boletos_baixa_pendente: number;
   valor_credito_pendente: number;
+  haver_id: string | null;
 }
 
 export function useCancelarPedido() {
