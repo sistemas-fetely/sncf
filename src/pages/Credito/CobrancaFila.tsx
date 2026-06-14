@@ -703,7 +703,7 @@ function PedidosCobrancaTab() {
       <div className="relative max-w-sm">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Buscar por ID, razão social ou CNPJ..."
+          placeholder="Buscar por número do pedido, cliente ou CNPJ..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           className="pl-10"
