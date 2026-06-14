@@ -11712,6 +11712,33 @@ export type Database = {
           },
         ]
       }
+      shopify_webhook_log: {
+        Row: {
+          detalhe: Json | null
+          em: string
+          etapa: string
+          id: number
+          shopify_id: string | null
+          topic: string | null
+        }
+        Insert: {
+          detalhe?: Json | null
+          em?: string
+          etapa: string
+          id?: never
+          shopify_id?: string | null
+          topic?: string | null
+        }
+        Update: {
+          detalhe?: Json | null
+          em?: string
+          etapa?: string
+          id?: never
+          shopify_id?: string | null
+          topic?: string | null
+        }
+        Relationships: []
+      }
       sistema_reportes: {
         Row: {
           atribuido_a: string | null
@@ -16006,6 +16033,10 @@ export type Database = {
           alvo_user_id: string
           modo: string
         }[]
+      }
+      definir_exige_portao: {
+        Args: { p_pedido_id: string; p_valor: boolean }
+        Returns: Json
       }
       delegacao_ativa_entre: {
         Args: { _gestor: string; _substituto: string }

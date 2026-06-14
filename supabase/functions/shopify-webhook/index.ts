@@ -38,7 +38,6 @@ function iso(v: unknown): string | null {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-// Mesma lógica do importer CSV — mantém payment_method consistente entre backfill e tempo real.
 function normalizarPagamento(raw: string | null): string | null {
   if (!raw) return null;
   const temPix = /pix/i.test(raw);
@@ -50,26 +49,40 @@ function normalizarPagamento(raw: string | null): string | null {
   return null;
 }
 
-async function verificarHmac(raw: string, header: string | null, secret: string): Promise<boolean> {
-  if (!header) return false;
-  const enc = new TextEncoder();
+function hexToBytes(hex: string): Uint8Array | null {
+  if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length % 2 !== 0) return null;
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return out;
+}
+
+function timingEq(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
+async function hmacBase64(raw: string, keyBytes: Uint8Array): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
-    enc.encode(secret),
+    keyBytes,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
   );
-  const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(raw));
-  const bytes = new Uint8Array(sigBuf);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(raw));
   let bin = "";
-  for (const b of bytes) bin += String.fromCharCode(b);
-  const computed = btoa(bin);
-  // comparação de tempo constante
-  if (computed.length !== header.length) return false;
-  let diff = 0;
-  for (let i = 0; i < computed.length; i++) diff |= computed.charCodeAt(i) ^ header.charCodeAt(i);
-  return diff === 0;
+  for (const b of new Uint8Array(sig)) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+async function registrarLog(supabase: any, row: Record<string, unknown>) {
+  try {
+    await supabase.from("shopify_webhook_log").insert(row);
+  } catch (_) {
+    // auditoria nunca pode quebrar a resposta
+  }
 }
 
 Deno.serve(async (req) => {
@@ -81,58 +94,80 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // 1. Corpo CRU primeiro (HMAC é sobre os bytes exatos — não parsear antes).
   const raw = await req.text();
   const hmacHeader = req.headers.get("X-Shopify-Hmac-Sha256");
   const topic = req.headers.get("X-Shopify-Topic") ?? "desconhecido";
-  console.log("[shopify-webhook] recebido", { topic, bytes: raw.length, temHmac: !!hmacHeader });
 
-  // 2. Segredo do vault.
+  await registrarLog(supabase, {
+    topic,
+    etapa: "recebido",
+    detalhe: { bytes: raw.length, temHmac: !!hmacHeader },
+  });
+
   const { data: secret, error: secErr } = await supabase.rpc("get_vault_secret", {
     p_name: "SHOPIFY_WEBHOOK_SECRET",
   });
   if (secErr || !secret) {
-    console.error("[shopify-webhook] SHOPIFY_WEBHOOK_SECRET ausente no vault", secErr?.message);
+    await registrarLog(supabase, {
+      topic,
+      etapa: "secret_ausente",
+      detalhe: { err: secErr?.message ?? null },
+    });
     return jsonResponse(500, { error: "SHOPIFY_WEBHOOK_SECRET ausente no vault" });
   }
 
-  // 3. Verifica assinatura.
-  const valido = await verificarHmac(raw, hmacHeader, secret as string);
+  const enc = new TextEncoder();
+  const utf8ok = hmacHeader
+    ? timingEq(await hmacBase64(raw, enc.encode(secret as string)), hmacHeader)
+    : false;
+  const hexBytes = hexToBytes(secret as string);
+  const hexok = hmacHeader && hexBytes
+    ? timingEq(await hmacBase64(raw, hexBytes), hmacHeader)
+    : false;
+  const valido = utf8ok || hexok;
+
   if (!valido) {
-    console.error("[shopify-webhook] HMAC inválido", { topic, temHmac: !!hmacHeader });
+    await registrarLog(supabase, {
+      topic,
+      etapa: "hmac_invalido",
+      detalhe: {
+        utf8ok,
+        hexok,
+        headerPrefix: hmacHeader?.slice(0, 12) ?? null,
+        secretLen: (secret as string).length,
+      },
+    });
     return jsonResponse(401, { error: "Assinatura HMAC inválida" });
   }
 
-  // 4. Parse.
   let order: any;
   try {
     order = JSON.parse(raw);
   } catch {
+    await registrarLog(supabase, { topic, etapa: "json_malformado" });
     return jsonResponse(400, { error: "JSON malformado" });
   }
 
   try {
     const shopify_id = str(order.id);
-    if (!shopify_id) return jsonResponse(400, { error: "Pedido sem id" });
+    if (!shopify_id) {
+      await registrarLog(supabase, { topic, etapa: "sem_id" });
+      return jsonResponse(400, { error: "Pedido sem id" });
+    }
 
-    // paid_at: webhook não traz pronto — proxy = processed_at quando pago.
     const paid_at =
       (str(order.financial_status) ?? "").toLowerCase() === "paid" ? iso(order.processed_at) : null;
-
-    // fulfilled_at: deriva do último fulfillments[].
     const fulfillments = Array.isArray(order.fulfillments) ? order.fulfillments : [];
     const fulfilled_at = fulfillments.length
       ? iso(fulfillments[fulfillments.length - 1].created_at)
       : null;
 
-    // shipping_cost: total_shipping_price_set, com fallback nas shipping_lines.
     let shipping_cost = 0;
     const shipSet = order.total_shipping_price_set?.shop_money?.amount;
     if (shipSet !== null && shipSet !== undefined) shipping_cost = num(shipSet);
     else if (Array.isArray(order.shipping_lines))
       shipping_cost = order.shipping_lines.reduce((s: number, l: any) => s + num(l.price), 0);
 
-    // refunded_amount: soma das transações de refund bem-sucedidas (best-effort).
     let refunded_amount = 0;
     if (Array.isArray(order.refunds)) {
       for (const r of order.refunds) {
@@ -178,18 +213,22 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
-    // UPSERT pedido (não toca wns_pedido_id nem importacao_id — colunas fora do payload).
     const { error: upErr } = await supabase
       .from("shopify_pedidos")
       .upsert(pedido, { onConflict: "shopify_id" });
-    if (upErr) return jsonResponse(500, { error: `Falha upsert pedido: ${upErr.message}` });
+    if (upErr) {
+      await registrarLog(supabase, { topic, etapa: "erro_upsert_pedido", shopify_id, detalhe: { msg: upErr.message } });
+      return jsonResponse(500, { error: `Falha upsert pedido: ${upErr.message}` });
+    }
 
-    // Itens: DELETE + INSERT (mesmo padrão do CSV).
     const { error: delErr } = await supabase
       .from("shopify_itens")
       .delete()
       .eq("pedido_id", shopify_id);
-    if (delErr) return jsonResponse(500, { error: `Falha limpar itens: ${delErr.message}` });
+    if (delErr) {
+      await registrarLog(supabase, { topic, etapa: "erro_delete_itens", shopify_id, detalhe: { msg: delErr.message } });
+      return jsonResponse(500, { error: `Falha limpar itens: ${delErr.message}` });
+    }
 
     const lineItems = Array.isArray(order.line_items) ? order.line_items : [];
     const itens: Array<Record<string, unknown>> = [];
@@ -208,13 +247,21 @@ Deno.serve(async (req) => {
     }
     if (itens.length) {
       const { error: insErr } = await supabase.from("shopify_itens").insert(itens);
-      if (insErr) return jsonResponse(500, { error: `Falha gravar itens: ${insErr.message}` });
+      if (insErr) {
+        await registrarLog(supabase, { topic, etapa: "erro_insert_itens", shopify_id, detalhe: { msg: insErr.message } });
+        return jsonResponse(500, { error: `Falha gravar itens: ${insErr.message}` });
+      }
     }
 
-    console.log("[shopify-webhook] OK", { topic, shopify_id, order_name: pedido.order_name, itens: itens.length });
+    await registrarLog(supabase, {
+      topic,
+      etapa: "ok",
+      shopify_id,
+      detalhe: { metodo_match: utf8ok ? "utf8" : "hex", itens: itens.length, order_name: pedido.order_name },
+    });
     return jsonResponse(200, { ok: true, topic, shopify_id, itens: itens.length });
   } catch (e) {
-    console.error("[shopify-webhook] erro inesperado", e);
+    await registrarLog(supabase, { topic, etapa: "erro", detalhe: { msg: String((e as any)?.message ?? e) } });
     return jsonResponse(500, { error: String((e as any)?.message ?? e) });
   }
 });
