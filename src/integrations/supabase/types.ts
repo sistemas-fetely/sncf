@@ -16595,6 +16595,10 @@ export type Database = {
         Args: { p_ged_documento_id: string; p_resultado_ia: Json }
         Returns: Json
       }
+      marcar_haver_devolucao: {
+        Args: { p_haver_id: string; p_motivo?: string }
+        Returns: Json
+      }
       marcar_nf_enviada_pagamento: {
         Args: { _email_destinatario: string; _nota_id: string }
         Returns: Json

@@ -16,6 +16,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { XCircle, CheckCircle2, CopyPlus, AlertTriangle, Info } from "lucide-react";
 import { useCancelarPedido } from "@/hooks/pedidos/useCancelarPedido";
 import { useClonarPedido } from "@/hooks/pedidos/useClonarPedido";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   pedido_id: string;
@@ -27,13 +29,17 @@ const ESTAGIOS_BLOQUEADOS = ["faturado", "em_transporte", "entregue"];
 
 export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [step, setStep] = useState<"confirm" | "result">("confirm");
+  const [devolvendo, setDevolvendo] = useState(false);
+  const [devolvido, setDevolvido] = useState(false);
   const [resultado, setResultado] = useState<{
     titulos_cancelados: number;
     boletos_baixa_pendente: number;
     valor_credito_pendente: number;
+    haver_id: string | null;
   } | null>(null);
 
   const cancelar = useCancelarPedido();
@@ -57,8 +63,26 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
       setMotivo("");
       setStep("confirm");
       setResultado(null);
+      setDevolvendo(false);
+      setDevolvido(false);
     }
     setOpen(v);
+  };
+
+  const handleDevolver = async () => {
+    if (!resultado?.haver_id) return;
+    setDevolvendo(true);
+    const { error } = await (supabase as any).rpc("marcar_haver_devolucao", {
+      p_haver_id: resultado.haver_id,
+      p_motivo: motivo.trim() || null,
+    });
+    setDevolvendo(false);
+    if (error) {
+      toast({ title: "Não foi possível marcar devolução", description: error.message, variant: "destructive" });
+      return;
+    }
+    setDevolvido(true);
+    toast({ title: "Marcado para devolução" });
   };
 
   const handleConfirmar = async () => {
@@ -68,6 +92,7 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
       titulos_cancelados: data.titulos_cancelados ?? 0,
       boletos_baixa_pendente: data.boletos_baixa_pendente ?? 0,
       valor_credito_pendente: data.valor_credito_pendente ?? 0,
+      haver_id: data.haver_id ?? null,
     });
     setStep("result");
   };
@@ -153,8 +178,22 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
                         minimumFractionDigits: 2,
                       })}
                     </strong>{" "}
-                    em pagamento(s) recebido(s) foram preservados. Crédito do
-                    cliente será calculado quando o módulo estiver disponível.
+                    em pagamento(s) recebido(s) viraram haver do cliente (disponível por 180 dias).
+                    {devolvido ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Marcado para devolução ao cliente.
+                      </p>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={handleDevolver}
+                        disabled={devolvendo}
+                      >
+                        {devolvendo ? "Marcando..." : "Marcar para devolução"}
+                      </Button>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
