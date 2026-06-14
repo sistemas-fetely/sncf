@@ -34,7 +34,7 @@ export default function ClienteDetalhe() {
 
   if (!data) return <p className="text-muted-foreground">Cliente não encontrado.</p>;
 
-  const { parceiro, socios, kpisFinanceiros, kpisGrupo, analises, marcos } = data;
+  const { parceiro, socios, kpisFinanceiros, kpisGrupo, analises, marcos, haveres } = data;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
@@ -166,6 +166,53 @@ export default function ClienteDetalhe() {
                 </p>
                 <Linha label="Grupo · em aberto" value={fmtBRL.format(kpisGrupo.em_aberto)} />
                 <Linha label="Grupo · vencidos" value={fmtBRL.format(kpisGrupo.vencidos)} destaque={kpisGrupo.vencidos > 0} />
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Crédito do cliente (haveres)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {haveres.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum haver disponível.</p>
+            ) : (
+              <>
+                <p className="text-sm font-medium">
+                  Disponível: {fmtBRL.format(haveres.reduce((acc, h) => acc + (h.saldo || 0), 0))}
+                </p>
+                <div className="space-y-2">
+                  {haveres.map((h) => (
+                    <div
+                      key={h.id}
+                      className="flex items-start justify-between gap-3 rounded-md border p-3"
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm font-medium">
+                          {fmtBRL.format(h.saldo || 0)}
+                          {h.saldo !== h.valor && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              de {fmtBRL.format(h.valor || 0)}
+                            </span>
+                          )}
+                        </p>
+                        {h.origem_descricao && (
+                          <p className="text-xs text-muted-foreground truncate">{h.origem_descricao}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {h.data_expiracao
+                            ? `Expira em ${fmtDate(h.data_expiracao)}`
+                            : "Sem expiração"}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="capitalize shrink-0">
+                        {h.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </CardContent>
