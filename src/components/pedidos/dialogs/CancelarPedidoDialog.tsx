@@ -178,8 +178,22 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
                         minimumFractionDigits: 2,
                       })}
                     </strong>{" "}
-                    em pagamento(s) recebido(s) foram preservados. Crédito do
-                    cliente será calculado quando o módulo estiver disponível.
+                    em pagamento(s) recebido(s) viraram haver do cliente (disponível por 180 dias).
+                    {devolvido ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Marcado para devolução ao cliente.
+                      </p>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={handleDevolver}
+                        disabled={devolvendo}
+                      >
+                        {devolvendo ? "Marcando..." : "Marcar para devolução"}
+                      </Button>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
