@@ -841,7 +841,7 @@ export default function CobrancaFila() {
         </TabsContent>
 
         <TabsContent value="contas-receber">
-          <ContasReceber />
+          <ContasReceberSops />
         </TabsContent>
       </Tabs>
     </div>
