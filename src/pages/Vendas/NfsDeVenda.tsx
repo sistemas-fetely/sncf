@@ -190,6 +190,7 @@ export default function NfsDeVenda() {
               <TableHead>Parceiro</TableHead>
               <TableHead className="w-[140px] text-right">Valor</TableHead>
               <TableHead className="w-[120px] text-right">Frete</TableHead>
+              <TableHead className="w-[140px]">Pedido</TableHead>
               <TableHead className="w-[120px]">Situação</TableHead>
               <TableHead className="w-[100px] text-right">Ações</TableHead>
             </TableRow>
@@ -205,7 +206,7 @@ export default function NfsDeVenda() {
               </>
             ) : filtrados.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                   Nenhuma NF encontrada.
                 </TableCell>
               </TableRow>
@@ -224,6 +225,20 @@ export default function NfsDeVenda() {
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-sm">
                     {n.valor_frete ? formatCurrency(n.valor_frete) : "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {n.pedido?.id_externo ? (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 font-mono text-xs"
+                        onClick={() => navigate(`/vendas/pedidos/${n.pedido_venda_id}`)}
+                      >
+                        {n.pedido.id_externo}
+                      </Button>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell>
                     {n.situacao ? (
