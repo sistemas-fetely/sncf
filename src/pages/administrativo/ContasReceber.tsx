@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,14 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -30,210 +22,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownToLine, Copy, CheckCheck, Inbox, Mail, MailCheck } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { ArrowDownToLine, Inbox } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
-type Titulo = {
+type RecebivelB2B = {
   id: string;
   numero_titulo: string | null;
-  pedido_id: string | null;
-  data_vencimento_atual: string | null;
-  data_pagamento: string | null;
-  data_pagamento_banco: string | null;
-  valor_bruto: number | null;
-  valor_atual: number | null;
-  status: string;
   numero_parcela: number | null;
   total_parcelas: number | null;
-  tipo_pagamento: string | null;
-  boleto_status: string | null;
-  linha_digitavel: string | null;
-  link_pagamento: string | null;
-  email_cobranca_enviado_em: string | null;
-  conta: { parceiro: { razao_social: string | null } | null } | null;
-};
-
-type GrupoStatus = "a_receber" | "vencido" | "pago" | "cancelado";
-
-const STATUS_PARA_GRUPO: Record<string, GrupoStatus> = {
-  aguardando_pagamento: "a_receber",
-  aguardando_envio_bling: "a_receber",
-  aguardando_emissao_nf: "a_receber",
-  vigente: "a_receber",
-  vigente_parcial: "a_receber",
-  renegociado: "a_receber",
-  vencido: "vencido",
-  vencido_suspenso: "vencido",
-  em_juridico: "vencido",
-  pago: "pago",
-  pago_com_atraso: "pago",
-  pago_judicial: "pago",
-  cancelado: "cancelado",
-  cancelado_recuperacao: "cancelado",
-  baixado_por_perda: "cancelado",
-};
-
-const BOLETO_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  pendente: { label: "Pendente", className: "bg-gray-100 text-gray-600" },
-  remessa_gerada: { label: "Remessa gerada", className: "bg-yellow-100 text-yellow-800" },
-  registrado: { label: "Registrado", className: "bg-blue-100 text-blue-800" },
-  pago_manual: { label: "Pago (manual)", className: "bg-emerald-100 text-emerald-800" },
-  pago_banco: { label: "Pago (Safra)", className: "bg-green-700 text-white" },
-  rejeitado: { label: "Rejeitado", className: "bg-red-100 text-red-800" },
-  vencido: { label: "Vencido", className: "bg-orange-100 text-orange-800" },
+  cliente: string | null;
+  meio_pagamento: string | null;
+  banco_nome: string | null;
+  nf_numero: string | null;
+  data_compra: string | null;
+  data_vencimento: string | null;
+  valor: number | null;
+  status_gestao: "pago" | "atrasado" | "em_aberto";
+  data_liquidacao: string | null;
+  liquidacao_realizada: boolean;
 };
 
 const PAGE_SIZE = 25;
 
-function BaixaManualDialog({ titulo, onClose }: { titulo: Titulo; onClose: () => void }) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [dataPag, setDataPag] = useState(() => new Date().toISOString().slice(0, 10));
-  const [loading, setLoading] = useState(false);
+type CardKey = "totalReceber" | "vencido" | "vence7" | "recebidoMes" | "liquidar30";
 
-  const handleConfirm = async () => {
-    setLoading(true);
-    try {
-      const { error: rpcErr } = await (supabase as any).rpc("marcar_titulo_pago", {
-        p_titulo_id: titulo.id,
-        p_data_pagamento: dataPag + "T12:00:00" + ".000Z",
-      });
-      if (rpcErr) throw rpcErr;
+const capitalize = (s: string) =>
+  s
+    .split(" ")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(" ");
 
-      if (titulo.boleto_status !== null) {
-        const { error: updErr } = await (supabase as any)
-          .from("titulo_a_receber")
-          .update({ boleto_status: "pago_manual" })
-          .eq("id", titulo.id);
-        if (updErr) throw updErr;
-      }
-
-      await qc.invalidateQueries({ queryKey: ["contas-receber-titulos"] });
-      toast({ title: "Baixa registrada" });
-      onClose();
-    } catch (e: any) {
-      toast({
-        title: "Erro ao registrar baixa",
-        description: e?.message ?? String(e),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Baixa manual</DialogTitle>
-          <DialogDescription>
-            Título <span className="font-mono">{titulo.numero_titulo ?? "—"}</span> ·{" "}
-            {formatBRL(titulo.valor_atual ?? titulo.valor_bruto ?? 0)} · venc.{" "}
-            {formatDateBR(titulo.data_vencimento_atual)}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-2">
-          <Label htmlFor="data-pag">Data do pagamento</Label>
-          <Input
-            id="data-pag"
-            type="date"
-            value={dataPag}
-            onChange={(e) => setDataPag(e.target.value)}
-          />
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button onClick={handleConfirm} disabled={loading || !dataPag}>
-            {loading ? "Registrando..." : "Confirmar baixa"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function BotaoEmailCobranca({ titulo }: { titulo: Titulo }) {
-  const enviar = useEnviarEmailCobranca();
-  const tipos = ["cartao", "cartao_credito", "cartao_debito", "pix"];
-  if (!tipos.includes(titulo.tipo_pagamento ?? "")) return null;
-  if (!titulo.link_pagamento) return null;
-  if (titulo.status === "pago" || titulo.status === "baixado") return null;
-
-  if (titulo.email_cobranca_enviado_em) {
-    const dt = new Date(titulo.email_cobranca_enviado_em).toLocaleDateString("pt-BR");
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="inline-flex items-center text-green-600">
-              <MailCheck className="h-4 w-4" />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>Email enviado em {dt}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            disabled={enviar.isPending}
-            onClick={() => enviar.mutate(titulo.id)}
-          >
-            <Mail className="h-4 w-4 text-muted-foreground" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Enviar link de pagamento por email</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
+const formatMeio = (m: string | null) => (m ? capitalize(m.replace(/_/g, " ")) : "—");
 
 export default function ContasReceber() {
-  const { toast } = useToast();
-  const [filtroGrupo, setFiltroGrupo] = useState<"todos" | GrupoStatus>("todos");
-  const [filtroBoleto, setFiltroBoleto] = useState<string>("todos");
   const [busca, setBusca] = useState("");
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
+  const [filtroBanco, setFiltroBanco] = useState<string>("todos");
+  const [filtroMeio, setFiltroMeio] = useState<string>("todos");
+  const [cardsAtivos, setCardsAtivos] = useState<Set<CardKey>>(new Set());
   const [page, setPage] = useState(1);
-  const [tituloBaixa, setTituloBaixa] = useState<Titulo | null>(null);
-  const [copiadoId, setCopiadoId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["contas-receber-titulos"],
+    queryKey: ["recebivel-b2b"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("titulo_a_receber")
-        .select(
-          `
-          id, numero_titulo, pedido_id,
-          data_vencimento_atual, data_pagamento, data_pagamento_banco,
-          valor_bruto, valor_atual, status, numero_parcela, total_parcelas,
-          tipo_pagamento, boleto_status, linha_digitavel,
-          link_pagamento, email_cobranca_enviado_em,
-          conta:contas_pagar_receber(
-            parceiro:parceiros_comerciais(razao_social)
-          )
-        `
-        )
-        .order("data_vencimento_atual", { ascending: true });
+        .from("vw_recebivel_b2b")
+        .select("*")
+        .order("data_vencimento", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as Titulo[];
+      return (data ?? []) as RecebivelB2B[];
     },
   });
 
@@ -243,44 +82,62 @@ export default function ContasReceber() {
     return d;
   }, []);
 
+  const em7 = useMemo(() => new Date(hoje.getTime() + 7 * 86400000), [hoje]);
+  const em30 = useMemo(() => new Date(hoje.getTime() + 30 * 86400000), [hoje]);
+  const inicioMes = useMemo(() => new Date(hoje.getFullYear(), hoje.getMonth(), 1), [hoje]);
+  const fimMes = useMemo(() => new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59), [hoje]);
+
+  const predicados: Record<CardKey, (t: RecebivelB2B) => boolean> = useMemo(
+    () => ({
+      totalReceber: (t) => t.status_gestao === "em_aberto" || t.status_gestao === "atrasado",
+      vencido: (t) => t.status_gestao === "atrasado",
+      vence7: (t) => {
+        if (t.status_gestao !== "em_aberto" || !t.data_vencimento) return false;
+        const v = new Date(t.data_vencimento);
+        return v >= hoje && v <= em7;
+      },
+      recebidoMes: (t) => {
+        if (t.status_gestao !== "pago" || !t.data_liquidacao) return false;
+        const d = new Date(t.data_liquidacao);
+        return d >= inicioMes && d <= fimMes;
+      },
+      liquidar30: (t) => {
+        if (t.status_gestao !== "em_aberto" || !t.data_liquidacao) return false;
+        const d = new Date(t.data_liquidacao);
+        return d >= hoje && d <= em30;
+      },
+    }),
+    [hoje, em7, em30, inicioMes, fimMes]
+  );
+
   const kpis = useMemo(() => {
     const titulos = data ?? [];
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    const em7 = new Date(hoje.getTime() + 7 * 86400000);
-
     let totalReceber = 0;
     let vencido = 0;
     let vence7 = 0;
     let recebidoMes = 0;
-
+    let liquidar30 = 0;
     for (const t of titulos) {
-      const grupo = STATUS_PARA_GRUPO[t.status];
-      const valor = t.valor_atual ?? t.valor_bruto ?? 0;
-      const venc = t.data_vencimento_atual ? new Date(t.data_vencimento_atual) : null;
-
-      if (grupo === "a_receber" || grupo === "vencido") {
-        totalReceber += valor;
-        if (venc && venc < hoje) vencido += valor;
-        if (venc && venc >= hoje && venc <= em7) vence7 += valor;
-      }
-      if (grupo === "pago") {
-        const dp = t.data_pagamento ? new Date(t.data_pagamento) : null;
-        if (dp && dp >= inicioMes) recebidoMes += valor;
-      }
+      const v = t.valor ?? 0;
+      if (predicados.totalReceber(t)) totalReceber += v;
+      if (predicados.vencido(t)) vencido += v;
+      if (predicados.vence7(t)) vence7 += v;
+      if (predicados.recebidoMes(t)) recebidoMes += v;
+      if (predicados.liquidar30(t)) liquidar30 += v;
     }
-    return { totalReceber, vencido, vence7, recebidoMes };
-  }, [data, hoje]);
+    const inadimplencia = totalReceber > 0 ? (vencido / totalReceber) * 100 : 0;
+    return { totalReceber, vencido, vence7, recebidoMes, liquidar30, inadimplencia };
+  }, [data, predicados]);
 
   const aging = useMemo(() => {
     const titulos = data ?? [];
     const faixas = { a_vencer: 0, f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
     for (const t of titulos) {
-      const grupo = STATUS_PARA_GRUPO[t.status];
-      if (grupo !== "a_receber" && grupo !== "vencido") continue;
-      if (!t.data_vencimento_atual) continue;
-      const venc = new Date(t.data_vencimento_atual);
+      if (t.status_gestao !== "em_aberto" && t.status_gestao !== "atrasado") continue;
+      if (!t.data_vencimento) continue;
+      const venc = new Date(t.data_vencimento);
       const dias = Math.floor((hoje.getTime() - venc.getTime()) / 86400000);
-      const valor = t.valor_atual ?? t.valor_bruto ?? 0;
+      const valor = t.valor ?? 0;
       if (dias <= 0) faixas.a_vencer += valor;
       else if (dias <= 7) faixas.f1_7 += valor;
       else if (dias <= 30) faixas.f8_30 += valor;
@@ -290,6 +147,18 @@ export default function ContasReceber() {
     return faixas;
   }, [data, hoje]);
 
+  const bancosOpcoes = useMemo(() => {
+    const set = new Set<string>();
+    (data ?? []).forEach((t) => t.banco_nome && set.add(t.banco_nome));
+    return Array.from(set).sort();
+  }, [data]);
+
+  const meiosOpcoes = useMemo(() => {
+    const set = new Set<string>();
+    (data ?? []).forEach((t) => t.meio_pagamento && set.add(t.meio_pagamento));
+    return Array.from(set).sort();
+  }, [data]);
+
   const filtrados = useMemo(() => {
     const titulos = data ?? [];
     const buscaLc = busca.trim().toLowerCase();
@@ -297,52 +166,73 @@ export default function ContasReceber() {
     const dAte = dataAte ? new Date(dataAte) : null;
 
     return titulos.filter((t) => {
-      const grupo = STATUS_PARA_GRUPO[t.status];
-      if (filtroGrupo !== "todos" && grupo !== filtroGrupo) return false;
-
-      if (filtroBoleto !== "todos") {
-        if (filtroBoleto === "sem_boleto") {
-          if (t.boleto_status !== null) return false;
-        } else if (t.boleto_status !== filtroBoleto) return false;
+      for (const k of cardsAtivos) {
+        if (!predicados[k](t)) return false;
       }
+      if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) return false;
+      if (filtroMeio !== "todos" && t.meio_pagamento !== filtroMeio) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
-        const cli = (t.conta?.parceiro?.razao_social ?? "").toLowerCase();
+        const cli = (t.cliente ?? "").toLowerCase();
         if (!num.includes(buscaLc) && !cli.includes(buscaLc)) return false;
       }
 
       if (dDe || dAte) {
-        if (!t.data_vencimento_atual) return false;
-        const venc = new Date(t.data_vencimento_atual);
+        if (!t.data_vencimento) return false;
+        const venc = new Date(t.data_vencimento);
         if (dDe && venc < dDe) return false;
         if (dAte && venc > dAte) return false;
       }
-
       return true;
     });
-  }, [data, filtroGrupo, filtroBoleto, busca, dataDe, dataAte]);
+  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
   const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
-  const handleCopy = async (id: string, linha: string) => {
-    try {
-      await navigator.clipboard.writeText(linha);
-      setCopiadoId(id);
-      toast({ title: "Copiado!" });
-      setTimeout(() => setCopiadoId((c) => (c === id ? null : c)), 2500);
-    } catch {
-      toast({ title: "Falha ao copiar", variant: "destructive" });
-    }
+  const toggleCard = (k: CardKey) => {
+    setCardsAtivos((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+    setPage(1);
   };
 
-  const renderBoletoBadge = (status: string | null) => {
-    if (!status) return <span className="text-muted-foreground">—</span>;
-    const cfg = BOLETO_STATUS_CONFIG[status];
-    if (!cfg) return <Badge variant="outline">{status}</Badge>;
-    return <Badge className={cfg.className + " border-0"}>{cfg.label}</Badge>;
+  const renderStatusBadge = (s: RecebivelB2B["status_gestao"]) => {
+    if (s === "pago") return <Badge className="bg-green-100 text-green-800 border-0">Pago</Badge>;
+    if (s === "atrasado")
+      return <Badge className="bg-red-100 text-red-800 border-0">Atrasado</Badge>;
+    return <Badge className="bg-blue-100 text-blue-800 border-0">Em aberto</Badge>;
+  };
+
+  const kpiCard = (
+    key: CardKey,
+    label: string,
+    value: string,
+    colorClass: string,
+    ringClass: string
+  ) => {
+    const active = cardsAtivos.has(key);
+    return (
+      <Card
+        onClick={() => toggleCard(key)}
+        className={cn(
+          "cursor-pointer transition-all hover:shadow-md",
+          active && `ring-2 ${ringClass}`
+        )}
+      >
+        <CardHeader className="pb-2">
+          <CardTitle className={cn("text-sm", colorClass)}>{label}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className={cn("text-2xl font-semibold", colorClass)}>{value}</div>
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
@@ -352,47 +242,24 @@ export default function ContasReceber() {
         <div>
           <h1 className="text-2xl font-semibold">Contas a Receber</h1>
           <p className="text-sm text-muted-foreground">
-            Recebíveis por parcela — acompanhe boletos, aging e confirmações.
+            Recebíveis B2B por parcela — somente títulos com NF. Visão de gestão (somente leitura).
           </p>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+        {kpiCard("totalReceber", "Total a receber", formatBRL(kpis.totalReceber), "text-blue-700", "ring-blue-500")}
+        {kpiCard("vencido", "Vencido", formatBRL(kpis.vencido), "text-red-700", "ring-red-500")}
+        {kpiCard("vence7", "Vence em 7 dias", formatBRL(kpis.vence7), "text-amber-600", "ring-amber-500")}
+        {kpiCard("recebidoMes", "Recebido no mês", formatBRL(kpis.recebidoMes), "text-green-700", "ring-green-500")}
+        {kpiCard("liquidar30", "A liquidar em 30 dias", formatBRL(kpis.liquidar30), "text-cyan-700", "ring-cyan-500")}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-blue-700">Total a receber</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Inadimplência</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-blue-700">
-              {formatBRL(kpis.totalReceber)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-red-700">Vencido</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-red-700">{formatBRL(kpis.vencido)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-amber-600">Vence em 7 dias</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-amber-600">{formatBRL(kpis.vence7)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-green-700">Recebido no mês</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-green-700">
-              {formatBRL(kpis.recebidoMes)}
-            </div>
+            <div className="text-2xl font-semibold">{kpis.inadimplencia.toFixed(1)}%</div>
           </CardContent>
         </Card>
       </div>
@@ -406,9 +273,7 @@ export default function ContasReceber() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
             <div className="rounded-md border p-3">
               <div className="text-xs text-muted-foreground">A vencer</div>
-              <div className="text-lg font-semibold text-blue-700">
-                {formatBRL(aging.a_vencer)}
-              </div>
+              <div className="text-lg font-semibold text-blue-700">{formatBRL(aging.a_vencer)}</div>
             </div>
             <div className="rounded-md border p-3">
               <div className="text-xs text-muted-foreground">1–7 dias</div>
@@ -434,50 +299,6 @@ export default function ContasReceber() {
       <Card>
         <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-5">
           <div className="space-y-1">
-            <Label className="text-xs">Status</Label>
-            <Select
-              value={filtroGrupo}
-              onValueChange={(v) => {
-                setFiltroGrupo(v as any);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="a_receber">A receber</SelectItem>
-                <SelectItem value="vencido">Vencido</SelectItem>
-                <SelectItem value="pago">Pago</SelectItem>
-                <SelectItem value="cancelado">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Status do boleto</Label>
-            <Select
-              value={filtroBoleto}
-              onValueChange={(v) => {
-                setFiltroBoleto(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="sem_boleto">Sem boleto</SelectItem>
-                {Object.entries(BOLETO_STATUS_CONFIG).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>
-                    {v.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
             <Label className="text-xs">Busca</Label>
             <Input
               placeholder="Título ou cliente"
@@ -487,6 +308,50 @@ export default function ContasReceber() {
                 setPage(1);
               }}
             />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Banco</Label>
+            <Select
+              value={filtroBanco}
+              onValueChange={(v) => {
+                setFiltroBanco(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {bancosOpcoes.map((b) => (
+                  <SelectItem key={b} value={b}>
+                    {b}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Meio de pagamento</Label>
+            <Select
+              value={filtroMeio}
+              onValueChange={(v) => {
+                setFiltroMeio(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {meiosOpcoes.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {formatMeio(m)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Vencimento de</Label>
@@ -522,136 +387,103 @@ export default function ContasReceber() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
-          ) : !data || data.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 p-12 text-center">
-              <Inbox className="h-10 w-10 text-muted-foreground" />
-              <div className="font-medium">Nenhum título ainda</div>
-              <div className="text-sm text-muted-foreground">
-                Os títulos nascem quando um pedido é materializado na Cobrança.
-              </div>
-            </div>
-          ) : filtrados.length === 0 ? (
-            <div className="p-12 text-center text-sm text-muted-foreground">
-              Nenhum registro com os filtros aplicados.
+          ) : paginados.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
+              <Inbox className="h-8 w-8" />
+              <p>Nenhum recebível encontrado.</p>
             </div>
           ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Parcela</TableHead>
-                    <TableHead>Forma</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Status boleto</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginados.map((t) => {
-                    const grupo = STATUS_PARA_GRUPO[t.status];
-                    const venc = t.data_vencimento_atual
-                      ? new Date(t.data_vencimento_atual)
-                      : null;
-                    const vencido =
-                      venc && venc < hoje && (grupo === "a_receber" || grupo === "vencido");
-                    const valor = t.valor_atual ?? t.valor_bruto ?? 0;
-                    const podeBaixa =
-                      (grupo === "a_receber" || grupo === "vencido") &&
-                      t.boleto_status !== "pago_manual" &&
-                      t.boleto_status !== "pago_banco";
-
-                    return (
-                      <TableRow key={t.id} className={vencido ? "bg-red-50/40" : ""}>
-                        <TableCell
-                          className={vencido ? "font-semibold text-red-700" : ""}
-                        >
-                          {formatDateBR(t.data_vencimento_atual)}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {t.numero_titulo ?? "—"}
-                        </TableCell>
-                        <TableCell className="max-w-[160px] truncate">
-                          {t.conta?.parceiro?.razao_social ?? "—"}
-                        </TableCell>
-                        <TableCell>
-                          {t.numero_parcela ?? "—"}/{t.total_parcelas ?? "—"}
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {(t.tipo_pagamento ?? "—").replace(/_/g, " ")}
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatBRL(valor)}
-                        </TableCell>
-                        <TableCell>{renderBoletoBadge(t.boleto_status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {podeBaixa && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs"
-                                onClick={() => setTituloBaixa(t)}
-                              >
-                                Baixa manual
-                              </Button>
-                            )}
-                            {t.linha_digitavel && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleCopy(t.id, t.linha_digitavel!)}
-                              >
-                                {copiadoId === t.id ? (
-                                  <CheckCheck className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <Copy className="h-4 w-4" />
-                                )}
-                              </Button>
-                            )}
-                            <BotaoEmailCobranca titulo={t} />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-
-              <div className="flex items-center justify-between border-t p-3 text-sm">
-                <div className="text-muted-foreground">
-                  {filtrados.length} registro{filtrados.length === 1 ? "" : "s"} · Página{" "}
-                  {pageSafe} de {totalPages}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={pageSafe <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={pageSafe >= totalPages}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  >
-                    Próxima
-                  </Button>
-                </div>
-              </div>
-            </>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>NF</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Título / Parcela</TableHead>
+                  <TableHead>Banco</TableHead>
+                  <TableHead>Meio</TableHead>
+                  <TableHead>Data compra</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Liquidação</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginados.map((t) => {
+                  const atrasado = t.status_gestao === "atrasado";
+                  return (
+                    <TableRow key={t.id} className={atrasado ? "bg-red-50/40" : undefined}>
+                      <TableCell className="font-mono text-xs">{t.nf_numero ?? "—"}</TableCell>
+                      <TableCell className="max-w-[180px] truncate" title={t.cliente ?? ""}>
+                        {t.cliente ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <span className="font-mono">{t.numero_titulo ?? "—"}</span>
+                        {t.numero_parcela != null && t.total_parcelas != null && (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            {t.numero_parcela}/{t.total_parcelas}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{t.banco_nome ?? "—"}</TableCell>
+                      <TableCell>{formatMeio(t.meio_pagamento)}</TableCell>
+                      <TableCell>{formatDateBR(t.data_compra)}</TableCell>
+                      <TableCell>{formatDateBR(t.data_vencimento)}</TableCell>
+                      <TableCell>
+                        {t.data_liquidacao ? (
+                          t.liquidacao_realizada ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="h-2 w-2 rounded-full bg-green-600" />
+                              {formatDateBR(t.data_liquidacao)}
+                              <span className="text-[10px] uppercase text-green-700">real</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 italic text-muted-foreground">
+                              {formatDateBR(t.data_liquidacao)}
+                              <span className="text-[10px] uppercase">prev.</span>
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">{formatBRL(t.valor ?? 0)}</TableCell>
+                      <TableCell>{renderStatusBadge(t.status_gestao)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
 
-      {tituloBaixa && (
-        <BaixaManualDialog titulo={tituloBaixa} onClose={() => setTituloBaixa(null)} />
+      {/* Paginação */}
+      {filtrados.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Página {pageSafe} de {totalPages} · {filtrados.length} registros
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pageSafe <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pageSafe >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Próxima
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
