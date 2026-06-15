@@ -36,6 +36,7 @@ import { useParametros } from "@/hooks/useParametros";
 import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
 import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
+import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
 
@@ -265,7 +266,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           {titulosQ.isLoading && <Skeleton className="h-40 w-full" />}
 
           {!titulosQ.isLoading && titulosQ.data?.length === 0 && (
-            <p className="text-sm text-muted-foreground py-4">Nenhum título em aberto para este pedido.</p>
+            <PortaoLinksPanel pedidoId={pedido.id} />
           )}
 
           {titulosQ.data && titulosQ.data.length > 0 && (
