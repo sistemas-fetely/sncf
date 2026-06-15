@@ -325,51 +325,37 @@ serve(async (req) => {
       if (!it.sku || cacheMap[it.sku]) continue;
 
       const nome = stripQtdSuffix(it.descricao);
-      const normNome = (s: string) =>
-        s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
       let blingProdId: number | null = null;
+      const skuTrim = String(it.sku).trim();
 
-      try {
-        // Busca sem filtro situacao: produto pode existir como inativo no Bling.
-        // situacao=A excluía produtos cadastrados mas desativados, causando falha
-        // no POST subsequente ("código já cadastrado").
-        const r = await client.get(
-          `/produtos?criterio=2&q=${encodeURIComponent(it.sku)}&limite=10`
-        );
-        const m = (r?.data || []).find((p: any) => p.codigo === it.sku);
-        if (m?.id) blingProdId = m.id;
-      } catch (_) {}
-
-      if (!blingProdId) {
+      // Catálogo Bling é 100% plano (sem variação) e os nomes são genéricos/repetidos.
+      // Casar por nome ou caçar "produto pai" é furada — pode resolver para o produto ERRADO.
+      // O único campo confiável é o CÓDIGO. trim() dos dois lados: há código gravado com tab invisível.
+      const acharPorCodigo = async (): Promise<number | null> => {
+        // 1) filtro exato por código (Bling v3 aceita ?codigo=)
         try {
-          const searchWords = normNome(nome)
-            .replace(/[^a-zA-Z0-9 ]/g, " ")
-            .split(" ")
-            .filter((w) => w.length > 3)
-            .slice(0, 3)
-            .join(" ")
-            .trim();
-
-          if (searchWords) {
-            const r = await client.get(
-              `/produtos?q=${encodeURIComponent(searchWords)}&limite=20`
-            );
-            const m = (r?.data || []).find(
-              (p: any) =>
-                normNome(p.nome || "").toLowerCase().trim() ===
-                normNome(nome).toLowerCase().trim()
-            );
-            if (m?.id) blingProdId = m.id;
-          }
+          const r = await client.get(`/produtos?codigo=${encodeURIComponent(skuTrim)}&limite=100`);
+          const m = (r?.data || []).find((p: any) => String(p.codigo || "").trim() === skuTrim);
+          if (m?.id) return m.id;
         } catch (_) {}
-      }
+        // 2) fallback: busca por critério de código
+        try {
+          const r = await client.get(`/produtos?criterio=2&q=${encodeURIComponent(skuTrim)}&limite=100`);
+          const m = (r?.data || []).find((p: any) => String(p.codigo || "").trim() === skuTrim);
+          if (m?.id) return m.id;
+        } catch (_) {}
+        return null;
+      };
+
+      blingProdId = await acharPorCodigo();
 
       if (!blingProdId) {
+        // Não existe no Bling: cria como produto simples (consistente com o catálogo plano).
         try {
           const created = await client.post("/produtos", {
             nome,
-            codigo: it.sku,
+            codigo: skuTrim,
             tipo: "P",
             formato: "S",
             unidade: "UN",
@@ -379,81 +365,20 @@ serve(async (req) => {
           const d = created?.data;
           blingProdId = d?.id ?? (typeof d === "number" ? d : null) ?? created?.id ?? null;
           if (!blingProdId) {
-            console.error(`[produto-sync] POST /produtos ok mas sem id: sku=${it.sku} resp=${JSON.stringify(created).slice(0, 500)}`);
+            console.error(`[produto-sync] POST /produtos ok mas sem id: sku=${skuTrim} resp=${JSON.stringify(created).slice(0, 500)}`);
           }
         } catch (e) {
           const errMsg = (e as Error).message || "";
-          // Código já cadastrado (Bling code 4): o SKU pertence a uma VARIAÇÃO
-          // de produto existente. O GET por criterio=2 busca apenas o codigo do
-          // produto principal — variações ficam invisíveis nessa busca.
-          // Estratégia: extrair nome do produto pai do erro → buscar produto pai
-          // → buscar variações → pegar id da variação com o SKU correto.
+          // "já cadastrado" (code 4): o código existe mas a busca não trouxe (ex.: tab no código).
+          // Re-busca por código exato, em vez de caçar produto pai (que num catálogo plano resolve errado).
           if (errMsg.includes("já foi cadastrado") || errMsg.includes('"code":4')) {
-            try {
-              // O bling-client retorna JSON bruto com unicode escapes (\u00c9).
-              // A regex anterior falhava ao excluir "n" da captura (flag /i + [^\\n]).
-              // Solução: parsear o JSON do erro e extrair o nome do campo fields[].msg.
-              let nomePai: string | undefined;
-              try {
-                const jsonStart = errMsg.indexOf("{");
-                if (jsonStart >= 0) {
-                  const errJson = JSON.parse(errMsg.slice(jsonStart));
-                  const field = (errJson?.error?.fields ?? []).find(
-                    (f: any) => f.code === 4 || String(f.msg).includes("cadastrado")
-                  );
-                  const m = (field?.msg || "").match(/cadastrado para o produto (.+)$/i);
-                  nomePai = m?.[1]?.trim();
-                }
-              } catch (_) {}
-
-              // Fallback: regex simples sem exclusão de letras
-              if (!nomePai) {
-                const m2 = errMsg.match(/cadastrado para o produto ([^"]+?)(?=\\"|",|"$|\\\\n|$)/i);
-                nomePai = m2?.[1]?.trim();
-              }
-
-              if (nomePai) {
-                console.warn(`[produto-sync] SKU é variação — buscando pai "${nomePai}": sku=${it.sku}`);
-
-                // Normaliza para busca: remove acentos e caracteres especiais
-                const searchPai = nomePai
-                  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                  .replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-
-                const rPai = await client.get(
-                  `/produtos?q=${encodeURIComponent(searchPai)}&limite=10`
-                );
-                const nomePaiNorm = nomePai.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-                const prodPai = (rPai?.data || []).find((p: any) => {
-                  const nProd = (p.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-                  return nProd === nomePaiNorm || nProd.includes(searchPai.toUpperCase());
-                });
-
-                if (prodPai?.id) {
-                  // Busca as variações do produto pai
-                  const rVar = await client.get(`/produtos/${prodPai.id}/variacoes?limite=200`);
-                  const variacoes: any[] = rVar?.data || [];
-                  const variacao = variacoes.find((v: any) => v.codigo === it.sku);
-
-                  if (variacao?.id) {
-                    blingProdId = variacao.id;
-                    console.warn(`[produto-sync] Variação encontrada: sku=${it.sku} varId=${blingProdId} paiId=${prodPai.id}`);
-                  } else {
-                    blingProdId = prodPai.id;
-                    console.warn(`[produto-sync] Variação não achada em ${variacoes.length} vars — usando pai: sku=${it.sku} paiId=${blingProdId}`);
-                  }
-                } else {
-                  console.error(`[produto-sync] Produto pai não encontrado: nome="${nomePai}" search="${searchPai}" sku=${it.sku}`);
-                }
-              } else {
-                console.error(`[produto-sync] Nome do pai não extraído: sku=${it.sku} err=${errMsg.slice(0, 300)}`);
-              }
-            } catch (e2) {
-              console.error(`[produto-sync] Falha buscando variação: sku=${it.sku} err=${((e2 as Error).message || "").slice(0, 300)}`);
+            blingProdId = await acharPorCodigo();
+            if (!blingProdId) {
+              console.error(`[produto-sync] "já cadastrado" mas não localizei por código: sku=${skuTrim} err=${errMsg.slice(0, 300)}`);
             }
           } else {
             const errClean = errMsg.replace(/[\n\r]/g, " ").slice(0, 800);
-            console.error(`[produto-sync] POST /produtos falhou: sku=${it.sku} err=${errClean}`);
+            console.error(`[produto-sync] POST /produtos falhou: sku=${skuTrim} err=${errClean}`);
           }
         }
       }
