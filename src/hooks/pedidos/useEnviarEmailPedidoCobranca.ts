@@ -19,14 +19,12 @@ export function useEnviarEmailPedidoCobranca() {
         .eq("id", pedido_id)
         .maybeSingle();
       if (errP || !pedido) throw new Error("Pedido não encontrado");
-      
 
       const { data: parceiro } = await (supabase as any)
         .from("parceiros_comerciais")
         .select("razao_social, email")
         .eq("id", pedido.parceiro_id)
         .maybeSingle();
-
 
       const { data: itens } = await (supabase as any)
         .from("pedido_itens")
@@ -38,14 +36,54 @@ export function useEnviarEmailPedidoCobranca() {
         subtotal: Number(it.quantidade) * Number(it.valor_unitario),
       }));
 
+      // ── Link de pagamento: titulo_a_receber -> pedido_portao (gate) -> pedidos ──
+      // Pedido com portao (aguardando_pagamento) ainda nao tem titulo; o link vive em pedido_portao.
+      let link_pagamento: string | null = null;
+      let tipo_do_link: string | null = null;
+
       const { data: tituloComLink } = await (supabase as any)
         .from("titulo_a_receber")
-        .select("link_pagamento")
+        .select("link_pagamento, tipo_pagamento")
         .eq("pedido_id", pedido_id)
         .not("link_pagamento", "is", null)
         .limit(1)
         .maybeSingle();
-      const link_pagamento = tituloComLink?.link_pagamento ?? pedido.link_pagamento ?? null;
+      if (tituloComLink?.link_pagamento) {
+        link_pagamento = tituloComLink.link_pagamento;
+        tipo_do_link = tituloComLink.tipo_pagamento ?? null;
+      }
+
+      if (!link_pagamento) {
+        const { data: portao } = await (supabase as any)
+          .from("pedido_portao")
+          .select("link_pagamento, tipo_pagamento")
+          .eq("pedido_id", pedido_id)
+          .eq("status", "provisorio")
+          .not("link_pagamento", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (portao?.link_pagamento) {
+          link_pagamento = portao.link_pagamento;
+          tipo_do_link = portao.tipo_pagamento ?? null;
+        }
+      }
+
+      if (!link_pagamento) {
+        link_pagamento = pedido.link_pagamento ?? null;
+      }
+
+      // Tipo que o template usa pra decidir o layout (botao de cartao, QR pix, etc.)
+      const tipo_pagamento = tipo_do_link ?? pedido.forma_solicitada ?? "";
+      const tipoNorm = tipo_pagamento.toString().toLowerCase();
+      const exigeLink = tipoNorm.includes("cart") || tipoNorm.includes("pix");
+
+      // ── TRAVA FAIL-LOUD: cartao/PIX sem link NAO sai ──
+      if (exigeLink && !link_pagamento) {
+        throw new Error(
+          "Sem link de pagamento para este pedido. Informe o link (na cobrança/portão) antes de enviar — o cliente receberia um e-mail sem como pagar.",
+        );
+      }
 
       const pdfBase64 = gerarPedidoPdf({
         id_externo: pedido.id_externo,
@@ -67,11 +105,10 @@ export function useEnviarEmailPedidoCobranca() {
         pedido_id_externo: pedido.id_externo,
         data_pedido: fmtDate(pedido.data_pedido),
         forma_pagamento: pedido.forma_solicitada ?? "",
-        tipo_pagamento: pedido.forma_solicitada ?? "",
+        tipo_pagamento,
         condicao_pagamento: pedido.condicao_solicitada ?? undefined,
         valor_bruto: fmtBRL.format(Number(pedido.valor_bruto ?? 0)),
         valor_liquido: fmtBRL.format(Number(pedido.valor_liquido ?? 0)),
-        
       };
       if (descontoValor > 0) templateData.desconto = `-${fmtBRL.format(descontoValor)}`;
       if (Number(pedido.valor_frete ?? 0) > 0)
@@ -96,7 +133,7 @@ export function useEnviarEmailPedidoCobranca() {
       });
       if (errEmail) throw new Error(`Falha ao enviar email: ${errEmail.message}`);
 
-      // Marca os títulos em aberto como "email enviado"
+      // Marca os titulos em aberto como "email enviado" (no-op se ainda nao ha titulos — portao)
       await (supabase as any)
         .from("titulo_a_receber")
         .update({ email_cobranca_enviado_em: new Date().toISOString() })
@@ -104,7 +141,6 @@ export function useEnviarEmailPedidoCobranca() {
         .not("status", "in", "(cancelado,pago,pago_com_atraso,pago_judicial,baixado_por_perda)");
 
       return { email: emails[0], id_externo: pedido.id_externo };
-
     },
     onSuccess: (data) => {
       toast({
