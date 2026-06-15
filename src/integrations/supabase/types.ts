@@ -565,6 +565,30 @@ export type Database = {
           },
         ]
       }
+      banco_recebimento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       beneficios_catalogo: {
         Row: {
           ativo: boolean | null
@@ -4218,6 +4242,13 @@ export type Database = {
             columns: ["titulo_id"]
             isOneToOne: false
             referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evento_titulo_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
             referencedColumns: ["id"]
           },
         ]
@@ -10337,6 +10368,50 @@ export type Database = {
           },
         ]
       }
+      prazo_liquidacao: {
+        Row: {
+          ativo: boolean
+          banco_id: string
+          created_at: string
+          id: string
+          meio_pagamento: string
+          offset_entre_parcelas_dias: number | null
+          offset_primeira_dias: number | null
+          updated_at: string
+          usa_vencimento: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          banco_id: string
+          created_at?: string
+          id?: string
+          meio_pagamento: string
+          offset_entre_parcelas_dias?: number | null
+          offset_primeira_dias?: number | null
+          updated_at?: string
+          usa_vencimento?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          banco_id?: string
+          created_at?: string
+          id?: string
+          meio_pagamento?: string
+          offset_entre_parcelas_dias?: number | null
+          offset_primeira_dias?: number | null
+          updated_at?: string
+          usa_vencimento?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prazo_liquidacao_banco_id_fkey"
+            columns: ["banco_id"]
+            isOneToOne: false
+            referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processos: {
         Row: {
           area_negocio_id: string | null
@@ -13185,6 +13260,7 @@ export type Database = {
         Row: {
           analise_credito_id: string | null
           autorizacao_cartao: string | null
+          banco_recebimento_id: string | null
           boleto_codigo_rejeicao: string | null
           boleto_enviado_em: string | null
           boleto_status: string | null
@@ -13237,6 +13313,7 @@ export type Database = {
         Insert: {
           analise_credito_id?: string | null
           autorizacao_cartao?: string | null
+          banco_recebimento_id?: string | null
           boleto_codigo_rejeicao?: string | null
           boleto_enviado_em?: string | null
           boleto_status?: string | null
@@ -13289,6 +13366,7 @@ export type Database = {
         Update: {
           analise_credito_id?: string | null
           autorizacao_cartao?: string | null
+          banco_recebimento_id?: string | null
           boleto_codigo_rejeicao?: string | null
           boleto_enviado_em?: string | null
           boleto_status?: string | null
@@ -13352,6 +13430,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_fila"
             referencedColumns: ["analise_credito_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_banco_recebimento_id_fkey"
+            columns: ["banco_recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_conta_id_fkey"
@@ -13445,10 +13530,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
+            columns: ["titulo_pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
             columns: ["titulo_renegociado_origem_id"]
             isOneToOne: false
             referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
             referencedColumns: ["id"]
           },
         ]
@@ -15738,6 +15837,85 @@ export type Database = {
           status_venda: string | null
         }
         Relationships: []
+      }
+      vw_recebivel_b2b: {
+        Row: {
+          banco_nome: string | null
+          banco_recebimento_id: string | null
+          cliente: string | null
+          conta_id: string | null
+          data_compra: string | null
+          data_liquidacao: string | null
+          data_vencimento: string | null
+          id: string | null
+          liquidacao_realizada: boolean | null
+          meio_pagamento: string | null
+          nf_id: string | null
+          nf_numero: string | null
+          numero_parcela: number | null
+          numero_titulo: string | null
+          status_gestao: string | null
+          total_parcelas: number | null
+          valor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "titulo_a_receber_banco_recebimento_id_fkey"
+            columns: ["banco_recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_emitidas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_recebivel_por_conta: {
         Row: {

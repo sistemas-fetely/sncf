@@ -84,7 +84,7 @@ export function SplitsPedidoSection({ pedido_id }: Props) {
                 <span>{fmtBRL.format(sp.valor_bruto)}</span>
               </div>
               <div className="flex justify-between text-destructive">
-                <span>Desconto ({Number(sp.desconto_pct ?? 0).toFixed(2)}%)</span>
+                <span>Desconto ({sp.valor_bruto > 0 ? (((sp.valor_bruto - sp.valor_liquido) / sp.valor_bruto) * 100).toFixed(2) : "0.00"}%)</span>
                 <span>−{fmtBRL.format(sp.valor_bruto - sp.valor_liquido)}</span>
               </div>
               <div className="flex justify-between font-semibold border-t pt-1">
