@@ -7096,6 +7096,7 @@ export type Database = {
           serie: string | null
           situacao: string | null
           tipo: string | null
+          tipo_venda: string | null
           transportadora_cnpj: string | null
           transportadora_nome: string | null
           updated_at: string
@@ -7121,6 +7122,7 @@ export type Database = {
           serie?: string | null
           situacao?: string | null
           tipo?: string | null
+          tipo_venda?: string | null
           transportadora_cnpj?: string | null
           transportadora_nome?: string | null
           updated_at?: string
@@ -7146,6 +7148,7 @@ export type Database = {
           serie?: string | null
           situacao?: string | null
           tipo?: string | null
+          tipo_venda?: string | null
           transportadora_cnpj?: string | null
           transportadora_nome?: string | null
           updated_at?: string
