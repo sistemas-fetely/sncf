@@ -64,6 +64,9 @@ for (const nf of items) {
           nf._transportadoraNome = d.transporte?.transportador?.nome ?? d.transporte?.transportadora?.nome ?? d.transporte?.nome ?? null;
           nf._transportadoraCnpj = d.transporte?.transportador?.numeroDocumento ?? null;
 
+          // tipo_venda: J = B2B, F = B2C
+          const tipoPessoa = d.contato?.tipoPessoa ?? nf.contato?.tipoPessoa ?? null;
+          nf._tipoVenda = tipoPessoa === "J" ? "B2B" : tipoPessoa === "F" ? "B2C" : null;
 
           nf._itens = Array.isArray(d.itens) && d.itens.length > 0 ? d.itens.map((it: any) => ({ codigo: it.codigo ?? null, descricao: it.descricao ?? null, quantidade: it.quantidade ?? 0, valor: it.valor ?? 0, valor_total: it.valorTotal ?? 0, unidade: it.unidade ?? null, cfop: it.cfop ?? null, ncm: it.classificacaoFiscal ?? null, peso_bruto: it.pesoBruto ?? null, icms_valor: it.impostos?.icms?.valor ?? null, icms_aliquota: it.impostos?.icms?.aliquota ?? null, })) : null;
 
