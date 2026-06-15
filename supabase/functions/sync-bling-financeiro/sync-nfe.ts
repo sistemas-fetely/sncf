@@ -125,6 +125,7 @@ for (const nf of items) {
       valor_frete:         valorFrete,
       transportadora_nome: transportadoraNome,
       transportadora_cnpj: nf._transportadoraCnpj ?? existing?.transportadora_cnpj ?? null,
+      tipo_venda: nf._tipoVenda ?? existing?.tipo_venda ?? null,
       itens_json: nf._itens ?? existing?.itens_json ?? null,
       parceiro_id,
       xml_url:             nf.xml     || null,
