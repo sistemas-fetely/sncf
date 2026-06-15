@@ -330,6 +330,10 @@ export default function ParametrosFinanceiroTab() {
             <Zap className="h-4 w-4" />
             Regras OFX
           </TabsTrigger>
+          <TabsTrigger value="bancos_liquidacao" className="gap-2">
+            <Landmark className="h-4 w-4" />
+            Bancos & Liquidação
+          </TabsTrigger>
         </TabsList>
         {CATEGORIAS.map((cat) => (
           <TabsContent key={cat.value} value={cat.value}>
@@ -338,6 +342,9 @@ export default function ParametrosFinanceiroTab() {
         ))}
         <TabsContent value="regras_ofx">
           <OFXRegrasPanel />
+        </TabsContent>
+        <TabsContent value="bancos_liquidacao">
+          <BancosLiquidacaoPanel />
         </TabsContent>
       </Tabs>
     </div>
