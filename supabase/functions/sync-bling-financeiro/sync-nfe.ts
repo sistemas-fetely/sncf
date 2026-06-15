@@ -157,24 +157,31 @@ await sleep(300);
 
 }
 
-// Debug temporário: testa se pedido de venda Bling retorna NF associada
-// Usa o bling_pedido_id de PED-1780262291936 como teste
-try {
-  const testePedido = await client.get("/pedidos/vendas/26052285385");
-  const d = testePedido?.data;
-  await supabase.from("nfs_emitidas")
-    .update({ raw: { _debug_pedido_venda: {
-      campos_disponiveis: d ? Object.keys(d) : null,
-      nota_fiscal: (d as any)?.notaFiscal ?? null,
-      nfe: (d as any)?.nfe ?? null,
-      situacao: (d as any)?.situacao ?? null,
-      numero: (d as any)?.numero ?? null,
-    }}})
-    .eq("numero", "000085");
-} catch (e) {
-  await supabase.from("nfs_emitidas")
-    .update({ raw: { _debug_pedido_venda: { erro: (e as Error).message } }})
-    .eq("numero", "000085");
+// Debug v2: captura notaFiscal e numeroLoja dos 3 pedidos ativos
+const pedidosTeste = [
+  { blingId: "26052285385", label: "PED-1780262291936" },
+  { blingId: "26062205196", label: "PED-1780249308297" },
+  { blingId: "26062130615", label: "PED-2007" },
+];
+const debugResultados: any[] = [];
+for (const p of pedidosTeste) {
+  try {
+    const res = await client.get(`/pedidos/vendas/${p.blingId}`);
+    const d = res?.data;
+    debugResultados.push({
+      label: p.label,
+      blingId: p.blingId,
+      numero: (d as any)?.numero,
+      numeroLoja: (d as any)?.numeroLoja,
+      notaFiscal: (d as any)?.notaFiscal,
+      situacao: (d as any)?.situacao,
+    });
+  } catch (e) {
+    debugResultados.push({ label: p.label, erro: (e as Error).message });
+  }
 }
+await supabase.from("nfs_emitidas")
+  .update({ raw: { _debug_pedidos_venda: debugResultados } })
+  .eq("numero", "000085");
 
 return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina }; }
