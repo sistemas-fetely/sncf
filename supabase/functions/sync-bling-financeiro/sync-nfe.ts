@@ -157,31 +157,4 @@ await sleep(300);
 
 }
 
-// Debug v2: captura notaFiscal e numeroLoja dos 3 pedidos ativos
-const pedidosTeste = [
-  { blingId: "26052285385", label: "PED-1780262291936" },
-  { blingId: "26062205196", label: "PED-1780249308297" },
-  { blingId: "26062130615", label: "PED-2007" },
-];
-const debugResultados: any[] = [];
-for (const p of pedidosTeste) {
-  try {
-    const res = await client.get(`/pedidos/vendas/${p.blingId}`);
-    const d = res?.data;
-    debugResultados.push({
-      label: p.label,
-      blingId: p.blingId,
-      numero: (d as any)?.numero,
-      numeroLoja: (d as any)?.numeroLoja,
-      notaFiscal: (d as any)?.notaFiscal,
-      situacao: (d as any)?.situacao,
-    });
-  } catch (e) {
-    debugResultados.push({ label: p.label, erro: (e as Error).message });
-  }
-}
-await supabase.from("nfs_emitidas")
-  .update({ raw: { _debug_pedidos_venda: debugResultados } })
-  .eq("numero", "000085");
-
 return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina }; }
