@@ -21,9 +21,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  CreditCard, FileText, Target, Store, TreePine, Users, Plus, Pencil, Trash2, Loader2, Zap,
+  CreditCard, FileText, Target, Store, TreePine, Users, Plus, Pencil, Trash2, Loader2, Zap, Landmark,
 } from "lucide-react";
 import { OFXRegrasPanel } from "@/components/financeiro/OFXRegrasPanel";
+import { BancosLiquidacaoPanel } from "@/components/financeiro/BancosLiquidacaoPanel";
 
 type TabelaFin = "formas_pagamento" | "centros_custo" | "canais_venda" | "tipos_contrato";
 
