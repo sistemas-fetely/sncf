@@ -21,9 +21,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  CreditCard, FileText, Target, Store, TreePine, Users, Plus, Pencil, Trash2, Loader2, Zap,
+  CreditCard, FileText, Target, Store, TreePine, Users, Plus, Pencil, Trash2, Loader2, Zap, Landmark,
 } from "lucide-react";
 import { OFXRegrasPanel } from "@/components/financeiro/OFXRegrasPanel";
+import { BancosLiquidacaoPanel } from "@/components/financeiro/BancosLiquidacaoPanel";
 
 type TabelaFin = "formas_pagamento" | "centros_custo" | "canais_venda" | "tipos_contrato";
 
@@ -329,6 +330,10 @@ export default function ParametrosFinanceiroTab() {
             <Zap className="h-4 w-4" />
             Regras OFX
           </TabsTrigger>
+          <TabsTrigger value="bancos_liquidacao" className="gap-2">
+            <Landmark className="h-4 w-4" />
+            Bancos & Liquidação
+          </TabsTrigger>
         </TabsList>
         {CATEGORIAS.map((cat) => (
           <TabsContent key={cat.value} value={cat.value}>
@@ -337,6 +342,9 @@ export default function ParametrosFinanceiroTab() {
         ))}
         <TabsContent value="regras_ofx">
           <OFXRegrasPanel />
+        </TabsContent>
+        <TabsContent value="bancos_liquidacao">
+          <BancosLiquidacaoPanel />
         </TabsContent>
       </Tabs>
     </div>
