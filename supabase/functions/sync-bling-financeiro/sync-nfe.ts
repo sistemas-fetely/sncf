@@ -157,4 +157,24 @@ await sleep(300);
 
 }
 
+// Debug temporário: testa se pedido de venda Bling retorna NF associada
+// Usa o bling_pedido_id de PED-1780262291936 como teste
+try {
+  const testePedido = await client.get("/pedidos/vendas/26052285385");
+  const d = testePedido?.data;
+  await supabase.from("nfs_emitidas")
+    .update({ raw: { _debug_pedido_venda: {
+      campos_disponiveis: d ? Object.keys(d) : null,
+      nota_fiscal: (d as any)?.notaFiscal ?? null,
+      nfe: (d as any)?.nfe ?? null,
+      situacao: (d as any)?.situacao ?? null,
+      numero: (d as any)?.numero ?? null,
+    }}})
+    .eq("numero", "000085");
+} catch (e) {
+  await supabase.from("nfs_emitidas")
+    .update({ raw: { _debug_pedido_venda: { erro: (e as Error).message } }})
+    .eq("numero", "000085");
+}
+
 return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina }; }
