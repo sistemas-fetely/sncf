@@ -882,6 +882,23 @@ export default function CobrancaDetalhe() {
                 className="h-9 w-40"
               />
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="intervalo-parcelas" className="text-xs text-muted-foreground">
+                Intervalo entre parcelas (dias)
+              </Label>
+              <Input
+                id="intervalo-parcelas"
+                type="number"
+                min="0"
+                step="1"
+                value={intervaloDias}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value, 10);
+                  setIntervaloDias(Number.isFinite(n) && n >= 0 ? n : 0);
+                }}
+                className="h-9 w-40"
+              />
+            </div>
             <div className="flex items-center gap-2 pb-2">
               <Checkbox
                 id="parcelas-iguais"
