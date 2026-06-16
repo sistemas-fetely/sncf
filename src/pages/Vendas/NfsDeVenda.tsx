@@ -190,6 +190,7 @@ export default function NfsDeVenda() {
               <TableHead>Parceiro</TableHead>
               <TableHead className="w-[140px] text-right">Valor</TableHead>
               <TableHead className="w-[120px] text-right">Frete</TableHead>
+              <TableHead className="w-[140px]">Nº Pedido (Bling)</TableHead>
               <TableHead className="w-[140px]">Pedido</TableHead>
               <TableHead className="w-[120px]">Situação</TableHead>
               <TableHead className="w-[100px] text-right">Ações</TableHead>
