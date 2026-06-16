@@ -51,7 +51,7 @@ const I25: Record<string, string> = {
 
 function encodeI25(digits: string): boolean[] {
   const bars: boolean[] = [];
-  bars.push(true, false, true, false);
+  bars.push(false, false, false, false);
   for (let i = 0; i < digits.length; i += 2) {
     const d1 = I25[digits[i]];
     const d2 = I25[digits[i + 1]];
@@ -60,7 +60,7 @@ function encodeI25(digits: string): boolean[] {
       bars.push(d2[j] === "1");
     }
   }
-  bars.push(true, true, false, true);
+  bars.push(true, false, false);
   return bars;
 }
 
