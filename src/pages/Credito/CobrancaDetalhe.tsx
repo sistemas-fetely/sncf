@@ -39,6 +39,7 @@ import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/Edit
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
+const INTERVALO_PARCELAS_FALLBACK = 30;
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -57,6 +58,19 @@ function addDiasISO(iso: string, dias: number): string {
   const d = new Date(iso + "T00:00:00");
   d.setDate(d.getDate() + dias);
   return d.toISOString().slice(0, 10);
+}
+
+function diffDiasISO(deISO: string, ateISO: string): number {
+  if (!deISO || !ateISO) return 0;
+  const a = new Date(deISO + "T00:00:00").getTime();
+  const b = new Date(ateISO + "T00:00:00").getTime();
+  return Math.round((b - a) / 86400000);
+}
+
+function calcularCondicaoLabel(dataVencISO: string, ehEntrada: boolean): string {
+  const dias = diffDiasISO(todayISO(), dataVencISO);
+  const base = dias <= 0 ? "à vista" : `${dias} ${dias === 1 ? "dia" : "dias"}`;
+  return ehEntrada ? `Entrada (${base})` : base;
 }
 
 function redistribuirValoresIguais<T extends { valor_bruto: number }>(titulos: T[], total: number): T[] {
@@ -387,6 +401,7 @@ export default function CobrancaDetalhe() {
   const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
   const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
   const [diasPrimeiroPagamento, setDiasPrimeiroPagamento] = useState<number>(DIAS_PRIMEIRO_PAGAMENTO_FALLBACK);
+  const [intervaloDias, setIntervaloDias] = useState<number>(INTERVALO_PARCELAS_FALLBACK);
   const [valorHaverAplicar, setValorHaverAplicar] = useState<number>(0);
   const maxHaver = Math.min(haverSaldo, Number((pedidoQ.data as any)?.valor_liquido ?? 0));
 
@@ -400,51 +415,49 @@ export default function CobrancaDetalhe() {
   };
 
   const paramDiasQ = useParametros("dias_primeiro_pagamento");
+  const paramIntervaloQ = useParametros("intervalo_entre_parcelas");
 
-  // Aplica 1ª data = hoje + dias e cascateia as demais a partir dela (preserva 30/60/90)
+  // Aplica 1ª data = hoje + dias e cascateia as demais por offset cumulativo (i * intervalo)
   const aplicarPrimeiraDataECascata = (
     lista: TituloProposto[],
     dias: number,
+    intervalo: number,
   ): TituloProposto[] => {
     if (lista.length === 0) return lista;
     const primeiraData = addDiasISO(todayISO(), dias);
     return lista.map((t, i) => {
-      if (i === 0) return { ...t, data_vencimento: primeiraData };
-      const offset = parseDiasCondicao(t.condicao_pagamento);
-      return { ...t, data_vencimento: addDiasISO(primeiraData, offset) };
+      const dataVenc = i === 0 ? primeiraData : addDiasISO(primeiraData, i * intervalo);
+      return {
+        ...t,
+        data_vencimento: dataVenc,
+        condicao_pagamento: calcularCondicaoLabel(dataVenc, t.eh_entrada),
+      };
     });
   };
 
-  // Quando o parâmetro chega, atualiza o estado caso ainda esteja no fallback
-  useEffect(() => {
-    const v = Number(paramDiasQ.data?.[0]?.valor);
-    if (Number.isFinite(v) && v >= 0) {
-      setDiasPrimeiroPagamento((curr) =>
-        curr === DIAS_PRIMEIRO_PAGAMENTO_FALLBACK ? v : curr,
-      );
-    }
-  }, [paramDiasQ.data]);
-
   // hidrata estado local quando a proposta chega
   useEffect(() => {
-    if (propostaQ.data?.titulos_propostos) {
-      const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
-      setTitulos(aplicarPrimeiraDataECascata(novos, diasPrimeiroPagamento));
-      const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
-      const novoTotal = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
-      setValorTotalCobrar(novoTotal);
-      setParcelasIguais(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propostaQ.data, pedidoQ.data?.valor_liquido]);
+    if (!propostaQ.data?.titulos_propostos) return;
+    if (paramDiasQ.isLoading || paramIntervaloQ.isLoading) return;
 
-  // Reaplica 1ª data + cascata sempre que diasPrimeiroPagamento mudar
-  useEffect(() => {
-    setTitulos((prev) =>
-      prev.length ? aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento) : prev,
-    );
+    const vDias = Number(paramDiasQ.data?.[0]?.valor);
+    const vIntervalo = Number(paramIntervaloQ.data?.[0]?.valor);
+    const diasUsar = Number.isFinite(vDias) && vDias >= 0 ? vDias : DIAS_PRIMEIRO_PAGAMENTO_FALLBACK;
+    const intervaloUsar = Number.isFinite(vIntervalo) && vIntervalo >= 0 ? vIntervalo : INTERVALO_PARCELAS_FALLBACK;
+
+    setDiasPrimeiroPagamento(diasUsar);
+    setIntervaloDias(intervaloUsar);
+
+    const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
+    setTitulos(aplicarPrimeiraDataECascata(novos, diasUsar, intervaloUsar));
+
+    const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
+    const novoTotal = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
+    setValorTotalCobrar(novoTotal);
+    setParcelasIguais(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diasPrimeiroPagamento]);
+  }, [propostaQ.data, pedidoQ.data?.valor_liquido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
+
 
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
   const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
@@ -482,18 +495,15 @@ export default function CobrancaDetalhe() {
   };
 
   const handleDataChange = (idx: number, novaData: string) => {
-    if (idx !== 0) {
-      atualizarTitulo(idx, { data_vencimento: novaData });
-      return;
-    }
     setTitulos((prev) =>
-      prev.map((t, i) => {
-        if (i === 0) return { ...t, data_vencimento: novaData };
-        const offset = parseDiasCondicao(t.condicao_pagamento);
-        return { ...t, data_vencimento: addDiasISO(novaData, offset) };
-      }),
+      prev.map((t, i) =>
+        i === idx
+          ? { ...t, data_vencimento: novaData, condicao_pagamento: calcularCondicaoLabel(novaData, t.eh_entrada) }
+          : t,
+      ),
     );
   };
+
 
   const renumerar = (lista: TituloProposto[]): TituloProposto[] => {
     const n = lista.length;
@@ -503,7 +513,9 @@ export default function CobrancaDetalhe() {
   const handleAdicionarParcela = () => {
     setTitulos((prev) => {
       const ultima = prev[prev.length - 1];
-      const novaData = ultima ? addDiasISO(ultima.data_vencimento, 30) : new Date().toISOString().slice(0, 10);
+      const novaData = ultima
+        ? addDiasISO(ultima.data_vencimento, intervaloDias)
+        : addDiasISO(todayISO(), diasPrimeiroPagamento);
       const novo: TituloProposto = {
         ordem: prev.length,
         numero_parcela: prev.length + 1,
@@ -512,7 +524,7 @@ export default function CobrancaDetalhe() {
         tipo_pagamento: ultima?.tipo_pagamento ?? "boleto",
         valor_bruto: 0,
         data_vencimento: novaData,
-        condicao_pagamento: ultima?.condicao_pagamento ?? "",
+        condicao_pagamento: calcularCondicaoLabel(novaData, false),
       };
       const nova = renumerar([...prev, novo]);
       return parcelasIguais ? redistribuirValoresIguais(nova, valorTotalCobrar) : nova;
@@ -588,8 +600,8 @@ export default function CobrancaDetalhe() {
   const handleRecalcular = () => {
     setTitulos((prev) => {
       if (prev.length === 0) return prev;
-      const comDatas = aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento);
-      return redistribuirValoresIguais(comDatas, valorTotalCobrar);
+      const comDatas = aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento, intervaloDias);
+      return parcelasIguais ? redistribuirValoresIguais(comDatas, valorTotalCobrar) : comDatas;
     });
   };
 
@@ -866,6 +878,23 @@ export default function CobrancaDetalhe() {
                 onChange={(e) => {
                   const n = parseInt(e.target.value, 10);
                   setDiasPrimeiroPagamento(Number.isFinite(n) && n >= 0 ? n : 0);
+                }}
+                className="h-9 w-40"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="intervalo-parcelas" className="text-xs text-muted-foreground">
+                Intervalo entre parcelas (dias)
+              </Label>
+              <Input
+                id="intervalo-parcelas"
+                type="number"
+                min="0"
+                step="1"
+                value={intervaloDias}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value, 10);
+                  setIntervaloDias(Number.isFinite(n) && n >= 0 ? n : 0);
                 }}
                 className="h-9 w-40"
               />
