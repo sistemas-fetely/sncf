@@ -44,6 +44,15 @@ const segundoFone = (s: string | null | undefined): string | undefined => {
   return digits.length >= 10 ? digits : undefined;
 };
 
+// Bling aceita UM e-mail válido por contato. Campos com múltiplos e-mails
+// (separados por ; , / ou espaço) ou com formato inválido geram erro 400.
+// Pega o primeiro candidato que passa no regex; se nenhum for válido, omite.
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailValido = (s: string | null | undefined): string | undefined => {
+  const candidatos = (s || "").split(/[;,/\s]+/).map((e) => e.trim()).filter(Boolean);
+  return candidatos.find((e) => RE_EMAIL.test(e));
+};
+
 const jwtRole = (token: string): string | null => {
   try {
     return JSON.parse(atob((token.split(".")[1] || ""))).role ?? null;
@@ -71,7 +80,7 @@ function montarPayload(p: any, documento: string) {
     numeroDocumento: documento,
     ie: iePayload,
     indicadorIe,
-    email: p.email || undefined,
+    email: emailValido(p.email),
     telefone: primeiroFone(p.telefone),
     celular: segundoFone(p.telefone) ?? primeiroFone(p.telefone),
     situacao: "A",
@@ -136,21 +145,28 @@ async function syncOne(supabase: any, client: any, p: any, origem: string, acion
       // POST com retries progressivos para erros de validação do Bling.
       // O bling-client lança exceção em qualquer 4xx — criado?.error nunca
       // é populado. Os retries precisam de try-catch explícito.
-      // Ordem: payload completo → sem IE → sem telefone/celular.
+      // Ordem: payload completo → sem IE → sem telefone/celular → sem e-mail.
       let criado: any;
       let postPayload = { ...payload };
-      for (let attempt = 0; attempt < 3; attempt++) {
+      const jaRemovido = { ie: false, fone: false, email: false };
+      for (let attempt = 0; attempt < 4; attempt++) {
         try {
           criado = await client.post("/contatos", postPayload);
           break; // sucesso — sai do loop
         } catch (postErr) {
           const msg = ((postErr as Error).message || "").toLowerCase();
-          if (attempt === 0 && msg.includes("inscri")) {
+          if (!jaRemovido.ie && msg.includes("inscri")) {
             console.warn("[sync-contato-bling] IE rejeitada — retry sem IE");
             postPayload = { ...postPayload, ie: undefined, indicadorIe: 9 };
-          } else if (attempt <= 1 && (msg.includes("fone") || msg.includes("celular") || msg.includes("telefone"))) {
+            jaRemovido.ie = true;
+          } else if (!jaRemovido.fone && (msg.includes("fone") || msg.includes("celular") || msg.includes("telefone"))) {
             console.warn("[sync-contato-bling] Fone rejeitado — retry sem telefone/celular");
             postPayload = { ...postPayload, telefone: undefined, celular: undefined };
+            jaRemovido.fone = true;
+          } else if (!jaRemovido.email && msg.includes("mail")) {
+            console.warn("[sync-contato-bling] E-mail rejeitado — retry sem e-mail");
+            postPayload = { ...postPayload, email: undefined };
+            jaRemovido.email = true;
           } else {
             throw postErr; // propaga para o catch externo da função
           }
