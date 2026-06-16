@@ -139,6 +139,9 @@ for (const nf of items) {
       raw:                 nf,
       origem:              "bling",
       updated_at:          new Date().toISOString(),
+      numero_pedido_loja:        numeroPedidoLojaRaw ?? existing?.numero_pedido_loja ?? null,
+      bling_pedido_venda_numero: pedidoVendaNumeroRaw ?? existing?.bling_pedido_venda_numero ?? null,
+      bling_pedido_venda_id:     pedidoVendaBlingIdRaw ?? existing?.bling_pedido_venda_id ?? null,
     };
     if (pedido_venda_id) registro.pedido_venda_id = pedido_venda_id;
 
