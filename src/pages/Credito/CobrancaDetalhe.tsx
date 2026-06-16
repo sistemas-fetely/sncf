@@ -401,6 +401,7 @@ export default function CobrancaDetalhe() {
   const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
   const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
   const [diasPrimeiroPagamento, setDiasPrimeiroPagamento] = useState<number>(DIAS_PRIMEIRO_PAGAMENTO_FALLBACK);
+  const [intervaloDias, setIntervaloDias] = useState<number>(INTERVALO_PARCELAS_FALLBACK);
   const [valorHaverAplicar, setValorHaverAplicar] = useState<number>(0);
   const maxHaver = Math.min(haverSaldo, Number((pedidoQ.data as any)?.valor_liquido ?? 0));
 
