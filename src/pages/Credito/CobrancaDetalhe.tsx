@@ -417,50 +417,47 @@ export default function CobrancaDetalhe() {
   const paramDiasQ = useParametros("dias_primeiro_pagamento");
   const paramIntervaloQ = useParametros("intervalo_entre_parcelas");
 
-  // Aplica 1ª data = hoje + dias e cascateia as demais a partir dela (preserva 30/60/90)
+  // Aplica 1ª data = hoje + dias e cascateia as demais por offset cumulativo (i * intervalo)
   const aplicarPrimeiraDataECascata = (
     lista: TituloProposto[],
     dias: number,
+    intervalo: number,
   ): TituloProposto[] => {
     if (lista.length === 0) return lista;
     const primeiraData = addDiasISO(todayISO(), dias);
     return lista.map((t, i) => {
-      if (i === 0) return { ...t, data_vencimento: primeiraData };
-      const offset = parseDiasCondicao(t.condicao_pagamento);
-      return { ...t, data_vencimento: addDiasISO(primeiraData, offset) };
+      const dataVenc = i === 0 ? primeiraData : addDiasISO(primeiraData, i * intervalo);
+      return {
+        ...t,
+        data_vencimento: dataVenc,
+        condicao_pagamento: calcularCondicaoLabel(dataVenc, t.eh_entrada),
+      };
     });
   };
 
-  // Quando o parâmetro chega, atualiza o estado caso ainda esteja no fallback
-  useEffect(() => {
-    const v = Number(paramDiasQ.data?.[0]?.valor);
-    if (Number.isFinite(v) && v >= 0) {
-      setDiasPrimeiroPagamento((curr) =>
-        curr === DIAS_PRIMEIRO_PAGAMENTO_FALLBACK ? v : curr,
-      );
-    }
-  }, [paramDiasQ.data]);
-
   // hidrata estado local quando a proposta chega
   useEffect(() => {
-    if (propostaQ.data?.titulos_propostos) {
-      const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
-      setTitulos(aplicarPrimeiraDataECascata(novos, diasPrimeiroPagamento));
-      const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
-      const novoTotal = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
-      setValorTotalCobrar(novoTotal);
-      setParcelasIguais(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propostaQ.data, pedidoQ.data?.valor_liquido]);
+    if (!propostaQ.data?.titulos_propostos) return;
+    if (paramDiasQ.isLoading || paramIntervaloQ.isLoading) return;
 
-  // Reaplica 1ª data + cascata sempre que diasPrimeiroPagamento mudar
-  useEffect(() => {
-    setTitulos((prev) =>
-      prev.length ? aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento) : prev,
-    );
+    const vDias = Number(paramDiasQ.data?.[0]?.valor);
+    const vIntervalo = Number(paramIntervaloQ.data?.[0]?.valor);
+    const diasUsar = Number.isFinite(vDias) && vDias >= 0 ? vDias : DIAS_PRIMEIRO_PAGAMENTO_FALLBACK;
+    const intervaloUsar = Number.isFinite(vIntervalo) && vIntervalo >= 0 ? vIntervalo : INTERVALO_PARCELAS_FALLBACK;
+
+    setDiasPrimeiroPagamento(diasUsar);
+    setIntervaloDias(intervaloUsar);
+
+    const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
+    setTitulos(aplicarPrimeiraDataECascata(novos, diasUsar, intervaloUsar));
+
+    const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
+    const novoTotal = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
+    setValorTotalCobrar(novoTotal);
+    setParcelasIguais(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diasPrimeiroPagamento]);
+  }, [propostaQ.data, pedidoQ.data?.valor_liquido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
+
 
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
   const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
