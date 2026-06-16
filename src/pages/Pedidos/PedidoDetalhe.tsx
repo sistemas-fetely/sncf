@@ -36,6 +36,8 @@ import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDia
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
+import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
+import { usePedidoPortaoProvisorio } from "@/hooks/pedidos/usePedidoPortaoProvisorio";
 import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { TransicionarPedidoDialog } from "@/components/pedidos/dialogs/TransicionarPedidoDialog";
@@ -291,10 +293,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
     <AcoesPedidoCobranca pedido={pedido} parceiro={parceiro} />
   );
   if (estagio === "aguardando_pagamento") return (
-    <div className="flex flex-col gap-2 w-full">
-      <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />
-      <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
-    </div>
+    <AcoesAguardandoPagamento pedido={pedido} />
   );
   if (estagio === "pre_faturado" && !pedido.bling_id_destino) {
     return (
