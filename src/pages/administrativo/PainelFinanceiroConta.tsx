@@ -28,75 +28,45 @@ import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
 type RecebivelConta = {
-  conta_id: string;
+  parceiro_id: string;
   cliente: string | null;
-  cnpj: string | null;
-  qtd_titulos_abertos: number | null;
+  qtd_titulos: number | null;
   total_a_receber: number | null;
   total_vencido: number | null;
   faixa_a_vencer: number | null;
-  faixa_1_15: number | null;
-  faixa_16_30: number | null;
+  faixa_1_7: number | null;
+  faixa_8_30: number | null;
   faixa_31_60: number | null;
   faixa_60_mais: number | null;
   dias_atraso_max: number | null;
 };
 
-type TituloAberto = {
-  id: string;
+type TituloB2B = {
   numero_titulo: string | null;
-  data_vencimento_atual: string | null;
-  valor_atual: number | null;
-  status: string;
-};
-
-type StatusGrupo = "a_receber" | "vencido";
-
-const STATUS_ABERTOS = [
-  "aguardando_pagamento",
-  "aguardando_envio_bling",
-  "aguardando_emissao_nf",
-  "vigente",
-  "vigente_parcial",
-  "vencido",
-  "vencido_suspenso",
-  "em_juridico",
-  "renegociado",
-] as const;
-
-const GRUPO_DE_STATUS: Record<string, StatusGrupo> = {
-  aguardando_pagamento: "a_receber",
-  aguardando_envio_bling: "a_receber",
-  aguardando_emissao_nf: "a_receber",
-  vigente: "a_receber",
-  vigente_parcial: "a_receber",
-  renegociado: "a_receber",
-  vencido: "vencido",
-  vencido_suspenso: "vencido",
-  em_juridico: "vencido",
-};
-
-const GRUPO_LABEL: Record<StatusGrupo, string> = {
-  a_receber: "A receber",
-  vencido: "Vencido",
-};
-
-const GRUPO_BADGE: Record<StatusGrupo, string> = {
-  a_receber: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-  vencido: "bg-red-100 text-red-800 hover:bg-red-100",
+  numero_parcela: number | null;
+  total_parcelas: number | null;
+  meio_pagamento: string | null;
+  data_vencimento: string | null;
+  valor: number | null;
+  status_gestao: "pago" | "em_aberto" | "atrasado" | string;
+  data_liquidacao: string | null;
+  nf_numero: string | null;
 };
 
 type SortKey = "total_a_receber" | "total_vencido" | "dias_atraso_max";
 
 const num = (v: number | null | undefined) => (typeof v === "number" ? v : 0);
 
-const diasDeAtraso = (venc: string | null): number => {
-  if (!venc) return 0;
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const d = new Date(venc + "T00:00:00");
-  const diff = Math.floor((hoje.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-  return diff > 0 ? diff : 0;
+const STATUS_LABEL: Record<string, string> = {
+  pago: "Pago",
+  em_aberto: "Em aberto",
+  atrasado: "Atrasado",
+};
+
+const STATUS_BADGE: Record<string, string> = {
+  pago: "bg-green-100 text-green-800 hover:bg-green-100",
+  em_aberto: "bg-muted text-foreground hover:bg-muted",
+  atrasado: "bg-red-100 text-red-800 hover:bg-red-100",
 };
 
 function FaixaCell({ value, className }: { value: number | null; className?: string }) {
@@ -115,18 +85,19 @@ function FaixaCell({ value, className }: { value: number | null; className?: str
   );
 }
 
-function TitulosAbertosCliente({ contaId }: { contaId: string }) {
+function TitulosAbertosCliente({ parceiroId }: { parceiroId: string }) {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["titulos-abertos-conta", contaId],
+    queryKey: ["titulos-b2b-conta", parceiroId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("titulo_a_receber")
-        .select("id, numero_titulo, data_vencimento_atual, valor_atual, status")
-        .eq("conta_id", contaId)
-        .in("status", STATUS_ABERTOS as unknown as string[])
-        .order("data_vencimento_atual", { ascending: true });
+      const { data, error } = await (supabase as any)
+        .from("vw_recebivel_b2b")
+        .select(
+          "numero_titulo, numero_parcela, total_parcelas, meio_pagamento, data_vencimento, valor, status_gestao, data_liquidacao, nf_numero",
+        )
+        .eq("parceiro_id", parceiroId)
+        .order("data_vencimento", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as TituloAberto[];
+      return (data ?? []) as TituloB2B[];
     },
   });
 
@@ -151,7 +122,7 @@ function TitulosAbertosCliente({ contaId }: { contaId: string }) {
   if (!data || data.length === 0) {
     return (
       <div className="p-4 text-sm text-muted-foreground">
-        Nenhum título em aberto.
+        Nenhum título com NF para este cliente.
       </div>
     );
   }
@@ -161,35 +132,35 @@ function TitulosAbertosCliente({ contaId }: { contaId: string }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nº título</TableHead>
+            <TableHead>Nº NF</TableHead>
+            <TableHead>Nº título / parcela</TableHead>
             <TableHead>Vencimento</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Dias de atraso</TableHead>
+            <TableHead>Liquidação</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((t) => {
-            const grupo = GRUPO_DE_STATUS[t.status] ?? "a_receber";
-            const atraso = diasDeAtraso(t.data_vencimento_atual);
+          {data.map((t, idx) => {
+            const status = t.status_gestao ?? "em_aberto";
+            const parcela =
+              t.numero_parcela && t.total_parcelas
+                ? `${t.numero_titulo ?? "—"} (${t.numero_parcela}/${t.total_parcelas})`
+                : t.numero_titulo ?? "—";
             return (
-              <TableRow key={t.id}>
-                <TableCell className="font-mono">{t.numero_titulo ?? "—"}</TableCell>
-                <TableCell>{formatDateBR(t.data_vencimento_atual)}</TableCell>
+              <TableRow key={`${t.numero_titulo ?? "x"}-${t.numero_parcela ?? idx}`}>
+                <TableCell className="font-mono">{t.nf_numero ?? "—"}</TableCell>
+                <TableCell className="font-mono">{parcela}</TableCell>
+                <TableCell>{formatDateBR(t.data_vencimento)}</TableCell>
                 <TableCell className="text-right font-mono">
-                  {formatBRL(num(t.valor_atual))}
+                  {formatBRL(num(t.valor))}
                 </TableCell>
                 <TableCell>
-                  <Badge className={GRUPO_BADGE[grupo]}>{GRUPO_LABEL[grupo]}</Badge>
+                  <Badge className={STATUS_BADGE[status] ?? STATUS_BADGE.em_aberto}>
+                    {STATUS_LABEL[status] ?? status}
+                  </Badge>
                 </TableCell>
-                <TableCell
-                  className={cn(
-                    "text-right font-mono",
-                    atraso === 0 ? "text-muted-foreground" : "text-destructive font-semibold",
-                  )}
-                >
-                  {atraso}
-                </TableCell>
+                <TableCell>{t.data_liquidacao ? formatDateBR(t.data_liquidacao) : "—"}</TableCell>
               </TableRow>
             );
           })}
@@ -206,10 +177,10 @@ export default function PainelFinanceiroConta() {
   const [expandido, setExpandido] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["vw-recebivel-por-conta"],
+    queryKey: ["vw-recebivel-b2b-por-conta"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vw_recebivel_por_conta" as never)
+      const { data, error } = await (supabase as any)
+        .from("vw_recebivel_b2b_por_conta")
         .select("*");
       if (error) throw error;
       return (data ?? []) as RecebivelConta[];
@@ -269,7 +240,7 @@ export default function PainelFinanceiroConta() {
       <div>
         <h1 className="text-2xl font-bold">Vencimentos x Cliente</h1>
         <p className="text-sm text-muted-foreground">
-          Quanto cada cliente deve e há quanto tempo. Visão consolidada por aging.
+          Quanto cada cliente deve e há quanto tempo — recebíveis B2B (somente com NF), por aging.
         </p>
       </div>
 
@@ -355,8 +326,8 @@ export default function PainelFinanceiroConta() {
                     <SortBtn k="total_a_receber" label="Total a receber" />
                   </TableHead>
                   <TableHead className="text-right">A vencer</TableHead>
-                  <TableHead className="text-right">1–15d</TableHead>
-                  <TableHead className="text-right">16–30d</TableHead>
+                  <TableHead className="text-right">1–7 dias</TableHead>
+                  <TableHead className="text-right">8–30 dias</TableHead>
                   <TableHead className="text-right">31–60d</TableHead>
                   <TableHead className="text-right">+60d</TableHead>
                   <TableHead className="text-right">
@@ -369,14 +340,14 @@ export default function PainelFinanceiroConta() {
               </TableHeader>
               <TableBody>
                 {linhas.map((r) => {
-                  const aberto = expandido === r.conta_id;
+                  const aberto = expandido === r.parceiro_id;
                   const atraso = num(r.dias_atraso_max);
                   return (
-                    <Fragment key={r.conta_id}>
+                    <Fragment key={r.parceiro_id}>
                       <TableRow
                         className="cursor-pointer hover:bg-muted/40"
                         onClick={() =>
-                          setExpandido((cur) => (cur === r.conta_id ? null : r.conta_id))
+                          setExpandido((cur) => (cur === r.parceiro_id ? null : r.parceiro_id))
                         }
                       >
                         <TableCell className="w-8">
@@ -388,18 +359,13 @@ export default function PainelFinanceiroConta() {
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">{r.cliente ?? "—"}</div>
-                          {r.cnpj && (
-                            <div className="text-xs text-muted-foreground font-mono">
-                              {r.cnpj}
-                            </div>
-                          )}
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold">
                           {formatBRL(num(r.total_a_receber))}
                         </TableCell>
                         <FaixaCell value={r.faixa_a_vencer} className="text-foreground" />
-                        <FaixaCell value={r.faixa_1_15} className="text-yellow-700" />
-                        <FaixaCell value={r.faixa_16_30} className="text-orange-600" />
+                        <FaixaCell value={r.faixa_1_7} className="text-yellow-700" />
+                        <FaixaCell value={r.faixa_8_30} className="text-orange-600" />
                         <FaixaCell value={r.faixa_31_60} className="text-red-600" />
                         <FaixaCell value={r.faixa_60_mais} className="text-red-900" />
                         <TableCell className="text-right font-mono font-semibold text-destructive">
@@ -419,7 +385,7 @@ export default function PainelFinanceiroConta() {
                       {aberto && (
                         <TableRow>
                           <TableCell colSpan={10} className="p-0">
-                            <TitulosAbertosCliente contaId={r.conta_id} />
+                            <TitulosAbertosCliente parceiroId={r.parceiro_id} />
                           </TableCell>
                         </TableRow>
                       )}
