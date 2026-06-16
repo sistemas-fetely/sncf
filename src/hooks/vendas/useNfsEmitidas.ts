@@ -17,6 +17,9 @@ export interface NfEmitida {
   xml_url: string | null;
   tipo: string | null;
   parceiro: { razao_social: string; cnpj: string } | null;
+  numero_pedido_loja: string | null;
+  bling_pedido_venda_numero: string | null;
+  bling_pedido_venda_id: string | null;
 }
 
 export function useNfsEmitidas() {
@@ -25,7 +28,7 @@ export function useNfsEmitidas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("nfs_emitidas")
-        .select("id, bling_id, numero, serie, data_emissao, situacao, valor_nota, valor_frete, parceiro_id, pedido_venda_id, pedido:pedidos(id_externo), pdf_url, xml_url, tipo, parceiro:parceiros_comerciais(razao_social, cnpj)")
+        .select("id, bling_id, numero, serie, data_emissao, situacao, valor_nota, valor_frete, parceiro_id, pedido_venda_id, pedido:pedidos(id_externo), pdf_url, xml_url, tipo, parceiro:parceiros_comerciais(razao_social, cnpj), numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id")
         .order("data_emissao", { ascending: false })
         .limit(500);
       if (error) throw error;

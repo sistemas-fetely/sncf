@@ -190,6 +190,7 @@ export default function NfsDeVenda() {
               <TableHead>Parceiro</TableHead>
               <TableHead className="w-[140px] text-right">Valor</TableHead>
               <TableHead className="w-[120px] text-right">Frete</TableHead>
+              <TableHead className="w-[140px]">Nº Pedido (Bling)</TableHead>
               <TableHead className="w-[140px]">Pedido</TableHead>
               <TableHead className="w-[120px]">Situação</TableHead>
               <TableHead className="w-[100px] text-right">Ações</TableHead>
@@ -206,7 +207,7 @@ export default function NfsDeVenda() {
               </>
             ) : filtrados.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                   Nenhuma NF encontrada.
                 </TableCell>
               </TableRow>
@@ -225,6 +226,14 @@ export default function NfsDeVenda() {
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-sm">
                     {n.valor_frete ? formatCurrency(n.valor_frete) : "—"}
+                  </TableCell>
+                  <TableCell
+                    className="text-sm font-mono text-xs"
+                    title={`numeroPedidoLoja: ${n.numero_pedido_loja ?? ""}\npedidoVenda.numero: ${n.bling_pedido_venda_numero ?? ""}\npedidoVenda.id: ${n.bling_pedido_venda_id ?? ""}`}
+                  >
+                    {n.numero_pedido_loja || n.bling_pedido_venda_numero || (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">
                     {n.pedido?.id_externo ? (

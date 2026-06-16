@@ -23,7 +23,7 @@ for (const nf of items) {
 
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json")
+      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id")
       .eq("bling_id", blingId)
       .maybeSingle();
 
@@ -34,6 +34,9 @@ for (const nf of items) {
     // Busca detalhe apenas quando falta valor ou frete — evita rate limit do Bling.
     // Pedido linkage tenta junto quando já estamos no detalhe, mas não aciona sozinho.
     let situacaoDetalhe: string | null = null;
+    let numeroPedidoLojaRaw: string | null = null;
+    let pedidoVendaNumeroRaw: string | null = null;
+    let pedidoVendaBlingIdRaw: string | null = null;
 
     if (semValor || semFrete || semPedido) {
       try {
@@ -47,6 +50,9 @@ for (const nf of items) {
           if (detSitNum != null) {
             situacaoDetalhe = SITUACAO_MAP[Number(detSitNum)] || null;
           }
+          numeroPedidoLojaRaw = d.numeroPedidoLoja != null ? String(d.numeroPedidoLoja) : null;
+          pedidoVendaNumeroRaw = d.pedidoVenda?.numero != null ? String(d.pedidoVenda.numero) : null;
+          pedidoVendaBlingIdRaw = d.pedidoVenda?.id != null ? String(d.pedidoVenda.id) : null;
 
 
 
@@ -133,6 +139,9 @@ for (const nf of items) {
       raw:                 nf,
       origem:              "bling",
       updated_at:          new Date().toISOString(),
+      numero_pedido_loja:        numeroPedidoLojaRaw ?? existing?.numero_pedido_loja ?? null,
+      bling_pedido_venda_numero: pedidoVendaNumeroRaw ?? existing?.bling_pedido_venda_numero ?? null,
+      bling_pedido_venda_id:     pedidoVendaBlingIdRaw ?? existing?.bling_pedido_venda_id ?? null,
     };
     if (pedido_venda_id) registro.pedido_venda_id = pedido_venda_id;
 
