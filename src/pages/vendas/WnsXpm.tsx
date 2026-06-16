@@ -183,7 +183,9 @@ export default function WnsXpm() {
                     <TableHead>Canal</TableHead>
                     <TableHead>Fase atual</TableHead>
                     <TableHead className="text-right">Remessas</TableHead>
-                    <TableHead>NFs</TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("nf")}>
+                      <span className="inline-flex items-center gap-1">NFs <SortIcon col="nf" /></span>
+                    </TableHead>
                     <TableHead className="text-right">Qtd</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Última data</TableHead>
