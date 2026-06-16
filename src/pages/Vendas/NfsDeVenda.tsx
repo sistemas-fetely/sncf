@@ -227,6 +227,14 @@ export default function NfsDeVenda() {
                   <TableCell className="text-right tabular-nums text-sm">
                     {n.valor_frete ? formatCurrency(n.valor_frete) : "—"}
                   </TableCell>
+                  <TableCell
+                    className="text-sm font-mono text-xs"
+                    title={`numeroPedidoLoja: ${n.numero_pedido_loja ?? ""}\npedidoVenda.numero: ${n.bling_pedido_venda_numero ?? ""}\npedidoVenda.id: ${n.bling_pedido_venda_id ?? ""}`}
+                  >
+                    {n.numero_pedido_loja || n.bling_pedido_venda_numero || (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm">
                     {n.pedido?.id_externo ? (
                       <Button
