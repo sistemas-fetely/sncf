@@ -180,7 +180,7 @@ serve(async (req) => {
       .eq("pedido_id", pedido_id)
       .order("numero_parcela");
     if (!titulos || titulos.length === 0) {
-      return err("Pedido sem títulos gerados — engine F-2 deveria ter gerado em pre_faturado", 409);
+      return err("Pedido sem títulos — confirme o portão na aba Primeiro Pagamento, ou materialize a cobrança, antes de enviar ao Bling.", 409);
     }
 
     // 5. Itens da remessa (formato normalizado: {descricao, sku, quantidade, valor_unitario})
