@@ -16755,6 +16755,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_pedido_deve_esperar_pagamento: {
+        Args: { p_pedido_id: string }
+        Returns: boolean
+      }
       fn_recalcular_tags_doc_cpr: {
         Args: { p_cpr_id: string }
         Returns: undefined
@@ -16775,6 +16779,7 @@ export type Database = {
         Returns: string
       }
       fn_wns_consolidar: { Args: never; Returns: Json }
+      fn_wns_vincular_pedidos: { Args: never; Returns: Json }
       gerar_celebracoes_aniversario_mural: { Args: never; Returns: number }
       gerar_celebracoes_tempo_casa_mural: { Args: never; Returns: number }
       gerar_movimentacao_de_conta: {

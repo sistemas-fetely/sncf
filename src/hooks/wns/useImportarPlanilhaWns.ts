@@ -228,6 +228,12 @@ export function useImportarPlanilhaWns() {
     const pedidos_consolidados = Number(rpcData?.pedidos_consolidados ?? 0);
     const skus_consolidados = Number(rpcData?.skus_consolidados ?? 0);
 
+    setEtapa("Vinculando NFs aos pedidos…");
+    const { error: errVinc } = await sb.rpc("fn_wns_vincular_pedidos");
+    if (errVinc) {
+      toast.warning("Importação concluída, mas o vínculo automático de NFs falhou: " + errVinc.message);
+    }
+
     const { error: errFim } = await sb
       .from("wns_importacoes")
       .update({
