@@ -36,6 +36,8 @@ export default function WnsXpm() {
   const [filtroCanal, setFiltroCanal] = useState<string>("todos");
   const [busca, setBusca] = useState("");
   const [expandido, setExpandido] = useState<number | null>(null);
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const { data: fases } = useWnsFases();
   const { data: tipos } = useWnsTiposPedido();
