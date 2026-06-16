@@ -513,7 +513,9 @@ export default function CobrancaDetalhe() {
   const handleAdicionarParcela = () => {
     setTitulos((prev) => {
       const ultima = prev[prev.length - 1];
-      const novaData = ultima ? addDiasISO(ultima.data_vencimento, 30) : new Date().toISOString().slice(0, 10);
+      const novaData = ultima
+        ? addDiasISO(ultima.data_vencimento, intervaloDias)
+        : addDiasISO(todayISO(), diasPrimeiroPagamento);
       const novo: TituloProposto = {
         ordem: prev.length,
         numero_parcela: prev.length + 1,
@@ -522,7 +524,7 @@ export default function CobrancaDetalhe() {
         tipo_pagamento: ultima?.tipo_pagamento ?? "boleto",
         valor_bruto: 0,
         data_vencimento: novaData,
-        condicao_pagamento: ultima?.condicao_pagamento ?? "",
+        condicao_pagamento: calcularCondicaoLabel(novaData, false),
       };
       const nova = renumerar([...prev, novo]);
       return parcelasIguais ? redistribuirValoresIguais(nova, valorTotalCobrar) : nova;
