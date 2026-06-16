@@ -600,8 +600,8 @@ export default function CobrancaDetalhe() {
   const handleRecalcular = () => {
     setTitulos((prev) => {
       if (prev.length === 0) return prev;
-      const comDatas = aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento);
-      return redistribuirValoresIguais(comDatas, valorTotalCobrar);
+      const comDatas = aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento, intervaloDias);
+      return parcelasIguais ? redistribuirValoresIguais(comDatas, valorTotalCobrar) : comDatas;
     });
   };
 
