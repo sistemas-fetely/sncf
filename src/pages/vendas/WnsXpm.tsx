@@ -51,8 +51,8 @@ export default function WnsXpm() {
     return m;
   }, [pedidos]);
 
-  const nfNumero = (nfs?: string[] | null) => {
-    const s = (nfs ?? [])[0] ?? "";
+  const nfNumero = (nfs?: (string | number)[] | null) => {
+    const s = String((nfs ?? [])[0] ?? "");
     const n = parseInt(s.replace(/\D/g, ""), 10);
     return Number.isFinite(n) ? n : 0;
   };
