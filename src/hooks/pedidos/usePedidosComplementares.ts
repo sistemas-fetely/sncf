@@ -9,7 +9,7 @@ export function usePedidosComplementares(pedido_id: string) {
         .from("pedidos")
         .select("id, id_externo, valor_liquido, estagio, parceiro_id")
         .eq("pedido_origem_id", pedido_id)
-        .order("created_at");
+        .order("recebido_em");
       if (error) throw error;
       return (data ?? []) as any[];
     },
