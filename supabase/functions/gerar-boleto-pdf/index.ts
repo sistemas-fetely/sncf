@@ -60,7 +60,7 @@ function encodeI25(digits: string): boolean[] {
       bars.push(d2[j] === "1");
     }
   }
-  bars.push(true, true, false, true);
+  bars.push(true, false, false);
   return bars;
 }
 
