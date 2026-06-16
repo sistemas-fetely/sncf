@@ -15854,11 +15854,33 @@ export type Database = {
           nf_numero: string | null
           numero_parcela: number | null
           numero_titulo: string | null
+          parceiro_id: string | null
           status_gestao: string | null
           total_parcelas: number | null
           valor: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
           {
             foreignKeyName: "titulo_a_receber_banco_recebimento_id_fkey"
             columns: ["banco_recebimento_id"]
@@ -15914,6 +15936,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nfs_emitidas"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_recebivel_b2b_por_conta: {
+        Row: {
+          cliente: string | null
+          dias_atraso_max: number | null
+          faixa_1_7: number | null
+          faixa_31_60: number | null
+          faixa_60_mais: number | null
+          faixa_8_30: number | null
+          faixa_a_vencer: number | null
+          parceiro_id: string | null
+          qtd_titulos: number | null
+          total_a_receber: number | null
+          total_vencido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
           },
         ]
       }
