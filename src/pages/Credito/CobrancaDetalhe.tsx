@@ -60,6 +60,19 @@ function addDiasISO(iso: string, dias: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+function diffDiasISO(deISO: string, ateISO: string): number {
+  if (!deISO || !ateISO) return 0;
+  const a = new Date(deISO + "T00:00:00").getTime();
+  const b = new Date(ateISO + "T00:00:00").getTime();
+  return Math.round((b - a) / 86400000);
+}
+
+function calcularCondicaoLabel(dataVencISO: string, ehEntrada: boolean): string {
+  const dias = diffDiasISO(todayISO(), dataVencISO);
+  const base = dias <= 0 ? "à vista" : `${dias} ${dias === 1 ? "dia" : "dias"}`;
+  return ehEntrada ? `Entrada (${base})` : base;
+}
+
 function redistribuirValoresIguais<T extends { valor_bruto: number }>(titulos: T[], total: number): T[] {
   const n = titulos.length;
   if (n === 0) return titulos;
