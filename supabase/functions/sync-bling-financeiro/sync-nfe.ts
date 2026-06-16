@@ -34,6 +34,9 @@ for (const nf of items) {
     // Busca detalhe apenas quando falta valor ou frete — evita rate limit do Bling.
     // Pedido linkage tenta junto quando já estamos no detalhe, mas não aciona sozinho.
     let situacaoDetalhe: string | null = null;
+    let numeroPedidoLojaRaw: string | null = null;
+    let pedidoVendaNumeroRaw: string | null = null;
+    let pedidoVendaBlingIdRaw: string | null = null;
 
     if (semValor || semFrete || semPedido) {
       try {
