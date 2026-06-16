@@ -39,6 +39,7 @@ import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/Edit
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
+const INTERVALO_PARCELAS_FALLBACK = 30;
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
