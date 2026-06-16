@@ -495,18 +495,15 @@ export default function CobrancaDetalhe() {
   };
 
   const handleDataChange = (idx: number, novaData: string) => {
-    if (idx !== 0) {
-      atualizarTitulo(idx, { data_vencimento: novaData });
-      return;
-    }
     setTitulos((prev) =>
-      prev.map((t, i) => {
-        if (i === 0) return { ...t, data_vencimento: novaData };
-        const offset = parseDiasCondicao(t.condicao_pagamento);
-        return { ...t, data_vencimento: addDiasISO(novaData, offset) };
-      }),
+      prev.map((t, i) =>
+        i === idx
+          ? { ...t, data_vencimento: novaData, condicao_pagamento: calcularCondicaoLabel(novaData, t.eh_entrada) }
+          : t,
+      ),
     );
   };
+
 
   const renumerar = (lista: TituloProposto[]): TituloProposto[] => {
     const n = lista.length;
