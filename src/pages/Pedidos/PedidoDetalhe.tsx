@@ -311,6 +311,21 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
   return null;
 }
 
+function AcoesAguardandoPagamento({ pedido }: { pedido: any }) {
+  const { data: temPortaoProvisorio, isLoading } = usePedidoPortaoProvisorio(pedido.id);
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      {!isLoading && temPortaoProvisorio ? (
+        <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
+      ) : (
+        <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />
+      )}
+      <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
+    </div>
+  );
+}
+
+
 
 export default function PedidoDetalhe() {
   const { id } = useParams<{ id: string }>();
