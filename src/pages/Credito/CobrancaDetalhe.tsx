@@ -415,6 +415,7 @@ export default function CobrancaDetalhe() {
   };
 
   const paramDiasQ = useParametros("dias_primeiro_pagamento");
+  const paramIntervaloQ = useParametros("intervalo_entre_parcelas");
 
   // Aplica 1ª data = hoje + dias e cascateia as demais a partir dela (preserva 30/60/90)
   const aplicarPrimeiraDataECascata = (
