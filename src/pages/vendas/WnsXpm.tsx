@@ -12,7 +12,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Upload, Info, ChevronRight, ChevronDown } from "lucide-react";
+import { Upload, Info, ChevronRight, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { ImportarPlanilhaWnsDialog } from "@/components/wns/ImportarPlanilhaWnsDialog";
 import { WnsPedidoRemessasRow } from "@/components/wns/WnsPedidoRemessasRow";
 import { WnsProdutosTable } from "@/components/wns/WnsProdutosTable";
@@ -36,6 +36,8 @@ export default function WnsXpm() {
   const [filtroCanal, setFiltroCanal] = useState<string>("todos");
   const [busca, setBusca] = useState("");
   const [expandido, setExpandido] = useState<number | null>(null);
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const { data: fases } = useWnsFases();
   const { data: tipos } = useWnsTiposPedido();
@@ -49,9 +51,24 @@ export default function WnsXpm() {
     return m;
   }, [pedidos]);
 
+  const nfNumero = (nfs?: (string | number)[] | null) => {
+    const s = String((nfs ?? [])[0] ?? "");
+    const n = parseInt(s.replace(/\D/g, ""), 10);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const toggleSort = (col: string) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
+
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return (pedidos ?? []).filter((p) => {
+    let arr = (pedidos ?? []).filter((p) => {
       if (filtroFase !== "todas" && String(p.evento_atual_wns_id ?? "") !== filtroFase) return false;
       if (filtroCanal !== "todos" && String(p.tipo_pedido_codigo ?? "") !== filtroCanal) return false;
       if (q) {
@@ -65,7 +82,22 @@ export default function WnsXpm() {
       }
       return true;
     });
-  }, [pedidos, filtroFase, filtroCanal, busca]);
+    if (sortCol === "nf") {
+      arr = [...arr].sort((a, b) => {
+        const na = nfNumero(a.notas_fiscais);
+        const nb = nfNumero(b.notas_fiscais);
+        return sortDir === "asc" ? na - nb : nb - na;
+      });
+    }
+    return arr;
+  }, [pedidos, filtroFase, filtroCanal, busca, sortCol, sortDir]);
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortCol !== col) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="h-3.5 w-3.5 text-primary" />
+      : <ArrowDown className="h-3.5 w-3.5 text-primary" />;
+  };
 
   const COLS = 10;
 
@@ -151,7 +183,9 @@ export default function WnsXpm() {
                     <TableHead>Canal</TableHead>
                     <TableHead>Fase atual</TableHead>
                     <TableHead className="text-right">Remessas</TableHead>
-                    <TableHead>NFs</TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("nf")}>
+                      <span className="inline-flex items-center gap-1">NFs <SortIcon col="nf" /></span>
+                    </TableHead>
                     <TableHead className="text-right">Qtd</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Última data</TableHead>
