@@ -44,6 +44,15 @@ const segundoFone = (s: string | null | undefined): string | undefined => {
   return digits.length >= 10 ? digits : undefined;
 };
 
+// Bling aceita UM e-mail válido por contato. Campos com múltiplos e-mails
+// (separados por ; , / ou espaço) ou com formato inválido geram erro 400.
+// Pega o primeiro candidato que passa no regex; se nenhum for válido, omite.
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailValido = (s: string | null | undefined): string | undefined => {
+  const candidatos = (s || "").split(/[;,/\s]+/).map((e) => e.trim()).filter(Boolean);
+  return candidatos.find((e) => RE_EMAIL.test(e));
+};
+
 const jwtRole = (token: string): string | null => {
   try {
     return JSON.parse(atob((token.split(".")[1] || ""))).role ?? null;
