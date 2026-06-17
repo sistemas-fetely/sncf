@@ -100,11 +100,16 @@ export function AdminFinanceiroSidebar() {
                 {!collapsed && (
                   <span className="flex-1 flex items-center justify-between gap-2">
                     <span>{item.title}</span>
-                    {item.badge && (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-admin/30 text-admin">
-                        {item.badge}
-                      </Badge>
-                    )}
+                    <span className="flex items-center gap-1">
+                      {item.dot && (
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      )}
+                      {item.badge && (
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-admin/30 text-admin">
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </span>
                   </span>
                 )}
               </NavLink>
