@@ -11,7 +11,29 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronRight, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+const SLA_LABEL: Record<string, string> = {
+  recebido: "Recebido",
+  em_analise_credito: "Análise crédito",
+  cobranca: "Cobrança",
+  pre_faturado: "Pré-faturamento",
+  em_separacao: "Separação",
+  faturado: "Faturamento",
+  em_transporte: "Transporte",
+  entregue: "Entregue",
+  aguardando_pagamento: "Aguardando pagamento",
+  aguardando_estoque: "Aguardando estoque",
+};
+
+type SlaFaseRow = {
+  estagio: string;
+  ordem: number | null;
+  tipo_sla: string | null;
+  sla_dias: number | null;
+  ativo: boolean | null;
+};
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const DATA_FMT = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
@@ -95,6 +117,31 @@ export default function FarolPedidos() {
 
   const rows = data ?? [];
 
+  const { data: slaFases } = useQuery({
+    queryKey: ["sla_fase_pedido", "ativo"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sla_fase_pedido")
+        .select("estagio, ordem, tipo_sla, sla_dias, ativo")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as SlaFaseRow[];
+    },
+  });
+
+  const regua = useMemo(() => {
+    const fases = (slaFases ?? []).filter((f) => f.estagio in SLA_LABEL);
+    const internas = fases.filter(
+      (f) => f.tipo_sla === "interno" && (f.sla_dias ?? 0) > 0 && f.estagio !== "em_transporte" && f.estagio !== "entregue",
+    );
+    const esperas = fases.filter((f) => f.tipo_sla === "espera_externa");
+    const somaInternos = internas.reduce((acc, f) => acc + (f.sla_dias ?? 0), 0);
+    const transporteBase = 5;
+    const totalDias = somaInternos + transporteBase;
+    return { internas, esperas, somaInternos, transporteBase, totalDias };
+  }, [slaFases]);
+
   const contagem = useMemo(() => {
     const c = { atrasado: 0, em_dia: 0, adiantado: 0, aguardando_pagamento: 0 };
     for (const r of rows) {
@@ -159,6 +206,51 @@ export default function FarolPedidos() {
             Acompanhamento de prazo de entrega (somente leitura)
           </p>
         </div>
+
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <div className="text-xs font-medium text-muted-foreground lowercase">régua de prazos</div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {regua.internas.map((f, idx) => (
+                <span key={f.estagio} className="flex items-center gap-1.5">
+                  <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
+                    <span className="text-[12px] leading-tight lowercase">{SLA_LABEL[f.estagio]}</span>
+                    <span className="text-[11px] leading-tight opacity-80">{f.sla_dias} d.u.</span>
+                  </span>
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                  {idx === regua.internas.length - 1 && null}
+                </span>
+              ))}
+              <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
+                <span className="text-[12px] leading-tight lowercase">Transporte</span>
+                <span className="text-[11px] leading-tight opacity-80">~5 d.u. (base · real por CEP)</span>
+              </span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              <span className="inline-flex flex-col items-start rounded-md border border-green-200 bg-green-50 px-2 py-1 text-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-900">
+                <span className="text-[12px] leading-tight lowercase">Entregue</span>
+                <span className="text-[11px] leading-tight opacity-80">chegada</span>
+              </span>
+            </div>
+            <div className="text-[11px] text-muted-foreground lowercase">
+              prazo base ≈ {regua.totalDias} dias úteis = {regua.somaInternos} internos + {regua.transporteBase} de transporte · sábados e domingos não contam
+            </div>
+            {regua.esperas.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground lowercase">
+                  <Pause className="h-3 w-3" /> pausam o relógio:
+                </span>
+                {regua.esperas.map((f) => (
+                  <span key={f.estagio} className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[12px] text-amber-800 lowercase dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-900">
+                    {SLA_LABEL[f.estagio]}
+                  </span>
+                ))}
+                <span className="text-[11px] text-muted-foreground lowercase">dependem de terceiros, não contam no prazo</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KpiCard label="Atrasado" valor={contagem.atrasado} tone="text-red-600 dark:text-red-400" value="atrasado" />
