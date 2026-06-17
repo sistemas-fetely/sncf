@@ -117,6 +117,31 @@ export default function FarolPedidos() {
 
   const rows = data ?? [];
 
+  const { data: slaFases } = useQuery({
+    queryKey: ["sla_fase_pedido", "ativo"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sla_fase_pedido")
+        .select("estagio, ordem, tipo_sla, sla_dias, ativo")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as SlaFaseRow[];
+    },
+  });
+
+  const regua = useMemo(() => {
+    const fases = (slaFases ?? []).filter((f) => f.estagio in SLA_LABEL);
+    const internas = fases.filter(
+      (f) => f.tipo_sla === "interno" && (f.sla_dias ?? 0) > 0 && f.estagio !== "em_transporte" && f.estagio !== "entregue",
+    );
+    const esperas = fases.filter((f) => f.tipo_sla === "espera_externa");
+    const somaInternos = internas.reduce((acc, f) => acc + (f.sla_dias ?? 0), 0);
+    const transporteBase = 5;
+    const totalDias = somaInternos + transporteBase;
+    return { internas, esperas, somaInternos, transporteBase, totalDias };
+  }, [slaFases]);
+
   const contagem = useMemo(() => {
     const c = { atrasado: 0, em_dia: 0, adiantado: 0, aguardando_pagamento: 0 };
     for (const r of rows) {
