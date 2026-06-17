@@ -278,15 +278,23 @@ serve(async (req) => {
       }
     }
 
-    // 8. Parcelas — baseadas no remessaValor
-    // Lazy /01 (não-split): remessaValor = valor_liquido → soma das parcelas = total. Consistente.
-    // Split /02+ (futuro, Fase 3): split proporcional de parcelas tratado lá.
+    // 8. Parcelas — rateadas proporcional ao valor da remessa.
+    // Remessa única: fator = 1 (remessaValor = soma dos títulos) → parcelas intactas (comportamento original).
+    // Remessa dividida: fator < 1 → cada parcela escala na mesma proporção, mantendo datas e nº de parcelas.
+    const somaTitulos = parseFloat(
+      titulos.reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
+    );
+    const fatorRemessa = somaTitulos > 0
+      ? parseFloat((remessaValor / somaTitulos).toFixed(6))
+      : 1;
+
     const blingParcelas = titulos.map((t: any) => ({
       dataVencimento: t.data_vencimento_original,
-      valor: parseFloat(Number(t.valor_bruto).toFixed(2)),
+      valor: parseFloat((Number(t.valor_bruto) * fatorRemessa).toFixed(2)),
       formaPagamento: { id: Number(blingFormaId) },
     }));
 
+    // Ajuste de centavo de arredondamento: soma exata = remessaValor
     const somaParcelas = blingParcelas.reduce((s, p) => s + p.valor, 0);
     const diff = parseFloat((remessaValor - somaParcelas).toFixed(2));
     if (Math.abs(diff) >= 0.01 && blingParcelas.length > 0) {
@@ -415,8 +423,12 @@ if (itensSemProdutoBling.length > 0) {
 }
 
 // 9d. Monta itens com produto.id (catálogo) ou fallback avulso
-    const temFrete = Number(pedido.valor_frete ?? 0) > 0;
-    const valorFrete = temFrete ? Number(pedido.valor_frete) : 0;
+    // Frete da REMESSA (rateado na divisão) quando existir; senão o do pedido.
+    // remessa.valor_frete = NULL em remessa não-dividida → usa pedido.valor_frete (comportamento original).
+    const freteBase = remessa.valor_frete != null
+      ? Number(remessa.valor_frete)
+      : Number(pedido.valor_frete ?? 0);
+    const valorFrete = freteBase > 0 ? freteBase : 0;
 
     const baseItens = valorFrete > 0
       ? Math.max(0, remessaValor - valorFrete)
