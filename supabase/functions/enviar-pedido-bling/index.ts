@@ -60,6 +60,133 @@ serve(async (req) => {
     const remessa_id_input: string | null = body?.remessa_id ?? null;
     if (!pedido_id) return err("pedido_id obrigatório");
 
+    // ── Branch: anexos_nf ────────────────────────────────────────────────
+    // Coleta PDF + XML das NFs de saída autorizadas do pedido e retorna
+    // como anexos base64 para serem enviados via send-transactional-email.
+    // NÃO encosta na lógica de remessa/estágio.
+    if (body?.acao === "anexos_nf") {
+      const { data: pedidoNf, error: pedidoNfErr } = await supabase
+        .from("pedidos")
+        .select("id, id_externo, nf_numero")
+        .eq("id", pedido_id)
+        .maybeSingle();
+      if (pedidoNfErr || !pedidoNf) return err("Pedido não encontrado", 404);
+
+      const orFilter = pedidoNf.nf_numero
+        ? `pedido_venda_id.eq.${pedido_id},numero.eq.${pedidoNf.nf_numero}`
+        : `pedido_venda_id.eq.${pedido_id}`;
+
+      const { data: nfs, error: nfsErr } = await supabase
+        .from("nfs_emitidas")
+        .select("id, numero, bling_id, pdf_url, xml_url, tipo, situacao")
+        .or(orFilter)
+        .eq("tipo", "saida")
+        .eq("situacao", "autorizada");
+      if (nfsErr) return err(`Falha ao buscar NFs: ${nfsErr.message}`, 500);
+      if (!nfs || nfs.length === 0) {
+        return err("Sem NF de saída autorizada para este pedido", 422);
+      }
+
+      // Bling client lazy (apenas se precisar completar pdf/xml)
+      let blingClient: any = null;
+      const ensureClient = async () => {
+        if (blingClient) return blingClient;
+        const { data: cfg } = await supabase
+          .from("integracoes_config")
+          .select("*")
+          .eq("sistema", "bling")
+          .maybeSingle();
+        if (!cfg || !cfg.access_token) {
+          throw new Error("Bling não conectado");
+        }
+        const freshToken = await ensureFreshToken(supabase, cfg);
+        blingClient = makeBlingClient(supabase, cfg, freshToken);
+        return blingClient;
+      };
+
+      // base64 chunked (evita stack overflow para PDFs grandes)
+      const toBase64 = (bytes: Uint8Array): string => {
+        let binary = "";
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(
+            null,
+            Array.from(bytes.subarray(i, i + chunk)) as any,
+          );
+        }
+        return btoa(binary);
+      };
+
+      const attachments: { filename: string; content: string }[] = [];
+      const nf_numeros: string[] = [];
+
+      for (const nf of nfs) {
+        let pdfUrl: string | null = nf.pdf_url ?? null;
+        let xmlVal: string | null = nf.xml_url ?? null;
+
+        if ((!pdfUrl || !xmlVal) && nf.bling_id) {
+          try {
+            const cli = await ensureClient();
+            const resp = await cli.get(`/nfe/${nf.bling_id}`);
+            const d = resp?.data ?? resp;
+            pdfUrl = pdfUrl ?? d?.linkPDF ?? d?.linkDanfe ?? null;
+            xmlVal = xmlVal ?? d?.xml ?? null;
+            if (pdfUrl || xmlVal) {
+              await supabase
+                .from("nfs_emitidas")
+                .update({ pdf_url: pdfUrl, xml_url: xmlVal })
+                .eq("id", nf.id)
+                .then(() => {})
+                .catch(() => {});
+            }
+          } catch (e) {
+            console.error(`[anexos_nf] Falha ao buscar NF ${nf.bling_id} no Bling: ${(e as Error).message}`);
+          }
+        }
+
+        if (!pdfUrl) {
+          return err(`NF ${nf.numero ?? nf.bling_id} sem PDF no Bling`, 422);
+        }
+
+        // PDF
+        const pdfResp = await fetch(pdfUrl);
+        if (!pdfResp.ok) {
+          return err(`Falha ao baixar PDF da NF ${nf.numero}: HTTP ${pdfResp.status}`, 502);
+        }
+        const pdfBytes = new Uint8Array(await pdfResp.arrayBuffer());
+        attachments.push({
+          filename: `NF_${nf.numero ?? nf.bling_id}.pdf`,
+          content: toBase64(pdfBytes),
+        });
+
+        // XML (sempre)
+        if (xmlVal) {
+          let xmlText: string;
+          if (xmlVal.startsWith("http")) {
+            const xmlResp = await fetch(xmlVal);
+            if (!xmlResp.ok) {
+              return err(`Falha ao baixar XML da NF ${nf.numero}: HTTP ${xmlResp.status}`, 502);
+            }
+            xmlText = await xmlResp.text();
+          } else {
+            xmlText = xmlVal;
+          }
+          const xmlBytes = new TextEncoder().encode(xmlText);
+          attachments.push({
+            filename: `NF_${nf.numero ?? nf.bling_id}.xml`,
+            content: toBase64(xmlBytes),
+          });
+        }
+
+        if (nf.numero) nf_numeros.push(nf.numero);
+      }
+
+      return ok({ sucesso: true, attachments, nf_numeros });
+    }
+    // ── fim branch anexos_nf ─────────────────────────────────────────────
+
+
+
     // 1. Pedido
     const { data: pedido, error: pedErr } = await supabase
       .from("pedidos")
