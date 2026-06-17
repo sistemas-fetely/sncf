@@ -4,30 +4,19 @@ import App from "./App.tsx";
 import "./index.css";
 import "./styles/sidebar-fetely.css";
 
-// Auto-reload quando um chunk lazy fica obsoleto após novo deploy.
-// Evita tela branca com "Failed to fetch dynamically imported module".
+// Detecta chunk lazy obsoleto sem recarregar a tela automaticamente.
+// O reload automático interrompia edição/digitação em telas operacionais.
 const isChunkLoadError = (msg: string) =>
   /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|error loading dynamically imported module/i.test(msg);
 
-const RELOAD_KEY = "__chunk_reload_ts__";
-const RELOAD_COOLDOWN_MS = 30_000;
-
-function tryReload() {
-  const now = Date.now();
-  const last = Number(sessionStorage.getItem(RELOAD_KEY) ?? "0");
-  if (now - last < RELOAD_COOLDOWN_MS) return;
-  sessionStorage.setItem(RELOAD_KEY, String(now));
-  window.location.reload();
-}
-
 window.addEventListener("error", (e) => {
   const msg = [e.message, e.error?.message, String(e.error ?? "")].filter(Boolean).join(" ");
-  if (isChunkLoadError(msg)) tryReload();
+  if (isChunkLoadError(msg)) console.warn("Chunk lazy obsoleto detectado; reload automático desativado.");
 });
 
 window.addEventListener("unhandledrejection", (e) => {
   const msg = (e.reason?.message ?? String(e.reason ?? "")) as string;
-  if (isChunkLoadError(msg)) tryReload();
+  if (isChunkLoadError(msg)) console.warn("Chunk lazy obsoleto detectado; reload automático desativado.");
 });
 
 class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -39,7 +28,7 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 
   componentDidCatch(error: Error, _errorInfo: ErrorInfo) {
     if (isChunkLoadError(error?.message ?? String(error ?? ""))) {
-      tryReload();
+      console.warn("Chunk lazy obsoleto detectado; reload automático desativado.");
     } else {
       console.error(error);
     }
