@@ -171,6 +171,54 @@ function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: strin
   );
 }
 
+function BotaoEmailNfFaturado({ pedido }: { pedido: any }) {
+  const [open, setOpen] = useState(false);
+  const enviado = pedido.nf_email_enviado_em as string | null | undefined;
+
+  if (enviado) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-1.5 text-emerald-600 border-emerald-200 hover:text-emerald-700"
+              onClick={() => setOpen(true)}
+            >
+              <MailCheck className="h-4 w-4" />NF enviada · reenviar
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Enviada em {new Date(enviado).toLocaleString("pt-BR")}
+          </TooltipContent>
+        </Tooltip>
+        <EnviarEmailNfDialog
+          open={open}
+          onOpenChange={setOpen}
+          pedido_id={pedido.id}
+          parceiro_id={pedido.parceiro_id}
+        />
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="default" className="w-full gap-1.5" onClick={() => setOpen(true)}>
+        <Mail className="h-4 w-4" />Enviar NF por e-mail
+      </Button>
+      <EnviarEmailNfDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedido_id={pedido.id}
+        parceiro_id={pedido.parceiro_id}
+      />
+    </>
+  );
+}
+
+
 
 function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] }) {
   const navigate = useNavigate();
