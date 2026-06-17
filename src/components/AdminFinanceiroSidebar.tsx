@@ -39,7 +39,7 @@ const tudoAVistaItems: MenuItem[] = [
 const financeiroItems: MenuItem[] = [
   { title: "Contas a Pagar", url: "/administrativo/contas-pagar", icon: ArrowUpFromLine },
   { title: "Faturas de Cartão", url: "/administrativo/faturas-cartao", icon: CreditCard },
-  { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine },
+  { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine, dot: true },
   { title: "Fluxo de Caixa", url: "/administrativo/fluxo-caixa", icon: TrendingUp },
 ];
 
@@ -100,11 +100,16 @@ export function AdminFinanceiroSidebar() {
                 {!collapsed && (
                   <span className="flex-1 flex items-center justify-between gap-2">
                     <span>{item.title}</span>
-                    {item.badge && (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-admin/30 text-admin">
-                        {item.badge}
-                      </Badge>
-                    )}
+                    <span className="flex items-center gap-1">
+                      {item.dot && (
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      )}
+                      {item.badge && (
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-admin/30 text-admin">
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </span>
                   </span>
                 )}
               </NavLink>
