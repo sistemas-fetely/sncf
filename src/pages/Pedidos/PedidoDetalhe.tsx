@@ -632,6 +632,135 @@ export default function PedidoDetalhe() {
             </div>
           )}
 
+          {/* ===== GRUPO: Detalhes (no topo) ===== */}
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-muted-foreground" />
+              Detalhes
+            </h2>
+            <Tabs defaultValue={analiseCredito?.ressalva ? "credito" : "analise"} className="space-y-3">
+              <TabsList>
+                <TabsTrigger value="analise">Análise IA</TabsTrigger>
+                <TabsTrigger value="credito" className="gap-1.5">
+                  Crédito
+                  {analiseCredito?.ressalva && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="timeline">Histórico</TabsTrigger>
+                <TabsTrigger value="urgencia">Urgência</TabsTrigger>
+                <TabsTrigger value="obs_sop">Obs SOPs</TabsTrigger>
+                <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="analise">
+                <CardAnalisePedido pedido_id={pedido.id} status={pedido.analise_pedido_status ?? null} motivo={pedido.analise_pedido_motivo ?? null} detalhes={pedido.analise_pedido_detalhes ?? null} executada_em={pedido.analise_pedido_executada_em ?? null} />
+              </TabsContent>
+              <TabsContent value="credito">
+                <CreditoTab analise={analiseCredito} />
+              </TabsContent>
+              <TabsContent value="timeline"><PedidoTimeline eventos={eventos} /></TabsContent>
+              <TabsContent value="urgencia">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Urgência</p>
+                  </div>
+                  <Select value={urgencia} onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-gray-400" />{URGENCIA_LABELS.normal}</span></SelectItem>
+                      <SelectItem value="alta"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-yellow-500" />{URGENCIA_LABELS.alta}</span></SelectItem>
+                      <SelectItem value="critica"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500" />{URGENCIA_LABELS.critica}</span></SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <textarea
+                    value={obsUrgencia}
+                    onChange={(e) => setObsUrgencia(e.target.value)}
+                    placeholder="Justificativa opcional…"
+                    rows={2}
+                    className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                  />
+                  <Button size="sm" variant="outline" className="w-full"
+                    onClick={() => id && atualizarUrgencia.mutate({ pedidoId: id, urgencia, observacao: obsUrgencia })}
+                    disabled={atualizarUrgencia.isPending}>
+                    {atualizarUrgencia.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Salvar urgência"}
+                  </Button>
+                </div>
+              </TabsContent>
+              <TabsContent value="obs_sop">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Observações SOPs (internas)</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Notas internas de SOP. Ao salvar, fica registrado na linha do tempo do pedido com autor e data.
+                  </p>
+                  <textarea
+                    value={obsSop}
+                    onChange={(e) => setObsSop(e.target.value)}
+                    placeholder="Ex.: cliente exige NF antes do envio; conferir lote XYZ; SOP de embalagem dupla…"
+                    rows={4}
+                    className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    disabled={!obsSop.trim() || registrarEvento.isPending}
+                    onClick={async () => {
+                      if (!id || !obsSop.trim()) return;
+                      await registrarEvento.mutateAsync({
+                        pedido_id: id,
+                        tipo_evento: "anotacao",
+                        descricao: `[SOP] ${obsSop.trim()}`,
+                        metadata: { categoria: "sop" },
+                      });
+                      setObsSop("");
+                    }}
+                  >
+                    {registrarEvento.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Registrar na timeline"}
+                  </Button>
+
+                  {(() => {
+                    const sopEventos = (eventos || []).filter((ev: any) =>
+                      ev.tipo_evento === "anotacao" &&
+                      (ev?.metadata?.categoria === "sop" || (typeof ev.descricao === "string" && ev.descricao.startsWith("[SOP]")))
+                    );
+                    if (sopEventos.length === 0) {
+                      return (
+                        <p className="text-[11px] text-muted-foreground italic pt-2 border-t">
+                          Nenhuma observação SOP registrada ainda.
+                        </p>
+                      );
+                    }
+                    return (
+                      <div className="space-y-2 pt-2 border-t">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          Histórico SOP ({sopEventos.length})
+                        </p>
+                        <ul className="space-y-2">
+                          {sopEventos.map((ev: any) => (
+                            <li key={ev.id} className="text-xs rounded-md border border-border bg-muted/40 px-2.5 py-2">
+                              <p className="whitespace-pre-wrap">{String(ev.descricao || "").replace(/^\[SOP\]\s*/, "")}</p>
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {new Date(ev.criado_em).toLocaleString("pt-BR")}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </TabsContent>
+              <TabsContent value="tarefas">
+                <PedidoTarefasTab pedidoId={pedido.id} />
+              </TabsContent>
+            </Tabs>
+          </section>
+
           {/* Comercial e financeiro */}
           <section className="space-y-4">
             <h2 className="text-sm font-semibold flex items-center gap-2">
