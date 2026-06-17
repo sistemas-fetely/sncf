@@ -52,4 +52,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'link-cobranca': linkCobranca,
   'catalogo-lojista': catalogoLojista,
   'nf-entrega': nfEntrega,
+  'nf-entrega-boleto': nfEntregaBoleto,
 }
