@@ -9379,6 +9379,7 @@ export type Database = {
           link_pagamento: string | null
           marcacao: string | null
           nf_data: string | null
+          nf_email_enviado_em: string | null
           nf_numero: string | null
           observacao: string | null
           observacao_cliente: string | null
@@ -9444,6 +9445,7 @@ export type Database = {
           link_pagamento?: string | null
           marcacao?: string | null
           nf_data?: string | null
+          nf_email_enviado_em?: string | null
           nf_numero?: string | null
           observacao?: string | null
           observacao_cliente?: string | null
@@ -9509,6 +9511,7 @@ export type Database = {
           link_pagamento?: string | null
           marcacao?: string | null
           nf_data?: string | null
+          nf_email_enviado_em?: string | null
           nf_numero?: string | null
           observacao?: string | null
           observacao_cliente?: string | null
