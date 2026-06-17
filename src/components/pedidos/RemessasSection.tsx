@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Send, Package, Clock, CheckCircle2, Truck, XCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import { DividirRemessaDialog } from "@/components/pedidos/dialogs/DividirRemessaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
@@ -114,6 +115,8 @@ export function RemessasSection({ pedido_id, parceiro_id, id_externo, estagio, b
           const codigo = `${id_externo}/${String(rem.sequencia).padStart(2, "0")}`;
           const itens: any[] = Array.isArray(rem.itens_json) ? rem.itens_json : [];
           const podeEnviar = rem.status === "pronta_para_envio" && !rem.bling_pedido_id && !precisaSincronizar;
+          const totalUnidades = itens.reduce((s: number, it: any) => s + (Number(it.quantidade) || 0), 0);
+          const podeDividir = !rem.bling_pedido_id && totalUnidades >= 2;
 
           return (
             <div key={rem.id} className="rounded-md border p-3 space-y-2">
@@ -150,19 +153,31 @@ export function RemessasSection({ pedido_id, parceiro_id, id_externo, estagio, b
 
               {rem.nf_numero && <div className="text-xs">NF: {rem.nf_numero}</div>}
 
-              {podeEnviar && (
-                <Button
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={enviar.isPending}
-                  onClick={() => enviar.mutate({ pedido_id, remessa_id: rem.id })}
-                >
-                  {enviar.isPending ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
-                  ) : (
-                    <><Send className="h-4 w-4" />Enviar {codigo} pro Bling</>
+              {(podeEnviar || podeDividir) && (
+                <div className="flex gap-2">
+                  {podeEnviar && (
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={enviar.isPending}
+                      onClick={() => enviar.mutate({ pedido_id, remessa_id: rem.id })}
+                    >
+                      {enviar.isPending ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
+                      ) : (
+                        <><Send className="h-4 w-4" />Enviar {codigo} pro Bling</>
+                      )}
+                    </Button>
                   )}
-                </Button>
+                  {podeDividir && (
+                    <DividirRemessaDialog
+                      remessaId={rem.id}
+                      pedidoId={pedido_id}
+                      codigo={codigo}
+                      itens={itens}
+                    />
+                  )}
+                </div>
               )}
             </div>
           );
