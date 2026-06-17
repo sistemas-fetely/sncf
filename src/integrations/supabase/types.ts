@@ -16760,12 +16760,20 @@ export type Database = {
         Returns: Json
       }
       fix_lancamentos_origem_constraint: { Args: never; Returns: string }
+      fn_add_dias_uteis: {
+        Args: { p_data: string; p_dias: number }
+        Returns: string
+      }
       fn_alocar_trilha_pedido: {
         Args: { p_pedido_id: string }
         Returns: string
       }
       fn_aplicar_cadencia_credito: {
         Args: { p_analise_id: string }
+        Returns: string
+      }
+      fn_calcular_meta_entrega: {
+        Args: { p_pedido_id: string }
         Returns: string
       }
       fn_classificar_pagamento: {
