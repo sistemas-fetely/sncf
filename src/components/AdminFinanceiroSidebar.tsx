@@ -25,6 +25,7 @@ interface MenuItem {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   end?: boolean;
   badge?: string;
+  dot?: boolean;
 }
 
 const dashboardItem: MenuItem = {
