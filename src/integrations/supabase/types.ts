@@ -7553,6 +7553,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "nfs_stage_venda_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_pedido_resolvido"
+            referencedColumns: ["nf_id"]
+          },
+          {
             foreignKeyName: "nfs_stage_venda_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -13504,6 +13511,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_pedido_resolvido"
+            referencedColumns: ["nf_id"]
+          },
+          {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -15644,6 +15658,14 @@ export type Database = {
           },
         ]
       }
+      vw_nf_pedido_resolvido: {
+        Row: {
+          canal: string | null
+          nf_id: string | null
+          pedido_ref: string | null
+        }
+        Relationships: []
+      }
       vw_nfs_stage_completude: {
         Row: {
           categoria_id: string | null
@@ -15945,6 +15967,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nfs_emitidas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_pedido_resolvido"
+            referencedColumns: ["nf_id"]
           },
         ]
       }
