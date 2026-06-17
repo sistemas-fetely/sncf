@@ -632,6 +632,135 @@ export default function PedidoDetalhe() {
             </div>
           )}
 
+          {/* ===== GRUPO: Detalhes (no topo) ===== */}
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-muted-foreground" />
+              Detalhes
+            </h2>
+            <Tabs defaultValue={analiseCredito?.ressalva ? "credito" : "analise"} className="space-y-3">
+              <TabsList>
+                <TabsTrigger value="analise">Análise IA</TabsTrigger>
+                <TabsTrigger value="credito" className="gap-1.5">
+                  Crédito
+                  {analiseCredito?.ressalva && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="timeline">Histórico</TabsTrigger>
+                <TabsTrigger value="urgencia">Urgência</TabsTrigger>
+                <TabsTrigger value="obs_sop">Obs SOPs</TabsTrigger>
+                <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="analise">
+                <CardAnalisePedido pedido_id={pedido.id} status={pedido.analise_pedido_status ?? null} motivo={pedido.analise_pedido_motivo ?? null} detalhes={pedido.analise_pedido_detalhes ?? null} executada_em={pedido.analise_pedido_executada_em ?? null} />
+              </TabsContent>
+              <TabsContent value="credito">
+                <CreditoTab analise={analiseCredito} />
+              </TabsContent>
+              <TabsContent value="timeline"><PedidoTimeline eventos={eventos} /></TabsContent>
+              <TabsContent value="urgencia">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Urgência</p>
+                  </div>
+                  <Select value={urgencia} onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-gray-400" />{URGENCIA_LABELS.normal}</span></SelectItem>
+                      <SelectItem value="alta"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-yellow-500" />{URGENCIA_LABELS.alta}</span></SelectItem>
+                      <SelectItem value="critica"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500" />{URGENCIA_LABELS.critica}</span></SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <textarea
+                    value={obsUrgencia}
+                    onChange={(e) => setObsUrgencia(e.target.value)}
+                    placeholder="Justificativa opcional…"
+                    rows={2}
+                    className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                  />
+                  <Button size="sm" variant="outline" className="w-full"
+                    onClick={() => id && atualizarUrgencia.mutate({ pedidoId: id, urgencia, observacao: obsUrgencia })}
+                    disabled={atualizarUrgencia.isPending}>
+                    {atualizarUrgencia.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Salvar urgência"}
+                  </Button>
+                </div>
+              </TabsContent>
+              <TabsContent value="obs_sop">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Observações SOPs (internas)</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Notas internas de SOP. Ao salvar, fica registrado na linha do tempo do pedido com autor e data.
+                  </p>
+                  <textarea
+                    value={obsSop}
+                    onChange={(e) => setObsSop(e.target.value)}
+                    placeholder="Ex.: cliente exige NF antes do envio; conferir lote XYZ; SOP de embalagem dupla…"
+                    rows={4}
+                    className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    disabled={!obsSop.trim() || registrarEvento.isPending}
+                    onClick={async () => {
+                      if (!id || !obsSop.trim()) return;
+                      await registrarEvento.mutateAsync({
+                        pedido_id: id,
+                        tipo_evento: "anotacao",
+                        descricao: `[SOP] ${obsSop.trim()}`,
+                        metadata: { categoria: "sop" },
+                      });
+                      setObsSop("");
+                    }}
+                  >
+                    {registrarEvento.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Registrar na timeline"}
+                  </Button>
+
+                  {(() => {
+                    const sopEventos = (eventos || []).filter((ev: any) =>
+                      ev.tipo_evento === "anotacao" &&
+                      (ev?.metadata?.categoria === "sop" || (typeof ev.descricao === "string" && ev.descricao.startsWith("[SOP]")))
+                    );
+                    if (sopEventos.length === 0) {
+                      return (
+                        <p className="text-[11px] text-muted-foreground italic pt-2 border-t">
+                          Nenhuma observação SOP registrada ainda.
+                        </p>
+                      );
+                    }
+                    return (
+                      <div className="space-y-2 pt-2 border-t">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          Histórico SOP ({sopEventos.length})
+                        </p>
+                        <ul className="space-y-2">
+                          {sopEventos.map((ev: any) => (
+                            <li key={ev.id} className="text-xs rounded-md border border-border bg-muted/40 px-2.5 py-2">
+                              <p className="whitespace-pre-wrap">{String(ev.descricao || "").replace(/^\[SOP\]\s*/, "")}</p>
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {new Date(ev.criado_em).toLocaleString("pt-BR")}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </TabsContent>
+              <TabsContent value="tarefas">
+                <PedidoTarefasTab pedidoId={pedido.id} />
+              </TabsContent>
+            </Tabs>
+          </section>
+
           {/* Comercial e financeiro */}
           <section className="space-y-4">
             <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -948,194 +1077,71 @@ export default function PedidoDetalhe() {
             </div>
           )}
 
-          {/* Itens + Tabs lado a lado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <div className="flex items-center justify-between mb-3 gap-2">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold">Itens do pedido</p>
-                  <span className="text-xs text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
-                </div>
-                <EditarItensDialog
-                  pedidoId={pedido.id}
-                  estagioAtual={estagio}
-                  itensAtuais={itens.map((i: any) => ({
-                    sku: i.sku,
-                    descricao: i.descricao,
-                    quantidade: i.quantidade,
-                    valor_unitario: i.valor_unitario,
-                  }))}
-                />
-              </div>
-              {(() => {
-                const temDestaque = itens.some((i: any) => isSkuDestaque(i.sku));
-                return (
-                  <>
-                    {temDestaque && (
-                      <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3">
-                        <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                        <p className="text-xs text-amber-800 dark:text-amber-200">
-                          Este pedido contém produto(s) de destaque — verifique atenção especial na separação.
-                        </p>
-                      </div>
-                    )}
-                    {itens.length === 0
-                      ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
-                      : itens.map((item: any) => {
-                          const ehDestaque = isSkuDestaque(item.sku);
-                          return (
-                            <div
-                              key={item.id}
-                              className={cn(
-                                "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
-                                ehDestaque && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
-                              )}
-                            >
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium truncate">{item.descricao}</p>
-                                  {ehDestaque && (
-                                    <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
-                                      Destaque
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
-                                </p>
-                              </div>
-                              <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
-                            </div>
-                          );
-                        })
-                    }
-                  </>
-                );
-              })()}
+          {/* ===== GRUPO: Itens ===== */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                Itens do pedido
+                <span className="text-xs font-normal text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
+              </h2>
+              <EditarItensDialog
+                pedidoId={pedido.id}
+                estagioAtual={estagio}
+                itensAtuais={itens.map((i: any) => ({
+                  sku: i.sku,
+                  descricao: i.descricao,
+                  quantidade: i.quantidade,
+                  valor_unitario: i.valor_unitario,
+                }))}
+              />
             </div>
-
-            <Tabs defaultValue={analiseCredito?.ressalva ? "credito" : "analise"} className="space-y-3">
-              <TabsList>
-                <TabsTrigger value="analise">Análise IA</TabsTrigger>
-                <TabsTrigger value="credito" className="gap-1.5">
-                  Crédito
-                  {analiseCredito?.ressalva && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            {(() => {
+              const temDestaque = itens.some((i: any) => isSkuDestaque(i.sku));
+              return (
+                <>
+                  {temDestaque && (
+                    <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                      <p className="text-xs text-amber-800 dark:text-amber-200">
+                        Este pedido contém produto(s) de destaque — verifique atenção especial na separação.
+                      </p>
+                    </div>
                   )}
-                </TabsTrigger>
-                <TabsTrigger value="timeline">Histórico</TabsTrigger>
-                <TabsTrigger value="urgencia">Urgência</TabsTrigger>
-                <TabsTrigger value="obs_sop">Obs SOPs</TabsTrigger>
-                <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="analise">
-                <CardAnalisePedido pedido_id={pedido.id} status={pedido.analise_pedido_status ?? null} motivo={pedido.analise_pedido_motivo ?? null} detalhes={pedido.analise_pedido_detalhes ?? null} executada_em={pedido.analise_pedido_executada_em ?? null} />
-              </TabsContent>
-              <TabsContent value="credito">
-                <CreditoTab analise={analiseCredito} />
-              </TabsContent>
-              <TabsContent value="timeline"><PedidoTimeline eventos={eventos} /></TabsContent>
-              <TabsContent value="urgencia">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Urgência</p>
-                  </div>
-                  <Select value={urgencia} onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)}>
-                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="normal"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-gray-400" />{URGENCIA_LABELS.normal}</span></SelectItem>
-                      <SelectItem value="alta"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-yellow-500" />{URGENCIA_LABELS.alta}</span></SelectItem>
-                      <SelectItem value="critica"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500" />{URGENCIA_LABELS.critica}</span></SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <textarea
-                    value={obsUrgencia}
-                    onChange={(e) => setObsUrgencia(e.target.value)}
-                    placeholder="Justificativa opcional…"
-                    rows={2}
-                    className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
-                  />
-                  <Button size="sm" variant="outline" className="w-full"
-                    onClick={() => id && atualizarUrgencia.mutate({ pedidoId: id, urgencia, observacao: obsUrgencia })}
-                    disabled={atualizarUrgencia.isPending}>
-                    {atualizarUrgencia.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Salvar urgência"}
-                  </Button>
-                </div>
-              </TabsContent>
-              <TabsContent value="obs_sop">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1.5">
-                    <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Observações SOPs (internas)</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Notas internas de SOP. Ao salvar, fica registrado na linha do tempo do pedido com autor e data.
-                  </p>
-                  <textarea
-                    value={obsSop}
-                    onChange={(e) => setObsSop(e.target.value)}
-                    placeholder="Ex.: cliente exige NF antes do envio; conferir lote XYZ; SOP de embalagem dupla…"
-                    rows={4}
-                    className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full"
-                    disabled={!obsSop.trim() || registrarEvento.isPending}
-                    onClick={async () => {
-                      if (!id || !obsSop.trim()) return;
-                      await registrarEvento.mutateAsync({
-                        pedido_id: id,
-                        tipo_evento: "anotacao",
-                        descricao: `[SOP] ${obsSop.trim()}`,
-                        metadata: { categoria: "sop" },
-                      });
-                      setObsSop("");
-                    }}
-                  >
-                    {registrarEvento.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Registrar na timeline"}
-                  </Button>
-
-                  {(() => {
-                    const sopEventos = (eventos || []).filter((ev: any) =>
-                      ev.tipo_evento === "anotacao" &&
-                      (ev?.metadata?.categoria === "sop" || (typeof ev.descricao === "string" && ev.descricao.startsWith("[SOP]")))
-                    );
-                    if (sopEventos.length === 0) {
-                      return (
-                        <p className="text-[11px] text-muted-foreground italic pt-2 border-t">
-                          Nenhuma observação SOP registrada ainda.
-                        </p>
-                      );
-                    }
-                    return (
-                      <div className="space-y-2 pt-2 border-t">
-                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                          Histórico SOP ({sopEventos.length})
-                        </p>
-                        <ul className="space-y-2">
-                          {sopEventos.map((ev: any) => (
-                            <li key={ev.id} className="text-xs rounded-md border border-border bg-muted/40 px-2.5 py-2">
-                              <p className="whitespace-pre-wrap">{String(ev.descricao || "").replace(/^\[SOP\]\s*/, "")}</p>
-                              <p className="text-[10px] text-muted-foreground mt-1">
-                                {new Date(ev.criado_em).toLocaleString("pt-BR")}
+                  {itens.length === 0
+                    ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
+                    : itens.map((item: any) => {
+                        const ehDestaque = isSkuDestaque(item.sku);
+                        return (
+                          <div
+                            key={item.id}
+                            className={cn(
+                              "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
+                              ehDestaque && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
+                            )}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium truncate">{item.descricao}</p>
+                                {ehDestaque && (
+                                  <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
+                                    Destaque
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
                               </p>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </TabsContent>
-              <TabsContent value="tarefas">
-                <PedidoTarefasTab pedidoId={pedido.id} />
-              </TabsContent>
-            </Tabs>
-          </div>
+                            </div>
+                            <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
+                          </div>
+                        );
+                      })
+                  }
+                </>
+              );
+            })()}
+          </section>
 
 
 
