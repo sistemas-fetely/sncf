@@ -89,7 +89,7 @@ export default function FarolPedidos() {
         .from("vw_pedidos_farol" as any)
         .select("*");
       if (error) throw error;
-      return (data ?? []) as FarolRow[];
+      return ((data ?? []) as unknown) as FarolRow[];
     },
   });
 
