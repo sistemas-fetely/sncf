@@ -32,25 +32,28 @@ function formatCurrency(n: number | null | undefined) {
 }
 
 const SITUACAO_LABELS: Record<string, string> = {
-  emitida: "Emitida",
   autorizada: "Autorizada",
   cancelada: "Cancelada",
+  pendente: "Pendente",
+  rejeitada: "Rejeitada",
+  denegada: "Denegada",
+  bloqueada: "Bloqueada",
+  registrada: "Registrada",
+  emitida: "Emitida",
 };
 
 const SITUACAO_CLASS: Record<string, string> = {
-  emitida: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   autorizada: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   cancelada: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
+  pendente: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+  rejeitada: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
+  denegada: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
+  bloqueada: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+  registrada: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20",
+  emitida: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
 };
 
 function getSituacaoBadge(n: NfEmitida) {
-  const valorZero = n.valor_nota === 0 || n.valor_nota === null;
-  if (n.situacao === "autorizada" && valorZero) {
-    return { label: "Cancelada", className: SITUACAO_CLASS.cancelada };
-  }
-  if (n.situacao === "pendente" || n.situacao === "emitida") {
-    return { label: "Autorizada", className: SITUACAO_CLASS.autorizada };
-  }
   return {
     label: SITUACAO_LABELS[n.situacao] ?? n.situacao,
     className: SITUACAO_CLASS[n.situacao] ?? "bg-muted text-muted-foreground border-muted",
