@@ -142,12 +142,13 @@ export function useEnviarEmailPedidoCobranca() {
 
       return { email: emails[0], id_externo: pedido.id_externo };
     },
-    onSuccess: (data) => {
+    onSuccess: (data, vars) => {
       toast({
         title: "Email de cobrança enviado",
         description: `Enviado para ${data.email} · ${data.id_externo}`,
       });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe"] });
+      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
+      qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedido_id] });
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar email", description: e.message, variant: "destructive" });

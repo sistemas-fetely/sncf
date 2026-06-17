@@ -46,9 +46,9 @@ export function useCriarSplit() {
         description: `Novo pedido ${data.novo_id_externo} criado`,
       });
       qc.invalidateQueries({ queryKey: ["splits", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error
