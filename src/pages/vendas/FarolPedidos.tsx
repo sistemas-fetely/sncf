@@ -481,11 +481,15 @@ export default function FarolPedidos() {
                         <AlertTriangle className="h-3.5 w-3.5" /> pago após expedição
                       </span>
                     );
-                  } else if (r.fase_gargalo) {
+                  } else if (r.sla_cor) {
+                    const corClass =
+                      r.sla_cor === "verde" ? "text-emerald-500"
+                      : r.sla_cor === "amarelo" ? "text-amber-500"
+                      : "text-red-500";
                     situacao = (
-                      <span className="inline-flex items-center gap-1 text-xs lowercase text-muted-foreground">
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        travado em {ESTAGIO_LABEL[r.fase_gargalo] ?? r.fase_gargalo}
+                      <span className="inline-flex items-center gap-1.5 text-xs lowercase text-muted-foreground">
+                        <Circle className={`h-2.5 w-2.5 fill-current ${corClass}`} />
+                        {r.tempo_na_fase ?? 0}d em {r.status_label ?? ESTAGIO_LABEL[r.estagio ?? ""] ?? "—"}
                       </span>
                     );
                   }
