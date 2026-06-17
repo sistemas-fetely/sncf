@@ -866,12 +866,16 @@ export default function PedidoDetalhe() {
           </div>
 
           {/* ===== GRUPO: Detalhes (no topo) ===== */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-muted-foreground" />
-              Detalhes
-            </h2>
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                Detalhes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
             <Tabs defaultValue={analiseCredito?.ressalva ? "credito" : "analise"} className="space-y-3">
+
               <TabsList>
                 <TabsTrigger value="analise">Análise IA</TabsTrigger>
                 <TabsTrigger value="credito" className="gap-1.5">
