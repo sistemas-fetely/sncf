@@ -95,10 +95,10 @@ export function ComplementarSection({ pedido_id, pedido_origem_id, id_externo }:
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Link2 className="h-4 w-4" />
+    <Card className="border-border/60">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <Link2 className="h-4 w-4 text-muted-foreground" />
           Complementar
         </CardTitle>
       </CardHeader>
