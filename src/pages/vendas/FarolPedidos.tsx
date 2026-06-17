@@ -67,6 +67,8 @@ type FarolRow = {
   fase_gargalo: string | null;
   tempo_na_fase: number | null;
   sla_fase_atual: number | null;
+  sla_cor: "verde" | "amarelo" | "vermelho" | null;
+  fase_logistica: string | null;
 };
 
 const PRAZO_LABEL: Record<string, string> = {
