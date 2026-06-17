@@ -1,4 +1,4 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag } from "lucide-react";
+import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -32,6 +32,7 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/comercial/estoque-virtual" icon={Boxes} label="Estoque Virtual" />
               <FinancasSidebarItem to="/vendas/produtos" icon={Package} label="Produtos" />
               <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" />
+              <FinancasSidebarItem to="/vendas/farol-pedidos" icon={Radar} label="Farol de Pedidos" />
               <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Shopify B2C" />
             </SidebarMenu>
           </SidebarGroupContent>
