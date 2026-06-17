@@ -1057,70 +1057,74 @@ export default function PedidoDetalhe() {
           )}
 
           {/* ===== GRUPO: Itens ===== */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
                 Itens do pedido
                 <span className="text-xs font-normal text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
-              </h2>
-              <EditarItensDialog
-                pedidoId={pedido.id}
-                estagioAtual={estagio}
-                itensAtuais={itens.map((i: any) => ({
-                  sku: i.sku,
-                  descricao: i.descricao,
-                  quantidade: i.quantidade,
-                  valor_unitario: i.valor_unitario,
-                }))}
-              />
-            </div>
-            {(() => {
-              const temDestaque = itens.some((i: any) => isSkuDestaque(i.sku));
-              return (
-                <>
-                  {temDestaque && (
-                    <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3">
-                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                      <p className="text-xs text-amber-800 dark:text-amber-200">
-                        Este pedido contém produto(s) de destaque — verifique atenção especial na separação.
-                      </p>
-                    </div>
-                  )}
-                  {itens.length === 0
-                    ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
-                    : itens.map((item: any) => {
-                        const ehDestaque = isSkuDestaque(item.sku);
-                        return (
-                          <div
-                            key={item.id}
-                            className={cn(
-                              "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
-                              ehDestaque && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
-                            )}
-                          >
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-medium truncate">{item.descricao}</p>
-                                {ehDestaque && (
-                                  <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
-                                    Destaque
-                                  </Badge>
-                                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-end">
+                <EditarItensDialog
+                  pedidoId={pedido.id}
+                  estagioAtual={estagio}
+                  itensAtuais={itens.map((i: any) => ({
+                    sku: i.sku,
+                    descricao: i.descricao,
+                    quantidade: i.quantidade,
+                    valor_unitario: i.valor_unitario,
+                  }))}
+                />
+              </div>
+              {(() => {
+                const temDestaque = itens.some((i: any) => isSkuDestaque(i.sku));
+                return (
+                  <>
+                    {temDestaque && (
+                      <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3">
+                        <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                        <p className="text-xs text-amber-800 dark:text-amber-200">
+                          Este pedido contém produto(s) de destaque — verifique atenção especial na separação.
+                        </p>
+                      </div>
+                    )}
+                    {itens.length === 0
+                      ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
+                      : itens.map((item: any) => {
+                          const ehDestaque = isSkuDestaque(item.sku);
+                          return (
+                            <div
+                              key={item.id}
+                              className={cn(
+                                "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
+                                ehDestaque && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
+                              )}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium truncate">{item.descricao}</p>
+                                  {ehDestaque && (
+                                    <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
+                                      Destaque
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
+                                </p>
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
-                              </p>
+                              <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
                             </div>
-                            <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
-                          </div>
-                        );
-                      })
-                  }
-                </>
-              );
-            })()}
-          </section>
+                          );
+                        })
+                    }
+                  </>
+                );
+              })()}
+            </CardContent>
+          </Card>
 
 
 
