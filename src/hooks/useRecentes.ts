@@ -41,8 +41,6 @@ export function useRecentes(limit = 10) {
     };
 
     void carregar();
-    const interval = setInterval(carregar, 30000);
-    return () => clearInterval(interval);
   }, [user?.id, limit]);
 
   return { recentes, loading };
