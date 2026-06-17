@@ -124,6 +124,32 @@ Deno.serve(async (req) => {
       return jsonResponse(401, { error: "Senha inválida" });
     }
 
+    // ── Branch: leitura do Farol de Pedidos (chamado pelo FOP) ──
+    // Autenticação já validada acima via FOP_INBOUND_TOKEN
+    if (body.tipo === "farol") {
+      const { data: pedidos, error: errPedidos } = await supabase
+        .from("vw_pedidos_farol")
+        .select("*");
+      if (errPedidos) {
+        console.error("[recebe-pedido] farol: erro lendo vw_pedidos_farol", errPedidos);
+        return jsonResponse(500, { error: errPedidos.message });
+      }
+
+      const { data: regua, error: errRegua } = await supabase
+        .from("sla_fase_pedido")
+        .select("estagio, ordem, tipo_sla, sla_dias")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (errRegua) {
+        console.error("[recebe-pedido] farol: erro lendo sla_fase_pedido", errRegua);
+        return jsonResponse(500, { error: errRegua.message });
+      }
+
+      console.log(`[recebe-pedido] farol: ${pedidos?.length ?? 0} pedidos, ${regua?.length ?? 0} fases`);
+      return jsonResponse(200, { pedidos: pedidos ?? [], regua: regua ?? [] });
+    }
+    // ── fim branch farol ──
+
     // ── Branch: sincronização de catálogo de produtos ─────────────────────
     // Autenticação já validada acima via FOP_INBOUND_TOKEN
     if (body.tipo === "catalogo" && Array.isArray(body.produtos)) {
