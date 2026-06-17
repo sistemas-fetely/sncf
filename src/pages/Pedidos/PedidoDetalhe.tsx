@@ -1001,18 +1001,21 @@ export default function PedidoDetalhe() {
 
 
           {/* Comercial e financeiro */}
-          <section className="space-y-4">
-            <h2 className="text-sm font-semibold flex items-center gap-2">
-              <Receipt className="h-4 w-4 text-muted-foreground" />
-              Comercial e financeiro
-            </h2>
-
-            {/* Parcelas */}
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Parcelas</p>
-              <ParcelasTab pedidoId={pedido.id} />
-            </div>
-          </section>
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+                Comercial e financeiro
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Parcelas */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Parcelas</p>
+                <ParcelasTab pedidoId={pedido.id} />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Logística e envio */}
           {estagio !== "cancelado" && (
