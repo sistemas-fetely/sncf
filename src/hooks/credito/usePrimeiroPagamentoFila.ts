@@ -27,12 +27,13 @@ export function usePrimeiroPagamentoFila(opts: Options = {}) {
         .from("pedido_portao")
         .select(`
           id, pedido_id, valor, data_vencimento, tipo_pagamento, created_at,
-          pedido:pedidos!pedido_portao_pedido_id_fkey(
-            id_externo, valor_liquido,
+          pedido:pedidos!pedido_portao_pedido_id_fkey!inner(
+            id_externo, estagio, valor_liquido,
             parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj)
           )
         `)
         .eq("status", "provisorio")
+        .eq("pedido.estagio", "aguardando_pagamento")
         .order("created_at", { ascending: true });
 
       if (error) throw error;
