@@ -20,6 +20,8 @@ export interface NfEmitida {
   numero_pedido_loja: string | null;
   bling_pedido_venda_numero: string | null;
   bling_pedido_venda_id: string | null;
+  pedido_ref: string | null;
+  canal: "B2B" | "B2C" | null;
 }
 
 export function useNfsEmitidas() {
@@ -32,7 +34,25 @@ export function useNfsEmitidas() {
         .order("data_emissao", { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as NfEmitida[];
+      const nfs = (data ?? []) as NfEmitida[];
+
+      const ids = nfs.map((n) => n.id);
+      let resolvidoMap = new Map<string, { pedido_ref: string | null; canal: "B2B" | "B2C" | null }>();
+      if (ids.length > 0) {
+        const { data: resolvido, error: errRes } = await (supabase as any)
+          .from("vw_nf_pedido_resolvido")
+          .select("nf_id, pedido_ref, canal")
+          .in("nf_id", ids);
+        if (errRes) throw errRes;
+        for (const r of (resolvido ?? []) as Array<{ nf_id: string; pedido_ref: string | null; canal: "B2B" | "B2C" | null }>) {
+          resolvidoMap.set(r.nf_id, { pedido_ref: r.pedido_ref, canal: r.canal });
+        }
+      }
+
+      return nfs.map((n) => {
+        const r = resolvidoMap.get(n.id);
+        return { ...n, pedido_ref: r?.pedido_ref ?? null, canal: r?.canal ?? null };
+      });
     },
   });
 }
