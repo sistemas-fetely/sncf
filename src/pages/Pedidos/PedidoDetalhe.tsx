@@ -1088,17 +1088,15 @@ export default function PedidoDetalhe() {
           </div>
 
 
-          {/* ===== GRUPO: Itens ===== */}
+          {/* ============ FAIXA 4: Itens do pedido (largura cheia) ============ */}
           <Card className="border-border/60">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Package className="h-4 w-4 text-muted-foreground" />
-                Itens do pedido
-                <span className="text-xs font-normal text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  Itens do pedido
+                  <span className="text-xs font-normal text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
+                </CardTitle>
                 <EditarItensDialog
                   pedidoId={pedido.id}
                   estagioAtual={estagio}
@@ -1110,6 +1108,8 @@ export default function PedidoDetalhe() {
                   }))}
                 />
               </div>
+            </CardHeader>
+            <CardContent>
               {(() => {
                 const temDestaque = itens.some((i: any) => isSkuDestaque(i.sku));
                 return (
