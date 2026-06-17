@@ -133,13 +133,6 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
   const [reverterOpen, setReverterOpen] = useState(false);
   return (
     <div className="space-y-2">
-      <EnviarBlingDialog
-        pedido_id={pedido.id}
-        parceiro_id={pedido.parceiro_id}
-        id_externo={pedido.id_externo}
-        valor_liquido={pedido.valor_liquido}
-        forma_solicitada={pedido.forma_solicitada}
-      />
       <Button
         variant="ghost"
         size="sm"
