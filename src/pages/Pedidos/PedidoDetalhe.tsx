@@ -633,7 +633,7 @@ export default function PedidoDetalhe() {
           )}
 
           {/* ============ FAIXA 1: Pedido · Resumo financeiro · Dados de envio ============ */}
-          <div className="grid gap-4 lg:grid-cols-2 items-end">
+          <div className="grid gap-4 lg:grid-cols-2 items-stretch">
 
             {/* Coluna esquerda — Pedido + Resumo financeiro */}
             <div className="space-y-4">
@@ -759,7 +759,7 @@ export default function PedidoDetalhe() {
 
             {/* Card — Dados de envio */}
             {estagio !== "cancelado" && (
-              <Card className="border-border/60">
+              <Card className="border-border/60 h-full flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <Truck className="h-4 w-4 text-muted-foreground" />
