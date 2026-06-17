@@ -60,10 +60,10 @@ export function RemessasSection({ pedido_id, parceiro_id, id_externo, estagio, b
   if (semRemessa && !podeEnviarInicial) return null;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Package className="h-4 w-4" />
+    <Card className="border-border/60">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <Package className="h-4 w-4 text-muted-foreground" />
           Remessas
         </CardTitle>
       </CardHeader>

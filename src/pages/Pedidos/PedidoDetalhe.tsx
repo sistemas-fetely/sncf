@@ -1029,50 +1029,63 @@ export default function PedidoDetalhe() {
           </div>
 
 
-          {/* Comercial e financeiro */}
-          <Card className="border-border/60">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-muted-foreground" />
-                Comercial e financeiro
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Parcelas */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Parcelas</p>
-                <ParcelasTab pedidoId={pedido.id} />
-              </div>
-            </CardContent>
-          </Card>
+          {/* ============ FAIXA 3: Remessas · Parcelas · Complementar ============ */}
+          <div className="grid gap-4 lg:grid-cols-3 items-start">
+            {estagio !== "cancelado" && (
+              <RemessasSection
+                pedido_id={pedido.id}
+                parceiro_id={pedido.parceiro_id}
+                id_externo={pedido.id_externo}
+                estagio={pedido.estagio}
+                bling_id_destino={pedido.bling_id_destino}
+              />
+            )}
 
-          {/* Vinculo de Pedidos */}
-          {estagio !== "cancelado" && (
+            {/* Card — Parcelas (enxuto) */}
             <Card className="border-border/60">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-muted-foreground" />
-                  Vinculo de Pedidos
+                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                  Parcelas
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <RemessasSection
-                    pedido_id={pedido.id}
-                    parceiro_id={pedido.parceiro_id}
-                    id_externo={pedido.id_externo}
-                    estagio={pedido.estagio}
-                    bling_id_destino={pedido.bling_id_destino}
-                  />
-                  <ComplementarSection
-                    pedido_id={pedido.id}
-                    pedido_origem_id={pedido.pedido_origem_id ?? null}
-                    id_externo={pedido.id_externo}
-                  />
-                </div>
+                {!titulosData || titulosData.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum título gerado ainda.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {titulosData.map((t: TituloAReceber) => (
+                      <div key={t.id} className="flex items-center justify-between gap-2 border-b border-border/40 pb-2 last:border-0 last:pb-0">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs">{t.numero_parcela}/{t.total_parcelas}</span>
+                            {t.eh_entrada && <Badge variant="outline" className="text-[9px] h-4 px-1 border-emerald-500 text-emerald-700">entrada</Badge>}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{TIPO_LABEL[t.tipo_pagamento]} · {fmtDate(t.data_vencimento_atual)}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</p>
+                          <Badge className={cn("text-[10px]", STATUS_CORES[t.status])}>{STATUS_TITULO_LABELS[t.status]}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between text-sm pt-1">
+                      <span className="text-muted-foreground">Total</span>
+                      <span className="font-bold">{fmtBRL.format(titulosData.reduce((acc: number, t: TituloAReceber) => acc + Number(t.valor_atual || 0), 0))}</span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
+
+            {estagio !== "cancelado" && (
+              <ComplementarSection
+                pedido_id={pedido.id}
+                pedido_origem_id={pedido.pedido_origem_id ?? null}
+                id_externo={pedido.id_externo}
+              />
+            )}
+          </div>
 
 
           {/* ===== GRUPO: Itens ===== */}
