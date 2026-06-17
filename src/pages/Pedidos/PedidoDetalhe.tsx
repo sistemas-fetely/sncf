@@ -220,6 +220,83 @@ function BotaoEmailNfFaturado({ pedido }: { pedido: any }) {
   );
 }
 
+function BotaoEmailNfBoletos({ pedido }: { pedido: any }) {
+  const [open, setOpen] = useState(false);
+  const { data: boletosInfo, isLoading } = useBoletosDoPedido(pedido.id);
+  const enviado = pedido.nf_email_enviado_em as string | null | undefined;
+
+  const qtdTotal = boletosInfo?.qtdTotal ?? 0;
+  const qtdRegistrados = boletosInfo?.qtdRegistrados ?? 0;
+  const todosRegistrados = boletosInfo?.todosRegistrados ?? false;
+  const disabled = isLoading || !todosRegistrados;
+  const tooltipPendente = `${qtdRegistrados}/${qtdTotal} boletos registrados — gere/processe a remessa Safra`;
+
+  if (enviado) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="w-full">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={disabled}
+                className="w-full gap-1.5 text-emerald-600 border-emerald-200 hover:text-emerald-700 disabled:opacity-60"
+                onClick={() => setOpen(true)}
+              >
+                <MailCheck className="h-4 w-4" />NF + boletos enviados · reenviar
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {disabled
+              ? tooltipPendente
+              : `Enviado em ${new Date(enviado).toLocaleString("pt-BR")}`}
+          </TooltipContent>
+        </Tooltip>
+        <EnviarEmailNfBoletosDialog
+          open={open}
+          onOpenChange={setOpen}
+          pedido_id={pedido.id}
+          parceiro_id={pedido.parceiro_id}
+        />
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="w-full">
+            <Button
+              size="sm"
+              variant="default"
+              disabled={disabled}
+              className="w-full gap-1.5"
+              onClick={() => setOpen(true)}
+            >
+              <Mail className="h-4 w-4" />
+              {disabled && qtdTotal > 0
+                ? `Enviar NF + boletos (${qtdRegistrados}/${qtdTotal})`
+                : "Enviar NF + boletos"}
+            </Button>
+          </span>
+        </TooltipTrigger>
+        {disabled && <TooltipContent>{tooltipPendente}</TooltipContent>}
+      </Tooltip>
+      <EnviarEmailNfBoletosDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedido_id={pedido.id}
+        parceiro_id={pedido.parceiro_id}
+      />
+    </TooltipProvider>
+  );
+}
+
+
+
 
 
 function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] }) {
