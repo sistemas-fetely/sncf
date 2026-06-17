@@ -16005,20 +16005,21 @@ export type Database = {
       }
       vw_pedidos_farol: {
         Row: {
+          bloqueio: string | null
           cliente: string | null
+          data_estagio: string | null
           data_pg: string | null
           dias_vs_meta: number | null
           estagio: string | null
-          estourou_fase: boolean | null
           eta_vivo: string | null
           expedido: boolean | null
-          farol: string | null
           fase_gargalo: string | null
           id_externo: string | null
           meta: string | null
+          pago_apos_expedicao: boolean | null
           parceiro_id: string | null
           pedido_id: string | null
-          portao_vencido: boolean | null
+          prazo: string | null
           sla_fase_atual: number | null
           status_label: string | null
           tempo_na_fase: number | null
