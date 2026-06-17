@@ -405,6 +405,18 @@ function AcoesPedidoCobranca({ pedido, parceiro }: { pedido: any; parceiro: any 
   );
 }
 
+function AcoesPedidoFaturado({ pedido }: { pedido: any }) {
+  const { data: boletosInfo } = useBoletosDoPedido(pedido.id);
+  const temBoletos = boletosInfo?.temBoletos ?? false;
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      {temBoletos
+        ? <BotaoEmailNfBoletos pedido={pedido} />
+        : <BotaoEmailNfFaturado pedido={pedido} />}
+    </div>
+  );
+}
+
 function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: any; estagio: EstagioPedido }) {
   const navigate = useNavigate();
   if (estagio === "recebido") return (
