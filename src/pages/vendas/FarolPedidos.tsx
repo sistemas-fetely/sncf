@@ -293,33 +293,66 @@ export default function FarolPedidos() {
       </div>
 
       <Card>
-        <CardContent className="p-4 space-y-2">
-          <div className="text-xs font-medium text-muted-foreground lowercase">régua de prazos</div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {regua.internas.map((f) => (
-              <span key={f.estagio} className="flex items-center gap-1.5">
-                <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
-                  <span className="text-[12px] leading-tight lowercase">{SLA_LABEL[f.estagio]}</span>
-                  <span className="text-[11px] leading-tight opacity-80">{f.sla_dias} d.u.</span>
-                </span>
-                <ChevronRight className="h-3 w-3 text-muted-foreground" />
-              </span>
-            ))}
-            <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
-              <span className="text-[12px] leading-tight lowercase">Transporte</span>
-              <span className="text-[11px] leading-tight opacity-80">~5 d.u. (base · real por CEP)</span>
-            </span>
-            <ChevronRight className="h-3 w-3 text-muted-foreground" />
-            <span className="inline-flex flex-col items-start rounded-md border border-green-200 bg-green-50 px-2 py-1 text-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-900">
-              <span className="text-[12px] leading-tight lowercase">Entregue</span>
-              <span className="text-[11px] leading-tight opacity-80">chegada</span>
-            </span>
+        <CardContent className="p-4 space-y-3">
+          <div>
+            <div className="text-xs font-medium text-muted-foreground lowercase">régua de prazos</div>
+            <div className="text-[13px] text-muted-foreground mt-0.5">
+              Meta = data prometida, fixada quando o pedido chega aqui · ETA = previsão atual, recalculada conforme o pedido avança
+            </div>
           </div>
-          <div className="text-[11px] text-muted-foreground lowercase">
-            prazo base ≈ {regua.totalDias} dias úteis = {regua.somaInternos} internos + {regua.transporteBase} de transporte · sábados e domingos não contam
+
+          {/* Bloco 1: preparação interna */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground lowercase">
+              <Home className="h-3.5 w-3.5" /> preparação · na nossa casa
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {regua.internas.map((f, idx) => (
+                <span key={f.estagio} className="flex items-center gap-1.5">
+                  <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
+                    <span className="text-[12px] leading-tight lowercase">{SLA_LABEL[f.estagio]}</span>
+                    <span className="text-[11px] leading-tight opacity-80">{f.sla_dias} d.u.</span>
+                  </span>
+                  {idx < regua.internas.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Bloco 2: logística WNS/XPM */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground lowercase">
+              <Package className="h-3.5 w-3.5" /> logística · WNS / XPM
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
+                <span className="text-[12px] leading-tight lowercase">Separando</span>
+              </span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
+                <span className="text-[12px] leading-tight lowercase">Conferido / NF</span>
+              </span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
+                <span className="text-[12px] leading-tight lowercase">Expedido</span>
+              </span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
+                <span className="text-[12px] leading-tight lowercase">Em trânsito</span>
+                <span className="text-[11px] leading-tight opacity-80">~5 d.u. (base · real por CEP)</span>
+              </span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              <span className="inline-flex flex-col items-start rounded-md border border-green-200 bg-green-50 px-2 py-1 text-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-900">
+                <span className="text-[12px] leading-tight lowercase">Entregue ✓</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="text-[13px] text-muted-foreground lowercase pt-1">
+            prazo base ≈ {regua.totalDias} d.u. = {regua.somaInternos} internos + {regua.transporteBase} de transporte · sábados e domingos não contam
           </div>
           {regua.esperas.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <div className="flex flex-wrap items-center gap-1.5">
               <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground lowercase">
                 <Pause className="h-3 w-3" /> pausam o relógio:
               </span>
