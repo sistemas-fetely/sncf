@@ -996,7 +996,9 @@ export default function PedidoDetalhe() {
                 <PedidoTarefasTab pedidoId={pedido.id} />
               </TabsContent>
             </Tabs>
-          </section>
+            </CardContent>
+          </Card>
+
 
           {/* Comercial e financeiro */}
           <section className="space-y-4">
