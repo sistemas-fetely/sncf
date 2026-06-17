@@ -410,35 +410,25 @@ export default function PedidoDetalhe() {
       </div>
 
       <div className="px-6 pt-2 pb-4">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <h1 className="text-xl font-bold truncate">{parceiro?.razao_social || pedido.cliente_nome_snapshot || "Cliente"}</h1>
-            <p className="text-xs text-muted-foreground font-mono">CNPJ {parceiro?.cnpj} · Pedido {pedido.id_externo}</p>
-            {parceiro?.email && (
-              <a href={`mailto:${parceiro.email}`} className="text-xs text-primary hover:underline truncate block">
-                {parceiro.email}
-              </a>
-            )}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <EstagioBadge estagio={estagio} />
-              {priorizado && <BadgePriorizacao score={priorizado.score_total} breakdown={priorizado.score_breakdown} compact />}
-              <span className="text-xs text-muted-foreground"><FormatoIdade minutos={idade_minutos} /></span>
-              {sla_estourado && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertCircle className="h-3 w-3" />SLA estourado</Badge>}
-            </div>
+        <div className="space-y-1 min-w-0">
+          <h1 className="text-xl font-bold truncate">{parceiro?.razao_social || pedido.cliente_nome_snapshot || "Cliente"}</h1>
+          <p className="text-xs text-muted-foreground font-mono">CNPJ {parceiro?.cnpj} · Pedido {pedido.id_externo}</p>
+          {parceiro?.email && (
+            <a href={`mailto:${parceiro.email}`} className="text-xs text-primary hover:underline truncate block">
+              {parceiro.email}
+            </a>
+          )}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <EstagioBadge estagio={estagio} />
+            {priorizado && <BadgePriorizacao score={priorizado.score_total} breakdown={priorizado.score_breakdown} compact />}
+            <span className="text-xs text-muted-foreground"><FormatoIdade minutos={idade_minutos} /></span>
+            {sla_estourado && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertCircle className="h-3 w-3" />SLA estourado</Badge>}
           </div>
-
-          {!estagioFinal && (
-            <div className="space-y-2 lg:min-w-[240px] lg:max-w-xs">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Próxima ação</p>
-              {pedido.proxima_acao && <p className="text-xs text-muted-foreground italic">{pedido.proxima_acao}</p>}
-              <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
-              <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
-              <CancelarPedidoDialog
-                pedido_id={pedido.id}
-                id_externo={pedido.id_externo}
-                estagio={estagio}
-              />
-            </div>
+          {!estagioFinal && pedido.proxima_acao && (
+            <p className="text-sm text-muted-foreground italic pt-1.5">
+              <span className="text-[10px] uppercase tracking-widest not-italic mr-1.5">Próxima ação:</span>
+              {pedido.proxima_acao}
+            </p>
           )}
         </div>
       </div>
@@ -446,7 +436,7 @@ export default function PedidoDetalhe() {
 
       <Separator />
 
-      <div className="flex flex-col lg:flex-row">
+      <div className="flex flex-col lg:flex-row lg:items-start">
 
         {/* COLUNA ESQUERDA */}
         <div className="flex-1 min-w-0 px-6 py-5 space-y-6">
@@ -968,6 +958,23 @@ export default function PedidoDetalhe() {
             </div>
           )}
         </div>
+
+        {!estagioFinal && (
+          <aside className="order-first lg:order-none px-6 py-5 lg:w-72 lg:shrink-0 lg:pl-5 lg:border-l lg:border-border/60 lg:sticky lg:top-4 lg:self-start">
+            <div className="space-y-3">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
+              <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
+              <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
+              <div className="pt-3 mt-1 border-t border-border/40">
+                <CancelarPedidoDialog
+                  pedido_id={pedido.id}
+                  id_externo={pedido.id_externo}
+                  estagio={estagio}
+                />
+              </div>
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   );
