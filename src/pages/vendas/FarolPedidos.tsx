@@ -304,61 +304,65 @@ export default function FarolPedidos() {
             </div>
           </div>
 
-          {/* Bloco 1: preparação interna */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-info font-medium">
-              <Building className="h-3.5 w-3.5" /> preparação · ~{regua.somaInternos} d.u.
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {regua.internas.map((f, idx) => (
-                <span key={f.estagio} className="flex items-center gap-1.5">
-                  <span
-                    className="inline-flex flex-col items-start rounded-md border bg-info/10 border-info/30 text-info"
-                    style={{ padding: "6px 11px" }}
-                  >
-                    <span className="text-[12px] leading-tight font-medium">{SLA_LABEL[f.estagio] ?? f.estagio}</span>
-                    <span className="text-[11px] leading-tight opacity-75">{f.sla_dias} d.u.</span>
+          <div className="flex flex-wrap items-start gap-4">
+            {/* Bloco 1: preparação interna */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-info font-medium">
+                <Building className="h-3.5 w-3.5" /> preparação · ~{regua.somaInternos} d.u.
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {regua.internas.map((f, idx) => (
+                  <span key={f.estagio} className="flex items-center gap-1.5">
+                    <span
+                      className="inline-flex flex-col items-start rounded-md border bg-info/10 border-info/30 text-info"
+                      style={{ padding: "6px 11px" }}
+                    >
+                      <span className="text-[12px] leading-tight font-medium">{SLA_LABEL[f.estagio] ?? f.estagio}</span>
+                      <span className="text-[11px] leading-tight opacity-75">{f.sla_dias} d.u.</span>
+                    </span>
+                    {idx < regua.internas.length - 1 && (
+                      <ChevronRight className="h-[13px] w-[13px] text-info opacity-50" />
+                    )}
                   </span>
-                  {idx < regua.internas.length - 1 && (
-                    <ChevronRight className="h-[13px] w-[13px] text-info opacity-50" />
-                  )}
-                </span>
-              ))}
-              <ArrowRight className="h-[18px] w-[18px] text-muted-foreground mx-0.5" />
+                ))}
+                <ArrowRight className="h-[18px] w-[18px] text-muted-foreground mx-0.5" />
+              </div>
             </div>
-          </div>
 
-          {/* Bloco 2: logística WNS/XPM */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-success font-medium">
-              <Truck className="h-3.5 w-3.5" /> logística · ~8 d.u.
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {[
-                { label: "Separando", sla: "1 d.u." },
-                { label: "Conf. / NF", sla: "1 d.u." },
-                { label: "Expedido", sla: "1 d.u." },
-                { label: "Em trânsito", sla: "~5 d.u. · real por CEP" },
-              ].map((c, idx) => (
-                <span key={c.label} className="flex items-center gap-1.5">
-                  <span
-                    className="inline-flex flex-col items-start rounded-md border bg-success/10 border-success/30 text-success"
-                    style={{ padding: "6px 11px" }}
-                  >
-                    <span className="text-[12px] leading-tight font-medium">{c.label}</span>
-                    <span className="text-[11px] leading-tight opacity-75">{c.sla}</span>
+            <ArrowRight className="h-5 w-5 text-muted-foreground self-center mt-[22px] shrink-0" />
+
+            {/* Bloco 2: logística WNS/XPM */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-success font-medium">
+                <Truck className="h-3.5 w-3.5" /> logística · ~8 d.u.
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { label: "Separando", sla: "1 d.u." },
+                  { label: "Conf. / NF", sla: "1 d.u." },
+                  { label: "Expedido", sla: "1 d.u." },
+                  { label: "Em trânsito", sla: "~5 d.u. · real por CEP" },
+                ].map((c, idx) => (
+                  <span key={c.label} className="flex items-center gap-1.5">
+                    <span
+                      className="inline-flex flex-col items-start rounded-md border bg-success/10 border-success/30 text-success"
+                      style={{ padding: "6px 11px" }}
+                    >
+                      <span className="text-[12px] leading-tight font-medium">{c.label}</span>
+                      <span className="text-[11px] leading-tight opacity-75">{c.sla}</span>
+                    </span>
+                    <ChevronRight className="h-[13px] w-[13px] text-success opacity-50" />
+                    {idx === 3 && null}
                   </span>
-                  <ChevronRight className="h-[13px] w-[13px] text-success opacity-50" />
-                  {idx === 3 && null}
+                ))}
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-md bg-success/10 text-success font-medium"
+                  style={{ padding: "7px 11px", border: "1.5px solid hsl(var(--success))" }}
+                >
+                  <CheckCircle className="h-[14px] w-[14px]" />
+                  <span className="text-[12px] leading-tight">Entregue</span>
                 </span>
-              ))}
-              <span
-                className="inline-flex items-center gap-1.5 rounded-md bg-success/10 text-success font-medium"
-                style={{ padding: "7px 11px", border: "1.5px solid hsl(var(--success))" }}
-              >
-                <CheckCircle className="h-[14px] w-[14px]" />
-                <span className="text-[12px] leading-tight">Entregue</span>
-              </span>
+              </div>
             </div>
           </div>
 
