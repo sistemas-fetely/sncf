@@ -633,126 +633,129 @@ export default function PedidoDetalhe() {
           )}
 
           {/* ============ FAIXA 1: Pedido · Resumo financeiro · Dados de envio ============ */}
-          <div className="grid gap-4 lg:grid-cols-3 items-start">
+          <div className="grid gap-4 lg:grid-cols-2 items-start">
 
-            {/* Card — Pedido */}
-            <Card className="border-border/60">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-muted-foreground" />
-                  Pedido
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">ID externo</p>
-                    <p className="text-sm">{pedido.id_externo}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Data</p>
-                    <p className="text-sm">{fmtDate(pedido.data_pedido)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Recebido em</p>
-                    <p className="text-sm">{fmtDateTime(pedido.recebido_em)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Via</p>
-                    <p className="text-sm">{pedido.recebido_via ?? "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Vendedor</p>
-                    <p className="text-sm">{pedido.vendedor ?? "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Condição</p>
-                    <p className="text-sm">{pedido.condicao_solicitada ?? "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Forma</p>
-                    <p className="text-sm">{pedido.forma_solicitada ?? "—"}</p>
-                  </div>
-                  {pedido.bling_id_destino && (
+            {/* Coluna esquerda — Pedido + Resumo financeiro */}
+            <div className="space-y-4">
+              {/* Card — Pedido */}
+              <Card className="border-border/60">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Receipt className="h-4 w-4 text-muted-foreground" />
+                    Pedido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Bling ID</p>
-                      <p className="text-sm">#{pedido.bling_id_destino}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">ID externo</p>
+                      <p className="text-sm">{pedido.id_externo}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Data</p>
+                      <p className="text-sm">{fmtDate(pedido.data_pedido)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Recebido em</p>
+                      <p className="text-sm">{fmtDateTime(pedido.recebido_em)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Via</p>
+                      <p className="text-sm">{pedido.recebido_via ?? "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Vendedor</p>
+                      <p className="text-sm">{pedido.vendedor ?? "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Condição</p>
+                      <p className="text-sm">{pedido.condicao_solicitada ?? "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Forma</p>
+                      <p className="text-sm">{pedido.forma_solicitada ?? "—"}</p>
+                    </div>
+                    {pedido.bling_id_destino && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Bling ID</p>
+                        <p className="text-sm">#{pedido.bling_id_destino}</p>
+                      </div>
+                    )}
+                  </div>
+                  {parceiro?.id && (
+                    <div className="mt-3 pt-3 border-t border-border/40">
+                      <EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} />
                     </div>
                   )}
-                </div>
-                {parceiro?.id && (
-                  <div className="mt-3 pt-3 border-t border-border/40">
-                    <EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} />
+                  <div className="mt-3">
+                    <SplitsPedidoSection pedido_id={pedido.id} />
                   </div>
-                )}
-                <div className="mt-3">
-                  <SplitsPedidoSection pedido_id={pedido.id} />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Card — Resumo financeiro */}
-            <Card className="border-border/60">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-muted-foreground" />
-                  Resumo financeiro
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  const bruto          = pedido.valor_bruto || 0;
-                  const liquido        = pedido.valor_liquido || 0;
-                  const frete          = Number(pedido.valor_frete) || 0;
-                  const celebra        = Number((pedido as any).desconto_celebra_valor) || 0;
-                  const pix            = Number((pedido as any).bonus_pix_valor) || 0;
-                  const temBreakdown   = celebra > 0.01 || pix > 0.01;
-                  const descontoSimples = Math.max(0, bruto + frete - liquido);
-                  const temFrete       = frete > 0.01;
-                  return (
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Valor bruto</span>
-                        <span>{fmtBRL.format(bruto)}</span>
-                      </div>
-                      {temBreakdown ? (
-                        <>
-                          {celebra > 0.01 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Desconto ({((celebra / bruto) * 100).toFixed(2)}%)</span>
-                              <span className="text-destructive">−{fmtBRL.format(celebra)}</span>
-                            </div>
-                          )}
-                          {pix > 0.01 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Desconto PIX ({(celebra > 0.01 ? (pix / (bruto - celebra)) * 100 : (pix / bruto) * 100).toFixed(2)}%)</span>
-                              <span className="text-destructive">−{fmtBRL.format(pix)}</span>
-                            </div>
-                          )}
-                        </>
-                      ) : descontoSimples > 0.01 ? (
+              {/* Card — Resumo financeiro */}
+              <Card className="border-border/60">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                    Resumo financeiro
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const bruto          = pedido.valor_bruto || 0;
+                    const liquido        = pedido.valor_liquido || 0;
+                    const frete          = Number(pedido.valor_frete) || 0;
+                    const celebra        = Number((pedido as any).desconto_celebra_valor) || 0;
+                    const pix            = Number((pedido as any).bonus_pix_valor) || 0;
+                    const temBreakdown   = celebra > 0.01 || pix > 0.01;
+                    const descontoSimples = Math.max(0, bruto + frete - liquido);
+                    const temFrete       = frete > 0.01;
+                    return (
+                      <div className="space-y-1.5">
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Desconto ({((descontoSimples / bruto) * 100).toFixed(2)}%)</span>
-                          <span className="text-destructive">−{fmtBRL.format(descontoSimples)}</span>
+                          <span className="text-muted-foreground">Valor bruto</span>
+                          <span>{fmtBRL.format(bruto)}</span>
                         </div>
-                      ) : null}
-                      {temFrete && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Frete{pedido.frete_tipo ? ` (${pedido.frete_tipo})` : ""}</span>
-                          <span>+{fmtBRL.format(frete)}</span>
-                        </div>
-                      )}
-                      <div className="border-t border-border/60 pt-2">
-                        <div className="flex justify-between text-sm font-semibold">
-                          <span>Valor líquido</span>
-                          <span>{fmtBRL.format(liquido)}</span>
+                        {temBreakdown ? (
+                          <>
+                            {celebra > 0.01 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Desconto ({((celebra / bruto) * 100).toFixed(2)}%)</span>
+                                <span className="text-destructive">−{fmtBRL.format(celebra)}</span>
+                              </div>
+                            )}
+                            {pix > 0.01 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Desconto PIX ({(celebra > 0.01 ? (pix / (bruto - celebra)) * 100 : (pix / bruto) * 100).toFixed(2)}%)</span>
+                                <span className="text-destructive">−{fmtBRL.format(pix)}</span>
+                              </div>
+                            )}
+                          </>
+                        ) : descontoSimples > 0.01 ? (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Desconto ({((descontoSimples / bruto) * 100).toFixed(2)}%)</span>
+                            <span className="text-destructive">−{fmtBRL.format(descontoSimples)}</span>
+                          </div>
+                        ) : null}
+                        {temFrete && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Frete{pedido.frete_tipo ? ` (${pedido.frete_tipo})` : ""}</span>
+                            <span>+{fmtBRL.format(frete)}</span>
+                          </div>
+                        )}
+                        <div className="border-t border-border/60 pt-2">
+                          <div className="flex justify-between text-sm font-semibold">
+                            <span>Valor líquido</span>
+                            <span>{fmtBRL.format(liquido)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Card — Dados de envio */}
             {estagio !== "cancelado" && (
