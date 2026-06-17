@@ -101,7 +101,6 @@ export function SNCFSidebar() {
       return count || 0;
     },
     enabled: isAdminRHOrSuper,
-    refetchInterval: 30000,
   });
 
   // Sistemas (internos + externos) para mostrar no sidebar
