@@ -1019,24 +1019,30 @@ export default function PedidoDetalhe() {
 
           {/* Logística e envio */}
           {estagio !== "cancelado" && (
-            <section className="space-y-4">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <Truck className="h-4 w-4 text-muted-foreground" />
-                Logística e envio
-              </h2>
-                <RemessasSection
-                  pedido_id={pedido.id}
-                  parceiro_id={pedido.parceiro_id}
-                  id_externo={pedido.id_externo}
-                  estagio={pedido.estagio}
-                  bling_id_destino={pedido.bling_id_destino}
-                />
-                <ComplementarSection
-                  pedido_id={pedido.id}
-                  pedido_origem_id={pedido.pedido_origem_id ?? null}
-                  id_externo={pedido.id_externo}
-                />
-            </section>
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                  Logística e envio
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <RemessasSection
+                    pedido_id={pedido.id}
+                    parceiro_id={pedido.parceiro_id}
+                    id_externo={pedido.id_externo}
+                    estagio={pedido.estagio}
+                    bling_id_destino={pedido.bling_id_destino}
+                  />
+                  <ComplementarSection
+                    pedido_id={pedido.id}
+                    pedido_origem_id={pedido.pedido_origem_id ?? null}
+                    id_externo={pedido.id_externo}
+                  />
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {(pedido.observacao_pedido?.trim() || (pedido as any).observacao_cliente?.trim()) && (
