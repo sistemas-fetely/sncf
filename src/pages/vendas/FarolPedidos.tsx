@@ -10,7 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronRight, Pause, AlertTriangle, Circle, Home, Package } from "lucide-react";
+import { ChevronRight, Pause, AlertTriangle, Circle, Building, Truck, CheckCircle, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const SLA_LABEL: Record<string, string> = {
@@ -153,14 +153,15 @@ export default function FarolPedidos() {
 
   const regua = useMemo(() => {
     const fases = (slaFases ?? []).filter((f) => f.estagio in SLA_LABEL);
+    const EXCLUIR_PREP = new Set(["em_separacao", "faturado", "em_transporte", "entregue"]);
     const internas = fases.filter(
-      (f) => f.tipo_sla === "interno" && (f.sla_dias ?? 0) > 0 && f.estagio !== "em_transporte" && f.estagio !== "entregue",
+      (f) => f.tipo_sla === "interno" && (f.sla_dias ?? 0) > 0 && !EXCLUIR_PREP.has(f.estagio),
     );
     const esperas = fases.filter((f) => f.tipo_sla === "espera_externa");
     const somaInternos = internas.reduce((acc, f) => acc + (f.sla_dias ?? 0), 0);
-    const transporteBase = 5;
-    const totalDias = somaInternos + transporteBase;
-    return { internas, esperas, somaInternos, transporteBase, totalDias };
+    const logisticaBase = 8;
+    const totalDias = somaInternos + logisticaBase;
+    return { internas, esperas, somaInternos, logisticaBase, totalDias };
   }, [slaFases]);
 
   const resumo = useMemo(() => {
@@ -295,70 +296,86 @@ export default function FarolPedidos() {
       <Card>
         <CardContent className="p-4 space-y-3">
           <div>
-            <div className="text-xs font-medium text-muted-foreground lowercase">régua de prazos</div>
-            <div className="text-[13px] text-muted-foreground mt-0.5">
-              Meta = data prometida, fixada quando o pedido chega aqui · ETA = previsão atual, recalculada conforme o pedido avança
+            <div className="text-[13px] font-medium text-foreground lowercase">régua de prazos</div>
+            <div className="text-[12px] text-muted-foreground mt-0.5">
+              <span className="font-medium text-primary">Meta</span> = data prometida, fixada quando o pedido chega
+              {" · "}
+              <span className="font-medium text-primary">ETA</span> = previsão atual, atualizada conforme o pedido avança
             </div>
           </div>
 
           {/* Bloco 1: preparação interna */}
           <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground lowercase">
-              <Home className="h-3.5 w-3.5" /> preparação · na nossa casa
+            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-info font-medium">
+              <Building className="h-3.5 w-3.5" /> preparação · ~{regua.somaInternos} d.u.
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               {regua.internas.map((f, idx) => (
                 <span key={f.estagio} className="flex items-center gap-1.5">
-                  <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
-                    <span className="text-[12px] leading-tight lowercase">{SLA_LABEL[f.estagio]}</span>
-                    <span className="text-[11px] leading-tight opacity-80">{f.sla_dias} d.u.</span>
+                  <span
+                    className="inline-flex flex-col items-start rounded-md border bg-info/10 border-info/30 text-info"
+                    style={{ padding: "6px 11px" }}
+                  >
+                    <span className="text-[12px] leading-tight font-medium">{SLA_LABEL[f.estagio] ?? f.estagio}</span>
+                    <span className="text-[11px] leading-tight opacity-75">{f.sla_dias} d.u.</span>
                   </span>
-                  {idx < regua.internas.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                  {idx < regua.internas.length - 1 && (
+                    <ChevronRight className="h-[13px] w-[13px] text-info opacity-50" />
+                  )}
                 </span>
               ))}
+              <ArrowRight className="h-[18px] w-[18px] text-muted-foreground mx-0.5" />
             </div>
           </div>
 
           {/* Bloco 2: logística WNS/XPM */}
           <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground lowercase">
-              <Package className="h-3.5 w-3.5" /> logística · WNS / XPM
+            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-success font-medium">
+              <Truck className="h-3.5 w-3.5" /> logística · ~8 d.u.
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
-                <span className="text-[12px] leading-tight lowercase">Separando</span>
-              </span>
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
-              <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
-                <span className="text-[12px] leading-tight lowercase">Conferido / NF</span>
-              </span>
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
-              <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
-                <span className="text-[12px] leading-tight lowercase">Expedido</span>
-              </span>
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
-              <span className="inline-flex flex-col items-start rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900">
-                <span className="text-[12px] leading-tight lowercase">Em trânsito</span>
-                <span className="text-[11px] leading-tight opacity-80">~5 d.u. (base · real por CEP)</span>
-              </span>
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
-              <span className="inline-flex flex-col items-start rounded-md border border-green-200 bg-green-50 px-2 py-1 text-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-900">
-                <span className="text-[12px] leading-tight lowercase">Entregue ✓</span>
+              {[
+                { label: "Separando", sla: "1 d.u." },
+                { label: "Conf. / NF", sla: "1 d.u." },
+                { label: "Expedido", sla: "1 d.u." },
+                { label: "Em trânsito", sla: "~5 d.u. · real por CEP" },
+              ].map((c, idx) => (
+                <span key={c.label} className="flex items-center gap-1.5">
+                  <span
+                    className="inline-flex flex-col items-start rounded-md border bg-success/10 border-success/30 text-success"
+                    style={{ padding: "6px 11px" }}
+                  >
+                    <span className="text-[12px] leading-tight font-medium">{c.label}</span>
+                    <span className="text-[11px] leading-tight opacity-75">{c.sla}</span>
+                  </span>
+                  <ChevronRight className="h-[13px] w-[13px] text-success opacity-50" />
+                  {idx === 3 && null}
+                </span>
+              ))}
+              <span
+                className="inline-flex items-center gap-1.5 rounded-md bg-success/10 text-success font-medium"
+                style={{ padding: "7px 11px", border: "1.5px solid hsl(var(--success))" }}
+              >
+                <CheckCircle className="h-[14px] w-[14px]" />
+                <span className="text-[12px] leading-tight">Entregue</span>
               </span>
             </div>
           </div>
 
-          <div className="text-[13px] text-muted-foreground lowercase pt-1">
-            prazo base ≈ {regua.totalDias} d.u. = {regua.somaInternos} internos + {regua.transporteBase} de transporte · sábados e domingos não contam
+          <div className="text-[13px] text-muted-foreground pt-2 border-t lowercase">
+            prazo base ≈ {regua.totalDias} dias úteis = {regua.somaInternos} preparação + 8 logística · sábados e domingos não contam
           </div>
           {regua.esperas.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground lowercase">
-                <Pause className="h-3 w-3" /> pausam o relógio:
+              <span className="inline-flex items-center gap-1 text-[12px] text-muted-foreground lowercase">
+                <Pause className="h-[14px] w-[14px] text-warning" /> pausam o relógio:
               </span>
               {regua.esperas.map((f) => (
-                <span key={f.estagio} className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[12px] text-amber-800 lowercase dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-900">
-                  {SLA_LABEL[f.estagio]}
+                <span
+                  key={f.estagio}
+                  className="inline-flex items-center rounded-md border bg-warning/10 border-warning/30 text-warning px-2 py-0.5 text-[12px]"
+                >
+                  {SLA_LABEL[f.estagio] ?? f.estagio}
                 </span>
               ))}
               <span className="text-[11px] text-muted-foreground lowercase">dependem de terceiros, não contam no prazo</span>
