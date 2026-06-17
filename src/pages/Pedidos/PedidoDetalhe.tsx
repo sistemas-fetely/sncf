@@ -543,8 +543,12 @@ export default function PedidoDetalhe() {
             </div>
           )}
 
-          {/* Pedido + Envio — sempre visível, acima dos itens */}
-          <div className="grid gap-6 md:grid-cols-2">
+          {/* Comercial e financeiro */}
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-muted-foreground" />
+              Comercial e financeiro
+            </h2>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Pedido</p>
               <Linha label="ID externo" value={pedido.id_externo} />
@@ -627,12 +631,24 @@ export default function PedidoDetalhe() {
                 );
               })()}
             </div>
-{estagio !== "cancelado" && (
-              <>
-                <Card className="border-border/60">
+
+            {/* Parcelas */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Parcelas</p>
+              <ParcelasTab pedidoId={pedido.id} />
+            </div>
+          </section>
+
+          {/* Logística e envio */}
+          {estagio !== "cancelado" && (
+            <section className="space-y-4">
+              <h2 className="text-sm font-semibold flex items-center gap-2">
+                <Truck className="h-4 w-4 text-muted-foreground" />
+                Logística e envio
+              </h2>
+              <Card className="border-border/60">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-muted-foreground" />
                       Dados de Envio
                     </CardTitle>
                   </CardHeader>
@@ -789,17 +805,8 @@ export default function PedidoDetalhe() {
                   pedido_origem_id={pedido.pedido_origem_id ?? null}
                   id_externo={pedido.id_externo}
                 />
-              </>
-            )}
-          </div>
-
-          {/* Parcelas — antes numa aba, agora junto do financeiro */}
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Parcelas</p>
-            <ParcelasTab pedidoId={pedido.id} />
-          </div>
-
-          <Separator />
+            </section>
+          )}
 
           {(pedido.observacao_pedido?.trim() || (pedido as any).observacao_cliente?.trim()) && (
             <div className="grid gap-3 md:grid-cols-2">
