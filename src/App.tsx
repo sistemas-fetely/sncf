@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -143,26 +143,36 @@ const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
 
 const queryClient = new QueryClient({
+  // Invalida (e re-busca as queries ATIVAS) após TODA mutation com sucesso.
+  // É o que garante que a tela reflete a ação na hora, sem depender de cada
+  // chamada lembrar de invalidar manualmente. Seguro: não há updates otimistas
+  // (onMutate) no projeto que pudessem ser atropelados por isso.
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  }),
   defaultOptions: {
     queries: {
-      // staleTime 0: dado é imediatamente stale após carregado.
-      // Combinado com refetchOnMount e refetchOnWindowFocus, garante que
-      // o usuário sempre vê dados atualizados sem precisar de refresh manual.
-      // Cache (gcTime) ainda é mantido em memória para navegação instantânea
-      // entre telas — o refetch acontece em background silenciosamente.
-      staleTime: 0,
+      // 30s: navegação rápida usa cache (instantânea); só revalida ao montar se
+      // passou de 30s. A atualização pós-ação vem da invalidação-na-escrita acima.
+      staleTime: 30_000,
 
-      // Cache fica em memória por 10 minutos mesmo após sair da tela.
-      // Navegação entre telas continua instantânea (mostra cache + refetch bg).
+      // Cache em memória por 10 min após sair da tela (navegação instantânea).
       gcTime: 10 * 60 * 1000,
 
-      // Refaz queries em background quando o usuário volta à aba/janela.
-      refetchOnWindowFocus: true,
+      // Desligado: re-buscar tudo a cada volta pra aba era a maior fonte de churn
+      // e ficou redundante com a invalidação-na-escrita. Telas que precisam de
+      // atualização "ao vivo" entre usuários devem usar refetchInterval por query.
+      refetchOnWindowFocus: false,
 
-      // Refaz queries ao montar componente se dado está stale (sempre, dado staleTime 0).
+      // Re-busca ao montar se o dado está stale (>30s).
       refetchOnMount: true,
 
-      // Limita retries em caso de erro (default era 3).
+      // Re-busca quando a conexão volta.
+      refetchOnReconnect: true,
+
+      // Limita retries em caso de erro.
       retry: 1,
     },
   },
