@@ -33,7 +33,6 @@ import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline"
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
-import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
@@ -742,8 +741,10 @@ export default function PedidoDetalhe() {
                 </Card>
                 <RemessasSection
                   pedido_id={pedido.id}
-                  id_externo={pedido.id_externo}
                   parceiro_id={pedido.parceiro_id}
+                  id_externo={pedido.id_externo}
+                  estagio={pedido.estagio}
+                  bling_id_destino={pedido.bling_id_destino}
                 />
                 <ComplementarSection
                   pedido_id={pedido.id}
