@@ -236,15 +236,26 @@ export default function NfsDeVenda() {
                     )}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {n.pedido?.id_externo ? (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0 font-mono text-xs"
-                        onClick={() => navigate(`/vendas/pedidos/${n.pedido_venda_id}`)}
-                      >
-                        {n.pedido.id_externo}
-                      </Button>
+                    {n.pedido_ref ? (
+                      <div className="flex items-center gap-2">
+                        {n.pedido_venda_id ? (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 font-mono text-xs"
+                            onClick={() => navigate(`/vendas/pedidos/${n.pedido_venda_id}`)}
+                          >
+                            {n.pedido_ref}
+                          </Button>
+                        ) : (
+                          <span className="font-mono text-xs">{n.pedido_ref}</span>
+                        )}
+                        {n.canal && (
+                          <Badge variant="outline" className="font-normal text-xs">
+                            {n.canal}
+                          </Badge>
+                        )}
+                      </div>
                     ) : (
                       "—"
                     )}
