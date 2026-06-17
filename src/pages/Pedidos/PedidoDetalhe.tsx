@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
@@ -344,6 +344,7 @@ export default function PedidoDetalhe() {
   const [recalculandoPeso, setRecalculandoPeso] = useState(false);
   const [freteTipo, setFreteTipo] = useState("");
   const [valorFrete, setValorFrete] = useState("");
+  const camposEnvioPedidoIdRef = useRef<string | null>(null);
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const { data: titulosData } = usePedidoTitulos(id);
@@ -383,13 +384,16 @@ export default function PedidoDetalhe() {
   }, [priorizado]);
 
   useEffect(() => {
-    if (data?.pedido) {
-      setTransportadoraId(data.pedido.transportadora_id ?? "");
-      setPesoBruto(String(data.pedido.peso_bruto_total ?? ""));
-      setFreteTipo(data.pedido.frete_tipo ?? "");
-      setValorFrete(String(data.pedido.valor_frete ?? ""));
-    }
-  }, [data?.pedido]);
+    const pedidoAtual = data?.pedido;
+    if (!pedidoAtual) return;
+    if (camposEnvioPedidoIdRef.current === pedidoAtual.id) return;
+
+    camposEnvioPedidoIdRef.current = pedidoAtual.id;
+    setTransportadoraId(pedidoAtual.transportadora_id ?? "");
+    setPesoBruto(String(pedidoAtual.peso_bruto_total ?? ""));
+    setFreteTipo(pedidoAtual.frete_tipo ?? "");
+    setValorFrete(String(pedidoAtual.valor_frete ?? ""));
+  }, [data?.pedido?.id]);
 
   if (isLoading) return <div className="p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
