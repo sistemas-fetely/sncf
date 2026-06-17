@@ -329,8 +329,6 @@ export default function FarolPedidos() {
               </div>
             </div>
 
-            <ArrowRight className="h-5 w-5 text-muted-foreground self-center mt-[22px] shrink-0" />
-
             {/* Bloco 2: logística WNS/XPM */}
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-success font-medium">
