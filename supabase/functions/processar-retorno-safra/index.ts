@@ -25,11 +25,14 @@ interface LinhaRetorno {
 
 function parseLinha(linha: string): LinhaRetorno | null {
   if (linha.length < 400 || linha[0] !== "1") return null;
+  // Nosso número nas posições 63-71 (este offset já estava correto).
+  // Normaliza zeros à esquerda para casar com nosso_numero_seq (gravado sem padding no banco).
+  const nnRaw = linha.substring(62, 71).trim();
   return {
-    nossoNumero:    linha.substring(62, 71).trim(),
-    motivoRejeicao: linha.substring(104, 107).trim(),
-    ocorrencia:     linha.substring(108, 110).trim(),
-    seuNumero:      linha.substring(110, 120).trim(),
+    nossoNumero: nnRaw.replace(/^0+/, "") || nnRaw,
+    motivoRejeicao: linha.substring(104, 107).trim(), // NÃO validado p/ rejeição — manter como está por ora
+    ocorrencia:     linha.substring(108, 110).trim(), // 109-110 (correto)
+    seuNumero:      linha.substring(116, 126).trim(), // CORRIGIDO: 117-126 (número do doc no RETORNO) — uso só p/ log/exibição
   };
 }
 
@@ -123,11 +126,11 @@ serve(async (req) => {
             parceiro:parceiros_comerciais(razao_social, email)
           )
         `)
-        .eq("numero_titulo", linha.seuNumero)
+        .eq("nosso_numero_seq", linha.nossoNumero)
         .maybeSingle();
 
       if (tErr || !titulo) {
-        console.warn(`[retorno-safra] Título não encontrado: seuNumero=${linha.seuNumero}`);
+        console.warn(`[retorno-safra] Título não encontrado: nossoNumero=${linha.nossoNumero} seuNumero=${linha.seuNumero}`);
         continue;
       }
 
