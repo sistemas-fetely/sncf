@@ -954,6 +954,7 @@ export default function CobrancaDetalhe() {
                 {titulos.map((t, idx) => {
                   const dataInvalida = !!dataPedidoStr && t.data_vencimento < dataPedidoStr;
                   const valorInvalido = Number(t.valor_bruto) <= 0;
+                  const tipoDesabilitado = pedidoQ.data?.estagio !== "cobranca" || (t.eh_entrada && exigePortao);
                   return (
                     <TableRow key={idx}>
                       <TableCell className="font-mono text-xs">
@@ -967,23 +968,27 @@ export default function CobrancaDetalhe() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={t.tipo_pagamento}
-                          onValueChange={(v) =>
-                            atualizarTitulo(idx, {
-                              tipo_pagamento: v as TituloProposto["tipo_pagamento"],
-                            })
-                          }
-                        >
-                          <SelectTrigger className="h-9 w-[120px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pix">PIX</SelectItem>
-                            <SelectItem value="boleto">Boleto</SelectItem>
-                            <SelectItem value="cartao">Cartão</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        {tipoDesabilitado ? (
+                          <span className="text-sm capitalize">{t.tipo_pagamento}</span>
+                        ) : (
+                          <Select
+                            value={t.tipo_pagamento}
+                            onValueChange={(v) =>
+                              atualizarTitulo(idx, {
+                                tipo_pagamento: v as TituloProposto["tipo_pagamento"],
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-9 w-[120px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pix">PIX</SelectItem>
+                              <SelectItem value="boleto">Boleto</SelectItem>
+                              <SelectItem value="cartao">Cartão</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <Input
