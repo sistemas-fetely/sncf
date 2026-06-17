@@ -229,7 +229,7 @@ function BotaoEmailNfBoletos({ pedido }: { pedido: any }) {
   const qtdRegistrados = boletosInfo?.qtdRegistrados ?? 0;
   const todosRegistrados = boletosInfo?.todosRegistrados ?? false;
   const disabled = isLoading || !todosRegistrados;
-  const tooltipPendente = `${qtdRegistrados}/${qtdTotal} boletos registrados — gere/processe a remessa Safra`;
+  const tooltipPendente = `${qtdRegistrados}/${qtdTotal} boletos com remessa gerada — gere a remessa Safra antes de enviar`;
 
   if (enviado) {
     return (

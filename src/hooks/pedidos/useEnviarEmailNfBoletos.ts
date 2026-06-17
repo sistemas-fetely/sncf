@@ -48,10 +48,10 @@ export function useEnviarEmailNfBoletos() {
       const titulos = (titulosRaw ?? []) as any[];
       if (!titulos.length) throw new Error("Pedido não possui títulos de boleto.");
       const pendentes = titulos.filter(
-        (t) => t.boleto_status !== "registrado" || !t.linha_digitavel,
+        (t) => !["registrado", "remessa_gerada"].includes(t.boleto_status) || !t.linha_digitavel,
       );
       if (pendentes.length > 0) {
-        throw new Error("Há boletos não registrados neste pedido — gere/processe a remessa Safra antes de enviar.");
+        throw new Error("Há boletos sem remessa gerada neste pedido — gere a remessa Safra antes de enviar.");
       }
 
       // c) NF (PDF + XML)
