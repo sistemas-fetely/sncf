@@ -58,7 +58,8 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
       if (step === "result") {
         qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
         qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
-        qc.invalidateQueries({ queryKey: ["pedido", pedido_id] });
+        qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedido_id] });
+        qc.invalidateQueries({ queryKey: ["pedido-titulos", pedido_id] });
       }
       setMotivo("");
       setStep("confirm");

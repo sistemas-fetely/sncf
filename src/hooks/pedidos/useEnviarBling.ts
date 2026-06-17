@@ -57,7 +57,8 @@ export function useEnviarBling() {
         });
       }
 
-      qc.invalidateQueries({ queryKey: ["pedido"] });
+      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
+      qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });

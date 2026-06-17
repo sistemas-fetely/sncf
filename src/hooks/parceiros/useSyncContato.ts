@@ -38,7 +38,7 @@ export function useSyncContato() {
       }
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, parceiro_id) => {
       if (data.ignorado) {
         toast({
           title: "Sync ignorado",
@@ -51,6 +51,7 @@ export function useSyncContato() {
           description: `id Bling: ${data.bling_id}`,
         });
       }
+      qc.invalidateQueries({ queryKey: ["parceiro-bling-check", parceiro_id] });
       qc.invalidateQueries({ queryKey: ["parceiro"] });
       qc.invalidateQueries({ queryKey: ["parceiros"] });
     },

@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -143,19 +143,10 @@ const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
 
 const queryClient = new QueryClient({
-  // Invalida (e re-busca as queries ATIVAS) após TODA mutation com sucesso.
-  // É o que garante que a tela reflete a ação na hora, sem depender de cada
-  // chamada lembrar de invalidar manualmente. Seguro: não há updates otimistas
-  // (onMutate) no projeto que pudessem ser atropelados por isso.
-  mutationCache: new MutationCache({
-    onSuccess: () => {
-      queryClient.invalidateQueries();
-    },
-  }),
   defaultOptions: {
     queries: {
-      // Sem revalidação automática por tempo: a atualização pós-ação vem da
-      // invalidação-na-escrita acima ou de invalidateQueries específico/manual.
+      // Sem revalidação automática por tempo: atualização pós-ação deve vir de
+      // invalidações específicas das mutations, não de refresh global.
       staleTime: Infinity,
 
       // Cache em memória por 10 min após sair da tela (navegação instantânea).
@@ -166,9 +157,10 @@ const queryClient = new QueryClient({
       // atualização "ao vivo" entre usuários devem usar refetchInterval por query.
       refetchOnWindowFocus: false,
 
-      // Desligado: montar/remontar tela não pode causar "reload" visual nem
-      // resetar análise/digitação. Mutations continuam revalidando via cache global.
-      refetchOnMount: false,
+      // Rebusca ao montar somente quando uma mutation marcou aquela query como stale.
+      // Com staleTime Infinity, navegação normal não refaz tudo; telas afetadas por
+      // ação anterior voltam atualizadas.
+      refetchOnMount: true,
 
       // Desligado: queda/volta de rede não deve recarregar a tela sozinha.
       refetchOnReconnect: false,

@@ -19,9 +19,12 @@ export function useReverterParaCobranca() {
       return data as { ok: true; estagio_origem: string };
     },
     onSuccess: (_data, pedidoId) => {
+      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
       qc.invalidateQueries({ queryKey: ["cobranca-fila"] });
       qc.invalidateQueries({ queryKey: ["aguardando-pagamento-fila"] });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["pedido-titulos", pedidoId] });
       toast({
         title: "Pedido revertido",
         description: "Pedido voltou para cobrança. Títulos cancelados.",
