@@ -58,6 +58,8 @@ import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
 import { useEnviarEmailPedidoCobranca } from "@/hooks/pedidos/useEnviarEmailPedidoCobranca";
 import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
 import { EnviarEmailNfDialog } from "@/components/pedidos/dialogs/EnviarEmailNfDialog";
+import { EnviarEmailNfBoletosDialog } from "@/components/pedidos/dialogs/EnviarEmailNfBoletosDialog";
+import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
