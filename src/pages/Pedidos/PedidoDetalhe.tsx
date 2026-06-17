@@ -632,6 +632,236 @@ export default function PedidoDetalhe() {
             </div>
           )}
 
+          {/* ============ FAIXA 1: Pedido · Resumo financeiro · Dados de envio ============ */}
+          <div className="grid gap-4 lg:grid-cols-3 items-start">
+
+            {/* Card — Pedido */}
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                  Pedido
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">ID externo</p>
+                    <p className="text-sm">{pedido.id_externo}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Data</p>
+                    <p className="text-sm">{fmtDate(pedido.data_pedido)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Recebido em</p>
+                    <p className="text-sm">{fmtDateTime(pedido.recebido_em)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Via</p>
+                    <p className="text-sm">{pedido.recebido_via ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Vendedor</p>
+                    <p className="text-sm">{pedido.vendedor ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Condição</p>
+                    <p className="text-sm">{pedido.condicao_solicitada ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Forma</p>
+                    <p className="text-sm">{pedido.forma_solicitada ?? "—"}</p>
+                  </div>
+                  {pedido.bling_id_destino && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Bling ID</p>
+                      <p className="text-sm">#{pedido.bling_id_destino}</p>
+                    </div>
+                  )}
+                </div>
+                {parceiro?.id && (
+                  <div className="mt-3 pt-3 border-t border-border/40">
+                    <EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} />
+                  </div>
+                )}
+                <div className="mt-3">
+                  <SplitsPedidoSection pedido_id={pedido.id} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card — Resumo financeiro */}
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                  Resumo financeiro
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const bruto          = pedido.valor_bruto || 0;
+                  const liquido        = pedido.valor_liquido || 0;
+                  const frete          = Number(pedido.valor_frete) || 0;
+                  const celebra        = Number((pedido as any).desconto_celebra_valor) || 0;
+                  const pix            = Number((pedido as any).bonus_pix_valor) || 0;
+                  const temBreakdown   = celebra > 0.01 || pix > 0.01;
+                  const descontoSimples = Math.max(0, bruto + frete - liquido);
+                  const temFrete       = frete > 0.01;
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Valor bruto</span>
+                        <span>{fmtBRL.format(bruto)}</span>
+                      </div>
+                      {temBreakdown ? (
+                        <>
+                          {celebra > 0.01 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Desconto ({((celebra / bruto) * 100).toFixed(2)}%)</span>
+                              <span className="text-destructive">−{fmtBRL.format(celebra)}</span>
+                            </div>
+                          )}
+                          {pix > 0.01 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Desconto PIX ({(celebra > 0.01 ? (pix / (bruto - celebra)) * 100 : (pix / bruto) * 100).toFixed(2)}%)</span>
+                              <span className="text-destructive">−{fmtBRL.format(pix)}</span>
+                            </div>
+                          )}
+                        </>
+                      ) : descontoSimples > 0.01 ? (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Desconto ({((descontoSimples / bruto) * 100).toFixed(2)}%)</span>
+                          <span className="text-destructive">−{fmtBRL.format(descontoSimples)}</span>
+                        </div>
+                      ) : null}
+                      {temFrete && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Frete{pedido.frete_tipo ? ` (${pedido.frete_tipo})` : ""}</span>
+                          <span>+{fmtBRL.format(frete)}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-border/60 pt-2">
+                        <div className="flex justify-between text-sm font-semibold">
+                          <span>Valor líquido</span>
+                          <span>{fmtBRL.format(liquido)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Card — Dados de envio */}
+            {estagio !== "cancelado" && (
+              <Card className="border-border/60">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-muted-foreground" />
+                    Dados de envio
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Transportadora</label>
+                    <Select value={transportadoraId || "__none__"} onValueChange={(v) => setTransportadoraId(v === "__none__" ? "" : v)}>
+                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Nenhuma —</SelectItem>
+                        {(transportadoras.data ?? []).map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.razao_social}
+                            {t.cnpj && <span className="text-muted-foreground ml-2 text-xs">{t.cnpj}</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Peso bruto total (kg)</label>
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        value={pesoBruto}
+                        onChange={(e) => setPesoBruto(e.target.value)}
+                        placeholder="0.000"
+                        className="flex-1 min-w-0 h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                      <Button type="button" size="sm" variant="outline" className="h-9 w-9 p-0" title="Recalcular peso a partir dos itens" disabled={recalculandoPeso} onClick={recalcularPeso}>
+                        {recalculandoPeso ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {freteEst.isLoading && transportadoraId && (
+                    <p className="text-xs text-muted-foreground">Calculando frete...</p>
+                  )}
+                  {freteEst.data && freteEst.data.erro && (
+                    <p className="text-xs text-destructive">{freteEst.data.erro}</p>
+                  )}
+                  {freteEst.data && !freteEst.data.erro && (
+                    <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-1">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estimativa Icaro</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-base font-semibold">{freteEst.data.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                        {pedido.valor_bruto > 0 && (<span className="text-xs text-muted-foreground">({((freteEst.data.valor_estimado / pedido.valor_bruto) * 100).toFixed(2)}% do bruto)</span>)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Prazo {freteEst.data.prazo_dias}d · {freteEst.data.tarifa_code}</p>
+                      <p className="text-[11px] text-muted-foreground">Base: R$ {freteEst.data.breakdown.base.toFixed(2)} · GRIS: R$ {freteEst.data.breakdown.gris.toFixed(2)} · Pedágio: R$ {freteEst.data.breakdown.pedagio.toFixed(2)} · TAS: R$ {freteEst.data.breakdown.tas.toFixed(2)}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/40">
+                    <div className="col-span-2">
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Tipo frete</label>
+                      <Select value={freteTipo} onValueChange={setFreteTipo}>
+                        <SelectTrigger className="h-8 text-sm mt-0.5"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="FOB">FOB — Frete cobrado do cliente</SelectItem>
+                          <SelectItem value="CIF">CIF — Benefício comercial (Fetely absorve)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor frete (R$)</label>
+                      <input type="number" step="0.01" min="0" value={valorFrete} onChange={(e) => setValorFrete(e.target.value)} placeholder="0,00" className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cubagem</p>
+                      <p className="text-sm font-medium">{pedido.cubagem_total > 0 ? `${Number(pedido.cubagem_total).toFixed(4)} m³` : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Peso Cubagem</p>
+                      <p className="text-sm font-medium">{pedido.cubagem_total > 0 ? `${(Number(pedido.cubagem_total) * 300).toFixed(3)} kg` : "—"}</p>
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    className="h-9 w-full"
+                    disabled={salvarDadosEnvio.isPending || !!pedido.bling_id_destino}
+                    onClick={() =>
+                      id && salvarDadosEnvio.mutate({
+                        pedidoId: id,
+                        transportadoraId: transportadoraId || null,
+                        pesoBrutoTotal: parseFloat(pesoBruto) || 0,
+                        freteTipo: freteTipo || null,
+                        valorFrete: parseFloat(valorFrete) || 0,
+                      })
+                    }
+                  >
+                    {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
           {/* ===== GRUPO: Detalhes (no topo) ===== */}
           <section className="space-y-3">
             <h2 className="text-sm font-semibold flex items-center gap-2">
