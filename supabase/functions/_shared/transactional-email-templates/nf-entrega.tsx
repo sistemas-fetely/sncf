@@ -50,9 +50,9 @@ const NfEntregaEmail = ({
 
             <Text style={sublineStyle}>
               {pedido_id_externo
-                ? `O pedido ${pedido_id_externo} foi faturado. A nota fiscal e o XML estão anexados a este e-mail.`
-                : 'Seu pedido foi faturado. A nota fiscal e o XML estão anexados a este e-mail.'}
-              {' '}Qualquer dúvida, é só responder por aqui.
+                ? `O pedido ${pedido_id_externo} foi faturado — a NF e o XML estão anexados a este e-mail.`
+                : 'Seu pedido foi faturado — a NF e o XML estão anexados a este e-mail.'}
+              {' '}Qualquer dúvida, fale com a gente em sac@fetely.com.br.
             </Text>
 
             <Hr style={divider} />
