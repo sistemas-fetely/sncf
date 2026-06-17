@@ -1046,13 +1046,13 @@ export default function PedidoDetalhe() {
             </CardContent>
           </Card>
 
-          {/* Logística e envio */}
+          {/* Vinculo de Pedidos */}
           {estagio !== "cancelado" && (
             <Card className="border-border/60">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Truck className="h-4 w-4 text-muted-foreground" />
-                  Logística e envio
+                  Vinculo de Pedidos
                 </CardTitle>
               </CardHeader>
               <CardContent>
