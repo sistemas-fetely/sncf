@@ -102,9 +102,9 @@ export default function ContasReceber() {
         return d >= inicioMes && d <= fimMes;
       },
       liquidar30: (t) => {
-        if (t.status_gestao !== "em_aberto" || !t.data_liquidacao) return false;
-        const d = new Date(t.data_liquidacao);
-        return d >= hoje && d <= em30;
+        if (t.status_gestao !== "em_aberto" || !t.data_vencimento) return false;
+        const v = new Date(t.data_vencimento);
+        return v >= hoje && v <= em30;
       },
     }),
     [hoje, em7, em30, inicioMes, fimMes]
