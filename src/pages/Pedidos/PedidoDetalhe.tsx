@@ -345,6 +345,11 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
       </div>
     );
   }
+  if (estagio === "faturado") return (
+    <div className="flex flex-col gap-2 w-full">
+      <BotaoEmailNfFaturado pedido={pedido} />
+    </div>
+  );
   if (estagio === "em_analise_credito") return (
     <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-700 dark:text-blue-300 flex gap-2">
       <Clock className="h-4 w-4 mt-0.5 shrink-0" /><span>Em análise de crédito — aguardando decisão.</span>
