@@ -16014,17 +16014,18 @@ export type Database = {
           eta_vivo: string | null
           expedido: boolean | null
           fase_gargalo: string | null
+          fase_logistica: string | null
           id_externo: string | null
           meta: string | null
           pago_apos_expedicao: boolean | null
           parceiro_id: string | null
           pedido_id: string | null
           prazo: string | null
+          sla_cor: string | null
           sla_fase_atual: number | null
           status_label: string | null
           tempo_na_fase: number | null
           valor_liquido: number | null
-          wns_fase_desc: string | null
         }
         Relationships: [
           {
