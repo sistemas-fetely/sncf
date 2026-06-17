@@ -154,9 +154,9 @@ const queryClient = new QueryClient({
   }),
   defaultOptions: {
     queries: {
-      // 30s: navegação rápida usa cache (instantânea); só revalida ao montar se
-      // passou de 30s. A atualização pós-ação vem da invalidação-na-escrita acima.
-      staleTime: 30_000,
+      // Sem revalidação automática por tempo: a atualização pós-ação vem da
+      // invalidação-na-escrita acima ou de invalidateQueries específico/manual.
+      staleTime: Infinity,
 
       // Cache em memória por 10 min após sair da tela (navegação instantânea).
       gcTime: 10 * 60 * 1000,
@@ -166,11 +166,12 @@ const queryClient = new QueryClient({
       // atualização "ao vivo" entre usuários devem usar refetchInterval por query.
       refetchOnWindowFocus: false,
 
-      // Re-busca ao montar se o dado está stale (>30s).
-      refetchOnMount: true,
+      // Desligado: montar/remontar tela não pode causar "reload" visual nem
+      // resetar análise/digitação. Mutations continuam revalidando via cache global.
+      refetchOnMount: false,
 
-      // Re-busca quando a conexão volta.
-      refetchOnReconnect: true,
+      // Desligado: queda/volta de rede não deve recarregar a tela sozinha.
+      refetchOnReconnect: false,
 
       // Limita retries em caso de erro.
       retry: 1,
