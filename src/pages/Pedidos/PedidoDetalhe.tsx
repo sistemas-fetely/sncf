@@ -759,7 +759,7 @@ export default function PedidoDetalhe() {
 
             {/* Card — Dados de envio */}
             {estagio !== "cancelado" && (
-              <Card className="border-border/60">
+              <Card className="border-border/60 h-full flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <Truck className="h-4 w-4 text-muted-foreground" />
