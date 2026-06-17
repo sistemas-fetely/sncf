@@ -93,7 +93,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!titulos || titulos.length === 0) {
     return (
-      <div className="text-center py-10 text-muted-foreground space-y-2">
+      <div className="text-center py-6 text-muted-foreground space-y-2">
         <Receipt className="h-8 w-8 mx-auto opacity-30" />
         <p className="text-sm">Nenhum título gerado ainda.</p>
         <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
@@ -771,16 +771,11 @@ export default function PedidoDetalhe() {
               {/* Coluna 1 — dados do pedido em grade */}
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Pedido</p>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div className="grid gap-x-5 gap-y-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))' }}>
                   <div>
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">ID externo</p>
                     <p className="text-sm">{pedido.id_externo}</p>
                   </div>
-                  {parceiro?.id && (
-                    <div>
-                      <EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} />
-                    </div>
-                  )}
                   <div>
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Data</p>
                     <p className="text-sm">{fmtDate(pedido.data_pedido)}</p>
@@ -812,6 +807,11 @@ export default function PedidoDetalhe() {
                     </div>
                   )}
                 </div>
+                {parceiro?.id && (
+                  <div className="mt-3">
+                    <EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} />
+                  </div>
+                )}
                 <div className="mt-3">
                   <SplitsPedidoSection pedido_id={pedido.id} />
                 </div>
