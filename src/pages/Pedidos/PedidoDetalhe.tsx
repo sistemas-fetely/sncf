@@ -793,6 +793,12 @@ export default function PedidoDetalhe() {
             )}
           </div>
 
+          {/* Parcelas — antes numa aba, agora junto do financeiro */}
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Parcelas</p>
+            <ParcelasTab pedidoId={pedido.id} />
+          </div>
+
           <Separator />
 
           {(pedido.observacao_pedido?.trim() || (pedido as any).observacao_cliente?.trim()) && (
@@ -878,9 +884,8 @@ export default function PedidoDetalhe() {
               })()}
             </div>
 
-            <Tabs defaultValue={analiseCredito?.ressalva ? "credito" : "parcelas"} className="space-y-3">
+            <Tabs defaultValue={analiseCredito?.ressalva ? "credito" : "analise"} className="space-y-3">
               <TabsList>
-                <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
                 <TabsTrigger value="analise">Análise IA</TabsTrigger>
                 <TabsTrigger value="credito" className="gap-1.5">
                   Crédito
@@ -894,7 +899,6 @@ export default function PedidoDetalhe() {
                 <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="parcelas"><ParcelasTab pedidoId={pedido.id} /></TabsContent>
               <TabsContent value="analise">
                 <CardAnalisePedido pedido_id={pedido.id} status={pedido.analise_pedido_status ?? null} motivo={pedido.analise_pedido_motivo ?? null} detalhes={pedido.analise_pedido_detalhes ?? null} executada_em={pedido.analise_pedido_executada_em ?? null} />
               </TabsContent>
