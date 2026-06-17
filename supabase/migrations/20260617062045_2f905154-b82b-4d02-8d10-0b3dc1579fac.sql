@@ -1,0 +1,1 @@
+ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS nf_email_enviado_em timestamptz NULL;

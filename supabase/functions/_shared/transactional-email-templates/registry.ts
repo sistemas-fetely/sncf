@@ -28,6 +28,7 @@ import { template as boletoSafra } from './boleto-safra.tsx'
 import { template as cobrancaPedido } from './cobranca-pedido.tsx'
 import { template as linkCobranca } from './link-cobranca.tsx'
 import { template as catalogoLojista } from './catalogo-lojista.tsx'
+import { template as nfEntrega } from './nf-entrega.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'convite-cadastro': conviteCadastro,
@@ -49,4 +50,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'cobranca-pedido': cobrancaPedido,
   'link-cobranca': linkCobranca,
   'catalogo-lojista': catalogoLojista,
+  'nf-entrega': nfEntrega,
 }

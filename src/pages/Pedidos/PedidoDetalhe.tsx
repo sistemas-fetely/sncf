@@ -50,13 +50,15 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, ShieldAlert, MessageCircle, Link2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
 import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
 import { useEnviarEmailPedidoCobranca } from "@/hooks/pedidos/useEnviarEmailPedidoCobranca";
 import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
+import { EnviarEmailNfDialog } from "@/components/pedidos/dialogs/EnviarEmailNfDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -168,6 +170,54 @@ function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: strin
     </>
   );
 }
+
+function BotaoEmailNfFaturado({ pedido }: { pedido: any }) {
+  const [open, setOpen] = useState(false);
+  const enviado = pedido.nf_email_enviado_em as string | null | undefined;
+
+  if (enviado) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-1.5 text-emerald-600 border-emerald-200 hover:text-emerald-700"
+              onClick={() => setOpen(true)}
+            >
+              <MailCheck className="h-4 w-4" />NF enviada · reenviar
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Enviada em {new Date(enviado).toLocaleString("pt-BR")}
+          </TooltipContent>
+        </Tooltip>
+        <EnviarEmailNfDialog
+          open={open}
+          onOpenChange={setOpen}
+          pedido_id={pedido.id}
+          parceiro_id={pedido.parceiro_id}
+        />
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="default" className="w-full gap-1.5" onClick={() => setOpen(true)}>
+        <Mail className="h-4 w-4" />Enviar NF por e-mail
+      </Button>
+      <EnviarEmailNfDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedido_id={pedido.id}
+        parceiro_id={pedido.parceiro_id}
+      />
+    </>
+  );
+}
+
 
 
 function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] }) {
@@ -295,6 +345,11 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
       </div>
     );
   }
+  if (estagio === "faturado") return (
+    <div className="flex flex-col gap-2 w-full">
+      <BotaoEmailNfFaturado pedido={pedido} />
+    </div>
+  );
   if (estagio === "em_analise_credito") return (
     <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-700 dark:text-blue-300 flex gap-2">
       <Clock className="h-4 w-4 mt-0.5 shrink-0" /><span>Em análise de crédito — aguardando decisão.</span>
