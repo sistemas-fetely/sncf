@@ -636,7 +636,7 @@ export default function PedidoDetalhe() {
           <div className="grid gap-4 lg:grid-cols-2 items-stretch">
 
             {/* Coluna esquerda — Pedido + Resumo financeiro */}
-            <div className="space-y-4">
+            <div className="flex flex-col gap-4">
               {/* Card — Pedido */}
               <Card className="border-border/60">
                 <CardHeader className="pb-3">
@@ -694,7 +694,7 @@ export default function PedidoDetalhe() {
               </Card>
 
               {/* Card — Resumo financeiro */}
-              <Card className="border-border/60">
+              <Card className="border-border/60 flex-1 flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <Wallet className="h-4 w-4 text-muted-foreground" />
