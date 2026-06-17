@@ -16618,6 +16618,10 @@ export type Database = {
         Args: { p_parceiro_id: string }
         Returns: number
       }
+      dividir_remessa: {
+        Args: { p_itens_para_nova: Json; p_remessa_origem_id: string }
+        Returns: Json
+      }
       documentos_envio_agrupados: {
         Args: {
           p_busca?: string
