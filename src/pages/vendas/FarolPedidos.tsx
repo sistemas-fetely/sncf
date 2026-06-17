@@ -11,7 +11,29 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronRight, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+const SLA_LABEL: Record<string, string> = {
+  recebido: "Recebido",
+  em_analise_credito: "Análise crédito",
+  cobranca: "Cobrança",
+  pre_faturado: "Pré-faturamento",
+  em_separacao: "Separação",
+  faturado: "Faturamento",
+  em_transporte: "Transporte",
+  entregue: "Entregue",
+  aguardando_pagamento: "Aguardando pagamento",
+  aguardando_estoque: "Aguardando estoque",
+};
+
+type SlaFaseRow = {
+  estagio: string;
+  ordem: number | null;
+  tipo_sla: string | null;
+  sla_dias: number | null;
+  ativo: boolean | null;
+};
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const DATA_FMT = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
