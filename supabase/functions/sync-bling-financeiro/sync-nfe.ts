@@ -8,7 +8,7 @@ async function resolvePedidoId(supabase: any, ref: any): Promise<string | null> 
 
 function parseBlingDate(val: unknown): string | null { if (!val) return null; const s = String(val).split(/[T ]/)[0]; return s.startsWith("0000") ? null : s; }
 
-const SITUACAO_MAP: Record<number, string> = { 1: "pendente", 2: "emitida", 3: "cancelada", 4: "rascunho", 5: "autorizada", 6: "pendente", 7: "inutilizada", 8: "denegada", 9: "rejeitada", 10: "emitida", 11: "bloqueada", };
+const SITUACAO_MAP: Record<number, string> = { 1: "pendente", 2: "cancelada", 3: "pendente", 4: "rejeitada", 5: "autorizada", 6: "autorizada", 7: "registrada", 8: "pendente", 9: "denegada", 10: "pendente", 11: "bloqueada", };
 
 export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, ) { let criados = 0, atualizados = 0, erros = 0; let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
 
