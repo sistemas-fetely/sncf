@@ -39,7 +39,7 @@ const tudoAVistaItems: MenuItem[] = [
 const financeiroItems: MenuItem[] = [
   { title: "Contas a Pagar", url: "/administrativo/contas-pagar", icon: ArrowUpFromLine },
   { title: "Faturas de Cartão", url: "/administrativo/faturas-cartao", icon: CreditCard },
-  { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine },
+  { title: "Contas a Receber", url: "/administrativo/contas-receber", icon: ArrowDownToLine, dot: true },
   { title: "Fluxo de Caixa", url: "/administrativo/fluxo-caixa", icon: TrendingUp },
 ];
 
