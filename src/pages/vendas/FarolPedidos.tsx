@@ -10,7 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronRight, Pause, AlertTriangle } from "lucide-react";
+import { ChevronRight, Pause, AlertTriangle, Circle, Home, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const SLA_LABEL: Record<string, string> = {
