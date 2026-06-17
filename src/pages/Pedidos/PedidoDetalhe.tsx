@@ -633,7 +633,7 @@ export default function PedidoDetalhe() {
           )}
 
           {/* ============ FAIXA 1: Pedido · Resumo financeiro · Dados de envio ============ */}
-          <div className="grid gap-4 lg:grid-cols-2 items-end">
+          <div className="grid gap-4 lg:grid-cols-2 items-stretch">
 
             {/* Coluna esquerda — Pedido + Resumo financeiro */}
             <div className="space-y-4">
