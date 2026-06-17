@@ -291,99 +291,101 @@ export default function FarolPedidos() {
           </div>
         </div>
 
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Número</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Data PG</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Meta</TableHead>
-                <TableHead>ETA</TableHead>
-                <TableHead className="text-right">Dias vs meta</TableHead>
-                <TableHead>Farol</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: COLS }).map((__, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                    ))}
+        <Card className="overflow-hidden">
+          <div className="overflow-auto max-h-[calc(100vh-380px)]">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-background">
+                <TableRow>
+                  <TableHead className="bg-background">Número</TableHead>
+                  <TableHead className="bg-background">Cliente</TableHead>
+                  <TableHead className="bg-background">Status</TableHead>
+                  <TableHead className="bg-background">Data PG</TableHead>
+                  <TableHead className="text-right bg-background">Valor</TableHead>
+                  <TableHead className="bg-background">Meta</TableHead>
+                  <TableHead className="bg-background">ETA</TableHead>
+                  <TableHead className="text-right bg-background">Dias vs meta</TableHead>
+                  <TableHead className="bg-background">Farol</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {Array.from({ length: COLS }).map((__, j) => (
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={COLS} className="text-center text-destructive py-8">
+                      Erro ao carregar pedidos. Tente recarregar a página.
+                    </TableCell>
                   </TableRow>
-                ))
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={COLS} className="text-center text-destructive py-8">
-                    Erro ao carregar pedidos. Tente recarregar a página.
-                  </TableCell>
-                </TableRow>
-              ) : filtradas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={COLS} className="text-center text-muted-foreground py-10">
-                    Nenhum pedido encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtradas.map((r) => {
-                  const dvm = r.dias_vs_meta;
-                  const dvmNode =
-                    dvm === null || dvm === undefined ? (
-                      <span className="text-muted-foreground">-</span>
-                    ) : dvm > 0 ? (
-                      <span className="text-red-600 dark:text-red-400 font-medium">+{dvm}</span>
-                    ) : dvm < 0 ? (
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">{dvm}</span>
-                    ) : (
-                      <span>0</span>
+                ) : filtradas.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={COLS} className="text-center text-muted-foreground py-10">
+                      Nenhum pedido encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtradas.map((r) => {
+                    const dvm = r.dias_vs_meta;
+                    const dvmNode =
+                      dvm === null || dvm === undefined ? (
+                        <span className="text-muted-foreground">-</span>
+                      ) : dvm > 0 ? (
+                        <span className="text-red-600 dark:text-red-400 font-medium">+{dvm}</span>
+                      ) : dvm < 0 ? (
+                        <span className="text-blue-600 dark:text-blue-400 font-medium">{dvm}</span>
+                      ) : (
+                        <span>0</span>
+                      );
+
+                    const statusCell = (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>{r.status_label ?? "-"}</span>
+                        {r.expedido && (
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">Expedido</Badge>
+                        )}
+                      </div>
                     );
 
-                  const statusCell = (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span>{r.status_label ?? "-"}</span>
-                      {r.expedido && (
-                        <Badge variant="outline" className="text-[10px] py-0 px-1.5">Expedido</Badge>
-                      )}
-                    </div>
-                  );
+                    const farolBadge = (
+                      <Badge variant="outline" className={farolBadgeClass(r.farol)}>
+                        {FAROL_LABEL[r.farol ?? ""] ?? "-"}
+                      </Badge>
+                    );
 
-                  const farolBadge = (
-                    <Badge variant="outline" className={farolBadgeClass(r.farol)}>
-                      {FAROL_LABEL[r.farol ?? ""] ?? "-"}
-                    </Badge>
-                  );
-
-                  return (
-                    <TableRow key={r.pedido_id}>
-                      <TableCell className="font-mono text-xs">{r.id_externo ?? "-"}</TableCell>
-                      <TableCell className="max-w-[260px] truncate">{r.cliente || "-"}</TableCell>
-                      <TableCell>
-                        {r.fase_gargalo ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild><div>{statusCell}</div></TooltipTrigger>
-                            <TooltipContent>Gargalo: {r.fase_gargalo}</TooltipContent>
-                          </Tooltip>
-                        ) : statusCell}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {r.data_pg ? DATA_FMT.format(new Date(r.data_pg)) : ""}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {BRL.format(Number(r.valor_liquido ?? 0))}
-                      </TableCell>
-                      <TableCell className="text-xs">{fmtDate(r.meta)}</TableCell>
-                      <TableCell className="text-xs">{fmtDate(r.eta_vivo)}</TableCell>
-                      <TableCell className="text-right">{dvmNode}</TableCell>
-                      <TableCell>{farolBadge}</TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                    return (
+                      <TableRow key={r.pedido_id}>
+                        <TableCell className="font-mono text-xs">{r.id_externo ?? "-"}</TableCell>
+                        <TableCell className="max-w-[260px] truncate">{r.cliente || "-"}</TableCell>
+                        <TableCell>
+                          {r.fase_gargalo ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild><div>{statusCell}</div></TooltipTrigger>
+                              <TooltipContent>Gargalo: {r.fase_gargalo}</TooltipContent>
+                            </Tooltip>
+                          ) : statusCell}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {r.data_pg ? DATA_FMT.format(new Date(r.data_pg)) : ""}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {BRL.format(Number(r.valor_liquido ?? 0))}
+                        </TableCell>
+                        <TableCell className="text-xs">{fmtDate(r.meta)}</TableCell>
+                        <TableCell className="text-xs">{fmtDate(r.eta_vivo)}</TableCell>
+                        <TableCell className="text-right">{dvmNode}</TableCell>
+                        <TableCell>{farolBadge}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
       </div>
     </TooltipProvider>
