@@ -9076,6 +9076,7 @@ export type Database = {
           pedido_id: string
           sequencia: number
           status: string
+          valor_frete: number | null
           valor_remessa: number | null
         }
         Insert: {
@@ -9092,6 +9093,7 @@ export type Database = {
           pedido_id: string
           sequencia?: number
           status?: string
+          valor_frete?: number | null
           valor_remessa?: number | null
         }
         Update: {
@@ -9108,6 +9110,7 @@ export type Database = {
           pedido_id?: string
           sequencia?: number
           status?: string
+          valor_frete?: number | null
           valor_remessa?: number | null
         }
         Relationships: [
@@ -12103,6 +12106,42 @@ export type Database = {
           nivel?: string
           skill?: string
           tipo?: string
+        }
+        Relationships: []
+      }
+      sla_fase_pedido: {
+        Row: {
+          ativo: boolean
+          dias_uteis: boolean | null
+          estagio: string
+          fonte_externa: string | null
+          observacao: string | null
+          ordem: number
+          sla_dias: number | null
+          tipo_sla: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          dias_uteis?: boolean | null
+          estagio: string
+          fonte_externa?: string | null
+          observacao?: string | null
+          ordem: number
+          sla_dias?: number | null
+          tipo_sla: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          dias_uteis?: boolean | null
+          estagio?: string
+          fonte_externa?: string | null
+          observacao?: string | null
+          ordem?: number
+          sla_dias?: number | null
+          tipo_sla?: string
+          updated_at?: string
         }
         Relationships: []
       }
