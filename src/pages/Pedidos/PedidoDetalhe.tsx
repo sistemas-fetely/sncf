@@ -50,13 +50,15 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, ShieldAlert, MessageCircle, Link2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
 import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
 import { useEnviarEmailPedidoCobranca } from "@/hooks/pedidos/useEnviarEmailPedidoCobranca";
 import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
+import { EnviarEmailNfDialog } from "@/components/pedidos/dialogs/EnviarEmailNfDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
