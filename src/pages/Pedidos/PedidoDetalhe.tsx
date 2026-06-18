@@ -580,6 +580,37 @@ export default function PedidoDetalhe() {
         </div>
       </div>
 
+      {/* Banner atenção — pausa (vermelho) ou aviso (âmbar) */}
+      {(pedido as any).atencao_nivel && (
+        <div className={cn(
+          "mx-6 mb-3 flex items-start gap-3 rounded-lg border p-3",
+          (pedido as any).atencao_nivel === 'pausa'
+            ? "border-red-300 bg-red-50 text-red-900 dark:bg-red-950/30 dark:border-red-800 dark:text-red-200"
+            : "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200"
+        )}>
+          {(pedido as any).atencao_nivel === 'pausa'
+            ? <PauseCircle className="h-5 w-5 mt-0.5 shrink-0" />
+            : <Bell className="h-5 w-5 mt-0.5 shrink-0" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wide">
+              {(pedido as any).atencao_nivel === 'pausa' ? 'PEDIDO PAUSADO' : 'AVISO'}
+            </p>
+            <p className="text-sm">{(pedido as any).atencao_motivo}</p>
+          </div>
+          {!estagioFinal && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 shrink-0"
+              onClick={() => id && limparAtencao.mutate({ pedidoId: id })}
+              disabled={limparAtencao.isPending}
+            >
+              <XCircle className="h-4 w-4" />
+              Remover
+            </Button>
+          )}
+        </div>
+      )}
 
       <Separator />
 
