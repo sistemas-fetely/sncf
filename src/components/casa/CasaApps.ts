@@ -107,7 +107,7 @@ export const CASA_APPS: CasaApp[] = [
   {
     id: "acervo",
     label: "Acervo",
-    defaultRoute: "/documentacao",
+    defaultRoute: "/processos",
     routeMatchers: [
       "/documentacao",
       "/processos",

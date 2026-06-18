@@ -20,6 +20,7 @@ import AdminLayout from "@/layouts/AdminLayout";
 import SNCFLayout from "@/layouts/SNCFLayout";
 import GestaoVistaLayout from "@/layouts/GestaoVistaLayout";
 import PublicLayout from "@/layouts/PublicLayout";
+import AcervoLayout from "@/layouts/AcervoLayout";
 import { CasaLayout } from "@/layouts/CasaLayout";
 
 // Lazy-loaded routes — reduces initial bundle (was ~1.3MB) to improve TBT/Max FID.
@@ -262,10 +263,16 @@ const App = () => (
               </Route>
 
               {/* ═══════════════════════════════════════════════
-                  App Acervo — App Simples (sem sidebar lateral)
-                  Doutrina CASA-2: Processos e Documentação vivem direto no CasaLayout.
+                  App Acervo — índices com tab bar (Processos | Documentação)
+                  Doutrina CASA-2: AcervoLayout envolve apenas as listagens.
+                  Detalhes e editores ficam direto no CasaLayout (sem tab bar).
                   ═══════════════════════════════════════════════ */}
-              <Route path="/processos" element={<Processos />} />
+              <Route element={<AcervoLayout />}>
+                <Route path="/processos" element={<Processos />} />
+                <Route path="/documentacao" element={<DocumentacaoGeral />} />
+              </Route>
+
+              {/* Acervo — detalhes e editores (sem tab bar) */}
               <Route path="/processos/importar" element={
                 <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
                   <ImportarProcessoPdf />
@@ -275,7 +282,6 @@ const App = () => (
               <Route path="/processos/:id/editar" element={<ProcessoEditor />} />
               <Route path="/templates" element={<Navigate to="/processos" replace />} />
               <Route path="/templates/*" element={<Navigate to="/processos" replace />} />
-              <Route path="/documentacao" element={<DocumentacaoGeral />} />
               <Route path="/documentacao/novo" element={<DocumentacaoForm />} />
               <Route path="/documentacao/:slug" element={<DocumentacaoDetalhe />} />
 
