@@ -276,10 +276,6 @@ const App = () => (
               <Route path="/meus-dados" element={<MeusDados />} />
               <Route path="/meus-acessos" element={<MeusAcessos />} />
               <Route path="/minhas-notas" element={<MinhasNotas />} />
-              {/* Documentação transversal — antes ficava em /ti/documentacao */}
-              <Route path="/documentacao" element={<DocumentacaoGeral />} />
-              <Route path="/documentacao/novo" element={<DocumentacaoForm />} />
-              <Route path="/documentacao/:slug" element={<DocumentacaoDetalhe />} />
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
             </Route>
