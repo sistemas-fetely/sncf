@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Crown, Clock, AlertTriangle, Sparkles } from "lucide-react";
+import { Crown, Clock, AlertTriangle, Sparkles, PauseCircle, Bell } from "lucide-react";
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import type { EstagioPedido, PedidoFilaItem } from "@/types/pedido";
 import { cn } from "@/lib/utils";
