@@ -10508,6 +10508,7 @@ export type Database = {
           ativo: boolean
           banco_id: string
           created_at: string
+          forma_pagamento_id: string | null
           id: string
           meio_pagamento: string
           offset_entre_parcelas_dias: number | null
@@ -10519,6 +10520,7 @@ export type Database = {
           ativo?: boolean
           banco_id: string
           created_at?: string
+          forma_pagamento_id?: string | null
           id?: string
           meio_pagamento: string
           offset_entre_parcelas_dias?: number | null
@@ -10530,6 +10532,7 @@ export type Database = {
           ativo?: boolean
           banco_id?: string
           created_at?: string
+          forma_pagamento_id?: string | null
           id?: string
           meio_pagamento?: string
           offset_entre_parcelas_dias?: number | null
@@ -10543,6 +10546,13 @@ export type Database = {
             columns: ["banco_id"]
             isOneToOne: false
             referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prazo_liquidacao_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
             referencedColumns: ["id"]
           },
         ]

@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, Loader2, ChevronRight } from "lucide-react";
+import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 
 interface Banco {
   id: string;
@@ -36,14 +37,6 @@ interface Regra {
   ativo: boolean | null;
 }
 
-const MEIOS = [
-  { value: "boleto", label: "Boleto" },
-  { value: "pix", label: "PIX" },
-  { value: "cartao", label: "Cartão" },
-  { value: "troca_mercadoria", label: "Troca de mercadoria" },
-];
-
-const meioLabel = (m: string) => MEIOS.find((x) => x.value === m)?.label ?? m;
 
 function BancoDialog({
   open, onClose, banco,
@@ -106,6 +99,7 @@ function RegraDialog({
   open, onClose, bancoId, regra,
 }: { open: boolean; onClose: () => void; bancoId: string; regra: Regra | null }) {
   const qc = useQueryClient();
+  const { data: formas = [] } = useFormasPagamento();
   const [meio, setMeio] = useState(regra?.meio_pagamento || "pix");
   const [usaVenc, setUsaVenc] = useState<boolean>(!!regra?.usa_vencimento);
   const [offset1, setOffset1] = useState<number>(regra?.offset_primeira_dias ?? 0);
@@ -120,6 +114,7 @@ function RegraDialog({
       const payload: Record<string, unknown> = {
         banco_id: bancoId,
         meio_pagamento: meio,
+        forma_pagamento_id: formas.find((f) => f.codigo === meio)?.id ?? null,
         usa_vencimento: usaVenc,
         offset_primeira_dias: usaVenc ? 0 : Number(offset1) || 0,
         offset_entre_parcelas_dias: usaVenc || offsetN === "" ? null : Number(offsetN),
@@ -165,12 +160,13 @@ function RegraDialog({
             <Select value={meio} onValueChange={setMeio} disabled={!!regra}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {MEIOS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                {formas.map((f) => (
+                  <SelectItem key={f.codigo} value={f.codigo}>{f.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="flex items-center justify-between border rounded-lg p-3">
             <div>
               <Label className="text-sm">Usa data de vencimento</Label>
@@ -223,6 +219,8 @@ function RegrasPanel({ banco }: { banco: Banco }) {
   const [editing, setEditing] = useState<Regra | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Regra | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { data: formas = [] } = useFormasPagamento();
+  const formaNome = (codigo: string) => formas.find((f) => f.codigo === codigo)?.nome ?? codigo;
 
   const { data: regras, isLoading } = useQuery({
     queryKey: ["prazo-liquidacao", banco.id],
@@ -274,7 +272,7 @@ function RegrasPanel({ banco }: { banco: Banco }) {
                 <Switch checked={!!r.ativo} onCheckedChange={() => handleToggle(r)} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className="text-[10px]">{meioLabel(r.meio_pagamento)}</Badge>
+                    <Badge variant="outline" className="text-[10px]">{formaNome(r.meio_pagamento)}</Badge>
                     <span className="text-sm font-mono">{regraTexto(r)}</span>
                     {!r.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
                   </div>
@@ -307,7 +305,7 @@ function RegrasPanel({ banco }: { banco: Banco }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir regra?</AlertDialogTitle>
             <AlertDialogDescription>
-              A regra de {deleteTarget && meioLabel(deleteTarget.meio_pagamento)} será removida.
+              A regra de {deleteTarget && formaNome(deleteTarget.meio_pagamento)} será removida.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
