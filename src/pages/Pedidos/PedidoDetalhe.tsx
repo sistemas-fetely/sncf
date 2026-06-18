@@ -139,6 +139,7 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
   const [reverterOpen, setReverterOpen] = useState(false);
   return (
     <div className="space-y-2">
+      <BotaoSplitPedidoInline pedido={pedido} />
       <Button
         variant="ghost"
         size="sm"
@@ -375,34 +376,41 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
   );
 }
 
-function AcoesPedidoCobranca({ pedido, parceiro }: { pedido: any; parceiro: any }) {
-  const navigate = useNavigate();
+function BotaoSplitPedidoInline({ pedido }: { pedido: any }) {
   const { data: permissoes } = usePermissoesDoUsuario();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const podeSplit = isSuperAdmin || (permissoes?.has("operacao.split_pedido") ?? false);
   const [splitOpen, setSplitOpen] = useState(false);
 
+  if (!podeSplit) return null;
+
+  return (
+    <>
+      <Button variant="outline" className="w-full gap-2" onClick={() => setSplitOpen(true)}>
+        <Scissors className="h-4 w-4" />Split
+      </Button>
+      <SplitPedidoDialog
+        open={splitOpen}
+        onOpenChange={setSplitOpen}
+        pedido_id={pedido.id}
+        id_externo={pedido.id_externo}
+        valor_liquido={pedido.valor_liquido}
+        valor_bruto={pedido.valor_bruto}
+      />
+    </>
+  );
+}
+
+function AcoesPedidoCobranca({ pedido, parceiro }: { pedido: any; parceiro: any }) {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-col gap-2 w-full">
       <Button className="w-full gap-2" onClick={() => navigate(`/recebimento/cobranca/${pedido.id}`)}>
         <Package className="h-4 w-4" />Operacionar cobrança
       </Button>
-      {podeSplit && (
-        <>
-          <Button variant="outline" className="w-full gap-2" onClick={() => setSplitOpen(true)}>
-            <Scissors className="h-4 w-4" />Split
-          </Button>
-          <SplitPedidoDialog
-            open={splitOpen}
-            onOpenChange={setSplitOpen}
-            pedido_id={pedido.id}
-            id_externo={pedido.id_externo}
-            valor_liquido={pedido.valor_liquido}
-            valor_bruto={pedido.valor_bruto}
-          />
-        </>
-      )}
+      <BotaoSplitPedidoInline pedido={pedido} />
     </div>
   );
 }
@@ -459,6 +467,7 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any }) {
         <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />
       )}
       <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
+      <BotaoSplitPedidoInline pedido={pedido} />
     </div>
   );
 }

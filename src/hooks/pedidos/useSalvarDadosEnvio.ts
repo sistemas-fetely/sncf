@@ -10,24 +10,26 @@ interface DadosEnvio {
   valorFrete: number;
 }
 
+const fmtBRL = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v ?? 0);
+
 export function useSalvarDadosEnvio() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ pedidoId, transportadoraId, pesoBrutoTotal, freteTipo, valorFrete }: DadosEnvio) => {
-      const { error } = await (supabase as any)
-        .from("pedidos")
-        .update({
-          transportadora_id: transportadoraId || null,
-          peso_bruto_total: pesoBrutoTotal,
-          frete_tipo: freteTipo || null,
-          valor_frete: valorFrete,
-        })
-        .eq("id", pedidoId);
+      const { data, error } = await (supabase as any).rpc("atualizar_frete_pedido", {
+        p_pedido_id:         pedidoId,
+        p_transportadora_id: transportadoraId || null,
+        p_peso_bruto_total:  pesoBrutoTotal,
+        p_frete_tipo:        freteTipo || null,
+        p_valor_frete:       valorFrete,
+      });
       if (error) throw error;
+      return data as { ok: boolean; novo_liquido: number; valor_frete: number };
     },
-    onSuccess: (_, vars) => {
+    onSuccess: (data, vars) => {
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
-      toast.success("Dados de envio salvos");
+      toast.success(`Dados de envio salvos — novo total: R$ ${fmtBRL(data?.novo_liquido ?? 0)}`);
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error

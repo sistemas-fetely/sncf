@@ -16380,6 +16380,16 @@ export type Database = {
         Args: { p_conta_id: string }
         Returns: undefined
       }
+      atualizar_frete_pedido: {
+        Args: {
+          p_frete_tipo?: string
+          p_pedido_id: string
+          p_peso_bruto_total?: number
+          p_transportadora_id?: string
+          p_valor_frete?: number
+        }
+        Returns: Json
+      }
       autosave_convite_cadastro: {
         Args: { _dados: Json; _token: string }
         Returns: boolean
