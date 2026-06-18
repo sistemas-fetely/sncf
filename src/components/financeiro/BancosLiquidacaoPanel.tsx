@@ -272,7 +272,7 @@ function RegrasPanel({ banco }: { banco: Banco }) {
                 <Switch checked={!!r.ativo} onCheckedChange={() => handleToggle(r)} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className="text-[10px]">{meioLabel(r.meio_pagamento)}</Badge>
+                    <Badge variant="outline" className="text-[10px]">{formaNome(r.meio_pagamento)}</Badge>
                     <span className="text-sm font-mono">{regraTexto(r)}</span>
                     {!r.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
                   </div>
