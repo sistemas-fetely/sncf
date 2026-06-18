@@ -261,6 +261,24 @@ const App = () => (
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
               </Route>
 
+              {/* ═══════════════════════════════════════════════
+                  App Acervo — App Simples (sem sidebar lateral)
+                  Doutrina CASA-2: Processos e Documentação vivem direto no CasaLayout.
+                  ═══════════════════════════════════════════════ */}
+              <Route path="/processos" element={<Processos />} />
+              <Route path="/processos/importar" element={
+                <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
+                  <ImportarProcessoPdf />
+                </ProtectedRoute>
+              } />
+              <Route path="/processos/:id" element={<ProcessoDetalhe />} />
+              <Route path="/processos/:id/editar" element={<ProcessoEditor />} />
+              <Route path="/templates" element={<Navigate to="/processos" replace />} />
+              <Route path="/templates/*" element={<Navigate to="/processos" replace />} />
+              <Route path="/documentacao" element={<DocumentacaoGeral />} />
+              <Route path="/documentacao/novo" element={<DocumentacaoForm />} />
+              <Route path="/documentacao/:slug" element={<DocumentacaoDetalhe />} />
+
 
 
               {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
