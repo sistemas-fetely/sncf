@@ -219,6 +219,8 @@ function RegrasPanel({ banco }: { banco: Banco }) {
   const [editing, setEditing] = useState<Regra | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Regra | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { data: formas = [] } = useFormasPagamento();
+  const formaNome = (codigo: string) => formas.find((f) => f.codigo === codigo)?.nome ?? codigo;
 
   const { data: regras, isLoading } = useQuery({
     queryKey: ["prazo-liquidacao", banco.id],
