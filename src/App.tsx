@@ -270,16 +270,6 @@ const App = () => (
               <Route path="/tarefas/time" element={<TarefasDoTime />} />
               <Route path="/gerenciar-usuarios" element={<Navigate to="/admin/usuarios" replace />} />
               <Route path="/gerenciar-usuarios/perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
-              <Route path="/processos" element={<Processos />} />
-              <Route path="/processos/importar" element={
-                <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
-                  <ImportarProcessoPdf />
-                </ProtectedRoute>
-              } />
-              <Route path="/processos/:id" element={<ProcessoDetalhe />} />
-              <Route path="/processos/:id/editar" element={<ProcessoEditor />} />
-              <Route path="/templates" element={<Navigate to="/processos" replace />} />
-              <Route path="/templates/*" element={<Navigate to="/processos" replace />} />
               <Route path="/fala-fetely" element={<FalaFetely />} />
               <Route path="/fala-fetely/conhecimento" element={<FalaFetelyConhecimento />} />
               <Route path="/fala-fetely/memorias" element={<MinhasMemorias />} />
