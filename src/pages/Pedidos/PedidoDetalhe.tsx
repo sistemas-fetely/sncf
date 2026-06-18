@@ -473,6 +473,7 @@ export default function PedidoDetalhe() {
   const { data, isLoading } = usePedidoDetalhe(id);
   const { data: priorizado } = usePedidoPriorizado(id);
   const atualizarUrgencia = useAtualizarUrgencia();
+  const limparAtencao = useLimparAtencao();
   const [urgencia, setUrgencia] = useState<UrgenciaDeclarada>("normal");
   const [obsUrgencia, setObsUrgencia] = useState("");
   const registrarEvento = useRegistrarEventoPedido();
