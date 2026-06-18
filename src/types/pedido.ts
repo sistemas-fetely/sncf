@@ -59,10 +59,10 @@ export const AREA_LABELS: Record<AreaPedido, string> = {
 export const PIPELINE_PRINCIPAL: readonly EstagioPedido[] = [
   "recebido",
   "em_analise_credito",
+  "aguardando_estoque",
   "cobranca",
   "aguardando_pagamento",
   "pre_faturado",
-  "aguardando_estoque",
   "em_separacao",
   "faturado",
   "em_transporte",
