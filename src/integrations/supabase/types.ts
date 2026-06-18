@@ -9400,6 +9400,7 @@ export type Database = {
           recebido_em: string
           recebido_via: string
           regra_pagamento_id: string | null
+          snapshot_original: Json | null
           split_de_pedido_id: string | null
           tipo_pagamento: string | null
           transportadora_id: string | null
@@ -9470,6 +9471,7 @@ export type Database = {
           recebido_em?: string
           recebido_via?: string
           regra_pagamento_id?: string | null
+          snapshot_original?: Json | null
           split_de_pedido_id?: string | null
           tipo_pagamento?: string | null
           transportadora_id?: string | null
@@ -9540,6 +9542,7 @@ export type Database = {
           recebido_em?: string
           recebido_via?: string
           regra_pagamento_id?: string | null
+          snapshot_original?: Json | null
           split_de_pedido_id?: string | null
           tipo_pagamento?: string | null
           transportadora_id?: string | null
