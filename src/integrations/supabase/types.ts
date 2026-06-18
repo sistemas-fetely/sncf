@@ -16983,6 +16983,10 @@ export type Database = {
         Returns: string
       }
       fn_marcar_titulos_boleto_vencidos: { Args: never; Returns: Json }
+      fn_materializar_itens_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }
         Returns: string
