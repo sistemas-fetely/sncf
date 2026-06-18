@@ -261,15 +261,10 @@ const App = () => (
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
               </Route>
 
-
-
-              {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
-              <Route element={<SNCFLayout />}>
-              <Route path="/sncf" element={<PortalSNCF />} />
-              <Route path="/tarefas" element={<MinhasTarefas />} />
-              <Route path="/tarefas/time" element={<TarefasDoTime />} />
-              <Route path="/gerenciar-usuarios" element={<Navigate to="/admin/usuarios" replace />} />
-              <Route path="/gerenciar-usuarios/perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
+              {/* ═══════════════════════════════════════════════
+                  App Acervo — App Simples (sem sidebar lateral)
+                  Doutrina CASA-2: Processos e Documentação vivem direto no CasaLayout.
+                  ═══════════════════════════════════════════════ */}
               <Route path="/processos" element={<Processos />} />
               <Route path="/processos/importar" element={
                 <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
@@ -280,16 +275,25 @@ const App = () => (
               <Route path="/processos/:id/editar" element={<ProcessoEditor />} />
               <Route path="/templates" element={<Navigate to="/processos" replace />} />
               <Route path="/templates/*" element={<Navigate to="/processos" replace />} />
+              <Route path="/documentacao" element={<DocumentacaoGeral />} />
+              <Route path="/documentacao/novo" element={<DocumentacaoForm />} />
+              <Route path="/documentacao/:slug" element={<DocumentacaoDetalhe />} />
+
+
+
+              {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
+              <Route element={<SNCFLayout />}>
+              <Route path="/sncf" element={<PortalSNCF />} />
+              <Route path="/tarefas" element={<MinhasTarefas />} />
+              <Route path="/tarefas/time" element={<TarefasDoTime />} />
+              <Route path="/gerenciar-usuarios" element={<Navigate to="/admin/usuarios" replace />} />
+              <Route path="/gerenciar-usuarios/perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
               <Route path="/fala-fetely" element={<FalaFetely />} />
               <Route path="/fala-fetely/conhecimento" element={<FalaFetelyConhecimento />} />
               <Route path="/fala-fetely/memorias" element={<MinhasMemorias />} />
               <Route path="/meus-dados" element={<MeusDados />} />
               <Route path="/meus-acessos" element={<MeusAcessos />} />
               <Route path="/minhas-notas" element={<MinhasNotas />} />
-              {/* Documentação transversal — antes ficava em /ti/documentacao */}
-              <Route path="/documentacao" element={<DocumentacaoGeral />} />
-              <Route path="/documentacao/novo" element={<DocumentacaoForm />} />
-              <Route path="/documentacao/:slug" element={<DocumentacaoDetalhe />} />
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
             </Route>
