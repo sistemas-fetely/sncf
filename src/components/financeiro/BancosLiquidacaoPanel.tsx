@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, Loader2, ChevronRight } from "lucide-react";
+import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 
 interface Banco {
   id: string;
@@ -36,14 +37,6 @@ interface Regra {
   ativo: boolean | null;
 }
 
-const MEIOS = [
-  { value: "boleto", label: "Boleto" },
-  { value: "pix", label: "PIX" },
-  { value: "cartao", label: "Cartão" },
-  { value: "troca_mercadoria", label: "Troca de mercadoria" },
-];
-
-const meioLabel = (m: string) => MEIOS.find((x) => x.value === m)?.label ?? m;
 
 function BancoDialog({
   open, onClose, banco,
