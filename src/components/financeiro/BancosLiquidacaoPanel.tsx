@@ -99,6 +99,7 @@ function RegraDialog({
   open, onClose, bancoId, regra,
 }: { open: boolean; onClose: () => void; bancoId: string; regra: Regra | null }) {
   const qc = useQueryClient();
+  const { data: formas = [] } = useFormasPagamento();
   const [meio, setMeio] = useState(regra?.meio_pagamento || "pix");
   const [usaVenc, setUsaVenc] = useState<boolean>(!!regra?.usa_vencimento);
   const [offset1, setOffset1] = useState<number>(regra?.offset_primeira_dias ?? 0);
@@ -113,6 +114,7 @@ function RegraDialog({
       const payload: Record<string, unknown> = {
         banco_id: bancoId,
         meio_pagamento: meio,
+        forma_pagamento_id: formas.find((f) => f.codigo === meio)?.id ?? null,
         usa_vencimento: usaVenc,
         offset_primeira_dias: usaVenc ? 0 : Number(offset1) || 0,
         offset_entre_parcelas_dias: usaVenc || offsetN === "" ? null : Number(offsetN),
@@ -158,12 +160,13 @@ function RegraDialog({
             <Select value={meio} onValueChange={setMeio} disabled={!!regra}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {MEIOS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                {formas.map((f) => (
+                  <SelectItem key={f.codigo} value={f.codigo}>{f.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="flex items-center justify-between border rounded-lg p-3">
             <div>
               <Label className="text-sm">Usa data de vencimento</Label>
