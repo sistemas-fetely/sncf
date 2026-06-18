@@ -50,7 +50,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History } from "lucide-react";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
@@ -798,6 +798,94 @@ export default function PedidoDetalhe() {
                   })()}
                 </CardContent>
               </Card>
+
+              {(() => {
+                const snap = (pedido as any).snapshot_original as {
+                  valor_bruto: number;
+                  valor_liquido: number;
+                  valor_frete: number;
+                  frete_tipo: string | null;
+                  desconto_celebra_valor: number;
+                  bonus_pix_valor: number;
+                  gravado_em: string;
+                } | null;
+
+                if (!snap) return null;
+
+                const snapBruto      = snap.valor_bruto || 0;
+                const snapLiquido    = snap.valor_liquido || 0;
+                const snapFrete      = Number(snap.valor_frete) || 0;
+                const snapCelebra    = Number(snap.desconto_celebra_valor) || 0;
+                const snapPix        = Number(snap.bonus_pix_valor) || 0;
+                const snapDescontoSimples = Math.max(0, snapBruto + snapFrete - snapLiquido);
+                const snapTemBreakdown   = snapCelebra > 0.01 || snapPix > 0.01;
+                const deltaLiquido        = pedido.valor_liquido - snapLiquido;
+                const hasDelta            = Math.abs(deltaLiquido) > 0.01;
+
+                return (
+                  <Card className="border-amber-200/70 dark:border-amber-800/50 flex-1 flex flex-col bg-amber-50/30 dark:bg-amber-950/10">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <History className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        Como chegou do FOP
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Valor bruto</span>
+                          <span>{fmtBRL.format(snapBruto)}</span>
+                        </div>
+                        {snapTemBreakdown ? (
+                          <>
+                            {snapCelebra > 0.01 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Desconto ({((snapCelebra / snapBruto) * 100).toFixed(2)}%)</span>
+                                <span className="text-destructive">−{fmtBRL.format(snapCelebra)}</span>
+                              </div>
+                            )}
+                            {snapPix > 0.01 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Desconto PIX ({((snapCelebra > 0.01 ? snapPix / (snapBruto - snapCelebra) : snapPix / snapBruto) * 100).toFixed(2)}%)</span>
+                                <span className="text-destructive">−{fmtBRL.format(snapPix)}</span>
+                              </div>
+                            )}
+                          </>
+                        ) : snapDescontoSimples > 0.01 ? (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Desconto ({((snapDescontoSimples / snapBruto) * 100).toFixed(2)}%)</span>
+                            <span className="text-destructive">−{fmtBRL.format(snapDescontoSimples)}</span>
+                          </div>
+                        ) : null}
+                        {snapFrete > 0.01 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Frete{snap.frete_tipo ? ` (${snap.frete_tipo})` : ""}</span>
+                            <span>+{fmtBRL.format(snapFrete)}</span>
+                          </div>
+                        )}
+                        <div className="border-t border-border/60 pt-2">
+                          <div className="flex justify-between text-sm font-semibold">
+                            <span>Valor líquido</span>
+                            <span>{fmtBRL.format(snapLiquido)}</span>
+                          </div>
+                        </div>
+                        {hasDelta && (
+                          <div className={`flex justify-between text-xs pt-1 ${deltaLiquido < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                            <span>Δ vs original</span>
+                            <span>{deltaLiquido > 0 ? "+" : ""}{fmtBRL.format(deltaLiquido)}</span>
+                          </div>
+                        )}
+                        {!hasDelta && (
+                          <div className="flex justify-between text-xs pt-1 text-muted-foreground">
+                            <span>Δ vs original</span>
+                            <span>Sem alteração</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
             </div>
 
             {/* Card — Dados de envio */}

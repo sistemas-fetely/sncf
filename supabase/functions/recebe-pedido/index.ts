@@ -281,6 +281,19 @@ Deno.serve(async (req) => {
       }).eq("id", data.pedido_id);
     }
 
+    await supabase.from("pedidos").update({
+      snapshot_original: {
+        valor_bruto:             body.valor_bruto,
+        valor_liquido:           body.valor_liquido,
+        valor_frete:             valorFreteFinal,
+        frete_tipo:              body.frete_tipo ?? null,
+        desconto_celebra_valor:  descontoCelebraValor,
+        bonus_pix_valor:         bonusPixValor,
+        itens_json:              body.itens_json ?? null,
+        gravado_em:              new Date().toISOString(),
+      },
+    }).eq("id", data.pedido_id);
+
     console.log("[recebe-pedido] Sucesso", {
       id_externo: body.id_externo,
       pedido_id: data?.pedido_id,
