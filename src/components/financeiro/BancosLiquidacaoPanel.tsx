@@ -305,7 +305,7 @@ function RegrasPanel({ banco }: { banco: Banco }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir regra?</AlertDialogTitle>
             <AlertDialogDescription>
-              A regra de {deleteTarget && meioLabel(deleteTarget.meio_pagamento)} será removida.
+              A regra de {deleteTarget && formaNome(deleteTarget.meio_pagamento)} será removida.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
