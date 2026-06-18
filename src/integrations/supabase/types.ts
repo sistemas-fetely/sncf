@@ -9347,6 +9347,10 @@ export type Database = {
           analise_pedido_motivo: string | null
           analise_pedido_status: string | null
           area_atual: string
+          atencao_em: string | null
+          atencao_motivo: string | null
+          atencao_nivel: string | null
+          atencao_por: string | null
           bling_enviado_em: string | null
           bling_enviado_por: string | null
           bling_envio_erro: string | null
@@ -9413,6 +9417,10 @@ export type Database = {
           analise_pedido_motivo?: string | null
           analise_pedido_status?: string | null
           area_atual?: string
+          atencao_em?: string | null
+          atencao_motivo?: string | null
+          atencao_nivel?: string | null
+          atencao_por?: string | null
           bling_enviado_em?: string | null
           bling_enviado_por?: string | null
           bling_envio_erro?: string | null
@@ -9479,6 +9487,10 @@ export type Database = {
           analise_pedido_motivo?: string | null
           analise_pedido_status?: string | null
           area_atual?: string
+          atencao_em?: string | null
+          atencao_motivo?: string | null
+          atencao_nivel?: string | null
+          atencao_por?: string | null
           bling_enviado_em?: string | null
           bling_enviado_por?: string | null
           bling_envio_erro?: string | null
@@ -17146,6 +17158,10 @@ export type Database = {
         Args: { p_ofx_id: string }
         Returns: Json
       }
+      limpar_atencao_pedido: {
+        Args: { p_motivo_remocao?: string; p_pedido_id: string }
+        Returns: Json
+      }
       limpar_rascunhos_antigos: { Args: never; Returns: number }
       listar_faturas_disponiveis_para_planilha: {
         Args: { p_planilha_id: string }
@@ -17172,6 +17188,10 @@ export type Database = {
           id: string
           valor: number
         }[]
+      }
+      marcar_atencao_pedido: {
+        Args: { p_motivo: string; p_nivel: string; p_pedido_id: string }
+        Returns: Json
       }
       marcar_compra_como_realizada: {
         Args: { p_compra_id: string; p_observacao?: string }
