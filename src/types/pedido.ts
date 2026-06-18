@@ -125,6 +125,10 @@ export interface PedidoFilaItem {
   analise_credito_id: string | null;
   marcacao: string | null;
   bling_id_destino?: string | null;
+  atencao_nivel?: 'pausa' | 'aviso' | null;
+  atencao_motivo?: string | null;
+  atencao_por?: string | null;
+  atencao_em?: string | null;
 }
 
 export interface PipelineItem {

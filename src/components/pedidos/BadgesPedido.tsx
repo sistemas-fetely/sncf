@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Crown, Clock, AlertTriangle, Sparkles } from "lucide-react";
+import { Crown, Clock, AlertTriangle, Sparkles, PauseCircle, Bell } from "lucide-react";
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import type { EstagioPedido, PedidoFilaItem } from "@/types/pedido";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,18 @@ export function EstagioBadge({ estagio }: { estagio: EstagioPedido }) {
 export function BadgesContextuaisPedido({ p }: { p: PedidoFilaItem }) {
   return (
     <div className="flex flex-wrap gap-1">
+      {p.atencao_nivel === 'pausa' && (
+        <Badge className="gap-1 bg-red-600 text-white border-0">
+          <PauseCircle className="h-3 w-3" />
+          Pausado
+        </Badge>
+      )}
+      {p.atencao_nivel === 'aviso' && (
+        <Badge className="gap-1 bg-amber-500 text-white border-0">
+          <Bell className="h-3 w-3" />
+          Aviso
+        </Badge>
+      )}
       {p.bandeira_vermelha && (
         <Badge variant="destructive" className="gap-1">
           <AlertTriangle className="h-3 w-3" />
