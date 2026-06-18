@@ -1209,6 +1209,14 @@ export default function PedidoDetalhe() {
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
               <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
               <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
+              {!estagioFinal && !(pedido as any).atencao_nivel && (
+                <AtencaoPedidoDialog pedidoId={pedido.id}>
+                  <Button variant="outline" size="sm" className="w-full gap-2">
+                    <PauseCircle className="h-4 w-4" />
+                    Pausar / Avisar
+                  </Button>
+                </AtencaoPedidoDialog>
+              )}
               <div className="pt-3 mt-1 border-t border-border/40">
                 <CancelarPedidoDialog
                   pedido_id={pedido.id}
