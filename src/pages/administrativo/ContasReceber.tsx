@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownToLine, Inbox } from "lucide-react";
+import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +63,7 @@ export default function ContasReceber() {
   const [filtroMeio, setFiltroMeio] = useState<string>("todos");
   const [cardsAtivos, setCardsAtivos] = useState<Set<CardKey>>(new Set());
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-b2b"],
@@ -165,7 +166,7 @@ export default function ContasReceber() {
     const dDe = dataDe ? new Date(dataDe) : null;
     const dAte = dataAte ? new Date(dataAte) : null;
 
-    return titulos.filter((t) => {
+    let arr = titulos.filter((t) => {
       for (const k of cardsAtivos) {
         if (!predicados[k](t)) return false;
       }
@@ -186,7 +187,23 @@ export default function ContasReceber() {
       }
       return true;
     });
-  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte]);
+
+    if (sort) {
+      arr = [...arr].sort((a, b) => {
+        const va = (a as any)[sort.key] ?? "";
+        const vb = (b as any)[sort.key] ?? "";
+        if (typeof va === "string" && typeof vb === "string") {
+          return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        if (typeof va === "number" && typeof vb === "number") {
+          return sort.dir === "asc" ? va - vb : vb - va;
+        }
+        return sort.dir === "asc" ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+      });
+    }
+
+    return arr;
+  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
@@ -396,16 +413,16 @@ export default function ContasReceber() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>NF</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Título / Parcela</TableHead>
-                  <TableHead>Banco</TableHead>
-                  <TableHead>Meio</TableHead>
-                  <TableHead>Data compra</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Liquidação</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Status</TableHead>
+                  <SortTh label="NF" sortKey="nf_numero" sort={sort} setSort={setSort} />
+                  <SortTh label="Cliente" sortKey="cliente" sort={sort} setSort={setSort} />
+                  <SortTh label="Título / Parcela" sortKey="numero_titulo" sort={sort} setSort={setSort} />
+                  <SortTh label="Banco" sortKey="banco_nome" sort={sort} setSort={setSort} />
+                  <SortTh label="Meio" sortKey="meio_pagamento" sort={sort} setSort={setSort} />
+                  <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
+                  <SortTh label="Vencimento" sortKey="data_vencimento" sort={sort} setSort={setSort} />
+                  <SortTh label="Liquidação" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
+                  <SortTh label="Valor" sortKey="valor" sort={sort} setSort={setSort} align="right" />
+                  <SortTh label="Status" sortKey="status_gestao" sort={sort} setSort={setSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -486,5 +503,41 @@ export default function ContasReceber() {
         </div>
       )}
     </div>
+  );
+}
+
+function SortTh({
+  label,
+  sortKey,
+  sort,
+  setSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey: string;
+  sort: { key: string; dir: "asc" | "desc" } | null;
+  setSort: React.Dispatch<React.SetStateAction<{ key: string; dir: "asc" | "desc" } | null>>;
+  align?: "left" | "right";
+}) {
+  const active = sort?.key === sortKey;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:text-foreground transition-colors ${
+        align === "right" ? "text-right" : ""
+      }`}
+      onClick={() =>
+        setSort((prev) =>
+          prev?.key === sortKey
+            ? { key: sortKey, dir: prev.dir === "asc" ? "desc" : "asc" }
+            : { key: sortKey, dir: "desc" }
+        )
+      }
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <Icon className="h-3 w-3 opacity-60" />
+      </span>
+    </TableHead>
   );
 }
