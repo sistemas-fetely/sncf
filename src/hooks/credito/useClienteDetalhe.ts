@@ -71,11 +71,35 @@ export function useClienteDetalhe(parceiroId: string | undefined) {
         .eq("parceiro_id", parceiroId)
         .is("desligado_em", null);
 
-      const { data: kpisData } = await sb
-        .from("v_credito_resumo_financeiro")
-        .select("*")
+      const { data: titulosData } = await sb
+        .from("vw_recebivel_b2b")
+        .select("id, numero_titulo, numero_parcela, total_parcelas, valor, data_vencimento, data_compra, status_gestao, meio_pagamento, nf_numero, banco_nome, data_liquidacao, liquidacao_realizada")
         .eq("parceiro_id", parceiroId)
-        .maybeSingle();
+        .order("data_vencimento", { ascending: false })
+        .limit(200);
+
+      const titulos = (titulosData || []) as TituloB2B[];
+
+      const hojeKpi = new Date();
+      const atrasadosKpi = titulos.filter((t) => t.status_gestao === "atrasado");
+      const kpisFinanceiros: KpiFinanceiro = {
+        em_aberto: titulos.filter((t) => t.status_gestao !== "pago").reduce((s, t) => s + (t.valor || 0), 0),
+        vencidos: atrasadosKpi.reduce((s, t) => s + (t.valor || 0), 0),
+        a_vencer: titulos.filter((t) => t.status_gestao === "em_aberto").reduce((s, t) => s + (t.valor || 0), 0),
+        pago: titulos.filter((t) => t.status_gestao === "pago").reduce((s, t) => s + (t.valor || 0), 0),
+        maior_compra: titulos.length > 0 ? Math.max(...titulos.map((t) => t.valor || 0)) : 0,
+        ultima_compra_em: titulos.length > 0
+          ? titulos.reduce((max, t) => ((t.data_compra ?? "") > max ? (t.data_compra ?? "") : max), "")
+          : null,
+        atraso_medio_dias: atrasadosKpi.length === 0
+          ? 0
+          : Math.round(
+              atrasadosKpi.reduce((s, t) => {
+                const venc = new Date(t.data_vencimento);
+                return s + Math.max(0, Math.floor((hojeKpi.getTime() - venc.getTime()) / 86400000));
+              }, 0) / atrasadosKpi.length,
+            ),
+      } as KpiFinanceiro;
 
       let kpisGrupo: KpiFinanceiroGrupo | null = null;
       if (grupoId) {
