@@ -80,6 +80,11 @@ export function useClienteDetalhe(parceiroId: string | undefined) {
 
       const titulos = (titulosData || []) as TituloB2B[];
 
+      const { data: maiorCompraData } = await sb
+        .rpc("fn_maior_compra_parceiro", { p_parceiro_id: parceiroId });
+
+      const maior_compra = Number(maiorCompraData ?? 0);
+
       const hojeKpi = new Date();
       const atrasadosKpi = titulos.filter((t) => t.status_gestao === "atrasado");
       const kpisFinanceiros: KpiFinanceiro = {
@@ -87,7 +92,7 @@ export function useClienteDetalhe(parceiroId: string | undefined) {
         vencidos: atrasadosKpi.reduce((s, t) => s + (t.valor || 0), 0),
         a_vencer: titulos.filter((t) => t.status_gestao === "em_aberto").reduce((s, t) => s + (t.valor || 0), 0),
         pago: titulos.filter((t) => t.status_gestao === "pago").reduce((s, t) => s + (t.valor || 0), 0),
-        maior_compra: titulos.length > 0 ? Math.max(...titulos.map((t) => t.valor || 0)) : 0,
+        maior_compra,
         ultima_compra_em: titulos.length > 0
           ? titulos.reduce((max, t) => ((t.data_compra ?? "") > max ? (t.data_compra ?? "") : max), "")
           : null,

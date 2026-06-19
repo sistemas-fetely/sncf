@@ -17017,6 +17017,10 @@ export type Database = {
         }
         Returns: string
       }
+      fn_maior_compra_parceiro: {
+        Args: { p_parceiro_id: string }
+        Returns: number
+      }
       fn_marcar_titulos_boleto_vencidos: { Args: never; Returns: Json }
       fn_materializar_itens_pedido: {
         Args: { p_pedido_id: string }
