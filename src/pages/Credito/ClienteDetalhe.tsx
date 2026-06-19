@@ -47,8 +47,9 @@ export default function ClienteDetalhe() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "Crédito", to: "/credito" },
-          { label: parceiro?.razao_social || "Cliente" },
+          { label: "SOPs", to: "/pedidos" },
+          { label: "Crédito do cliente", to: "/credito/clientes" },
+          { label: parceiro?.razao_social ?? "Cliente" },
         ]}
         title={parceiro?.razao_social || "Cliente sem razão"}
         subtitle={[
@@ -64,7 +65,7 @@ export default function ClienteDetalhe() {
                 Criar haver
               </Button>
             )}
-            <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate("/credito")}>
+            <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate("/credito/clientes")}>
               <ArrowLeft className="h-4 w-4" />
               Voltar
             </Button>

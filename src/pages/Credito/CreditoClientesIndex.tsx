@@ -95,8 +95,8 @@ export default function CreditoClientesIndex() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "Crédito", to: "/credito" },
-          { label: "Clientes" },
+          { label: "SOPs", to: "/pedidos" },
+          { label: "Crédito do cliente" },
         ]}
         title="Posição de crédito por cliente"
         subtitle="Haveres, em aberto, vencidos e posição líquida"
