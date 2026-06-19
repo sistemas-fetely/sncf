@@ -49,6 +49,7 @@ export default function TodosTitulosTab() {
   const { data: titulos = [], isLoading } = useTodosTitulos();
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [busca, setBusca] = useState("");
+  const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
 
   const kpis = useMemo(() => {
     const por: Record<string, { qtd: number; sem_nf: number; valor: number }> = {};
