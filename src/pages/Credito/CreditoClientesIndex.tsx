@@ -8,7 +8,7 @@ import { CriarHaverDialog } from "@/components/credito/CriarHaverDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
+import { Plus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -21,6 +21,7 @@ export default function CreditoClientesIndex() {
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [criarHaverOpen, setCriarHaverOpen] = useState(false);
   const [tab, setTab] = useState<"todos" | "com_haver" | "com_vencidos">("todos");
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
 
   const resumosQ = useQuery({
     queryKey: ["credito-clientes-resumos"],
@@ -68,10 +69,21 @@ export default function CreditoClientesIndex() {
   const posicaoLiquida = clientes.reduce((s: number, c: any) => s + (c.em_aberto ?? 0), 0) - totalHaveres;
 
   const filtrados = useMemo(() => {
-    if (tab === "com_haver") return clientes.filter((c: any) => c.haver_disponivel > 0);
-    if (tab === "com_vencidos") return clientes.filter((c: any) => c.vencidos > 0);
-    return clientes;
-  }, [clientes, tab]);
+    let arr = [...clientes];
+    if (tab === "com_haver") arr = arr.filter((c: any) => c.haver_disponivel > 0);
+    if (tab === "com_vencidos") arr = arr.filter((c: any) => c.vencidos > 0);
+    if (sort) {
+      arr.sort((a: any, b: any) => {
+        const va = a[sort.key] ?? 0;
+        const vb = b[sort.key] ?? 0;
+        if (typeof va === "string" && typeof vb === "string") {
+          return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        return sort.dir === "asc" ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+      });
+    }
+    return arr;
+  }, [clientes, tab, sort]);
 
   const loading = resumosQ.isLoading || haveresQ.isLoading;
 
@@ -128,10 +140,10 @@ export default function CreditoClientesIndex() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                     <tr>
-                      <th className="text-left px-4 py-2">Cliente</th>
-                      <th className="text-right px-4 py-2">Haver disponível</th>
-                      <th className="text-right px-4 py-2">Em aberto</th>
-                      <th className="text-right px-4 py-2">Vencido</th>
+                      <SortTh label="Cliente" sortKey="razao_social" sort={sort} setSort={setSort} />
+                      <SortTh label="Haver disponível" sortKey="haver_disponivel" sort={sort} setSort={setSort} align="right" />
+                      <SortTh label="Em aberto" sortKey="em_aberto" sort={sort} setSort={setSort} align="right" />
+                      <SortTh label="Vencido" sortKey="vencidos" sort={sort} setSort={setSort} align="right" />
                       <th className="text-right px-4 py-2">Ação</th>
                     </tr>
                   </thead>
@@ -203,6 +215,42 @@ export default function CreditoClientesIndex() {
         parceiroId={null}
       />
     </div>
+  );
+}
+
+function SortTh({
+  label,
+  sortKey,
+  sort,
+  setSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey: string;
+  sort: { key: string; dir: "asc" | "desc" } | null;
+  setSort: React.Dispatch<React.SetStateAction<{ key: string; dir: "asc" | "desc" } | null>>;
+  align?: "left" | "right";
+}) {
+  const active = sort?.key === sortKey;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <th
+      className={`px-4 py-2 cursor-pointer select-none hover:text-foreground transition-colors ${
+        align === "right" ? "text-right" : "text-left"
+      }`}
+      onClick={() =>
+        setSort((prev) =>
+          prev?.key === sortKey
+            ? { key: sortKey, dir: prev.dir === "asc" ? "desc" : "asc" }
+            : { key: sortKey, dir: "desc" }
+        )
+      }
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <Icon className="h-3 w-3 opacity-60" />
+      </span>
+    </th>
   );
 }
 
