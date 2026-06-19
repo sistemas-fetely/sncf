@@ -238,6 +238,82 @@ export default function ClienteDetalhe() {
         </Card>
       </div>
 
+      {/* Títulos */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-muted-foreground" />
+            Títulos
+            <span className="text-xs font-normal text-muted-foreground ml-1">
+              ({titulos.length})
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {titulos.length === 0 ? (
+            <p className="text-sm text-muted-foreground px-6 pb-4">Nenhum título encontrado.</p>
+          ) : (
+            <div className="divide-y divide-border/50">
+              {titulos.map((t) => (
+                <div key={t.id} className="flex items-center justify-between px-6 py-3 text-sm">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-medium text-foreground">
+                      {t.numero_titulo}
+                      {t.total_parcelas && t.total_parcelas > 1
+                        ? ` (${t.numero_parcela}/${t.total_parcelas})`
+                        : ""}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t.meio_pagamento ?? "—"}
+                      {t.nf_numero ? ` · NF ${t.nf_numero}` : ""}
+                      {t.banco_nome ? ` · ${t.banco_nome}` : ""}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 text-right">
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t.status_gestao === "pago"
+                          ? `Pago em ${t.data_liquidacao ? fmtDate(t.data_liquidacao) : "—"}`
+                          : `Vence ${fmtDate(t.data_vencimento)}`}
+                      </p>
+                    </div>
+                    <div className="min-w-[90px]">
+                      <span
+                        className={
+                          t.status_gestao === "pago"
+                            ? "text-muted-foreground"
+                            : t.status_gestao === "atrasado"
+                            ? "text-destructive font-medium"
+                            : "text-foreground font-medium"
+                        }
+                      >
+                        {fmtBRL.format(t.valor)}
+                      </span>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className={
+                        t.status_gestao === "pago"
+                          ? "bg-muted text-muted-foreground"
+                          : t.status_gestao === "atrasado"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-primary/10 text-primary"
+                      }
+                    >
+                      {t.status_gestao === "pago"
+                        ? "Pago"
+                        : t.status_gestao === "atrasado"
+                        ? "Atrasado"
+                        : "Em aberto"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Análises */}
       <Card>
         <CardHeader>
