@@ -14,8 +14,6 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
-const fmtDate = (s: string | null | undefined) =>
-  s ? new Date(s.length === 10 ? s + "T00:00:00" : s).toLocaleDateString("pt-BR") : "—";
 
 export default function CreditoClientesIndex() {
   const navigate = useNavigate();
