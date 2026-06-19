@@ -35,6 +35,7 @@ import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline"
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
+import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
@@ -1089,6 +1090,14 @@ export default function PedidoDetalhe() {
                   <TabsTrigger value="timeline">Histórico</TabsTrigger>
                   <TabsTrigger value="urgencia">Urgência</TabsTrigger>
                   <TabsTrigger value="obs_sop">Obs SOPs</TabsTrigger>
+                  <TabsTrigger value="canal_fop" className="gap-1.5">
+                    Canal FOP
+                    {(eventos ?? []).some(
+                      (ev: any) => ev.tipo_evento === "msg_comercial"
+                    ) && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                    )}
+                  </TabsTrigger>
                   <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
                   <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
                 </TabsList>
@@ -1194,8 +1203,11 @@ export default function PedidoDetalhe() {
                       );
                     })()}
                   </div>
-                </TabsContent>
-                <TabsContent value="tarefas">
+                  </TabsContent>
+                  <TabsContent value="canal_fop">
+                    <CanalFopTab pedidoId={pedido.id} eventos={eventos ?? []} />
+                  </TabsContent>
+                  <TabsContent value="tarefas">
                   <PedidoTarefasTab pedidoId={pedido.id} />
                 </TabsContent>
                 <TabsContent value="parcelas">
