@@ -18,6 +18,22 @@ export interface HaverCliente {
   created_at: string;
 }
 
+export interface TituloB2B {
+  id: string;
+  numero_titulo: string;
+  numero_parcela: number | null;
+  total_parcelas: number | null;
+  valor: number;
+  data_vencimento: string;
+  data_compra: string | null;
+  status_gestao: string;
+  meio_pagamento: string | null;
+  nf_numero: string | null;
+  banco_nome: string | null;
+  data_liquidacao: string | null;
+  liquidacao_realizada: boolean;
+}
+
 export interface ClienteDetalhe {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parceiro: any;
@@ -27,6 +43,7 @@ export interface ClienteDetalhe {
   analises: AnaliseListItem[];
   marcos: ParceiroMarco[];
   haveres: HaverCliente[];
+  titulos: TituloB2B[];
 }
 
 export function useClienteDetalhe(parceiroId: string | undefined) {
