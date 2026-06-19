@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useTodosTitulos } from "@/hooks/credito/useTodosTitulos";
+import { useTodosTitulos, type TituloCompleto } from "@/hooks/credito/useTodosTitulos";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,15 @@ export default function TodosTitulosTab() {
   const [busca, setBusca] = useState("");
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
 
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  const statusVisual = (t: TituloCompleto): string => {
+    if (t.status.startsWith("pago")) return t.status;
+    if (t.status === "cancelado" || t.status === "cancelado_recuperacao") return "cancelado";
+    if (t.data_vencimento_atual && t.data_vencimento_atual < hoje) return "atrasado";
+    return t.status;
+  };
+
   const kpis = useMemo(() => {
     const por: Record<string, { qtd: number; sem_nf: number; valor: number }> = {};
     titulos.forEach((t) => {
@@ -86,15 +95,6 @@ export default function TodosTitulosTab() {
     }
     return lista;
   }, [titulos, filtroStatus, busca]);
-
-  const hoje = new Date().toISOString().slice(0, 10);
-
-  const statusVisual = (t: ReturnType<typeof useTodosTitulos>["data"][number]): string => {
-    if (t.status.startsWith("pago")) return t.status;
-    if (t.status === "cancelado" || t.status === "cancelado_recuperacao") return "cancelado";
-    if (t.data_vencimento_atual && t.data_vencimento_atual < hoje) return "atrasado";
-    return t.status;
-  };
 
   if (isLoading)
     return (
