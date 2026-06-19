@@ -1,6 +1,7 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedidoDialog";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { supabase } from "@/integrations/supabase/client";
@@ -496,6 +497,25 @@ export default function PedidoDetalhe() {
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const { data: titulosData } = usePedidoTitulos(id);
+  const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
+
+  const parceiroIdAtual = data?.pedido?.parceiro_id as string | undefined;
+  const { data: haveresDisponiveisData } = useQuery({
+    queryKey: ["haver-disponivel", parceiroIdAtual],
+    enabled: !!parceiroIdAtual,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("haver_cliente")
+        .select("id, saldo")
+        .eq("parceiro_id", parceiroIdAtual)
+        .eq("status", "disponivel")
+        .gt("saldo", 0);
+      return data ?? [];
+    },
+  });
+  const totalHaverDisponivel = (haveresDisponiveisData ?? []).reduce(
+    (s: number, h: any) => s + Number(h.saldo), 0
+  );
 
   const recalcularPeso = async () => {
     if (!id) return;
@@ -618,6 +638,25 @@ export default function PedidoDetalhe() {
               Remover
             </Button>
           )}
+        </div>
+      )}
+
+      {totalHaverDisponivel > 0.01 && pedido.estagio !== "faturado" && pedido.estagio !== "cancelado" && (
+        <div className="mx-6 mb-3 flex items-center justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 dark:bg-emerald-950/30 dark:border-emerald-800">
+          <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-200">
+            <Wallet className="h-4 w-4 shrink-0" />
+            <p className="text-sm">
+              <span className="font-semibold">{fmtBRL.format(totalHaverDisponivel)}</span> em crédito disponível para este cliente
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => setAplicarHaverOpen(true)}
+          >
+            Aplicar crédito
+          </Button>
         </div>
       )}
 
@@ -1317,6 +1356,17 @@ export default function PedidoDetalhe() {
           </aside>
         )}
       </div>
+
+      {pedido && (
+        <AplicarHaverPedidoDialog
+          open={aplicarHaverOpen}
+          onOpenChange={setAplicarHaverOpen}
+          pedidoId={pedido.id}
+          idExterno={pedido.id_externo}
+          valorLiquido={Number(pedido.valor_liquido ?? 0)}
+          parceiroId={pedido.parceiro_id}
+        />
+      )}
     </div>
   );
 }

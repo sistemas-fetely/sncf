@@ -9,6 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatCNPJ } from "@/lib/cnpj";
+import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (d: string | null) =>
@@ -48,6 +49,7 @@ export default function TodosTitulosTab() {
   const { data: titulos = [], isLoading } = useTodosTitulos();
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [busca, setBusca] = useState("");
+  const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
 
   const kpis = useMemo(() => {
     const por: Record<string, { qtd: number; sem_nf: number; valor: number }> = {};
@@ -188,12 +190,13 @@ export default function TodosTitulosTab() {
               <TableHead>NF</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-center">Ação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtrados.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhum título encontrado.
                 </TableCell>
               </TableRow>
@@ -238,6 +241,16 @@ export default function TodosTitulosTab() {
                     {STATUS_LABEL[statusVisual(t)] ?? statusVisual(t)}
                   </Badge>
                 </TableCell>
+                <TableCell className="text-center">
+                  {statusVisual(t) === "pago" && (
+                    <button
+                      onClick={() => setConvertendo({ id: t.id, numero: t.numero_titulo, valor: t.valor_atual ?? t.valor_bruto })}
+                      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    >
+                      → crédito
+                    </button>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -247,6 +260,16 @@ export default function TodosTitulosTab() {
       <p className="text-xs text-muted-foreground">
         {filtrados.length} de {titulos.length} títulos
       </p>
+
+      {convertendo && (
+        <ConverterTituloHaverDialog
+          open={!!convertendo}
+          onOpenChange={(v) => !v && setConvertendo(null)}
+          tituloId={convertendo.id}
+          numeroTitulo={convertendo.numero}
+          valor={convertendo.valor}
+        />
+      )}
     </div>
   );
 }
