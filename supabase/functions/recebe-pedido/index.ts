@@ -148,7 +148,92 @@ Deno.serve(async (req) => {
       console.log(`[recebe-pedido] farol: ${pedidos?.length ?? 0} pedidos, ${regua?.length ?? 0} fases`);
       return jsonResponse(200, { pedidos: pedidos ?? [], regua: regua ?? [] });
     }
-    // ── fim branch farol ──
+// ── fim branch farol ──
+
+// ── Branch: canal_criar — nova mensagem do comercial (FOP → SNCF) ──
+if (body.tipo === "canal_criar") {
+  const sncfPedidoId = body?.sncf_pedido_id as string | undefined;
+  const texto = body?.texto as string | undefined;
+  const autorNome = body?.autor_nome as string | undefined;
+
+  if (!sncfPedidoId || !texto?.trim()) {
+    return jsonResponse(400, { error: "sncf_pedido_id e texto são obrigatórios" });
+  }
+
+  const { data: resultado, error: errEvento } = await (supabase as any)
+    .rpc("registrar_evento_pedido", {
+      p_pedido_id: sncfPedidoId,
+      p_tipo_evento: "msg_comercial",
+      p_descricao: texto.trim(),
+      p_metadata: autorNome ? { autor_nome: autorNome } : null,
+    });
+
+  if (errEvento) {
+    console.error("[recebe-pedido] canal_criar: erro ao registrar evento", errEvento);
+    return jsonResponse(500, { error: "Erro ao registrar mensagem" });
+  }
+
+  return jsonResponse(200, { ok: true, evento_id: (resultado as any)?.evento_id ?? null });
+}
+// ── fim branch canal_criar ──
+
+// ── Branch: canal_listar — listar msgs + marcar lidas pelo FOP ──
+if (body.tipo === "canal_listar") {
+  const sncfPedidoId = body?.sncf_pedido_id as string | undefined;
+  if (!sncfPedidoId) {
+    return jsonResponse(400, { error: "sncf_pedido_id é obrigatório" });
+  }
+
+  const { data: eventos, error: errEventos } = await (supabase as any)
+    .from("pedido_eventos")
+    .select("id, tipo_evento, descricao, metadata, operador_id, criado_em, lida_fop")
+    .eq("pedido_id", sncfPedidoId)
+    .in("tipo_evento", ["msg_comercial", "msg_sops"])
+    .order("criado_em", { ascending: true });
+
+  if (errEventos) {
+    console.error("[recebe-pedido] canal_listar: erro ao listar eventos", errEventos);
+    return jsonResponse(500, { error: "Erro ao listar mensagens" });
+  }
+
+  const { error: errMarcaLida } = await (supabase as any)
+    .from("pedido_eventos")
+    .update({ lida_fop: true })
+    .eq("pedido_id", sncfPedidoId)
+    .eq("tipo_evento", "msg_sops")
+    .eq("lida_fop", false);
+
+  if (errMarcaLida) {
+    console.error("[recebe-pedido] canal_listar: erro ao marcar lidas", errMarcaLida);
+  }
+
+  return jsonResponse(200, { ok: true, eventos: eventos ?? [] });
+}
+// ── fim branch canal_listar ──
+
+// ── Branch: canal_badges — contagem de msg_sops não lidas por pedido ──
+if (body.tipo === "canal_badges") {
+  const { data: naoLidas, error: errBadges } = await (supabase as any)
+    .from("pedido_eventos")
+    .select("pedido_id")
+    .eq("tipo_evento", "msg_sops")
+    .eq("lida_fop", false);
+
+  if (errBadges) {
+    console.error("[recebe-pedido] canal_badges: erro ao buscar badges", errBadges);
+    return jsonResponse(500, { error: "Erro ao buscar badges" });
+  }
+
+  const badges: Record<string, number> = {};
+  for (const row of ((naoLidas ?? []) as any[])) {
+    const pid = row.pedido_id as string;
+    badges[pid] = (badges[pid] ?? 0) + 1;
+  }
+
+  return jsonResponse(200, { ok: true, badges });
+}
+// ── fim branch canal_badges ──
+
 
     // ── Branch: sincronização de catálogo de produtos ─────────────────────
     // Autenticação já validada acima via FOP_INBOUND_TOKEN
