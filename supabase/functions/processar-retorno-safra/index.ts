@@ -6,15 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function formatBRL(valor: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
-}
-
-function formatDateBR(iso: string): string {
-  if (!iso) return "—";
-  const d = new Date(iso + (iso.length === 10 ? "T00:00:00" : ""));
-  return d.toLocaleDateString("pt-BR");
-}
 
 interface LinhaRetorno {
   ocorrencia: string;
@@ -142,57 +133,6 @@ serve(async (req) => {
       if (linha.ocorrencia === OCORRENCIA_CONFIRMADA) {
         await sb.from("titulo_a_receber").update({ boleto_status: "registrado" }).eq("id", t.id);
         confirmados++;
-
-        if (parceiro?.email) {
-          try {
-            let pdfBase64: string | null = null;
-            let nomeArquivo = `boleto_${t.nosso_numero_seq ?? t.numero_titulo}.pdf`;
-
-            if (t.nosso_numero_seq && t.linha_digitavel && t.codigo_barras_boleto) {
-              const pdfResp = await fetch(`${supabaseUrl}/functions/v1/gerar-boleto-pdf`, {
-                method: "POST",
-                headers: { Authorization: authHeader, "Content-Type": "application/json", apikey: anonKey },
-                body: JSON.stringify({ titulo_id: t.id }),
-              });
-              if (pdfResp.ok) {
-                const pdfData = await pdfResp.json();
-                pdfBase64 = pdfData.pdf_base64 ?? null;
-                nomeArquivo = pdfData.nome_arquivo ?? nomeArquivo;
-              }
-            }
-
-            const attachments = pdfBase64
-              ? [{ filename: nomeArquivo, content: pdfBase64, content_type: "application/pdf" }]
-              : [];
-
-            const emailResp = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
-              method: "POST",
-              headers: { Authorization: authHeader, "Content-Type": "application/json", apikey: anonKey },
-              body: JSON.stringify({
-                templateName: "boleto-safra",
-                recipientEmail: parceiro.email,
-                idempotencyKey: `boleto-${t.id}-reg`,
-                templateData: {
-                  parceiro_nome:     parceiro.razao_social ?? "—",
-                  numero_parcela:    String(t.numero_parcela),
-                  total_parcelas:    String(t.total_parcelas),
-                  valor:             formatBRL(Number(t.valor_bruto)),
-                  vencimento:        formatDateBR(t.data_vencimento_atual),
-                  linha_digitavel:   t.linha_digitavel ?? "—",
-                  pedido_id_externo: t.numero_titulo ?? "—",
-                },
-                attachments,
-              }),
-            });
-
-            if (emailResp.ok) {
-              await sb.from("titulo_a_receber").update({ boleto_enviado_em: new Date().toISOString() }).eq("id", t.id);
-              emailsEnviados++;
-            }
-          } catch (emailErr) {
-            console.error(`[retorno-safra] Erro email/pdf título ${t.id}`, emailErr);
-          }
-        }
 
       // ── Ocorrências 06/09: Liquidação ─────────────────────────────────────
       } else if (OCORRENCIAS_LIQUIDACAO.includes(linha.ocorrencia)) {
