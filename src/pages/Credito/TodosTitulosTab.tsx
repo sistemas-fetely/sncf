@@ -190,6 +190,7 @@ export default function TodosTitulosTab() {
               <TableHead>NF</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-center">Ação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
