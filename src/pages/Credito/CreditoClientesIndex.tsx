@@ -69,10 +69,21 @@ export default function CreditoClientesIndex() {
   const posicaoLiquida = clientes.reduce((s: number, c: any) => s + (c.em_aberto ?? 0), 0) - totalHaveres;
 
   const filtrados = useMemo(() => {
-    if (tab === "com_haver") return clientes.filter((c: any) => c.haver_disponivel > 0);
-    if (tab === "com_vencidos") return clientes.filter((c: any) => c.vencidos > 0);
-    return clientes;
-  }, [clientes, tab]);
+    let arr = [...clientes];
+    if (tab === "com_haver") arr = arr.filter((c: any) => c.haver_disponivel > 0);
+    if (tab === "com_vencidos") arr = arr.filter((c: any) => c.vencidos > 0);
+    if (sort) {
+      arr.sort((a: any, b: any) => {
+        const va = a[sort.key] ?? 0;
+        const vb = b[sort.key] ?? 0;
+        if (typeof va === "string" && typeof vb === "string") {
+          return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        return sort.dir === "asc" ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+      });
+    }
+    return arr;
+  }, [clientes, tab, sort]);
 
   const loading = resumosQ.isLoading || haveresQ.isLoading;
 
