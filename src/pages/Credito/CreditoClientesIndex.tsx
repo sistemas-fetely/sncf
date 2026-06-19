@@ -14,8 +14,6 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
-const fmtDate = (s: string | null | undefined) =>
-  s ? new Date(s.length === 10 ? s + "T00:00:00" : s).toLocaleDateString("pt-BR") : "—";
 
 export default function CreditoClientesIndex() {
   const navigate = useNavigate();
@@ -28,11 +26,10 @@ export default function CreditoClientesIndex() {
     queryKey: ["credito-clientes-resumos"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("v_credito_resumo_financeiro")
-        .select(
-          "parceiro_id, razao_social, cnpj, a_vencer, em_aberto, vencidos, pago, atraso_medio_dias, ultima_compra_em"
-        )
-        .order("vencidos", { ascending: false });
+        .from("vw_recebivel_b2b_por_conta")
+        .select("parceiro_id, cliente, total_a_receber, total_vencido, faixa_a_vencer, qtd_titulos, dias_atraso_max")
+        .gt("total_a_receber", 0)
+        .order("total_vencido", { ascending: false });
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -53,34 +50,22 @@ export default function CreditoClientesIndex() {
   const clientes = useMemo(() => {
     const resumos = resumosQ.data ?? [];
     const haveres = haveresQ.data ?? [];
-    return resumos
-      .map((r: any) => ({
-        ...r,
-        haver_disponivel: haveres
-          .filter((h: any) => h.parceiro_id === r.parceiro_id)
-          .reduce((acc: number, h: any) => acc + (Number(h.saldo) || 0), 0),
-      }))
-      .filter(
-        (c: any) =>
-          (c.em_aberto ?? 0) > 0 ||
-          (c.vencidos ?? 0) > 0 ||
-          (c.haver_disponivel ?? 0) > 0
-      );
+    return resumos.map((r: any) => ({
+      ...r,
+      razao_social: r.cliente,
+      em_aberto: r.total_a_receber,
+      vencidos: r.total_vencido,
+      a_vencer: r.faixa_a_vencer,
+      haver_disponivel: haveres
+        .filter((h: any) => h.parceiro_id === r.parceiro_id)
+        .reduce((acc: number, h: any) => acc + (Number(h.saldo) || 0), 0),
+    }));
   }, [resumosQ.data, haveresQ.data]);
 
-  const totalHaveres = clientes.reduce(
-    (acc: number, c: any) => acc + (Number(c.haver_disponivel) || 0),
-    0
-  );
-  const totalAVencer = clientes.reduce(
-    (acc: number, c: any) => acc + (Number(c.a_vencer) || 0),
-    0
-  );
-  const totalVencidos = clientes.reduce(
-    (acc: number, c: any) => acc + (Number(c.vencidos) || 0),
-    0
-  );
-  const posicaoLiquida = totalAVencer - totalHaveres;
+  const totalHaveres = clientes.reduce((s: number, c: any) => s + (c.haver_disponivel ?? 0), 0);
+  const totalAVencer = clientes.reduce((s: number, c: any) => s + (c.a_vencer ?? 0), 0);
+  const totalVencidos = clientes.reduce((s: number, c: any) => s + (c.vencidos ?? 0), 0);
+  const posicaoLiquida = clientes.reduce((s: number, c: any) => s + (c.em_aberto ?? 0), 0) - totalHaveres;
 
   const filtrados = useMemo(() => {
     if (tab === "com_haver") return clientes.filter((c: any) => c.haver_disponivel > 0);
@@ -147,21 +132,20 @@ export default function CreditoClientesIndex() {
                       <th className="text-right px-4 py-2">Haver disponível</th>
                       <th className="text-right px-4 py-2">Em aberto</th>
                       <th className="text-right px-4 py-2">Vencido</th>
-                      <th className="text-right px-4 py-2">Última compra</th>
                       <th className="text-right px-4 py-2">Ação</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                           Carregando…
                         </td>
                       </tr>
                     )}
                     {!loading && filtrados.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                           Nenhum cliente encontrado.
                         </td>
                       </tr>
@@ -170,9 +154,6 @@ export default function CreditoClientesIndex() {
                       <tr key={c.parceiro_id} className="border-t hover:bg-accent/40">
                         <td className="px-4 py-2">
                           <div className="font-medium">{c.razao_social}</div>
-                          {c.cnpj && (
-                            <div className="text-xs text-muted-foreground">{c.cnpj}</div>
-                          )}
                         </td>
                         <td className="px-4 py-2 text-right">
                           {c.haver_disponivel > 0 ? (
@@ -196,9 +177,6 @@ export default function CreditoClientesIndex() {
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
-                        </td>
-                        <td className="px-4 py-2 text-right text-muted-foreground">
-                          {fmtDate(c.ultima_compra_em)}
                         </td>
                         <td className="px-4 py-2 text-right">
                           <Button
