@@ -13757,6 +13757,239 @@ export type Database = {
           },
         ]
       }
+      transp_fretes: {
+        Row: {
+          ad_valorem: number | null
+          adicionais: number | null
+          atualizado_em: string
+          cte_emissao: string | null
+          cte_numero: string
+          cte_serie: string | null
+          data_frete: string | null
+          destinatario: string | null
+          destinatario_cidade: string | null
+          destinatario_uf: string | null
+          di_dta: string | null
+          doc_anterior: string | null
+          frete_peso: number | null
+          frete_total: number | null
+          gris: number | null
+          hawb: string | null
+          id: string
+          importado_arquivo: string | null
+          importado_em: string
+          importado_por: string | null
+          itr: number | null
+          mawb: string | null
+          minuta: string | null
+          nf_numero: string | null
+          ocorrencia_codigo: string | null
+          ocorrencia_data: string | null
+          ocorrencia_texto: string | null
+          outros_valores: number | null
+          pct_frete_nf: number | null
+          peso_real: number | null
+          peso_taxado: number | null
+          prazo_entrega: string | null
+          referencia: string | null
+          remetente: string | null
+          remetente_cidade: string | null
+          remetente_uf: string | null
+          sec_cat: number | null
+          tde: number | null
+          tipo_frete: string | null
+          transportadora_id: string
+          valor_coleta: number | null
+          valor_despacho: number | null
+          valor_entrega: number | null
+          valor_imposto: number | null
+          valor_nf: number | null
+          valor_pedagio: number | null
+          valor_redespacho: number | null
+          volumes: number | null
+        }
+        Insert: {
+          ad_valorem?: number | null
+          adicionais?: number | null
+          atualizado_em?: string
+          cte_emissao?: string | null
+          cte_numero: string
+          cte_serie?: string | null
+          data_frete?: string | null
+          destinatario?: string | null
+          destinatario_cidade?: string | null
+          destinatario_uf?: string | null
+          di_dta?: string | null
+          doc_anterior?: string | null
+          frete_peso?: number | null
+          frete_total?: number | null
+          gris?: number | null
+          hawb?: string | null
+          id?: string
+          importado_arquivo?: string | null
+          importado_em?: string
+          importado_por?: string | null
+          itr?: number | null
+          mawb?: string | null
+          minuta?: string | null
+          nf_numero?: string | null
+          ocorrencia_codigo?: string | null
+          ocorrencia_data?: string | null
+          ocorrencia_texto?: string | null
+          outros_valores?: number | null
+          pct_frete_nf?: number | null
+          peso_real?: number | null
+          peso_taxado?: number | null
+          prazo_entrega?: string | null
+          referencia?: string | null
+          remetente?: string | null
+          remetente_cidade?: string | null
+          remetente_uf?: string | null
+          sec_cat?: number | null
+          tde?: number | null
+          tipo_frete?: string | null
+          transportadora_id: string
+          valor_coleta?: number | null
+          valor_despacho?: number | null
+          valor_entrega?: number | null
+          valor_imposto?: number | null
+          valor_nf?: number | null
+          valor_pedagio?: number | null
+          valor_redespacho?: number | null
+          volumes?: number | null
+        }
+        Update: {
+          ad_valorem?: number | null
+          adicionais?: number | null
+          atualizado_em?: string
+          cte_emissao?: string | null
+          cte_numero?: string
+          cte_serie?: string | null
+          data_frete?: string | null
+          destinatario?: string | null
+          destinatario_cidade?: string | null
+          destinatario_uf?: string | null
+          di_dta?: string | null
+          doc_anterior?: string | null
+          frete_peso?: number | null
+          frete_total?: number | null
+          gris?: number | null
+          hawb?: string | null
+          id?: string
+          importado_arquivo?: string | null
+          importado_em?: string
+          importado_por?: string | null
+          itr?: number | null
+          mawb?: string | null
+          minuta?: string | null
+          nf_numero?: string | null
+          ocorrencia_codigo?: string | null
+          ocorrencia_data?: string | null
+          ocorrencia_texto?: string | null
+          outros_valores?: number | null
+          pct_frete_nf?: number | null
+          peso_real?: number | null
+          peso_taxado?: number | null
+          prazo_entrega?: string | null
+          referencia?: string | null
+          remetente?: string | null
+          remetente_cidade?: string | null
+          remetente_uf?: string | null
+          sec_cat?: number | null
+          tde?: number | null
+          tipo_frete?: string | null
+          transportadora_id?: string
+          valor_coleta?: number | null
+          valor_despacho?: number | null
+          valor_entrega?: number | null
+          valor_imposto?: number | null
+          valor_nf?: number | null
+          valor_pedagio?: number | null
+          valor_redespacho?: number | null
+          volumes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
+      transp_ocorrencia_tipo: {
+        Row: {
+          classe: string
+          codigo: string
+          criado_em: string
+          descricao: string
+          eh_problema: boolean
+          eh_terminal: boolean
+          id: string
+          ordem_urgencia: number
+          transportadora_id: string | null
+        }
+        Insert: {
+          classe: string
+          codigo: string
+          criado_em?: string
+          descricao: string
+          eh_problema?: boolean
+          eh_terminal?: boolean
+          id?: string
+          ordem_urgencia?: number
+          transportadora_id?: string | null
+        }
+        Update: {
+          classe?: string
+          codigo?: string
+          criado_em?: string
+          descricao?: string
+          eh_problema?: boolean
+          eh_terminal?: boolean
+          id?: string
+          ordem_urgencia?: number
+          transportadora_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_ocorrencia_tipo_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_ocorrencia_tipo_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_ocorrencia_tipo_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       transp_tabela_atendimento: {
         Row: {
           cep_final: number
@@ -16302,6 +16535,86 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_frentes_investimento_kpis"
             referencedColumns: ["frente_id"]
+          },
+        ]
+      }
+      vw_transp_fretes: {
+        Row: {
+          ad_valorem: number | null
+          adicionais: number | null
+          atualizado_em: string | null
+          classe: string | null
+          cte_emissao: string | null
+          cte_numero: string | null
+          cte_serie: string | null
+          data_frete: string | null
+          destinatario: string | null
+          destinatario_cidade: string | null
+          destinatario_uf: string | null
+          di_dta: string | null
+          doc_anterior: string | null
+          eh_problema: boolean | null
+          eh_terminal: boolean | null
+          frete_peso: number | null
+          frete_total: number | null
+          gris: number | null
+          hawb: string | null
+          id: string | null
+          importado_arquivo: string | null
+          importado_em: string | null
+          importado_por: string | null
+          itr: number | null
+          mawb: string | null
+          minuta: string | null
+          nf_numero: string | null
+          ocorrencia_codigo: string | null
+          ocorrencia_data: string | null
+          ocorrencia_label: string | null
+          ocorrencia_texto: string | null
+          ordem_urgencia: number | null
+          outros_valores: number | null
+          pct_frete_nf: number | null
+          peso_real: number | null
+          peso_taxado: number | null
+          prazo_entrega: string | null
+          referencia: string | null
+          remetente: string | null
+          remetente_cidade: string | null
+          remetente_uf: string | null
+          sec_cat: number | null
+          tde: number | null
+          tipo_frete: string | null
+          transportadora_id: string | null
+          valor_coleta: number | null
+          valor_despacho: number | null
+          valor_entrega: number | null
+          valor_imposto: number | null
+          valor_nf: number | null
+          valor_pedagio: number | null
+          valor_redespacho: number | null
+          volumes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
           },
         ]
       }
