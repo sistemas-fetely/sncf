@@ -1172,14 +1172,14 @@ export default function PedidoDetalhe() {
                   Observações
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 flex-1 flex flex-col justify-between">
-                <div className="rounded-md border border-border/50 bg-muted/30 px-3 py-2.5">
+              <CardContent className="space-y-3 flex-1 flex flex-col">
+                <div className="rounded-md border border-border/50 bg-muted/30 px-3 py-2.5 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Do cliente</p>
                   <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">
                     {(pedido as any).observacao_cliente?.trim() || <span className="text-muted-foreground italic">Sem observação.</span>}
                   </p>
                 </div>
-                <div className="rounded-md border border-border/50 bg-muted/30 px-3 py-2.5">
+                <div className="rounded-md border border-border/50 bg-muted/30 px-3 py-2.5 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Fetély (interna)</p>
                   <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">
                     {pedido.observacao_pedido?.trim() || <span className="text-muted-foreground italic">Sem observação.</span>}
