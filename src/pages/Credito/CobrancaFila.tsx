@@ -7,6 +7,7 @@ import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import BancoSafra from "@/pages/administrativo/BancoSafra";
 import ContasReceberSops from "@/pages/Credito/ContasReceberSops";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
+import TodosTitulosTab from "@/pages/Credito/TodosTitulosTab";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
