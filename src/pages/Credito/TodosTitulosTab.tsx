@@ -9,6 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatCNPJ } from "@/lib/cnpj";
+import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (d: string | null) =>
