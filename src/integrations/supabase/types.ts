@@ -8909,6 +8909,7 @@ export type Database = {
           estagio_anterior: string | null
           estagio_novo: string | null
           id: string
+          lida_fop: boolean
           metadata: Json | null
           operador_id: string | null
           pedido_id: string
@@ -8923,6 +8924,7 @@ export type Database = {
           estagio_anterior?: string | null
           estagio_novo?: string | null
           id?: string
+          lida_fop?: boolean
           metadata?: Json | null
           operador_id?: string | null
           pedido_id: string
@@ -8937,6 +8939,7 @@ export type Database = {
           estagio_anterior?: string | null
           estagio_novo?: string | null
           id?: string
+          lida_fop?: boolean
           metadata?: Json | null
           operador_id?: string | null
           pedido_id?: string
@@ -9375,6 +9378,7 @@ export type Database = {
           exige_portao: boolean
           exportado_bling_em: string | null
           faturado_em: string | null
+          forma_pagamento_id: string | null
           forma_solicitada: string
           frete_tipo: string | null
           id: string
@@ -9446,6 +9450,7 @@ export type Database = {
           exige_portao?: boolean
           exportado_bling_em?: string | null
           faturado_em?: string | null
+          forma_pagamento_id?: string | null
           forma_solicitada: string
           frete_tipo?: string | null
           id?: string
@@ -9517,6 +9522,7 @@ export type Database = {
           exige_portao?: boolean
           exportado_bling_em?: string | null
           faturado_em?: string | null
+          forma_pagamento_id?: string | null
           forma_solicitada?: string
           frete_tipo?: string | null
           id?: string
@@ -9555,6 +9561,13 @@ export type Database = {
           vendedor?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
             columns: ["parceiro_id"]
