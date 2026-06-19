@@ -1165,14 +1165,14 @@ export default function PedidoDetalhe() {
             </Card>
 
             {/* Card — Observações */}
-            <Card className="border-border/60 h-full">
-              <CardHeader className="pb-3">
+            <Card className="border-border/60 h-full flex flex-col">
+              <CardHeader className="pb-3 shrink-0">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <MessageCircle className="h-4 w-4 text-muted-foreground" />
                   Observações
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 flex flex-col justify-between h-[calc(100%-3rem)]">
+              <CardContent className="space-y-3 flex-1 flex flex-col justify-between">
                 <div className="rounded-md border border-border/50 bg-muted/30 px-3 py-2.5">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Do cliente</p>
                   <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">
