@@ -2,6 +2,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedidoDialog";
+import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,6 +94,7 @@ function Linha({ label, value, destaque }: { label: string; value?: string | num
 
 function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   const { data: titulos, isLoading } = usePedidoTitulos(pedidoId);
+  const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!titulos || titulos.length === 0) {
     return (
@@ -122,7 +124,21 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
                 <TableCell className="text-sm">{fmtDate(t.data_vencimento_atual)}</TableCell>
                 <TableCell className="font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</TableCell>
                 <TableCell className="text-sm">{TIPO_LABEL[t.tipo_pagamento]}</TableCell>
-                <TableCell><Badge className={cn(STATUS_CORES[t.status])}>{STATUS_TITULO_LABELS[t.status]}</Badge></TableCell>
+                <TableCell>
+                  <Badge className={cn(STATUS_CORES[t.status])}>{STATUS_TITULO_LABELS[t.status]}</Badge>
+                  {(t.status === "pago" || t.status === "pago_com_atraso") && (
+                    <button
+                      onClick={() => setConvertendo({
+                        id: t.id,
+                        numero: t.numero_titulo ?? "",
+                        valor: Number(t.valor_bruto ?? 0),
+                      })}
+                      className="text-xs text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400 underline underline-offset-2 ml-2"
+                    >
+                      → crédito
+                    </button>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -132,6 +148,16 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
         <span className="text-muted-foreground">Total:</span>
         <span className="font-bold">{fmtBRL.format(total)}</span>
       </div>
+
+      {convertendo && (
+        <ConverterTituloHaverDialog
+          open={!!convertendo}
+          onOpenChange={(v) => !v && setConvertendo(null)}
+          tituloId={convertendo.id}
+          numeroTitulo={convertendo.numero}
+          valor={convertendo.valor}
+        />
+      )}
     </div>
   );
 }
