@@ -32,10 +32,10 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/administrativo-fetely/parceiros" icon={Building2} label="Parceiros" />
               <FinancasSidebarItem to="/comercial/estoque-virtual" icon={Boxes} label="Estoque Virtual" />
               <FinancasSidebarItem to="/vendas/produtos" icon={Package} label="Produtos" />
-              <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" />
               <FinancasSidebarItem to="/vendas/farol-pedidos" icon={Radar} label="Farol de Pedidos" />
               <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Shopify B2C" />
               <FinancasSidebarItem to="/logistica" icon={Truck} label="Logística" />
+              <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
