@@ -505,3 +505,39 @@ export default function ContasReceber() {
     </div>
   );
 }
+
+function SortTh({
+  label,
+  sortKey,
+  sort,
+  setSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey: string;
+  sort: { key: string; dir: "asc" | "desc" } | null;
+  setSort: React.Dispatch<React.SetStateAction<{ key: string; dir: "asc" | "desc" } | null>>;
+  align?: "left" | "right";
+}) {
+  const active = sort?.key === sortKey;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:text-foreground transition-colors ${
+        align === "right" ? "text-right" : ""
+      }`}
+      onClick={() =>
+        setSort((prev) =>
+          prev?.key === sortKey
+            ? { key: sortKey, dir: prev.dir === "asc" ? "desc" : "asc" }
+            : { key: sortKey, dir: "desc" }
+        )
+      }
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <Icon className="h-3 w-3 opacity-60" />
+      </span>
+    </TableHead>
+  );
+}
