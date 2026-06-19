@@ -497,6 +497,25 @@ export default function PedidoDetalhe() {
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const { data: titulosData } = usePedidoTitulos(id);
+  const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
+
+  const parceiroIdAtual = data?.pedido?.parceiro_id as string | undefined;
+  const { data: haveresDisponiveisData } = useQuery({
+    queryKey: ["haver-disponivel", parceiroIdAtual],
+    enabled: !!parceiroIdAtual,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("haver_cliente")
+        .select("id, saldo")
+        .eq("parceiro_id", parceiroIdAtual)
+        .eq("status", "disponivel")
+        .gt("saldo", 0);
+      return data ?? [];
+    },
+  });
+  const totalHaverDisponivel = (haveresDisponiveisData ?? []).reduce(
+    (s: number, h: any) => s + Number(h.saldo), 0
+  );
 
   const recalcularPeso = async () => {
     if (!id) return;
