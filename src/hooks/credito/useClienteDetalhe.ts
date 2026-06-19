@@ -158,11 +158,12 @@ export function useClienteDetalhe(parceiroId: string | undefined) {
       return {
         parceiro: parceiroData,
         socios: (sociosData || []) as SocioParceiro[],
-        kpisFinanceiros: (kpisData as KpiFinanceiro) || null,
+        kpisFinanceiros,
         kpisGrupo,
         analises,
         marcos: (marcosData || []) as ParceiroMarco[],
         haveres: (haveresData as HaverCliente[]) || [],
+        titulos,
       };
     },
   });
