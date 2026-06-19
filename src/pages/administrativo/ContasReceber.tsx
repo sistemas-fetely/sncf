@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownToLine, Inbox } from "lucide-react";
+import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 
