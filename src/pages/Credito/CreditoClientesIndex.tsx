@@ -8,7 +8,7 @@ import { CriarHaverDialog } from "@/components/credito/CriarHaverDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
+import { Plus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
