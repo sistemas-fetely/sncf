@@ -17,16 +17,24 @@ const fmtDate = (d: string | null) =>
 const STATUS_LABEL: Record<string, string> = {
   aguardando_envio_bling: "Aguardando Bling",
   pago: "Pago",
+  pago_com_atraso: "Pago c/ atraso",
   vigente: "Vigente",
   cancelado: "Cancelado",
+  atrasado: "Atrasado",
+  vencido: "Atrasado",
+  vencido_suspenso: "Suspenso",
 };
 
 const STATUS_COR: Record<string, string> = {
   aguardando_envio_bling:
     "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
   pago: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+  pago_com_atraso: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
   vigente: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
   cancelado: "bg-muted text-muted-foreground",
+  atrasado: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+  vencido: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+  vencido_suspenso: "bg-muted text-muted-foreground",
 };
 
 const TIPO_LABEL: Record<string, string> = {
@@ -44,7 +52,7 @@ export default function TodosTitulosTab() {
   const kpis = useMemo(() => {
     const por: Record<string, { qtd: number; sem_nf: number; valor: number }> = {};
     titulos.forEach((t) => {
-      const s = t.status || "outro";
+      const s = statusVisual(t);
       if (!por[s]) por[s] = { qtd: 0, sem_nf: 0, valor: 0 };
       por[s].qtd++;
       if (!t.nf_id) por[s].sem_nf++;
@@ -59,6 +67,8 @@ export default function TodosTitulosTab() {
     let lista = titulos;
     if (filtroStatus === "sem_nf") {
       lista = lista.filter((t) => !t.nf_id && t.status !== "cancelado");
+    } else if (filtroStatus === "atrasado") {
+      lista = lista.filter((t) => statusVisual(t) === "atrasado");
     } else if (filtroStatus !== "todos") {
       lista = lista.filter((t) => t.status === filtroStatus);
     }
@@ -75,6 +85,15 @@ export default function TodosTitulosTab() {
     return lista;
   }, [titulos, filtroStatus, busca]);
 
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  const statusVisual = (t: ReturnType<typeof useTodosTitulos>["data"][number]): string => {
+    if (t.status.startsWith("pago")) return t.status;
+    if (t.status === "cancelado" || t.status === "cancelado_recuperacao") return "cancelado";
+    if (t.data_vencimento_atual && t.data_vencimento_atual < hoje) return "atrasado";
+    return t.status;
+  };
+
   if (isLoading)
     return (
       <div className="space-y-4">
@@ -84,7 +103,7 @@ export default function TodosTitulosTab() {
       </div>
     );
 
-  const statusOrdem = ["aguardando_envio_bling", "pago", "vigente", "cancelado"];
+  const statusOrdem = ["aguardando_envio_bling", "atrasado", "vigente", "pago", "cancelado"];
 
   return (
     <div className="space-y-4">
@@ -127,6 +146,7 @@ export default function TodosTitulosTab() {
             label: `Aguardando Bling (${kpis["aguardando_envio_bling"]?.qtd ?? 0})`,
           },
           { key: "pago", label: `Pagos (${kpis["pago"]?.qtd ?? 0})` },
+          { key: "atrasado", label: `Atrasados (${kpis["atrasado"]?.qtd ?? 0})` },
           { key: "sem_nf", label: `Sem NF (${semNfTotal})` },
         ].map((tab) => (
           <button
@@ -213,9 +233,9 @@ export default function TodosTitulosTab() {
                 <TableCell>
                   <Badge
                     variant="secondary"
-                    className={cn("text-xs", STATUS_COR[t.status] ?? "")}
+                    className={cn("text-xs", STATUS_COR[statusVisual(t)] ?? "bg-muted text-muted-foreground")}
                   >
-                    {STATUS_LABEL[t.status] ?? t.status}
+                    {STATUS_LABEL[statusVisual(t)] ?? statusVisual(t)}
                   </Badge>
                 </TableCell>
               </TableRow>
