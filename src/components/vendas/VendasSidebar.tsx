@@ -35,7 +35,7 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/vendas/farol-pedidos" icon={Radar} label="Farol de Pedidos" />
               <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Shopify B2C" />
               <FinancasSidebarItem to="/logistica" icon={Truck} label="Logística" />
-              <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" />
+              <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" activeClassName="bg-green-50 text-green-700 font-medium [&_svg]:text-green-700 border-l-green-600" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
