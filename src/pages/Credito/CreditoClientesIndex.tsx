@@ -41,8 +41,9 @@ export default function CreditoClientesIndex() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("haver_cliente")
-        .select("parceiro_id, saldo, status")
-        .eq("status", "disponivel");
+        .select("parceiro_id, saldo, status, parceiro:parceiros_comerciais(razao_social, cnpj)")
+        .eq("status", "disponivel")
+        .gt("saldo", 0);
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -51,16 +52,53 @@ export default function CreditoClientesIndex() {
   const clientes = useMemo(() => {
     const resumos = resumosQ.data ?? [];
     const haveres = haveresQ.data ?? [];
-    return resumos.map((r: any) => ({
+
+    // Agrupar haveres por parceiro com nome
+    const haverPorParceiro: Record<string, { total: number; razao_social: string | null; cnpj: string | null }> = {};
+    haveres.forEach((h: any) => {
+      const pid = h.parceiro_id;
+      if (!haverPorParceiro[pid]) {
+        haverPorParceiro[pid] = {
+          total: 0,
+          razao_social: h.parceiro?.razao_social ?? null,
+          cnpj: h.parceiro?.cnpj ?? null,
+        };
+      }
+      haverPorParceiro[pid].total += Number(h.saldo) || 0;
+    });
+
+    // Resumos enriquecidos com haver
+    const parceirosNoResumo = new Set(resumos.map((r: any) => r.parceiro_id));
+    const resumosComHaver = resumos.map((r: any) => ({
       ...r,
-      razao_social: r.cliente,
-      em_aberto: r.total_a_receber,
-      vencidos: r.total_vencido,
-      a_vencer: r.faixa_a_vencer,
-      haver_disponivel: haveres
-        .filter((h: any) => h.parceiro_id === r.parceiro_id)
-        .reduce((acc: number, h: any) => acc + (Number(h.saldo) || 0), 0),
+      razao_social: r.cliente ?? r.razao_social,
+      haver_disponivel: haverPorParceiro[r.parceiro_id]?.total ?? 0,
     }));
+
+    // Parceiros com haver mas SEM títulos em aberto — não estavam na lista
+    const extras = Object.entries(haverPorParceiro)
+      .filter(([pid]) => !parceirosNoResumo.has(pid))
+      .map(([pid, info]) => ({
+        parceiro_id: pid,
+        razao_social: info.razao_social,
+        cnpj: info.cnpj,
+        cliente: info.razao_social,
+        total_a_receber: 0,
+        total_vencido: 0,
+        faixa_a_vencer: 0,
+        qtd_titulos: 0,
+        dias_atraso_max: 0,
+        em_aberto: 0,
+        vencidos: 0,
+        a_vencer: 0,
+        haver_disponivel: info.total,
+      }));
+
+    return [...resumosComHaver, ...extras].filter(
+      (c) => (c.em_aberto ?? c.total_a_receber ?? 0) > 0 ||
+              (c.vencidos ?? c.total_vencido ?? 0) > 0 ||
+              (c.haver_disponivel ?? 0) > 0
+    );
   }, [resumosQ.data, haveresQ.data]);
 
   const totalHaveres = clientes.reduce((s: number, c: any) => s + (c.haver_disponivel ?? 0), 0);
@@ -164,9 +202,10 @@ export default function CreditoClientesIndex() {
                     )}
                     {filtrados.map((c: any) => (
                       <tr key={c.parceiro_id} className="border-t hover:bg-accent/40">
-                        <td className="px-4 py-2">
-                          <div className="font-medium">{c.razao_social}</div>
-                        </td>
+                      <td className="px-4 py-2">
+                        <p className="font-medium truncate text-sm">{c.razao_social ?? c.cliente ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{c.cnpj ?? ""}</p>
+                      </td>
                         <td className="px-4 py-2 text-right">
                           {c.haver_disponivel > 0 ? (
                             <span className="font-medium text-emerald-600">
