@@ -166,7 +166,7 @@ export default function ContasReceber() {
     const dDe = dataDe ? new Date(dataDe) : null;
     const dAte = dataAte ? new Date(dataAte) : null;
 
-    return titulos.filter((t) => {
+    let arr = titulos.filter((t) => {
       for (const k of cardsAtivos) {
         if (!predicados[k](t)) return false;
       }
@@ -187,7 +187,23 @@ export default function ContasReceber() {
       }
       return true;
     });
-  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte]);
+
+    if (sort) {
+      arr = [...arr].sort((a, b) => {
+        const va = (a as any)[sort.key] ?? "";
+        const vb = (b as any)[sort.key] ?? "";
+        if (typeof va === "string" && typeof vb === "string") {
+          return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        if (typeof va === "number" && typeof vb === "number") {
+          return sort.dir === "asc" ? va - vb : vb - va;
+        }
+        return sort.dir === "asc" ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+      });
+    }
+
+    return arr;
+  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
