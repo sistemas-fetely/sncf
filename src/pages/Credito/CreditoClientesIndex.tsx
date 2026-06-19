@@ -140,10 +140,10 @@ export default function CreditoClientesIndex() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                     <tr>
-                      <th className="text-left px-4 py-2">Cliente</th>
-                      <th className="text-right px-4 py-2">Haver disponível</th>
-                      <th className="text-right px-4 py-2">Em aberto</th>
-                      <th className="text-right px-4 py-2">Vencido</th>
+                      <SortTh label="Cliente" sortKey="razao_social" sort={sort} setSort={setSort} />
+                      <SortTh label="Haver disponível" sortKey="haver_disponivel" sort={sort} setSort={setSort} align="right" />
+                      <SortTh label="Em aberto" sortKey="em_aberto" sort={sort} setSort={setSort} align="right" />
+                      <SortTh label="Vencido" sortKey="vencidos" sort={sort} setSort={setSort} align="right" />
                       <th className="text-right px-4 py-2">Ação</th>
                     </tr>
                   </thead>
