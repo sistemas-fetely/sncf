@@ -21,7 +21,7 @@ export function FinancasSidebarItem({ to, icon: Icon, label, end = false }: Fina
               cn(
                 "flex items-center gap-3 px-3 py-2 text-[13px] transition-colors border-l-2 border-transparent",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium [&_svg]:text-sidebar-accent-foreground"
+                  ? "bg-green-50 text-green-700 font-medium [&_svg]:text-green-700 border-l-green-600"
                   : "text-foreground/70 hover:bg-muted/40 hover:text-foreground [&_svg]:opacity-70 hover:[&_svg]:opacity-100"
               )
             }
