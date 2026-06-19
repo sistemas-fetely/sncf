@@ -241,6 +241,16 @@ export default function TodosTitulosTab() {
                     {STATUS_LABEL[statusVisual(t)] ?? statusVisual(t)}
                   </Badge>
                 </TableCell>
+                <TableCell className="text-center">
+                  {statusVisual(t) === "pago" && (
+                    <button
+                      onClick={() => setConvertendo({ id: t.id, numero: t.numero_titulo, valor: t.valor_atual ?? t.valor_bruto })}
+                      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    >
+                      → crédito
+                    </button>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -250,6 +260,16 @@ export default function TodosTitulosTab() {
       <p className="text-xs text-muted-foreground">
         {filtrados.length} de {titulos.length} títulos
       </p>
+
+      {convertendo && (
+        <ConverterTituloHaverDialog
+          open={!!convertendo}
+          onOpenChange={(v) => !v && setConvertendo(null)}
+          tituloId={convertendo.id}
+          numeroTitulo={convertendo.numero}
+          valor={convertendo.valor}
+        />
+      )}
     </div>
   );
 }
