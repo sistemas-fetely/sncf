@@ -21,6 +21,7 @@ export default function CreditoClientesIndex() {
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [criarHaverOpen, setCriarHaverOpen] = useState(false);
   const [tab, setTab] = useState<"todos" | "com_haver" | "com_vencidos">("todos");
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
 
   const resumosQ = useQuery({
     queryKey: ["credito-clientes-resumos"],
