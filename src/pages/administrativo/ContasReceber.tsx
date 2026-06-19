@@ -63,6 +63,7 @@ export default function ContasReceber() {
   const [filtroMeio, setFiltroMeio] = useState<string>("todos");
   const [cardsAtivos, setCardsAtivos] = useState<Set<CardKey>>(new Set());
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-b2b"],
