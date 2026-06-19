@@ -1,0 +1,254 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { CriarHaverDialog } from "@/components/credito/CriarHaverDialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Plus } from "lucide-react";
+
+const fmtBRL = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+const fmtDate = (s: string | null | undefined) =>
+  s ? new Date(s.length === 10 ? s + "T00:00:00" : s).toLocaleDateString("pt-BR") : "—";
+
+export default function CreditoClientesIndex() {
+  const navigate = useNavigate();
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const [criarHaverOpen, setCriarHaverOpen] = useState(false);
+  const [tab, setTab] = useState<"todos" | "com_haver" | "com_vencidos">("todos");
+
+  const resumosQ = useQuery({
+    queryKey: ["credito-clientes-resumos"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("v_credito_resumo_financeiro")
+        .select(
+          "parceiro_id, razao_social, cnpj, a_vencer, em_aberto, vencidos, pago, atraso_medio_dias, ultima_compra_em"
+        )
+        .order("vencidos", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const haveresQ = useQuery({
+    queryKey: ["credito-clientes-haveres"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("haver_cliente")
+        .select("parceiro_id, saldo, status")
+        .eq("status", "disponivel");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const clientes = useMemo(() => {
+    const resumos = resumosQ.data ?? [];
+    const haveres = haveresQ.data ?? [];
+    return resumos
+      .map((r: any) => ({
+        ...r,
+        haver_disponivel: haveres
+          .filter((h: any) => h.parceiro_id === r.parceiro_id)
+          .reduce((acc: number, h: any) => acc + (Number(h.saldo) || 0), 0),
+      }))
+      .filter(
+        (c: any) =>
+          (c.em_aberto ?? 0) > 0 ||
+          (c.vencidos ?? 0) > 0 ||
+          (c.haver_disponivel ?? 0) > 0
+      );
+  }, [resumosQ.data, haveresQ.data]);
+
+  const totalHaveres = clientes.reduce(
+    (acc: number, c: any) => acc + (Number(c.haver_disponivel) || 0),
+    0
+  );
+  const totalAVencer = clientes.reduce(
+    (acc: number, c: any) => acc + (Number(c.a_vencer) || 0),
+    0
+  );
+  const totalVencidos = clientes.reduce(
+    (acc: number, c: any) => acc + (Number(c.vencidos) || 0),
+    0
+  );
+  const posicaoLiquida = totalAVencer - totalHaveres;
+
+  const filtrados = useMemo(() => {
+    if (tab === "com_haver") return clientes.filter((c: any) => c.haver_disponivel > 0);
+    if (tab === "com_vencidos") return clientes.filter((c: any) => c.vencidos > 0);
+    return clientes;
+  }, [clientes, tab]);
+
+  const loading = resumosQ.isLoading || haveresQ.isLoading;
+
+  return (
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
+      <CasaPageHeader
+        breadcrumb={[
+          { label: "Casa", to: "/" },
+          { label: "Crédito", to: "/credito" },
+          { label: "Clientes" },
+        ]}
+        title="Posição de crédito por cliente"
+        subtitle="Haveres, em aberto, vencidos e posição líquida"
+        actions={
+          isSuperAdmin ? (
+            <Button size="sm" onClick={() => setCriarHaverOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Criar haver manual
+            </Button>
+          ) : null
+        }
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard label="Total de haveres" value={fmtBRL.format(totalHaveres)} tone="success" />
+        <KpiCard label="Total a vencer" value={fmtBRL.format(totalAVencer)} />
+        <KpiCard
+          label="Total vencidos"
+          value={fmtBRL.format(totalVencidos)}
+          tone={totalVencidos > 0 ? "danger" : undefined}
+        />
+        <KpiCard
+          label="Posição líquida"
+          value={fmtBRL.format(posicaoLiquida)}
+          tone={posicaoLiquida < 0 ? "success" : undefined}
+        />
+      </div>
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="todos">Todos ({clientes.length})</TabsTrigger>
+          <TabsTrigger value="com_haver">
+            Com haver ({clientes.filter((c: any) => c.haver_disponivel > 0).length})
+          </TabsTrigger>
+          <TabsTrigger value="com_vencidos">
+            Com vencidos ({clientes.filter((c: any) => c.vencidos > 0).length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={tab}>
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-4 py-2">Cliente</th>
+                      <th className="text-right px-4 py-2">Haver disponível</th>
+                      <th className="text-right px-4 py-2">Em aberto</th>
+                      <th className="text-right px-4 py-2">Vencido</th>
+                      <th className="text-right px-4 py-2">Última compra</th>
+                      <th className="text-right px-4 py-2">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                          Carregando…
+                        </td>
+                      </tr>
+                    )}
+                    {!loading && filtrados.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                          Nenhum cliente encontrado.
+                        </td>
+                      </tr>
+                    )}
+                    {filtrados.map((c: any) => (
+                      <tr key={c.parceiro_id} className="border-t hover:bg-accent/40">
+                        <td className="px-4 py-2">
+                          <div className="font-medium">{c.razao_social}</div>
+                          {c.cnpj && (
+                            <div className="text-xs text-muted-foreground">{c.cnpj}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          {c.haver_disponivel > 0 ? (
+                            <span className="font-medium text-emerald-600">
+                              {fmtBRL.format(c.haver_disponivel)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          {(c.em_aberto ?? 0) > 0
+                            ? fmtBRL.format(c.em_aberto)
+                            : <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          {(c.vencidos ?? 0) > 0 ? (
+                            <span className="font-medium text-destructive">
+                              {fmtBRL.format(c.vencidos)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-right text-muted-foreground">
+                          {fmtDate(c.ultima_compra_em)}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/credito/clientes/${c.parceiro_id}`)}
+                          >
+                            Ver →
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <CriarHaverDialog
+        open={criarHaverOpen}
+        onOpenChange={setCriarHaverOpen}
+        parceiroId={null}
+      />
+    </div>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "success" | "danger";
+}) {
+  const toneCls =
+    tone === "success"
+      ? "text-emerald-600"
+      : tone === "danger"
+      ? "text-destructive"
+      : "text-foreground";
+  return (
+    <Card>
+      <CardContent className="pt-6 space-y-1">
+        <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
+        <p className={`text-2xl font-semibold ${toneCls}`}>{value}</p>
+      </CardContent>
+    </Card>
+  );
+}
