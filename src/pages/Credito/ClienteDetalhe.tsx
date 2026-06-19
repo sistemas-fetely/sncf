@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, AlertTriangle, ExternalLink, Plus } from "lucide-react";
+import { ArrowLeft, AlertTriangle, ExternalLink, Plus, Receipt } from "lucide-react";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { TimelineClienteVisual } from "@/components/credito/TimelineClienteVisual";
 import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/ErguerBandeiraVermelhaDialog";
