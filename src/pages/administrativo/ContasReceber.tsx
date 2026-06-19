@@ -413,16 +413,16 @@ export default function ContasReceber() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>NF</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Título / Parcela</TableHead>
-                  <TableHead>Banco</TableHead>
-                  <TableHead>Meio</TableHead>
-                  <TableHead>Data compra</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Liquidação</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Status</TableHead>
+                  <SortTh label="NF" sortKey="nf_numero" sort={sort} setSort={setSort} />
+                  <SortTh label="Cliente" sortKey="cliente" sort={sort} setSort={setSort} />
+                  <SortTh label="Título / Parcela" sortKey="numero_titulo" sort={sort} setSort={setSort} />
+                  <SortTh label="Banco" sortKey="banco_nome" sort={sort} setSort={setSort} />
+                  <SortTh label="Meio" sortKey="meio_pagamento" sort={sort} setSort={setSort} />
+                  <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
+                  <SortTh label="Vencimento" sortKey="data_vencimento" sort={sort} setSort={setSort} />
+                  <SortTh label="Liquidação" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
+                  <SortTh label="Valor" sortKey="valor" sort={sort} setSort={setSort} align="right" />
+                  <SortTh label="Status" sortKey="status_gestao" sort={sort} setSort={setSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
