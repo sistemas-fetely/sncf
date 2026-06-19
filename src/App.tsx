@@ -144,6 +144,7 @@ const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
+const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -260,6 +261,7 @@ const App = () => (
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
+                <Route path="/logistica" element={<Logistica />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
               </Route>
