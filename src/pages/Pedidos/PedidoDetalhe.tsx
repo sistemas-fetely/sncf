@@ -129,9 +129,9 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
                   {(t.status === "pago" || t.status === "pago_com_atraso") && (
                     <button
                       onClick={() => setConvertendo({
-                        id: t.id ?? t.titulo_id,
+                        id: t.id,
                         numero: t.numero_titulo ?? "",
-                        valor: Number(t.valor_bruto ?? t.valor ?? 0),
+                        valor: Number(t.valor_bruto ?? 0),
                       })}
                       className="text-xs text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400 underline underline-offset-2 ml-2"
                     >
