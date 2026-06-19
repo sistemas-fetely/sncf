@@ -13462,6 +13462,7 @@ export type Database = {
           email_cobranca_enviado_em: string | null
           flag_bandeira_amarela: boolean
           flag_grupo_economico_inadimplente: boolean
+          forma_pagamento_id: string | null
           id: string
           justificativa_renegociacao: string | null
           linha_digitavel: string | null
@@ -13515,6 +13516,7 @@ export type Database = {
           email_cobranca_enviado_em?: string | null
           flag_bandeira_amarela?: boolean
           flag_grupo_economico_inadimplente?: boolean
+          forma_pagamento_id?: string | null
           id?: string
           justificativa_renegociacao?: string | null
           linha_digitavel?: string | null
@@ -13568,6 +13570,7 @@ export type Database = {
           email_cobranca_enviado_em?: string | null
           flag_bandeira_amarela?: boolean
           flag_grupo_economico_inadimplente?: boolean
+          forma_pagamento_id?: string | null
           id?: string
           justificativa_renegociacao?: string | null
           linha_digitavel?: string | null
@@ -13660,6 +13663,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_documentos_envio_estados"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_movimentacao_baixa_id_fkey"
@@ -16310,6 +16320,10 @@ export type Database = {
         Args: { p_apagar_grupo_inteiro?: boolean; p_id: string }
         Returns: Json
       }
+      aplicar_haver_pedido: {
+        Args: { p_haver_id: string; p_pedido_id: string }
+        Returns: Json
+      }
       aplicar_ia_categoria_em_massa: { Args: never; Returns: Json }
       aplicar_regras_automaticas_ofx: {
         Args: { p_conta_bancaria_id: string; p_user_id?: string }
@@ -16570,6 +16584,10 @@ export type Database = {
           status: string
           valor: number
         }[]
+      }
+      converter_titulo_em_haver: {
+        Args: { p_motivo: string; p_titulo_id: string }
+        Returns: Json
       }
       criar_cpr_de_boleto: {
         Args: {
