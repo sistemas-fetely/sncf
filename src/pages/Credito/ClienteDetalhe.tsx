@@ -1,15 +1,18 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useClienteDetalhe } from "@/hooks/credito/useClienteDetalhe";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, AlertTriangle, ExternalLink } from "lucide-react";
+import { ArrowLeft, AlertTriangle, ExternalLink, Plus } from "lucide-react";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { TimelineClienteVisual } from "@/components/credito/TimelineClienteVisual";
 import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/ErguerBandeiraVermelhaDialog";
 import { BaixarBandeiraVermelhaDialog } from "@/components/credito/dialogs/BaixarBandeiraVermelhaDialog";
+import { CriarHaverDialog } from "@/components/credito/CriarHaverDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) =>
@@ -19,6 +22,9 @@ export default function ClienteDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useClienteDetalhe(id);
   const navigate = useNavigate();
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const [criarHaverOpen, setCriarHaverOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -52,6 +58,12 @@ export default function ClienteDetalhe() {
         ].filter(Boolean).join(" · ")}
         actions={
           <div className="flex items-center gap-2">
+            {isSuperAdmin && (
+              <Button size="sm" className="gap-2" onClick={() => setCriarHaverOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Criar haver
+              </Button>
+            )}
             <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate("/credito")}>
               <ArrowLeft className="h-4 w-4" />
               Voltar
@@ -63,6 +75,12 @@ export default function ClienteDetalhe() {
             )}
           </div>
         }
+      />
+
+      <CriarHaverDialog
+        open={criarHaverOpen}
+        onOpenChange={setCriarHaverOpen}
+        parceiroId={parceiro?.id ?? null}
       />
 
       <div className="space-y-3">

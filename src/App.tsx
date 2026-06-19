@@ -128,6 +128,7 @@ const FluxoFuturoInvestimento = lazy(() => import("@/pages/administrativo/FluxoF
 const CreditoIndex = lazy(() => import("@/pages/Credito/CreditoIndex"));
 const AnaliseDetalhe = lazy(() => import("@/pages/Credito/AnaliseDetalhe"));
 const ClienteDetalhe = lazy(() => import("@/pages/Credito/ClienteDetalhe"));
+const CreditoClientesIndex = lazy(() => import("@/pages/Credito/CreditoClientesIndex"));
 const CobrancaFila = lazy(() => import("@/pages/Credito/CobrancaFila"));
 const CobrancaDetalhe = lazy(() => import("@/pages/Credito/CobrancaDetalhe"));
 const AguardandoPagamentoFila = lazy(() => import("@/pages/Credito/AguardandoPagamentoFila"));
@@ -233,6 +234,7 @@ const App = () => (
                   ═══════════════════════════════════════════════ */}
               <Route path="/credito" element={<CreditoIndex />} />
               <Route path="/credito/analises/:id" element={<AnaliseDetalhe />} />
+              <Route path="/credito/clientes" element={<CreditoClientesIndex />} />
               <Route path="/credito/clientes/:id" element={<ClienteDetalhe />} />
               <Route path="/recebimento" element={<RecebimentoLayout />}>
                 <Route index element={<Navigate to="/pedidos" replace />} />

@@ -5,7 +5,7 @@ import { NovaAnaliseModalDialog } from "@/components/credito/NovaAnaliseModalDia
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Button } from "@/components/ui/button";
-import { Settings2 } from "lucide-react";
+import { Settings2, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const TABS_VALIDAS = ["analise", "decisao", "decididas"];
@@ -33,6 +33,15 @@ export default function CreditoIndex() {
         subtitle="Pipeline B2B — Análise (Time) → Decisão (Joseph)"
         actions={
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/credito/clientes")}
+              className="gap-2"
+            >
+              <Users className="h-4 w-4" />
+              Clientes
+            </Button>
             {isAdmin && (
               <Button
                 variant="outline"
