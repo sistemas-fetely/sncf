@@ -165,11 +165,11 @@ export function ComplementarSection({ pedido_id, pedido_origem_id, id_externo }:
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5"
+            className="gap-1.5 w-full whitespace-normal h-auto text-xs leading-tight py-2"
             onClick={() => setDialogOpen(true)}
           >
-            <Link2 className="h-4 w-4" />
-            Vincular como complementar de...
+            <Link2 className="h-3.5 w-3.5 shrink-0" />
+            Vincular como complementar de…
           </Button>
         )}
 
