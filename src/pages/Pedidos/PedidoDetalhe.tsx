@@ -1356,6 +1356,17 @@ export default function PedidoDetalhe() {
           </aside>
         )}
       </div>
+
+      {pedido && (
+        <AplicarHaverPedidoDialog
+          open={aplicarHaverOpen}
+          onOpenChange={setAplicarHaverOpen}
+          pedidoId={pedido.id}
+          idExterno={pedido.id_externo}
+          valorLiquido={Number(pedido.valor_liquido ?? 0)}
+          parceiroId={pedido.parceiro_id}
+        />
+      )}
     </div>
   );
 }
