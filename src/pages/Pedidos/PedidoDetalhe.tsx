@@ -641,6 +641,25 @@ export default function PedidoDetalhe() {
         </div>
       )}
 
+      {totalHaverDisponivel > 0.01 && pedido.estagio !== "faturado" && pedido.estagio !== "cancelado" && (
+        <div className="mx-6 mb-3 flex items-center justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 dark:bg-emerald-950/30 dark:border-emerald-800">
+          <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-200">
+            <Wallet className="h-4 w-4 shrink-0" />
+            <p className="text-sm">
+              <span className="font-semibold">{fmtBRL.format(totalHaverDisponivel)}</span> em crédito disponível para este cliente
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => setAplicarHaverOpen(true)}
+          >
+            Aplicar crédito
+          </Button>
+        </div>
+      )}
+
       <Separator />
 
       <div className="flex flex-col lg:flex-row lg:items-start">
