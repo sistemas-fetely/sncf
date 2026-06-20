@@ -274,6 +274,12 @@ const App = () => (
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
+                <Route path="/vendas/shopify/checkouts" element={<ShopifyCheckouts />} />
+                <Route path="/vendas/shopify/produtos" element={<ShopifyProdutos />} />
+                <Route path="/vendas/shopify/clientes" element={<ShopifyClientes />} />
+                <Route path="/vendas/shopify/reembolsos" element={<ShopifyReembolsos />} />
+                <Route path="/vendas/shopify/fulfillments" element={<ShopifyFulfillments />} />
+                <Route path="/vendas/shopify/estoque" element={<ShopifyEstoque />} />
                 <Route path="/logistica" element={<Logistica />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
