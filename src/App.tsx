@@ -218,6 +218,7 @@ const App = () => (
               <Route path="/vagas/:id/candidatura" element={<PortalCandidatura />} />
               <Route path="/vagas/:id/teste" element={<EntregaTeste />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
+              <Route path="/teste-frete" element={<TesteFrete />} />
             </Route>
 
             {/* Bling OAuth callback — público (recebe redirect externo), fora da Casa */}
