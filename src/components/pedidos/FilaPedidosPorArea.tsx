@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Sparkles, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Search, Sparkles, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
@@ -191,6 +191,31 @@ export function FilaPedidosPorArea({
     },
   });
 
+  const { data: msgPendentes } = useQuery({
+    queryKey: ["canal-msgs-pendentes"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("pedido_eventos")
+        .select("pedido_id, tipo_evento, criado_em")
+        .in("tipo_evento", ["msg_comercial", "msg_sops"])
+        .order("criado_em", { ascending: false });
+
+      const lastEvento = new Map<string, string>();
+      for (const row of (data ?? []) as any[]) {
+        if (!lastEvento.has(row.pedido_id)) {
+          lastEvento.set(row.pedido_id, row.tipo_evento as string);
+        }
+      }
+      const pendentes = new Set<string>();
+      for (const [pid, tipo] of lastEvento.entries()) {
+        if (tipo === "msg_comercial") pendentes.add(pid);
+      }
+      return pendentes;
+    },
+    refetchInterval: 60_000,
+  });
+  const pedidosComMsg = msgPendentes ?? new Set<string>();
+
   const totalLinhas = linhas?.length ?? 0;
   const totalPaginas = Math.max(1, Math.ceil(totalLinhas / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -362,6 +387,16 @@ export function FilaPedidosPorArea({
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1.5">
+                      {pedidosComMsg.has(p.id) && (
+                        <button
+                          onClick={() => navigate(`/pedidos/${p.id}`)}
+                          title="Mensagem do Comercial aguardando resposta"
+                          className="inline-flex items-center gap-1 px-1.5 py-1 rounded border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 text-xs"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          <span className="font-medium">msg</span>
+                        </button>
+                      )}
                       <MarcacaoPedido pedidoId={p.id} marcacao={p.marcacao} iconOnly />
 
                       <TabelaCadastroDialog
