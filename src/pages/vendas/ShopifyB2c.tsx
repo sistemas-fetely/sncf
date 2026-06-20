@@ -142,7 +142,6 @@ export default function ShopifyB2c() {
                   <TableHead>Pago em</TableHead>
                   <TableHead>Cumprido em</TableHead>
                   <TableHead>Cancelado em</TableHead>
-                  <TableHead>WNS</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
