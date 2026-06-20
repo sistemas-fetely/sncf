@@ -208,7 +208,6 @@ export default function CreditoClientesIndex() {
                       <SortTh label="Haver disponível" sortKey="haver_disponivel" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Em aberto" sortKey="em_aberto" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Vencido" sortKey="vencidos" sort={sort} setSort={setSort} align="right" />
-                      <SortTh label="Vencido" sortKey="vencidos" sort={sort} setSort={setSort} align="right" />
                     </tr>
                   </thead>
                   <tbody>
