@@ -146,6 +146,7 @@ const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 const TesteFrete = lazy(() => import("@/pages/TesteFrete"));
+const TesteRastreio = lazy(() => import("@/pages/TesteRastreio"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -219,6 +220,7 @@ const App = () => (
               <Route path="/vagas/:id/teste" element={<EntregaTeste />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
               <Route path="/teste-frete" element={<TesteFrete />} />
+              <Route path="/teste-rastreio" element={<TesteRastreio />} />
             </Route>
 
             {/* Bling OAuth callback — público (recebe redirect externo), fora da Casa */}
