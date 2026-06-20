@@ -5313,6 +5313,7 @@ export type Database = {
           gera_fatura: boolean
           id: string
           meio_default_id: string
+          nasce_garantido: boolean
           nome: string
           ordem: number | null
           pula_aprovacao: boolean
@@ -5327,6 +5328,7 @@ export type Database = {
           gera_fatura?: boolean
           id?: string
           meio_default_id: string
+          nasce_garantido?: boolean
           nome: string
           ordem?: number | null
           pula_aprovacao?: boolean
@@ -5341,6 +5343,7 @@ export type Database = {
           gera_fatura?: boolean
           id?: string
           meio_default_id?: string
+          nasce_garantido?: boolean
           nome?: string
           ordem?: number | null
           pula_aprovacao?: boolean
@@ -11947,6 +11950,249 @@ export type Database = {
           },
         ]
       }
+      shopify_checkouts: {
+        Row: {
+          abandoned_checkout_url: string | null
+          billing_address: Json | null
+          buyer_accepts_marketing: boolean | null
+          buyer_accepts_sms_marketing: boolean | null
+          cart_token: string | null
+          closed_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_at_shopify: string | null
+          currency: string | null
+          customer: Json | null
+          customer_locale: string | null
+          device_id: string | null
+          discount_codes: Json | null
+          email: string | null
+          gateway: string | null
+          landing_site: string | null
+          line_items: Json | null
+          location_id: string | null
+          name: string | null
+          note: string | null
+          note_attributes: Json | null
+          phone: string | null
+          presentment_currency: string | null
+          referring_site: string | null
+          reservation_token: string | null
+          shipping_address: Json | null
+          shipping_lines: Json | null
+          sms_marketing_phone: string | null
+          source: string | null
+          source_identifier: string | null
+          source_name: string | null
+          source_url: string | null
+          subtotal_price: number | null
+          tax_lines: Json | null
+          taxes_included: boolean | null
+          token: string
+          total_discounts: number | null
+          total_duties: number | null
+          total_line_items_price: number | null
+          total_price: number | null
+          total_tax: number | null
+          total_weight: number | null
+          updated_at: string
+          updated_at_shopify: string | null
+          user_id: string | null
+        }
+        Insert: {
+          abandoned_checkout_url?: string | null
+          billing_address?: Json | null
+          buyer_accepts_marketing?: boolean | null
+          buyer_accepts_sms_marketing?: boolean | null
+          cart_token?: string | null
+          closed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_at_shopify?: string | null
+          currency?: string | null
+          customer?: Json | null
+          customer_locale?: string | null
+          device_id?: string | null
+          discount_codes?: Json | null
+          email?: string | null
+          gateway?: string | null
+          landing_site?: string | null
+          line_items?: Json | null
+          location_id?: string | null
+          name?: string | null
+          note?: string | null
+          note_attributes?: Json | null
+          phone?: string | null
+          presentment_currency?: string | null
+          referring_site?: string | null
+          reservation_token?: string | null
+          shipping_address?: Json | null
+          shipping_lines?: Json | null
+          sms_marketing_phone?: string | null
+          source?: string | null
+          source_identifier?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          subtotal_price?: number | null
+          tax_lines?: Json | null
+          taxes_included?: boolean | null
+          token: string
+          total_discounts?: number | null
+          total_duties?: number | null
+          total_line_items_price?: number | null
+          total_price?: number | null
+          total_tax?: number | null
+          total_weight?: number | null
+          updated_at?: string
+          updated_at_shopify?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          abandoned_checkout_url?: string | null
+          billing_address?: Json | null
+          buyer_accepts_marketing?: boolean | null
+          buyer_accepts_sms_marketing?: boolean | null
+          cart_token?: string | null
+          closed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_at_shopify?: string | null
+          currency?: string | null
+          customer?: Json | null
+          customer_locale?: string | null
+          device_id?: string | null
+          discount_codes?: Json | null
+          email?: string | null
+          gateway?: string | null
+          landing_site?: string | null
+          line_items?: Json | null
+          location_id?: string | null
+          name?: string | null
+          note?: string | null
+          note_attributes?: Json | null
+          phone?: string | null
+          presentment_currency?: string | null
+          referring_site?: string | null
+          reservation_token?: string | null
+          shipping_address?: Json | null
+          shipping_lines?: Json | null
+          sms_marketing_phone?: string | null
+          source?: string | null
+          source_identifier?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          subtotal_price?: number | null
+          tax_lines?: Json | null
+          taxes_included?: boolean | null
+          token?: string
+          total_discounts?: number | null
+          total_duties?: number | null
+          total_line_items_price?: number | null
+          total_price?: number | null
+          total_tax?: number | null
+          total_weight?: number | null
+          updated_at?: string
+          updated_at_shopify?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      shopify_clientes: {
+        Row: {
+          addresses: Json | null
+          admin_graphql_api_id: string | null
+          created_at: string
+          created_at_shopify: string | null
+          currency: string | null
+          default_address: Json | null
+          email: string | null
+          first_name: string | null
+          last_name: string | null
+          multipass_identifier: string | null
+          note: string | null
+          phone: string | null
+          shopify_id: string
+          state: string | null
+          tax_exempt: boolean | null
+          tax_exemptions: Json | null
+          updated_at: string
+          updated_at_shopify: string | null
+          verified_email: boolean | null
+        }
+        Insert: {
+          addresses?: Json | null
+          admin_graphql_api_id?: string | null
+          created_at?: string
+          created_at_shopify?: string | null
+          currency?: string | null
+          default_address?: Json | null
+          email?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          multipass_identifier?: string | null
+          note?: string | null
+          phone?: string | null
+          shopify_id: string
+          state?: string | null
+          tax_exempt?: boolean | null
+          tax_exemptions?: Json | null
+          updated_at?: string
+          updated_at_shopify?: string | null
+          verified_email?: boolean | null
+        }
+        Update: {
+          addresses?: Json | null
+          admin_graphql_api_id?: string | null
+          created_at?: string
+          created_at_shopify?: string | null
+          currency?: string | null
+          default_address?: Json | null
+          email?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          multipass_identifier?: string | null
+          note?: string | null
+          phone?: string | null
+          shopify_id?: string
+          state?: string | null
+          tax_exempt?: boolean | null
+          tax_exemptions?: Json | null
+          updated_at?: string
+          updated_at_shopify?: string | null
+          verified_email?: boolean | null
+        }
+        Relationships: []
+      }
+      shopify_estoque: {
+        Row: {
+          admin_graphql_api_id: string | null
+          available: number | null
+          created_at: string
+          inventory_item_id: string
+          location_id: string
+          updated_at: string
+          updated_at_shopify: string | null
+        }
+        Insert: {
+          admin_graphql_api_id?: string | null
+          available?: number | null
+          created_at?: string
+          inventory_item_id: string
+          location_id: string
+          updated_at?: string
+          updated_at_shopify?: string | null
+        }
+        Update: {
+          admin_graphql_api_id?: string | null
+          available?: number | null
+          created_at?: string
+          inventory_item_id?: string
+          location_id?: string
+          updated_at?: string
+          updated_at_shopify?: string | null
+        }
+        Relationships: []
+      }
       shopify_eventos_raw: {
         Row: {
           em: string
@@ -11992,6 +12238,81 @@ export type Database = {
           dias_corridos?: number
           modalidade?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      shopify_fulfillments: {
+        Row: {
+          admin_graphql_api_id: string | null
+          created_at: string
+          created_at_shopify: string | null
+          destination: Json | null
+          email: string | null
+          line_items: Json | null
+          location_id: string | null
+          name: string | null
+          order_id: string | null
+          origin_address: Json | null
+          receipt: Json | null
+          service: string | null
+          shipment_status: string | null
+          shopify_id: string
+          status: string | null
+          tracking_company: string | null
+          tracking_number: string | null
+          tracking_numbers: Json | null
+          tracking_url: string | null
+          tracking_urls: Json | null
+          updated_at: string
+          updated_at_shopify: string | null
+        }
+        Insert: {
+          admin_graphql_api_id?: string | null
+          created_at?: string
+          created_at_shopify?: string | null
+          destination?: Json | null
+          email?: string | null
+          line_items?: Json | null
+          location_id?: string | null
+          name?: string | null
+          order_id?: string | null
+          origin_address?: Json | null
+          receipt?: Json | null
+          service?: string | null
+          shipment_status?: string | null
+          shopify_id: string
+          status?: string | null
+          tracking_company?: string | null
+          tracking_number?: string | null
+          tracking_numbers?: Json | null
+          tracking_url?: string | null
+          tracking_urls?: Json | null
+          updated_at?: string
+          updated_at_shopify?: string | null
+        }
+        Update: {
+          admin_graphql_api_id?: string | null
+          created_at?: string
+          created_at_shopify?: string | null
+          destination?: Json | null
+          email?: string | null
+          line_items?: Json | null
+          location_id?: string | null
+          name?: string | null
+          order_id?: string | null
+          origin_address?: Json | null
+          receipt?: Json | null
+          service?: string | null
+          shipment_status?: string | null
+          shopify_id?: string
+          status?: string | null
+          tracking_company?: string | null
+          tracking_number?: string | null
+          tracking_numbers?: Json | null
+          tracking_url?: string | null
+          tracking_urls?: Json | null
+          updated_at?: string
+          updated_at_shopify?: string | null
         }
         Relationships: []
       }
@@ -12154,6 +12475,153 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shopify_produtos: {
+        Row: {
+          admin_graphql_api_id: string | null
+          body_html: string | null
+          category: Json | null
+          created_at: string
+          created_at_shopify: string | null
+          handle: string | null
+          has_variants_that_requires_components: boolean | null
+          image: Json | null
+          images: Json | null
+          media: Json | null
+          options: Json | null
+          product_type: string | null
+          published_at: string | null
+          published_scope: string | null
+          shopify_id: string
+          status: string | null
+          tags: Json | null
+          template_suffix: string | null
+          title: string | null
+          updated_at: string
+          updated_at_shopify: string | null
+          variant_gids: Json | null
+          variants: Json | null
+          vendor: string | null
+        }
+        Insert: {
+          admin_graphql_api_id?: string | null
+          body_html?: string | null
+          category?: Json | null
+          created_at?: string
+          created_at_shopify?: string | null
+          handle?: string | null
+          has_variants_that_requires_components?: boolean | null
+          image?: Json | null
+          images?: Json | null
+          media?: Json | null
+          options?: Json | null
+          product_type?: string | null
+          published_at?: string | null
+          published_scope?: string | null
+          shopify_id: string
+          status?: string | null
+          tags?: Json | null
+          template_suffix?: string | null
+          title?: string | null
+          updated_at?: string
+          updated_at_shopify?: string | null
+          variant_gids?: Json | null
+          variants?: Json | null
+          vendor?: string | null
+        }
+        Update: {
+          admin_graphql_api_id?: string | null
+          body_html?: string | null
+          category?: Json | null
+          created_at?: string
+          created_at_shopify?: string | null
+          handle?: string | null
+          has_variants_that_requires_components?: boolean | null
+          image?: Json | null
+          images?: Json | null
+          media?: Json | null
+          options?: Json | null
+          product_type?: string | null
+          published_at?: string | null
+          published_scope?: string | null
+          shopify_id?: string
+          status?: string | null
+          tags?: Json | null
+          template_suffix?: string | null
+          title?: string | null
+          updated_at?: string
+          updated_at_shopify?: string | null
+          variant_gids?: Json | null
+          variants?: Json | null
+          vendor?: string | null
+        }
+        Relationships: []
+      }
+      shopify_reembolsos: {
+        Row: {
+          additional_fees: Json | null
+          admin_graphql_api_id: string | null
+          created_at: string
+          created_at_shopify: string | null
+          duties: Json | null
+          note: string | null
+          order_adjustments: Json | null
+          order_id: string | null
+          processed_at: string | null
+          refund_line_items: Json | null
+          refund_shipping_lines: Json | null
+          restock: boolean | null
+          return: Json | null
+          shopify_id: string
+          total_additional_fees_set: Json | null
+          total_duties_set: Json | null
+          transactions: Json | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          additional_fees?: Json | null
+          admin_graphql_api_id?: string | null
+          created_at?: string
+          created_at_shopify?: string | null
+          duties?: Json | null
+          note?: string | null
+          order_adjustments?: Json | null
+          order_id?: string | null
+          processed_at?: string | null
+          refund_line_items?: Json | null
+          refund_shipping_lines?: Json | null
+          restock?: boolean | null
+          return?: Json | null
+          shopify_id: string
+          total_additional_fees_set?: Json | null
+          total_duties_set?: Json | null
+          transactions?: Json | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          additional_fees?: Json | null
+          admin_graphql_api_id?: string | null
+          created_at?: string
+          created_at_shopify?: string | null
+          duties?: Json | null
+          note?: string | null
+          order_adjustments?: Json | null
+          order_id?: string | null
+          processed_at?: string | null
+          refund_line_items?: Json | null
+          refund_shipping_lines?: Json | null
+          restock?: boolean | null
+          return?: Json | null
+          shopify_id?: string
+          total_additional_fees_set?: Json | null
+          total_duties_set?: Json | null
+          transactions?: Json | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       shopify_webhook_log: {
         Row: {
@@ -13493,6 +13961,7 @@ export type Database = {
           created_by: string | null
           data_criacao: string
           data_emissao_nf: string | null
+          data_liquidacao_prevista: string | null
           data_pagamento: string | null
           data_pagamento_banco: string | null
           data_proxima_acao_regua: string | null
@@ -13547,6 +14016,7 @@ export type Database = {
           created_by?: string | null
           data_criacao?: string
           data_emissao_nf?: string | null
+          data_liquidacao_prevista?: string | null
           data_pagamento?: string | null
           data_pagamento_banco?: string | null
           data_proxima_acao_regua?: string | null
@@ -13601,6 +14071,7 @@ export type Database = {
           created_by?: string | null
           data_criacao?: string
           data_emissao_nf?: string | null
+          data_liquidacao_prevista?: string | null
           data_pagamento?: string | null
           data_pagamento_banco?: string | null
           data_proxima_acao_regua?: string | null
