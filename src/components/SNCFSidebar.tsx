@@ -263,36 +263,6 @@ export function SNCFSidebar() {
               )}
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/canal-cpo"
-                        className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200 ${
-                          isItemActive("/canal-cpo") ? "bg-sidebar-accent text-sidebar-foreground font-medium border-l-[3px] shadow-sm" : ""
-                        }`}
-                        style={isItemActive("/canal-cpo") ? { borderLeftColor: SNCF_COLOR, color: SNCF_COLOR } : undefined}
-                      >
-                        <MessageCircle
-                          className="h-[18px] w-[18px] shrink-0"
-                          style={isItemActive("/canal-cpo") ? { color: SNCF_COLOR } : { color: "#185FA5" }}
-                        />
-                        {!collapsed && (
-                          <span className="flex-1 flex items-center justify-between gap-2">
-                            <span>Central de Mensagens</span>
-                            {qtdMsgsPendentes > 0 && (
-                              <Badge
-                                className="text-[9px] px-1.5 py-0 h-4 border-0"
-                                style={{ backgroundColor: "#185FA5", color: "white" }}
-                              >
-                                {qtdMsgsPendentes}
-                              </Badge>
-                            )}
-                          </span>
-                        )}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {sistemasInternos.map((s) => {
                     const Icon = getIcon(s.icone);
                     return (
                       <SidebarMenuItem key={s.id}>
