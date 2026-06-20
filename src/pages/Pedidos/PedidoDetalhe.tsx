@@ -1391,14 +1391,6 @@ export default function PedidoDetalhe() {
                   estagio={estagio}
                 />
               </div>
-
-              {estagio !== "cancelado" && (
-                <ComplementarSection
-                  pedido_id={pedido.id}
-                  pedido_origem_id={pedido.pedido_origem_id ?? null}
-                  id_externo={pedido.id_externo}
-                />
-              )}
             </div>
           </aside>
         )}
