@@ -109,7 +109,8 @@ Deno.serve(async (req) => {
     }
 
     const token = await getToken();
-    const nuDR = Number(Deno.env.get("CORREIOS_DR") ?? 0);
+    const drEnv = Deno.env.get("CORREIOS_DR");
+    const nuDR = drEnv ? Number(drEnv) : undefined;
 
     const limpa = (c: string) => String(c).replace(/\D/g, "");
     const cepO = limpa(cepOrigem);
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
     const parametrosProduto = servicos.map((s: { coProduto: string }) => ({
       coProduto: s.coProduto,
       nuRequisicao: s.coProduto,
-      nuDR,
+      ...(nuDR != null ? { nuDR } : {}),
       cepOrigem: cepO,
       cepDestino: cepD,
       psObjeto: String(peso),
