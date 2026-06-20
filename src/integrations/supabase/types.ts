@@ -9396,6 +9396,7 @@ export type Database = {
           desconto_pct: number | null
           endereco_entrega: Json | null
           entregue_em: string | null
+          entregue_metodo: string | null
           estagio: string
           estagio_atualizado_em: string | null
           estagio_atualizado_por: string | null
@@ -9468,6 +9469,7 @@ export type Database = {
           desconto_pct?: number | null
           endereco_entrega?: Json | null
           entregue_em?: string | null
+          entregue_metodo?: string | null
           estagio?: string
           estagio_atualizado_em?: string | null
           estagio_atualizado_por?: string | null
@@ -9540,6 +9542,7 @@ export type Database = {
           desconto_pct?: number | null
           endereco_entrega?: Json | null
           entregue_em?: string | null
+          entregue_metodo?: string | null
           estagio?: string
           estagio_atualizado_em?: string | null
           estagio_atualizado_por?: string | null
@@ -14567,6 +14570,41 @@ export type Database = {
           },
         ]
       }
+      wns_fase_para_estagio: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          estagio_destino: string
+          id: string
+          updated_at: string
+          wns_fase_id: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          estagio_destino: string
+          id?: string
+          updated_at?: string
+          wns_fase_id: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          estagio_destino?: string
+          id?: string
+          updated_at?: string
+          wns_fase_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wns_fase_para_estagio_wns_fase_id_fkey"
+            columns: ["wns_fase_id"]
+            isOneToOne: true
+            referencedRelation: "wns_fases_xpm"
+            referencedColumns: ["wns_id"]
+          },
+        ]
+      }
       wns_fases_xpm: {
         Row: {
           ativo: boolean
@@ -17376,6 +17414,7 @@ export type Database = {
         Returns: number
       }
       fn_gerar_numero_titulo: { Args: { p_parcela: number }; Returns: string }
+      fn_job_entregue_por_eta: { Args: never; Returns: number }
       fn_log_evento_pedido: {
         Args: {
           p_payload?: Json
