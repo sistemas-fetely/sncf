@@ -218,6 +218,7 @@ const App = () => (
               <Route path="/vagas/:id/candidatura" element={<PortalCandidatura />} />
               <Route path="/vagas/:id/teste" element={<EntregaTeste />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
+              <Route path="/teste-frete" element={<TesteFrete />} />
             </Route>
 
             {/* Bling OAuth callback — público (recebe redirect externo), fora da Casa */}
@@ -249,7 +250,6 @@ const App = () => (
               {/* Detail routes (sem sidebar) */}
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/parceiros/:id" element={<ParceiroDetalhe />} />
-              <Route path="/teste-frete" element={<TesteFrete />} />
 
               {/* ═══════════════════════════════════════════════
                   App SOPs — com sidebar lateral
