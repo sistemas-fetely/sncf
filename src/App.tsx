@@ -141,6 +141,7 @@ const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
+const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
