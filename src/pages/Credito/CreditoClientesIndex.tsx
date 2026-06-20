@@ -49,11 +49,13 @@ export default function CreditoClientesIndex() {
     },
   });
 
-  const parceirosHaverQ = useQuery({
-    queryKey: ["credito-parceiros-haver"],
-    enabled: (haveresQ.data?.length ?? 0) > 0,
+  const parceirosAllQ = useQuery({
+    queryKey: ["credito-parceiros-all", resumosQ.data?.map((r: any) => r.parceiro_id), haveresQ.data?.map((h: any) => h.parceiro_id)],
+    enabled: (resumosQ.data?.length ?? 0) > 0 || (haveresQ.data?.length ?? 0) > 0,
     queryFn: async () => {
-      const ids = [...new Set((haveresQ.data ?? []).map((h: any) => h.parceiro_id))];
+      const idsResumos = (resumosQ.data ?? []).map((r: any) => r.parceiro_id);
+      const idsHaveres = (haveresQ.data ?? []).map((h: any) => h.parceiro_id);
+      const ids = [...new Set([...idsResumos, ...idsHaveres])].filter(Boolean);
       if (ids.length === 0) return [];
       const { data, error } = await (supabase as any)
         .from("parceiros_comerciais")
