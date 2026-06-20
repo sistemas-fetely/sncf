@@ -146,6 +146,7 @@ const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
 const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
+const CanalCPO = lazy(() => import("@/pages/CanalCPO"));
 const TesteFrete = lazy(() => import("@/pages/TesteFrete"));
 const TesteRastreio = lazy(() => import("@/pages/TesteRastreio"));
 
@@ -312,6 +313,7 @@ const App = () => (
               <Route path="/minhas-notas" element={<MinhasNotas />} />
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
+              <Route path="/canal-cpo" element={<CanalCPO />} />
             </Route>
 
             {/* TI Fetely */}
