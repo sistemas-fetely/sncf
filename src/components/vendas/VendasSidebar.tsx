@@ -1,4 +1,4 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle } from "lucide-react";
+import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
