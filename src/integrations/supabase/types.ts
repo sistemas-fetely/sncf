@@ -3956,6 +3956,30 @@ export type Database = {
           },
         ]
       }
+      correios_token: {
+        Row: {
+          ambiente: string
+          atualizado_em: string
+          expira_em: string
+          id: string
+          token: string
+        }
+        Insert: {
+          ambiente?: string
+          atualizado_em?: string
+          expira_em: string
+          id?: string
+          token: string
+        }
+        Update: {
+          ambiente?: string
+          atualizado_em?: string
+          expira_em?: string
+          id?: string
+          token?: string
+        }
+        Relationships: []
+      }
       custom_roles: {
         Row: {
           created_at: string
