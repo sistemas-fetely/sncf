@@ -2,6 +2,14 @@ import type { BlingClient } from "./bling-client.ts";
 
 function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
+function safeDate(v: any): string | null {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (!s || s.startsWith("0000")) return null;
+  const m = s.match(/^\d{4}-\d{2}-\d{2}/);
+  return m ? m[0] : null;
+}
+
 async function resolveParceiroId(supabase: any, contato: any): Promise<string | null> {
   if (!contato?.id) return null;
   const blingId = String(contato.id);
@@ -10,7 +18,11 @@ async function resolveParceiroId(supabase: any, contato: any): Promise<string | 
   if (found) return found.id;
   if (!contato.nome) return null;
   const { data: novo } = await supabase.from("parceiros_comerciais").insert({
-    razao_social: contato.nome, tipo: "pj", tipos: ["cliente"], origem: "api_bling", bling_id: blingId,
+    razao_social: contato.nome,
+    tipo: "pj",
+    tipos: ["cliente"],
+    origem: "api_bling",
+    bling_id: blingId,
   }).select("id").maybeSingle();
   return novo?.id ?? null;
 }
@@ -48,9 +60,9 @@ export async function syncPedidos(
           bling_id: blingId,
           numero: ped.numero ? String(ped.numero) : null,
           numero_loja: ped.numeroLoja || null,
-          data_pedido: ped.data || null,
-          data_prevista_entrega: ped.dataPrevista || null,
-          data_saida: ped.dataSaida || null,
+          data_pedido: safeDate(ped.data),
+          data_prevista_entrega: safeDate(ped.dataPrevista),
+          data_saida: safeDate(ped.dataSaida),
           parceiro_id,
           cliente_nome: ped.contato?.nome ?? null,
           valor_produtos: Number(ped.totalProdutos) || 0,
@@ -65,10 +77,12 @@ export async function syncPedidos(
         const { data: existing } = await supabase
           .from("pedidos_venda").select("id").eq("bling_id", blingId).maybeSingle();
         if (existing) {
-          await supabase.from("pedidos_venda").update(registro).eq("id", existing.id);
+          const { error: upErr } = await supabase.from("pedidos_venda").update(registro).eq("id", existing.id);
+          if (upErr) { erros++; ultimoErro = `update ${blingId}: ${upErr.message}`; continue; }
           atualizados++;
         } else {
-          await supabase.from("pedidos_venda").insert(registro);
+          const { error: insErr } = await supabase.from("pedidos_venda").insert(registro);
+          if (insErr) { erros++; ultimoErro = `insert ${blingId}: ${insErr.message}`; continue; }
           criados++;
         }
       } catch (e) {
