@@ -70,6 +70,8 @@ export async function syncPedidos(
           valor_desconto: Number(ped.desconto) || 0,
           valor_total: Number(ped.total) || 0,
           situacao: ped.situacao?.valor ?? null,
+          situacao_nome: ped.situacao?.nome ?? null,
+          situacao_raw: ped.situacao ?? null,
           observacoes: ped.observacoes || null,
           origem: "api_bling",
           updated_at: new Date().toISOString(),
