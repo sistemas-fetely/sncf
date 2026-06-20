@@ -1268,16 +1268,25 @@ export default function PedidoDetalhe() {
           </div>
 
 
-          {/* ============ FAIXA 3: Remessas ============ */}
-          {estagio !== "cancelado" && (
-            <RemessasSection
-              pedido_id={pedido.id}
-              parceiro_id={pedido.parceiro_id}
-              id_externo={pedido.id_externo}
-              estagio={pedido.estagio}
-              bling_id_destino={pedido.bling_id_destino}
-            />
-          )}
+          {/* ============ FAIXA 3: Remessas + Complementar ============ */}
+          <div className="grid gap-4 lg:grid-cols-2 items-start">
+            {estagio !== "cancelado" && (
+              <RemessasSection
+                pedido_id={pedido.id}
+                parceiro_id={pedido.parceiro_id}
+                id_externo={pedido.id_externo}
+                estagio={pedido.estagio}
+                bling_id_destino={pedido.bling_id_destino}
+              />
+            )}
+            {estagio !== "cancelado" && (
+              <ComplementarSection
+                pedido_id={pedido.id}
+                pedido_origem_id={pedido.pedido_origem_id ?? null}
+                id_externo={pedido.id_externo}
+              />
+            )}
+          </div>
 
 
           {/* ============ FAIXA 4: Itens do pedido (largura cheia) ============ */}
