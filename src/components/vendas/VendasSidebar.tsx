@@ -1,4 +1,4 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard } from "lucide-react";
+import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -8,6 +8,7 @@ import {
   SidebarMenu,
 } from "@/components/ui/sidebar";
 import { FinancasSidebarItem } from "@/components/financas/FinancasSidebarItem";
+import { FinancasSidebarSection } from "@/components/financas/FinancasSidebarSection";
 
 export function VendasSidebar() {
   return (
@@ -28,7 +29,6 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/pedidos" icon={ShoppingCart} label="Pedidos FOP" end />
               <FinancasSidebarItem to="/recebimento/cobranca" icon={Receipt} label="Cobrança" />
               <FinancasSidebarItem to="/credito/clientes" icon={CreditCard} label="Crédito do cliente" />
-              <FinancasSidebarItem to="/vendas/nfs" icon={FileText} label="NFs de Venda" />
               <FinancasSidebarItem to="/administrativo-fetely/parceiros" icon={Building2} label="Parceiros" />
               <FinancasSidebarItem to="/comercial/estoque-virtual" icon={Boxes} label="Estoque Virtual" />
               <FinancasSidebarItem to="/vendas/produtos" icon={Package} label="Produtos" />
@@ -37,6 +37,15 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" activeClassName="bg-green-50 text-green-700 font-medium [&_svg]:text-green-700 border-l-green-600" />
               <FinancasSidebarItem to="/logistica" icon={Truck} label="Logística" />
             </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="pb-3">
+          <SidebarGroupContent>
+            <FinancasSidebarSection title="Bling" defaultOpen>
+              <FinancasSidebarItem to="/vendas/nfs" icon={FileText} label="NFs de Venda" />
+              <FinancasSidebarItem to="/vendas/pedidos-venda" icon={ClipboardList} label="Pedidos de Venda" />
+            </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
