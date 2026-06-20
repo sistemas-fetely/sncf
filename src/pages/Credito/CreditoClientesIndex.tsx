@@ -49,11 +49,13 @@ export default function CreditoClientesIndex() {
     },
   });
 
-  const parceirosHaverQ = useQuery({
-    queryKey: ["credito-parceiros-haver"],
-    enabled: (haveresQ.data?.length ?? 0) > 0,
+  const parceirosAllQ = useQuery({
+    queryKey: ["credito-parceiros-all", resumosQ.data?.map((r: any) => r.parceiro_id), haveresQ.data?.map((h: any) => h.parceiro_id)],
+    enabled: (resumosQ.data?.length ?? 0) > 0 || (haveresQ.data?.length ?? 0) > 0,
     queryFn: async () => {
-      const ids = [...new Set((haveresQ.data ?? []).map((h: any) => h.parceiro_id))];
+      const idsResumos = (resumosQ.data ?? []).map((r: any) => r.parceiro_id);
+      const idsHaveres = (haveresQ.data ?? []).map((h: any) => h.parceiro_id);
+      const ids = [...new Set([...idsResumos, ...idsHaveres])].filter(Boolean);
       if (ids.length === 0) return [];
       const { data, error } = await (supabase as any)
         .from("parceiros_comerciais")
@@ -69,7 +71,7 @@ export default function CreditoClientesIndex() {
     const haveres = haveresQ.data ?? [];
 
     const parceirosMap: Record<string, { razao_social: string; cnpj: string }> = {};
-    (parceirosHaverQ.data ?? []).forEach((p: any) => {
+    (parceirosAllQ.data ?? []).forEach((p: any) => {
       parceirosMap[p.id] = { razao_social: p.razao_social, cnpj: p.cnpj };
     });
 
@@ -91,7 +93,8 @@ export default function CreditoClientesIndex() {
     const parceirosNoResumo = new Set(resumos.map((r: any) => r.parceiro_id));
     const resumosComHaver = resumos.map((r: any) => ({
       ...r,
-      razao_social: r.cliente ?? r.razao_social,
+      razao_social: parceirosMap[r.parceiro_id]?.razao_social ?? r.cliente ?? r.razao_social,
+      cnpj:         parceirosMap[r.parceiro_id]?.cnpj ?? null,
       em_aberto:    Number(r.total_a_receber ?? 0),
       vencidos:     Number(r.total_vencido   ?? 0),
       a_vencer:     Number(r.faixa_a_vencer  ?? 0),
@@ -122,7 +125,7 @@ export default function CreditoClientesIndex() {
               (c.vencidos ?? c.total_vencido ?? 0) > 0 ||
               (c.haver_disponivel ?? 0) > 0
     );
-  }, [resumosQ.data, haveresQ.data, parceirosHaverQ.data]);
+  }, [resumosQ.data, haveresQ.data, parceirosAllQ.data]);
 
   const totalHaveres = clientes.reduce((s: number, c: any) => s + (c.haver_disponivel ?? 0), 0);
   const totalAVencer = clientes.reduce((s: number, c: any) => s + (c.a_vencer ?? 0), 0);
@@ -146,7 +149,7 @@ export default function CreditoClientesIndex() {
     return arr;
   }, [clientes, tab, sort]);
 
-  const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosHaverQ.isLoading;
+  const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosAllQ.isLoading;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
@@ -205,26 +208,29 @@ export default function CreditoClientesIndex() {
                       <SortTh label="Haver disponível" sortKey="haver_disponivel" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Em aberto" sortKey="em_aberto" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Vencido" sortKey="vencidos" sort={sort} setSort={setSort} align="right" />
-                      <th className="text-right px-4 py-2">Ação</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                           Carregando…
                         </td>
                       </tr>
                     )}
                     {!loading && filtrados.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                           Nenhum cliente encontrado.
                         </td>
                       </tr>
                     )}
                     {filtrados.map((c: any) => (
-                      <tr key={c.parceiro_id} className="border-t hover:bg-accent/40">
+                      <tr
+                        key={c.parceiro_id}
+                        className="border-t hover:bg-accent/40 cursor-pointer"
+                        onClick={() => navigate(`/credito/clientes/${c.parceiro_id}`)}
+                      >
                       <td className="px-4 py-2">
                         <p className="font-medium truncate text-sm">{c.razao_social ?? c.cliente ?? "—"}</p>
                         <p className="text-xs text-muted-foreground truncate">{c.cnpj ?? ""}</p>
@@ -251,15 +257,6 @@ export default function CreditoClientesIndex() {
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => navigate(`/credito/clientes/${c.parceiro_id}`)}
-                          >
-                            Ver →
-                          </Button>
                         </td>
                       </tr>
                     ))}
