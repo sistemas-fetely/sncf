@@ -1,7 +1,7 @@
 import {
   LayoutGrid, ClipboardList, UsersRound, UserCog, Workflow,
   LogOut, Network, Sparkles, BookOpen, Shield, ExternalLink, FileText,
-  PartyPopper, MessageSquareWarning, Users, Monitor, Landmark,
+  PartyPopper, MessageSquareWarning, Users, Monitor, Landmark, MessageCircle,
 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Link } from "react-router-dom";
@@ -101,6 +101,29 @@ export function SNCFSidebar() {
       return count || 0;
     },
     enabled: isAdminRHOrSuper,
+  });
+
+  const { data: qtdMsgsPendentes = 0 } = useQuery({
+    queryKey: ["canal-msgs-pendentes-sidebar"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("pedido_eventos")
+        .select("pedido_id, tipo_evento, criado_em")
+        .in("tipo_evento", ["msg_comercial", "msg_sops"])
+        .order("criado_em", { ascending: false });
+      const lastEvento = new Map<string, string>();
+      for (const row of (data ?? []) as any[]) {
+        if (!lastEvento.has(row.pedido_id)) {
+          lastEvento.set(row.pedido_id, row.tipo_evento as string);
+        }
+      }
+      let count = 0;
+      for (const tipo of lastEvento.values()) {
+        if (tipo === "msg_comercial") count++;
+      }
+      return count;
+    },
+    refetchInterval: 60_000,
   });
 
   // Sistemas (internos + externos) para mostrar no sidebar
@@ -240,6 +263,35 @@ export function SNCFSidebar() {
               )}
               <SidebarGroupContent>
                 <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/canal-cpo"
+                        className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200 ${
+                          isItemActive("/canal-cpo") ? "bg-sidebar-accent text-sidebar-foreground font-medium border-l-[3px] shadow-sm" : ""
+                        }`}
+                        style={isItemActive("/canal-cpo") ? { borderLeftColor: SNCF_COLOR, color: SNCF_COLOR } : undefined}
+                      >
+                        <MessageCircle
+                          className="h-[18px] w-[18px] shrink-0"
+                          style={isItemActive("/canal-cpo") ? { color: SNCF_COLOR } : { color: "#185FA5" }}
+                        />
+                        {!collapsed && (
+                          <span className="flex-1 flex items-center justify-between gap-2">
+                            <span>Central de Mensagens</span>
+                            {qtdMsgsPendentes > 0 && (
+                              <Badge
+                                className="text-[9px] px-1.5 py-0 h-4 border-0"
+                                style={{ backgroundColor: "#185FA5", color: "white" }}
+                              >
+                                {qtdMsgsPendentes}
+                              </Badge>
+                            )}
+                          </span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   {sistemasInternos.map((s) => {
                     const Icon = getIcon(s.icone);
                     return (
