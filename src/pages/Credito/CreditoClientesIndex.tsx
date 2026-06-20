@@ -41,9 +41,24 @@ export default function CreditoClientesIndex() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("haver_cliente")
-        .select("parceiro_id, saldo, status, parceiro:parceiros_comerciais(razao_social, cnpj)")
+        .select("parceiro_id, saldo, status")
         .eq("status", "disponivel")
         .gt("saldo", 0);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const parceirosHaverQ = useQuery({
+    queryKey: ["credito-parceiros-haver"],
+    enabled: (haveresQ.data?.length ?? 0) > 0,
+    queryFn: async () => {
+      const ids = [...new Set((haveresQ.data ?? []).map((h: any) => h.parceiro_id))];
+      if (ids.length === 0) return [];
+      const { data, error } = await (supabase as any)
+        .from("parceiros_comerciais")
+        .select("id, razao_social, cnpj")
+        .in("id", ids);
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -53,6 +68,11 @@ export default function CreditoClientesIndex() {
     const resumos = resumosQ.data ?? [];
     const haveres = haveresQ.data ?? [];
 
+    const parceirosMap: Record<string, { razao_social: string; cnpj: string }> = {};
+    (parceirosHaverQ.data ?? []).forEach((p: any) => {
+      parceirosMap[p.id] = { razao_social: p.razao_social, cnpj: p.cnpj };
+    });
+
     // Agrupar haveres por parceiro com nome
     const haverPorParceiro: Record<string, { total: number; razao_social: string | null; cnpj: string | null }> = {};
     haveres.forEach((h: any) => {
@@ -60,8 +80,8 @@ export default function CreditoClientesIndex() {
       if (!haverPorParceiro[pid]) {
         haverPorParceiro[pid] = {
           total: 0,
-          razao_social: h.parceiro?.razao_social ?? null,
-          cnpj: h.parceiro?.cnpj ?? null,
+          razao_social: parceirosMap[pid]?.razao_social ?? null,
+          cnpj: parceirosMap[pid]?.cnpj ?? null,
         };
       }
       haverPorParceiro[pid].total += Number(h.saldo) || 0;
@@ -72,6 +92,9 @@ export default function CreditoClientesIndex() {
     const resumosComHaver = resumos.map((r: any) => ({
       ...r,
       razao_social: r.cliente ?? r.razao_social,
+      em_aberto:    Number(r.total_a_receber ?? 0),
+      vencidos:     Number(r.total_vencido   ?? 0),
+      a_vencer:     Number(r.faixa_a_vencer  ?? 0),
       haver_disponivel: haverPorParceiro[r.parceiro_id]?.total ?? 0,
     }));
 
@@ -99,7 +122,7 @@ export default function CreditoClientesIndex() {
               (c.vencidos ?? c.total_vencido ?? 0) > 0 ||
               (c.haver_disponivel ?? 0) > 0
     );
-  }, [resumosQ.data, haveresQ.data]);
+  }, [resumosQ.data, haveresQ.data, parceirosHaverQ.data]);
 
   const totalHaveres = clientes.reduce((s: number, c: any) => s + (c.haver_disponivel ?? 0), 0);
   const totalAVencer = clientes.reduce((s: number, c: any) => s + (c.a_vencer ?? 0), 0);
@@ -123,7 +146,7 @@ export default function CreditoClientesIndex() {
     return arr;
   }, [clientes, tab, sort]);
 
-  const loading = resumosQ.isLoading || haveresQ.isLoading;
+  const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosHaverQ.isLoading;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
