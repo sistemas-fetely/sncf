@@ -262,6 +262,7 @@ const App = () => (
                 <Route path="/pedidos" element={<PedidosIndex />} />
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
+                <Route path="/vendas/pedidos-venda" element={<PedidosVenda />} />
                 <Route path="/vendas/produtos" element={<Produtos />} />
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
