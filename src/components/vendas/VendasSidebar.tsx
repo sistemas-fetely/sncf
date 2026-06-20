@@ -44,7 +44,7 @@ export function VendasSidebar() {
           <SidebarGroupContent>
             <FinancasSidebarSection title="Bling" defaultOpen>
               <FinancasSidebarItem to="/vendas/nfs" icon={FileText} label="NFs de Venda" />
-              <FinancasSidebarItem to="/vendas/pedidos-venda" icon={ClipboardList} label="Pedidos de Venda" />
+              <FinancasSidebarItem to="/vendas/bling-pedidos" icon={ClipboardList} label="Pedidos de Venda" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
