@@ -250,7 +250,6 @@ const App = () => (
               {/* Detail routes (sem sidebar) */}
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/parceiros/:id" element={<ParceiroDetalhe />} />
-              <Route path="/teste-frete" element={<TesteFrete />} />
 
               {/* ═══════════════════════════════════════════════
                   App SOPs — com sidebar lateral
