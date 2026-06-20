@@ -130,11 +130,11 @@ export default function ShopifyB2c() {
                   <TableHead>Financeiro</TableHead>
                   <TableHead>Envio</TableHead>
                   <TableHead>Pgto</TableHead>
-                  <TableHead>Subtotal</TableHead>
-                  <TableHead>Desconto</TableHead>
-                  <TableHead>Frete</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Reembolso</TableHead>
+                  <TableHead className="text-right">Subtotal</TableHead>
+                  <TableHead className="text-right">Desconto</TableHead>
+                  <TableHead className="text-right">Frete</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Reembolso</TableHead>
                   <TableHead>Modal</TableHead>
                   <TableHead>Cidade</TableHead>
                   <TableHead>UF</TableHead>
@@ -142,41 +142,43 @@ export default function ShopifyB2c() {
                   <TableHead>Pago em</TableHead>
                   <TableHead>Cumprido em</TableHead>
                   <TableHead>Cancelado em</TableHead>
+                  <TableHead>WNS</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={17} className="text-center py-8">
+                    <TableCell colSpan={18} className="text-center py-8">
                       <Skeleton className="h-4 w-32 mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : paginados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={17} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={18} className="text-center py-8 text-muted-foreground">
                       Nenhum pedido.
                     </TableCell>
                   </TableRow>
                 ) : (
                   paginados.map((p) => (
                     <TableRow key={p.shopify_id}>
-                      <TableCell>{txt(p.order_name)}</TableCell>
-                      <TableCell>{fmtData(p.created_at_shopify)}</TableCell>
-                      <TableCell>{txt(p.financial_status)}</TableCell>
-                      <TableCell>{txt(p.fulfillment_status)}</TableCell>
-                      <TableCell>{txt(p.payment_method)}</TableCell>
-                      <TableCell>{dinheiro(p.subtotal)}</TableCell>
-                      <TableCell>{dinheiro(p.discount_amount)}</TableCell>
-                      <TableCell>{dinheiro(p.shipping_cost)}</TableCell>
-                      <TableCell>{dinheiro(p.total)}</TableCell>
-                      <TableCell>{dinheiro(p.refunded_amount)}</TableCell>
-                      <TableCell>{txt(p.shipping_method)}</TableCell>
-                      <TableCell>{txt(p.shipping_city)}</TableCell>
-                      <TableCell>{txt(p.shipping_province)}</TableCell>
-                      <TableCell>{txt(p.shipping_zip)}</TableCell>
-                      <TableCell>{fmtData(p.paid_at)}</TableCell>
-                      <TableCell>{fmtData(p.fulfilled_at)}</TableCell>
-                      <TableCell>{fmtData(p.cancelled_at)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{txt(p.order_name)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{fmtData(p.created_at_shopify)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{txt(p.financial_status)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{txt(p.fulfillment_status)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{txt(p.payment_method)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right">{dinheiro(p.subtotal)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right">{dinheiro(p.discount_amount)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right">{dinheiro(p.shipping_cost)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right">{dinheiro(p.total)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right">{dinheiro(p.refunded_amount)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{txt(p.shipping_method)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{txt(p.shipping_city)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{txt(p.shipping_province)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{txt(p.shipping_zip)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{fmtData(p.paid_at)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{fmtData(p.fulfilled_at)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{fmtData(p.cancelled_at)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{txt(p.wns_pedido_id)}</TableCell>
                     </TableRow>
                   ))
                 )}
