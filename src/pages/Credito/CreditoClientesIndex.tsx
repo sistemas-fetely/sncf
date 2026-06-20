@@ -208,26 +208,30 @@ export default function CreditoClientesIndex() {
                       <SortTh label="Haver disponível" sortKey="haver_disponivel" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Em aberto" sortKey="em_aberto" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Vencido" sortKey="vencidos" sort={sort} setSort={setSort} align="right" />
-                      <th className="text-right px-4 py-2">Ação</th>
+                      <SortTh label="Vencido" sortKey="vencidos" sort={sort} setSort={setSort} align="right" />
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                           Carregando…
                         </td>
                       </tr>
                     )}
                     {!loading && filtrados.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                           Nenhum cliente encontrado.
                         </td>
                       </tr>
                     )}
                     {filtrados.map((c: any) => (
-                      <tr key={c.parceiro_id} className="border-t hover:bg-accent/40">
+                      <tr
+                        key={c.parceiro_id}
+                        className="border-t hover:bg-accent/40 cursor-pointer"
+                        onClick={() => navigate(`/credito/clientes/${c.parceiro_id}`)}
+                      >
                       <td className="px-4 py-2">
                         <p className="font-medium truncate text-sm">{c.razao_social ?? c.cliente ?? "—"}</p>
                         <p className="text-xs text-muted-foreground truncate">{c.cnpj ?? ""}</p>
@@ -254,15 +258,6 @@ export default function CreditoClientesIndex() {
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => navigate(`/credito/clientes/${c.parceiro_id}`)}
-                          >
-                            Ver →
-                          </Button>
                         </td>
                       </tr>
                     ))}
