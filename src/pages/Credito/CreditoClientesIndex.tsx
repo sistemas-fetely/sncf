@@ -149,7 +149,7 @@ export default function CreditoClientesIndex() {
     return arr;
   }, [clientes, tab, sort]);
 
-  const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosHaverQ.isLoading;
+  const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosAllQ.isLoading;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
