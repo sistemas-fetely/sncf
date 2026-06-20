@@ -125,7 +125,7 @@ export default function CreditoClientesIndex() {
               (c.vencidos ?? c.total_vencido ?? 0) > 0 ||
               (c.haver_disponivel ?? 0) > 0
     );
-  }, [resumosQ.data, haveresQ.data, parceirosHaverQ.data]);
+  }, [resumosQ.data, haveresQ.data, parceirosAllQ.data]);
 
   const totalHaveres = clientes.reduce((s: number, c: any) => s + (c.haver_disponivel ?? 0), 0);
   const totalAVencer = clientes.reduce((s: number, c: any) => s + (c.a_vencer ?? 0), 0);
