@@ -145,6 +145,7 @@ const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
+const TesteFrete = lazy(() => import("@/pages/TesteFrete"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
