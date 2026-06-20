@@ -148,19 +148,19 @@ export default function ShopifyB2c() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-8">
+                    <TableCell colSpan={17} className="text-center py-8">
                       <Skeleton className="h-4 w-32 mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : paginados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={17} className="text-center py-8 text-muted-foreground">
                       Nenhum pedido.
                     </TableCell>
                   </TableRow>
                 ) : (
                   paginados.map((p) => (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.shopify_id}>
                       <TableCell>{txt(p.order_name)}</TableCell>
                       <TableCell>{fmtData(p.created_at_shopify)}</TableCell>
                       <TableCell>{txt(p.financial_status)}</TableCell>
@@ -178,7 +178,6 @@ export default function ShopifyB2c() {
                       <TableCell>{fmtData(p.paid_at)}</TableCell>
                       <TableCell>{fmtData(p.fulfilled_at)}</TableCell>
                       <TableCell>{fmtData(p.cancelled_at)}</TableCell>
-                      <TableCell>{txt(p.wns_pedido_id)}</TableCell>
                     </TableRow>
                   ))
                 )}
