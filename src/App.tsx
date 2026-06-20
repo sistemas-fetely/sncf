@@ -271,6 +271,7 @@ const App = () => (
                 <Route path="/logistica" element={<Logistica />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
+                <Route path="/canal-cpo" element={<CanalCPO />} />
               </Route>
 
               {/* ═══════════════════════════════════════════════
@@ -313,7 +314,6 @@ const App = () => (
               <Route path="/minhas-notas" element={<MinhasNotas />} />
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
-              <Route path="/canal-cpo" element={<CanalCPO />} />
             </Route>
 
             {/* TI Fetely */}
