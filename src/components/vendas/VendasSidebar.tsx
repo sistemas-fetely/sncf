@@ -1,4 +1,4 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle } from "lucide-react";
+import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -80,7 +80,6 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/comercial/estoque-virtual" icon={Boxes} label="Estoque Virtual" />
               <FinancasSidebarItem to="/vendas/produtos" icon={Package} label="Produtos" />
               <FinancasSidebarItem to="/vendas/farol-pedidos" icon={Radar} label="Farol de Pedidos" />
-              <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Shopify B2C" />
               <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" activeClassName="bg-green-50 text-green-700 font-medium [&_svg]:text-green-700 border-l-green-600" />
               <FinancasSidebarItem to="/logistica" icon={Truck} label="Logística" />
             </SidebarMenu>
@@ -92,6 +91,20 @@ export function VendasSidebar() {
             <FinancasSidebarSection title="Bling" defaultOpen>
               <FinancasSidebarItem to="/vendas/nfs" icon={FileText} label="NFs de Venda" />
               <FinancasSidebarItem to="/vendas/bling-pedidos" icon={ClipboardList} label="Pedidos de Venda" />
+            </FinancasSidebarSection>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="pb-3">
+          <SidebarGroupContent>
+            <FinancasSidebarSection title="Shopify" defaultOpen>
+              <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Pedidos B2C" end />
+              <FinancasSidebarItem to="/vendas/shopify/checkouts" icon={Receipt} label="Checkouts" />
+              <FinancasSidebarItem to="/vendas/shopify/produtos" icon={Package} label="Produtos" />
+              <FinancasSidebarItem to="/vendas/shopify/clientes" icon={Users} label="Clientes" />
+              <FinancasSidebarItem to="/vendas/shopify/reembolsos" icon={Receipt} label="Reembolsos" />
+              <FinancasSidebarItem to="/vendas/shopify/fulfillments" icon={Truck} label="Fulfillments" />
+              <FinancasSidebarItem to="/vendas/shopify/estoque" icon={Boxes} label="Estoque" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>

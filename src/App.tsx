@@ -144,6 +144,12 @@ const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
+const ShopifyCheckouts = lazy(() => import("@/pages/vendas/shopify/ShopifyCheckouts"));
+const ShopifyProdutos = lazy(() => import("@/pages/vendas/shopify/ShopifyProdutos"));
+const ShopifyClientes = lazy(() => import("@/pages/vendas/shopify/ShopifyClientes"));
+const ShopifyReembolsos = lazy(() => import("@/pages/vendas/shopify/ShopifyReembolsos"));
+const ShopifyFulfillments = lazy(() => import("@/pages/vendas/shopify/ShopifyFulfillments"));
+const ShopifyEstoque = lazy(() => import("@/pages/vendas/shopify/ShopifyEstoque"));
 const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 const CanalCPO = lazy(() => import("@/pages/CanalCPO"));
@@ -268,6 +274,12 @@ const App = () => (
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
+                <Route path="/vendas/shopify/checkouts" element={<ShopifyCheckouts />} />
+                <Route path="/vendas/shopify/produtos" element={<ShopifyProdutos />} />
+                <Route path="/vendas/shopify/clientes" element={<ShopifyClientes />} />
+                <Route path="/vendas/shopify/reembolsos" element={<ShopifyReembolsos />} />
+                <Route path="/vendas/shopify/fulfillments" element={<ShopifyFulfillments />} />
+                <Route path="/vendas/shopify/estoque" element={<ShopifyEstoque />} />
                 <Route path="/logistica" element={<Logistica />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
