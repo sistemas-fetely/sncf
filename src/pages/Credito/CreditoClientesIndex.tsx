@@ -71,7 +71,7 @@ export default function CreditoClientesIndex() {
     const haveres = haveresQ.data ?? [];
 
     const parceirosMap: Record<string, { razao_social: string; cnpj: string }> = {};
-    (parceirosHaverQ.data ?? []).forEach((p: any) => {
+    (parceirosAllQ.data ?? []).forEach((p: any) => {
       parceirosMap[p.id] = { razao_social: p.razao_social, cnpj: p.cnpj };
     });
 
