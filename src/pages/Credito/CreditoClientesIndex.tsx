@@ -93,7 +93,8 @@ export default function CreditoClientesIndex() {
     const parceirosNoResumo = new Set(resumos.map((r: any) => r.parceiro_id));
     const resumosComHaver = resumos.map((r: any) => ({
       ...r,
-      razao_social: r.cliente ?? r.razao_social,
+      razao_social: parceirosMap[r.parceiro_id]?.razao_social ?? r.cliente ?? r.razao_social,
+      cnpj:         parceirosMap[r.parceiro_id]?.cnpj ?? null,
       em_aberto:    Number(r.total_a_receber ?? 0),
       vencidos:     Number(r.total_vencido   ?? 0),
       a_vencer:     Number(r.faixa_a_vencer  ?? 0),
