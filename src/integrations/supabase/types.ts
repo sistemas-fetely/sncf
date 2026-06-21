@@ -10448,6 +10448,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pedidos_venda_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_venda"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pedidos_venda_itens_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
@@ -17201,6 +17208,60 @@ export type Database = {
           },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
+      vw_pedidos_venda: {
+        Row: {
+          bling_id: string | null
+          canal: string | null
+          cliente_cnpj_cpf: string | null
+          cliente_nome: string | null
+          created_at: string | null
+          data_pedido: string | null
+          data_prevista_entrega: string | null
+          data_saida: string | null
+          id: string | null
+          nf_chave_acesso: string | null
+          nf_numero: string | null
+          nf_serie: string | null
+          numero: string | null
+          numero_loja: string | null
+          observacoes: string | null
+          origem: string | null
+          parceiro_id: string | null
+          situacao: string | null
+          situacao_cor: string | null
+          situacao_label: string | null
+          situacao_nome: string | null
+          situacao_raw: Json | null
+          updated_at: string | null
+          valor_desconto: number | null
+          valor_frete: number | null
+          valor_produtos: number | null
+          valor_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_venda_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_venda_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_venda_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"

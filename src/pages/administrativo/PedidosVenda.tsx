@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShoppingCart, Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -12,15 +11,18 @@ import { ptBR } from "date-fns/locale";
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
-function situacaoBadge(s?: string | null) {
-  if (!s) return <Badge variant="outline">—</Badge>;
-  const lower = s.toLowerCase();
-  if (lower.includes("cancel")) return <Badge variant="destructive">{s}</Badge>;
-  if (lower.includes("atendido") || lower.includes("conclu"))
-    return <Badge className="bg-emerald-600 hover:bg-emerald-600">{s}</Badge>;
-  if (lower.includes("aberto") || lower.includes("andamento"))
-    return <Badge className="bg-amber-500 hover:bg-amber-500">{s}</Badge>;
-  return <Badge variant="outline">{s}</Badge>;
+function situacaoBadge(label?: string | null, cor?: string | null) {
+  if (!label) return <span className="text-muted-foreground">—</span>;
+  const bg = cor || "#9ca3af";
+  return (
+    <span className="inline-flex items-center gap-2 text-sm">
+      <span
+        className="inline-block h-2.5 w-2.5 rounded-full"
+        style={{ backgroundColor: bg }}
+      />
+      {label}
+    </span>
+  );
 }
 
 export default function PedidosVenda() {
@@ -30,7 +32,7 @@ export default function PedidosVenda() {
     queryKey: ["pedidos-venda"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("pedidos_venda")
+        .from("vw_pedidos_venda")
         .select("*")
         .order("data_pedido", { ascending: false })
         .limit(500);
@@ -43,16 +45,12 @@ export default function PedidosVenda() {
     const q = busca.trim().toLowerCase();
     if (!q) return pedidos;
     return pedidos.filter((p: any) =>
-      [p.numero, p.cliente_nome, p.canal, p.situacao]
+      [p.numero, p.cliente_nome, p.canal, p.situacao_label, p.situacao]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
   }, [pedidos, busca]);
 
-  // KPI CANDIDATO: Total de pedidos no período
-  // KPI CANDIDATO: Ticket médio (valor_total / qtd pedidos)
-  // KPI CANDIDATO: Concentração de clientes (top 5 = X% do total)
-  // KPI CANDIDATO: Conversão por canal (b2b vs b2c vs marketplace)
   const totais = useMemo(() => {
     const valor = filtrados.reduce((s: number, p: any) => s + Number(p.valor_total || 0), 0);
     return {
@@ -144,7 +142,7 @@ export default function PedidosVenda() {
                     <TableCell className="max-w-[280px] truncate">{p.cliente_nome || "—"}</TableCell>
                     <TableCell className="text-xs">{p.canal || "—"}</TableCell>
                     <TableCell className="text-right font-medium">{fmtBRL(p.valor_total)}</TableCell>
-                    <TableCell>{situacaoBadge(p.situacao)}</TableCell>
+                    <TableCell>{situacaoBadge(p.situacao_label, p.situacao_cor)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
