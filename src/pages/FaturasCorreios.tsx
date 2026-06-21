@@ -6,11 +6,11 @@ export default function FaturasCorreios() {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function puxar() {
+  async function chamar(body: Record<string, unknown>) {
     setLoading(true);
     setResult("");
     try {
-      const { data, error } = await supabase.functions.invoke("correios-faturas", { body: { dias } });
+      const { data, error } = await supabase.functions.invoke("correios-faturas", { body });
       if (error) throw error;
       setResult(JSON.stringify(data, null, 2));
     } catch (e) {
@@ -25,7 +25,7 @@ export default function FaturasCorreios() {
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Faturas Correios</h1>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <label>Período:</label>
+        <label>Período (faturas fechadas):</label>
         <select
           value={dias}
           onChange={(e) => setDias(Number(e.target.value))}
@@ -37,13 +37,24 @@ export default function FaturasCorreios() {
           <option value={730}>Últimos 24 meses</option>
         </select>
         <button
-          onClick={puxar}
+          onClick={() => chamar({ modo: "faturas", dias })}
           disabled={loading}
           style={{ padding: "8px 16px", borderRadius: 6, cursor: "pointer" }}
         >
-          {loading ? "Puxando..." : "Puxar Faturas"}
+          {loading ? "..." : "Puxar Faturas"}
+        </button>
+        <button
+          onClick={() => chamar({ modo: "previa" })}
+          disabled={loading}
+          style={{ padding: "8px 16px", borderRadius: 6, cursor: "pointer", background: "#1a3d2b", color: "#fff", border: "none" }}
+        >
+          {loading ? "..." : "Puxar Prévia (ciclo aberto)"}
         </button>
       </div>
+
+      <p style={{ fontSize: 13, color: "#666", marginBottom: 16 }}>
+        Prévia = lançamentos do ciclo aberto, ainda não faturados (delay de até 2 dias).
+      </p>
 
       {result && (
         <pre style={{ padding: 12, background: "#fff", border: "1px solid #eee", borderRadius: 6, fontSize: 12, overflow: "auto", maxHeight: 600 }}>
