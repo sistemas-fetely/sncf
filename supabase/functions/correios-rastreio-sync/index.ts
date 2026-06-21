@@ -71,9 +71,14 @@ async function rastrearEGravar(token: string, codigo: string) {
   let data_ultima: string | null = null;
 
   try {
-    const url = `${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T&idioma=pt-BR`;
+    const url = `${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T`;
     const resp = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Accept-Language": "pt-BR",
+        idioma: "pt-BR",
+      },
     });
     const bodyText = await resp.text();
     console.log(`SRO ${c} status=${resp.status} body=${bodyText.slice(0, 600)}`);
