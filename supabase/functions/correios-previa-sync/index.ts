@@ -59,25 +59,14 @@ function parseAnalitico(csv: string) {
   const cols = linhas[hIdx].split(";").map((c) => c.trim());
   const at = (name: string) => cols.indexOf(name);
   const I = {
-    centro: at("CODIGO DO CENTRO CUSTO"),
-    cartao: at("CARTAO DE POSTAGEM"),
-    data: at("DATA DE POSTAGEM"),
-    codServ: at("CODIGO DO SERVICO"),
-    descServ: at("DESCRICAO DO SERVICO"),
-    qtd: at("QUANTIDADE DE ITENS"),
-    peso: at("PESO"),
-    vUnit: at("VALOR UNITARIO DO SERVICO"),
-    vServ: at("VALOR DO SERVICO"),
-    doc: at("NUMERO DO DOCUMENTO"),
-    etiqueta: at("ETIQUETA"),
-    vDecl: at("VALOR DECLARADO"),
-    vDesc: at("VALOR DO DESCONTO"),
-    cepO: at("CEP DE ORIGEM"),
-    munO: at("MUNICIPIO DE ORIGEM"),
-    ufO: at("UF DE ORIGEM"),
-    cepD: at("CEP DE DESTINO"),
-    munD: at("MUNICIPIO DE DESTINO"),
-    ufD: at("UF DE DESTINO"),
+    centro: at("CODIGO DO CENTRO CUSTO"), cartao: at("CARTAO DE POSTAGEM"),
+    data: at("DATA DE POSTAGEM"), codServ: at("CODIGO DO SERVICO"), descServ: at("DESCRICAO DO SERVICO"),
+    qtd: at("QUANTIDADE DE ITENS"), peso: at("PESO"),
+    vUnit: at("VALOR UNITARIO DO SERVICO"), vServ: at("VALOR DO SERVICO"),
+    doc: at("NUMERO DO DOCUMENTO"), etiqueta: at("ETIQUETA"),
+    vDecl: at("VALOR DECLARADO"), vDesc: at("VALOR DO DESCONTO"),
+    cepO: at("CEP DE ORIGEM"), munO: at("MUNICIPIO DE ORIGEM"), ufO: at("UF DE ORIGEM"),
+    cepD: at("CEP DE DESTINO"), munD: at("MUNICIPIO DE DESTINO"), ufD: at("UF DE DESTINO"),
   };
 
   const limpa = (x: string) => (x ?? "").trim().replace(/^"|"$/g, "").trim();
@@ -88,26 +77,15 @@ function parseAnalitico(csv: string) {
     const etiqueta = c[I.etiqueta];
     if (!etiqueta || !/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(etiqueta)) continue;
     rows.push({
-      etiqueta,
-      origem_dado: "previa",
-      centro_custo: c[I.centro] || null,
-      cartao_postagem: c[I.cartao] || null,
-      data_postagem: c[I.data] || null,
-      codigo_servico: c[I.codServ] || null,
-      descricao_servico: c[I.descServ] || null,
-      quantidade_itens: toInt(c[I.qtd]),
-      peso: toInt(c[I.peso]),
-      valor_unitario: toNum(c[I.vUnit]),
-      valor_servico: toNum(c[I.vServ]),
-      valor_declarado: toNum(c[I.vDecl]),
-      valor_desconto: toNum(c[I.vDesc]),
+      etiqueta, origem_dado: "previa",
+      centro_custo: c[I.centro] || null, cartao_postagem: c[I.cartao] || null,
+      data_postagem: c[I.data] || null, codigo_servico: c[I.codServ] || null,
+      descricao_servico: c[I.descServ] || null, quantidade_itens: toInt(c[I.qtd]),
+      peso: toInt(c[I.peso]), valor_unitario: toNum(c[I.vUnit]), valor_servico: toNum(c[I.vServ]),
+      valor_declarado: toNum(c[I.vDecl]), valor_desconto: toNum(c[I.vDesc]),
       numero_documento: c[I.doc] || null,
-      cep_origem: c[I.cepO] || null,
-      municipio_origem: c[I.munO] || null,
-      uf_origem: c[I.ufO] || null,
-      cep_destino: c[I.cepD] || null,
-      municipio_destino: c[I.munD] || null,
-      uf_destino: c[I.ufD] || null,
+      cep_origem: c[I.cepO] || null, municipio_origem: c[I.munO] || null, uf_origem: c[I.ufO] || null,
+      cep_destino: c[I.cepD] || null, municipio_destino: c[I.munD] || null, uf_destino: c[I.ufD] || null,
       atualizado_em: new Date().toISOString(),
     });
   }
@@ -163,11 +141,25 @@ Deno.serve(async (req) => {
 
     let upserted = 0;
     if (rows.length > 0) {
-      const { error } = await supabase
-        .from("correios_lancamentos")
-        .upsert(rows, { onConflict: "etiqueta" });
-      if (error) throw new Error(`upsert: ${error.message}`);
+      const { error } = await supabase.from("correios_lancamentos").upsert(rows, { onConflict: "etiqueta" });
+      if (error) throw new Error(`upsert lancamentos: ${error.message}`);
       upserted = rows.length;
+    }
+
+    // ---- SEMEAR pedido_rastreamento com etiquetas NOVAS (não sobrescreve) ----
+    let semeados = 0;
+    if (rows.length > 0) {
+      const novos = rows.map((r) => ({
+        codigo_rastreio: r.etiqueta,
+        servico: r.descricao_servico,
+        entregue: false,
+      }));
+      const { data: ins, error: errSeed } = await supabase
+        .from("pedido_rastreamento")
+        .upsert(novos, { onConflict: "codigo_rastreio", ignoreDuplicates: true })
+        .select("id");
+      if (errSeed) console.log("seed rastreamento erro:", errSeed.message);
+      else semeados = ins?.length ?? 0;
     }
 
     const somaParse = rows.reduce((s, r) => s + (r.valor_servico ?? 0), 0);
@@ -176,10 +168,10 @@ Deno.serve(async (req) => {
       ok: true,
       lancamentos: rows.length,
       upserted,
+      rastreamentoSemeados: semeados,
       somaValorServico: Math.round(somaParse * 100) / 100,
       rodape,
       confere: rodape?.total != null ? Math.abs((rodape.total ?? 0) - somaParse) < 0.05 : null,
-      exemplo: rows[0] ?? null,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ erro: String(e) }), {
