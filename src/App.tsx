@@ -285,6 +285,7 @@ const App = () => (
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
                 <Route path="/canal-cpo" element={<CanalCPO />} />
+                <Route path="/vendas/rastreamento" element={<RastreamentoCorreios />} />
               </Route>
 
               {/* ═══════════════════════════════════════════════
