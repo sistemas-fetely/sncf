@@ -91,7 +91,6 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/logistica" icon={Truck} label="Logística" />
               <FinancasSidebarItem to="/vendas/rastreamento" icon={Radar} label="Rastreamento" />
             </FinancasSidebarSection>
-            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
