@@ -415,9 +415,259 @@ function AbaB2B() {
 // ABA B2C
 // ════════════════════════════════════════════════════════════════════════════
 function AbaB2C() {
+  const { data: shopifyData = [], isLoading: loadingShopify } = useQuery({
+    queryKey: ["gestao-b2c-shopify"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("shopify_pedidos")
+        .select("shopify_id,order_name,financial_status,fulfillment_status,paid_at,total,payment_method,shipping_province,wns_pedido_id,cancelled_at")
+        .order("paid_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as B2CRow[];
+    },
+  });
+
+  const { data: fasesData = [] } = useQuery({
+    queryKey: ["wns-fases-b2c"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("wns_fases_xpm")
+        .select("wns_id,sequencia");
+      if (error) throw error;
+      return (data ?? []) as { wns_id: number; sequencia: number }[];
+    },
+  });
+
+  const wnsIds = useMemo(() => {
+    const ids: number[] = [];
+    for (const r of shopifyData) {
+      if (r.wns_pedido_id) {
+        const n = Number(r.wns_pedido_id);
+        if (!isNaN(n)) ids.push(n);
+      }
+    }
+    return ids;
+  }, [shopifyData]);
+
+  const { data: wnsData = [] } = useQuery({
+    queryKey: ["gestao-b2c-wns", wnsIds],
+    enabled: wnsIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("wns_pedidos")
+        .select("pedidowns,evento_atual_wns_id")
+        .in("pedidowns", wnsIds);
+      if (error) throw error;
+      return (data ?? []) as { pedidowns: number; evento_atual_wns_id: number | null }[];
+    },
+  });
+
+  const { data: fulfData = [] } = useQuery({
+    queryKey: ["gestao-b2c-fulfillments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("shopify_fulfillments")
+        .select("order_id,tracking_number,tracking_url,tracking_company,shipment_status")
+        .not("tracking_number", "is", null);
+      if (error) throw error;
+      return (data ?? []) as { order_id: string | null; tracking_number: string | null; tracking_url: string | null; tracking_company: string | null; shipment_status: string | null }[];
+    },
+  });
+
+  const faseSeqMap = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const f of fasesData) m.set(f.wns_id, f.sequencia);
+    return m;
+  }, [fasesData]);
+
+  const wnsSeqMap = useMemo(() => {
+    const m = new Map<number, number | null>();
+    for (const w of wnsData) {
+      const seq = w.evento_atual_wns_id != null ? (faseSeqMap.get(w.evento_atual_wns_id) ?? null) : null;
+      m.set(w.pedidowns, seq);
+    }
+    return m;
+  }, [wnsData, faseSeqMap]);
+
+  const fulfMap = useMemo(() => {
+    const m = new Map<string, typeof fulfData[0]>();
+    for (const f of fulfData) if (f.order_id) m.set(f.order_id, f);
+    return m;
+  }, [fulfData]);
+
+  const rows: B2CRow[] = useMemo(() => {
+    return shopifyData.map((r) => {
+      const wnsN = r.wns_pedido_id ? Number(r.wns_pedido_id) : NaN;
+      const wnsSeq = !isNaN(wnsN) ? (wnsSeqMap.get(wnsN) ?? null) : null;
+      const fulf = fulfMap.get(r.shopify_id) ?? null;
+      return {
+        ...r,
+        wns_sequencia: wnsSeq,
+        tracking_number: fulf?.tracking_number ?? null,
+        tracking_url: fulf?.tracking_url ?? null,
+        tracking_company: fulf?.tracking_company ?? null,
+        shipment_status: fulf?.shipment_status ?? null,
+      };
+    });
+  }, [shopifyData, wnsSeqMap, fulfMap]);
+
+  const [busca, setBusca] = useState("");
+  const [estagioFiltro, setEstagioFiltro] = useState<string>("__todos");
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const contagens = useMemo(() => {
+    const c: Record<EstagioB2C, number> = { pago: 0, em_separacao: 0, expedido: 0, em_transito: 0, entregue: 0, cancelado: 0 };
+    for (const r of rows) c[derivarEstagioB2C(r)]++;
+    return c;
+  }, [rows]);
+
+  const filtradas = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    let arr = rows.filter((r) => {
+      if (q) {
+        const hit =
+          r.order_name.toLowerCase().includes(q) ||
+          String(r.tracking_number ?? "").toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (estagioFiltro !== "__todos" && derivarEstagioB2C(r) !== estagioFiltro) return false;
+      return true;
+    });
+    if (sortKey) {
+      arr = [...arr].sort((a, b) => {
+        const va = (a as any)[sortKey];
+        const vb = (b as any)[sortKey];
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        if (typeof va === "number" && typeof vb === "number") {
+          return sortDir === "asc" ? va - vb : vb - va;
+        }
+        return sortDir === "asc"
+          ? String(va).localeCompare(String(vb))
+          : String(vb).localeCompare(String(va));
+      });
+    }
+    return arr;
+  }, [rows, busca, estagioFiltro, sortKey, sortDir]);
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const Th = ({ k, children }: { k?: string; children: React.ReactNode }) => (
+    <th
+      className={`px-2 py-1.5 text-left font-medium text-muted-foreground border-b bg-muted/50 ${k ? "cursor-pointer select-none" : ""}`}
+      onClick={k ? () => toggleSort(k) : undefined}
+    >
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {k && sortKey === k && <ArrowUpDown className="h-3 w-3" />}
+      </span>
+    </th>
+  );
+
+  const ESTAGIOS_B2C: EstagioB2C[] = ["pago", "em_separacao", "expedido", "em_transito", "entregue", "cancelado"];
+
   return (
-    <div className="py-8 text-center text-sm text-muted-foreground">
-      Aba B2C — em construção (passo 2)
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <button
+          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${estagioFiltro === "__todos" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted/50"}`}
+          onClick={() => setEstagioFiltro("__todos")}
+        >
+          Todos · {rows.length}
+        </button>
+        {ESTAGIOS_B2C.map((e) => (
+          <button
+            key={e}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${estagioFiltro === e ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted/50"}`}
+            onClick={() => setEstagioFiltro(e === estagioFiltro ? "__todos" : e)}
+          >
+            <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${B2C_ESTAGIO_COR[e].split(" ")[0]}`} />
+            {B2C_ESTAGIO_LABEL[e]} · {contagens[e]}
+          </button>
+        ))}
+      </div>
+
+      <Input
+        placeholder="Buscar por nº pedido ou rastreio…"
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+        className="w-72 h-8 text-xs"
+      />
+
+      <div className="border rounded-md overflow-auto" style={{ maxHeight: "calc(100vh - 300px)" }}>
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <Th k="order_name">Pedido</Th>
+              <Th>Estágio</Th>
+              <Th k="total">Valor</Th>
+              <Th>Pagamento</Th>
+              <Th k="paid_at">Data</Th>
+              <Th k="shipping_province">UF</Th>
+              <Th>WNS</Th>
+              <Th>Rastreio</Th>
+              <Th>Transportadora</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {loadingShopify && (
+              <tr><td colSpan={9} className="px-2 py-4 text-center text-muted-foreground">Carregando…</td></tr>
+            )}
+            {!loadingShopify && filtradas.length === 0 && (
+              <tr><td colSpan={9} className="px-2 py-4 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
+            )}
+            {filtradas.map((r) => {
+              const estagio = derivarEstagioB2C(r);
+              return (
+                <tr key={r.shopify_id} className="border-b hover:bg-muted/30">
+                  <td className="px-2 py-1.5 align-top font-medium">{r.order_name}</td>
+                  <td className="px-2 py-1.5 align-top">
+                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] ${B2C_ESTAGIO_COR[estagio]}`}>
+                      {B2C_ESTAGIO_LABEL[estagio]}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1.5 align-top">{brl(r.total)}</td>
+                  <td className="px-2 py-1.5 align-top text-muted-foreground">{r.payment_method ?? "-"}</td>
+                  <td className="px-2 py-1.5 align-top">{fmtData(r.paid_at)}</td>
+                  <td className="px-2 py-1.5 align-top">{r.shipping_province ?? "-"}</td>
+                  <td className="px-2 py-1.5 align-top">
+                    {r.wns_pedido_id ? (
+                      <span className="text-muted-foreground">#{r.wns_pedido_id}</span>
+                    ) : "-"}
+                  </td>
+                  <td className="px-2 py-1.5 align-top">
+                    {r.tracking_number ? (
+                      r.tracking_url ? (
+                        <a
+                          href={r.tracking_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-[10px] text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {r.tracking_number}
+                        </a>
+                      ) : (
+                        <span className="font-mono text-[10px]">{r.tracking_number}</span>
+                      )
+                    ) : "-"}
+                  </td>
+                  <td className="px-2 py-1.5 align-top text-muted-foreground">{r.tracking_company ?? "-"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
