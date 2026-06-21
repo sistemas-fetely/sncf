@@ -81,8 +81,8 @@ Deno.serve(async (req) => {
     // ETAPA 1: listar faturas dos últimos 90 dias.
     // Os nomes dos parâmetros são uma tentativa — o retorno cru abaixo
     // vai confirmar se estão certos (ou dizer o que a API espera).
-    const dataInicio = isoDias(90);
-    const dataFim = isoDias(0);
+    const dataInicio = ddmmyyyy(90);
+    const dataFim = ddmmyyyy(0);
     const dr = Deno.env.get("CORREIOS_DR") ?? "72";
     const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicial=${dataInicio}&dataFinal=${dataFim}`;
 
