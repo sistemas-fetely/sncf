@@ -1055,6 +1055,8 @@ export default function PedidoDetalhe() {
                         pesoBrutoTotal: parseFloat(pesoBruto) || 0,
                         freteTipo: freteTipo || null,
                         valorFrete: parseFloat(valorFrete) || 0,
+                        estimativaValor: freteEst.data?.valor_estimado ?? null,
+                        estimativaJson: freteEst.data ?? null,
                       })
                     }
                   >
