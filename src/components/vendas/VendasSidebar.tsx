@@ -80,7 +80,6 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/comercial/estoque-virtual" icon={Boxes} label="Estoque Virtual" />
               <FinancasSidebarItem to="/vendas/produtos" icon={Package} label="Produtos" />
               <FinancasSidebarItem to="/vendas/farol-pedidos" icon={Radar} label="Farol de Pedidos" />
-              <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" activeClassName="bg-green-50 text-green-700 font-medium [&_svg]:text-green-700 border-l-green-600" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -90,6 +89,7 @@ export function VendasSidebar() {
             <FinancasSidebarSection title="Logística" defaultOpen>
               <FinancasSidebarItem to="/logistica" icon={Truck} label="Logística" />
               <FinancasSidebarItem to="/vendas/rastreamento" icon={Radar} label="Rastreamento" />
+              <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" activeClassName="bg-green-50 text-green-700 font-medium [&_svg]:text-green-700 border-l-green-600" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
