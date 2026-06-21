@@ -17,7 +17,6 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-// Token por CONTRATO (cache separado, id = 'contrato')
 async function getTokenContrato(): Promise<string> {
   const { data: cached } = await supabase
     .from("correios_token")
@@ -47,9 +46,7 @@ async function getTokenContrato(): Promise<string> {
     body: JSON.stringify(body),
   });
   const txt = await resp.text();
-  console.log(`TOKEN CONTRATO status=${resp.status} body=${txt.slice(0, 400)}`);
   if (!resp.ok) throw new Error(`Token contrato (${resp.status}): ${txt.slice(0, 300)}`);
-
   const json = JSON.parse(txt);
   await supabase.from("correios_token").upsert({
     id: "contrato",
@@ -61,12 +58,11 @@ async function getTokenContrato(): Promise<string> {
   return json.token;
 }
 
-function ddmmyyyy(diasAtras: number): string {
+function brDate(diasAtras: number): string {
   const d = new Date(Date.now() - diasAtras * 86400000);
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const yyyy = d.getUTCFullYear();
-  return `${dd}-${mm}-${yyyy}`;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}-${mm}-${d.getFullYear()}`;
 }
 
 Deno.serve(async (req) => {
@@ -75,29 +71,28 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const reqBody = await req.json().catch(() => ({}));
+    const dias = Number(reqBody?.dias) > 0 ? Number(reqBody.dias) : 365;
+
     const token = await getTokenContrato();
     const contrato = Deno.env.get("CORREIOS_CONTRATO");
+    const dr = Deno.env.get("CORREIOS_DR");
 
-    // ETAPA 1: listar faturas dos últimos 90 dias.
-    // Os nomes dos parâmetros são uma tentativa — o retorno cru abaixo
-    // vai confirmar se estão certos (ou dizer o que a API espera).
-    const dataInicio = ddmmyyyy(90);
-    const dataFim = ddmmyyyy(0);
-    const dr = Deno.env.get("CORREIOS_DR") ?? "72";
-    const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicial=${dataInicio}&dataFinal=${dataFim}`;
+    const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicial=${brDate(dias)}&dataFinal=${brDate(0)}`;
 
     const resp = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     });
     const bodyText = await resp.text();
-    console.log(`FATURAS status=${resp.status} body=${bodyText.slice(0, 1500)}`);
+    console.log(`FATURAS status=${resp.status} dias=${dias} body=${bodyText.slice(0, 1500)}`);
 
     return new Response(
       JSON.stringify({
         tokenOk: true,
         faturasStatus: resp.status,
+        periodoDias: dias,
         url,
-        faturasBody: bodyText.slice(0, 4000),
+        faturasBody: bodyText.slice(0, 6000),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
