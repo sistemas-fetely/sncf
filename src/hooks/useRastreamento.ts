@@ -13,12 +13,7 @@ export interface Rastreio {
 }
 
 function normalizarStatus(row: any): Rastreio {
-  const evs = (row.eventos as any[]) ?? [];
-  const statusAtual =
-    evs.length > 0 && evs[0]?.descricao
-      ? evs[0].descricao
-      : (row.status_atual ?? null);
-  return { ...row, status_atual: statusAtual };
+  return { ...row, status_atual: row.status_atual ?? null };
 }
 
 export function useRastreamento() {
