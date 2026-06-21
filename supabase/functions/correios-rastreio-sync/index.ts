@@ -71,7 +71,8 @@ async function rastrearEGravar(token: string, codigo: string) {
   let data_ultima: string | null = null;
 
   try {
-    const resp = await fetch(`${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T&idioma=pt-BR`, {
+    const url = `${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T&idioma=pt-BR`;
+    const resp = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     });
     const bodyText = await resp.text();
@@ -104,7 +105,6 @@ async function rastrearEGravar(token: string, codigo: string) {
     atualizado_em: new Date().toISOString(),
   };
 
-  // SEMPRE grava (insere ou atualiza) — pra ficar visível na tela
   const { error } = await supabase
     .from("pedido_rastreamento")
     .upsert(registro, { onConflict: "codigo_rastreio" });
