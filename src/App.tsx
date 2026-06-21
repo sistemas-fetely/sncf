@@ -565,6 +565,7 @@ const App = () => (
               <Route path="faturas-cartao" element={<FaturasCartao />} />
               
               <Route path="fluxo-futuro" element={<FluxoCaixaFuturo />} />
+              <Route path="previsao-recebimentos" element={<PrevisaoRecebimentos />} />
               <Route path="fluxo-futuro-investimento" element={<FluxoFuturoInvestimento />} />
               <Route path="compromissos" element={<Compromissos />} />
               <Route path="configuracao-integracao" element={<ConfiguracaoIntegracao />} />
