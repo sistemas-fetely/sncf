@@ -61,8 +61,12 @@ async function getTokenContrato(): Promise<string> {
   return json.token;
 }
 
-function isoDias(diasAtras: number): string {
-  return new Date(Date.now() - diasAtras * 86400000).toISOString().slice(0, 10);
+function ddmmyyyy(diasAtras: number): string {
+  const d = new Date(Date.now() - diasAtras * 86400000);
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const yyyy = d.getUTCFullYear();
+  return `${dd}-${mm}-${yyyy}`;
 }
 
 Deno.serve(async (req) => {
