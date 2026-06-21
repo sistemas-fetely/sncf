@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useRastreamento } from "@/hooks/useRastreamento";
-import { supabase } from "@/integrations/supabase/client";
 
 function dataEntrega(eventos: any[]): string | null {
   const ev = (eventos ?? []).find((e) => /entregue/i.test(e?.descricao ?? ""));
@@ -22,47 +21,15 @@ export default function RastreamentoCorreios() {
   const [codigo, setCodigo] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
 
-  const [faturas, setFaturas] = useState("");
-  const [fatLoading, setFatLoading] = useState(false);
-
   useEffect(() => { listar(); }, [listar]);
 
   const td = { padding: "8px 12px", borderBottom: "1px solid #eee", fontSize: 14, verticalAlign: "top" as const };
   const th = { ...td, textAlign: "left" as const, fontWeight: 600, color: "#666" };
 
-  async function puxarFaturas() {
-    setFatLoading(true);
-    setFaturas("");
-    try {
-      const { data, error } = await supabase.functions.invoke("correios-faturas", { body: {} });
-      if (error) throw error;
-      setFaturas(JSON.stringify(data, null, 2));
-    } catch (e) {
-      setFaturas("ERRO: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setFatLoading(false);
-    }
-  }
-
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Rastreamento Correios</h1>
 
-      <div style={{ marginBottom: 24, padding: 16, border: "1px solid #ddd", borderRadius: 8, background: "#fafafa" }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Faturas (teste — Etapa 1)</h2>
-        <button
-          onClick={puxarFaturas}
-          disabled={fatLoading}
-          style={{ padding: "8px 16px", borderRadius: 6, cursor: "pointer" }}
-        >
-          {fatLoading ? "Puxando..." : "Puxar Faturas"}
-        </button>
-        {faturas && (
-          <pre style={{ marginTop: 12, padding: 12, background: "#fff", border: "1px solid #eee", borderRadius: 6, fontSize: 12, overflow: "auto", maxHeight: 400 }}>
-            {faturas}
-          </pre>
-        )}
-      </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <input
