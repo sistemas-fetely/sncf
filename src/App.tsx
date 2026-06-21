@@ -109,6 +109,7 @@ const NFsStage = lazy(() => import("@/pages/administrativo/NFsStage"));
 const FaturasCartao = lazy(() => import("@/pages/administrativo/FaturasCartao"));
 
 const FluxoCaixaFuturo = lazy(() => import("@/pages/administrativo/FluxoCaixaFuturo"));
+const PrevisaoRecebimentos = lazy(() => import("@/pages/administrativo/PrevisaoRecebimentos"));
 const Compromissos = lazy(() => import("@/pages/administrativo/Compromissos"));
 const DocumentosPendentes = lazy(() => import("@/pages/administrativo/DocumentosPendentes"));
 const AdminContratos = lazy(() => import("@/pages/administrativo/Contratos"));
