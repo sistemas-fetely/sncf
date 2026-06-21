@@ -62,7 +62,6 @@ const ENTRADA_LABEL: Record<string, string> = {
   paga: "Paga",
 };
 
-// ─── estágio B2C derivado de três fontes ──────────────────────────────────
 type EstagioB2C = "pago" | "em_separacao" | "expedido" | "em_transito" | "entregue" | "cancelado";
 
 const B2C_ESTAGIO_COR: Record<EstagioB2C, string> = {
@@ -83,9 +82,6 @@ const B2C_ESTAGIO_LABEL: Record<EstagioB2C, string> = {
   cancelado:    "Cancelado",
 };
 
-// sequencia >= 6 = EXPEDIDO na dimensão wns_fases_xpm
-const WNS_SEQ_EXPEDIDO = 6;
-
 interface B2CRow {
   shopify_id: string;
   order_name: string;
@@ -95,10 +91,8 @@ interface B2CRow {
   total: number;
   payment_method: string | null;
   shipping_province: string | null;
-  shipping_city: string | null;
   wns_pedido_id: string | null;
   cancelled_at: string | null;
-  // enriquecido após join
   wns_sequencia?: number | null;
   tracking_number?: string | null;
   tracking_url?: string | null;
@@ -109,18 +103,15 @@ interface B2CRow {
 function derivarEstagioB2C(r: B2CRow): EstagioB2C {
   const fs = r.financial_status ?? "";
   if (fs === "refunded" || fs === "cancelled" || r.cancelled_at) return "cancelado";
-  // rastreio com entrega confirmada
   if (r.shipment_status === "delivered") return "entregue";
-  // rastreio ativo
   if (r.tracking_number) return "em_transito";
-  // WNS recebeu e expediu
   if (r.wns_pedido_id && r.wns_sequencia != null) {
-    if (r.wns_sequencia >= WNS_SEQ_EXPEDIDO) return "expedido";
+    if (r.wns_sequencia >= 6) return "expedido";
     return "em_separacao";
   }
-  // pago sem envio
   return "pago";
 }
+
 
 type SortDir = "asc" | "desc";
 
