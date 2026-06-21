@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useRastreamento } from "@/hooks/useRastreamento";
-import { supabase } from "@/integrations/supabase/client";
 
 function dataEntrega(eventos: any[]): string | null {
   const ev = (eventos ?? []).find((e) => /entregue/i.test(e?.descricao ?? ""));
