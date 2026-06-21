@@ -21,8 +21,8 @@ export function FinancasSidebarSection({
 
   const triggerClassName =
     variant === "primary"
-      ? "flex w-full items-center justify-between px-3 py-2 text-[11px] uppercase tracking-[2px] text-muted-foreground rounded-md transition-colors hover:text-foreground"
-      : "flex w-full items-center justify-between px-3 py-1.5 text-xs font-medium text-foreground rounded-md transition-colors hover:bg-sidebar-accent";
+      ? "flex w-full items-center justify-between px-3 py-2 text-[13px] uppercase tracking-[2px] text-muted-foreground rounded-md transition-colors hover:text-foreground"
+      : "flex w-full items-center justify-between px-3 py-1.5 text-sm font-medium text-foreground rounded-md transition-colors hover:bg-sidebar-accent";
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="group/section">
