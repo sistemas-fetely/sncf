@@ -21,27 +21,10 @@ export default function RastreamentoCorreios() {
   const [codigo, setCodigo] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
 
-  const [faturas, setFaturas] = useState("");
-  const [fatLoading, setFatLoading] = useState(false);
-
   useEffect(() => { listar(); }, [listar]);
 
   const td = { padding: "8px 12px", borderBottom: "1px solid #eee", fontSize: 14, verticalAlign: "top" as const };
   const th = { ...td, textAlign: "left" as const, fontWeight: 600, color: "#666" };
-
-  async function puxarFaturas() {
-    setFatLoading(true);
-    setFaturas("");
-    try {
-      const { data, error } = await supabase.functions.invoke("correios-faturas", { body: {} });
-      if (error) throw error;
-      setFaturas(JSON.stringify(data, null, 2));
-    } catch (e) {
-      setFaturas("ERRO: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setFatLoading(false);
-    }
-  }
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
