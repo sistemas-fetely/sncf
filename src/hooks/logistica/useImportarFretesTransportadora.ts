@@ -247,6 +247,15 @@ export function useImportarFretesTransportadora(transportadoraId: string | null)
       }
     }
 
+    setEtapa("Verificando entregas…");
+    const { data: entData, error: entErr } = await (supabase as any).rpc("fn_transicionar_entregues");
+    if (!entErr && entData) {
+      const entregues = entData.entregues ?? 0;
+      const alertados = entData.alertados ?? 0;
+      if (entregues > 0) toast.success(`${entregues} pedido(s) marcado(s) como Entregue`);
+      if (alertados > 0) toast.warning(`${alertados} pedido(s) com alerta de retenção fiscal`);
+    }
+
     setEtapa("");
     setProcessando(false);
     setResultado({ total: linhasValidas.length });
