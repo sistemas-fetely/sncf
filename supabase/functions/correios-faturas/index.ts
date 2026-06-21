@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
     const reqBody = await req.json().catch(() => ({}));
     const modo = reqBody?.modo === "previa" ? "previa" : "faturas";
     const dias = Number(reqBody?.dias) > 0 ? Number(reqBody.dias) : 365;
+    const tipoPrevia = (reqBody?.tipoPrevia as string) || "ANALITICO";
 
     const token = await getTokenContrato();
     const contrato = Deno.env.get("CORREIOS_CONTRATO");
@@ -94,8 +95,8 @@ Deno.serve(async (req) => {
     }
 
     // ---------- MODO PREVIA (ciclo aberto, assíncrono) ----------
-    // 1) Solicita a prévia (POST). Parâmetros são tentativa — o retorno cru corrige.
-    const postUrl = `${BASE_URL}/faturas/v1/previas?contrato=${contrato}&dr=${dr}`;
+    // 1) Solicita a prévia (POST) com tipoPrevia.
+    const postUrl = `${BASE_URL}/faturas/v1/previas?contrato=${contrato}&dr=${dr}&tipoPrevia=${tipoPrevia}`;
     const postResp = await fetch(postUrl, {
       method: "POST",
       headers: { ...authHeaders, "Content-Type": "application/json" },
@@ -111,7 +112,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const idProc = JSON.parse(postText)?.id ?? JSON.parse(postText)?.idProcessamento;
+    const parsedPost = JSON.parse(postText);
+    const idProc = parsedPost?.id ?? parsedPost?.idProcessamento;
 
     // 2) Consulta o processamento até SUCESSO (ou erro/limite).
     let statusProc = "SOLICITADO";
@@ -141,6 +143,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         tokenOk: true,
         modo,
+        tipoPrevia,
         idProcessamento: idProc,
         statusProc,
         tentativas,
