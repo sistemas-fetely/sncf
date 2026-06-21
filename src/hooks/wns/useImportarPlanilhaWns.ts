@@ -234,6 +234,16 @@ export function useImportarPlanilhaWns() {
       toast.warning("Importação concluída, mas o vínculo automático de NFs falhou: " + errVinc.message);
     }
 
+    setEtapa("Avançando estágios WNS…");
+    const { data: transData, error: transErr } = await sb.rpc("fn_transicionar_expedidos");
+    if (!transErr && transData) {
+      const avancados = transData.avancados ?? 0;
+      const alertados = transData.alertados ?? 0;
+      if (avancados > 0) toast.success(`${avancados} pedido(s) avançaram para Em Transporte`);
+      if (alertados > 0) toast.warning(`${alertados} pedido(s) com alerta logístico — verifique a Gestão de Pedidos`);
+    }
+
+
     const { error: errFim } = await sb
       .from("wns_importacoes")
       .update({
