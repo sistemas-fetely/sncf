@@ -79,7 +79,8 @@ Deno.serve(async (req) => {
     // vai confirmar se estão certos (ou dizer o que a API espera).
     const dataInicio = isoDias(90);
     const dataFim = isoDias(0);
-    const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dataInicio=${dataInicio}&dataFim=${dataFim}`;
+    const dr = Deno.env.get("CORREIOS_DR") ?? "72";
+    const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicio=${dataInicio}&dataFim=${dataFim}`;
 
     const resp = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
