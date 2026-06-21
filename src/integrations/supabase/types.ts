@@ -4283,6 +4283,87 @@ export type Database = {
           },
         ]
       }
+      correios_lancamentos: {
+        Row: {
+          atualizado_em: string
+          cartao_postagem: string | null
+          centro_custo: string | null
+          cep_destino: string | null
+          cep_origem: string | null
+          codigo_servico: string | null
+          contrato: string | null
+          data_postagem: string | null
+          descricao_servico: string | null
+          etiqueta: string
+          id: string
+          importado_em: string
+          municipio_destino: string | null
+          municipio_origem: string | null
+          numero_documento: string | null
+          origem_dado: string
+          peso: number | null
+          quantidade_itens: number | null
+          uf_destino: string | null
+          uf_origem: string | null
+          valor_declarado: number | null
+          valor_desconto: number | null
+          valor_servico: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          cartao_postagem?: string | null
+          centro_custo?: string | null
+          cep_destino?: string | null
+          cep_origem?: string | null
+          codigo_servico?: string | null
+          contrato?: string | null
+          data_postagem?: string | null
+          descricao_servico?: string | null
+          etiqueta: string
+          id?: string
+          importado_em?: string
+          municipio_destino?: string | null
+          municipio_origem?: string | null
+          numero_documento?: string | null
+          origem_dado?: string
+          peso?: number | null
+          quantidade_itens?: number | null
+          uf_destino?: string | null
+          uf_origem?: string | null
+          valor_declarado?: number | null
+          valor_desconto?: number | null
+          valor_servico?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          cartao_postagem?: string | null
+          centro_custo?: string | null
+          cep_destino?: string | null
+          cep_origem?: string | null
+          codigo_servico?: string | null
+          contrato?: string | null
+          data_postagem?: string | null
+          descricao_servico?: string | null
+          etiqueta?: string
+          id?: string
+          importado_em?: string
+          municipio_destino?: string | null
+          municipio_origem?: string | null
+          numero_documento?: string | null
+          origem_dado?: string
+          peso?: number | null
+          quantidade_itens?: number | null
+          uf_destino?: string | null
+          uf_origem?: string | null
+          valor_declarado?: number | null
+          valor_desconto?: number | null
+          valor_servico?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: []
+      }
       correios_token: {
         Row: {
           ambiente: string
