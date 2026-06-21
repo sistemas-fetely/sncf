@@ -41,6 +41,7 @@ const SemPermissao = lazy(() => import("@/pages/SemPermissao"));
 const AguardandoAprovacao = lazy(() => import("@/pages/AguardandoAprovacao"));
 const GerenciarUsuarios = lazy(() => import("@/pages/GerenciarUsuarios"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const RastreamentoCorreios = lazy(() => import("@/pages/RastreamentoCorreios"));
 const Parametros = lazy(() => import("@/pages/Parametros"));
 const ContratosPJ = lazy(() => import("@/pages/ContratosPJ"));
 const ContratoPJDetalhe = lazy(() => import("@/pages/ContratoPJDetalhe"));
@@ -614,6 +615,7 @@ const App = () => (
 
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
+              <Route path="/rastreamento" element={<RastreamentoCorreios />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
