@@ -12,6 +12,15 @@ export interface Rastreio {
   atualizado_em: string;
 }
 
+function normalizarStatus(row: any): Rastreio {
+  const evs = (row.eventos as any[]) ?? [];
+  const statusAtual =
+    evs.length > 0 && evs[0]?.descricao
+      ? evs[0].descricao
+      : (row.status_atual ?? null);
+  return { ...row, status_atual: statusAtual };
+}
+
 export function useRastreamento() {
   const [lista, setLista] = useState<Rastreio[]>([]);
   const [loading, setLoading] = useState(false);
@@ -23,7 +32,7 @@ export function useRastreamento() {
       .select("*")
       .order("atualizado_em", { ascending: false });
     if (error) setErro(error.message);
-    else setLista((data ?? []) as Rastreio[]);
+    else setLista((data ?? []).map(normalizarStatus));
   }, []);
 
   const adicionar = useCallback(async (codigo: string) => {
