@@ -1,4 +1,4 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users } from "lucide-react";
+import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users, TableProperties } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -74,6 +74,7 @@ export function VendasSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <FinancasSidebarItem to="/pedidos" icon={ShoppingCart} label="Pedidos FOP" end />
+              <FinancasSidebarItem to="/vendas/gestao-pedidos" icon={TableProperties} label="Gestão de Pedidos" />
               <FinancasSidebarItem to="/recebimento/cobranca" icon={Receipt} label="Cobrança" />
               <FinancasSidebarItem to="/credito/clientes" icon={CreditCard} label="Crédito do cliente" />
               <FinancasSidebarItem to="/administrativo-fetely/parceiros" icon={Building2} label="Parceiros" />
