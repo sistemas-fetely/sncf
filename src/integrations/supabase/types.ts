@@ -9481,6 +9481,45 @@ export type Database = {
           },
         ]
       }
+      pedido_rastreamento: {
+        Row: {
+          atualizado_em: string
+          codigo_rastreio: string
+          criado_em: string
+          data_ultima_atualizacao: string | null
+          entregue: boolean
+          eventos: Json
+          id: string
+          pedido_id: string | null
+          servico: string | null
+          status_atual: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          codigo_rastreio: string
+          criado_em?: string
+          data_ultima_atualizacao?: string | null
+          entregue?: boolean
+          eventos?: Json
+          id?: string
+          pedido_id?: string | null
+          servico?: string | null
+          status_atual?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          codigo_rastreio?: string
+          criado_em?: string
+          data_ultima_atualizacao?: string | null
+          entregue?: boolean
+          eventos?: Json
+          id?: string
+          pedido_id?: string | null
+          servico?: string | null
+          status_atual?: string | null
+        }
+        Relationships: []
+      }
       pedido_remessa: {
         Row: {
           bling_pedido_id: string | null
