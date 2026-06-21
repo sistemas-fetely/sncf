@@ -1191,6 +1191,48 @@ export type Database = {
         }
         Relationships: []
       }
+      bling_situacoes: {
+        Row: {
+          ativo: boolean | null
+          bling_situacao_id: number | null
+          cor: string | null
+          created_at: string | null
+          id: string
+          id_modulo: number | null
+          modulo_nome: string | null
+          nome: string | null
+          raw: Json | null
+          updated_at: string | null
+          valor: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bling_situacao_id?: number | null
+          cor?: string | null
+          created_at?: string | null
+          id?: string
+          id_modulo?: number | null
+          modulo_nome?: string | null
+          nome?: string | null
+          raw?: Json | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bling_situacao_id?: number | null
+          cor?: string | null
+          created_at?: string | null
+          id?: string
+          id_modulo?: number | null
+          modulo_nome?: string | null
+          nome?: string | null
+          raw?: Json | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       boleto_stage: {
         Row: {
           ancorado_em: string | null
