@@ -100,7 +100,7 @@ export default function RastreamentoCorreios() {
                 </tr>
                 {aberta && (
                   <tr key={`${r.id}-hist`}>
-                    <td colSpan={6} style={{ ...td, background: "#f9f9f9" }}>
+                    <td colSpan={7} style={{ ...td, background: "#f9f9f9" }}>
                       <div style={{ padding: "8px 0" }}>
                         {evs.length === 0 && <p>Sem eventos.</p>}
                         {evs.map((e, i) => (
