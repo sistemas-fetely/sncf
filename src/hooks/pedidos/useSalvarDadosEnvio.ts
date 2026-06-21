@@ -8,6 +8,8 @@ interface DadosEnvio {
   pesoBrutoTotal: number;
   freteTipo: string | null;
   valorFrete: number;
+  estimativaValor?: number | null;
+  estimativaJson?: unknown;
 }
 
 const fmtBRL = (v: number) =>
@@ -16,13 +18,23 @@ const fmtBRL = (v: number) =>
 export function useSalvarDadosEnvio() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ pedidoId, transportadoraId, pesoBrutoTotal, freteTipo, valorFrete }: DadosEnvio) => {
+    mutationFn: async ({
+      pedidoId,
+      transportadoraId,
+      pesoBrutoTotal,
+      freteTipo,
+      valorFrete,
+      estimativaValor,
+      estimativaJson,
+    }: DadosEnvio) => {
       const { data, error } = await (supabase as any).rpc("atualizar_frete_pedido", {
         p_pedido_id:         pedidoId,
         p_transportadora_id: transportadoraId || null,
         p_peso_bruto_total:  pesoBrutoTotal,
         p_frete_tipo:        freteTipo || null,
         p_valor_frete:       valorFrete,
+        p_estimativa_valor:  estimativaValor ?? null,
+        p_estimativa_json:   estimativaJson ?? null,
       });
       if (error) throw error;
       return data as { ok: boolean; novo_liquido: number; valor_frete: number };
