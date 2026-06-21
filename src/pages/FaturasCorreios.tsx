@@ -15,9 +15,11 @@ const ehSedex = (l: Lancamento) =>
 const ehPac = (l: Lancamento) =>
   (l.descricao_servico ?? "").toUpperCase().includes("PAC");
 
+type Filtro = "TODOS" | "SEDEX" | "PAC" | "correios" | "frenet";
+
 export default function FaturasCorreios() {
   const { lista, loading, erro, listar, sincronizar } = useLancamentos();
-  const [filtro, setFiltro] = useState<"TODOS" | "SEDEX" | "PAC">("TODOS");
+  const [filtro, setFiltro] = useState<Filtro>("TODOS");
   const [resumo, setResumo] = useState("");
 
   useEffect(() => {
@@ -28,16 +30,25 @@ export default function FaturasCorreios() {
     () =>
       lista.filter((l) => {
         if (filtro === "TODOS") return true;
-        return filtro === "SEDEX" ? ehSedex(l) : ehPac(l);
+        if (filtro === "SEDEX") return ehSedex(l);
+        if (filtro === "PAC") return ehPac(l);
+        if (filtro === "correios") return l.empresa_frete === "correios";
+        if (filtro === "frenet") return l.empresa_frete === "frenet";
+        return true;
       }),
     [lista, filtro],
   );
 
   const tot = (arr: Lancamento[]) =>
     arr.reduce((s, l) => s + (l.valor_servico ?? 0), 0);
+
   const totalGeral = tot(lista);
   const totalSedex = tot(lista.filter(ehSedex));
   const totalPac = tot(lista.filter(ehPac));
+  const totalCorreios = tot(lista.filter((l) => l.empresa_frete === "correios"));
+  const totalFrenet = tot(lista.filter((l) => l.empresa_frete === "frenet"));
+  const countCorreios = lista.filter((l) => l.empresa_frete === "correios").length;
+  const countFrenet = lista.filter((l) => l.empresa_frete === "frenet").length;
 
   async function onSync() {
     const data = await sincronizar();
@@ -50,16 +61,17 @@ export default function FaturasCorreios() {
     }
   }
 
-  const pill = (ativo: boolean): CSSProperties => ({
+  const pill = (ativo: boolean, cor?: string): CSSProperties => ({
     padding: "10px 16px",
     borderRadius: 10,
     cursor: "pointer",
     border: "1px solid #e5ded2",
-    background: ativo ? "#1a3d2b" : "#fff",
+    background: ativo ? cor ?? "#1a3d2b" : "#fff",
     color: ativo ? "#fff" : "#1a3d2b",
     minWidth: 130,
     textAlign: "left",
   });
+
   const td: CSSProperties = {
     padding: "8px 12px",
     borderBottom: "1px solid #eee",
@@ -70,6 +82,25 @@ export default function FaturasCorreios() {
     textAlign: "left",
     fontWeight: 600,
     color: "#666",
+  };
+
+  const badgeEmpresa = (e: string | null) => {
+    const isFrenet = e === "frenet";
+    return (
+      <span
+        style={{
+          display: "inline-block",
+          padding: "2px 8px",
+          borderRadius: 12,
+          fontSize: 11,
+          fontWeight: 600,
+          background: isFrenet ? "#f0e8ff" : "#e8f5e9",
+          color: isFrenet ? "#6b21a8" : "#1a3d2b",
+        }}
+      >
+        {isFrenet ? "Frenet" : "Correios"}
+      </span>
+    );
   };
 
   return (
@@ -83,7 +114,7 @@ export default function FaturasCorreios() {
         }}
       >
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "#1a3d2b" }}>
-          Faturas Correios — Realizado (prévia)
+          Faturas Correios — Realizado
         </h1>
         <button
           onClick={onSync}
@@ -129,7 +160,14 @@ export default function FaturasCorreios() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
         <div onClick={() => setFiltro("TODOS")} style={pill(filtro === "TODOS")}>
           <div style={{ fontSize: 12, opacity: 0.8 }}>
             Total · {lista.length} objetos
@@ -143,6 +181,24 @@ export default function FaturasCorreios() {
         <div onClick={() => setFiltro("PAC")} style={pill(filtro === "PAC")}>
           <div style={{ fontSize: 12, opacity: 0.8 }}>PAC</div>
           <div style={{ fontSize: 18, fontWeight: 700 }}>{brl(totalPac)}</div>
+        </div>
+        <div
+          onClick={() => setFiltro("correios")}
+          style={pill(filtro === "correios", "#1a5c38")}
+        >
+          <div style={{ fontSize: 12, opacity: 0.8 }}>
+            Correios direto · {countCorreios}
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{brl(totalCorreios)}</div>
+        </div>
+        <div
+          onClick={() => setFiltro("frenet")}
+          style={pill(filtro === "frenet", "#6b21a8")}
+        >
+          <div style={{ fontSize: 12, opacity: 0.8 }}>
+            Frenet (legado) · {countFrenet}
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{brl(totalFrenet)}</div>
         </div>
       </div>
 
@@ -159,10 +215,10 @@ export default function FaturasCorreios() {
             <tr>
               <th style={th}>Data</th>
               <th style={th}>Etiqueta</th>
+              <th style={th}>Empresa</th>
               <th style={th}>Serviço</th>
-              <th style={th}>Destino</th>
-              <th style={th}>Peso</th>
-              <th style={th}>Frete</th>
+              <th style={th}>Cliente / Destino</th>
+              <th style={th}>Frete pago</th>
               <th style={th}>Rastreio</th>
             </tr>
           </thead>
@@ -178,15 +234,28 @@ export default function FaturasCorreios() {
               <tr key={l.id}>
                 <td style={td}>{fmtData(l.data_postagem)}</td>
                 <td style={{ ...td, fontFamily: "monospace" }}>{l.etiqueta}</td>
+                <td style={td}>{badgeEmpresa(l.empresa_frete)}</td>
                 <td style={td}>
-                  {l.descricao_servico ?? l.codigo_servico ?? "—"}
+                  {(l.descricao_servico ?? l.codigo_servico ?? "—")
+                    .replace(" CONTRATO AG", "")
+                    .replace(" FRENET", "")}
                 </td>
                 <td style={td}>
-                  {l.municipio_destino
-                    ? `${l.municipio_destino}/${l.uf_destino ?? ""}`
-                    : "—"}
+                  {l.nome_cliente ? (
+                    <span>
+                      {l.nome_cliente}
+                      {l.municipio_destino && (
+                        <span style={{ display: "block", fontSize: 12, color: "#888" }}>
+                          {l.municipio_destino}/{l.uf_destino ?? ""}
+                        </span>
+                      )}
+                    </span>
+                  ) : l.municipio_destino ? (
+                    `${l.municipio_destino}/${l.uf_destino ?? ""}`
+                  ) : (
+                    "—"
+                  )}
                 </td>
-                <td style={td}>{l.peso != null ? `${l.peso} g` : "—"}</td>
                 <td style={td}>
                   {l.valor_servico != null ? brl(l.valor_servico) : "—"}
                 </td>
