@@ -72,6 +72,7 @@ export async function syncPedidos(
           situacao: ped.situacao?.valor ?? null,
           situacao_nome: ped.situacao?.nome ?? null,
           situacao_raw: ped.situacao ?? null,
+          transporte_raw: ped.transporte ?? null,
           observacoes: ped.observacoes || null,
           origem: "api_bling",
           updated_at: new Date().toISOString(),
