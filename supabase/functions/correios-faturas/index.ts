@@ -72,27 +72,34 @@ Deno.serve(async (req) => {
 
   try {
     const reqBody = await req.json().catch(() => ({}));
+    const modo = reqBody?.modo === "previa" ? "previa" : "faturas";
     const dias = Number(reqBody?.dias) > 0 ? Number(reqBody.dias) : 365;
 
     const token = await getTokenContrato();
     const contrato = Deno.env.get("CORREIOS_CONTRATO");
     const dr = Deno.env.get("CORREIOS_DR");
 
-    const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicial=${brDate(dias)}&dataFinal=${brDate(0)}`;
+    let url: string;
+    if (modo === "previa") {
+      // Ciclo aberto — registros a faturar.
+      url = `${BASE_URL}/faturas/v1/previas?contrato=${contrato}&dr=${dr}`;
+    } else {
+      url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicial=${brDate(dias)}&dataFinal=${brDate(0)}`;
+    }
 
     const resp = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     });
     const bodyText = await resp.text();
-    console.log(`FATURAS status=${resp.status} dias=${dias} body=${bodyText.slice(0, 1500)}`);
+    console.log(`${modo.toUpperCase()} status=${resp.status} body=${bodyText.slice(0, 1500)}`);
 
     return new Response(
       JSON.stringify({
         tokenOk: true,
-        faturasStatus: resp.status,
-        periodoDias: dias,
+        modo,
+        status: resp.status,
         url,
-        faturasBody: bodyText.slice(0, 6000),
+        body: bodyText.slice(0, 6000),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
