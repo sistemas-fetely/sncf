@@ -71,7 +71,7 @@ async function rastrearEGravar(token: string, codigo: string) {
   let data_ultima: string | null = null;
 
   try {
-    const resp = await fetch(`${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T`, {
+    const resp = await fetch(`${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T&idioma=pt-BR`, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     });
     const bodyText = await resp.text();
