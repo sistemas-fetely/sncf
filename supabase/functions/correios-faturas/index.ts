@@ -17,6 +17,8 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function getTokenContrato(): Promise<string> {
   const { data: cached } = await supabase
     .from("correios_token")
@@ -78,28 +80,73 @@ Deno.serve(async (req) => {
     const token = await getTokenContrato();
     const contrato = Deno.env.get("CORREIOS_CONTRATO");
     const dr = Deno.env.get("CORREIOS_DR");
+    const authHeaders = { Authorization: `Bearer ${token}`, Accept: "application/json" };
 
-    let url: string;
-    if (modo === "previa") {
-      // Ciclo aberto — registros a faturar.
-      url = `${BASE_URL}/faturas/v1/previas?contrato=${contrato}&dr=${dr}`;
-    } else {
-      url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicial=${brDate(dias)}&dataFinal=${brDate(0)}`;
+    // ---------- MODO FATURAS (fechadas) ----------
+    if (modo !== "previa") {
+      const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicial=${brDate(dias)}&dataFinal=${brDate(0)}`;
+      const resp = await fetch(url, { headers: authHeaders });
+      const bodyText = await resp.text();
+      return new Response(
+        JSON.stringify({ tokenOk: true, modo, status: resp.status, url, body: bodyText.slice(0, 6000) }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    const resp = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    // ---------- MODO PREVIA (ciclo aberto, assíncrono) ----------
+    // 1) Solicita a prévia (POST). Parâmetros são tentativa — o retorno cru corrige.
+    const postUrl = `${BASE_URL}/faturas/v1/previas?contrato=${contrato}&dr=${dr}`;
+    const postResp = await fetch(postUrl, {
+      method: "POST",
+      headers: { ...authHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
     });
-    const bodyText = await resp.text();
-    console.log(`${modo.toUpperCase()} status=${resp.status} body=${bodyText.slice(0, 1500)}`);
+    const postText = await postResp.text();
+    console.log(`PREVIA POST status=${postResp.status} body=${postText.slice(0, 800)}`);
+
+    if (!postResp.ok) {
+      return new Response(
+        JSON.stringify({ etapa: "POST /previas", postUrl, status: postResp.status, body: postText.slice(0, 4000) }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const idProc = JSON.parse(postText)?.id ?? JSON.parse(postText)?.idProcessamento;
+
+    // 2) Consulta o processamento até SUCESSO (ou erro/limite).
+    let statusProc = "SOLICITADO";
+    let procBody = "";
+    let tentativas = 0;
+    while (tentativas < 12 && !["SUCESSO", "ERRO", "FALHA", "CANCELADO"].includes(statusProc)) {
+      await sleep(2500);
+      const pr = await fetch(`${BASE_URL}/faturas/v1/processamentos/${idProc}`, { headers: authHeaders });
+      procBody = await pr.text();
+      try { statusProc = JSON.parse(procBody)?.status ?? statusProc; } catch { /* ignore */ }
+      tentativas++;
+    }
+
+    // 3) Baixa o arquivo (CSV) se deu certo.
+    let csvPreview = "";
+    let fileStatus = 0;
+    if (statusProc === "SUCESSO") {
+      const fr = await fetch(`${BASE_URL}/faturas/v1/processamentos/${idProc}/file`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fileStatus = fr.status;
+      const csv = await fr.text();
+      csvPreview = csv.slice(0, 5000);
+    }
 
     return new Response(
       JSON.stringify({
         tokenOk: true,
         modo,
-        status: resp.status,
-        url,
-        body: bodyText.slice(0, 6000),
+        idProcessamento: idProc,
+        statusProc,
+        tentativas,
+        fileStatus,
+        procBody: procBody.slice(0, 1500),
+        csvPreview,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
