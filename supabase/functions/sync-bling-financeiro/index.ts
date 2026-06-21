@@ -26,9 +26,9 @@ const err = (msg: string, status = 400) =>
 // que a função sempre retorne resposta antes do timeout (cliente faz loop).
 const MAX_EXEC_MS = 90_000;
 
-type Entidade = "contatos" | "produtos" | "estoques" | "contas_receber" | "pedidos" | "nfe" | "situacoes";
+type Entidade = "situacoes" | "contatos" | "produtos" | "estoques" | "contas_receber" | "pedidos" | "nfe";
 // estoques roda depois de produtos (precisa dos bling_id já populados).
-const ORDEM: Entidade[] = ["contatos", "produtos", "estoques", "contas_receber", "pedidos", "nfe", "situacoes"];
+const ORDEM: Entidade[] = ["situacoes", "contatos", "produtos", "estoques", "contas_receber", "pedidos", "nfe"];
 
 async function getOrCreateCursor(supabase: any, entidade: Entidade) {
   const { data } = await supabase.from("integracoes_sync_cursor")
@@ -50,13 +50,13 @@ async function runEntity(
 
   let result: any;
   try {
-    if (entidade === "contatos") result = await syncContatos(supabase, client, timeUp, cursor);
+    if (entidade === "situacoes") result = await syncSituacoes(supabase, client, timeUp, cursor);
+    else if (entidade === "contatos") result = await syncContatos(supabase, client, timeUp, cursor);
     else if (entidade === "produtos") result = await syncProdutos(supabase, client, timeUp, cursor);
     else if (entidade === "estoques") result = await syncEstoques(supabase, client, timeUp, cursor);
     else if (entidade === "contas_receber") result = await syncContasReceber(supabase, client, timeUp, cursor, ultimaSync);
     else if (entidade === "pedidos") result = await syncPedidos(supabase, client, timeUp, cursor, ultimaSync);
     else if (entidade === "nfe") result = await syncNfe(supabase, client, timeUp, cursor);
-    else if (entidade === "situacoes") result = await syncSituacoes(supabase, client, timeUp, cursor);
   } finally {
     const finalizada = result?.proximaPagina === 0;
     await supabase.from("integracoes_sync_cursor").update({
