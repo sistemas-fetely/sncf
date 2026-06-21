@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     const dataInicio = isoDias(90);
     const dataFim = isoDias(0);
     const dr = Deno.env.get("CORREIOS_DR") ?? "72";
-    const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicio=${dataInicio}&dataFim=${dataFim}`;
+    const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicial=${dataInicio}&dataFinal=${dataFim}`;
 
     const resp = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
