@@ -10318,6 +10318,7 @@ export type Database = {
           situacao: string | null
           situacao_nome: string | null
           situacao_raw: Json | null
+          transporte_raw: Json | null
           updated_at: string | null
           valor_desconto: number | null
           valor_frete: number | null
@@ -10345,6 +10346,7 @@ export type Database = {
           situacao?: string | null
           situacao_nome?: string | null
           situacao_raw?: Json | null
+          transporte_raw?: Json | null
           updated_at?: string | null
           valor_desconto?: number | null
           valor_frete?: number | null
@@ -10372,6 +10374,7 @@ export type Database = {
           situacao?: string | null
           situacao_nome?: string | null
           situacao_raw?: Json | null
+          transporte_raw?: Json | null
           updated_at?: string | null
           valor_desconto?: number | null
           valor_frete?: number | null
