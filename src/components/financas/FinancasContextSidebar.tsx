@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Target,
   Users,
+  ArrowDownToLine,
 } from "lucide-react";
 import {
   Sidebar,
@@ -79,6 +80,7 @@ export function FinancasContextSidebar() {
               <FinancasSidebarItem to="/administrativo/compromissos" icon={Calendar} label="Contratos Recorrentes" />
               <FinancasSidebarItem to="/administrativo/caixa-banco/contas" icon={Landmark} label="Contas Bancárias" />
               <FinancasSidebarItem to="/administrativo/fluxo-futuro" icon={TrendingUp} label="Fluxo Futuro" />
+              <FinancasSidebarItem to="/administrativo/previsao-recebimentos" icon={ArrowDownToLine} label="Previsão de Recebimentos" />
               <FinancasSidebarItem to="/administrativo/fluxo-futuro-investimento" icon={Target} label="Fluxo Futuro Investimento" />
               <FinancasSidebarItem to="/administrativo/investimento-lancamento" icon={Coins} label="Investimento de Lançamento" />
             </FinancasSidebarSection>
