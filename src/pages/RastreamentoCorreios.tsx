@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRastreamento } from "@/hooks/useRastreamento";
+import { supabase } from "@/integrations/supabase/client";
 
 function dataEntrega(eventos: any[]): string | null {
   const ev = (eventos ?? []).find((e) => /entregue/i.test(e?.descricao ?? ""));
@@ -20,6 +21,9 @@ export default function RastreamentoCorreios() {
   const { lista, loading, erro, listar, adicionar, atualizarTodos } = useRastreamento();
   const [codigo, setCodigo] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
+
+  const [faturas, setFaturas] = useState("");
+  const [fatLoading, setFatLoading] = useState(false);
 
   useEffect(() => { listar(); }, [listar]);
 
