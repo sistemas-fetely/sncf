@@ -10935,6 +10935,7 @@ export type Database = {
         Row: {
           ativo: boolean
           banco_id: string
+          base_referencia: string
           created_at: string
           forma_pagamento_id: string | null
           id: string
@@ -10947,6 +10948,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           banco_id: string
+          base_referencia?: string
           created_at?: string
           forma_pagamento_id?: string | null
           id?: string
@@ -10959,6 +10961,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           banco_id?: string
+          base_referencia?: string
           created_at?: string
           forma_pagamento_id?: string | null
           id?: string
