@@ -9925,6 +9925,7 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          alerta_logistica: string | null
           analise_pedido_detalhes: Json | null
           analise_pedido_executada_em: string | null
           analise_pedido_motivo: string | null
@@ -10001,6 +10002,7 @@ export type Database = {
           vendedor: string | null
         }
         Insert: {
+          alerta_logistica?: string | null
           analise_pedido_detalhes?: Json | null
           analise_pedido_executada_em?: string | null
           analise_pedido_motivo?: string | null
@@ -10077,6 +10079,7 @@ export type Database = {
           vendedor?: string | null
         }
         Update: {
+          alerta_logistica?: string | null
           analise_pedido_detalhes?: Json | null
           analise_pedido_executada_em?: string | null
           analise_pedido_motivo?: string | null
@@ -18785,6 +18788,8 @@ export type Database = {
         Returns: undefined
       }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
+      fn_transicionar_entregues: { Args: never; Returns: Json }
+      fn_transicionar_expedidos: { Args: never; Returns: Json }
       fn_transicionar_pedido: {
         Args: {
           p_acao: string
@@ -19501,15 +19506,26 @@ export type Database = {
         }
         Returns: Json
       }
-      transicionar_pedido: {
-        Args: {
-          p_motivo?: string
-          p_para_estagio: string
-          p_pedido_id: string
-          p_proxima_acao?: string
-        }
-        Returns: Json
-      }
+      transicionar_pedido:
+        | {
+            Args: {
+              p_motivo?: string
+              p_para_estagio: string
+              p_pedido_id: string
+              p_proxima_acao?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_automatico?: boolean
+              p_motivo?: string
+              p_para_estagio: string
+              p_pedido_id: string
+              p_proxima_acao?: string
+            }
+            Returns: Json
+          }
       unaccent: { Args: { "": string }; Returns: string }
       user_perfis_detalhados: {
         Args: { _user_id: string }
