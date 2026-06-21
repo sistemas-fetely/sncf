@@ -23,13 +23,13 @@ for (const nf of items) {
 
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id")
+      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw")
       .eq("bling_id", blingId)
       .maybeSingle();
 
     const semValor = !existing || !existing.valor_nota || Number(existing.valor_nota) === 0;
     const semFrete = !existing?.valor_frete || Number(existing.valor_frete) === 0;
-    const semPedido = !existing?.pedido_venda_id;
+    const semPedido = !existing?.pedido_venda_id; const semTransporte = !existing?.transporte_raw;
 
     // Busca detalhe apenas quando falta valor ou frete — evita rate limit do Bling.
     // Pedido linkage tenta junto quando já estamos no detalhe, mas não aciona sozinho.
@@ -38,7 +38,7 @@ for (const nf of items) {
     let pedidoVendaNumeroRaw: string | null = null;
     let pedidoVendaBlingIdRaw: string | null = null;
 
-    if (semValor || semFrete || semPedido) {
+    if (semValor || semFrete || semPedido || semTransporte) {
       try {
         await sleep(120); // respeita rate limit do Bling (~3 req/s)
         const det = await client.get(`/nfe/${nf.id}`);
@@ -68,7 +68,7 @@ for (const nf of items) {
           nf._valorFrete = d.valorFrete != null ? Number(d.valorFrete) : null;
           
           nf._transportadoraNome = d.transporte?.transportador?.nome ?? d.transporte?.transportadora?.nome ?? d.transporte?.nome ?? null;
-          nf._transportadoraCnpj = d.transporte?.transportador?.numeroDocumento ?? null;
+          nf._transportadoraCnpj = d.transporte?.transportador?.numeroDocumento ?? null; nf._transporteRaw = d.transporte ?? null;
 
           // tipo_venda: J = B2B, F = B2C
           const tipoPessoa = d.contato?.tipoPessoa ?? nf.contato?.tipoPessoa ?? null;
@@ -130,7 +130,7 @@ for (const nf of items) {
       valor_nota:          valorNota,
       valor_frete:         valorFrete,
       transportadora_nome: transportadoraNome,
-      transportadora_cnpj: nf._transportadoraCnpj ?? existing?.transportadora_cnpj ?? null,
+      transportadora_cnpj: nf._transportadoraCnpj ?? existing?.transportadora_cnpj ?? null, transporte_raw: nf._transporteRaw ?? existing?.transporte_raw ?? null,
       tipo_venda: nf._tipoVenda ?? existing?.tipo_venda ?? null,
       itens_json: nf._itens ?? existing?.itens_json ?? null,
       parceiro_id,
