@@ -9618,6 +9618,9 @@ export type Database = {
           criado_por: string | null
           data_entrega_prevista: string | null
           delta_financeiro: number | null
+          estimativa_frete_em: string | null
+          estimativa_frete_json: Json | null
+          estimativa_frete_valor: number | null
           id: string
           itens_json: Json
           nf_data: string | null
@@ -9626,6 +9629,7 @@ export type Database = {
           pedido_id: string
           sequencia: number
           status: string
+          transportadora_id: string | null
           valor_frete: number | null
           valor_remessa: number | null
         }
@@ -9635,6 +9639,9 @@ export type Database = {
           criado_por?: string | null
           data_entrega_prevista?: string | null
           delta_financeiro?: number | null
+          estimativa_frete_em?: string | null
+          estimativa_frete_json?: Json | null
+          estimativa_frete_valor?: number | null
           id?: string
           itens_json?: Json
           nf_data?: string | null
@@ -9643,6 +9650,7 @@ export type Database = {
           pedido_id: string
           sequencia?: number
           status?: string
+          transportadora_id?: string | null
           valor_frete?: number | null
           valor_remessa?: number | null
         }
@@ -9652,6 +9660,9 @@ export type Database = {
           criado_por?: string | null
           data_entrega_prevista?: string | null
           delta_financeiro?: number | null
+          estimativa_frete_em?: string | null
+          estimativa_frete_json?: Json | null
+          estimativa_frete_valor?: number | null
           id?: string
           itens_json?: Json
           nf_data?: string | null
@@ -9660,6 +9671,7 @@ export type Database = {
           pedido_id?: string
           sequencia?: number
           status?: string
+          transportadora_id?: string | null
           valor_frete?: number | null
           valor_remessa?: number | null
         }
@@ -9691,6 +9703,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_remessa_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_remessa_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedido_remessa_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
           },
         ]
       }
