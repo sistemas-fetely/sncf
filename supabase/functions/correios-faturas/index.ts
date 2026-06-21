@@ -61,8 +61,12 @@ async function getTokenContrato(): Promise<string> {
   return json.token;
 }
 
-function isoDias(diasAtras: number): string {
-  return new Date(Date.now() - diasAtras * 86400000).toISOString().slice(0, 10);
+function ddmmyyyy(diasAtras: number): string {
+  const d = new Date(Date.now() - diasAtras * 86400000);
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const yyyy = d.getUTCFullYear();
+  return `${dd}-${mm}-${yyyy}`;
 }
 
 Deno.serve(async (req) => {
@@ -77,9 +81,10 @@ Deno.serve(async (req) => {
     // ETAPA 1: listar faturas dos últimos 90 dias.
     // Os nomes dos parâmetros são uma tentativa — o retorno cru abaixo
     // vai confirmar se estão certos (ou dizer o que a API espera).
-    const dataInicio = isoDias(90);
-    const dataFim = isoDias(0);
-    const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dataInicio=${dataInicio}&dataFim=${dataFim}`;
+    const dataInicio = ddmmyyyy(90);
+    const dataFim = ddmmyyyy(0);
+    const dr = Deno.env.get("CORREIOS_DR") ?? "72";
+    const url = `${BASE_URL}/faturas/v1/faturas?contrato=${contrato}&dr=${dr}&dataInicial=${dataInicio}&dataFinal=${dataFim}`;
 
     const resp = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
