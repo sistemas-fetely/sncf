@@ -42,6 +42,7 @@ const AguardandoAprovacao = lazy(() => import("@/pages/AguardandoAprovacao"));
 const GerenciarUsuarios = lazy(() => import("@/pages/GerenciarUsuarios"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const RastreamentoCorreios = lazy(() => import("@/pages/RastreamentoCorreios"));
+const FaturasCorreios = lazy(() => import("@/pages/FaturasCorreios"));
 const Parametros = lazy(() => import("@/pages/Parametros"));
 const ContratosPJ = lazy(() => import("@/pages/ContratosPJ"));
 const ContratoPJDetalhe = lazy(() => import("@/pages/ContratoPJDetalhe"));
