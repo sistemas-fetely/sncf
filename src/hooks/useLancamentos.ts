@@ -12,6 +12,9 @@ export interface Lancamento {
   municipio_destino: string | null;
   uf_destino: string | null;
   numero_documento: string | null;
+  empresa_frete: string | null;
+  nome_cliente: string | null;
+  custo_transportadora: number | null;
   rastreio_status?: string | null;
   rastreio_entregue?: boolean | null;
 }
