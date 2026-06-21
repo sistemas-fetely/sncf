@@ -7515,6 +7515,7 @@ export type Database = {
           tipo_venda: string | null
           transportadora_cnpj: string | null
           transportadora_nome: string | null
+          transporte_raw: Json | null
           updated_at: string
           valor_frete: number | null
           valor_nota: number | null
@@ -7544,6 +7545,7 @@ export type Database = {
           tipo_venda?: string | null
           transportadora_cnpj?: string | null
           transportadora_nome?: string | null
+          transporte_raw?: Json | null
           updated_at?: string
           valor_frete?: number | null
           valor_nota?: number | null
@@ -7573,6 +7575,7 @@ export type Database = {
           tipo_venda?: string | null
           transportadora_cnpj?: string | null
           transportadora_nome?: string | null
+          transporte_raw?: Json | null
           updated_at?: string
           valor_frete?: number | null
           valor_nota?: number | null
