@@ -13005,6 +13005,9 @@ export type Database = {
           shopify_id: string
           subtotal: number
           total: number
+          tracking_company: string | null
+          tracking_number: string | null
+          tracking_url: string | null
           updated_at: string
           wns_pedido_id: string | null
         }
@@ -13030,6 +13033,9 @@ export type Database = {
           shopify_id: string
           subtotal?: number
           total?: number
+          tracking_company?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string
           wns_pedido_id?: string | null
         }
@@ -13055,6 +13061,9 @@ export type Database = {
           shopify_id?: string
           subtotal?: number
           total?: number
+          tracking_company?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string
           wns_pedido_id?: string | null
         }
