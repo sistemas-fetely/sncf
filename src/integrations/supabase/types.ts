@@ -17171,6 +17171,7 @@ export type Database = {
       vw_gestao_pedidos: {
         Row: {
           a_receber_valor: number | null
+          alerta_logistica: string | null
           area_atual: string | null
           bandeira_vermelha: boolean | null
           condicao_solicitada: string | null
