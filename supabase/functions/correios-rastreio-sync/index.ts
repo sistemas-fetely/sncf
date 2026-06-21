@@ -62,43 +62,58 @@ function ehEntregue(eventos: any[]): boolean {
   });
 }
 
-async function rastrearEGravar(token: string, codigo: string, inserir: boolean) {
+async function rastrearEGravar(token: string, codigo: string) {
   const c = codigo.trim().toUpperCase();
-  const resp = await fetch(`${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-  });
+  let status_atual = "";
+  let entregue = false;
+  let eventos: any[] = [];
+  let servico: string | null = null;
+  let data_ultima: string | null = null;
 
-  if (!resp.ok) {
-    return { codigo: c, erro: `${resp.status}` };
+  try {
+    const resp = await fetch(`${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    const bodyText = await resp.text();
+    console.log(`SRO ${c} status=${resp.status} body=${bodyText.slice(0, 600)}`);
+
+    if (!resp.ok) {
+      status_atual = `[erro SRO ${resp.status}] ${bodyText.slice(0, 200)}`;
+    } else {
+      const json = JSON.parse(bodyText);
+      const obj = json?.objetos?.[0] ?? {};
+      eventos = obj.eventos ?? [];
+      const ultimo = eventos[0] ?? null;
+      servico = obj?.tipoPostal?.categoria ?? obj?.tipoPostal?.descricao ?? null;
+      status_atual = ultimo?.descricao ?? obj?.mensagem ?? "(sem eventos)";
+      data_ultima = ultimo?.dtHrCriado ?? null;
+      entregue = ehEntregue(eventos);
+    }
+  } catch (e) {
+    status_atual = `[exceção] ${String(e).slice(0, 200)}`;
+    console.log(`SRO ${c} exceção: ${e}`);
   }
-
-  const json = await resp.json();
-  const obj = json?.objetos?.[0] ?? {};
-  const eventos: any[] = obj.eventos ?? [];
-  const ultimo = eventos[0] ?? null;
 
   const registro = {
     codigo_rastreio: c,
-    servico: obj?.tipoPostal?.categoria ?? obj?.tipoPostal?.descricao ?? null,
-    status_atual: ultimo?.descricao ?? obj?.mensagem ?? null,
-    data_ultima_atualizacao: ultimo?.dtHrCriado ?? null,
-    entregue: ehEntregue(eventos),
+    servico,
+    status_atual,
+    data_ultima_atualizacao: data_ultima,
+    entregue,
     eventos,
     atualizado_em: new Date().toISOString(),
   };
 
-  if (inserir) {
-    await supabase.from("pedido_rastreamento").upsert(registro, {
-      onConflict: "codigo_rastreio",
-    });
-  } else {
-    await supabase
-      .from("pedido_rastreamento")
-      .update(registro)
-      .eq("codigo_rastreio", c);
+  // SEMPRE grava (insere ou atualiza) — pra ficar visível na tela
+  const { error } = await supabase
+    .from("pedido_rastreamento")
+    .upsert(registro, { onConflict: "codigo_rastreio" });
+  if (error) {
+    console.log(`UPSERT erro ${c}: ${error.message}`);
+    return { codigo: c, status: `[erro gravação] ${error.message}` };
   }
 
-  return { codigo: c, status: registro.status_atual, entregue: registro.entregue };
+  return { codigo: c, status: status_atual, entregue };
 }
 
 Deno.serve(async (req) => {
@@ -108,7 +123,6 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const inserir = body?.inserir === true;
     let codigos: string[] = Array.isArray(body?.codigos) ? body.codigos : [];
 
     if (codigos.length === 0) {
@@ -128,7 +142,7 @@ Deno.serve(async (req) => {
     const token = await getToken();
     const atualizados = [];
     for (const cod of codigos) {
-      atualizados.push(await rastrearEGravar(token, cod, inserir));
+      atualizados.push(await rastrearEGravar(token, cod));
     }
 
     return new Response(JSON.stringify({ atualizados }), {
