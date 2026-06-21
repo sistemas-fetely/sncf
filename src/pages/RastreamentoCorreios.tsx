@@ -60,6 +60,7 @@ export default function RastreamentoCorreios() {
         <thead>
           <tr>
             <th style={th}>Código</th>
+            <th style={th}>Empresa</th>
             <th style={th}>Status</th>
             <th style={th}>Última atualização</th>
             <th style={th}>Entregue em</th>
@@ -69,7 +70,7 @@ export default function RastreamentoCorreios() {
         </thead>
         <tbody>
           {lista.length === 0 && (
-            <tr><td style={td} colSpan={6}>Nenhum código ainda. Adicione um acima.</td></tr>
+            <tr><td style={td} colSpan={7}>Nenhum código ainda. Adicione um acima.</td></tr>
           )}
           {lista.map((r) => {
             const evs = (r.eventos as any[]) ?? [];
@@ -78,6 +79,12 @@ export default function RastreamentoCorreios() {
               <>
                 <tr key={r.id}>
                   <td style={td}>{r.codigo_rastreio}</td>
+                  <td style={td}>
+                    {r.empresa_frete === "frenet"
+                      ? <span style={{ display:"inline-block", padding:"2px 8px", borderRadius:12, fontSize:11, fontWeight:600, background:"#f0e8ff", color:"#6b21a8" }}>Frenet</span>
+                      : <span style={{ display:"inline-block", padding:"2px 8px", borderRadius:12, fontSize:11, fontWeight:600, background:"#e8f5e9", color:"#1a3d2b" }}>Correios</span>
+                    }
+                  </td>
                   <td style={td}>{r.status_atual ?? "—"}</td>
                   <td style={td}>{fmt(r.data_ultima_atualizacao)}</td>
                   <td style={td}>{fmt(dataEntrega(evs))}</td>

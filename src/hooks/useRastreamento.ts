@@ -6,6 +6,7 @@ export interface Rastreio {
   codigo_rastreio: string;
   servico: string | null;
   status_atual: string | null;
+  empresa_frete: string | null;
   data_ultima_atualizacao: string | null;
   entregue: boolean;
   eventos: unknown[];
@@ -13,7 +14,11 @@ export interface Rastreio {
 }
 
 function normalizarStatus(row: any): Rastreio {
-  return { ...row, status_atual: row.status_atual ?? null };
+  return {
+    ...row,
+    status_atual: row.status_atual ?? null,
+    empresa_frete: row.correios_lancamentos?.empresa_frete ?? null,
+  };
 }
 
 export function useRastreamento() {
@@ -24,7 +29,7 @@ export function useRastreamento() {
   const listar = useCallback(async () => {
     const { data, error } = await (supabase as any)
       .from("pedido_rastreamento")
-      .select("*")
+      .select("*, correios_lancamentos!left(empresa_frete)")
       .order("atualizado_em", { ascending: false });
     if (error) setErro(error.message);
     else setLista((data ?? []).map(normalizarStatus));
