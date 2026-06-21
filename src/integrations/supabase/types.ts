@@ -4306,13 +4306,17 @@ export type Database = {
           cep_origem: string | null
           codigo_servico: string | null
           contrato: string | null
+          custo_transportadora: number | null
           data_postagem: string | null
           descricao_servico: string | null
+          empresa_frete: string
           etiqueta: string
           id: string
           importado_em: string
+          margem_intermediario: number | null
           municipio_destino: string | null
           municipio_origem: string | null
+          nome_cliente: string | null
           numero_documento: string | null
           origem_dado: string
           peso: number | null
@@ -4332,13 +4336,17 @@ export type Database = {
           cep_origem?: string | null
           codigo_servico?: string | null
           contrato?: string | null
+          custo_transportadora?: number | null
           data_postagem?: string | null
           descricao_servico?: string | null
+          empresa_frete?: string
           etiqueta: string
           id?: string
           importado_em?: string
+          margem_intermediario?: number | null
           municipio_destino?: string | null
           municipio_origem?: string | null
+          nome_cliente?: string | null
           numero_documento?: string | null
           origem_dado?: string
           peso?: number | null
@@ -4358,13 +4366,17 @@ export type Database = {
           cep_origem?: string | null
           codigo_servico?: string | null
           contrato?: string | null
+          custo_transportadora?: number | null
           data_postagem?: string | null
           descricao_servico?: string | null
+          empresa_frete?: string
           etiqueta?: string
           id?: string
           importado_em?: string
+          margem_intermediario?: number | null
           municipio_destino?: string | null
           municipio_origem?: string | null
+          nome_cliente?: string | null
           numero_documento?: string | null
           origem_dado?: string
           peso?: number | null
