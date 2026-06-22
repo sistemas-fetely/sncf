@@ -12983,6 +12983,13 @@ export type Database = {
             referencedRelation: "shopify_pedidos"
             referencedColumns: ["shopify_id"]
           },
+          {
+            foreignKeyName: "shopify_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["shopify_id"]
+          },
         ]
       }
       shopify_pedidos: {
@@ -15068,6 +15075,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_wns_pedido_id_fkey"
+            columns: ["wns_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["wns_pedidowns"]
           },
           {
             foreignKeyName: "transp_fretes_wns_pedido_id_fkey"
@@ -17168,6 +17182,42 @@ export type Database = {
           },
         ]
       }
+      vw_gestao_b2c: {
+        Row: {
+          alerta: string | null
+          cancelled_at: string | null
+          created_at_shopify: string | null
+          discount_amount: number | null
+          estagio_derivado: string | null
+          financial_status: string | null
+          frete_realizado: number | null
+          fulfilled_at: string | null
+          fulfillment_status: string | null
+          order_name: string | null
+          paid_at: string | null
+          payment_method: string | null
+          rastreio_classe: string | null
+          rastreio_codigo: string | null
+          rastreio_cte: string | null
+          rastreio_data: string | null
+          rastreio_label: string | null
+          rastreio_prazo: string | null
+          rastreio_texto: string | null
+          refunded_amount: number | null
+          shipping_city: string | null
+          shipping_cost: number | null
+          shipping_method: string | null
+          shipping_province: string | null
+          shipping_zip: string | null
+          shopify_id: string | null
+          subtotal: number | null
+          total: number | null
+          wns_fase_descricao: string | null
+          wns_pedidowns: number | null
+          wns_sequencia: number | null
+        }
+        Relationships: []
+      }
       vw_gestao_pedidos: {
         Row: {
           a_receber_valor: number | null
@@ -18014,6 +18064,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_wns_pedido_id_fkey"
+            columns: ["wns_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["wns_pedidowns"]
           },
           {
             foreignKeyName: "transp_fretes_wns_pedido_id_fkey"

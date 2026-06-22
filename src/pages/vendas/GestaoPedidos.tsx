@@ -62,9 +62,10 @@ const ENTRADA_LABEL: Record<string, string> = {
   paga: "Paga",
 };
 
-type EstagioB2C = "pago" | "em_separacao" | "expedido" | "em_transito" | "entregue" | "cancelado";
+type EstagioB2C = "recebido" | "pago" | "em_separacao" | "expedido" | "em_transito" | "entregue" | "cancelado";
 
 const B2C_ESTAGIO_COR: Record<EstagioB2C, string> = {
+  recebido:     "bg-slate-100 text-slate-700",
   pago:         "bg-amber-100 text-amber-800",
   em_separacao: "bg-indigo-100 text-indigo-800",
   expedido:     "bg-purple-100 text-purple-800",
@@ -74,6 +75,7 @@ const B2C_ESTAGIO_COR: Record<EstagioB2C, string> = {
 };
 
 const B2C_ESTAGIO_LABEL: Record<EstagioB2C, string> = {
+  recebido:     "Recebido",
   pago:         "Pago",
   em_separacao: "Em separação",
   expedido:     "Expedido",
@@ -82,35 +84,42 @@ const B2C_ESTAGIO_LABEL: Record<EstagioB2C, string> = {
   cancelado:    "Cancelado",
 };
 
+const ESTAGIOS_B2C: EstagioB2C[] = ["recebido", "pago", "em_separacao", "expedido", "em_transito", "entregue", "cancelado"];
+
 interface B2CRow {
   shopify_id: string;
   order_name: string;
+  created_at_shopify: string;
+  estagio_derivado: string;
   financial_status: string;
   fulfillment_status: string | null;
-  paid_at: string | null;
-  total: number;
   payment_method: string | null;
-  shipping_province: string | null;
-  wns_pedido_id: string | null;
+  subtotal: number;
+  discount_amount: number;
+  shipping_cost: number;
+  total: number;
+  refunded_amount: number;
+  paid_at: string | null;
   cancelled_at: string | null;
-  wns_sequencia?: number | null;
-  tracking_number?: string | null;
-  tracking_url?: string | null;
-  tracking_company?: string | null;
-  shipment_status?: string | null;
+  fulfilled_at: string | null;
+  shipping_method: string | null;
+  shipping_province: string | null;
+  shipping_city: string | null;
+  shipping_zip: string | null;
+  wns_pedidowns: number | null;
+  wns_sequencia: number | null;
+  wns_fase_descricao: string | null;
+  rastreio_cte: string | null;
+  rastreio_codigo: string | null;
+  rastreio_data: string | null;
+  rastreio_texto: string | null;
+  rastreio_classe: string | null;
+  rastreio_label: string | null;
+  rastreio_prazo: string | null;
+  frete_realizado: number | null;
+  alerta: string | null;
 }
 
-function derivarEstagioB2C(r: B2CRow): EstagioB2C {
-  const fs = r.financial_status ?? "";
-  if (fs === "refunded" || fs === "cancelled" || r.cancelled_at) return "cancelado";
-  if (r.shipment_status === "delivered") return "entregue";
-  if (r.tracking_number) return "em_transito";
-  if (r.wns_pedido_id && r.wns_sequencia != null) {
-    if (r.wns_sequencia >= 6) return "expedido";
-    return "em_separacao";
-  }
-  return "pago";
-}
 
 
 type SortDir = "asc" | "desc";
@@ -421,256 +430,216 @@ function AbaB2B() {
 // ABA B2C
 // ════════════════════════════════════════════════════════════════════════════
 function AbaB2C() {
-  const { data: shopifyData = [], isLoading: loadingShopify } = useQuery({
-    queryKey: ["gestao-b2c-shopify"],
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["vw-gestao-b2c"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("shopify_pedidos")
-        .select("shopify_id,order_name,financial_status,fulfillment_status,paid_at,total,payment_method,shipping_province,wns_pedido_id,cancelled_at")
-        .order("paid_at", { ascending: false });
+        .from("vw_gestao_b2c" as any)
+        .select("*")
+        .order("created_at_shopify", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as B2CRow[];
+      return (data ?? []) as unknown as B2CRow[];
     },
   });
-
-  const { data: fasesData = [] } = useQuery({
-    queryKey: ["wns-fases-b2c"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wns_fases_xpm")
-        .select("wns_id,sequencia");
-      if (error) throw error;
-      return (data ?? []) as { wns_id: number; sequencia: number }[];
-    },
-  });
-
-  const wnsIds = useMemo(() => {
-    const ids: number[] = [];
-    for (const r of shopifyData) {
-      if (r.wns_pedido_id) {
-        const n = Number(r.wns_pedido_id);
-        if (!isNaN(n)) ids.push(n);
-      }
-    }
-    return ids;
-  }, [shopifyData]);
-
-  const { data: wnsData = [] } = useQuery({
-    queryKey: ["gestao-b2c-wns", wnsIds],
-    enabled: wnsIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wns_pedidos")
-        .select("pedidowns,evento_atual_wns_id")
-        .in("pedidowns", wnsIds);
-      if (error) throw error;
-      return (data ?? []) as { pedidowns: number; evento_atual_wns_id: number | null }[];
-    },
-  });
-
-  const { data: fulfData = [] } = useQuery({
-    queryKey: ["gestao-b2c-fulfillments"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("shopify_fulfillments")
-        .select("order_id,tracking_number,tracking_url,tracking_company,shipment_status")
-        .not("tracking_number", "is", null);
-      if (error) throw error;
-      return (data ?? []) as { order_id: string | null; tracking_number: string | null; tracking_url: string | null; tracking_company: string | null; shipment_status: string | null }[];
-    },
-  });
-
-  const faseSeqMap = useMemo(() => {
-    const m = new Map<number, number>();
-    for (const f of fasesData) m.set(f.wns_id, f.sequencia);
-    return m;
-  }, [fasesData]);
-
-  const wnsSeqMap = useMemo(() => {
-    const m = new Map<number, number | null>();
-    for (const w of wnsData) {
-      const seq = w.evento_atual_wns_id != null ? (faseSeqMap.get(w.evento_atual_wns_id) ?? null) : null;
-      m.set(w.pedidowns, seq);
-    }
-    return m;
-  }, [wnsData, faseSeqMap]);
-
-  const fulfMap = useMemo(() => {
-    const m = new Map<string, typeof fulfData[0]>();
-    for (const f of fulfData) if (f.order_id) m.set(f.order_id, f);
-    return m;
-  }, [fulfData]);
-
-  const rows: B2CRow[] = useMemo(() => {
-    return shopifyData.map((r) => {
-      const wnsN = r.wns_pedido_id ? Number(r.wns_pedido_id) : NaN;
-      const wnsSeq = !isNaN(wnsN) ? (wnsSeqMap.get(wnsN) ?? null) : null;
-      const fulf = fulfMap.get(r.shopify_id) ?? null;
-      return {
-        ...r,
-        wns_sequencia: wnsSeq,
-        tracking_number: fulf?.tracking_number ?? null,
-        tracking_url: fulf?.tracking_url ?? null,
-        tracking_company: fulf?.tracking_company ?? null,
-        shipment_status: fulf?.shipment_status ?? null,
-      };
-    });
-  }, [shopifyData, wnsSeqMap, fulfMap]);
 
   const [busca, setBusca] = useState("");
-  const [estagioFiltro, setEstagioFiltro] = useState<string>("__todos");
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [estagioFiltro, setEstagioFiltro] = useState<EstagioB2C | "todos">("todos");
+  const [ufFiltro, setUfFiltro] = useState<string>("todos");
+  const [pagFiltro, setPagFiltro] = useState<string>("todos");
+  const [sortKey, setSortKey] = useState<"order_name" | "total" | "created_at_shopify">("created_at_shopify");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  const contagens = useMemo(() => {
-    const c: Record<EstagioB2C, number> = { pago: 0, em_separacao: 0, expedido: 0, em_transito: 0, entregue: 0, cancelado: 0 };
-    for (const r of rows) c[derivarEstagioB2C(r)]++;
-    return c;
+  const ufsDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => { if (r.shipping_province) set.add(r.shipping_province); });
+    return Array.from(set).sort();
+  }, [rows]);
+
+  const pagamentosDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => { if (r.payment_method) set.add(r.payment_method); });
+    return Array.from(set).sort();
+  }, [rows]);
+
+  const contagemEstagios = useMemo(() => {
+    const map: Record<EstagioB2C, number> = {
+      recebido: 0, pago: 0, em_separacao: 0, expedido: 0,
+      em_transito: 0, entregue: 0, cancelado: 0,
+    };
+    rows.forEach((r) => {
+      const e = r.estagio_derivado as EstagioB2C;
+      if (e in map) map[e]++;
+    });
+    return map;
   }, [rows]);
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     let arr = rows.filter((r) => {
-      if (q) {
-        const hit =
-          r.order_name.toLowerCase().includes(q) ||
-          String(r.tracking_number ?? "").toLowerCase().includes(q);
-        if (!hit) return false;
-      }
-      if (estagioFiltro !== "__todos" && derivarEstagioB2C(r) !== estagioFiltro) return false;
+      if (q && !(r.order_name ?? "").toLowerCase().includes(q)) return false;
+      if (estagioFiltro !== "todos" && r.estagio_derivado !== estagioFiltro) return false;
+      if (ufFiltro !== "todos" && r.shipping_province !== ufFiltro) return false;
+      if (pagFiltro !== "todos" && r.payment_method !== pagFiltro) return false;
       return true;
     });
-    if (sortKey) {
-      arr = [...arr].sort((a, b) => {
-        const va = (a as any)[sortKey];
-        const vb = (b as any)[sortKey];
-        if (va == null && vb == null) return 0;
-        if (va == null) return 1;
-        if (vb == null) return -1;
-        if (typeof va === "number" && typeof vb === "number") {
-          return sortDir === "asc" ? va - vb : vb - va;
-        }
-        return sortDir === "asc"
-          ? String(va).localeCompare(String(vb))
-          : String(vb).localeCompare(String(va));
-      });
-    }
-    return arr;
-  }, [rows, busca, estagioFiltro, sortKey, sortDir]);
 
-  const toggleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortDir(sortDir === "asc" ? "desc" : "asc");
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
+    arr = [...arr].sort((a, b) => {
+      let va: any = a[sortKey];
+      let vb: any = b[sortKey];
+      if (sortKey === "total") { va = Number(va) || 0; vb = Number(vb) || 0; }
+      else if (sortKey === "created_at_shopify") {
+        va = va ? new Date(va).getTime() : 0;
+        vb = vb ? new Date(vb).getTime() : 0;
+      } else {
+        va = (va ?? "").toString();
+        vb = (vb ?? "").toString();
+      }
+      if (va < vb) return sortDir === "asc" ? -1 : 1;
+      if (va > vb) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return arr;
+  }, [rows, busca, estagioFiltro, ufFiltro, pagFiltro, sortKey, sortDir]);
+
+  const toggleSort = (k: typeof sortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir("asc"); }
+  };
+
+  const corRastreio = (classe: string | null) => {
+    switch (classe) {
+      case "entregue": return "bg-green-100 text-green-800";
+      case "em_transito": return "bg-cyan-100 text-cyan-800";
+      case "coletado": return "bg-blue-100 text-blue-800";
+      case "atencao": return "bg-red-100 text-red-800";
+      default: return "bg-slate-100 text-slate-700";
     }
   };
 
-  const Th = ({ k, children }: { k?: string; children: React.ReactNode }) => (
-    <th
-      className={`px-2 py-1.5 text-left font-medium text-muted-foreground border-b bg-muted/50 ${k ? "cursor-pointer select-none" : ""}`}
-      onClick={k ? () => toggleSort(k) : undefined}
-    >
-      <span className="inline-flex items-center gap-1">
-        {children}
-        {k && sortKey === k && <ArrowUpDown className="h-3 w-3" />}
-      </span>
-    </th>
-  );
-
-  const ESTAGIOS_B2C: EstagioB2C[] = ["pago", "em_separacao", "expedido", "em_transito", "entregue", "cancelado"];
-
   return (
     <div className="space-y-4">
+      {/* Filtros topo */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Buscar pedido (order_name)…"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          className="w-64"
+        />
+        <Select value={ufFiltro} onValueChange={setUfFiltro}>
+          <SelectTrigger className="w-32"><SelectValue placeholder="UF" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas UFs</SelectItem>
+            {ufsDisponiveis.map((uf) => (
+              <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={pagFiltro} onValueChange={setPagFiltro}>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Pagamento" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos pagamentos</SelectItem>
+            {pagamentosDisponiveis.map((p) => (
+              <SelectItem key={p} value={p}>{p}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="text-xs text-muted-foreground ml-auto">
+          {filtradas.length} de {rows.length}
+        </div>
+      </div>
+
+      {/* Pipeline clicável */}
       <div className="flex flex-wrap gap-2">
         <button
-          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${estagioFiltro === "__todos" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted/50"}`}
-          onClick={() => setEstagioFiltro("__todos")}
+          onClick={() => setEstagioFiltro("todos")}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            estagioFiltro === "todos" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/70"
+          }`}
         >
-          Todos · {rows.length}
+          Todos ({rows.length})
         </button>
         {ESTAGIOS_B2C.map((e) => (
           <button
             key={e}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${estagioFiltro === e ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted/50"}`}
-            onClick={() => setEstagioFiltro(e === estagioFiltro ? "__todos" : e)}
+            onClick={() => setEstagioFiltro(e)}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              estagioFiltro === e
+                ? "bg-primary text-primary-foreground"
+                : `${B2C_ESTAGIO_COR[e]} hover:opacity-80`
+            }`}
           >
-            <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${B2C_ESTAGIO_COR[e].split(" ")[0]}`} />
-            {B2C_ESTAGIO_LABEL[e]} · {contagens[e]}
+            {B2C_ESTAGIO_LABEL[e]} ({contagemEstagios[e]})
           </button>
         ))}
       </div>
 
-      <Input
-        placeholder="Buscar por nº pedido ou rastreio…"
-        value={busca}
-        onChange={(e) => setBusca(e.target.value)}
-        className="w-72 h-8 text-xs"
-      />
-
+      {/* Tabela */}
       <div className="border rounded-md overflow-auto" style={{ maxHeight: "calc(100vh - 300px)" }}>
         <table className="w-full text-xs">
-          <thead className="sticky top-0 z-10">
-            <tr>
-              <Th k="order_name">Pedido</Th>
-              <Th>Estágio</Th>
-              <Th k="total">Valor</Th>
-              <Th>Pagamento</Th>
-              <Th k="paid_at">Data</Th>
-              <Th k="shipping_province">UF</Th>
-              <Th>WNS</Th>
-              <Th>Rastreio</Th>
-              <Th>Transportadora</Th>
+          <thead className="sticky top-0 bg-background border-b z-10">
+            <tr className="text-left">
+              <th className="px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("order_name")}>
+                <span className="inline-flex items-center gap-1">Pedido <ArrowUpDown className="h-3 w-3" /></span>
+              </th>
+              <th className="px-3 py-2">Estágio</th>
+              <th className="px-3 py-2">Alerta</th>
+              <th className="px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("total")}>
+                <span className="inline-flex items-center gap-1">Total <ArrowUpDown className="h-3 w-3" /></span>
+              </th>
+              <th className="px-3 py-2">Pagamento</th>
+              <th className="px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("created_at_shopify")}>
+                <span className="inline-flex items-center gap-1">Data <ArrowUpDown className="h-3 w-3" /></span>
+              </th>
+              <th className="px-3 py-2">UF</th>
+              <th className="px-3 py-2">Modal</th>
+              <th className="px-3 py-2">WNS</th>
+              <th className="px-3 py-2">WNS Fase</th>
+              <th className="px-3 py-2">Rastreio</th>
+              <th className="px-3 py-2">Rastreio Status</th>
             </tr>
           </thead>
           <tbody>
-            {loadingShopify && (
-              <tr><td colSpan={9} className="px-2 py-4 text-center text-muted-foreground">Carregando…</td></tr>
+            {isLoading ? (
+              <tr><td colSpan={12} className="px-3 py-6 text-center text-muted-foreground">Carregando…</td></tr>
+            ) : filtradas.length === 0 ? (
+              <tr><td colSpan={12} className="px-3 py-6 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
+            ) : (
+              filtradas.map((r) => {
+                const estagio = r.estagio_derivado as EstagioB2C;
+                const corEstagio = B2C_ESTAGIO_COR[estagio] ?? "bg-slate-100 text-slate-700";
+                const labelEstagio = B2C_ESTAGIO_LABEL[estagio] ?? r.estagio_derivado;
+                return (
+                  <tr key={r.shopify_id} className="border-b hover:bg-muted/30">
+                    <td className="px-3 py-2 font-medium">{r.order_name}</td>
+                    <td className="px-3 py-2">
+                      <Badge className={`${corEstagio} border-0`}>{labelEstagio}</Badge>
+                    </td>
+                    <td className="px-3 py-2">
+                      {r.alerta === "pago_sem_wns" ? (
+                        <span title="Pago sem WNS" className="text-yellow-600">⚠</span>
+                      ) : r.alerta === "expedido_sem_rastreio" ? (
+                        <span title="Expedido sem rastreio" className="text-orange-600">📦</span>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-2">{brl(r.total)}</td>
+                    <td className="px-3 py-2">{r.payment_method ?? "-"}</td>
+                    <td className="px-3 py-2">{fmtData(r.created_at_shopify)}</td>
+                    <td className="px-3 py-2">{r.shipping_province ?? "-"}</td>
+                    <td className="px-3 py-2">{r.shipping_method ?? "-"}</td>
+                    <td className="px-3 py-2">{r.wns_pedidowns != null ? `#${r.wns_pedidowns}` : "-"}</td>
+                    <td className="px-3 py-2">{r.wns_fase_descricao ?? "-"}</td>
+                    <td className="px-3 py-2">{r.rastreio_cte ?? "-"}</td>
+                    <td className="px-3 py-2">
+                      {r.rastreio_label ? (
+                        <Badge className={`${corRastreio(r.rastreio_classe)} border-0`}>{r.rastreio_label}</Badge>
+                      ) : "-"}
+                    </td>
+                  </tr>
+                );
+              })
             )}
-            {!loadingShopify && filtradas.length === 0 && (
-              <tr><td colSpan={9} className="px-2 py-4 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
-            )}
-            {filtradas.map((r) => {
-              const estagio = derivarEstagioB2C(r);
-              return (
-                <tr key={r.shopify_id} className="border-b hover:bg-muted/30">
-                  <td className="px-2 py-1.5 align-top font-medium">{r.order_name}</td>
-                  <td className="px-2 py-1.5 align-top">
-                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] ${B2C_ESTAGIO_COR[estagio]}`}>
-                      {B2C_ESTAGIO_LABEL[estagio]}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1.5 align-top">{brl(r.total)}</td>
-                  <td className="px-2 py-1.5 align-top text-muted-foreground">{r.payment_method ?? "-"}</td>
-                  <td className="px-2 py-1.5 align-top">{fmtData(r.paid_at)}</td>
-                  <td className="px-2 py-1.5 align-top">{r.shipping_province ?? "-"}</td>
-                  <td className="px-2 py-1.5 align-top">
-                    {r.wns_pedido_id ? (
-                      <span className="text-muted-foreground">#{r.wns_pedido_id}</span>
-                    ) : "-"}
-                  </td>
-                  <td className="px-2 py-1.5 align-top">
-                    {r.tracking_number ? (
-                      r.tracking_url ? (
-                        <a
-                          href={r.tracking_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-mono text-[10px] text-primary hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {r.tracking_number}
-                        </a>
-                      ) : (
-                        <span className="font-mono text-[10px]">{r.tracking_number}</span>
-                      )
-                    ) : "-"}
-                  </td>
-                  <td className="px-2 py-1.5 align-top text-muted-foreground">{r.tracking_company ?? "-"}</td>
-                </tr>
-              );
-            })}
           </tbody>
         </table>
       </div>
