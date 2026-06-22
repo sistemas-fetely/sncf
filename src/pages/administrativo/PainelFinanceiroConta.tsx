@@ -404,7 +404,7 @@ export default function PainelFinanceiroConta() {
                       {aberto && (
                         <TableRow>
                           <TableCell colSpan={10} className="p-0">
-                            <TitulosAbertosCliente parceiroId={r.parceiro_id} />
+                          <TitulosAbertosCliente parceiroId={r.parceiro_id} incluirPagos={incluirPagos} />
                           </TableCell>
                         </TableRow>
                       )}
