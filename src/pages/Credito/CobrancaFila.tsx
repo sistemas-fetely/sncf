@@ -812,6 +812,7 @@ export default function CobrancaFila() {
             { value: "remessas", label: "Remessas Safra" },
             { value: "banco-safra", label: "Banco Safra" },
             { value: "contas-receber", label: "Contas a Receber" },
+            { value: "credito-cliente", label: "Crédito do cliente" },
           ].map((tab) => (
             <TabsTrigger
               key={tab.value}
