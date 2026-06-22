@@ -8,6 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Table,
   TableBody,
   TableCell,
@@ -26,6 +31,7 @@ import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 
+
 type RecebivelB2B = {
   id: string;
   numero_titulo: string | null;
@@ -40,8 +46,9 @@ type RecebivelB2B = {
   valor: number | null;
   status_gestao: "pago" | "atrasado" | "em_aberto";
   data_liquidacao: string | null;
-  liquidacao_realizada: boolean;
+  liquidacao_confirmada_banco: boolean | null;
 };
+
 
 const PAGE_SIZE = 25;
 
@@ -98,7 +105,7 @@ export default function ContasReceber() {
         return v >= hoje && v <= em7;
       },
       recebidoMes: (t) => {
-        if (t.status_gestao !== "pago" || !t.data_liquidacao) return false;
+        if (!t.liquidacao_confirmada_banco || !t.data_liquidacao) return false;
         const d = new Date(t.data_liquidacao);
         return d >= inicioMes && d <= fimMes;
       },
@@ -450,16 +457,22 @@ export default function ContasReceber() {
                       <TableCell>{formatDateBR(t.data_vencimento)}</TableCell>
                       <TableCell>
                         {t.data_liquidacao ? (
-                          t.liquidacao_realizada ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className="h-2 w-2 rounded-full bg-green-600" />
+                          t.liquidacao_confirmada_banco === true ? (
+                            <span className="inline-flex items-center gap-2">
                               {formatDateBR(t.data_liquidacao)}
-                              <span className="text-[10px] uppercase text-green-700">real</span>
+                              <Badge className="bg-green-100 text-green-700 border-0">REAL</Badge>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 italic text-muted-foreground">
+                            <span className="inline-flex items-center gap-2">
                               {formatDateBR(t.data_liquidacao)}
-                              <span className="text-[10px] uppercase">prev.</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">PREVISTO</Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Previsão de liquidação pelo adquirente</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </span>
                           )
                         ) : (
