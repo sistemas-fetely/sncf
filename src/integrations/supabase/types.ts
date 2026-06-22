@@ -17933,6 +17933,44 @@ export type Database = {
           },
         ]
       }
+      vw_recebivel_b2b_por_conta_full: {
+        Row: {
+          cliente: string | null
+          dias_atraso_max: number | null
+          faixa_1_7: number | null
+          faixa_31_60: number | null
+          faixa_60_mais: number | null
+          faixa_8_30: number | null
+          faixa_a_vencer: number | null
+          parceiro_id: string | null
+          qtd_titulos: number | null
+          total_a_receber: number | null
+          total_vencido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       vw_recebivel_por_conta: {
         Row: {
           cliente: string | null
