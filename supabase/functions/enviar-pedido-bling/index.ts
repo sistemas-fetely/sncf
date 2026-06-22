@@ -195,9 +195,9 @@ serve(async (req) => {
       .maybeSingle();
     if (pedErr || !pedido) return err("Pedido não encontrado", 404);
 
-    // pre_faturado: envio inicial
+    // pre_separacao: envio inicial
     // em_separacao: envio de remessa adicional (/02+) em split
-    const estagiosPermitidos = ["pre_faturado", "em_separacao"];
+    const estagiosPermitidos = ["pre_separacao", "em_separacao"];
     if (!estagiosPermitidos.includes(pedido.estagio)) {
       return err(`Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio`);
     }
