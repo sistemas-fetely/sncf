@@ -62,7 +62,7 @@ export default function ClienteDetalhe() {
             {isSuperAdmin && (
               <Button size="sm" className="gap-2" onClick={() => setCriarHaverOpen(true)}>
                 <Plus className="h-4 w-4" />
-                Criar haver
+                Gerenciar crédito
               </Button>
             )}
             <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate("/credito/clientes")}>
@@ -78,7 +78,7 @@ export default function ClienteDetalhe() {
         }
       />
 
-      <CriarHaverDialog
+      <GerenciarHaverDialog
         open={criarHaverOpen}
         onOpenChange={setCriarHaverOpen}
         parceiroId={parceiro?.id ?? null}
