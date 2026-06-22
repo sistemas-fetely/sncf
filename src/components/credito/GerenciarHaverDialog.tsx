@@ -312,8 +312,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto flex flex-col p-4 sm:p-5">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Gerenciar crédito do cliente</DialogTitle>
         </DialogHeader>
 
@@ -324,7 +324,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
           </TabsList>
 
           {/* ===================== CRÉDITO ===================== */}
-          <TabsContent value="credito" className="space-y-4 pt-4">
+          <TabsContent value="credito" className="space-y-3 pt-3">
             {parceiroPicker}
 
             <div className="space-y-2">
@@ -406,7 +406,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
           </TabsContent>
 
           {/* ===================== DÉBITO ===================== */}
-          <TabsContent value="debito" className="space-y-4 pt-4">
+          <TabsContent value="debito" className="space-y-3 pt-3">
             {parceiroPicker}
 
             {/* Segmented control */}
@@ -479,7 +479,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                       Nenhum haver disponível para este parceiro.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-60 overflow-auto">
+                    <div className="space-y-2 max-h-48 overflow-auto">
                       {(haveresQ.data ?? []).map((h: any) => (
                         <button
                           key={h.id}
