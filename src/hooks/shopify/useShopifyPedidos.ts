@@ -47,7 +47,7 @@ export function useShopifyPedidos() {
         supabase
           .from("vw_shopify_pedidos_rastreio")
           .select("*")
-          .order("created_at_shopify", { ascending: false }) as Promise<any>,
+          .order("created_at_shopify", { ascending: false }) as any,
         supabase.from("shopify_frete_sla").select("modalidade, dias_corridos, ativo"),
       ]);
 
