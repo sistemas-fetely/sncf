@@ -85,7 +85,7 @@ export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtiv
   }, [data]);
 
   const fases = estagios.filter(
-    (e) => !["entregue", "cancelado", "recuperacao_venda"].includes(e.estagio)
+    (e) => !["cancelado", "recuperacao_venda"].includes(e.estagio)
   );
   const totalQtd = estagios.reduce((acc, e) => acc + e.qtd, 0);
   const totalSla = estagios.reduce((acc, e) => acc + e.sla, 0);
