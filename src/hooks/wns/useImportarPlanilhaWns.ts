@@ -187,7 +187,7 @@ export function useImportarPlanilhaWns() {
       sku: l.sku,
     }));
     const { data: zumbiData, error: zumbiErr } = await sb.rpc("fn_wns_limpar_zumbis", {
-      p_chaves: JSON.stringify(chaves),
+      p_chaves: chaves,
     });
     if (zumbiErr) {
       await marcarErro(zumbiErr.message);
