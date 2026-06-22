@@ -184,10 +184,13 @@ export default function PainelFinanceiroConta() {
   const [incluirPagos, setIncluirPagos] = useState(false);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["vw-recebivel-b2b-por-conta"],
+    queryKey: ["vw-recebivel-b2b-por-conta", incluirPagos],
     queryFn: async () => {
+      const viewName = incluirPagos
+        ? "vw_recebivel_b2b_por_conta_full"
+        : "vw_recebivel_b2b_por_conta";
       const { data, error } = await (supabase as any)
-        .from("vw_recebivel_b2b_por_conta")
+        .from(viewName)
         .select("*");
       if (error) throw error;
       return (data ?? []) as RecebivelConta[];
