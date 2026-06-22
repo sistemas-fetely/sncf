@@ -851,6 +851,10 @@ export default function CobrancaFila() {
         <TabsContent value="contas-receber">
           <ContasReceberSops />
         </TabsContent>
+
+        <TabsContent value="credito-cliente">
+          <CreditoClientesIndex />
+        </TabsContent>
       </Tabs>
     </div>
   );
