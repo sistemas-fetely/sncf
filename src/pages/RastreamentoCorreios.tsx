@@ -22,6 +22,35 @@ export default function RastreamentoCorreios() {
   const { lista, loading, erro, listar, adicionar, atualizarTodos } = useRastreamento();
   const [codigo, setCodigo] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
+  const [rastreandoFrenet, setRastreandoFrenet] = useState(false);
+  const [progressoFrenet, setProgressoFrenet] = useState("");
+
+  async function rastrearFrenet() {
+    setRastreandoFrenet(true);
+    setProgressoFrenet("Buscando códigos...");
+
+    const emTransito = lista.filter(
+      r => r.empresa_frete === "frenet" && !r.entregue
+    );
+
+    let ok = 0, erros = 0;
+    for (const r of emTransito) {
+      setProgressoFrenet(`Consultando ${r.codigo_rastreio} (${ok + erros + 1}/${emTransito.length})...`);
+      try {
+        const { data, error } = await supabase.functions.invoke("correios-rastreio-publico", {
+          body: { codigo: r.codigo_rastreio },
+        });
+        if (error || !data?.ok) erros++;
+        else ok++;
+      } catch { erros++; }
+      await new Promise(res => setTimeout(res, 800));
+    }
+
+    setProgressoFrenet(`Concluído: ${ok} atualizados, ${erros} erros.`);
+    await listar();
+    setRastreandoFrenet(false);
+  }
+
 
   useEffect(() => { listar(); }, [listar]);
 
