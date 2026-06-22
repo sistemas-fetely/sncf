@@ -29,12 +29,15 @@ export interface ShopifyPedidoRow {
   tracking_number: string | null;
   tracking_company: string | null;
   tracking_url: string | null;
+  rastreio_status_atual: string | null;
+  rastreio_entregue: boolean | null;
   sla_dias: number | null;
   urgency_envio: UrgenciaEnvio;
   dias_sem_envio: number | null;
   estimated_delivery: string | null;
   status_entrega: StatusEntrega;
 }
+
 
 export function useShopifyPedidos() {
   return useQuery({
