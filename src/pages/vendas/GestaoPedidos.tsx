@@ -392,6 +392,11 @@ function AbaB2B() {
                   </td>
                   <td className="px-2 py-1.5 align-top">{fmtData(r.previsao_entrega)}</td>
                   <td className="px-2 py-1.5 align-top">
+                    {r.data_entrega_real ? (
+                      <span className="text-green-600">{fmtData(r.data_entrega_real)}</span>
+                    ) : "-"}
+                  </td>
+                  <td className="px-2 py-1.5 align-top">
                     {r.rastreio_codigo ? (
                       <>
                         <div className="font-mono text-[10px]">{r.rastreio_codigo}</div>
