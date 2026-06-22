@@ -43,16 +43,26 @@ export function useShopifyPedidos() {
   return useQuery({
     queryKey: ["shopify_pedidos"],
     queryFn: async (): Promise<ShopifyPedidoRow[]> => {
-      const [pedidosRes, slasRes] = await Promise.all([
+      const [pedidosRes, slasRes, rastreiosRes] = await Promise.all([
         supabase
           .from("shopify_pedidos")
           .select("*")
           .order("created_at_shopify", { ascending: false }),
         supabase.from("shopify_frete_sla").select("modalidade, dias_corridos, ativo"),
+        supabase.from("pedido_rastreamento").select("codigo_rastreio, status_atual, entregue"),
       ]);
 
       if (pedidosRes.error) throw pedidosRes.error;
       if (slasRes.error) throw slasRes.error;
+      if (rastreiosRes.error) throw rastreiosRes.error;
+
+      const rastreioMap = new Map<string, { status_atual: string | null; entregue: boolean | null }>();
+      (rastreiosRes.data ?? []).forEach((r) => {
+        if (r.codigo_rastreio) {
+          rastreioMap.set(r.codigo_rastreio, { status_atual: r.status_atual, entregue: r.entregue });
+        }
+      });
+
 
       const slaMap = new Map<string, number>();
       (slasRes.data ?? []).forEach((s) => {
