@@ -12990,6 +12990,13 @@ export type Database = {
             referencedRelation: "vw_gestao_b2c"
             referencedColumns: ["shopify_id"]
           },
+          {
+            foreignKeyName: "shopify_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_pedidos_rastreio"
+            referencedColumns: ["shopify_id"]
+          },
         ]
       }
       shopify_pedidos: {
@@ -17950,6 +17957,48 @@ export type Database = {
           sku: string | null
         }
         Relationships: []
+      }
+      vw_shopify_pedidos_rastreio: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string | null
+          created_at_shopify: string | null
+          discount_amount: number | null
+          financial_status: string | null
+          fulfilled_at: string | null
+          fulfillment_status: string | null
+          importacao_id: string | null
+          order_name: string | null
+          paid_at: string | null
+          payment_method: string | null
+          payment_method_raw: string | null
+          rastreio_atualizado_em: string | null
+          rastreio_entregue: boolean | null
+          rastreio_status: string | null
+          refunded_amount: number | null
+          shipping_city: string | null
+          shipping_cost: number | null
+          shipping_method: string | null
+          shipping_province: string | null
+          shipping_zip: string | null
+          shopify_id: string | null
+          subtotal: number | null
+          total: number | null
+          tracking_company: string | null
+          tracking_number: string | null
+          tracking_url: string | null
+          updated_at: string | null
+          wns_pedido_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_pedidos_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "shopify_importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_temas_investimento_kpis: {
         Row: {
