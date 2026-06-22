@@ -12,7 +12,7 @@ import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { TimelineClienteVisual } from "@/components/credito/TimelineClienteVisual";
 import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/ErguerBandeiraVermelhaDialog";
 import { BaixarBandeiraVermelhaDialog } from "@/components/credito/dialogs/BaixarBandeiraVermelhaDialog";
-import { CriarHaverDialog } from "@/components/credito/CriarHaverDialog";
+import { GerenciarHaverDialog } from "@/components/credito/GerenciarHaverDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) =>
@@ -62,7 +62,7 @@ export default function ClienteDetalhe() {
             {isSuperAdmin && (
               <Button size="sm" className="gap-2" onClick={() => setCriarHaverOpen(true)}>
                 <Plus className="h-4 w-4" />
-                Criar haver
+                Gerenciar crédito
               </Button>
             )}
             <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate("/credito/clientes")}>
@@ -78,7 +78,7 @@ export default function ClienteDetalhe() {
         }
       />
 
-      <CriarHaverDialog
+      <GerenciarHaverDialog
         open={criarHaverOpen}
         onOpenChange={setCriarHaverOpen}
         parceiroId={parceiro?.id ?? null}
