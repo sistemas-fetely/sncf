@@ -54,14 +54,6 @@ export function useShopifyPedidos() {
 
       if (pedidosRes.error) throw pedidosRes.error;
       if (slasRes.error) throw slasRes.error;
-      if (rastreiosRes.error) throw rastreiosRes.error;
-
-      const rastreioMap = new Map<string, { status_atual: string | null; entregue: boolean | null }>();
-      (rastreiosRes.data ?? []).forEach((r) => {
-        if (r.codigo_rastreio) {
-          rastreioMap.set(r.codigo_rastreio, { status_atual: r.status_atual, entregue: r.entregue });
-        }
-      });
 
 
       const slaMap = new Map<string, number>();
