@@ -18956,6 +18956,7 @@ export type Database = {
         Returns: string
       }
       fn_wns_consolidar: { Args: never; Returns: Json }
+      fn_wns_limpar_zumbis: { Args: { p_chaves: Json }; Returns: number }
       fn_wns_vincular_pedidos: { Args: never; Returns: Json }
       gerar_celebracoes_aniversario_mural: { Args: never; Returns: number }
       gerar_celebracoes_tempo_casa_mural: { Args: never; Returns: number }
