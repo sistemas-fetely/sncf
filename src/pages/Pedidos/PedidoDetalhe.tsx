@@ -181,7 +181,7 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
         onClose={() => setReverterOpen(false)}
         pedidoId={pedido.id}
         idExterno={pedido.id_externo}
-        estagio="pre_faturado"
+        estagio="pre_separacao"
       />
     </div>
   );
@@ -466,7 +466,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
   if (estagio === "aguardando_pagamento") return (
     <AcoesAguardandoPagamento pedido={pedido} />
   );
-  if (estagio === "pre_faturado" && !pedido.bling_id_destino) {
+  if (estagio === "pre_separacao" && !pedido.bling_id_destino) {
     return (
       <div className="flex flex-col gap-2 w-full">
         <AcoesPedidoPreFaturado pedido={pedido} parceiro={parceiro} />
@@ -474,6 +474,12 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
       </div>
     );
   }
+  if (estagio === "pre_faturamento") return (
+    <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-700 dark:text-amber-300 flex gap-2">
+      <Clock className="h-4 w-4 mt-0.5 shrink-0" />
+      <span>WNS em Nota Fiscal — aguardando emissão da NF no Bling para avançar automaticamente.</span>
+    </div>
+  );
   if (estagio === "faturado") return (
     <AcoesPedidoFaturado pedido={pedido} />
   );

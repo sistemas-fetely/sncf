@@ -8,7 +8,7 @@ interface SplitParams {
   itens_split:    { descricao: string; sku: string; quantidade: number; valor_unitario: number }[];
   valor_original: number;
   valor_split:    number;
-  estagio_inicial: "aguardando_estoque" | "pre_faturado" | "cobranca";
+  estagio_inicial: "aguardando_estoque" | "pre_separacao" | "cobranca";
   data_entrega_prevista?: string | null;
   observacao?: string | null;
   financeiro_coberto?: boolean;

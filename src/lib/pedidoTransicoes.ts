@@ -17,25 +17,30 @@ export const TRANSICOES_VALIDAS: Record<EstagioPedido, EstagioPedido[]> = {
   ],
   cobranca: [
     "aguardando_pagamento",
-    "pre_faturado",
+    "pre_separacao",
     "cancelado",
   ],
   aguardando_pagamento: [
-    "pre_faturado",
+    "pre_separacao",
     "recuperacao_venda",
     "cancelado",
   ],
-  pre_faturado: [
+  pre_separacao: [
     "em_separacao",
     "aguardando_estoque",
     "recuperacao_venda",
     "cancelado",
   ],
   aguardando_estoque: [
-    "pre_faturado",
+    "pre_separacao",
     "cancelado",
   ],
   em_separacao: [
+    "pre_faturamento",
+    "faturado",
+    "cancelado",
+  ],
+  pre_faturamento: [
     "faturado",
     "cancelado",
   ],
@@ -48,7 +53,7 @@ export const TRANSICOES_VALIDAS: Record<EstagioPedido, EstagioPedido[]> = {
   entregue: [],
   cancelado: [],
   recuperacao_venda: [
-    "pre_faturado",
+    "pre_separacao",
     "cancelado",
   ],
 };

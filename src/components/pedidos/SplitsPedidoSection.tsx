@@ -11,7 +11,8 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 
 const ESTAGIO_CORES: Record<string, string> = {
   aguardando_estoque: "bg-yellow-100 text-yellow-800",
-  pre_faturado:       "bg-blue-100 text-blue-800",
+  pre_separacao:      "bg-blue-100 text-blue-800",
+  pre_faturamento:    "bg-amber-100 text-amber-800",
   cobranca:           "bg-purple-100 text-purple-800",
   em_separacao:       "bg-indigo-100 text-indigo-800",
   faturado:           "bg-green-100 text-green-800",

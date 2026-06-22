@@ -52,8 +52,8 @@ export function RemessasSection({ pedido_id, parceiro_id, id_externo, estagio, b
   if (isLoading) return null;
 
   const semRemessa = !remessas || remessas.length === 0;
-  const podeEnviarInicial = estagio === "pre_faturado" && !bling_id_destino;
-  const estagioDeEnvio = estagio === "pre_faturado" || estagio === "em_separacao";
+  const podeEnviarInicial = estagio === "pre_separacao" && !bling_id_destino;
+  const estagioDeEnvio = estagio === "pre_separacao" || estagio === "em_separacao";
   const temBlingId = !!parceiroBling?.bling_id;
   const precisaSincronizar = estagioDeEnvio && !bling_id_destino && !temBlingId;
 

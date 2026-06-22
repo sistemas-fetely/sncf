@@ -437,7 +437,7 @@ export function FilaPedidosPorArea({
                         />
                       )}
 
-                      {p.estagio === "pre_faturado" && !p.bling_id_destino && (
+                      {p.estagio === "pre_separacao" && !p.bling_id_destino && (
                         <EnviarBlingDialog
                           pedido_id={p.id}
                           parceiro_id={p.parceiro_id}
