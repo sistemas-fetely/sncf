@@ -17203,12 +17203,15 @@ export type Database = {
           order_name: string | null
           paid_at: string | null
           payment_method: string | null
+          rastreio_atualizado_em: string | null
           rastreio_classe: string | null
           rastreio_codigo: string | null
           rastreio_cte: string | null
           rastreio_data: string | null
+          rastreio_entregue: boolean | null
           rastreio_label: string | null
           rastreio_prazo: string | null
+          rastreio_status: string | null
           rastreio_texto: string | null
           refunded_amount: number | null
           shipping_city: string | null
@@ -17219,6 +17222,8 @@ export type Database = {
           shopify_id: string | null
           subtotal: number | null
           total: number | null
+          tracking_company: string | null
+          tracking_number: string | null
           wns_fase_descricao: string | null
           wns_pedidowns: number | null
           wns_sequencia: number | null

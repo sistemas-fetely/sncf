@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Copy, ExternalLink } from "lucide-react";
 
 type Row = Record<string, any>;
 
@@ -116,6 +116,9 @@ interface B2CRow {
   rastreio_classe: string | null;
   rastreio_label: string | null;
   rastreio_prazo: string | null;
+  tracking_number: string | null;
+  rastreio_status: string | null;
+  rastreio_entregue: boolean | null;
   frete_realizado: number | null;
   alerta: string | null;
 }
@@ -630,11 +633,39 @@ function AbaB2C() {
                     <td className="px-3 py-2">{r.shipping_method ?? "-"}</td>
                     <td className="px-3 py-2">{r.wns_pedidowns != null ? `#${r.wns_pedidowns}` : "-"}</td>
                     <td className="px-3 py-2">{r.wns_fase_descricao ?? "-"}</td>
-                    <td className="px-3 py-2">{r.rastreio_cte ?? "-"}</td>
-                    <td className="px-3 py-2">
-                      {r.rastreio_label ? (
-                        <Badge className={`${corRastreio(r.rastreio_classe)} border-0`}>{r.rastreio_label}</Badge>
-                      ) : "-"}
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {r.tracking_number ? (
+                        <div className="flex items-center gap-1">
+                          <span className="font-mono text-[10px]">{r.tracking_number}</span>
+                          <button
+                            title="Copiar código"
+                            onClick={() => navigator.clipboard.writeText(r.tracking_number!)}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                          <a
+                            href="https://rastreamento.correios.com.br/app/index.php"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Abrir Correios"
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {r.rastreio_entregue ? (
+                        <Badge className="bg-green-600 hover:bg-green-600 text-white border-0">Entregue</Badge>
+                      ) : r.rastreio_status ? (
+                        <span className="text-xs">{r.rastreio_status}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 );
