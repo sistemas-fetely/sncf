@@ -273,6 +273,7 @@ function AbaB2B() {
               <Th>Transportadora</Th>
               <Th k="remessa_qtd">Remessas</Th>
               <Th k="previsao_entrega">Prev. Entrega</Th>
+              <Th k="data_entrega_real">Entrega Real</Th>
               <Th>Rastreio</Th>
               <Th k="splits_qtd">Split</Th>
             </tr>
