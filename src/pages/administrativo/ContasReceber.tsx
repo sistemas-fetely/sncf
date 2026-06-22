@@ -273,52 +273,54 @@ export default function ContasReceber() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        {kpiCard("totalReceber", "Total a receber", formatBRL(kpis.totalReceber), "text-blue-700", "ring-blue-500")}
-        {kpiCard("vencido", "Vencido", formatBRL(kpis.vencido), "text-red-700", "ring-red-500")}
-        {kpiCard("vence7", "Vence em 7 dias", formatBRL(kpis.vence7), "text-amber-600", "ring-amber-500")}
-        {kpiCard("recebidoMes", "Recebido no mês", formatBRL(kpis.recebidoMes), "text-green-700", "ring-green-500")}
-        {kpiCard("liquidar30", "A liquidar em 30 dias", formatBRL(kpis.liquidar30), "text-cyan-700", "ring-cyan-500")}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Inadimplência</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold">{kpis.inadimplencia.toFixed(1)}%</div>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="space-y-4">
+        {/* Linha 1 — Fluxo de caixa */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {kpiCard("recebidoMes", "Recebido no mês", formatBRL(kpis.recebidoMes), "text-green-700", "ring-green-500")}
+          {kpiCard("totalReceber", "Total a receber", formatBRL(kpis.totalReceber), "text-blue-700", "ring-blue-500")}
+          {kpiCard("vence7", "Vence em 7 dias", formatBRL(kpis.vence7), "text-amber-600", "ring-amber-500")}
+          {kpiCard("liquidar30", "A liquidar em 30 dias", formatBRL(kpis.liquidar30), "text-cyan-700", "ring-cyan-500")}
+        </div>
 
-      {/* Aging */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Aging</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            <div className="rounded-md border p-3">
-              <div className="text-xs text-muted-foreground">A vencer</div>
-              <div className="text-lg font-semibold text-blue-700">{formatBRL(aging.a_vencer)}</div>
-            </div>
-            <div className="rounded-md border p-3">
-              <div className="text-xs text-muted-foreground">1–7 dias</div>
-              <div className="text-lg font-semibold text-amber-600">{formatBRL(aging.f1_7)}</div>
-            </div>
-            <div className="rounded-md border p-3">
-              <div className="text-xs text-muted-foreground">8–30 dias</div>
-              <div className="text-lg font-semibold text-orange-600">{formatBRL(aging.f8_30)}</div>
-            </div>
-            <div className="rounded-md border p-3">
-              <div className="text-xs text-muted-foreground">31–60 dias</div>
-              <div className="text-lg font-semibold text-red-600">{formatBRL(aging.f31_60)}</div>
-            </div>
-            <div className="rounded-md border p-3">
-              <div className="text-xs text-muted-foreground">+60 dias</div>
-              <div className="text-lg font-semibold text-red-800">{formatBRL(aging.f60)}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Linha 2 — Saúde da carteira + Aging */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {kpiCard("vencido", "Vencido", formatBRL(kpis.vencido), "text-red-700", "ring-red-500")}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Inadimplência</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{kpis.inadimplencia.toFixed(1)}%</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">A vencer</div>
+                  <div className="text-lg font-semibold text-blue-700">{formatBRL(aging.a_vencer)}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">1–7 dias</div>
+                  <div className="text-lg font-semibold text-amber-600">{formatBRL(aging.f1_7)}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">8–30 dias</div>
+                  <div className="text-lg font-semibold text-orange-600">{formatBRL(aging.f8_30)}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">31–60 dias</div>
+                  <div className="text-lg font-semibold text-red-600">{formatBRL(aging.f31_60)}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">+60 dias</div>
+                  <div className="text-lg font-semibold text-red-800">{formatBRL(aging.f60)}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Filtros */}
       <Card>
