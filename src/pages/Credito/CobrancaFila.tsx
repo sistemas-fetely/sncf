@@ -8,6 +8,7 @@ import BancoSafra from "@/pages/administrativo/BancoSafra";
 import ContasReceberSops from "@/pages/Credito/ContasReceberSops";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TodosTitulosTab from "@/pages/Credito/TodosTitulosTab";
+import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -811,6 +812,7 @@ export default function CobrancaFila() {
             { value: "remessas", label: "Remessas Safra" },
             { value: "banco-safra", label: "Banco Safra" },
             { value: "contas-receber", label: "Contas a Receber" },
+            { value: "credito-cliente", label: "Crédito do cliente" },
           ].map((tab) => (
             <TabsTrigger
               key={tab.value}
@@ -848,6 +850,10 @@ export default function CobrancaFila() {
 
         <TabsContent value="contas-receber">
           <ContasReceberSops />
+        </TabsContent>
+
+        <TabsContent value="credito-cliente">
+          <CreditoClientesIndex />
         </TabsContent>
       </Tabs>
     </div>
