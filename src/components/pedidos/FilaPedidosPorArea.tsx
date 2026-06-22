@@ -114,12 +114,18 @@ export function FilaPedidosPorArea({
     return completo.filter((e) => ESTAGIO_AREA[e] === area);
   }, [area]);
 
+  // Quando um estágio específico é selecionado (ex: 'cancelado' ou 'entregue'),
+  // desativa o filtro `apenasAtivos` que excluiria justamente esses estágios.
+  const estagioEspecificoSelecionado =
+    (usarEstagiosMultiplos && estagios && estagios.length > 0) ||
+    (!usarEstagiosMultiplos && !!estagioFilter && estagioFilter !== "todos");
+
   const { data, isLoading } = usePedidosFila({
     area,
     estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
     estagios: usarEstagiosMultiplos ? estagios : undefined,
     busca: busca || undefined,
-    apenasAtivos,
+    apenasAtivos: apenasAtivos && !estagioEspecificoSelecionado,
   });
 
   // Scores IA — fetch paralelo, merge por id.
