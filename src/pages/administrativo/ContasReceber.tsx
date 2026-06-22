@@ -46,8 +46,9 @@ type RecebivelB2B = {
   valor: number | null;
   status_gestao: "pago" | "atrasado" | "em_aberto";
   data_liquidacao: string | null;
-  liquidacao_realizada: boolean;
+  liquidacao_confirmada_banco: boolean | null;
 };
+
 
 const PAGE_SIZE = 25;
 
