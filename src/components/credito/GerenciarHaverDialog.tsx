@@ -479,7 +479,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                       Nenhum haver disponível para este parceiro.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-60 overflow-auto">
+                    <div className="space-y-2 max-h-48 overflow-auto">
                       {(haveresQ.data ?? []).map((h: any) => (
                         <button
                           key={h.id}
