@@ -17739,6 +17739,7 @@ export type Database = {
           data_liquidacao: string | null
           data_vencimento: string | null
           id: string | null
+          liquidacao_confirmada_banco: boolean | null
           liquidacao_realizada: boolean | null
           meio_pagamento: string | null
           nf_id: string | null
