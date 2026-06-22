@@ -131,11 +131,22 @@ Deno.serve(async (req) => {
     let codigos: string[] = Array.isArray(body?.codigos) ? body.codigos : [];
 
     if (codigos.length === 0) {
-      const { data } = await supabase
+      // Busca códigos a atualizar (excluindo os da Frenet)
+      const { data: todos } = await supabase
         .from("pedido_rastreamento")
         .select("codigo_rastreio")
         .eq("entregue", false);
-      codigos = (data ?? []).map((r: any) => r.codigo_rastreio);
+
+      const { data: frenet } = await supabase
+        .from("correios_lancamentos")
+        .select("etiqueta")
+        .eq("empresa_frete", "frenet");
+
+      const etiquetasFrenet = new Set((frenet ?? []).map((f: any) => f.etiqueta));
+
+      codigos = (todos ?? [])
+        .map((r: any) => r.codigo_rastreio)
+        .filter((c: string) => !etiquetasFrenet.has(c));
     }
 
     if (codigos.length === 0) {
