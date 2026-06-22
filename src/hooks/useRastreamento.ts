@@ -14,11 +14,7 @@ export interface Rastreio {
 }
 
 function normalizarStatus(row: any): Rastreio {
-  return {
-    ...row,
-    status_atual: row.status_atual ?? null,
-    empresa_frete: row.correios_lancamentos?.empresa_frete ?? null,
-  };
+  return { ...row, status_atual: row.status_atual ?? null };
 }
 
 export function useRastreamento() {
@@ -27,12 +23,25 @@ export function useRastreamento() {
   const [erro, setErro] = useState<string | null>(null);
 
   const listar = useCallback(async () => {
-    const { data, error } = await (supabase as any)
-      .from("pedido_rastreamento")
-      .select("*, correios_lancamentos!left(empresa_frete)")
-      .order("atualizado_em", { ascending: false });
-    if (error) setErro(error.message);
-    else setLista((data ?? []).map(normalizarStatus));
+    const [{ data, error }, { data: lancs }] = await Promise.all([
+      (supabase as any)
+        .from("pedido_rastreamento")
+        .select("*")
+        .order("atualizado_em", { ascending: false }),
+      (supabase as any)
+        .from("correios_lancamentos")
+        .select("etiqueta, empresa_frete"),
+    ]);
+    if (error) { setErro(error.message); return; }
+    const mapaEmpresa = new Map(
+      (lancs ?? []).map((l: any) => [l.etiqueta, l.empresa_frete])
+    );
+    setLista(
+      (data ?? []).map((row: any) => normalizarStatus({
+        ...row,
+        empresa_frete: mapaEmpresa.get(row.codigo_rastreio) ?? null,
+      }))
+    );
   }, []);
 
   const adicionar = useCallback(async (codigo: string) => {
