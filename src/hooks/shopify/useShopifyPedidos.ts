@@ -43,14 +43,14 @@ export function useShopifyPedidos() {
   return useQuery({
     queryKey: ["shopify_pedidos"],
     queryFn: async (): Promise<ShopifyPedidoRow[]> => {
-      const [pedidosRes, slasRes, rastreiosRes] = await Promise.all([
+      const [pedidosRes, slasRes] = await Promise.all([
         supabase
-          .from("shopify_pedidos")
+          .from("vw_shopify_pedidos_rastreio" as any)
           .select("*")
           .order("created_at_shopify", { ascending: false }),
         supabase.from("shopify_frete_sla").select("modalidade, dias_corridos, ativo"),
-        supabase.from("pedido_rastreamento").select("codigo_rastreio, status_atual, entregue"),
       ]);
+
 
       if (pedidosRes.error) throw pedidosRes.error;
       if (slasRes.error) throw slasRes.error;
