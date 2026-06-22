@@ -273,16 +273,17 @@ function AbaB2B() {
               <Th>Transportadora</Th>
               <Th k="remessa_qtd">Remessas</Th>
               <Th k="previsao_entrega">Prev. Entrega</Th>
+              <Th k="data_entrega_real">Entrega Real</Th>
               <Th>Rastreio</Th>
               <Th k="splits_qtd">Split</Th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={18} className="px-2 py-4 text-center text-muted-foreground">Carregando…</td></tr>
+              <tr><td colSpan={19} className="px-2 py-4 text-center text-muted-foreground">Carregando…</td></tr>
             )}
             {!isLoading && filtradas.length === 0 && (
-              <tr><td colSpan={18} className="px-2 py-4 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
+              <tr><td colSpan={19} className="px-2 py-4 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
             )}
             {filtradas.map((r) => {
               const formaPg = r.forma_pagamento ?? r.forma_solicitada ?? "-";
@@ -390,6 +391,11 @@ function AbaB2B() {
                     ) : "-"}
                   </td>
                   <td className="px-2 py-1.5 align-top">{fmtData(r.previsao_entrega)}</td>
+                  <td className="px-2 py-1.5 align-top">
+                    {r.data_entrega_real ? (
+                      <span className="text-green-600">{fmtData(r.data_entrega_real)}</span>
+                    ) : "-"}
+                  </td>
                   <td className="px-2 py-1.5 align-top">
                     {r.rastreio_codigo ? (
                       <>
