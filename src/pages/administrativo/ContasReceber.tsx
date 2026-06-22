@@ -283,40 +283,46 @@ export default function ContasReceber() {
         </div>
 
         {/* Linha 2 — Saúde da carteira + Aging */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           {kpiCard("vencido", "Vencido", formatBRL(kpis.vencido), "text-red-700", "ring-red-500")}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Inadimplência</CardTitle>
+              <CardTitle className="text-sm text-rose-700">Inadimplência</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold">{kpis.inadimplencia.toFixed(1)}%</div>
+              <div className="text-2xl font-semibold text-rose-700">{kpis.inadimplencia.toFixed(1)}%</div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">A vencer</div>
-                  <div className="text-lg font-semibold text-blue-700">{formatBRL(aging.a_vencer)}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">1–7 dias</div>
-                  <div className="text-lg font-semibold text-amber-600">{formatBRL(aging.f1_7)}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">8–30 dias</div>
-                  <div className="text-lg font-semibold text-orange-600">{formatBRL(aging.f8_30)}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">31–60 dias</div>
-                  <div className="text-lg font-semibold text-red-600">{formatBRL(aging.f31_60)}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">+60 dias</div>
-                  <div className="text-lg font-semibold text-red-800">{formatBRL(aging.f60)}</div>
-                </div>
-              </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-amber-600">1–7 dias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-amber-600">{formatBRL(aging.f1_7)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-orange-600">8–30 dias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-orange-600">{formatBRL(aging.f8_30)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-red-600">31–60 dias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-red-600">{formatBRL(aging.f31_60)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-red-800">+60 dias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-red-800">{formatBRL(aging.f60)}</div>
             </CardContent>
           </Card>
         </div>
