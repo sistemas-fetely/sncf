@@ -9,7 +9,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Upload, ChevronLeft, ChevronRight } from "lucide-react";
+import { Upload, ChevronLeft, ChevronRight, Copy, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ImportarCsvShopifyDialog } from "@/components/shopify/ImportarCsvShopifyDialog";
 import { useShopifyPedidos } from "@/hooks/shopify/useShopifyPedidos";
@@ -182,18 +182,25 @@ export default function ShopifyB2c() {
                       <TableCell className="whitespace-nowrap">{txt(p.wns_pedido_id)}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         {p.tracking_number ? (
-                          p.tracking_url ? (
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-xs">{p.tracking_number}</span>
+                            <button
+                              title="Copiar código"
+                              onClick={() => navigator.clipboard.writeText(p.tracking_number!)}
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </button>
                             <a
-                              href={p.tracking_url}
+                              href="https://rastreamento.correios.com.br/app/index.php"
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline font-mono text-xs"
+                              title="Abrir Correios"
+                              className="text-muted-foreground hover:text-foreground transition-colors"
                             >
-                              {p.tracking_number}
+                              <ExternalLink className="h-3.5 w-3.5" />
                             </a>
-                          ) : (
-                            <span className="font-mono text-xs">{p.tracking_number}</span>
-                          )
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
