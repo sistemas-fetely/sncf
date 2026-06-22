@@ -9,6 +9,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Upload, ChevronLeft, ChevronRight, Copy, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ImportarCsvShopifyDialog } from "@/components/shopify/ImportarCsvShopifyDialog";
