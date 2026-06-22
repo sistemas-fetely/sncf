@@ -17175,6 +17175,7 @@ export type Database = {
           area_atual: string | null
           bandeira_vermelha: boolean | null
           condicao_solicitada: string | null
+          data_entrega_real: string | null
           data_pedido: string | null
           entrada_status: string | null
           estagio: string | null
