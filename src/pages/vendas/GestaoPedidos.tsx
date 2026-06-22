@@ -280,10 +280,10 @@ function AbaB2B() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={18} className="px-2 py-4 text-center text-muted-foreground">Carregando…</td></tr>
+              <tr><td colSpan={19} className="px-2 py-4 text-center text-muted-foreground">Carregando…</td></tr>
             )}
             {!isLoading && filtradas.length === 0 && (
-              <tr><td colSpan={18} className="px-2 py-4 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
+              <tr><td colSpan={19} className="px-2 py-4 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
             )}
             {filtradas.map((r) => {
               const formaPg = r.forma_pagamento ?? r.forma_solicitada ?? "-";
