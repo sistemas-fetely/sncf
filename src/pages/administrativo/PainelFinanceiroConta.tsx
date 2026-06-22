@@ -295,14 +295,26 @@ export default function PainelFinanceiroConta() {
       {/* Busca + tabela */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar cliente..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="max-w-sm"
-            />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar cliente..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="max-w-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="incluir-pagos"
+                checked={incluirPagos}
+                onCheckedChange={setIncluirPagos}
+              />
+              <Label htmlFor="incluir-pagos" className="text-sm font-normal">
+                Incluir pagos
+              </Label>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
