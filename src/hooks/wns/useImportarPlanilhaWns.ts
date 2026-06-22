@@ -180,6 +180,24 @@ export function useImportarPlanilhaWns() {
       };
     });
 
+    setEtapa("Limpando linhas obsoletas…");
+    const chaves = linhas.map((l) => ({
+      pedidowns: l.pedidowns,
+      prefaturamento_xpm: l.prefaturamento_xpm,
+      sku: l.sku,
+    }));
+    const { data: zumbiData, error: zumbiErr } = await sb.rpc("fn_wns_limpar_zumbis", {
+      p_chaves: JSON.stringify(chaves),
+    });
+    if (zumbiErr) {
+      await marcarErro(zumbiErr.message);
+      setProcessando(false);
+      toast.error("Erro ao limpar linhas obsoletas: " + zumbiErr.message);
+      return;
+    }
+    const n = Number(zumbiData ?? 0);
+    if (n > 0) console.log("Zumbis removidos:", n);
+
     const CHUNK = 500;
     for (let i = 0; i < linhas.length; i += CHUNK) {
       const lote = linhas.slice(i, i + CHUNK);
