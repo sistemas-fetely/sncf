@@ -9982,6 +9982,7 @@ export type Database = {
           pedido_origem_id: string | null
           peso_bruto_total: number | null
           pre_faturado_em: string | null
+          pre_separacao_em: string | null
           premissas: Json | null
           prioridade_motivo: string | null
           prioridade_score: number
@@ -10059,6 +10060,7 @@ export type Database = {
           pedido_origem_id?: string | null
           peso_bruto_total?: number | null
           pre_faturado_em?: string | null
+          pre_separacao_em?: string | null
           premissas?: Json | null
           prioridade_motivo?: string | null
           prioridade_score?: number
@@ -10136,6 +10138,7 @@ export type Database = {
           pedido_origem_id?: string | null
           peso_bruto_total?: number | null
           pre_faturado_em?: string | null
+          pre_separacao_em?: string | null
           premissas?: Json | null
           prioridade_motivo?: string | null
           prioridade_score?: number
