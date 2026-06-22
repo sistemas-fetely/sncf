@@ -719,9 +719,9 @@ if (itensSemProdutoBling.length > 0) {
         }).eq("id", pedido_id);
       }
 
-      // 12c. Transição de estágio — apenas se ainda em pre_faturado
+      // 12c. Transição de estágio — se em pre_faturado ou pre_separacao
       let avisoTransicao: string | undefined;
-      if (pedido.estagio === "pre_faturado") {
+      if (["pre_faturado", "pre_separacao"].includes(pedido.estagio)) {
         const { error: errTransicao } = await supabase.rpc("transicionar_pedido" as string, {
           p_pedido_id: pedido_id,
           p_para_estagio: "em_separacao",
