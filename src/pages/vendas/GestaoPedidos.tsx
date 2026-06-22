@@ -116,6 +116,9 @@ interface B2CRow {
   rastreio_classe: string | null;
   rastreio_label: string | null;
   rastreio_prazo: string | null;
+  tracking_number: string | null;
+  rastreio_status: string | null;
+  rastreio_entregue: boolean | null;
   frete_realizado: number | null;
   alerta: string | null;
 }
