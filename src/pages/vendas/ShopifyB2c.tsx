@@ -149,13 +149,13 @@ export default function ShopifyB2c() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-8">
+                    <TableCell colSpan={19} className="text-center py-8">
                       <Skeleton className="h-4 w-32 mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : paginados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
                       Nenhum pedido.
                     </TableCell>
                   </TableRow>
