@@ -74,6 +74,7 @@ export function VendasSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <FinancasSidebarItem to="/pedidos" icon={ShoppingCart} label="Pedidos B2B" end />
+              <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Pedidos B2C" end />
               <FinancasSidebarItem to="/vendas/gestao-pedidos" icon={TableProperties} label="Gestão de Pedidos" />
               <FinancasSidebarItem to="/recebimento/cobranca" icon={Receipt} label="Cobrança" />
               <FinancasSidebarItem to="/credito/clientes" icon={CreditCard} label="Crédito do cliente" />
@@ -108,7 +109,6 @@ export function VendasSidebar() {
         <SidebarGroup className="pb-3">
           <SidebarGroupContent>
             <FinancasSidebarSection title="Shopify" defaultOpen>
-              <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Pedidos B2C" end />
               <FinancasSidebarItem to="/vendas/shopify/checkouts" icon={Receipt} label="Checkouts" />
               <FinancasSidebarItem to="/vendas/shopify/produtos" icon={Package} label="Produtos" />
               <FinancasSidebarItem to="/vendas/shopify/clientes" icon={Users} label="Clientes" />
