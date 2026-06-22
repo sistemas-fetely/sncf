@@ -29,8 +29,9 @@ export interface ShopifyPedidoRow {
   tracking_number: string | null;
   tracking_company: string | null;
   tracking_url: string | null;
-  rastreio_status_atual: string | null;
+  rastreio_status: string | null;
   rastreio_entregue: boolean | null;
+  rastreio_atualizado_em: string | null;
   sla_dias: number | null;
   urgency_envio: UrgenciaEnvio;
   dias_sem_envio: number | null;
