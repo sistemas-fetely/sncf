@@ -83,7 +83,19 @@ export default function RastreamentoCorreios() {
         >
           {loading ? "Atualizando..." : "Atualizar todos"}
         </button>
+        <button
+          onClick={() => rastrearFrenet()}
+          disabled={rastreandoFrenet || loading}
+          style={{ padding: "8px 16px", borderRadius: 6, cursor: "pointer" }}
+        >
+          {rastreandoFrenet ? progressoFrenet : "Rastrear Frenet (API pública)"}
+        </button>
       </div>
+
+      {progressoFrenet && !rastreandoFrenet && (
+        <p style={{ marginBottom: 12, color: "#666" }}>{progressoFrenet}</p>
+      )}
+
 
       {erro && <p style={{ color: "crimson", marginBottom: 12 }}>Erro: {erro}</p>}
 
