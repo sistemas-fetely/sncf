@@ -5,9 +5,10 @@ export type EstagioPedido =
   | "em_analise_credito"
   | "cobranca"
   | "aguardando_pagamento"
-  | "pre_faturado"
+  | "pre_separacao"
   | "aguardando_estoque"
   | "em_separacao"
+  | "pre_faturamento"
   | "faturado"
   | "em_transporte"
   | "entregue"
@@ -23,9 +24,10 @@ export const ESTAGIO_LABELS: Record<EstagioPedido, string> = {
   em_analise_credito: "Em análise crédito",
   cobranca: "Cobrança",
   aguardando_pagamento: "Aguardando pagamento",
-  pre_faturado: "Pré-faturamento",
+  pre_separacao: "Pré-Separação",
   aguardando_estoque: "Aguardando estoque",
   em_separacao: "Em separação",
+  pre_faturamento: "Pré-Faturamento",
   faturado: "Faturado",
   em_transporte: "Em transporte",
   entregue: "Entregue",
@@ -38,9 +40,10 @@ export const ESTAGIO_LABELS_CURTO: Record<EstagioPedido, string> = {
   em_analise_credito: "Em Análise",
   cobranca: "Cobrança",
   aguardando_pagamento: "Aguardando PG",
-  pre_faturado: "Pré-Faturado",
+  pre_separacao: "Pré-Separação",
   aguardando_estoque: "Ag. Estoque",
   em_separacao: "Em Separação",
+  pre_faturamento: "Pré-Faturamento",
   faturado: "Faturado",
   em_transporte: "Em Transporte",
   entregue: "Entregue",
@@ -62,8 +65,9 @@ export const PIPELINE_PRINCIPAL: readonly EstagioPedido[] = [
   "aguardando_estoque",
   "cobranca",
   "aguardando_pagamento",
-  "pre_faturado",
+  "pre_separacao",
   "em_separacao",
+  "pre_faturamento",
   "faturado",
   "em_transporte",
   "entregue",
@@ -83,9 +87,10 @@ export const ESTAGIO_AREA: Record<EstagioPedido, AreaPedido> = {
   em_analise_credito: "credito",
   cobranca: "sops",
   aguardando_pagamento: "sops",
-  pre_faturado: "sops",
+  pre_separacao: "sops",
   aguardando_estoque: "sops",
   em_separacao: "bling",
+  pre_faturamento: "bling",
   faturado: "bling",
   em_transporte: "bling",
   entregue: "nenhuma",

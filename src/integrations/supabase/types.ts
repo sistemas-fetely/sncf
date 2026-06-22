@@ -19658,26 +19658,16 @@ export type Database = {
         }
         Returns: Json
       }
-      transicionar_pedido:
-        | {
-            Args: {
-              p_motivo?: string
-              p_para_estagio: string
-              p_pedido_id: string
-              p_proxima_acao?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_automatico?: boolean
-              p_motivo?: string
-              p_para_estagio: string
-              p_pedido_id: string
-              p_proxima_acao?: string
-            }
-            Returns: Json
-          }
+      transicionar_pedido: {
+        Args: {
+          p_automatico?: boolean
+          p_motivo?: string
+          p_para_estagio: string
+          p_pedido_id: string
+          p_proxima_acao?: string
+        }
+        Returns: Json
+      }
       unaccent: { Args: { "": string }; Returns: string }
       user_perfis_detalhados: {
         Args: { _user_id: string }

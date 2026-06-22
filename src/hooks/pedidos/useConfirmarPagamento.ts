@@ -69,11 +69,11 @@ export function useConfirmarPagamento() {
         }
       }
 
-      // 3. Avança pedido para pre_faturado (libera pro Bling)
+      // 3. Avança pedido para pre_separacao (libera pro Bling)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: errTransicao } = await (supabase as any).rpc("transicionar_pedido", {
         p_pedido_id: pedido_id,
-        p_para_estagio: "pre_faturado",
+        p_para_estagio: "pre_separacao",
         p_proxima_acao: "Pronto pra enviar pro Bling",
         p_motivo: "Pagamento confirmado",
       });

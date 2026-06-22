@@ -21,11 +21,11 @@ import { Sparkles } from "lucide-react";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-type EstagioSplit = "aguardando_estoque" | "pre_faturado" | "cobranca";
+type EstagioSplit = "aguardando_estoque" | "pre_separacao" | "cobranca";
 
 const ESTAGIO_OPTIONS: { value: EstagioSplit; label: string; desc: string }[] = [
   { value: "aguardando_estoque", label: "Aguardando estoque", desc: "Item sem estoque no momento" },
-  { value: "pre_faturado",       label: "Pré-faturado",       desc: "Item disponível, atraso só logístico" },
+  { value: "pre_separacao",      label: "Pré-Separação",      desc: "Item disponível, atraso só logístico" },
   { value: "cobranca",           label: "Cobrança",           desc: "Precisa renegociar condições de pagamento" },
 ];
 

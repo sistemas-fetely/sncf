@@ -7,7 +7,7 @@ import { ESTAGIO_CORES } from "@/components/pedidos/BadgesPedido";
 import type { EstagioPedido } from "@/types/pedido";
 import {
   AlertTriangle, Inbox, Shield, CheckCircle2, Receipt,
-  Clock, FileClock, Package, FileText, Truck, PackageCheck,
+  Clock, FileClock, Package, PackageSearch, FileText, Truck, PackageCheck,
 } from "lucide-react";
 
 const ESTAGIO_ICONES: Record<EstagioPedido, JSX.Element> = {
@@ -16,7 +16,8 @@ const ESTAGIO_ICONES: Record<EstagioPedido, JSX.Element> = {
   
   cobranca:             <Receipt className="h-4 w-4" />,
   aguardando_pagamento: <Clock className="h-4 w-4" />,
-  pre_faturado:         <FileClock className="h-4 w-4" />,
+  pre_separacao:        <FileClock className="h-4 w-4" />,
+  pre_faturamento:      <PackageSearch className="h-4 w-4" />,
   aguardando_estoque:   <Clock className="h-4 w-4" />,
   em_separacao:         <Package className="h-4 w-4" />,
   faturado:             <FileText className="h-4 w-4" />,
@@ -33,7 +34,8 @@ const ESTAGIO_BG_SUAVE: Record<EstagioPedido, string> = {
   
   cobranca:             "bg-violet-50 dark:bg-violet-900/30",
   aguardando_pagamento: "bg-amber-50 dark:bg-amber-900/30",
-  pre_faturado:         "bg-orange-50 dark:bg-orange-900/30",
+  pre_separacao:        "bg-orange-50 dark:bg-orange-900/30",
+  pre_faturamento:      "bg-amber-50 dark:bg-amber-900/30",
   aguardando_estoque:   "bg-yellow-50 dark:bg-yellow-900/30",
   em_separacao:         "bg-sky-50 dark:bg-sky-900/30",
   faturado:             "bg-sky-100 dark:bg-sky-900/40",
@@ -50,7 +52,8 @@ const ESTAGIO_TEXT_COR: Record<EstagioPedido, string> = {
   
   cobranca:             "text-violet-600 dark:text-violet-400",
   aguardando_pagamento: "text-amber-600 dark:text-amber-400",
-  pre_faturado:         "text-orange-600 dark:text-orange-400",
+  pre_separacao:        "text-orange-600 dark:text-orange-400",
+  pre_faturamento:      "text-amber-700 dark:text-amber-400",
   aguardando_estoque:   "text-yellow-700 dark:text-yellow-400",
   em_separacao:         "text-sky-600 dark:text-sky-400",
   faturado:             "text-sky-700 dark:text-sky-400",

@@ -13,12 +13,12 @@ interface Props {
   onClose: () => void;
   pedidoId: string;
   idExterno: string;
-  estagio: "aguardando_pagamento" | "pre_faturado";
+  estagio: "aguardando_pagamento" | "pre_separacao";
 }
 
-const estagioLabel: Record<"aguardando_pagamento" | "pre_faturado", string> = {
+const estagioLabel: Record<"aguardando_pagamento" | "pre_separacao", string> = {
   aguardando_pagamento: "Aguardando Pagamento",
-  pre_faturado: "Pré-Faturado",
+  pre_separacao: "Pré-Separação",
 };
 
 export function ReverterParaCobrancaDialog({
