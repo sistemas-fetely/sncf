@@ -8,6 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Table,
   TableBody,
   TableCell,
@@ -25,6 +30,7 @@ import {
 import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
+
 
 type RecebivelB2B = {
   id: string;
