@@ -171,7 +171,7 @@ export function useImportarPlanilhaWns() {
         frete_pedido: num(r.FRETE_PEDIDO),
         frete_pre: num(r.FRETE_PRE),
         produto_id: int(r.PRODUTO),
-        sku: str(r.SKU) ?? "",
+        sku: str(r.SKU) ?? str(r.PRODUTO) ?? "",
         barra: str(r.BARRA),
         quantidade: int(r.QUANTIDADE) ?? 0,
         preco: num(r.PRECO),
