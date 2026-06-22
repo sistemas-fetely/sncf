@@ -29,8 +29,9 @@ export interface ShopifyPedidoRow {
   tracking_number: string | null;
   tracking_company: string | null;
   tracking_url: string | null;
-  rastreio_status_atual: string | null;
+  rastreio_status: string | null;
   rastreio_entregue: boolean | null;
+  rastreio_atualizado_em: string | null;
   sla_dias: number | null;
   urgency_envio: UrgenciaEnvio;
   dias_sem_envio: number | null;
@@ -97,8 +98,9 @@ export function useShopifyPedidos() {
           dias_sem_envio,
           estimated_delivery,
           status_entrega,
-          rastreio_status_atual: p.rastreio_status ?? null,
+          rastreio_status: p.rastreio_status ?? null,
           rastreio_entregue: p.rastreio_entregue ?? null,
+          rastreio_atualizado_em: p.rastreio_atualizado_em ?? null,
         } as ShopifyPedidoRow;
       });
     },
