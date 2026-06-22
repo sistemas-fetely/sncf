@@ -45,9 +45,9 @@ export function useShopifyPedidos() {
     queryFn: async (): Promise<ShopifyPedidoRow[]> => {
       const [pedidosRes, slasRes] = await Promise.all([
         supabase
-          .from("vw_shopify_pedidos_rastreio" as any)
+          .from("vw_shopify_pedidos_rastreio")
           .select("*")
-          .order("created_at_shopify", { ascending: false }),
+          .order("created_at_shopify", { ascending: false }) as Promise<any>,
         supabase.from("shopify_frete_sla").select("modalidade, dias_corridos, ativo"),
       ]);
 
@@ -98,8 +98,6 @@ export function useShopifyPedidos() {
           }
         }
 
-        const rastreio = p.tracking_number ? rastreioMap.get(p.tracking_number) : undefined;
-
         return {
           ...p,
           sla_dias,
@@ -107,8 +105,8 @@ export function useShopifyPedidos() {
           dias_sem_envio,
           estimated_delivery,
           status_entrega,
-          rastreio_status_atual: rastreio?.status_atual ?? null,
-          rastreio_entregue: rastreio?.entregue ?? null,
+          rastreio_status_atual: p.rastreio_status ?? null,
+          rastreio_entregue: p.rastreio_entregue ?? null,
         } as ShopifyPedidoRow;
       });
     },
