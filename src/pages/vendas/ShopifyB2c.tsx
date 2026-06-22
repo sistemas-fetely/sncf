@@ -9,6 +9,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Upload, ChevronLeft, ChevronRight, Copy, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ImportarCsvShopifyDialog } from "@/components/shopify/ImportarCsvShopifyDialog";
@@ -144,18 +145,19 @@ export default function ShopifyB2c() {
                   <TableHead>Cancelado em</TableHead>
                   <TableHead>WNS</TableHead>
                   <TableHead>Rastreio</TableHead>
+                  <TableHead>Rastreio Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={19} className="text-center py-8">
+                    <TableCell colSpan={20} className="text-center py-8">
                       <Skeleton className="h-4 w-32 mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : paginados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                       Nenhum pedido.
                     </TableCell>
                   </TableRow>
@@ -201,6 +203,15 @@ export default function ShopifyB2c() {
                               <ExternalLink className="h-3.5 w-3.5" />
                             </a>
                           </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {p.rastreio_entregue ? (
+                          <Badge className="bg-green-600 hover:bg-green-600 text-white">Entregue</Badge>
+                        ) : p.rastreio_status_atual ? (
+                          <span className="text-xs">{p.rastreio_status_atual}</span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}

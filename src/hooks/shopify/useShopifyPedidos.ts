@@ -29,6 +29,8 @@ export interface ShopifyPedidoRow {
   tracking_number: string | null;
   tracking_company: string | null;
   tracking_url: string | null;
+  rastreio_status_atual: string | null;
+  rastreio_entregue: boolean | null;
   sla_dias: number | null;
   urgency_envio: UrgenciaEnvio;
   dias_sem_envio: number | null;
@@ -36,20 +38,31 @@ export interface ShopifyPedidoRow {
   status_entrega: StatusEntrega;
 }
 
+
 export function useShopifyPedidos() {
   return useQuery({
     queryKey: ["shopify_pedidos"],
     queryFn: async (): Promise<ShopifyPedidoRow[]> => {
-      const [pedidosRes, slasRes] = await Promise.all([
+      const [pedidosRes, slasRes, rastreiosRes] = await Promise.all([
         supabase
           .from("shopify_pedidos")
           .select("*")
           .order("created_at_shopify", { ascending: false }),
         supabase.from("shopify_frete_sla").select("modalidade, dias_corridos, ativo"),
+        supabase.from("pedido_rastreamento").select("codigo_rastreio, status_atual, entregue"),
       ]);
 
       if (pedidosRes.error) throw pedidosRes.error;
       if (slasRes.error) throw slasRes.error;
+      if (rastreiosRes.error) throw rastreiosRes.error;
+
+      const rastreioMap = new Map<string, { status_atual: string | null; entregue: boolean | null }>();
+      (rastreiosRes.data ?? []).forEach((r) => {
+        if (r.codigo_rastreio) {
+          rastreioMap.set(r.codigo_rastreio, { status_atual: r.status_atual, entregue: r.entregue });
+        }
+      });
+
 
       const slaMap = new Map<string, number>();
       (slasRes.data ?? []).forEach((s) => {
@@ -85,6 +98,8 @@ export function useShopifyPedidos() {
           }
         }
 
+        const rastreio = p.tracking_number ? rastreioMap.get(p.tracking_number) : undefined;
+
         return {
           ...p,
           sla_dias,
@@ -92,6 +107,8 @@ export function useShopifyPedidos() {
           dias_sem_envio,
           estimated_delivery,
           status_entrega,
+          rastreio_status_atual: rastreio?.status_atual ?? null,
+          rastreio_entregue: rastreio?.entregue ?? null,
         } as ShopifyPedidoRow;
       });
     },
