@@ -26,6 +26,9 @@ export interface ShopifyPedidoRow {
   shipping_province: string | null;
   shipping_zip: string | null;
   wns_pedido_id: string | null;
+  tracking_number: string | null;
+  tracking_company: string | null;
+  tracking_url: string | null;
   sla_dias: number | null;
   urgency_envio: UrgenciaEnvio;
   dias_sem_envio: number | null;

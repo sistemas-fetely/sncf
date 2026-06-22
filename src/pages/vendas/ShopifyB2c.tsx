@@ -143,18 +143,19 @@ export default function ShopifyB2c() {
                   <TableHead>Cumprido em</TableHead>
                   <TableHead>Cancelado em</TableHead>
                   <TableHead>WNS</TableHead>
+                  <TableHead>Rastreio</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-8">
+                    <TableCell colSpan={19} className="text-center py-8">
                       <Skeleton className="h-4 w-32 mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : paginados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
                       Nenhum pedido.
                     </TableCell>
                   </TableRow>
@@ -179,6 +180,24 @@ export default function ShopifyB2c() {
                       <TableCell className="whitespace-nowrap">{fmtData(p.fulfilled_at)}</TableCell>
                       <TableCell className="whitespace-nowrap">{fmtData(p.cancelled_at)}</TableCell>
                       <TableCell className="whitespace-nowrap">{txt(p.wns_pedido_id)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {p.tracking_number ? (
+                          p.tracking_url ? (
+                            <a
+                              href={p.tracking_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline font-mono text-xs"
+                            >
+                              {p.tracking_number}
+                            </a>
+                          ) : (
+                            <span className="font-mono text-xs">{p.tracking_number}</span>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
