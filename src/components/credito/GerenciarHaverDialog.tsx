@@ -406,7 +406,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
           </TabsContent>
 
           {/* ===================== DÉBITO ===================== */}
-          <TabsContent value="debito" className="space-y-4 pt-4">
+          <TabsContent value="debito" className="space-y-3 pt-3">
             {parceiroPicker}
 
             {/* Segmented control */}
