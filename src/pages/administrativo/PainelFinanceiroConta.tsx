@@ -87,17 +87,21 @@ function FaixaCell({ value, className }: { value: number | null; className?: str
   );
 }
 
-function TitulosAbertosCliente({ parceiroId }: { parceiroId: string }) {
+function TitulosAbertosCliente({ parceiroId, incluirPagos }: { parceiroId: string; incluirPagos: boolean }) {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["titulos-b2b-conta", parceiroId],
+    queryKey: ["titulos-b2b-conta", parceiroId, incluirPagos],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      let q = (supabase as any)
         .from("vw_recebivel_b2b")
         .select(
           "numero_titulo, numero_parcela, total_parcelas, meio_pagamento, data_vencimento, valor, status_gestao, data_liquidacao, nf_numero",
         )
         .eq("parceiro_id", parceiroId)
         .order("data_vencimento", { ascending: true });
+      if (!incluirPagos) {
+        q = q.in("status_gestao", ["em_aberto", "atrasado"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as TituloB2B[];
     },
