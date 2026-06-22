@@ -62,9 +62,10 @@ const ENTRADA_LABEL: Record<string, string> = {
   paga: "Paga",
 };
 
-type EstagioB2C = "pago" | "em_separacao" | "expedido" | "em_transito" | "entregue" | "cancelado";
+type EstagioB2C = "recebido" | "pago" | "em_separacao" | "expedido" | "em_transito" | "entregue" | "cancelado";
 
 const B2C_ESTAGIO_COR: Record<EstagioB2C, string> = {
+  recebido:     "bg-slate-100 text-slate-700",
   pago:         "bg-amber-100 text-amber-800",
   em_separacao: "bg-indigo-100 text-indigo-800",
   expedido:     "bg-purple-100 text-purple-800",
@@ -74,6 +75,7 @@ const B2C_ESTAGIO_COR: Record<EstagioB2C, string> = {
 };
 
 const B2C_ESTAGIO_LABEL: Record<EstagioB2C, string> = {
+  recebido:     "Recebido",
   pago:         "Pago",
   em_separacao: "Em separação",
   expedido:     "Expedido",
@@ -82,35 +84,42 @@ const B2C_ESTAGIO_LABEL: Record<EstagioB2C, string> = {
   cancelado:    "Cancelado",
 };
 
+const ESTAGIOS_B2C: EstagioB2C[] = ["recebido", "pago", "em_separacao", "expedido", "em_transito", "entregue", "cancelado"];
+
 interface B2CRow {
   shopify_id: string;
   order_name: string;
+  created_at_shopify: string;
+  estagio_derivado: string;
   financial_status: string;
   fulfillment_status: string | null;
-  paid_at: string | null;
-  total: number;
   payment_method: string | null;
-  shipping_province: string | null;
-  wns_pedido_id: string | null;
+  subtotal: number;
+  discount_amount: number;
+  shipping_cost: number;
+  total: number;
+  refunded_amount: number;
+  paid_at: string | null;
   cancelled_at: string | null;
-  wns_sequencia?: number | null;
-  tracking_number?: string | null;
-  tracking_url?: string | null;
-  tracking_company?: string | null;
-  shipment_status?: string | null;
+  fulfilled_at: string | null;
+  shipping_method: string | null;
+  shipping_province: string | null;
+  shipping_city: string | null;
+  shipping_zip: string | null;
+  wns_pedidowns: number | null;
+  wns_sequencia: number | null;
+  wns_fase_descricao: string | null;
+  rastreio_cte: string | null;
+  rastreio_codigo: string | null;
+  rastreio_data: string | null;
+  rastreio_texto: string | null;
+  rastreio_classe: string | null;
+  rastreio_label: string | null;
+  rastreio_prazo: string | null;
+  frete_realizado: number | null;
+  alerta: string | null;
 }
 
-function derivarEstagioB2C(r: B2CRow): EstagioB2C {
-  const fs = r.financial_status ?? "";
-  if (fs === "refunded" || fs === "cancelled" || r.cancelled_at) return "cancelado";
-  if (r.shipment_status === "delivered") return "entregue";
-  if (r.tracking_number) return "em_transito";
-  if (r.wns_pedido_id && r.wns_sequencia != null) {
-    if (r.wns_sequencia >= 6) return "expedido";
-    return "em_separacao";
-  }
-  return "pago";
-}
 
 
 type SortDir = "asc" | "desc";
