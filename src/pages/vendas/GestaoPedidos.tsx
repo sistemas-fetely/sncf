@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Copy, ExternalLink } from "lucide-react";
 
 type Row = Record<string, any>;
 
