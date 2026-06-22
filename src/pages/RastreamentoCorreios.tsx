@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useRastreamento } from "@/hooks/useRastreamento";
+
 
 function dataEntrega(eventos: any[]): string | null {
   const ev = (eventos ?? []).find((e) => /entregue/i.test(e?.descricao ?? ""));
@@ -20,6 +22,35 @@ export default function RastreamentoCorreios() {
   const { lista, loading, erro, listar, adicionar, atualizarTodos } = useRastreamento();
   const [codigo, setCodigo] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
+  const [rastreandoFrenet, setRastreandoFrenet] = useState(false);
+  const [progressoFrenet, setProgressoFrenet] = useState("");
+
+  async function rastrearFrenet() {
+    setRastreandoFrenet(true);
+    setProgressoFrenet("Buscando códigos...");
+
+    const emTransito = lista.filter(
+      r => r.empresa_frete === "frenet" && !r.entregue
+    );
+
+    let ok = 0, erros = 0;
+    for (const r of emTransito) {
+      setProgressoFrenet(`Consultando ${r.codigo_rastreio} (${ok + erros + 1}/${emTransito.length})...`);
+      try {
+        const { data, error } = await supabase.functions.invoke("correios-rastreio-publico", {
+          body: { codigo: r.codigo_rastreio },
+        });
+        if (error || !data?.ok) erros++;
+        else ok++;
+      } catch { erros++; }
+      await new Promise(res => setTimeout(res, 800));
+    }
+
+    setProgressoFrenet(`Concluído: ${ok} atualizados, ${erros} erros.`);
+    await listar();
+    setRastreandoFrenet(false);
+  }
+
 
   useEffect(() => { listar(); }, [listar]);
 
@@ -52,7 +83,19 @@ export default function RastreamentoCorreios() {
         >
           {loading ? "Atualizando..." : "Atualizar todos"}
         </button>
+        <button
+          onClick={() => rastrearFrenet()}
+          disabled={rastreandoFrenet || loading}
+          style={{ padding: "8px 16px", borderRadius: 6, cursor: "pointer" }}
+        >
+          {rastreandoFrenet ? progressoFrenet : "Rastrear Frenet (API pública)"}
+        </button>
       </div>
+
+      {progressoFrenet && !rastreandoFrenet && (
+        <p style={{ marginBottom: 12, color: "#666" }}>{progressoFrenet}</p>
+      )}
+
 
       {erro && <p style={{ color: "crimson", marginBottom: 12 }}>Erro: {erro}</p>}
 
