@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
-import { CriarHaverDialog } from "@/components/credito/CriarHaverDialog";
+import { GerenciarHaverDialog } from "@/components/credito/GerenciarHaverDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
