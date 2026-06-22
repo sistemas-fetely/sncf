@@ -438,7 +438,7 @@ function AbaB2C() {
         .select("*")
         .order("created_at_shopify", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as B2CRow[];
+      return (data ?? []) as unknown as B2CRow[];
     },
   });
 
