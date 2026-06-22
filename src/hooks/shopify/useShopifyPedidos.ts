@@ -98,8 +98,9 @@ export function useShopifyPedidos() {
           dias_sem_envio,
           estimated_delivery,
           status_entrega,
-          rastreio_status_atual: p.rastreio_status ?? null,
+          rastreio_status: p.rastreio_status ?? null,
           rastreio_entregue: p.rastreio_entregue ?? null,
+          rastreio_atualizado_em: p.rastreio_atualizado_em ?? null,
         } as ShopifyPedidoRow;
       });
     },

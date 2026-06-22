@@ -210,8 +210,8 @@ export default function ShopifyB2c() {
                       <TableCell className="whitespace-nowrap">
                         {p.rastreio_entregue ? (
                           <Badge className="bg-green-600 hover:bg-green-600 text-white">Entregue</Badge>
-                        ) : p.rastreio_status_atual ? (
-                          <span className="text-xs">{p.rastreio_status_atual}</span>
+                        ) : p.rastreio_status ? (
+                          <span className="text-xs">{p.rastreio_status}</span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
