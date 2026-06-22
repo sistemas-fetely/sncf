@@ -145,6 +145,7 @@ export default function ShopifyB2c() {
                   <TableHead>Cancelado em</TableHead>
                   <TableHead>WNS</TableHead>
                   <TableHead>Rastreio</TableHead>
+                  <TableHead>Rastreio Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
