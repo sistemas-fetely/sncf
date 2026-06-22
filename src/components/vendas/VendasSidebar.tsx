@@ -74,6 +74,7 @@ export function VendasSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <FinancasSidebarItem to="/pedidos" icon={ShoppingCart} label="Pedidos B2B" end />
+              <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Pedidos B2C" end />
               <FinancasSidebarItem to="/vendas/gestao-pedidos" icon={TableProperties} label="Gestão de Pedidos" />
               <FinancasSidebarItem to="/recebimento/cobranca" icon={Receipt} label="Cobrança" />
               <FinancasSidebarItem to="/credito/clientes" icon={CreditCard} label="Crédito do cliente" />
