@@ -324,7 +324,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
           </TabsList>
 
           {/* ===================== CRÉDITO ===================== */}
-          <TabsContent value="credito" className="space-y-4 pt-4">
+          <TabsContent value="credito" className="space-y-3 pt-3">
             {parceiroPicker}
 
             <div className="space-y-2">
