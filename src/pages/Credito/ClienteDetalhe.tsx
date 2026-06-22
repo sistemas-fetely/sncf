@@ -12,7 +12,7 @@ import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { TimelineClienteVisual } from "@/components/credito/TimelineClienteVisual";
 import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/ErguerBandeiraVermelhaDialog";
 import { BaixarBandeiraVermelhaDialog } from "@/components/credito/dialogs/BaixarBandeiraVermelhaDialog";
-import { CriarHaverDialog } from "@/components/credito/CriarHaverDialog";
+import { GerenciarHaverDialog } from "@/components/credito/GerenciarHaverDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) =>
