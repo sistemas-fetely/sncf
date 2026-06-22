@@ -312,8 +312,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto flex flex-col p-4 sm:p-5">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Gerenciar crédito do cliente</DialogTitle>
         </DialogHeader>
 
