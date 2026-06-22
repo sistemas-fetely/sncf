@@ -181,6 +181,7 @@ export default function PainelFinanceiroConta() {
   const [sortKey, setSortKey] = useState<SortKey>("total_a_receber");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [incluirPagos, setIncluirPagos] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["vw-recebivel-b2b-por-conta"],
