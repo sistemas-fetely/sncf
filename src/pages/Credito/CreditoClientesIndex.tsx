@@ -268,7 +268,7 @@ export default function CreditoClientesIndex() {
         </TabsContent>
       </Tabs>
 
-      <CriarHaverDialog
+      <GerenciarHaverDialog
         open={criarHaverOpen}
         onOpenChange={setCriarHaverOpen}
         parceiroId={null}
