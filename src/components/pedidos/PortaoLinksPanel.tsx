@@ -145,7 +145,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
         <p className="text-xs text-muted-foreground mt-1">
           {portao.tipo_pagamento === "boleto"
             ? "O boleto de entrada foi gerado e aguarda inclusão na remessa Safra. Após o pagamento ser confirmado pelo banco, as parcelas restantes serão criadas automaticamente."
-            : 'Ainda não há título a receber (ele nasce quando o portão é pago). Os links abaixo já estão salvos e podem ser enviados pelo botão "Enviar cobrança"."'}
+            : 'Ainda não há título a receber (ele nasce quando o portão é pago). Os links abaixo já estão salvos e podem ser enviados pelo botão "Enviar cobrança".\u0027}
         </p>
       </div>
 
