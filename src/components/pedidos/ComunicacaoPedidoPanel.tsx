@@ -302,25 +302,27 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         {renderBotao("nf_boletos", mostrarNfBoletos)}
       </div>
 
-      {historico.length > 0 && (
-        <Collapsible>
-          <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground pt-1">
-              <ChevronDown className="h-3 w-3" />
-              Histórico ({historico.length})
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2 space-y-1.5">
-            {historico.map((l) => (
+      <Collapsible>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground pt-1">
+            <ChevronDown className="h-3 w-3" />
+            Histórico{historico.length > 0 ? ` (${historico.length})` : ""}
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-2 space-y-1.5">
+          {historico.length === 0 ? (
+            <p className="text-xs text-muted-foreground pl-2">Nenhum envio registrado ainda.</p>
+          ) : (
+            historico.map((l) => (
               <div key={l.id} className="text-xs text-muted-foreground border-l-2 border-border pl-2">
                 <div className="font-medium text-foreground">{TIPO_LABEL[l.tipo_email as TipoEmail]?.btn ?? l.tipo_email}</div>
-                <div className="truncate">{l.destinatario}</div>
+                <div className="truncate">{l.destinatario !== "—" ? l.destinatario : "envio anterior"}</div>
                 <div className="opacity-70">{fmtDateTime(l.enviado_em)}</div>
               </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+            ))
+          )}
+        </CollapsibleContent>
+      </Collapsible>
 
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) fecharDialog(); else setDialogOpen(true); }}>
         <DialogContent>
