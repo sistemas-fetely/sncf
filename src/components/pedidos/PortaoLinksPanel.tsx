@@ -87,6 +87,26 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
 
   if (portaoQ.isLoading) return <Skeleton className="h-32 w-full" />;
 
+  const tituloEntradaQ = useQuery({
+    queryKey: ["portao-titulo-entrada", pedidoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("titulo_a_receber")
+        .select("id, boleto_status, linha_digitavel, numero_titulo")
+        .eq("pedido_id", pedidoId)
+        .eq("eh_entrada", true)
+        .not("status", "eq", "cancelado")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!pedidoId,
+  });
+
+  if (portaoQ.isLoading || tituloEntradaQ.isLoading) return <Skeleton className="h-32 w-full" />;
+
   const portao = portaoQ.data;
 
   // Sem portao provisorio -> mensagem padrao (comportamento antigo)
