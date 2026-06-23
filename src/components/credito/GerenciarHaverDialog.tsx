@@ -105,7 +105,9 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       setValorD(0);
       setMotivoD(MOTIVOS_DEBITO[0]);
       setObsD("");
-      setHaverIdAlvo(null);
+      setHaveresSelecionados([]);
+      setModoValor("total");
+      setValoresIndividuais({});
     }
   }, [open, parceiroId]);
 
