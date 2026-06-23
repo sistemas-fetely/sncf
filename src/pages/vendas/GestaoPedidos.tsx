@@ -355,6 +355,7 @@ function AbaB2B() {
               <Th k="id_externo">ID</Th>
               <Th k="parceiro_razao">Cliente</Th>
               <Th k="estagio">Estágio</Th>
+              <Th>Saúde</Th>
               <Th>Forma PG</Th>
               <Th k="entrada_status">Entrada</Th>
               <Th>Títulos</Th>
