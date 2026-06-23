@@ -200,6 +200,20 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     },
   });
 
+  const emailLogQ = useQuery({
+    queryKey: ["cobranca-email-log", pedido.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("pedido_email_log")
+        .select("id")
+        .eq("pedido_id", pedido.id)
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!pedido.id,
+  });
+
   useEffect(() => {
     if (titulosQ.data) {
       const initLinks: Record<string, string> = {};
