@@ -229,14 +229,33 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
 
   const algumVisivel = mostrarCobranca || mostrarPortaoBoleto || mostrarBoleto || mostrarNf || mostrarNfBoletos;
 
+  const pedidoFieldsQ = useQuery({
+    queryKey: ["comunic-pedido-fields", pedido_id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("pedidos")
+        .select("nf_email_enviado_em")
+        .eq("id", pedido_id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!pedido_id,
+  });
+
   // ── Último envio por tipo ──
   const ultimoPorTipo = useMemo(() => {
     const map: Record<string, any> = {};
     for (const l of logQ.data ?? []) {
       if (!map[l.tipo_email]) map[l.tipo_email] = l;
     }
+    // Fallback legado: se nf_email_enviado_em estiver preenchido e não há log de nf/nf_boletos
+    const nfEnviadoEm = pedidoFieldsQ.data?.nf_email_enviado_em;
+    if (nfEnviadoEm) {
+      if (!map["nf"]) map["nf"] = { tipo_email: "nf", destinatario: "—", enviado_em: nfEnviadoEm };
+      if (!map["nf_boletos"]) map["nf_boletos"] = { tipo_email: "nf_boletos", destinatario: "—", enviado_em: nfEnviadoEm };
+    }
     return map;
-  }, [logQ.data]);
+  }, [logQ.data, pedidoFieldsQ.data]);
 
   if (!algumVisivel) return null;
 
