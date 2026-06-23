@@ -41,6 +41,33 @@ function LinkCell({ url }: { url?: string | null }) {
   );
 }
 
+const BOLETO_STATUS_LABEL: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  pendente: { label: "Aguardando remessa", variant: "secondary" },
+  remessa_gerada: { label: "Remessa gerada", variant: "outline" },
+  registrado: { label: "Registrado no banco", variant: "default" },
+  rejeitado: { label: "Rejeitado", variant: "destructive" },
+  pago_manual: { label: "Pago manualmente", variant: "default" },
+  pago_banco: { label: "Pago pelo banco", variant: "default" },
+};
+
+function BoletoEntradaCell({ tituloEntrada }: { tituloEntrada: any }) {
+  if (!tituloEntrada) {
+    return <span className="text-muted-foreground text-xs">Boleto não gerado ainda</span>;
+  }
+  const cfg = BOLETO_STATUS_LABEL[tituloEntrada.boleto_status ?? ""] ?? {
+    label: tituloEntrada.boleto_status ?? "—",
+    variant: "secondary" as const,
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <Badge variant={cfg.variant} className="text-[10px] w-fit">{cfg.label}</Badge>
+      {tituloEntrada.linha_digitavel && (
+        <span className="font-mono text-[10px] text-muted-foreground">{tituloEntrada.linha_digitavel}</span>
+      )}
+    </div>
+  );
+}
+
 export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
   const portaoQ = useQuery({
     queryKey: ["portao-links", pedidoId],
