@@ -86,7 +86,9 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const [valorD, setValorD] = useState<number>(0);
   const [motivoD, setMotivoD] = useState<string>(MOTIVOS_DEBITO[0]);
   const [obsD, setObsD] = useState("");
-  const [haverIdAlvo, setHaverIdAlvo] = useState<string | null>(null);
+  const [haveresSelecionados, setHaveresSelecionados] = useState<string[]>([]);
+  const [modoValor, setModoValor] = useState<"total" | "individual">("total");
+  const [valoresIndividuais, setValoresIndividuais] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (open) {
