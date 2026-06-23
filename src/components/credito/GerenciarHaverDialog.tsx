@@ -86,7 +86,9 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const [valorD, setValorD] = useState<number>(0);
   const [motivoD, setMotivoD] = useState<string>(MOTIVOS_DEBITO[0]);
   const [obsD, setObsD] = useState("");
-  const [haverIdAlvo, setHaverIdAlvo] = useState<string | null>(null);
+  const [haveresSelecionados, setHaveresSelecionados] = useState<string[]>([]);
+  const [modoValor, setModoValor] = useState<"total" | "individual">("total");
+  const [valoresIndividuais, setValoresIndividuais] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (open) {
@@ -103,7 +105,9 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       setValorD(0);
       setMotivoD(MOTIVOS_DEBITO[0]);
       setObsD("");
-      setHaverIdAlvo(null);
+      setHaveresSelecionados([]);
+      setModoValor("total");
+      setValoresIndividuais({});
     }
   }, [open, parceiroId]);
 
@@ -159,16 +163,65 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     [haveresQ.data]
   );
 
-  const haverSelecionado = useMemo(
-    () => (haveresQ.data ?? []).find((h: any) => h.id === haverIdAlvo),
-    [haveresQ.data, haverIdAlvo]
+  const haveresSelecionadosData = useMemo(
+    () =>
+      (haveresQ.data ?? []).filter((h: any) =>
+        haveresSelecionados.includes(h.id)
+      ),
+    [haveresQ.data, haveresSelecionados]
   );
 
+  const somaSaldosSelecionados = useMemo(
+    () =>
+      haveresSelecionadosData.reduce(
+        (s, h: any) => s + Number(h.saldo ?? 0),
+        0
+      ),
+    [haveresSelecionadosData]
+  );
+
+  // Pre-fill total when selection changes (modo total)
   useEffect(() => {
-    if (modoDebito === "vinculado" && haverSelecionado) {
-      setValorD(Number(haverSelecionado.saldo ?? 0));
+    if (modoDebito === "vinculado" && modoValor === "total") {
+      setValorD(somaSaldosSelecionados);
     }
-  }, [haverIdAlvo, modoDebito]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [somaSaldosSelecionados, modoDebito, modoValor]);
+
+  // Pre-fill individual values when selection changes
+  useEffect(() => {
+    if (modoDebito !== "vinculado") return;
+    setValoresIndividuais((prev) => {
+      const next: Record<string, number> = {};
+      for (const h of haveresSelecionadosData) {
+        next[h.id] = prev[h.id] ?? Number(h.saldo ?? 0);
+      }
+      return next;
+    });
+  }, [haveresSelecionadosData, modoDebito]);
+
+  const totalIndividuais = useMemo(
+    () =>
+      haveresSelecionados.reduce(
+        (s, id) => s + Number(valoresIndividuais[id] ?? 0),
+        0
+      ),
+    [haveresSelecionados, valoresIndividuais]
+  );
+
+  const toggleHaver = (id: string) => {
+    setHaveresSelecionados((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const algumIndividualExcede = useMemo(() => {
+    if (modoValor !== "individual") return false;
+    return haveresSelecionadosData.some((h: any) => {
+      const v = Number(valoresIndividuais[h.id] ?? 0);
+      return v > Number(h.saldo ?? 0);
+    });
+  }, [haveresSelecionadosData, valoresIndividuais, modoValor]);
+
 
   const buscarPedido = async () => {
     if (!pedidoBusca.trim()) {
@@ -226,12 +279,30 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const debMut = useMutation({
     mutationFn: async () => {
       const motivoFinal = motivoD + (obsD ? `: ${obsD}` : "");
+      if (modoDebito === "vinculado" && modoValor === "individual") {
+        for (const id of haveresSelecionados) {
+          const val = Number(valoresIndividuais[id] ?? 0);
+          if (val <= 0) continue;
+          const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
+            p_parceiro_id: parceiroSel,
+            p_tipo: "debito",
+            p_valor: val,
+            p_motivo: motivoFinal,
+            p_haver_ids_alvo: null,
+            p_haver_id_alvo: id,
+          });
+          if (error) throw error;
+        }
+        return;
+      }
       const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
         p_parceiro_id: parceiroSel,
         p_tipo: "debito",
         p_valor: valorD,
         p_motivo: motivoFinal,
-        p_haver_id_alvo: modoDebito === "vinculado" ? haverIdAlvo : null,
+        p_haver_ids_alvo:
+          modoDebito === "vinculado" ? haveresSelecionados : null,
+        p_haver_id_alvo: null,
       });
       if (error) throw error;
     },
@@ -246,19 +317,22 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   // ===== Validações =====
   const excedeSaldoLivre =
     modoDebito === "livre" && valorD > 0 && valorD > saldoTotal;
-  const excedeSaldoVinculado =
+  const excedeSomaVinculados =
     modoDebito === "vinculado" &&
-    haverSelecionado &&
-    valorD > Number(haverSelecionado.saldo ?? 0);
+    modoValor === "total" &&
+    valorD > somaSaldosSelecionados;
 
   const podeCredito = !!parceiroSel && valorC > 0 && !credMut.isPending;
   const podeDebito =
     !!parceiroSel &&
-    valorD > 0 &&
     !debMut.isPending &&
     (modoDebito === "livre"
-      ? !excedeSaldoLivre
-      : !!haverIdAlvo && !excedeSaldoVinculado);
+      ? valorD > 0 && !excedeSaldoLivre
+      : haveresSelecionados.length > 0 &&
+        (modoValor === "total"
+          ? valorD > 0 && !excedeSomaVinculados
+          : totalIndividuais > 0 && !algumIndividualExcede));
+
 
   // ===== Render parceiro picker (compartilhado) =====
   const parceiroPicker = (
@@ -415,7 +489,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                 type="button"
                 onClick={() => {
                   setModoDebito("livre");
-                  setHaverIdAlvo(null);
+                  setHaveresSelecionados([]);
+                  setValoresIndividuais({});
                   setValorD(0);
                 }}
                 className={cn(
@@ -471,7 +546,32 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label>Haveres disponíveis</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Haveres disponíveis</Label>
+                    {(haveresQ.data ?? []).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            haveresSelecionados.length ===
+                            (haveresQ.data ?? []).length
+                          ) {
+                            setHaveresSelecionados([]);
+                          } else {
+                            setHaveresSelecionados(
+                              (haveresQ.data ?? []).map((h: any) => h.id)
+                            );
+                          }
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {haveresSelecionados.length ===
+                        (haveresQ.data ?? []).length
+                          ? "Limpar seleção"
+                          : "Selecionar todos"}
+                      </button>
+                    )}
+                  </div>
                   {haveresQ.isLoading ? (
                     <p className="text-sm text-muted-foreground">Carregando…</p>
                   ) : (haveresQ.data ?? []).length === 0 ? (
@@ -480,67 +580,171 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                     </p>
                   ) : (
                     <div className="space-y-2 max-h-48 overflow-auto">
-                      {(haveresQ.data ?? []).map((h: any) => (
-                        <button
-                          key={h.id}
-                          type="button"
-                          onClick={() => setHaverIdAlvo(h.id)}
-                          className={cn(
-                            "w-full text-left p-3 border rounded-md transition-colors hover:bg-accent",
-                            haverIdAlvo === h.id
-                              ? "border-primary border-2 bg-accent"
-                              : "border-border"
-                          )}
-                        >
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium truncate">
-                                {h.motivo || h.origem_descricao || "Haver"}
-                              </div>
-                              {h.data_expiracao && (
-                                <div className="text-xs text-muted-foreground">
-                                  Expira em{" "}
-                                  {new Date(
-                                    h.data_expiracao + "T00:00:00"
-                                  ).toLocaleDateString("pt-BR")}
+                      {(haveresQ.data ?? []).map((h: any) => {
+                        const selected = haveresSelecionados.includes(h.id);
+                        return (
+                          <button
+                            key={h.id}
+                            type="button"
+                            onClick={() => toggleHaver(h.id)}
+                            className={cn(
+                              "w-full text-left p-3 border rounded-md transition-colors hover:bg-accent",
+                              selected
+                                ? "border-primary border-2 bg-accent"
+                                : "border-border"
+                            )}
+                          >
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">
+                                  {h.motivo || h.origem_descricao || "Haver"}
                                 </div>
-                              )}
-                            </div>
-                            <div className="text-right shrink-0">
-                              <div className="text-sm font-semibold">
-                                {fmtBRL.format(Number(h.saldo ?? 0))}
+                                {h.data_expiracao && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Expira em{" "}
+                                    {new Date(
+                                      h.data_expiracao + "T00:00:00"
+                                    ).toLocaleDateString("pt-BR")}
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                de {fmtBRL.format(Number(h.valor ?? 0))}
+                              <div className="text-right shrink-0">
+                                <div className="text-sm font-semibold">
+                                  {fmtBRL.format(Number(h.saldo ?? 0))}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  de {fmtBRL.format(Number(h.valor ?? 0))}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </button>
-                      ))}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
-                {haverSelecionado && (
-                  <div className="space-y-2">
-                    <Label>Valor a debitar (R$)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      max={Number(haverSelecionado.saldo ?? 0)}
-                      value={valorD || ""}
-                      onChange={(e) => setValorD(Number(e.target.value))}
-                    />
-                    {excedeSaldoVinculado && (
-                      <p className="text-sm text-destructive">
-                        Valor excede o saldo do haver selecionado (
-                        {fmtBRL.format(Number(haverSelecionado.saldo ?? 0))})
-                      </p>
+                {haveresSelecionados.length > 0 && (
+                  <div className="space-y-3 p-3 border rounded-md bg-muted/30">
+                    <p className="text-sm">
+                      <span className="font-semibold">
+                        {haveresSelecionados.length}
+                      </span>{" "}
+                      {haveresSelecionados.length === 1
+                        ? "haver selecionado"
+                        : "haveres selecionados"}{" "}
+                      ·{" "}
+                      <span className="text-muted-foreground">
+                        Soma dos saldos:
+                      </span>{" "}
+                      <span className="font-semibold">
+                        {fmtBRL.format(somaSaldosSelecionados)}
+                      </span>
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-1 p-1 bg-background rounded-md border">
+                      <button
+                        type="button"
+                        onClick={() => setModoValor("total")}
+                        className={cn(
+                          "px-2 py-1 text-xs rounded-sm transition-colors",
+                          modoValor === "total"
+                            ? "bg-muted shadow font-medium"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Valor total
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModoValor("individual")}
+                        className={cn(
+                          "px-2 py-1 text-xs rounded-sm transition-colors",
+                          modoValor === "individual"
+                            ? "bg-muted shadow font-medium"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Por haver
+                      </button>
+                    </div>
+
+                    {modoValor === "total" ? (
+                      <div className="space-y-2">
+                        <Label>Valor a debitar (R$)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={valorD || ""}
+                          onChange={(e) => setValorD(Number(e.target.value))}
+                        />
+                        {valorD > 0 &&
+                          valorD < somaSaldosSelecionados &&
+                          !excedeSomaVinculados && (
+                            <p className="text-xs text-muted-foreground">
+                              O sistema irá distribuir do mais antigo para o mais
+                              novo (FIFO).
+                            </p>
+                          )}
+                        {excedeSomaVinculados && (
+                          <p className="text-sm text-destructive">
+                            Valor excede a soma dos saldos (
+                            {fmtBRL.format(somaSaldosSelecionados)})
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {haveresSelecionadosData.map((h: any) => {
+                          const saldo = Number(h.saldo ?? 0);
+                          const val = Number(valoresIndividuais[h.id] ?? 0);
+                          const excede = val > saldo;
+                          return (
+                            <div key={h.id} className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 min-w-0 text-xs truncate">
+                                  {h.motivo || h.origem_descricao || "Haver"}
+                                </div>
+                                <div className="text-xs text-muted-foreground shrink-0 w-20 text-right">
+                                  {fmtBRL.format(saldo)}
+                                </div>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  className="w-28 h-8"
+                                  value={val || ""}
+                                  onChange={(e) =>
+                                    setValoresIndividuais((prev) => ({
+                                      ...prev,
+                                      [h.id]: Number(e.target.value),
+                                    }))
+                                  }
+                                />
+                              </div>
+                              {excede && (
+                                <p className="text-xs text-destructive pl-1">
+                                  Excede o saldo ({fmtBRL.format(saldo)})
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <div className="flex justify-end pt-2 border-t text-sm">
+                          <span className="text-muted-foreground mr-2">
+                            Total:
+                          </span>
+                          <span className="font-semibold">
+                            {fmtBRL.format(totalIndividuais)}
+                          </span>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
               </>
+
             )}
 
             <div className="space-y-2">
