@@ -229,10 +229,11 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
   const fasePagamento: 1 | 2 | 3 = useMemo(() => {
     const ts = titulosQ.data ?? [];
-    if (ts.some((t: any) => t.email_cobranca_enviado_em || t.boleto_enviado_em)) return 3;
+    const jaEnviado = ts.some((t: any) => t.email_cobranca_enviado_em || t.boleto_enviado_em) || !!emailLogQ.data;
+    if (jaEnviado) return 3;
     if (ts.some((t: any) => t.link_pagamento || t.boleto_status === "registrado")) return 2;
     return 1;
-  }, [titulosQ.data]);
+  }, [titulosQ.data, emailLogQ.data]);
 
   const handleSalvar = async () => {
     setSalvando(true);
