@@ -33,7 +33,7 @@ import { formatCNPJ } from "@/lib/cnpj";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useParametros } from "@/hooks/useParametros";
-import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
+import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
 import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
@@ -184,7 +184,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [datas, setDatas] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
-  const [emailOpen, setEmailOpen] = useState(false);
+  const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
 
   const titulosQ = useQuery({
