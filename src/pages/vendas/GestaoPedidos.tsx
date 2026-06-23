@@ -415,6 +415,28 @@ function AbaB2B() {
                       {ESTAGIO_LABELS[r.estagio as EstagioPedido] ?? r.estagio ?? "-"}
                     </span>
                   </td>
+                  <td className="px-2 py-1.5 align-top" onClick={(e) => e.stopPropagation()}>
+                    <TooltipProvider delayDuration={150}>
+                      <div className="flex gap-0.5">
+                        {getSaudeChecks(r, emailLogMap.get(r.id) ?? new Set()).map((check) => (
+                          <Tooltip key={check.key}>
+                            <TooltipTrigger asChild>
+                              <span
+                                className={`inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold cursor-help ${
+                                  check.ok
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {check.label}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{check.tooltip}</TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </TooltipProvider>
+                  </td>
                   <td className="px-2 py-1.5 align-top">
                     <div>{formaPg}</div>
                     {r.condicao_solicitada && (
