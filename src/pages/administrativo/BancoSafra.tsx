@@ -240,6 +240,38 @@ export default function BancoSafra() {
   });
 
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
+
+  // edição inline de boletos
+  const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
+  const [salvando, setSalvando] = useState<Record<string, boolean>>({});
+  const temEdicao = (id: string) => !!(edits[id]?.data || edits[id]?.valor);
+  const handleSalvar = async (b: TitulosBoleto) => {
+    const edit = edits[b.id];
+    if (!edit) return;
+    setSalvando((p) => ({ ...p, [b.id]: true }));
+    try {
+      const update: Record<string, any> = {};
+      if (edit.data && edit.data !== b.data_vencimento_atual) update.data_vencimento_atual = edit.data;
+      if (edit.valor) {
+        const v = parseFloat(edit.valor.replace(",", "."));
+        if (!isNaN(v) && v > 0 && v !== Number(b.valor_bruto)) update.valor_bruto = v;
+      }
+      if (Object.keys(update).length === 0) {
+        setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
+        return;
+      }
+      const { error } = await supabase.from("titulo_a_receber").update(update).eq("id", b.id);
+      if (error) throw error;
+      setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
+      toast({ title: "Boleto atualizado", description: `${b.numero_titulo} salvo com sucesso.` });
+      refetchBoletos();
+    } catch (e) {
+      toast({ title: "Erro ao salvar", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setSalvando((p) => ({ ...p, [b.id]: false }));
+    }
+  };
+
   const handleGerarBaixa = async () => {
     setGerandoBaixa(true);
     try {
