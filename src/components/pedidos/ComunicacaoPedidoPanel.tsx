@@ -229,14 +229,33 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
 
   const algumVisivel = mostrarCobranca || mostrarPortaoBoleto || mostrarBoleto || mostrarNf || mostrarNfBoletos;
 
+  const pedidoFieldsQ = useQuery({
+    queryKey: ["comunic-pedido-fields", pedido_id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("pedidos")
+        .select("nf_email_enviado_em")
+        .eq("id", pedido_id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!pedido_id,
+  });
+
   // ── Último envio por tipo ──
   const ultimoPorTipo = useMemo(() => {
     const map: Record<string, any> = {};
     for (const l of logQ.data ?? []) {
       if (!map[l.tipo_email]) map[l.tipo_email] = l;
     }
+    // Fallback legado: se nf_email_enviado_em estiver preenchido e não há log de nf/nf_boletos
+    const nfEnviadoEm = pedidoFieldsQ.data?.nf_email_enviado_em;
+    if (nfEnviadoEm) {
+      if (!map["nf"]) map["nf"] = { tipo_email: "nf", destinatario: "—", enviado_em: nfEnviadoEm };
+      if (!map["nf_boletos"]) map["nf_boletos"] = { tipo_email: "nf_boletos", destinatario: "—", enviado_em: nfEnviadoEm };
+    }
     return map;
-  }, [logQ.data]);
+  }, [logQ.data, pedidoFieldsQ.data]);
 
   if (!algumVisivel) return null;
 
@@ -283,25 +302,27 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         {renderBotao("nf_boletos", mostrarNfBoletos)}
       </div>
 
-      {historico.length > 0 && (
-        <Collapsible>
-          <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground pt-1">
-              <ChevronDown className="h-3 w-3" />
-              Histórico ({historico.length})
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2 space-y-1.5">
-            {historico.map((l) => (
+      <Collapsible>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground pt-1">
+            <ChevronDown className="h-3 w-3" />
+            Histórico{historico.length > 0 ? ` (${historico.length})` : ""}
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-2 space-y-1.5">
+          {historico.length === 0 ? (
+            <p className="text-xs text-muted-foreground pl-2">Nenhum envio registrado ainda.</p>
+          ) : (
+            historico.map((l) => (
               <div key={l.id} className="text-xs text-muted-foreground border-l-2 border-border pl-2">
                 <div className="font-medium text-foreground">{TIPO_LABEL[l.tipo_email as TipoEmail]?.btn ?? l.tipo_email}</div>
-                <div className="truncate">{l.destinatario}</div>
+                <div className="truncate">{l.destinatario !== "—" ? l.destinatario : "envio anterior"}</div>
                 <div className="opacity-70">{fmtDateTime(l.enviado_em)}</div>
               </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+            ))
+          )}
+        </CollapsibleContent>
+      </Collapsible>
 
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) fecharDialog(); else setDialogOpen(true); }}>
         <DialogContent>
