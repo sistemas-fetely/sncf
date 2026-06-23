@@ -150,6 +150,24 @@ Deno.serve(async (req) => {
     }
 // ── fim branch farol ──
 
+// ── Branch: leitura do Farol B2C (chamado pelo FOP) ──
+// Autenticação já validada acima via FOP_INBOUND_TOKEN
+if (body.tipo === "farol_b2c") {
+  const { data: pedidosB2c, error: errB2c } = await supabase
+    .from("vw_gestao_b2c")
+    .select("*")
+    .neq("estagio_derivado", "cancelado");
+
+  if (errB2c) {
+    console.error("[recebe-pedido] farol_b2c: erro lendo vw_gestao_b2c", errB2c);
+    return jsonResponse(500, { error: errB2c.message });
+  }
+
+  console.log(`[recebe-pedido] farol_b2c: ${pedidosB2c?.length ?? 0} pedidos`);
+  return jsonResponse(200, { pedidos: pedidosB2c ?? [] });
+}
+// ── fim branch farol_b2c ──
+
 // ── Branch: canal_criar — nova mensagem do comercial (FOP → SNCF) ──
 if (body.tipo === "canal_criar") {
   const sncfPedidoId = body?.sncf_pedido_id as string | undefined;
