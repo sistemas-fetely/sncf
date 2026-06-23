@@ -85,8 +85,6 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
     },
   });
 
-  if (portaoQ.isLoading) return <Skeleton className="h-32 w-full" />;
-
   const tituloEntradaQ = useQuery({
     queryKey: ["portao-titulo-entrada", pedidoId],
     queryFn: async () => {
@@ -109,7 +107,6 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
 
   const portao = portaoQ.data;
 
-  // Sem portao provisorio -> mensagem padrao (comportamento antigo)
   if (!portao) {
     return <p className="text-sm text-muted-foreground">Nenhum título em aberto para este pedido.</p>;
   }
@@ -145,7 +142,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
         <p className="text-xs text-muted-foreground mt-1">
           {portao.tipo_pagamento === "boleto"
             ? "O boleto de entrada foi gerado e aguarda inclusão na remessa Safra. Após o pagamento ser confirmado pelo banco, as parcelas restantes serão criadas automaticamente."
-            : 'Ainda não há título a receber (ele nasce quando o portão é pago). Os links abaixo já estão salvos e podem ser enviados pelo botão "Enviar cobrança".\u0027}
+            : 'Ainda não há título a receber (ele nasce quando o portão é pago). Os links abaixo já estão salvos e podem ser enviados pelo botão "Enviar cobrança".'}
         </p>
       </div>
 
@@ -170,7 +167,11 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                 <TableCell>{fmtBRL.format(l.valor)}</TableCell>
                 <TableCell>{fmtDate(l.vencimento)}</TableCell>
                 <TableCell>{l.tipo ?? "—"}</TableCell>
-                <TableCell><LinkCell url={l.link} /></TableCell>
+                <TableCell>
+                  {l.eh_gate && l.tipo === "boleto"
+                    ? <BoletoEntradaCell tituloEntrada={tituloEntradaQ.data} />
+                    : <LinkCell url={l.link} />}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
