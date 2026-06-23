@@ -9398,6 +9398,102 @@ export type Database = {
           },
         ]
       }
+      pedido_email_log: {
+        Row: {
+          cc: string[] | null
+          destinatario: string
+          enviado_em: string
+          enviado_por: string | null
+          estagio_pedido: string | null
+          id: string
+          metadata: Json | null
+          pedido_id: string
+          tipo_email: string
+          titulo_id: string | null
+        }
+        Insert: {
+          cc?: string[] | null
+          destinatario: string
+          enviado_em?: string
+          enviado_por?: string | null
+          estagio_pedido?: string | null
+          id?: string
+          metadata?: Json | null
+          pedido_id: string
+          tipo_email: string
+          titulo_id?: string | null
+        }
+        Update: {
+          cc?: string[] | null
+          destinatario?: string
+          enviado_em?: string
+          enviado_por?: string | null
+          estagio_pedido?: string | null
+          id?: string
+          metadata?: Json | null
+          pedido_id?: string
+          tipo_email?: string
+          titulo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_email_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_previsao_recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_eventos: {
         Row: {
           area_anterior: string | null
