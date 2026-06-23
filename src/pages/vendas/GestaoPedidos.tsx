@@ -12,6 +12,12 @@ import {
 } from "@/components/ui/select";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { ArrowUpDown, Copy, ExternalLink } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Row = Record<string, any>;
 
@@ -143,6 +149,82 @@ function AbaB2B() {
     },
   });
 
+  const pedidoIds = useMemo(() => data.map((r: Row) => r.id).filter(Boolean), [data]);
+
+  const { data: emailLogs = [] } = useQuery({
+    queryKey: ["gestao-email-logs", pedidoIds],
+    queryFn: async () => {
+      if (pedidoIds.length === 0) return [];
+      const { data: logs, error } = await (supabase as any)
+        .from("pedido_email_log")
+        .select("pedido_id, tipo_email, enviado_em")
+        .in("pedido_id", pedidoIds);
+      if (error) throw error;
+      return (logs ?? []) as { pedido_id: string; tipo_email: string; enviado_em: string }[];
+    },
+    enabled: pedidoIds.length > 0,
+  });
+
+  const emailLogMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const log of emailLogs) {
+      if (!map.has(log.pedido_id)) map.set(log.pedido_id, new Set());
+      map.get(log.pedido_id)!.add(log.tipo_email);
+    }
+    return map;
+  }, [emailLogs]);
+
+  function getSaudeChecks(r: Row, tiposEnviados: Set<string>) {
+    const estagio = r.estagio ?? "";
+    const ESTAGIOS_OPERACIONAIS = new Set([
+      "cobranca", "aguardando_pagamento", "pre_separacao", "pre_faturamento",
+      "em_separacao", "faturado", "em_transporte", "entregue",
+    ]);
+    if (!ESTAGIOS_OPERACIONAIS.has(estagio)) return [];
+
+    const checks: { key: string; label: string; ok: boolean; tooltip: string }[] = [];
+
+    const estagiosTitulo = new Set(["cobranca","aguardando_pagamento","pre_separacao","pre_faturamento","em_separacao","faturado","em_transporte","entregue"]);
+    if (estagiosTitulo.has(estagio)) {
+      checks.push({
+        key: "titulos",
+        label: "T",
+        ok: !!r.titulos_criados,
+        tooltip: r.titulos_criados
+          ? `Títulos gerados (${r.titulos_qtd ?? 0} título${(r.titulos_qtd ?? 0) !== 1 ? "s" : ""})`
+          : "Títulos não gerados",
+      });
+    }
+
+    const estagiosCobranca = new Set(["cobranca","aguardando_pagamento","pre_separacao","pre_faturamento","em_separacao"]);
+    if (estagiosCobranca.has(estagio)) {
+      const ok = tiposEnviados.has("cobranca") || tiposEnviados.has("portao_boleto");
+      checks.push({ key: "email_cobranca", label: "C", ok,
+        tooltip: ok ? "Email de cobrança enviado" : "Email de cobrança não enviado" });
+    }
+
+    const estagiosNf = new Set(["pre_faturamento","em_separacao","faturado","em_transporte","entregue"]);
+    if (estagiosNf.has(estagio)) {
+      checks.push({ key: "nf", label: "N", ok: !!r.nf_tem,
+        tooltip: r.nf_tem ? `NF emitida${r.nf_numero ? ` — ${r.nf_numero}` : ""}` : "NF não emitida" });
+    }
+
+    const estagiosEmailNf = new Set(["faturado","em_transporte","entregue"]);
+    if (estagiosEmailNf.has(estagio)) {
+      const ok = tiposEnviados.has("nf") || tiposEnviados.has("nf_boletos");
+      checks.push({ key: "email_nf", label: "E", ok,
+        tooltip: ok ? "Email de NF enviado ao cliente" : "Email de NF não enviado" });
+    }
+
+    const estagiosRastreio = new Set(["em_transporte","entregue"]);
+    if (estagiosRastreio.has(estagio)) {
+      checks.push({ key: "rastreio", label: "R", ok: !!r.rastreio_codigo,
+        tooltip: r.rastreio_codigo ? `Rastreio: ${r.rastreio_codigo}` : "Sem código de rastreio" });
+    }
+
+    return checks;
+  }
+
   const [busca, setBusca] = useState("");
   const [estagio, setEstagio] = useState<string>("__todos");
   const [entrada, setEntrada] = useState<string>("__todos");
@@ -273,6 +355,7 @@ function AbaB2B() {
               <Th k="id_externo">ID</Th>
               <Th k="parceiro_razao">Cliente</Th>
               <Th k="estagio">Estágio</Th>
+              <Th>Saúde</Th>
               <Th>Forma PG</Th>
               <Th k="entrada_status">Entrada</Th>
               <Th>Títulos</Th>
@@ -293,10 +376,10 @@ function AbaB2B() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={19} className="px-2 py-4 text-center text-muted-foreground">Carregando…</td></tr>
+              <tr><td colSpan={20} className="px-2 py-4 text-center text-muted-foreground">Carregando…</td></tr>
             )}
             {!isLoading && filtradas.length === 0 && (
-              <tr><td colSpan={19} className="px-2 py-4 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
+              <tr><td colSpan={20} className="px-2 py-4 text-center text-muted-foreground">Nenhum pedido encontrado.</td></tr>
             )}
             {filtradas.map((r) => {
               const formaPg = r.forma_pagamento ?? r.forma_solicitada ?? "-";
@@ -331,6 +414,28 @@ function AbaB2B() {
                     <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] ${ESTAGIO_COR[r.estagio] ?? "bg-slate-100"}`}>
                       {ESTAGIO_LABELS[r.estagio as EstagioPedido] ?? r.estagio ?? "-"}
                     </span>
+                  </td>
+                  <td className="px-2 py-1.5 align-top" onClick={(e) => e.stopPropagation()}>
+                    <TooltipProvider delayDuration={150}>
+                      <div className="flex gap-0.5">
+                        {getSaudeChecks(r, emailLogMap.get(r.id) ?? new Set()).map((check) => (
+                          <Tooltip key={check.key}>
+                            <TooltipTrigger asChild>
+                              <span
+                                className={`inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold cursor-help ${
+                                  check.ok
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {check.label}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{check.tooltip}</TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </TooltipProvider>
                   </td>
                   <td className="px-2 py-1.5 align-top">
                     <div>{formaPg}</div>
