@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -22,6 +23,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   CheckCircle2,
+  Check,
   FileSpreadsheet,
   FileText,
   Landmark,
@@ -238,6 +240,38 @@ export default function BancoSafra() {
   });
 
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
+
+  // edição inline de boletos
+  const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
+  const [salvando, setSalvando] = useState<Record<string, boolean>>({});
+  const temEdicao = (id: string) => !!(edits[id]?.data || edits[id]?.valor);
+  const handleSalvar = async (b: TitulosBoleto) => {
+    const edit = edits[b.id];
+    if (!edit) return;
+    setSalvando((p) => ({ ...p, [b.id]: true }));
+    try {
+      const update: Record<string, any> = {};
+      if (edit.data && edit.data !== b.data_vencimento_atual) update.data_vencimento_atual = edit.data;
+      if (edit.valor) {
+        const v = parseFloat(edit.valor.replace(",", "."));
+        if (!isNaN(v) && v > 0 && v !== Number(b.valor_bruto)) update.valor_bruto = v;
+      }
+      if (Object.keys(update).length === 0) {
+        setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
+        return;
+      }
+      const { error } = await (supabase as any).from("titulo_a_receber").update(update).eq("id", b.id);
+      if (error) throw error;
+      setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
+      toast({ title: "Boleto atualizado", description: `${b.numero_titulo} salvo com sucesso.` });
+      refetchBoletos();
+    } catch (e) {
+      toast({ title: "Erro ao salvar", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setSalvando((p) => ({ ...p, [b.id]: false }));
+    }
+  };
+
   const handleGerarBaixa = async () => {
     setGerandoBaixa(true);
     try {
@@ -674,10 +708,35 @@ export default function BancoSafra() {
                           cls: "bg-gray-100 text-gray-600",
                         };
                       const vencido = b.boleto_status === "vencido";
+                      const editavel = b.boleto_status === "pendente" || b.boleto_status === "remessa_gerada";
+                      const registrado = b.boleto_status === "registrado";
                       return (
                         <TableRow key={b.id}>
                           <TableCell className={vencido ? "text-red-700 font-medium" : ""}>
-                            {formatDateBR(b.data_vencimento_atual)}
+                            {editavel ? (
+                              <Input
+                                type="date"
+                                className="h-8 w-[140px]"
+                                value={edits[b.id]?.data ?? b.data_vencimento_atual ?? ""}
+                                onChange={(e) =>
+                                  setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
+                                }
+                              />
+                            ) : registrado ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex items-center gap-1.5">
+                                      {formatDateBR(b.data_vencimento_atual)}
+                                      <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Para alterar, solicite a baixa primeiro</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              formatDateBR(b.data_vencimento_atual)
+                            )}
                           </TableCell>
                           <TableCell className="font-mono text-xs">
                             {b.numero_titulo || "—"}
@@ -689,10 +748,38 @@ export default function BancoSafra() {
                             <Badge className={`${cfg.cls} hover:${cfg.cls}`}>{cfg.label}</Badge>
                           </TableCell>
                           <TableCell className="text-right font-mono">
-                            {formatBRL(Number(b.valor_bruto || 0))}
+                            {editavel ? (
+                              <Input
+                                type="text"
+                                inputMode="decimal"
+                                className="h-8 w-[110px] ml-auto text-right font-mono"
+                                value={edits[b.id]?.valor ?? String(b.valor_bruto ?? "")}
+                                onChange={(e) =>
+                                  setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], valor: e.target.value } }))
+                                }
+                              />
+                            ) : (
+                              formatBRL(Number(b.valor_bruto || 0))
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
+                              {temEdicao(b.id) && (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={() => handleSalvar(b)}
+                                  disabled={salvando[b.id]}
+                                  className="h-8"
+                                >
+                                  {salvando[b.id] ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Check className="h-3.5 w-3.5" />
+                                  )}
+                                  <span className="ml-1">Salvar</span>
+                                </Button>
+                              )}
                               <BotaoBaixarBoletoPdf boleto={b} />
                               <BotaoEmailBoleto boleto={b} />
                             </div>
