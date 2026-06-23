@@ -18179,17 +18179,30 @@ export type Database = {
     }
     Functions: {
       _meio_pagamento_nascida_paga: { Args: never; Returns: string }
-      ajustar_haver_cliente: {
-        Args: {
-          p_haver_id_alvo?: string
-          p_motivo: string
-          p_parceiro_id: string
-          p_tipo: string
-          p_validade_dias?: number
-          p_valor: number
-        }
-        Returns: Json
-      }
+      ajustar_haver_cliente:
+        | {
+            Args: {
+              p_haver_id_alvo?: string
+              p_haver_ids_alvo?: string[]
+              p_motivo: string
+              p_parceiro_id: string
+              p_tipo: string
+              p_validade_dias?: number
+              p_valor: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_haver_id_alvo?: string
+              p_motivo: string
+              p_parceiro_id: string
+              p_tipo: string
+              p_validade_dias?: number
+              p_valor: number
+            }
+            Returns: Json
+          }
       analisar_pedido_vs_programa: {
         Args: { p_pedido_id: string }
         Returns: Json
