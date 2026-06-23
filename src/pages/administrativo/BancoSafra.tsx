@@ -708,8 +708,8 @@ export default function BancoSafra() {
                           cls: "bg-gray-100 text-gray-600",
                         };
                       const vencido = b.boleto_status === "vencido";
-                      const editavel = b.boleto_status === "pendente" || b.boleto_status === "remessa_gerada";
-                      const registrado = b.boleto_status === "registrado";
+                      const editavel = b.boleto_status === "pendente";
+                      const registrado = b.boleto_status === "registrado" || b.boleto_status === "remessa_gerada";
                       return (
                         <TableRow key={b.id}>
                           <TableCell className={vencido ? "text-red-700 font-medium" : ""}>
