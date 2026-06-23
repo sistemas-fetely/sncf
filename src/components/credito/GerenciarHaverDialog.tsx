@@ -489,7 +489,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                 type="button"
                 onClick={() => {
                   setModoDebito("livre");
-                  setHaverIdAlvo(null);
+                  setHaveresSelecionados([]);
+                  setValoresIndividuais({});
                   setValorD(0);
                 }}
                 className={cn(
