@@ -13,14 +13,15 @@ export function useEnviarEmailNfFaturado() {
       pedido_id,
       emails,
       cc,
-    }: { pedido_id: string; emails: string[]; cc?: string[] }) => {
+      skipEstagioCheck,
+    }: { pedido_id: string; emails: string[]; cc?: string[]; skipEstagioCheck?: boolean }) => {
       const { data: pedido, error: errP } = await (supabase as any)
         .from("pedidos")
         .select("*")
         .eq("id", pedido_id)
         .maybeSingle();
       if (errP || !pedido) throw new Error("Pedido não encontrado");
-      if (pedido.estagio !== "faturado") throw new Error("Pedido não está faturado");
+      if (!skipEstagioCheck && pedido.estagio !== "faturado") throw new Error("Pedido não está faturado");
 
       const { data: parceiro } = await (supabase as any)
         .from("parceiros_comerciais")
