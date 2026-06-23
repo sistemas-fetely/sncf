@@ -41,6 +41,33 @@ function LinkCell({ url }: { url?: string | null }) {
   );
 }
 
+const BOLETO_STATUS_LABEL: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  pendente: { label: "Aguardando remessa", variant: "secondary" },
+  remessa_gerada: { label: "Remessa gerada", variant: "outline" },
+  registrado: { label: "Registrado no banco", variant: "default" },
+  rejeitado: { label: "Rejeitado", variant: "destructive" },
+  pago_manual: { label: "Pago manualmente", variant: "default" },
+  pago_banco: { label: "Pago pelo banco", variant: "default" },
+};
+
+function BoletoEntradaCell({ tituloEntrada }: { tituloEntrada: any }) {
+  if (!tituloEntrada) {
+    return <span className="text-muted-foreground text-xs">Boleto não gerado ainda</span>;
+  }
+  const cfg = BOLETO_STATUS_LABEL[tituloEntrada.boleto_status ?? ""] ?? {
+    label: tituloEntrada.boleto_status ?? "—",
+    variant: "secondary" as const,
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <Badge variant={cfg.variant} className="text-[10px] w-fit">{cfg.label}</Badge>
+      {tituloEntrada.linha_digitavel && (
+        <span className="font-mono text-[10px] text-muted-foreground">{tituloEntrada.linha_digitavel}</span>
+      )}
+    </div>
+  );
+}
+
 export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
   const portaoQ = useQuery({
     queryKey: ["portao-links", pedidoId],
@@ -58,11 +85,28 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
     },
   });
 
-  if (portaoQ.isLoading) return <Skeleton className="h-32 w-full" />;
+  const tituloEntradaQ = useQuery({
+    queryKey: ["portao-titulo-entrada", pedidoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("titulo_a_receber")
+        .select("id, boleto_status, linha_digitavel, numero_titulo")
+        .eq("pedido_id", pedidoId)
+        .eq("eh_entrada", true)
+        .not("status", "eq", "cancelado")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!pedidoId,
+  });
+
+  if (portaoQ.isLoading || tituloEntradaQ.isLoading) return <Skeleton className="h-32 w-full" />;
 
   const portao = portaoQ.data;
 
-  // Sem portao provisorio -> mensagem padrao (comportamento antigo)
   if (!portao) {
     return <p className="text-sm text-muted-foreground">Nenhum título em aberto para este pedido.</p>;
   }
@@ -96,7 +140,9 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
           Cobrança via portão — aguardando 1º pagamento à vista
         </h4>
         <p className="text-xs text-muted-foreground mt-1">
-          Ainda não há título a receber (ele nasce quando o portão é pago). Os links abaixo já estão salvos e podem ser enviados pelo botão "Enviar cobrança".
+          {portao.tipo_pagamento === "boleto"
+            ? "O boleto de entrada foi gerado e aguarda inclusão na remessa Safra. Após o pagamento ser confirmado pelo banco, as parcelas restantes serão criadas automaticamente."
+            : 'Ainda não há título a receber (ele nasce quando o portão é pago). Os links abaixo já estão salvos e podem ser enviados pelo botão "Enviar cobrança".'}
         </p>
       </div>
 
@@ -121,7 +167,11 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                 <TableCell>{fmtBRL.format(l.valor)}</TableCell>
                 <TableCell>{fmtDate(l.vencimento)}</TableCell>
                 <TableCell>{l.tipo ?? "—"}</TableCell>
-                <TableCell><LinkCell url={l.link} /></TableCell>
+                <TableCell>
+                  {l.eh_gate && l.tipo === "boleto"
+                    ? <BoletoEntradaCell tituloEntrada={tituloEntradaQ.data} />
+                    : <LinkCell url={l.link} />}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
