@@ -122,7 +122,7 @@ const PRAZO_ORDER: Record<string, number> = {
   pausado: 3,
 };
 
-export default function FarolPedidos() {
+function AbaB2B() {
   const [busca, setBusca] = useState("");
   const [filtroPrazo, setFiltroPrazo] = useState<string>("todos");
   const [filtroBloqueio, setFiltroBloqueio] = useState<string>("todos");
