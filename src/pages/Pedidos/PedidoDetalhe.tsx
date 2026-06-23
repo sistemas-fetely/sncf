@@ -343,6 +343,9 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
     (pedido.link_pagamento as string | null | undefined) ??
     null;
 
+  const formaEhBoleto = (pedido.forma_solicitada ?? "").toLowerCase().includes("boleto");
+  if (!link && formaEhBoleto) return null;
+
   const irParaCobranca = () => navigate(`/recebimento/cobranca/${pedido.id}`);
 
   const handleCopiar = () => {
