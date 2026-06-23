@@ -546,7 +546,32 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label>Haveres disponíveis</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Haveres disponíveis</Label>
+                    {(haveresQ.data ?? []).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            haveresSelecionados.length ===
+                            (haveresQ.data ?? []).length
+                          ) {
+                            setHaveresSelecionados([]);
+                          } else {
+                            setHaveresSelecionados(
+                              (haveresQ.data ?? []).map((h: any) => h.id)
+                            );
+                          }
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {haveresSelecionados.length ===
+                        (haveresQ.data ?? []).length
+                          ? "Limpar seleção"
+                          : "Selecionar todos"}
+                      </button>
+                    )}
+                  </div>
                   {haveresQ.isLoading ? (
                     <p className="text-sm text-muted-foreground">Carregando…</p>
                   ) : (haveresQ.data ?? []).length === 0 ? (
@@ -555,67 +580,171 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                     </p>
                   ) : (
                     <div className="space-y-2 max-h-48 overflow-auto">
-                      {(haveresQ.data ?? []).map((h: any) => (
-                        <button
-                          key={h.id}
-                          type="button"
-                          onClick={() => setHaverIdAlvo(h.id)}
-                          className={cn(
-                            "w-full text-left p-3 border rounded-md transition-colors hover:bg-accent",
-                            haverIdAlvo === h.id
-                              ? "border-primary border-2 bg-accent"
-                              : "border-border"
-                          )}
-                        >
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium truncate">
-                                {h.motivo || h.origem_descricao || "Haver"}
-                              </div>
-                              {h.data_expiracao && (
-                                <div className="text-xs text-muted-foreground">
-                                  Expira em{" "}
-                                  {new Date(
-                                    h.data_expiracao + "T00:00:00"
-                                  ).toLocaleDateString("pt-BR")}
+                      {(haveresQ.data ?? []).map((h: any) => {
+                        const selected = haveresSelecionados.includes(h.id);
+                        return (
+                          <button
+                            key={h.id}
+                            type="button"
+                            onClick={() => toggleHaver(h.id)}
+                            className={cn(
+                              "w-full text-left p-3 border rounded-md transition-colors hover:bg-accent",
+                              selected
+                                ? "border-primary border-2 bg-accent"
+                                : "border-border"
+                            )}
+                          >
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">
+                                  {h.motivo || h.origem_descricao || "Haver"}
                                 </div>
-                              )}
-                            </div>
-                            <div className="text-right shrink-0">
-                              <div className="text-sm font-semibold">
-                                {fmtBRL.format(Number(h.saldo ?? 0))}
+                                {h.data_expiracao && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Expira em{" "}
+                                    {new Date(
+                                      h.data_expiracao + "T00:00:00"
+                                    ).toLocaleDateString("pt-BR")}
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                de {fmtBRL.format(Number(h.valor ?? 0))}
+                              <div className="text-right shrink-0">
+                                <div className="text-sm font-semibold">
+                                  {fmtBRL.format(Number(h.saldo ?? 0))}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  de {fmtBRL.format(Number(h.valor ?? 0))}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </button>
-                      ))}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
-                {haverSelecionado && (
-                  <div className="space-y-2">
-                    <Label>Valor a debitar (R$)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      max={Number(haverSelecionado.saldo ?? 0)}
-                      value={valorD || ""}
-                      onChange={(e) => setValorD(Number(e.target.value))}
-                    />
-                    {excedeSaldoVinculado && (
-                      <p className="text-sm text-destructive">
-                        Valor excede o saldo do haver selecionado (
-                        {fmtBRL.format(Number(haverSelecionado.saldo ?? 0))})
-                      </p>
+                {haveresSelecionados.length > 0 && (
+                  <div className="space-y-3 p-3 border rounded-md bg-muted/30">
+                    <p className="text-sm">
+                      <span className="font-semibold">
+                        {haveresSelecionados.length}
+                      </span>{" "}
+                      {haveresSelecionados.length === 1
+                        ? "haver selecionado"
+                        : "haveres selecionados"}{" "}
+                      ·{" "}
+                      <span className="text-muted-foreground">
+                        Soma dos saldos:
+                      </span>{" "}
+                      <span className="font-semibold">
+                        {fmtBRL.format(somaSaldosSelecionados)}
+                      </span>
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-1 p-1 bg-background rounded-md border">
+                      <button
+                        type="button"
+                        onClick={() => setModoValor("total")}
+                        className={cn(
+                          "px-2 py-1 text-xs rounded-sm transition-colors",
+                          modoValor === "total"
+                            ? "bg-muted shadow font-medium"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Valor total
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModoValor("individual")}
+                        className={cn(
+                          "px-2 py-1 text-xs rounded-sm transition-colors",
+                          modoValor === "individual"
+                            ? "bg-muted shadow font-medium"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Por haver
+                      </button>
+                    </div>
+
+                    {modoValor === "total" ? (
+                      <div className="space-y-2">
+                        <Label>Valor a debitar (R$)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={valorD || ""}
+                          onChange={(e) => setValorD(Number(e.target.value))}
+                        />
+                        {valorD > 0 &&
+                          valorD < somaSaldosSelecionados &&
+                          !excedeSomaVinculados && (
+                            <p className="text-xs text-muted-foreground">
+                              O sistema irá distribuir do mais antigo para o mais
+                              novo (FIFO).
+                            </p>
+                          )}
+                        {excedeSomaVinculados && (
+                          <p className="text-sm text-destructive">
+                            Valor excede a soma dos saldos (
+                            {fmtBRL.format(somaSaldosSelecionados)})
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {haveresSelecionadosData.map((h: any) => {
+                          const saldo = Number(h.saldo ?? 0);
+                          const val = Number(valoresIndividuais[h.id] ?? 0);
+                          const excede = val > saldo;
+                          return (
+                            <div key={h.id} className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 min-w-0 text-xs truncate">
+                                  {h.motivo || h.origem_descricao || "Haver"}
+                                </div>
+                                <div className="text-xs text-muted-foreground shrink-0 w-20 text-right">
+                                  {fmtBRL.format(saldo)}
+                                </div>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  className="w-28 h-8"
+                                  value={val || ""}
+                                  onChange={(e) =>
+                                    setValoresIndividuais((prev) => ({
+                                      ...prev,
+                                      [h.id]: Number(e.target.value),
+                                    }))
+                                  }
+                                />
+                              </div>
+                              {excede && (
+                                <p className="text-xs text-destructive pl-1">
+                                  Excede o saldo ({fmtBRL.format(saldo)})
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <div className="flex justify-end pt-2 border-t text-sm">
+                          <span className="text-muted-foreground mr-2">
+                            Total:
+                          </span>
+                          <span className="font-semibold">
+                            {fmtBRL.format(totalIndividuais)}
+                          </span>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
               </>
+
             )}
 
             <div className="space-y-2">
