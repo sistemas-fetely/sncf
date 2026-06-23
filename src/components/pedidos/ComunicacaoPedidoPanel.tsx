@@ -268,7 +268,10 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
       <Button
         variant="outline"
         size="sm"
-        className="w-full gap-2 justify-start"
+        className={enviado
+          ? "w-full gap-2 justify-start bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
+          : "w-full gap-2 justify-start"
+        }
         onClick={() => abrirDialog(tipo)}
       >
         <Icon className={enviado ? "h-4 w-4 text-emerald-600" : "h-4 w-4 text-muted-foreground"} />

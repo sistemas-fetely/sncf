@@ -332,6 +332,8 @@ function BotaoEmailNfBoletos({ pedido }: { pedido: any }) {
 
 
 function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] }) {
+  const formaEhBoleto = (pedido.forma_solicitada ?? "").toLowerCase().includes("boleto");
+  if (!link && formaEhBoleto) return null;
   const navigate = useNavigate();
   const statusPagos = ["pago", "pago_com_atraso", "pago_judicial", "baixado_por_perda", "cancelado"];
   const tiposComLink = ["pix", "cartao", "cartao_credito", "cartao_debito"];
