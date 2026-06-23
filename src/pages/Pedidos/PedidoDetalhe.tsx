@@ -65,6 +65,7 @@ import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEm
 import { EnviarEmailNfDialog } from "@/components/pedidos/dialogs/EnviarEmailNfDialog";
 import { EnviarEmailNfBoletosDialog } from "@/components/pedidos/dialogs/EnviarEmailNfBoletosDialog";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
+import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
@@ -1383,6 +1384,14 @@ export default function PedidoDetalhe() {
             <div className="space-y-3">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
               <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
+              {estagio !== "cancelado" && estagio !== "em_analise_credito" && (
+                <ComunicacaoPedidoPanel
+                  pedido_id={pedido.id}
+                  parceiro_id={pedido.parceiro_id}
+                  estagio={estagio}
+                  exige_portao={!!(pedido as any).exige_portao}
+                />
+              )}
               <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
               {!estagioFinal && !(pedido as any).atencao_nivel && (
                 <AtencaoPedidoDialog pedidoId={pedido.id}>

@@ -33,7 +33,7 @@ import { formatCNPJ } from "@/lib/cnpj";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useParametros } from "@/hooks/useParametros";
-import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
+import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
 import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
@@ -184,7 +184,6 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [datas, setDatas] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
-  const [emailOpen, setEmailOpen] = useState(false);
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
 
   const titulosQ = useQuery({
@@ -335,18 +334,21 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
             </div>
           )}
 
+
+          <div className="mt-6">
+            <ComunicacaoPedidoPanel
+              pedido_id={pedido.id}
+              parceiro_id={pedido.parceiro_id}
+              estagio={pedido.estagio}
+              exige_portao={!!(pedido as any).exige_portao}
+            />
+          </div>
+
           <div className="flex justify-between mt-6">
             <Button variant="ghost" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setEmailOpen(true)}
-                disabled={!pedido.parceiro_id}
-              >
-                <Mail className="h-4 w-4 mr-1" /> Enviar cobrança
-              </Button>
               <Button
                 onClick={handleSalvar}
                 disabled={salvando || titulosQ.isLoading || titulosQ.data?.length === 0}
@@ -358,12 +360,6 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           </div>
         </CardContent>
       </Card>
-      <EnviarEmailCobrancaDialog
-        open={emailOpen}
-        onOpenChange={setEmailOpen}
-        pedido_id={pedido.id}
-        parceiro_id={pedido.parceiro_id}
-      />
       <AlterarFormaPagamentoDialog
         open={alterarPagtoOpen}
         onClose={() => setAlterarPagtoOpen(false)}
