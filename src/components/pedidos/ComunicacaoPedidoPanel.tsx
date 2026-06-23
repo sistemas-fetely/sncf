@@ -296,7 +296,10 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-muted-foreground">Comunicação</p>
+      <div className="flex items-center gap-2 pt-1">
+        <i className="ti ti-send" style={{fontSize: "13px", color: "var(--color-text-secondary)"}} aria-hidden="true"></i>
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Comunicação</p>
+      </div>
       <div className="space-y-2">
         {renderBotao("cobranca", mostrarCobranca)}
         {renderBotao("portao_boleto", mostrarPortaoBoleto)}
@@ -307,9 +310,12 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
 
       <Collapsible>
         <CollapsibleTrigger asChild>
-          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground pt-1">
+          <button className="flex items-center justify-between w-full px-2 py-1.5 mt-1 rounded-md text-xs text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-dashed border-border/50">
+            <span className="flex items-center gap-1.5">
+              <i className="ti ti-history" style={{fontSize: "13px"}} aria-hidden="true"></i>
+              Histórico de envios{historico.length > 0 ? ` (${historico.length})` : ""}
+            </span>
             <ChevronDown className="h-3 w-3" />
-            Histórico{historico.length > 0 ? ` (${historico.length})` : ""}
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-2 space-y-1.5">
@@ -318,7 +324,10 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
           ) : (
             historico.map((l) => (
               <div key={l.id} className="text-xs text-muted-foreground border-l-2 border-border pl-2">
-                <div className="font-medium text-foreground">{TIPO_LABEL[l.tipo_email as TipoEmail]?.btn ?? l.tipo_email}</div>
+                <div className="flex items-center gap-1.5 font-medium text-foreground">
+                  <i className="ti ti-mail" style={{fontSize: "12px"}} aria-hidden="true"></i>
+                  {TIPO_LABEL[l.tipo_email as TipoEmail]?.btn ?? l.tipo_email}
+                </div>
                 <div className="truncate">{l.destinatario !== "—" ? l.destinatario : "envio anterior"}</div>
                 <div className="opacity-70">{fmtDateTime(l.enviado_em)}</div>
               </div>
