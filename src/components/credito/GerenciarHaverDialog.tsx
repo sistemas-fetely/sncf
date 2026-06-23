@@ -279,12 +279,30 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const debMut = useMutation({
     mutationFn: async () => {
       const motivoFinal = motivoD + (obsD ? `: ${obsD}` : "");
+      if (modoDebito === "vinculado" && modoValor === "individual") {
+        for (const id of haveresSelecionados) {
+          const val = Number(valoresIndividuais[id] ?? 0);
+          if (val <= 0) continue;
+          const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
+            p_parceiro_id: parceiroSel,
+            p_tipo: "debito",
+            p_valor: val,
+            p_motivo: motivoFinal,
+            p_haver_ids_alvo: null,
+            p_haver_id_alvo: id,
+          });
+          if (error) throw error;
+        }
+        return;
+      }
       const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
         p_parceiro_id: parceiroSel,
         p_tipo: "debito",
         p_valor: valorD,
         p_motivo: motivoFinal,
-        p_haver_id_alvo: modoDebito === "vinculado" ? haverIdAlvo : null,
+        p_haver_ids_alvo:
+          modoDebito === "vinculado" ? haveresSelecionados : null,
+        p_haver_id_alvo: null,
       });
       if (error) throw error;
     },
@@ -299,19 +317,22 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   // ===== Validações =====
   const excedeSaldoLivre =
     modoDebito === "livre" && valorD > 0 && valorD > saldoTotal;
-  const excedeSaldoVinculado =
+  const excedeSomaVinculados =
     modoDebito === "vinculado" &&
-    haverSelecionado &&
-    valorD > Number(haverSelecionado.saldo ?? 0);
+    modoValor === "total" &&
+    valorD > somaSaldosSelecionados;
 
   const podeCredito = !!parceiroSel && valorC > 0 && !credMut.isPending;
   const podeDebito =
     !!parceiroSel &&
-    valorD > 0 &&
     !debMut.isPending &&
     (modoDebito === "livre"
-      ? !excedeSaldoLivre
-      : !!haverIdAlvo && !excedeSaldoVinculado);
+      ? valorD > 0 && !excedeSaldoLivre
+      : haveresSelecionados.length > 0 &&
+        (modoValor === "total"
+          ? valorD > 0 && !excedeSomaVinculados
+          : totalIndividuais > 0 && !algumIndividualExcede));
+
 
   // ===== Render parceiro picker (compartilhado) =====
   const parceiroPicker = (
