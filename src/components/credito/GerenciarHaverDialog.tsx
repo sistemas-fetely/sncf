@@ -163,16 +163,65 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     [haveresQ.data]
   );
 
-  const haverSelecionado = useMemo(
-    () => (haveresQ.data ?? []).find((h: any) => h.id === haverIdAlvo),
-    [haveresQ.data, haverIdAlvo]
+  const haveresSelecionadosData = useMemo(
+    () =>
+      (haveresQ.data ?? []).filter((h: any) =>
+        haveresSelecionados.includes(h.id)
+      ),
+    [haveresQ.data, haveresSelecionados]
   );
 
+  const somaSaldosSelecionados = useMemo(
+    () =>
+      haveresSelecionadosData.reduce(
+        (s, h: any) => s + Number(h.saldo ?? 0),
+        0
+      ),
+    [haveresSelecionadosData]
+  );
+
+  // Pre-fill total when selection changes (modo total)
   useEffect(() => {
-    if (modoDebito === "vinculado" && haverSelecionado) {
-      setValorD(Number(haverSelecionado.saldo ?? 0));
+    if (modoDebito === "vinculado" && modoValor === "total") {
+      setValorD(somaSaldosSelecionados);
     }
-  }, [haverIdAlvo, modoDebito]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [somaSaldosSelecionados, modoDebito, modoValor]);
+
+  // Pre-fill individual values when selection changes
+  useEffect(() => {
+    if (modoDebito !== "vinculado") return;
+    setValoresIndividuais((prev) => {
+      const next: Record<string, number> = {};
+      for (const h of haveresSelecionadosData) {
+        next[h.id] = prev[h.id] ?? Number(h.saldo ?? 0);
+      }
+      return next;
+    });
+  }, [haveresSelecionadosData, modoDebito]);
+
+  const totalIndividuais = useMemo(
+    () =>
+      haveresSelecionados.reduce(
+        (s, id) => s + Number(valoresIndividuais[id] ?? 0),
+        0
+      ),
+    [haveresSelecionados, valoresIndividuais]
+  );
+
+  const toggleHaver = (id: string) => {
+    setHaveresSelecionados((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const algumIndividualExcede = useMemo(() => {
+    if (modoValor !== "individual") return false;
+    return haveresSelecionadosData.some((h: any) => {
+      const v = Number(valoresIndividuais[h.id] ?? 0);
+      return v > Number(h.saldo ?? 0);
+    });
+  }, [haveresSelecionadosData, valoresIndividuais, modoValor]);
+
 
   const buscarPedido = async () => {
     if (!pedidoBusca.trim()) {
