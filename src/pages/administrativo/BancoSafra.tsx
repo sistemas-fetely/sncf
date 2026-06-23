@@ -260,7 +260,7 @@ export default function BancoSafra() {
         setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
         return;
       }
-      const { error } = await supabase.from("titulo_a_receber").update(update).eq("id", b.id);
+      const { error } = await (supabase as any).from("titulo_a_receber").update(update).eq("id", b.id);
       if (error) throw error;
       setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
       toast({ title: "Boleto atualizado", description: `${b.numero_titulo} salvo com sucesso.` });
