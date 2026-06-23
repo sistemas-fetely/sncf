@@ -94,6 +94,17 @@ for (const nf of items) {
                 .neq("status", "cancelada").maybeSingle();
               pedido_venda_id = rm?.pedido_id ?? null;
             }
+
+            // Fallback 4: pedidoVenda.id → pedidos.bling_id_destino
+            // Cobre NFs nascidas diretamente do pedido no Bling (fluxo a partir de jun/2026)
+            if (!pedido_venda_id && d.pedidoVenda?.id) {
+              const { data: pp } = await supabase
+                .from("pedidos")
+                .select("id")
+                .eq("bling_id_destino", String(d.pedidoVenda.id))
+                .maybeSingle();
+              pedido_venda_id = pp?.id ?? null;
+            }
           }
         }
       } catch (_) { /* detalhe falhou — preserva valores existentes */ }
