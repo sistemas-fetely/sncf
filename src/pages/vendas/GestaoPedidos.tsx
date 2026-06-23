@@ -12,6 +12,12 @@ import {
 } from "@/components/ui/select";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { ArrowUpDown, Copy, ExternalLink } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Row = Record<string, any>;
 
