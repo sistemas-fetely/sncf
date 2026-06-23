@@ -35,7 +35,7 @@ interface Props {
 }
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const ESTAGIOS_PERMITIDOS = ["recebido", "em_analise_credito", "cobranca", "aguardando_pagamento"];
+const ESTAGIOS_PERMITIDOS = ["recebido", "em_analise_credito", "cobranca", "aguardando_pagamento", "pre_separacao"];
 
 function useProdutos(busca: string) {
   return useQuery({
