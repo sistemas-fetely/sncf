@@ -32,10 +32,10 @@ Deno.serve(async (req) => {
     if (!authHeader) return jsonResponse(401, { error: "Authorization obrigatório" });
 
     const { data: sncfToken, error: vaultErr } = await sncf.rpc("get_vault_secret", {
-      p_name: "FSNC_INBOUND_TOKEN",
+      p_name: "FOP_INBOUND_TOKEN",
     });
     if (vaultErr || !sncfToken) {
-      return jsonResponse(500, { error: "FSNC_INBOUND_TOKEN não encontrado no Vault" });
+      return jsonResponse(500, { error: "FOP_INBOUND_TOKEN não encontrado no Vault" });
     }
 
     let body: any = {};
