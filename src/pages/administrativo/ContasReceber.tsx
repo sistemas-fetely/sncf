@@ -27,9 +27,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 
 type RecebivelB2B = {
@@ -260,17 +261,55 @@ export default function ContasReceber() {
     );
   };
 
+  const handleExportXLSX = () => {
+    const linhas = filtrados.map((t) => ({
+      "NF": t.nf_numero ?? "",
+      "Cliente": t.cliente ?? "",
+      "Título / Parcela":
+        (t.numero_titulo ?? "") +
+        (t.numero_parcela != null && t.total_parcelas != null
+          ? ` ${t.numero_parcela}/${t.total_parcelas}`
+          : ""),
+      "Banco": t.banco_nome ?? "",
+      "Meio": formatMeio(t.meio_pagamento),
+      "Data compra": formatDateBR(t.data_compra),
+      "Vencimento": formatDateBR(t.data_vencimento),
+      "Liquidação": formatDateBR(t.data_liquidacao),
+      "Valor": t.valor ?? 0,
+      "Status":
+        t.status_gestao === "pago"
+          ? "Pago"
+          : t.status_gestao === "atrasado"
+          ? "Atrasado"
+          : "Em aberto",
+    }));
+    const ws = XLSX.utils.json_to_sheet(linhas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Contas a Receber");
+    XLSX.writeFile(wb, `contas-a-receber-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
         <ArrowDownToLine className="h-7 w-7 text-admin" />
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-semibold">Contas a Receber</h1>
           <p className="text-sm text-muted-foreground">
             Recebíveis B2B por parcela — somente títulos com NF. Visão de gestão (somente leitura).
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={handleExportXLSX}
+          disabled={filtrados.length === 0}
+          className="gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Exportar XLSX
+        </Button>
       </div>
+
 
       {/* KPIs */}
       <div className="space-y-4">
