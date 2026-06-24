@@ -343,10 +343,28 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
     (pedido.link_pagamento as string | null | undefined) ??
     null;
 
-  const formaEhBoleto = (pedido.forma_solicitada ?? "").toLowerCase().includes("boleto");
-  if (!link && formaEhBoleto) return null;
-
   const irParaCobranca = () => navigate(`/recebimento/cobranca/${pedido.id}`);
+  const formaEhBoleto = (pedido.forma_solicitada ?? "").toLowerCase().includes("boleto");
+  const podeAjustarCobranca = ["cobranca", "aguardando_pagamento"].includes(pedido.estagio ?? "");
+
+  // Boleto sem link em estágio que não permite ajuste → oculta o card
+  if (!link && formaEhBoleto && !podeAjustarCobranca) return null;
+
+  // Boleto sem link mas pode ajustar → mostrar só o botão de navegação
+  if (!link && formaEhBoleto && podeAjustarCobranca) {
+    return (
+      <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-3 space-y-2">
+        <div className="flex items-center gap-1.5">
+          <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Cobrança</p>
+        </div>
+        <Button size="sm" variant="outline" className="w-full h-7 gap-1.5 text-xs" onClick={irParaCobranca} >
+          <ExternalLink className="h-3 w-3" />
+          {pedido.estagio === "aguardando_pagamento" ? "Ajustar na tela de cobrança" : "Cadastrar na tela de cobrança"}
+        </Button>
+      </div>
+    );
+  }
 
   const handleCopiar = () => {
     navigator.clipboard.writeText(link!).then(() => {
