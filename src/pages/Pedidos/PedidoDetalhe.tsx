@@ -1003,6 +1003,42 @@ export default function PedidoDetalhe() {
                   );
                 })()}
 
+                <AlertDialog open={confirmRestaurar} onOpenChange={setConfirmRestaurar}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Restaurar pedido ao original?</AlertDialogTitle>
+                      <AlertDialogDescription asChild>
+                        <div className="space-y-2">
+                          <p>Esta ação irá substituir os itens atuais pelos itens originais recebidos do FOP.</p>
+                          {(() => {
+                            const snap = (pedido as any).snapshot_original as any;
+                            return (
+                              <p className="text-sm">
+                                <strong>{snap?.itens_json?.length ?? 0}</strong> itens serão restaurados.
+                                {" "}Valores financeiros serão restaurados apenas se não houver título a receber emitido.
+                              </p>
+                            );
+                          })()}
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={restaurandoSnapshot}>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => { e.preventDefault(); handleRestaurarSnapshot(); }}
+                        disabled={restaurandoSnapshot}
+                      >
+                        {restaurandoSnapshot ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Restaurando...</>
+                        ) : (
+                          "Confirmar restauração"
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+
                 {/* Card — Resumo financeiro */}
                 <Card className="border-border/60 flex-1 flex flex-col">
                   <CardHeader className="pb-3">
