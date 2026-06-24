@@ -962,6 +962,42 @@ export default function PedidoDetalhe() {
                             </div>
                           )}
                         </div>
+
+                        {snap.itens_json && snap.itens_json.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-border/60">
+                            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                              Itens originais ({snap.itens_json.length})
+                            </div>
+                            <div className="space-y-1">
+                              {snap.itens_json.map((item, idx) => (
+                                <div key={idx} className="flex justify-between text-xs">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="truncate">{item.produto?.nomeComercial ?? item.sku}</span>
+                                    <span className="text-muted-foreground shrink-0">×{item.quantidade}</span>
+                                  </div>
+                                  <span className="shrink-0 tabular-nums">
+                                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.subtotal)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {isSuperAdmin && (
+                          <div className="mt-4 pt-4 border-t border-border/60">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full gap-2"
+                              onClick={() => setConfirmRestaurar(true)}
+                              disabled={restaurandoSnapshot}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              Restaurar original
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
