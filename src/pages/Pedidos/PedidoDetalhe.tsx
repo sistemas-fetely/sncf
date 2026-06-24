@@ -876,7 +876,15 @@ export default function PedidoDetalhe() {
                     frete_tipo: string | null;
                     desconto_celebra_valor: number;
                     bonus_pix_valor: number;
+                    itens_json: Array<{
+                      sku: string;
+                      quantidade: number;
+                      preco_unitario: number;
+                      subtotal: number;
+                      produto?: { nomeComercial?: string };
+                    }> | null;
                     gravado_em: string;
+                    backfill?: boolean;
                   } | null;
 
                   if (!snap) return null;
