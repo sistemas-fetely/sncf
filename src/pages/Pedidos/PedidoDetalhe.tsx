@@ -578,6 +578,20 @@ export default function PedidoDetalhe() {
     (s: number, h: any) => s + Number(h.saldo), 0
   );
 
+  const { data: splitsAtivos } = useQuery({
+    queryKey: ["splits", id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pedidos")
+        .select("id, id_externo, estagio")
+        .eq("split_de_pedido_id", id)
+        .neq("estagio", "cancelado");
+      if (error) throw error;
+      return (data ?? []) as { id: string; id_externo: string; estagio: string }[];
+    },
+    enabled: !!id,
+  });
+
   const recalcularPeso = async () => {
     if (!id) return;
     setRecalculandoPeso(true);
@@ -635,20 +649,29 @@ export default function PedidoDetalhe() {
     if (!pedido?.id) return;
     setRestaurandoSnapshot(true);
     try {
-      const { data, error } = await (supabase as any).rpc("restaurar_snapshot_pedido", {
+      const { data, error } = await (supabase as any).rpc("restaurar_snapshot_completo", {
         p_pedido_id: pedido.id,
         p_usuario_id: user?.id,
       });
       if (error) throw error;
       const resultado = data as any;
+
+      const splitsMsg = resultado?.splits_dissolvidos > 0
+        ? ` ${resultado.splits_dissolvidos} split(s) dissolvido(s).`
+        : "";
+      const valoresMsg = resultado?.motivo_sem_valores
+        ? ` ${resultado.motivo_sem_valores}`
+        : " Valores restaurados.";
+
       toast({
-        title: "Pedido restaurado",
-        description: resultado?.motivo_sem_valores
-          ? `Itens restaurados. ${resultado.motivo_sem_valores}`
-          : `${resultado?.itens_restaurados ?? 0} itens e valores restaurados ao original do FOP.`,
+        title: "Pedido restaurado ao original",
+        description: `${resultado?.itens_restaurados ?? 0} itens restaurados.${splitsMsg}${valoresMsg}`,
       });
       queryClient.invalidateQueries({ queryKey: ["pedido", pedido.id] });
       queryClient.invalidateQueries({ queryKey: ["pedido-detalhe", pedido.id] });
+      queryClient.invalidateQueries({ queryKey: ["splits", pedido.id] });
+      queryClient.invalidateQueries({ queryKey: ["pedidos-fila"] });
+      queryClient.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
     } catch (err: any) {
       toast({
         title: "Erro ao restaurar",
@@ -1404,19 +1427,35 @@ export default function PedidoDetalhe() {
             <AlertDialog open={confirmRestaurar} onOpenChange={setConfirmRestaurar}>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Restaurar pedido ao original?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {splitsAtivos && splitsAtivos.length > 0 ? "Dissolver splits e restaurar ao original?" : "Restaurar pedido ao original?"}
+                  </AlertDialogTitle>
                   <AlertDialogDescription asChild>
-                    <div className="space-y-2">
-                      <p>Esta ação irá substituir os itens atuais pelos itens originais recebidos do FOP.</p>
-                      {(() => {
-                        const snap = (pedido as any).snapshot_original as any;
-                        return (
+                    <div className="space-y-3">
+                      {splitsAtivos && splitsAtivos.length > 0 ? (
+                        <>
                           <p className="text-sm">
-                            <strong>{snap?.itens_json?.length ?? 0}</strong> itens serão restaurados.
-                            {" "}Valores financeiros serão restaurados apenas se não houver título a receber emitido.
+                            Este pedido possui <strong>{splitsAtivos.length}</strong> split(s) ativo(s) que serão <strong className="text-destructive">cancelados</strong>:
                           </p>
-                        );
-                      })()}
+                          <ul className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 space-y-1">
+                            {splitsAtivos.map((s) => (
+                              <li key={s.id} className="text-xs font-mono text-destructive">
+                                {s.id_externo} — {s.estagio.replace(/_/g, " ")}
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="text-sm">
+                            Após a dissolução, os <strong>{(pedido as any).snapshot_original?.itens_json?.length ?? 0}</strong> itens originais do FOP serão restaurados no pedido principal.
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm">
+                          Os <strong>{(pedido as any).snapshot_original?.itens_json?.length ?? 0}</strong> itens originais do FOP serão restaurados. Valores financeiros serão restaurados apenas se não houver título a receber emitido.
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Esta ação é irreversível. Os splits cancelados não podem ser reativados.
+                      </p>
                     </div>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -1425,9 +1464,12 @@ export default function PedidoDetalhe() {
                   <AlertDialogAction
                     onClick={(e) => { e.preventDefault(); handleRestaurarSnapshot(); }}
                     disabled={restaurandoSnapshot}
+                    className={splitsAtivos && splitsAtivos.length > 0 ? "bg-destructive hover:bg-destructive/90" : ""}
                   >
                     {restaurandoSnapshot ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Restaurando...</>
+                    ) : splitsAtivos && splitsAtivos.length > 0 ? (
+                      "Dissolver splits e restaurar"
                     ) : (
                       "Confirmar restauração"
                     )}
