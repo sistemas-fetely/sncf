@@ -579,17 +579,17 @@ export default function PedidoDetalhe() {
   );
 
   const { data: splitsAtivos } = useQuery({
-    queryKey: ["splits", pedido?.id],
+    queryKey: ["splits", id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select("id, id_externo, estagio")
-        .eq("split_de_pedido_id", pedido!.id)
+        .eq("split_de_pedido_id", id)
         .neq("estagio", "cancelado");
       if (error) throw error;
       return (data ?? []) as { id: string; id_externo: string; estagio: string }[];
     },
-    enabled: !!pedido?.id,
+    enabled: !!id,
   });
 
   const recalcularPeso = async () => {
