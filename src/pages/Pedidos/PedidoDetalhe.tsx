@@ -1401,7 +1401,7 @@ export default function PedidoDetalhe() {
               const hasDelta            = Math.abs(deltaLiquido) > 0.01;
 
               return (
-                <Card className="border-amber-200/70 dark:border-amber-800/50 flex-1 flex flex-col bg-amber-50/30 dark:bg-amber-950/10">
+                <Card className="border-amber-200/70 dark:border-amber-800/50 flex-1 flex flex-col bg-amber-50/30 dark:bg-amber-950/10 lg:order-2">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-semibold flex items-center gap-2">
                       <History className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -1580,7 +1580,7 @@ export default function PedidoDetalhe() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Card className="border-border/60">
+            <Card className="border-border/60 lg:order-1">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
