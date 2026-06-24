@@ -1516,11 +1516,15 @@ export default function PedidoDetalhe() {
           )}
         </div>
 
-        {!estagioFinal && (
+        {(estagio === "entregue" || !estagioFinal) && (
           <aside className="order-first lg:order-none px-6 py-5 lg:w-72 lg:shrink-0 lg:pl-5 lg:border-l lg:border-border/60 lg:sticky lg:top-4 lg:self-start">
             <div className="space-y-3">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
-              <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
+              {!estagioFinal && (
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
+              )}
+              {!estagioFinal && (
+                <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
+              )}
               {estagio !== "cancelado" && estagio !== "em_analise_credito" && (
                 <ComunicacaoPedidoPanel
                   pedido_id={pedido.id}
@@ -1538,13 +1542,15 @@ export default function PedidoDetalhe() {
                   </Button>
                 </AtencaoPedidoDialog>
               )}
-              <div className="pt-3 mt-1 border-t border-border/40">
-                <CancelarPedidoDialog
-                  pedido_id={pedido.id}
-                  id_externo={pedido.id_externo}
-                  estagio={estagio}
-                />
-              </div>
+              {!estagioFinal && (
+                <div className="pt-3 mt-1 border-t border-border/40">
+                  <CancelarPedidoDialog
+                    pedido_id={pedido.id}
+                    id_externo={pedido.id_externo}
+                    estagio={estagio}
+                  />
+                </div>
+              )}
             </div>
           </aside>
         )}
