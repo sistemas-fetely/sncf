@@ -1506,14 +1506,16 @@ export default function PedidoDetalhe() {
                           </p>
                         </>
                       ) : (
-                      {pedido?.split_de_pedido_id && (
-                        <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-                          Este pedido é um split. A restauração será aplicada no pedido pai e todos os splits serão cancelados.
-                        </p>
-                      )}
-                        <p className="text-sm">
-                          Os <strong>{(pedido as any).snapshot_original?.itens_json?.length ?? 0}</strong> itens originais do FOP serão restaurados. Valores financeiros serão restaurados apenas se não houver título a receber emitido.
-                        </p>
+                        <>
+                          {pedido?.split_de_pedido_id && (
+                            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                              Este pedido é um split. A restauração será aplicada no pedido pai e todos os splits serão cancelados.
+                            </p>
+                          )}
+                          <p className="text-sm">
+                            Os <strong>{(pedido as any).snapshot_original?.itens_json?.length ?? 0}</strong> itens originais do FOP serão restaurados. Valores financeiros serão restaurados apenas se não houver título a receber emitido.
+                          </p>
+                        </>
                       )}
                       <p className="text-xs text-muted-foreground">
                         Esta ação é irreversível. Os splits cancelados não podem ser reativados.
