@@ -657,17 +657,16 @@ export default function PedidoDetalhe() {
       if (error) throw error;
       const resultado = data as any;
 
-      const splitsMsg = resultado?.splits_dissolvidos > 0
-        ? ` ${resultado.splits_dissolvidos} split(s) dissolvido(s).`
-        : "";
-      const valoresMsg = resultado?.motivo_sem_valores
-        ? ` ${resultado.motivo_sem_valores}`
-        : " Valores restaurados.";
+      const splitsMsg = resultado?.splits_dissolvidos > 0 ? ` ${resultado.splits_dissolvidos} split(s) dissolvido(s).` : "";
+      const reativadoMsg = resultado?.pai_reativado ? " Pedido reativado para Recebido." : "";
+      const valoresMsg = resultado?.motivo_sem_valores ? ` ${resultado.motivo_sem_valores}` : " Valores restaurados.";
+      const paiMsg = resultado?.pedido_pai_externo && resultado.pedido_pai_externo !== pedido?.id_externo ? ` (pedido pai: ${resultado.pedido_pai_externo})` : "";
 
       toast({
         title: "Pedido restaurado ao original",
-        description: `${resultado?.itens_restaurados ?? 0} itens restaurados.${splitsMsg}${valoresMsg}`,
+        description: `${resultado?.itens_restaurados ?? 0} itens restaurados.${splitsMsg}${reativadoMsg}${valoresMsg}${paiMsg}`,
       });
+
       queryClient.invalidateQueries({ queryKey: ["pedido", pedido.id] });
       queryClient.invalidateQueries({ queryKey: ["pedido-detalhe", pedido.id] });
       queryClient.invalidateQueries({ queryKey: ["splits", pedido.id] });
@@ -1486,7 +1485,7 @@ export default function PedidoDetalhe() {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>
-                    {splitsAtivos && splitsAtivos.length > 0 ? "Dissolver splits e restaurar ao original?" : "Restaurar pedido ao original?"}
+                    {pedido?.split_de_pedido_id ? "Restaurar pedido pai ao original?" : splitsAtivos && splitsAtivos.length > 0 ? "Dissolver splits e restaurar ao original?" : "Restaurar pedido ao original?"}
                   </AlertDialogTitle>
                   <AlertDialogDescription asChild>
                     <div className="space-y-3">
@@ -1507,9 +1506,16 @@ export default function PedidoDetalhe() {
                           </p>
                         </>
                       ) : (
-                        <p className="text-sm">
-                          Os <strong>{(pedido as any).snapshot_original?.itens_json?.length ?? 0}</strong> itens originais do FOP serão restaurados. Valores financeiros serão restaurados apenas se não houver título a receber emitido.
-                        </p>
+                        <>
+                          {pedido?.split_de_pedido_id && (
+                            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                              Este pedido é um split. A restauração será aplicada no pedido pai e todos os splits serão cancelados.
+                            </p>
+                          )}
+                          <p className="text-sm">
+                            Os <strong>{(pedido as any).snapshot_original?.itens_json?.length ?? 0}</strong> itens originais do FOP serão restaurados. Valores financeiros serão restaurados apenas se não houver título a receber emitido.
+                          </p>
+                        </>
                       )}
                       <p className="text-xs text-muted-foreground">
                         Esta ação é irreversível. Os splits cancelados não podem ser reativados.
