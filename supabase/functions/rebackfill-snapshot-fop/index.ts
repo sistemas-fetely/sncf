@@ -31,11 +31,11 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return jsonResponse(401, { error: "Authorization obrigatório" });
 
-    const { data: fopKey, error: vaultErr } = await sncf.rpc("get_vault_secret", {
-      p_name: "FOP_SERVICE_ROLE_KEY",
+    const { data: sncfToken, error: vaultErr } = await sncf.rpc("get_vault_secret", {
+      p_name: "FSNC_INBOUND_TOKEN",
     });
-    if (vaultErr || !fopKey) {
-      return jsonResponse(500, { error: "FOP_SERVICE_ROLE_KEY não encontrado no Vault" });
+    if (vaultErr || !sncfToken) {
+      return jsonResponse(500, { error: "FSNC_INBOUND_TOKEN não encontrado no Vault" });
     }
 
     let body: any = {};
@@ -60,48 +60,54 @@ Deno.serve(async (req) => {
       return jsonResponse(200, { ok: true, processados: 0, erros: 0, mensagem: "Nenhum pedido para processar" });
     }
 
+    // Chamar Edge Function do FOP em lotes de 10
+    const LOTE = 10;
+    const fopResultados: Record<string, any> = {};
+
+    for (let i = 0; i < pedidos.length; i += LOTE) {
+      const lote = pedidos.slice(i, i + LOTE);
+      const sncfIds = lote.map((p: any) => p.id);
+
+      const fopResp = await fetch(
+        `${FOP_URL}/functions/v1/buscar-order-sncf`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-sncf-token": sncfToken,
+          },
+          body: JSON.stringify({ sncf_pedido_ids: sncfIds }),
+        }
+      );
+
+      if (!fopResp.ok) {
+        throw new Error(`FOP buscar-order-sncf falhou: ${fopResp.status} — ${await fopResp.text()}`);
+      }
+
+      const fopData = await fopResp.json();
+      for (const r of (fopData.resultados ?? [])) {
+        fopResultados[r.sncf_pedido_id] = r;
+      }
+    }
+
     const resultados: Array<{ id_externo: string; status: string; erro?: string }> = [];
     let processados = 0;
     let erros = 0;
 
     for (const pedido of pedidos) {
       try {
-        const orderResp = await fetch(
-          `${FOP_URL}/rest/v1/orders?select=id,valor_bruto,valor_liquido,commercial&sncf_pedido_id=eq.${pedido.id}`,
-          {
-            headers: {
-              apikey: fopKey,
-              Authorization: `Bearer ${fopKey}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        if (!orderResp.ok) {
-          throw new Error(`FOP orders fetch falhou: ${orderResp.status} — ${await orderResp.text()}`);
-        }
-        const orders = await orderResp.json();
-        if (!orders || orders.length === 0) {
-          throw new Error(`Order não encontrada no FOP para sncf_pedido_id=${pedido.id}`);
-        }
-        const order = orders[0];
-        const commercial = (order.commercial as any) ?? {};
+        const fopDados = fopResultados[pedido.id];
 
-        const itemsResp = await fetch(
-          `${FOP_URL}/rest/v1/order_items?select=sku,quantity,preco_unit_atacado,subtotal_bruto,product_snapshot&order_id=eq.${order.id}&order=posicao.asc`,
-          {
-            headers: {
-              apikey: fopKey,
-              Authorization: `Bearer ${fopKey}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        if (!itemsResp.ok) {
-          throw new Error(`FOP order_items fetch falhou: ${itemsResp.status}`);
+        if (!fopDados) {
+          throw new Error(`Pedido não retornado pelo FOP: ${pedido.id}`);
         }
-        const items = await itemsResp.json();
+        if (fopDados.erro) {
+          throw new Error(fopDados.erro);
+        }
 
-        const itensJson = (items ?? []).map((it: any) => ({
+        const commercial = (fopDados.commercial as any) ?? {};
+
+        const itensJson = (fopDados.items ?? []).map((it: any) => ({
           sku:            it.sku,
           quantidade:     it.quantity,
           preco_unitario: it.preco_unit_atacado,
@@ -110,8 +116,8 @@ Deno.serve(async (req) => {
         }));
 
         const snapshotNovo = {
-          valor_bruto:            order.valor_bruto ?? 0,
-          valor_liquido:          order.valor_liquido ?? 0,
+          valor_bruto:            fopDados.valor_bruto ?? 0,
+          valor_liquido:          fopDados.valor_liquido ?? 0,
           valor_frete:            commercial?.freteValor            ?? 0,
           frete_tipo:             commercial?.frete                 ?? null,
           desconto_celebra_valor: commercial?.descontoCelebraValor  ?? 0,
