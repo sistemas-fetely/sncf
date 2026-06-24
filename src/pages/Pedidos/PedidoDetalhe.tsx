@@ -631,6 +631,36 @@ export default function PedidoDetalhe() {
   const estagio = pedido.estagio as EstagioPedido;
   const estagioFinal = isEstagioFinal(estagio);
 
+  const handleRestaurarSnapshot = async () => {
+    if (!pedido?.id) return;
+    setRestaurandoSnapshot(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("restaurar_snapshot_pedido", {
+        p_pedido_id: pedido.id,
+        p_usuario_id: user?.id,
+      });
+      if (error) throw error;
+      const resultado = data as any;
+      toast({
+        title: "Pedido restaurado",
+        description: resultado?.motivo_sem_valores
+          ? `Itens restaurados. ${resultado.motivo_sem_valores}`
+          : `${resultado?.itens_restaurados ?? 0} itens e valores restaurados ao original do FOP.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["pedido", pedido.id] });
+      queryClient.invalidateQueries({ queryKey: ["pedido-detalhe", pedido.id] });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao restaurar",
+        description: err?.message ?? "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setRestaurandoSnapshot(false);
+      setConfirmRestaurar(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="px-6 pt-4">
