@@ -46,13 +46,12 @@ Deno.serve(async (req) => {
     let query = sncf
       .from("pedidos")
       .select("id, id_externo, snapshot_original")
-      .eq("recebido_via", "api")
       .not("id_externo", "is", null);
 
     if (pedidoIdsFiltro && pedidoIdsFiltro.length > 0) {
       query = query.in("id", pedidoIdsFiltro);
     } else {
-      query = query.filter("snapshot_original->>'backfill'", "eq", "true");
+      query = query.contains("snapshot_original", { backfill: true });
     }
 
     const { data: pedidos, error: pedidosErr } = await query;
@@ -67,10 +66,8 @@ Deno.serve(async (req) => {
 
     for (const pedido of pedidos) {
       try {
-        const fopOrderId = pedido.id_externo;
-
         const orderResp = await fetch(
-          `${FOP_URL}/rest/v1/orders?select=id,valor_bruto,valor_liquido,commercial&id=eq.${fopOrderId}`,
+          `${FOP_URL}/rest/v1/orders?select=id,valor_bruto,valor_liquido,commercial&sncf_pedido_id=eq.${pedido.id}`,
           {
             headers: {
               apikey: fopKey,
@@ -80,17 +77,17 @@ Deno.serve(async (req) => {
           }
         );
         if (!orderResp.ok) {
-          throw new Error(`FOP orders fetch falhou: ${orderResp.status}`);
+          throw new Error(`FOP orders fetch falhou: ${orderResp.status} — ${await orderResp.text()}`);
         }
         const orders = await orderResp.json();
         if (!orders || orders.length === 0) {
-          throw new Error(`Order não encontrada no FOP: ${fopOrderId}`);
+          throw new Error(`Order não encontrada no FOP para sncf_pedido_id=${pedido.id}`);
         }
         const order = orders[0];
-        const commercial = order.commercial as any ?? {};
+        const commercial = (order.commercial as any) ?? {};
 
         const itemsResp = await fetch(
-          `${FOP_URL}/rest/v1/order_items?select=sku,quantity,preco_unit_atacado,subtotal_bruto,product_snapshot&order_id=eq.${fopOrderId}&order=posicao.asc`,
+          `${FOP_URL}/rest/v1/order_items?select=sku,quantity,preco_unit_atacado,subtotal_bruto,product_snapshot&order_id=eq.${order.id}&order=posicao.asc`,
           {
             headers: {
               apikey: fopKey,
