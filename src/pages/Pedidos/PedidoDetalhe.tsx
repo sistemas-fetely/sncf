@@ -1397,7 +1397,7 @@ export default function PedidoDetalhe() {
                                 <span className="text-muted-foreground shrink-0">×{item.quantidade}</span>
                               </div>
                               <span className="shrink-0 tabular-nums">
-                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.subtotal ?? (item as any).subtotal_bruto ?? (item.quantidade * item.preco_unitario))}
+                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.subtotal ?? (item as any).subtotal_bruto ?? (item.quantidade * (item.preco_unitario ?? (item as any).valor_unitario ?? 0)))}
                               </span>
                             </div>
                           ))}
