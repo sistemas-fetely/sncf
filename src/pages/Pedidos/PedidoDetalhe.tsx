@@ -1409,7 +1409,7 @@ export default function PedidoDetalhe() {
                       {snap.backfill && (
                         <Badge variant="secondary" className="ml-1 text-[10px] font-normal h-5 px-1.5">via backfill</Badge>
                       )}
-                      {isSuperAdmin && (snap as any)?.backfill === true && (
+                      {isSuperAdmin && (snap as any)?.backfill === true && pedido.recebido_via === 'api' && (
                         <Button
                           variant="ghost"
                           size="sm"
