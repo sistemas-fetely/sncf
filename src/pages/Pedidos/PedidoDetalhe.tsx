@@ -557,6 +557,7 @@ export default function PedidoDetalhe() {
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
   const [confirmRestaurar, setConfirmRestaurar] = useState(false);
+  const [corrigindoSnapshot, setCorrigindoSnapshot] = useState(false);
   const { user } = useAuth();
   const { isSuperAdmin } = usePermissions();
 
@@ -681,6 +682,47 @@ export default function PedidoDetalhe() {
     } finally {
       setRestaurandoSnapshot(false);
       setConfirmRestaurar(false);
+    }
+  };
+
+  const handleCorrigirSnapshot = async () => {
+    if (!pedido?.id) return;
+    setCorrigindoSnapshot(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Sessão inválida");
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rebackfill-snapshot-fop`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ pedido_ids: [pedido.id] }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok || result?.erros > 0) {
+        const errMsg = result?.resultados?.[0]?.erro ?? result?.error ?? "Erro desconhecido";
+        throw new Error(errMsg);
+      }
+      toast({
+        title: "Snapshot corrigido",
+        description: "Dados originais do FOP carregados com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["pedido", pedido.id] });
+      queryClient.invalidateQueries({ queryKey: ["pedido-detalhe", pedido.id] });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao corrigir snapshot",
+        description: err?.message ?? "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setCorrigindoSnapshot(false);
     }
   };
 
@@ -1328,6 +1370,22 @@ export default function PedidoDetalhe() {
                       Como chegou do FOP
                       {snap.backfill && (
                         <Badge variant="secondary" className="ml-1 text-[10px] font-normal h-5 px-1.5">via backfill</Badge>
+                      )}
+                      {isSuperAdmin && (snap as any)?.backfill === true && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                          onClick={handleCorrigirSnapshot}
+                          disabled={corrigindoSnapshot}
+                        >
+                          {corrigindoSnapshot ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3 w-3" />
+                          )}
+                          {corrigindoSnapshot ? "Corrigindo..." : "Corrigir snapshot"}
+                        </Button>
                       )}
                     </CardTitle>
                   </CardHeader>
