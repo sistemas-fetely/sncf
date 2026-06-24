@@ -180,8 +180,17 @@ export function useImportarPlanilhaWns() {
       };
     });
 
+    // Deduplicar por chave upsert: manter apenas a primeira ocorrência de (pedidowns, prefaturamento_xpm, sku)
+    const vistas = new Set<string>();
+    const linhasDeduplicated = linhas.filter((l) => {
+      const chave = `${l.pedidowns}|${l.prefaturamento_xpm}|${l.sku}`;
+      if (vistas.has(chave)) return false;
+      vistas.add(chave);
+      return true;
+    });
+
     setEtapa("Limpando linhas obsoletas…");
-    const chaves = linhas.map((l) => ({
+    const chaves = linhasDeduplicated.map((l) => ({
       pedidowns: l.pedidowns,
       prefaturamento_xpm: l.prefaturamento_xpm,
       sku: l.sku,
@@ -199,9 +208,9 @@ export function useImportarPlanilhaWns() {
     if (n > 0) console.log("Zumbis removidos:", n);
 
     const CHUNK = 500;
-    for (let i = 0; i < linhas.length; i += CHUNK) {
-      const lote = linhas.slice(i, i + CHUNK);
-      setEtapa(`Enviando linhas ${Math.min(i + CHUNK, linhas.length)}/${linhas.length}…`);
+    for (let i = 0; i < linhasDeduplicated.length; i += CHUNK) {
+      const lote = linhasDeduplicated.slice(i, i + CHUNK);
+      setEtapa(`Enviando linhas ${Math.min(i + CHUNK, linhasDeduplicated.length)}/${linhasDeduplicated.length}…`);
       const { error } = await sb
         .from("wns_linhas")
         .upsert(lote, { onConflict: "pedidowns,prefaturamento_xpm,sku" });
@@ -245,8 +254,8 @@ export function useImportarPlanilhaWns() {
       .from("wns_importacoes")
       .update({
         status: "concluida",
-        total_linhas: linhas.length,
-        linhas_novas: linhas.length,
+        total_linhas: linhasDeduplicated.length,
+        linhas_novas: linhasDeduplicated.length,
         concluida_em: new Date().toISOString(),
       })
       .eq("id", importacaoId);
@@ -257,11 +266,11 @@ export function useImportarPlanilhaWns() {
       return;
     }
 
-    setResultado({ total_linhas: linhas.length, pedidos_consolidados, skus_consolidados });
+    setResultado({ total_linhas: linhasDeduplicated.length, pedidos_consolidados, skus_consolidados });
     setEtapa("");
     setProcessando(false);
     toast.success(
-      `Importação concluída — ${linhas.length} linhas processadas, ${pedidos_consolidados} pedidos consolidados`
+      `Importação concluída — ${linhasDeduplicated.length} linhas processadas, ${pedidos_consolidados} pedidos consolidados`
     );
     qc.invalidateQueries({ queryKey: ["wns-pedidos"] });
     qc.invalidateQueries({ queryKey: ["wns-linhas-pedido"] });
