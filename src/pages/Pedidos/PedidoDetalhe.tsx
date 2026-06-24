@@ -53,7 +53,9 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { usePermissions } from "@/hooks/usePermissions";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
@@ -553,6 +555,10 @@ export default function PedidoDetalhe() {
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const { data: titulosData } = usePedidoTitulos(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
+  const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
+  const [confirmRestaurar, setConfirmRestaurar] = useState(false);
+  const { user } = useAuth();
+  const { isSuperAdmin } = usePermissions();
 
   const parceiroIdAtual = data?.pedido?.parceiro_id as string | undefined;
   const { data: haveresDisponiveisData } = useQuery({
@@ -624,6 +630,36 @@ export default function PedidoDetalhe() {
   const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, idade_minutos, sla_estourado } = data;
   const estagio = pedido.estagio as EstagioPedido;
   const estagioFinal = isEstagioFinal(estagio);
+
+  const handleRestaurarSnapshot = async () => {
+    if (!pedido?.id) return;
+    setRestaurandoSnapshot(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("restaurar_snapshot_pedido", {
+        p_pedido_id: pedido.id,
+        p_usuario_id: user?.id,
+      });
+      if (error) throw error;
+      const resultado = data as any;
+      toast({
+        title: "Pedido restaurado",
+        description: resultado?.motivo_sem_valores
+          ? `Itens restaurados. ${resultado.motivo_sem_valores}`
+          : `${resultado?.itens_restaurados ?? 0} itens e valores restaurados ao original do FOP.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["pedido", pedido.id] });
+      queryClient.invalidateQueries({ queryKey: ["pedido-detalhe", pedido.id] });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao restaurar",
+        description: err?.message ?? "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setRestaurandoSnapshot(false);
+      setConfirmRestaurar(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -840,7 +876,15 @@ export default function PedidoDetalhe() {
                     frete_tipo: string | null;
                     desconto_celebra_valor: number;
                     bonus_pix_valor: number;
+                    itens_json: Array<{
+                      sku: string;
+                      quantidade: number;
+                      preco_unitario: number;
+                      subtotal: number;
+                      produto?: { nomeComercial?: string };
+                    }> | null;
                     gravado_em: string;
+                    backfill?: boolean;
                   } | null;
 
                   if (!snap) return null;
@@ -861,6 +905,9 @@ export default function PedidoDetalhe() {
                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
                           <History className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                           Como chegou do FOP
+                          {snap.backfill && (
+                            <Badge variant="secondary" className="ml-1 text-[10px] font-normal h-5 px-1.5">via backfill</Badge>
+                          )}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -915,10 +962,82 @@ export default function PedidoDetalhe() {
                             </div>
                           )}
                         </div>
+
+                        {snap.itens_json && snap.itens_json.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-border/60">
+                            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                              Itens originais ({snap.itens_json.length})
+                            </div>
+                            <div className="space-y-1">
+                              {snap.itens_json.map((item, idx) => (
+                                <div key={idx} className="flex justify-between text-xs">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="truncate">{item.produto?.nomeComercial ?? item.sku}</span>
+                                    <span className="text-muted-foreground shrink-0">×{item.quantidade}</span>
+                                  </div>
+                                  <span className="shrink-0 tabular-nums">
+                                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.subtotal)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {isSuperAdmin && (
+                          <div className="mt-4 pt-4 border-t border-border/60">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full gap-2"
+                              onClick={() => setConfirmRestaurar(true)}
+                              disabled={restaurandoSnapshot}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              Restaurar original
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
                 })()}
+
+                <AlertDialog open={confirmRestaurar} onOpenChange={setConfirmRestaurar}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Restaurar pedido ao original?</AlertDialogTitle>
+                      <AlertDialogDescription asChild>
+                        <div className="space-y-2">
+                          <p>Esta ação irá substituir os itens atuais pelos itens originais recebidos do FOP.</p>
+                          {(() => {
+                            const snap = (pedido as any).snapshot_original as any;
+                            return (
+                              <p className="text-sm">
+                                <strong>{snap?.itens_json?.length ?? 0}</strong> itens serão restaurados.
+                                {" "}Valores financeiros serão restaurados apenas se não houver título a receber emitido.
+                              </p>
+                            );
+                          })()}
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={restaurandoSnapshot}>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => { e.preventDefault(); handleRestaurarSnapshot(); }}
+                        disabled={restaurandoSnapshot}
+                      >
+                        {restaurandoSnapshot ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Restaurando...</>
+                        ) : (
+                          "Confirmar restauração"
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
 
                 {/* Card — Resumo financeiro */}
                 <Card className="border-border/60 flex-1 flex flex-col">

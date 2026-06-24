@@ -19625,6 +19625,10 @@ export type Database = {
         }
         Returns: Json
       }
+      restaurar_snapshot_pedido: {
+        Args: { p_pedido_id: string; p_usuario_id: string }
+        Returns: Json
+      }
       reverter_para_cobranca: { Args: { p_pedido_id: string }; Returns: Json }
       revogar_acessos_ex_colaboradores: { Args: never; Returns: number }
       rotear_documento_para_boleto: {
