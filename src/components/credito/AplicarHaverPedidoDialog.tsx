@@ -31,7 +31,7 @@ export function AplicarHaverPedidoDialog({ open, onOpenChange, pedidoId, idExter
         .from("haver_cliente")
         .select("id, saldo, motivo, created_at")
         .eq("parceiro_id", parceiroId)
-        .eq("status", "disponivel")
+        .in("status", ["disponivel", "parcial"])
         .gt("saldo", 0)
         .order("created_at", { ascending: true });
       if (error) throw error;
