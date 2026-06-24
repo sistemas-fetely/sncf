@@ -866,180 +866,7 @@ export default function PedidoDetalhe() {
                 </CardContent>
               </Card>
 
-              {/* Grid lado a lado: Como chegou do FOP + Resumo financeiro */}
-              <div className="grid gap-4 lg:grid-cols-2">
-                {(() => {
-                  const snap = (pedido as any).snapshot_original as {
-                    valor_bruto: number;
-                    valor_liquido: number;
-                    valor_frete: number;
-                    frete_tipo: string | null;
-                    desconto_celebra_valor: number;
-                    bonus_pix_valor: number;
-                    itens_json: Array<{
-                      sku: string;
-                      quantidade: number;
-                      preco_unitario: number;
-                      subtotal: number;
-                      produto?: { nomeComercial?: string };
-                    }> | null;
-                    gravado_em: string;
-                    backfill?: boolean;
-                  } | null;
-
-                  if (!snap) return null;
-
-                  const snapBruto      = snap.valor_bruto || 0;
-                  const snapLiquido    = snap.valor_liquido || 0;
-                  const snapFrete      = Number(snap.valor_frete) || 0;
-                  const snapCelebra    = Number(snap.desconto_celebra_valor) || 0;
-                  const snapPix        = Number(snap.bonus_pix_valor) || 0;
-                  const snapDescontoSimples = Math.max(0, snapBruto + snapFrete - snapLiquido);
-                  const snapTemBreakdown   = snapCelebra > 0.01 || snapPix > 0.01;
-                  const deltaLiquido        = pedido.valor_liquido - snapLiquido;
-                  const hasDelta            = Math.abs(deltaLiquido) > 0.01;
-
-                  return (
-                    <Card className="border-amber-200/70 dark:border-amber-800/50 flex-1 flex flex-col bg-amber-50/30 dark:bg-amber-950/10">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                          <History className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                          Como chegou do FOP
-                          {snap.backfill && (
-                            <Badge variant="secondary" className="ml-1 text-[10px] font-normal h-5 px-1.5">via backfill</Badge>
-                          )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Valor bruto</span>
-                            <span>{fmtBRL.format(snapBruto)}</span>
-                          </div>
-                          {snapTemBreakdown ? (
-                            <>
-                              {snapCelebra > 0.01 && (
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-muted-foreground">Desconto ({((snapCelebra / snapBruto) * 100).toFixed(2)}%)</span>
-                                  <span className="text-destructive">−{fmtBRL.format(snapCelebra)}</span>
-                                </div>
-                              )}
-                              {snapPix > 0.01 && (
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-muted-foreground">Desconto PIX ({((snapCelebra > 0.01 ? snapPix / (snapBruto - snapCelebra) : snapPix / snapBruto) * 100).toFixed(2)}%)</span>
-                                  <span className="text-destructive">−{fmtBRL.format(snapPix)}</span>
-                                </div>
-                              )}
-                            </>
-                          ) : snapDescontoSimples > 0.01 ? (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Desconto ({((snapDescontoSimples / snapBruto) * 100).toFixed(2)}%)</span>
-                              <span className="text-destructive">−{fmtBRL.format(snapDescontoSimples)}</span>
-                            </div>
-                          ) : null}
-                          {snapFrete > 0.01 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Frete{snap.frete_tipo ? ` (${snap.frete_tipo})` : ""}</span>
-                              <span>+{fmtBRL.format(snapFrete)}</span>
-                            </div>
-                          )}
-                          <div className="border-t border-border/60 pt-2">
-                            <div className="flex justify-between text-sm font-semibold">
-                              <span>Valor líquido</span>
-                              <span>{fmtBRL.format(snapLiquido)}</span>
-                            </div>
-                          </div>
-                          {hasDelta && (
-                            <div className={`flex justify-between text-xs pt-1 ${deltaLiquido < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                              <span>Δ vs original</span>
-                              <span>{deltaLiquido > 0 ? "+" : ""}{fmtBRL.format(deltaLiquido)}</span>
-                            </div>
-                          )}
-                          {!hasDelta && (
-                            <div className="flex justify-between text-xs pt-1 text-muted-foreground">
-                              <span>Δ vs original</span>
-                              <span>Sem alteração</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {snap.itens_json && snap.itens_json.length > 0 && (
-                          <div className="mt-4 pt-4 border-t border-border/60">
-                            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-                              Itens originais ({snap.itens_json.length})
-                            </div>
-                            <div className="space-y-1">
-                              {snap.itens_json.map((item, idx) => (
-                                <div key={idx} className="flex justify-between text-xs">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="truncate">{item.produto?.nomeComercial ?? item.sku}</span>
-                                    <span className="text-muted-foreground shrink-0">×{item.quantidade}</span>
-                                  </div>
-                                  <span className="shrink-0 tabular-nums">
-                                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.subtotal)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {isSuperAdmin && (
-                          <div className="mt-4 pt-4 border-t border-border/60">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full gap-2"
-                              onClick={() => setConfirmRestaurar(true)}
-                              disabled={restaurandoSnapshot}
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" />
-                              Restaurar original
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
-
-                <AlertDialog open={confirmRestaurar} onOpenChange={setConfirmRestaurar}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Restaurar pedido ao original?</AlertDialogTitle>
-                      <AlertDialogDescription asChild>
-                        <div className="space-y-2">
-                          <p>Esta ação irá substituir os itens atuais pelos itens originais recebidos do FOP.</p>
-                          {(() => {
-                            const snap = (pedido as any).snapshot_original as any;
-                            return (
-                              <p className="text-sm">
-                                <strong>{snap?.itens_json?.length ?? 0}</strong> itens serão restaurados.
-                                {" "}Valores financeiros serão restaurados apenas se não houver título a receber emitido.
-                              </p>
-                            );
-                          })()}
-                        </div>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel disabled={restaurandoSnapshot}>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={(e) => { e.preventDefault(); handleRestaurarSnapshot(); }}
-                        disabled={restaurandoSnapshot}
-                      >
-                        {restaurandoSnapshot ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Restaurando...</>
-                        ) : (
-                          "Confirmar restauração"
-                        )}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-
-                {/* Card — Resumo financeiro */}
+              {/* Card — Resumo financeiro */}
                 <Card className="border-border/60 flex-1 flex flex-col">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -1101,7 +928,6 @@ export default function PedidoDetalhe() {
                     })()}
                   </CardContent>
                 </Card>
-              </div>
             </div>
 
             {/* Card — Dados de envio */}
@@ -1439,74 +1265,245 @@ export default function PedidoDetalhe() {
 
 
           {/* ============ FAIXA 4: Itens do pedido (largura cheia) ============ */}
-          <Card className="border-border/60">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  Itens do pedido
-                  <span className="text-xs font-normal text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
-                </CardTitle>
-                <EditarItensDialog
-                  pedidoId={pedido.id}
-                  estagioAtual={estagio}
-                  itensAtuais={itens.map((i: any) => ({
-                    sku: i.sku,
-                    descricao: i.descricao,
-                    quantidade: i.quantidade,
-                    valor_unitario: i.valor_unitario,
-                  }))}
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                const temDestaque = itens.some((i: any) => isSkuDestaque(i.sku));
-                return (
-                  <>
-                    {temDestaque && (
-                      <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3">
-                        <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                        <p className="text-xs text-amber-800 dark:text-amber-200">
-                          Este pedido contém produto(s) de destaque — verifique atenção especial na separação.
-                        </p>
+          <div className="grid gap-4 lg:grid-cols-2 items-stretch">
+            {(() => {
+              const snap = (pedido as any).snapshot_original as {
+                valor_bruto: number;
+                valor_liquido: number;
+                valor_frete: number;
+                frete_tipo: string | null;
+                desconto_celebra_valor: number;
+                bonus_pix_valor: number;
+                itens_json: Array<{
+                  sku: string;
+                  quantidade: number;
+                  preco_unitario: number;
+                  subtotal: number;
+                  produto?: { nomeComercial?: string };
+                }> | null;
+                gravado_em: string;
+                backfill?: boolean;
+              } | null;
+
+              if (!snap) return null;
+
+              const snapBruto      = snap.valor_bruto || 0;
+              const snapLiquido    = snap.valor_liquido || 0;
+              const snapFrete      = Number(snap.valor_frete) || 0;
+              const snapCelebra    = Number(snap.desconto_celebra_valor) || 0;
+              const snapPix        = Number(snap.bonus_pix_valor) || 0;
+              const snapDescontoSimples = Math.max(0, snapBruto + snapFrete - snapLiquido);
+              const snapTemBreakdown   = snapCelebra > 0.01 || snapPix > 0.01;
+              const deltaLiquido        = pedido.valor_liquido - snapLiquido;
+              const hasDelta            = Math.abs(deltaLiquido) > 0.01;
+
+              return (
+                <Card className="border-amber-200/70 dark:border-amber-800/50 flex-1 flex flex-col bg-amber-50/30 dark:bg-amber-950/10">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <History className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      Como chegou do FOP
+                      {snap.backfill && (
+                        <Badge variant="secondary" className="ml-1 text-[10px] font-normal h-5 px-1.5">via backfill</Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Valor bruto</span>
+                        <span>{fmtBRL.format(snapBruto)}</span>
+                      </div>
+                      {snapTemBreakdown ? (
+                        <>
+                          {snapCelebra > 0.01 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Desconto ({((snapCelebra / snapBruto) * 100).toFixed(2)}%)</span>
+                              <span className="text-destructive">−{fmtBRL.format(snapCelebra)}</span>
+                            </div>
+                          )}
+                          {snapPix > 0.01 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Desconto PIX ({((snapCelebra > 0.01 ? snapPix / (snapBruto - snapCelebra) : snapPix / snapBruto) * 100).toFixed(2)}%)</span>
+                              <span className="text-destructive">−{fmtBRL.format(snapPix)}</span>
+                            </div>
+                          )}
+                        </>
+                      ) : snapDescontoSimples > 0.01 ? (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Desconto ({((snapDescontoSimples / snapBruto) * 100).toFixed(2)}%)</span>
+                          <span className="text-destructive">−{fmtBRL.format(snapDescontoSimples)}</span>
+                        </div>
+                      ) : null}
+                      {snapFrete > 0.01 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Frete{snap.frete_tipo ? ` (${snap.frete_tipo})` : ""}</span>
+                          <span>+{fmtBRL.format(snapFrete)}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-border/60 pt-2">
+                        <div className="flex justify-between text-sm font-semibold">
+                          <span>Valor líquido</span>
+                          <span>{fmtBRL.format(snapLiquido)}</span>
+                        </div>
+                      </div>
+                      {hasDelta && (
+                        <div className={`flex justify-between text-xs pt-1 ${deltaLiquido < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                          <span>Δ vs original</span>
+                          <span>{deltaLiquido > 0 ? "+" : ""}{fmtBRL.format(deltaLiquido)}</span>
+                        </div>
+                      )}
+                      {!hasDelta && (
+                        <div className="flex justify-between text-xs pt-1 text-muted-foreground">
+                          <span>Δ vs original</span>
+                          <span>Sem alteração</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {snap.itens_json && snap.itens_json.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-border/60">
+                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                          Itens originais ({snap.itens_json.length})
+                        </div>
+                        <div className="space-y-1">
+                          {snap.itens_json.map((item, idx) => (
+                            <div key={idx} className="flex justify-between text-xs">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="truncate">{item.produto?.nomeComercial ?? item.sku}</span>
+                                <span className="text-muted-foreground shrink-0">×{item.quantidade}</span>
+                              </div>
+                              <span className="shrink-0 tabular-nums">
+                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.subtotal)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    {itens.length === 0
-                      ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
-                      : itens.map((item: any) => {
-                          const ehDestaque = isSkuDestaque(item.sku);
-                          return (
-                            <div
-                              key={item.id}
-                              className={cn(
-                                "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
-                                ehDestaque && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
-                              )}
-                            >
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium truncate">{item.descricao}</p>
-                                  {ehDestaque && (
-                                    <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
-                                      Destaque
-                                    </Badge>
-                                  )}
+
+                    {isSuperAdmin && (
+                      <div className="mt-4 pt-4 border-t border-border/60">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2"
+                          onClick={() => setConfirmRestaurar(true)}
+                          disabled={restaurandoSnapshot}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Restaurar original
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            <AlertDialog open={confirmRestaurar} onOpenChange={setConfirmRestaurar}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Restaurar pedido ao original?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-2">
+                      <p>Esta ação irá substituir os itens atuais pelos itens originais recebidos do FOP.</p>
+                      {(() => {
+                        const snap = (pedido as any).snapshot_original as any;
+                        return (
+                          <p className="text-sm">
+                            <strong>{snap?.itens_json?.length ?? 0}</strong> itens serão restaurados.
+                            {" "}Valores financeiros serão restaurados apenas se não houver título a receber emitido.
+                          </p>
+                        );
+                      })()}
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={restaurandoSnapshot}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => { e.preventDefault(); handleRestaurarSnapshot(); }}
+                    disabled={restaurandoSnapshot}
+                  >
+                    {restaurandoSnapshot ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Restaurando...</>
+                    ) : (
+                      "Confirmar restauração"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    Itens do pedido
+                    <span className="text-xs font-normal text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
+                  </CardTitle>
+                  <EditarItensDialog
+                    pedidoId={pedido.id}
+                    estagioAtual={estagio}
+                    itensAtuais={itens.map((i: any) => ({
+                      sku: i.sku,
+                      descricao: i.descricao,
+                      quantidade: i.quantidade,
+                      valor_unitario: i.valor_unitario,
+                    }))}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const temDestaque = itens.some((i: any) => isSkuDestaque(i.sku));
+                  return (
+                    <>
+                      {temDestaque && (
+                        <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3">
+                          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                          <p className="text-xs text-amber-800 dark:text-amber-200">
+                            Este pedido contém produto(s) de destaque — verifique atenção especial na separação.
+                          </p>
+                        </div>
+                      )}
+                      {itens.length === 0
+                        ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
+                        : itens.map((item: any) => {
+                            const ehDestaque = isSkuDestaque(item.sku);
+                            return (
+                              <div
+                                key={item.id}
+                                className={cn(
+                                  "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
+                                  ehDestaque && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
+                                )}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium truncate">{item.descricao}</p>
+                                    {ehDestaque && (
+                                      <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
+                                        Destaque
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
+                                  </p>
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
-                                </p>
+                                <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
                               </div>
-                              <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
-                            </div>
-                          );
-                        })
-                    }
-                  </>
-                );
-              })()}
-            </CardContent>
-          </Card>
+                            );
+                          })
+                      }
+                    </>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </div>
 
 
 
@@ -1566,3 +1563,4 @@ export default function PedidoDetalhe() {
     </div>
   );
 }
+
