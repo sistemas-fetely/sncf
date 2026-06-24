@@ -905,6 +905,9 @@ export default function PedidoDetalhe() {
                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
                           <History className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                           Como chegou do FOP
+                          {snap.backfill && (
+                            <Badge variant="secondary" className="ml-1 text-[10px] font-normal h-5 px-1.5">via backfill</Badge>
+                          )}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
