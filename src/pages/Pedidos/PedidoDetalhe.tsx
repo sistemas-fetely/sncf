@@ -650,6 +650,43 @@ export default function PedidoDetalhe() {
     if (!pedido?.id) return;
     setRestaurandoSnapshot(true);
     try {
+      // Se é um split, verificar e corrigir snapshot do pai antes de restaurar
+      if (pedido.split_de_pedido_id) {
+        // Buscar dados do pai
+        const { data: paiData, error: paiErr } = await (supabase as any)
+          .from("pedidos")
+          .select("id, snapshot_original")
+          .eq("id", pedido.split_de_pedido_id)
+          .single();
+
+        if (paiErr) throw new Error(`Erro ao buscar pedido pai: ${paiErr.message}`);
+
+        // Se pai tem backfill: true, corrigir snapshot via FOP primeiro
+        if (paiData?.snapshot_original?.backfill === true) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          if (!token) throw new Error("Sessão inválida");
+
+          const rebackfillResp = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rebackfill-snapshot-fop`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ pedido_ids: [paiData.id] }),
+            }
+          );
+          const rebackfillResult = await rebackfillResp.json();
+          if (!rebackfillResp.ok || rebackfillResult?.erros > 0) {
+            const errMsg = rebackfillResult?.resultados?.[0]?.erro ?? rebackfillResult?.error ?? "Erro ao corrigir snapshot do pai";
+            throw new Error(errMsg);
+          }
+        }
+      }
+
+      // Chamar restaurar_snapshot_completo (detecta pai automaticamente se for split)
       const { data, error } = await (supabase as any).rpc("restaurar_snapshot_completo", {
         p_pedido_id: pedido.id,
         p_usuario_id: user?.id,
@@ -660,7 +697,9 @@ export default function PedidoDetalhe() {
       const splitsMsg = resultado?.splits_dissolvidos > 0 ? ` ${resultado.splits_dissolvidos} split(s) dissolvido(s).` : "";
       const reativadoMsg = resultado?.pai_reativado ? " Pedido reativado para Recebido." : "";
       const valoresMsg = resultado?.motivo_sem_valores ? ` ${resultado.motivo_sem_valores}` : " Valores restaurados.";
-      const paiMsg = resultado?.pedido_pai_externo && resultado.pedido_pai_externo !== pedido?.id_externo ? ` (pedido pai: ${resultado.pedido_pai_externo})` : "";
+      const paiMsg = resultado?.pedido_pai_externo && resultado.pedido_pai_externo !== pedido?.id_externo
+        ? ` (pedido pai: ${resultado.pedido_pai_externo})`
+        : "";
 
       toast({
         title: "Pedido restaurado ao original",
