@@ -19625,7 +19625,7 @@ export type Database = {
         }
         Returns: Json
       }
-      restaurar_snapshot_pedido: {
+      restaurar_snapshot_completo: {
         Args: { p_pedido_id: string; p_usuario_id: string }
         Returns: Json
       }
