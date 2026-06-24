@@ -578,6 +578,20 @@ export default function PedidoDetalhe() {
     (s: number, h: any) => s + Number(h.saldo), 0
   );
 
+  const { data: splitsAtivos } = useQuery({
+    queryKey: ["splits", pedido?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pedidos")
+        .select("id, id_externo, estagio")
+        .eq("split_de_pedido_id", pedido!.id)
+        .neq("estagio", "cancelado");
+      if (error) throw error;
+      return (data ?? []) as { id: string; id_externo: string; estagio: string }[];
+    },
+    enabled: !!pedido?.id,
+  });
+
   const recalcularPeso = async () => {
     if (!id) return;
     setRecalculandoPeso(true);
