@@ -569,7 +569,7 @@ export default function PedidoDetalhe() {
         .from("haver_cliente")
         .select("id, saldo")
         .eq("parceiro_id", parceiroIdAtual)
-        .eq("status", "disponivel")
+        .in("status", ["disponivel", "parcial"])
         .gt("saldo", 0);
       return data ?? [];
     },

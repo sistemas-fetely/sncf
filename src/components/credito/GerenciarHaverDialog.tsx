@@ -151,7 +151,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
           "id, valor, saldo, motivo, origem_descricao, data_expiracao, created_at"
         )
         .eq("parceiro_id", parceiroSel)
-        .eq("status", "disponivel")
+        .in("status", ["disponivel", "parcial"])
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data ?? []) as any[];

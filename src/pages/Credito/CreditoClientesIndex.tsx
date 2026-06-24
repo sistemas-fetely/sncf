@@ -42,7 +42,7 @@ export default function CreditoClientesIndex() {
       const { data, error } = await (supabase as any)
         .from("haver_cliente")
         .select("parceiro_id, saldo, status")
-        .eq("status", "disponivel")
+        .in("status", ["disponivel", "parcial"])
         .gt("saldo", 0);
       if (error) throw error;
       return (data ?? []) as any[];
