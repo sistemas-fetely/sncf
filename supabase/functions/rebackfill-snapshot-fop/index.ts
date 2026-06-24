@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       p_name: "FOP_INBOUND_TOKEN",
     });
     if (vaultErr || !sncfToken) {
-      return jsonResponse(500, { error: "FSNC_INBOUND_TOKEN não encontrado no Vault" });
+      return jsonResponse(500, { error: "FOP_INBOUND_TOKEN não encontrado no Vault" });
     }
 
     let body: any = {};
