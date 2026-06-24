@@ -555,6 +555,10 @@ export default function PedidoDetalhe() {
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const { data: titulosData } = usePedidoTitulos(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
+  const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
+  const [confirmRestaurar, setConfirmRestaurar] = useState(false);
+  const { user } = useAuth();
+  const { isSuperAdmin } = usePermissions();
 
   const parceiroIdAtual = data?.pedido?.parceiro_id as string | undefined;
   const { data: haveresDisponiveisData } = useQuery({
