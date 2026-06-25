@@ -183,6 +183,7 @@ export default function ContasReceber() {
     const eAte = emissaoAte ? new Date(emissaoAte) : null;
 
     let arr = titulos.filter((t) => {
+      if (t.status_gestao === "cancelado") return false;
       for (const k of cardsAtivos) {
         if (!predicados[k](t)) return false;
       }
@@ -296,6 +297,8 @@ export default function ContasReceber() {
     if (s === "pago") return <Badge className="bg-green-100 text-green-800 border-0">Pago</Badge>;
     if (s === "atrasado")
       return <Badge className="bg-red-100 text-red-800 border-0">Atrasado</Badge>;
+    if (s === "cancelado")
+      return <Badge className="bg-gray-100 text-gray-700 border-0">Cancelado</Badge>;
     return <Badge className="bg-blue-100 text-blue-800 border-0">Em aberto</Badge>;
   };
 
@@ -378,11 +381,10 @@ export default function ContasReceber() {
       {/* KPIs */}
       <div className="space-y-4">
         {/* Linha 1 — Fluxo de caixa */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           {kpiCard("recebidoMes", "Recebido no mês", formatBRL(kpis.recebidoMes), "text-green-700", "ring-green-500")}
           {kpiCard("totalReceber", "Total a receber", formatBRL(kpis.totalReceber), "text-blue-700", "ring-blue-500")}
-          {kpiCard("vence7", "Vence em 7 dias", formatBRL(kpis.vence7), "text-amber-600", "ring-amber-500")}
-          {kpiCard("liquidar30", "A liquidar em 30 dias", formatBRL(kpis.liquidar30), "text-cyan-700", "ring-cyan-500")}
+          {kpiCard("liquidar30", "A vencer em 30 dias", formatBRL(kpis.liquidar30), "text-cyan-700", "ring-cyan-500")}
         </div>
 
         {/* Linha 2 — Saúde da carteira + Aging */}
@@ -619,7 +621,7 @@ export default function ContasReceber() {
                       <TableCell>{formatDateBR(t.data_vencimento)}</TableCell>
                       <TableCell>
                         {t.data_liquidacao ? (
-                          t.liquidacao_confirmada_banco === true ? (
+                          t.liquidado === true ? (
                             <span className="inline-flex items-center gap-2">
                               {formatDateBR(t.data_liquidacao)}
                               <Badge className="bg-green-100 text-green-700 border-0">REAL</Badge>
