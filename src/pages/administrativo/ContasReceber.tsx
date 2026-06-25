@@ -241,6 +241,7 @@ export default function ContasReceber() {
     for (const t of titulos) {
       // só a receber
       if (t.pago !== false) continue;
+      if (t.status_gestao === "cancelado") continue;
       // toggles de KPI
       let ok = true;
       for (const k of cardsAtivos) {
