@@ -176,6 +176,8 @@ export default function ContasReceber() {
     const buscaLc = busca.trim().toLowerCase();
     const dDe = dataDe ? new Date(dataDe) : null;
     const dAte = dataAte ? new Date(dataAte) : null;
+    const eDe = emissaoDe ? new Date(emissaoDe) : null;
+    const eAte = emissaoAte ? new Date(emissaoAte) : null;
 
     let arr = titulos.filter((t) => {
       for (const k of cardsAtivos) {
@@ -195,6 +197,13 @@ export default function ContasReceber() {
         const venc = new Date(t.data_vencimento);
         if (dDe && venc < dDe) return false;
         if (dAte && venc > dAte) return false;
+      }
+
+      if (emissaoDe || emissaoAte) {
+        if (!t.data_compra) return false;
+        const emi = new Date(t.data_compra);
+        if (eDe && emi < eDe) return false;
+        if (eAte && emi > eAte) return false;
       }
       return true;
     });
