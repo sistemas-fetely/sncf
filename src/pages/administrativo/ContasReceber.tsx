@@ -45,8 +45,11 @@ type RecebivelB2B = {
   data_compra: string | null;
   data_vencimento: string | null;
   valor: number | null;
-  status_gestao: "pago" | "atrasado" | "em_aberto";
+  status_gestao: "pago" | "atrasado" | "em_aberto" | "cancelado";
   data_liquidacao: string | null;
+  pago: boolean | null;
+  liquidado: boolean | null;
+  conciliado: boolean | null;
   liquidacao_confirmada_banco: boolean | null;
 };
 
