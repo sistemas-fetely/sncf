@@ -239,9 +239,10 @@ export default function ContasReceber() {
 
     const mapa = new Map<string, number>();
     for (const t of titulos) {
-      // só a receber
-      if (t.pago !== false) continue;
+      // só a receber (caixa)
+      if (t.liquidado !== false) continue;
       if (t.status_gestao === "cancelado") continue;
+      if (["haver","bonificacao","devolucao","sem_pagamento"].includes(t.meio_pagamento ?? "")) continue;
       // toggles de KPI
       let ok = true;
       for (const k of cardsAtivos) {
