@@ -223,7 +223,7 @@ export default function ContasReceber() {
     }
 
     return arr;
-  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte, sort]);
+  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte, emissaoDe, emissaoAte, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
