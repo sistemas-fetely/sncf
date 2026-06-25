@@ -17895,6 +17895,7 @@ export type Database = {
           banco_nome: string | null
           banco_recebimento_id: string | null
           cliente: string | null
+          conciliado: boolean | null
           conta_id: string | null
           data_compra: string | null
           data_liquidacao: string | null
@@ -17902,11 +17903,13 @@ export type Database = {
           id: string | null
           liquidacao_confirmada_banco: boolean | null
           liquidacao_realizada: boolean | null
+          liquidado: boolean | null
           meio_pagamento: string | null
           nf_id: string | null
           nf_numero: string | null
           numero_parcela: number | null
           numero_titulo: string | null
+          pago: boolean | null
           parceiro_id: string | null
           status_gestao: string | null
           total_parcelas: number | null

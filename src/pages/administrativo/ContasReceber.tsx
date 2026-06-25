@@ -45,8 +45,11 @@ type RecebivelB2B = {
   data_compra: string | null;
   data_vencimento: string | null;
   valor: number | null;
-  status_gestao: "pago" | "atrasado" | "em_aberto";
+  status_gestao: "pago" | "atrasado" | "em_aberto" | "cancelado";
   data_liquidacao: string | null;
+  pago: boolean | null;
+  liquidado: boolean | null;
+  conciliado: boolean | null;
   liquidacao_confirmada_banco: boolean | null;
 };
 
@@ -100,7 +103,7 @@ export default function ContasReceber() {
 
   const predicados: Record<CardKey, (t: RecebivelB2B) => boolean> = useMemo(
     () => ({
-      totalReceber: (t) => t.liquidacao_confirmada_banco === false,
+      totalReceber: (t) => t.pago === false,
       vencido: (t) => t.status_gestao === "atrasado",
       vence7: (t) => {
         if (t.status_gestao !== "em_aberto" || !t.data_vencimento) return false;
@@ -108,7 +111,7 @@ export default function ContasReceber() {
         return v >= hoje && v <= em7;
       },
       recebidoMes: (t) => {
-        if (!t.liquidacao_confirmada_banco || !t.data_liquidacao) return false;
+        if (!t.liquidado || !t.data_liquidacao) return false;
         const d = new Date(t.data_liquidacao);
         return d >= inicioMes && d <= fimMes;
       },
@@ -180,6 +183,7 @@ export default function ContasReceber() {
     const eAte = emissaoAte ? new Date(emissaoAte) : null;
 
     let arr = titulos.filter((t) => {
+      if (t.status_gestao === "cancelado") return false;
       for (const k of cardsAtivos) {
         if (!predicados[k](t)) return false;
       }
@@ -236,7 +240,7 @@ export default function ContasReceber() {
     const mapa = new Map<string, number>();
     for (const t of titulos) {
       // só a receber
-      if (t.liquidacao_confirmada_banco !== false) continue;
+      if (t.pago !== false) continue;
       // toggles de KPI
       let ok = true;
       for (const k of cardsAtivos) {
@@ -293,6 +297,8 @@ export default function ContasReceber() {
     if (s === "pago") return <Badge className="bg-green-100 text-green-800 border-0">Pago</Badge>;
     if (s === "atrasado")
       return <Badge className="bg-red-100 text-red-800 border-0">Atrasado</Badge>;
+    if (s === "cancelado")
+      return <Badge className="bg-gray-100 text-gray-700 border-0">Cancelado</Badge>;
     return <Badge className="bg-blue-100 text-blue-800 border-0">Em aberto</Badge>;
   };
 
@@ -375,11 +381,10 @@ export default function ContasReceber() {
       {/* KPIs */}
       <div className="space-y-4">
         {/* Linha 1 — Fluxo de caixa */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           {kpiCard("recebidoMes", "Recebido no mês", formatBRL(kpis.recebidoMes), "text-green-700", "ring-green-500")}
           {kpiCard("totalReceber", "Total a receber", formatBRL(kpis.totalReceber), "text-blue-700", "ring-blue-500")}
-          {kpiCard("vence7", "Vence em 7 dias", formatBRL(kpis.vence7), "text-amber-600", "ring-amber-500")}
-          {kpiCard("liquidar30", "A liquidar em 30 dias", formatBRL(kpis.liquidar30), "text-cyan-700", "ring-cyan-500")}
+          {kpiCard("liquidar30", "A vencer em 30 dias", formatBRL(kpis.liquidar30), "text-cyan-700", "ring-cyan-500")}
         </div>
 
         {/* Linha 2 — Saúde da carteira + Aging */}
@@ -443,16 +448,6 @@ export default function ContasReceber() {
               </CardContent>
             </Card>
           ))}
-          <Card className="flex-1 min-w-[160px] border-blue-200">
-            <CardHeader className="pb-1">
-              <CardTitle className="text-xs text-blue-700">A receber — Total</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-semibold text-blue-700">
-                {formatBRL(breakdownMeio.totalGeral)}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
 
@@ -616,7 +611,7 @@ export default function ContasReceber() {
                       <TableCell>{formatDateBR(t.data_vencimento)}</TableCell>
                       <TableCell>
                         {t.data_liquidacao ? (
-                          t.liquidacao_confirmada_banco === true ? (
+                          t.liquidado === true ? (
                             <span className="inline-flex items-center gap-2">
                               {formatDateBR(t.data_liquidacao)}
                               <Badge className="bg-green-100 text-green-700 border-0">REAL</Badge>
