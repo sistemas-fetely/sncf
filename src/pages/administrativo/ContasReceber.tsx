@@ -380,7 +380,7 @@ export default function ContasReceber() {
 
       {/* Filtros */}
       <Card>
-        <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-5">
+        <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-7">
           <div className="space-y-1">
             <Label className="text-xs">Busca</Label>
             <Input
@@ -454,6 +454,28 @@ export default function ContasReceber() {
               value={dataAte}
               onChange={(e) => {
                 setDataAte(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Emissão de</Label>
+            <Input
+              type="date"
+              value={emissaoDe}
+              onChange={(e) => {
+                setEmissaoDe(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Emissão até</Label>
+            <Input
+              type="date"
+              value={emissaoAte}
+              onChange={(e) => {
+                setEmissaoAte(e.target.value);
                 setPage(1);
               }}
             />
