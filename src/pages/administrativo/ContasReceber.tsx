@@ -69,6 +69,8 @@ export default function ContasReceber() {
   const [dataAte, setDataAte] = useState("");
   const [filtroBanco, setFiltroBanco] = useState<string>("todos");
   const [filtroMeio, setFiltroMeio] = useState<string>("todos");
+  const [emissaoDe, setEmissaoDe] = useState("");
+  const [emissaoAte, setEmissaoAte] = useState("");
   const [cardsAtivos, setCardsAtivos] = useState<Set<CardKey>>(new Set());
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
