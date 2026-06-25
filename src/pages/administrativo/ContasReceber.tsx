@@ -448,16 +448,6 @@ export default function ContasReceber() {
               </CardContent>
             </Card>
           ))}
-          <Card className="flex-1 min-w-[160px] border-blue-200">
-            <CardHeader className="pb-1">
-              <CardTitle className="text-xs text-blue-700">A receber — Total</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-semibold text-blue-700">
-                {formatBRL(breakdownMeio.totalGeral)}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
 
