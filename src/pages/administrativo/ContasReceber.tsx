@@ -103,7 +103,7 @@ export default function ContasReceber() {
 
   const predicados: Record<CardKey, (t: RecebivelB2B) => boolean> = useMemo(
     () => ({
-      totalReceber: (t) => t.liquidacao_confirmada_banco === false,
+      totalReceber: (t) => t.pago === false,
       vencido: (t) => t.status_gestao === "atrasado",
       vence7: (t) => {
         if (t.status_gestao !== "em_aberto" || !t.data_vencimento) return false;
@@ -111,7 +111,7 @@ export default function ContasReceber() {
         return v >= hoje && v <= em7;
       },
       recebidoMes: (t) => {
-        if (!t.liquidacao_confirmada_banco || !t.data_liquidacao) return false;
+        if (!t.liquidado || !t.data_liquidacao) return false;
         const d = new Date(t.data_liquidacao);
         return d >= inicioMes && d <= fimMes;
       },
@@ -239,7 +239,7 @@ export default function ContasReceber() {
     const mapa = new Map<string, number>();
     for (const t of titulos) {
       // só a receber
-      if (t.liquidacao_confirmada_banco !== false) continue;
+      if (t.pago !== false) continue;
       // toggles de KPI
       let ok = true;
       for (const k of cardsAtivos) {
