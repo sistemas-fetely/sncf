@@ -1454,12 +1454,15 @@ export default function PedidoDetalhe() {
                           <span className="text-destructive">−{fmtBRL.format(snapDescontoSimples)}</span>
                         </div>
                       ) : null}
-                      {snapFrete > 0.01 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Frete{snap.frete_tipo ? ` (${snap.frete_tipo})` : ""}</span>
-                          <span>+{fmtBRL.format(snapFrete)}</span>
-                        </div>
-                      )}
+                  {(snapFrete > 0.01 || snap.frete_tipo) && (() => {
+                    const freteExibir = snapFrete > 0.01 ? snapFrete : (Number(pedido.valor_frete) || 0);
+                    return (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Frete{snap.frete_tipo ? ` (${snap.frete_tipo})` : ""}</span>
+                        <span>{freteExibir > 0.01 ? `+${fmtBRL.format(freteExibir)}` : "—"}</span>
+                      </div>
+                    );
+                  })()}
                       <div className="border-t border-border/60 pt-2">
                         <div className="flex justify-between text-sm font-semibold">
                           <span>Valor líquido</span>
