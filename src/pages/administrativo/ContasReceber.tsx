@@ -103,7 +103,7 @@ export default function ContasReceber() {
 
   const predicados: Record<CardKey, (t: RecebivelB2B) => boolean> = useMemo(
     () => ({
-      totalReceber: (t) => t.pago === false && t.status_gestao !== "cancelado",
+      totalReceber: (t) => t.liquidado === false && t.status_gestao !== "cancelado" && !["haver","bonificacao","devolucao","sem_pagamento"].includes(t.meio_pagamento ?? ""),
       vencido: (t) => t.status_gestao === "atrasado",
       vence7: (t) => {
         if (t.status_gestao !== "em_aberto" || !t.data_vencimento) return false;
