@@ -69,6 +69,8 @@ export default function ContasReceber() {
   const [dataAte, setDataAte] = useState("");
   const [filtroBanco, setFiltroBanco] = useState<string>("todos");
   const [filtroMeio, setFiltroMeio] = useState<string>("todos");
+  const [emissaoDe, setEmissaoDe] = useState("");
+  const [emissaoAte, setEmissaoAte] = useState("");
   const [cardsAtivos, setCardsAtivos] = useState<Set<CardKey>>(new Set());
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
@@ -174,6 +176,8 @@ export default function ContasReceber() {
     const buscaLc = busca.trim().toLowerCase();
     const dDe = dataDe ? new Date(dataDe) : null;
     const dAte = dataAte ? new Date(dataAte) : null;
+    const eDe = emissaoDe ? new Date(emissaoDe) : null;
+    const eAte = emissaoAte ? new Date(emissaoAte) : null;
 
     let arr = titulos.filter((t) => {
       for (const k of cardsAtivos) {
@@ -194,6 +198,13 @@ export default function ContasReceber() {
         if (dDe && venc < dDe) return false;
         if (dAte && venc > dAte) return false;
       }
+
+      if (emissaoDe || emissaoAte) {
+        if (!t.data_compra) return false;
+        const emi = new Date(t.data_compra);
+        if (eDe && emi < eDe) return false;
+        if (eAte && emi > eAte) return false;
+      }
       return true;
     });
 
@@ -212,7 +223,57 @@ export default function ContasReceber() {
     }
 
     return arr;
-  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte, sort]);
+  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte, emissaoDe, emissaoAte, sort]);
+
+  const breakdownMeio = useMemo(() => {
+    const titulos = data ?? [];
+    const buscaLc = busca.trim().toLowerCase();
+    const dDe = dataDe ? new Date(dataDe) : null;
+    const dAte = dataAte ? new Date(dataAte) : null;
+    const eDe = emissaoDe ? new Date(emissaoDe) : null;
+    const eAte = emissaoAte ? new Date(emissaoAte) : null;
+
+    const mapa = new Map<string, number>();
+    for (const t of titulos) {
+      // só a receber
+      if (t.liquidacao_confirmada_banco !== false) continue;
+      // toggles de KPI
+      let ok = true;
+      for (const k of cardsAtivos) {
+        if (!predicados[k](t)) { ok = false; break; }
+      }
+      if (!ok) continue;
+      // banco (mas NÃO meio)
+      if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) continue;
+      // busca
+      if (buscaLc) {
+        const num = (t.numero_titulo ?? "").toLowerCase();
+        const cli = (t.cliente ?? "").toLowerCase();
+        if (!num.includes(buscaLc) && !cli.includes(buscaLc)) continue;
+      }
+      // vencimento
+      if (dDe || dAte) {
+        if (!t.data_vencimento) continue;
+        const venc = new Date(t.data_vencimento);
+        if (dDe && venc < dDe) continue;
+        if (dAte && venc > dAte) continue;
+      }
+      // emissão
+      if (eDe || eAte) {
+        if (!t.data_compra) continue;
+        const emi = new Date(t.data_compra);
+        if (eDe && emi < eDe) continue;
+        if (eAte && emi > eAte) continue;
+      }
+      const meio = t.meio_pagamento ?? "—";
+      mapa.set(meio, (mapa.get(meio) ?? 0) + (t.valor ?? 0));
+    }
+    const itens = Array.from(mapa.entries())
+      .map(([meio, total]) => ({ meio, total }))
+      .sort((a, b) => b.total - a.total);
+    const totalGeral = itens.reduce((s, i) => s + i.total, 0);
+    return { itens, totalGeral };
+  }, [data, busca, dataDe, dataAte, emissaoDe, emissaoAte, filtroBanco, cardsAtivos, predicados]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
@@ -369,7 +430,7 @@ export default function ContasReceber() {
 
       {/* Filtros */}
       <Card>
-        <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-5">
+        <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-7">
           <div className="space-y-1">
             <Label className="text-xs">Busca</Label>
             <Input
@@ -447,8 +508,58 @@ export default function ContasReceber() {
               }}
             />
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Emissão de</Label>
+            <Input
+              type="date"
+              value={emissaoDe}
+              onChange={(e) => {
+                setEmissaoDe(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Emissão até</Label>
+            <Input
+              type="date"
+              value={emissaoAte}
+              onChange={(e) => {
+                setEmissaoAte(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
+
+      {/* Breakdown por meio */}
+      {breakdownMeio.itens.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {breakdownMeio.itens.map((i) => (
+            <Card key={i.meio} className="flex-1 min-w-[160px]">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-xs text-muted-foreground">
+                  A receber — {formatMeio(i.meio)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-semibold">{formatBRL(i.total)}</div>
+              </CardContent>
+            </Card>
+          ))}
+          <Card className="flex-1 min-w-[160px] border-blue-200">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-xs text-blue-700">A receber — Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-semibold text-blue-700">
+                {formatBRL(breakdownMeio.totalGeral)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Tabela */}
       <Card>
