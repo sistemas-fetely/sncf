@@ -428,6 +428,34 @@ export default function ContasReceber() {
         </div>
       </div>
 
+      {/* Breakdown por meio */}
+      {breakdownMeio.itens.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {breakdownMeio.itens.map((i) => (
+            <Card key={i.meio} className="flex-1 min-w-[160px]">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-xs text-muted-foreground">
+                  A receber — {formatMeio(i.meio)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-semibold">{formatBRL(i.total)}</div>
+              </CardContent>
+            </Card>
+          ))}
+          <Card className="flex-1 min-w-[160px] border-blue-200">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-xs text-blue-700">A receber — Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-semibold text-blue-700">
+                {formatBRL(breakdownMeio.totalGeral)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Filtros */}
       <Card>
         <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-7">
