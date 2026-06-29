@@ -276,6 +276,7 @@ export default function ContasReceber() {
     }
     const itens = Array.from(mapa.entries())
       .map(([meio, total]) => ({ meio, total }))
+      .filter((i) => i.total >= 1)
       .sort((a, b) => b.total - a.total);
     const totalGeral = itens.reduce((s, i) => s + i.total, 0);
     return { itens, totalGeral };
