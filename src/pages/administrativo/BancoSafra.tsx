@@ -55,6 +55,7 @@ type TitulosBoleto = {
   boleto_status: string | null;
   boleto_enviado_em: string | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
+  pedido: { id_externo: string | null } | null;
 };
 
 const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
@@ -230,7 +231,7 @@ export default function BancoSafra() {
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(
-          "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social))",
+          "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo)",
         )
         .not("boleto_status", "is", null)
         .order("data_vencimento_atual", { ascending: true });
@@ -694,6 +695,7 @@ export default function BancoSafra() {
                     <TableRow>
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Título</TableHead>
+                      <TableHead>Pedido</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
@@ -740,6 +742,9 @@ export default function BancoSafra() {
                           </TableCell>
                           <TableCell className="font-mono text-xs">
                             {b.numero_titulo || "—"}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {b.pedido?.id_externo || "—"}
                           </TableCell>
                           <TableCell className="max-w-[160px] truncate">
                             {b.conta?.parceiro?.razao_social || "—"}
