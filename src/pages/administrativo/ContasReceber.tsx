@@ -187,7 +187,7 @@ export default function ContasReceber() {
       // Esconde titulos ja pagos pelo cliente da visao "a receber".
       // Excecao: quando o card "Recebido no mes" esta ativo, o drill-down
       // desse card precisa mostrar justamente os pagos-liquidados do mes.
-      if (t.pago === true && !cardsAtivos.includes("recebidoMes")) return false;
+      if (t.pago === true && !cardsAtivos.has("recebidoMes")) return false;
       for (const k of cardsAtivos) {
         if (!predicados[k](t)) return false;
       }
