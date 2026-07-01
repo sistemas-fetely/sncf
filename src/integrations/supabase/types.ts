@@ -1936,6 +1936,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cfop_natureza: {
+        Row: {
+          ativo: boolean
+          cfop: string
+          created_at: string
+          descricao: string
+          eh_venda: boolean
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cfop: string
+          created_at?: string
+          descricao: string
+          eh_venda?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cfop?: string
+          created_at?: string
+          descricao?: string
+          eh_venda?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       classificacao_dados: {
         Row: {
           base_legal: string | null
@@ -18274,6 +18301,26 @@ export type Database = {
             referencedColumns: ["pedidowns"]
           },
         ]
+      }
+      vw_vendas_produto: {
+        Row: {
+          cfops: string[] | null
+          colecao: string | null
+          cor_nome: string | null
+          mes: string | null
+          nfs_distintas: number | null
+          nome_produto: string | null
+          quantidade_outros: number | null
+          quantidade_total: number | null
+          quantidade_venda: number | null
+          sku_raiz: string | null
+          sku_sem_cadastro: boolean | null
+          tem_cfop_nao_classificado: boolean | null
+          valor_outros: number | null
+          valor_total: number | null
+          valor_venda: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {
