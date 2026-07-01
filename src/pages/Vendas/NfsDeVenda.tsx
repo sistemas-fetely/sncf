@@ -126,6 +126,7 @@ function AbaNFs() {
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [busca, setBusca] = useState("");
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todas");
+  const [mesFiltro, setMesFiltro] = useState<string>("todos");
   const [syncing, setSyncing] = useState(false);
   const { data: nfs = [], isLoading, refetch } = useNfsEmitidas();
 
@@ -176,13 +177,24 @@ function AbaNFs() {
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "NFs de Venda");
-    const hoje = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `nfs-de-venda-${hoje}.xlsx`);
+    const sufixo = mesFiltro !== "todos" ? mesFiltro : new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `nfs-de-venda-${sufixo}.xlsx`);
   }
+
+  const mesesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    for (const n of nfs) {
+      if (n.data_emissao) set.add(n.data_emissao.slice(0, 7));
+    }
+    return Array.from(set).sort().reverse();
+  }, [nfs]);
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     const filtered = nfs.filter((n) => {
+      if (mesFiltro !== "todos") {
+        if (!n.data_emissao || n.data_emissao.slice(0, 7) !== mesFiltro) return false;
+      }
       if (situacaoFiltro !== "todas") {
         const badge = getSituacaoBadge(n);
         if (badge.label.toLowerCase() !== situacaoFiltro) return false;
@@ -200,7 +212,7 @@ function AbaNFs() {
       if (bNum !== aNum) return bNum - aNum;
       return (a.serie ?? "").localeCompare(b.serie ?? "") || (b.data_emissao ?? "").localeCompare(a.data_emissao ?? "");
     });
-  }, [nfs, busca, situacaoFiltro]);
+  }, [nfs, busca, situacaoFiltro, mesFiltro]);
 
   const totalValor = useMemo(
     () => filtrados.reduce((sum, n) => sum + Number(n.valor_nota ?? 0), 0),
@@ -232,6 +244,19 @@ function AbaNFs() {
             </Button>
           ))}
         </div>
+        <Select value={mesFiltro} onValueChange={setMesFiltro}>
+          <SelectTrigger className="h-8 w-[170px]">
+            <SelectValue placeholder="Todos os meses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os meses</SelectItem>
+            {mesesDisponiveis.map((m) => (
+              <SelectItem key={m} value={m}>
+                {new Date(m + "-01T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(" de ", "/")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <span className="text-xs text-muted-foreground ml-auto">
           {filtrados.length} {filtrados.length === 1 ? "NF" : "NFs"}
         </span>
