@@ -184,6 +184,10 @@ export default function ContasReceber() {
 
     let arr = titulos.filter((t) => {
       if (t.status_gestao === "cancelado") return false;
+      // Esconde titulos ja pagos pelo cliente da visao "a receber".
+      // Excecao: quando o card "Recebido no mes" esta ativo, o drill-down
+      // desse card precisa mostrar justamente os pagos-liquidados do mes.
+      if (t.pago === true && !cardsAtivos.has("recebidoMes")) return false;
       for (const k of cardsAtivos) {
         if (!predicados[k](t)) return false;
       }
