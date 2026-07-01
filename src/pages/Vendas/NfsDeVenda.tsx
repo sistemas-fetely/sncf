@@ -209,6 +209,16 @@ export default function NfsDeVenda() {
           variant="outline"
           size="sm"
           className="h-8"
+          disabled={filtrados.length === 0}
+          onClick={handleExportXLSX}
+        >
+          <Download className="h-4 w-4 mr-1.5" />
+          Exportar XLSX
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8"
           disabled={syncing}
           onClick={handleSincronizar}
         >
