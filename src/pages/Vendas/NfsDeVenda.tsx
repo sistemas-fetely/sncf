@@ -440,7 +440,7 @@ function AbaPorProduto() {
     if (q) {
       list = list.filter(
         (r) =>
-          (r.sku_raiz ?? "").toLowerCase().includes(q) ||
+          (r.sku ?? "").toLowerCase().includes(q) ||
           (r.nome_produto ?? "").toLowerCase().includes(q),
       );
     }
@@ -454,7 +454,7 @@ function AbaPorProduto() {
         case "valor": return (getValor(a) - getValor(b)) * mult;
         case "qtd": return (getQtd(a) - getQtd(b)) * mult;
         case "nfs": return ((a.nfs_distintas ?? 0) - (b.nfs_distintas ?? 0)) * mult;
-        case "sku": return (a.sku_raiz ?? "").localeCompare(b.sku_raiz ?? "", "pt-BR") * mult;
+        case "sku": return (a.sku ?? "").localeCompare(b.sku ?? "", "pt-BR") * mult;
         case "produto": return (a.nome_produto ?? "").localeCompare(b.nome_produto ?? "", "pt-BR") * mult;
         case "colecao": return (a.colecao ?? "").localeCompare(b.colecao ?? "", "pt-BR") * mult;
         default: return 0;
@@ -507,7 +507,7 @@ function AbaPorProduto() {
   function handleExportXLSX() {
     const linhas = filtradas.map((r) => {
       const base: Record<string, any> = {
-        "SKU": r.sku_raiz ?? "",
+        "SKU": r.sku ?? "",
         "Produto": r.nome_produto ?? "",
         "Coleção": r.colecao ?? "",
       };
@@ -651,7 +651,7 @@ function AbaPorProduto() {
                 const qtd = Number((incluirOutros ? r.quantidade_total : r.quantidade_venda) ?? 0);
                 const valor = Number((incluirOutros ? r.valor_total : r.valor_venda) ?? 0);
                 return (
-                  <TableRow key={`${r.mes}-${r.sku_raiz}`}>
+                  <TableRow key={`${r.mes}-${r.sku}`}>
                     <TableCell className="font-mono text-xs">
                       <div className="flex items-center gap-1.5">
                         {alerta && (
@@ -660,7 +660,7 @@ function AbaPorProduto() {
                             aria-label="CFOP ou SKU sem classificação"
                           />
                         )}
-                        {r.sku_raiz}
+                        {r.sku}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm max-w-md truncate" title={r.nome_produto ?? undefined}>

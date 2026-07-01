@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface VendaProduto {
   mes: string;                       // 'YYYY-MM-01'
-  sku_raiz: string;
+  sku: string;
   nome_produto: string;
   colecao: string | null;
   cor_nome: string | null;
