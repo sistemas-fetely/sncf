@@ -18313,7 +18313,7 @@ export type Database = {
           quantidade_outros: number | null
           quantidade_total: number | null
           quantidade_venda: number | null
-          sku_raiz: string | null
+          sku: string | null
           sku_sem_cadastro: boolean | null
           tem_cfop_nao_classificado: boolean | null
           valor_outros: number | null
