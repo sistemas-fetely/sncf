@@ -507,6 +507,7 @@ function AbaPorProduto() {
   function handleExportXLSX() {
     const linhas = filtradas.map((r) => {
       const base: Record<string, any> = {
+        "Mês": r.mes ? r.mes.slice(0, 7) : "",
         "SKU": r.sku ?? "",
         "Produto": r.nome_produto ?? "",
         "Coleção": r.colecao ?? "",
