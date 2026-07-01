@@ -9,11 +9,12 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNfsEmitidas, type NfEmitida } from "@/hooks/vendas/useNfsEmitidas";
-import { FileText, ExternalLink, Search, RefreshCw } from "lucide-react";
+import { FileText, ExternalLink, Search, RefreshCw, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -107,6 +108,38 @@ export default function NfsDeVenda() {
     }
   }
 
+  function handleExportXLSX() {
+    const linhas = filtrados.map((n) => {
+      const dataRaw = n.data_emissao;
+      let dataStr = "";
+      if (dataRaw) {
+        const d = new Date(dataRaw);
+        if (!isNaN(d.getTime())) {
+          dataStr = d.toLocaleDateString("pt-BR", {
+            day: "2-digit", month: "2-digit", year: "numeric",
+          });
+        }
+      }
+      return {
+        "NF": n.serie && n.numero ? `${n.serie}-${n.numero}` : (n.numero ?? ""),
+        "Data": dataStr,
+        "Parceiro": n.parceiro?.razao_social ?? "",
+        "CNPJ": n.parceiro?.cnpj ?? "",
+        "Valor": Number(n.valor_nota ?? 0),
+        "Frete": Number(n.valor_frete ?? 0),
+        "Nº Pedido (Bling)": n.bling_pedido_venda_numero ?? "",
+        "Pedido": n.pedido_ref ?? "",
+        "Canal": n.canal ?? "",
+        "Situação": SITUACAO_LABELS[n.situacao] ?? n.situacao ?? "",
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(linhas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "NFs de Venda");
+    const hoje = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `nfs-de-venda-${hoje}.xlsx`);
+  }
+
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     const filtered = nfs.filter((n) => {
@@ -172,6 +205,16 @@ export default function NfsDeVenda() {
         <span className="text-xs text-muted-foreground ml-auto">
           {filtrados.length} {filtrados.length === 1 ? "NF" : "NFs"}
         </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8"
+          disabled={filtrados.length === 0}
+          onClick={handleExportXLSX}
+        >
+          <Download className="h-4 w-4 mr-1.5" />
+          Exportar XLSX
+        </Button>
         <Button
           variant="outline"
           size="sm"
