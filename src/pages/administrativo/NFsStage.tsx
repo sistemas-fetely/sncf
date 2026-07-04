@@ -969,6 +969,35 @@ export default function NFsStage() {
                         )}
                       </TableCell>
                       <TableCell>
+                        {podeClassificar ? (
+                          <Select
+                            value={nf.centro_custo_id || "__none__"}
+                            onValueChange={(v) =>
+                              alterarCentroCusto(nf.id, v === "__none__" ? null : v)
+                            }
+                            disabled={salvandoCentroCusto.has(nf.id)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Selecionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">— Sem centro —</SelectItem>
+                              {centrosCusto.map((cc) => (
+                                <SelectItem key={cc.id} value={cc.id}>
+                                  {cc.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : nf.centro_custo_id ? (
+                          <span className="text-xs text-muted-foreground">
+                            {centrosCusto.find((c) => c.id === nf.centro_custo_id)?.nome || "—"}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Badge className={STATUS_STYLES[nf.status]}>
                           {nf.status === "parcial" && nf.qtd_boletos
                             ? `Parcial (${despesasPorStage[nf.id] || 0}/${nf.qtd_boletos})`
