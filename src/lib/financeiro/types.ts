@@ -70,6 +70,7 @@ export interface NFParsed {
   _plano_contas_id?: string | null;
   _categoria_nome?: string | null;
   _centro_custo?: string | null;
+  _centro_custo_id?: string | null;
   _regra_origem?: "parceiro" | "ncm" | "texto" | null;
 
   // Quando true, importação usa categoria por item (campo `_plano_contas_id` de cada item)
