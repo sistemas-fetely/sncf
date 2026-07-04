@@ -319,6 +319,8 @@ export default function NFsStage() {
       list = list.filter((n) => n.status === "descartada");
     } else if (filtroPill === "sem_categoria") {
       list = list.filter((n) => !n.plano_contas_id && n.status !== "descartada");
+    } else if (filtroPill === "sem_centro_custo") {
+      list = list.filter((n) => !n.centro_custo_id && n.status !== "descartada");
     } else if (filtroPill === "com_xml") {
       list = list.filter((n) => n.tem_xml && n.status !== "descartada");
     } else if (filtroPill === "com_pdf") {
