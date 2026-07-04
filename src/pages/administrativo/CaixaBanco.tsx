@@ -699,7 +699,7 @@ export default function CaixaBanco() {
       {/* CONTEÚDO COM SCROLL */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pb-6 pt-3 space-y-3">
         {/* KPIs — escondidos no modo Receitas */}
-        {tipoParam !== "receitas" && (
+        {tipoParam !== "receitas" && tipoParam !== "gerencial" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
           <CardKPI
             titulo="Pago mês anterior"
@@ -750,7 +750,7 @@ export default function CaixaBanco() {
         )}
 
         {/* Botão IA — escondido no modo Receitas */}
-        {tipoParam !== "receitas" && (
+        {tipoParam !== "receitas" && tipoParam !== "gerencial" && (
         <div className="flex items-center justify-end">
           <Button
             size="sm"
@@ -932,7 +932,7 @@ export default function CaixaBanco() {
         )}
 
         {/* Tabela única (despesas) */}
-        {tipoParam !== "receitas" && (
+        {tipoParam !== "receitas" && tipoParam !== "gerencial" && (
         <>
         {isLoading ? (
           <div className="space-y-2">
