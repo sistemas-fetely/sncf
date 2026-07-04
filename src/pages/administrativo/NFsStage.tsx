@@ -358,6 +358,7 @@ export default function NFsStage() {
       vinculadas: all.filter((n) => n.status === "vinculada").length,
       descartadas: all.filter((n) => n.status === "descartada").length,
       semCategoria: all.filter((n) => !n.plano_contas_id && n.status !== "descartada").length,
+      semCentroCusto: all.filter((n) => !n.centro_custo_id && n.status !== "descartada").length,
       comXml: all.filter((n) => n.tem_xml && n.status !== "descartada").length,
       comPdf: all.filter((n) => n.tem_pdf && n.status !== "descartada").length,
       comBoleto: all.filter((n) => n.tem_boleto).length,
