@@ -230,7 +230,7 @@ export default function MovimentacoesGerencial() {
                 const colapsado = colapsados.has(g.chave);
                 const semClass = g.chave === SEM_CLASSIFICACAO;
                 return (
-                  <>
+                  <Fragment key={g.chave}>
                     <TableRow
                       key={`h-${g.chave}`}
                       className={cn(
