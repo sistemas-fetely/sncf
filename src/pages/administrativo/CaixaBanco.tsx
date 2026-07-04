@@ -769,6 +769,9 @@ export default function CaixaBanco() {
         </div>
         )}
 
+        {/* Aba Gerencial — despesas por competência, agrupadas por plano/centro */}
+        {tipoParam === "gerencial" && <MovimentacoesGerencial />}
+
         {/* Aba Receitas — A receber + Recebido */}
         {tipoParam === "receitas" && (
           <div className="space-y-3">
