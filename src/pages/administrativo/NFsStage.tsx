@@ -61,6 +61,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { descartarStage } from "@/lib/financeiro/stage-handler";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
+import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { CategoriaCombobox } from "@/components/financeiro/CategoriaCombobox";
 import { gerarResumoNFe, regerarResumoNFe } from "@/lib/financeiro/gerar-resumo-nfe";
 import {
@@ -96,6 +97,7 @@ type NFStage = {
   valor: number;
   descricao: string | null;
   plano_contas_id: string | null;
+  centro_custo_id: string | null;
   categoria_sugerida_ia?: boolean | null;
   data_vencimento: string | null;
   status: string;
@@ -167,6 +169,7 @@ type FiltroPill =
   | "vinculadas"
   | "descartadas"
   | "sem_categoria"
+  | "sem_centro_custo"
   | "com_xml"
   | "com_pdf"
   ;
@@ -179,6 +182,7 @@ export default function NFsStage() {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [paraDescartar, setParaDescartar] = useState<NFStage[]>([]);
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
+  const [salvandoCentroCusto, setSalvandoCentroCusto] = useState<Set<string>>(new Set());
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
   const [classificandoIA, setClassificandoIA] = useState(false);
@@ -246,6 +250,7 @@ export default function NFsStage() {
   const [sort, setSort] = useState<SortState<SortColumn> | null>(null);
 
   const { data: categorias = [] } = useCategoriasPlano();
+  const { data: centrosCusto = [] } = useCentrosCusto(true);
 
   const { data: nfs, isLoading } = useQuery({
     queryKey: ["nfs-stage"],
@@ -314,6 +319,8 @@ export default function NFsStage() {
       list = list.filter((n) => n.status === "descartada");
     } else if (filtroPill === "sem_categoria") {
       list = list.filter((n) => !n.plano_contas_id && n.status !== "descartada");
+    } else if (filtroPill === "sem_centro_custo") {
+      list = list.filter((n) => !n.centro_custo_id && n.status !== "descartada");
     } else if (filtroPill === "com_xml") {
       list = list.filter((n) => n.tem_xml && n.status !== "descartada");
     } else if (filtroPill === "com_pdf") {
@@ -351,6 +358,7 @@ export default function NFsStage() {
       vinculadas: all.filter((n) => n.status === "vinculada").length,
       descartadas: all.filter((n) => n.status === "descartada").length,
       semCategoria: all.filter((n) => !n.plano_contas_id && n.status !== "descartada").length,
+      semCentroCusto: all.filter((n) => !n.centro_custo_id && n.status !== "descartada").length,
       comXml: all.filter((n) => n.tem_xml && n.status !== "descartada").length,
       comPdf: all.filter((n) => n.tem_pdf && n.status !== "descartada").length,
       comBoleto: all.filter((n) => n.tem_boleto).length,
@@ -463,6 +471,29 @@ export default function NFsStage() {
       toast.error("Erro: " + msg);
     } finally {
       setSalvandoCategoria((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
+  async function alterarCentroCusto(id: string, centroCustoId: string | null) {
+    setSalvandoCentroCusto((prev) => new Set(prev).add(id));
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update({ centro_custo_id: centroCustoId || null })
+        .eq("id", id);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(centroCustoId ? "Centro de custo salvo" : "Centro de custo removido");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro: " + msg);
+    } finally {
+      setSalvandoCentroCusto((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -672,6 +703,14 @@ export default function NFsStage() {
             icon={<AlertCircle className="h-3 w-3" />}
           />
           <KpiPill
+            label="Sem centro de custo"
+            count={totals.semCentroCusto}
+            color="violet"
+            active={filtroPill === "sem_centro_custo"}
+            onClick={() => setFiltroPill("sem_centro_custo")}
+            icon={<AlertCircle className="h-3 w-3" />}
+          />
+          <KpiPill
             label="Com XML"
             count={totals.comXml}
             color="emerald"
@@ -800,6 +839,7 @@ export default function NFsStage() {
                   <SortableTableHead column="categoria" sort={sort} onSort={setSort} className="min-w-[220px]">
                     Categoria
                   </SortableTableHead>
+                  <TableHead className="min-w-[180px]">Centro de custo</TableHead>
                   <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-24">
                     Status
                   </SortableTableHead>
@@ -923,6 +963,35 @@ export default function NFsStage() {
                             {nf.categoria_sugerida_ia && (
                               <Sparkles className="h-3 w-3 text-purple-500" />
                             )}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {podeClassificar ? (
+                          <Select
+                            value={nf.centro_custo_id || "__none__"}
+                            onValueChange={(v) =>
+                              alterarCentroCusto(nf.id, v === "__none__" ? null : v)
+                            }
+                            disabled={salvandoCentroCusto.has(nf.id)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Selecionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">— Sem centro —</SelectItem>
+                              {centrosCusto.map((cc) => (
+                                <SelectItem key={cc.id} value={cc.id}>
+                                  {cc.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : nf.centro_custo_id ? (
+                          <span className="text-xs text-muted-foreground">
+                            {centrosCusto.find((c) => c.id === nf.centro_custo_id)?.nome || "—"}
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">—</span>

@@ -89,11 +89,12 @@ import {
   getQualidadeCategoria,
   corClass,
 } from "./CaixaBanco/utils";
+import MovimentacoesGerencial from "@/components/financeiro/MovimentacoesGerencial";
 
 type FormaPgtoLite = { id: string; nome: string };
 type Parceiro = { id: string; razao_social: string | null };
 type CategoriaLite = { id: string; nome: string };
-type FiltroTipo = "tudo" | "apagar" | "realizado" | "receitas";
+type FiltroTipo = "tudo" | "apagar" | "realizado" | "receitas" | "gerencial";
 
 type Receita = {
   id: string;
@@ -679,6 +680,7 @@ export default function CaixaBanco() {
               { key: "apagar", label: "A pagar" },
               { key: "realizado", label: "Realizado" },
               { key: "receitas", label: "Receitas" },
+              { key: "gerencial", label: "Gerencial" },
             ] as { key: FiltroTipo; label: string }[]).map((p) => (
               <Button
                 key={p.key}
@@ -697,7 +699,7 @@ export default function CaixaBanco() {
       {/* CONTEÚDO COM SCROLL */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pb-6 pt-3 space-y-3">
         {/* KPIs — escondidos no modo Receitas */}
-        {tipoParam !== "receitas" && (
+        {tipoParam !== "receitas" && tipoParam !== "gerencial" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
           <CardKPI
             titulo="Pago mês anterior"
@@ -748,7 +750,7 @@ export default function CaixaBanco() {
         )}
 
         {/* Botão IA — escondido no modo Receitas */}
-        {tipoParam !== "receitas" && (
+        {tipoParam !== "receitas" && tipoParam !== "gerencial" && (
         <div className="flex items-center justify-end">
           <Button
             size="sm"
@@ -766,6 +768,9 @@ export default function CaixaBanco() {
           </Button>
         </div>
         )}
+
+        {/* Aba Gerencial — despesas por competência, agrupadas por plano/centro */}
+        {tipoParam === "gerencial" && <MovimentacoesGerencial />}
 
         {/* Aba Receitas — A receber + Recebido */}
         {tipoParam === "receitas" && (
@@ -930,7 +935,7 @@ export default function CaixaBanco() {
         )}
 
         {/* Tabela única (despesas) */}
-        {tipoParam !== "receitas" && (
+        {tipoParam !== "receitas" && tipoParam !== "gerencial" && (
         <>
         {isLoading ? (
           <div className="space-y-2">
