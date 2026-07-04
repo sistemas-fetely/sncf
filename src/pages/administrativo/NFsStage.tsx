@@ -703,6 +703,14 @@ export default function NFsStage() {
             icon={<AlertCircle className="h-3 w-3" />}
           />
           <KpiPill
+            label="Sem centro de custo"
+            count={totals.semCentroCusto}
+            color="violet"
+            active={filtroPill === "sem_centro_custo"}
+            onClick={() => setFiltroPill("sem_centro_custo")}
+            icon={<AlertCircle className="h-3 w-3" />}
+          />
+          <KpiPill
             label="Com XML"
             count={totals.comXml}
             color="emerald"
