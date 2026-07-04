@@ -251,14 +251,14 @@ export async function importarNFs(nfs: NFParsed[]): Promise<ImportResult> {
       // 3. Insert conta a pagar
       // Se expandida por item, conta principal usa a categoria do item de maior valor
       let categoriaContaPrincipal = nf._plano_contas_id || null;
-      let centroCustoIdContaPrincipal = (nf as unknown as { _centro_custo_id?: string | null })._centro_custo_id || null;
+      let centroCustoIdContaPrincipal = nf._centro_custo_id ?? null;
       if (nf._expandirItens && nf.itens && nf.itens.length > 0) {
         const principal = nf.itens.reduce((a, b) =>
           (a.valor_total || 0) >= (b.valor_total || 0) ? a : b,
         );
         if (principal._plano_contas_id) {
           categoriaContaPrincipal = principal._plano_contas_id;
-          centroCustoIdContaPrincipal = (principal as unknown as { _centro_custo_id?: string | null })._centro_custo_id || null;
+          centroCustoIdContaPrincipal = principal._centro_custo_id ?? nf._centro_custo_id ?? null;
         }
       }
 
