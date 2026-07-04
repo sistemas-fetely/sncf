@@ -250,6 +250,7 @@ export default function NFsStage() {
   const [sort, setSort] = useState<SortState<SortColumn> | null>(null);
 
   const { data: categorias = [] } = useCategoriasPlano();
+  const { data: centrosCusto = [] } = useCentrosCusto(true);
 
   const { data: nfs, isLoading } = useQuery({
     queryKey: ["nfs-stage"],
