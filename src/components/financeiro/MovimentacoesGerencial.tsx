@@ -302,7 +302,7 @@ export default function MovimentacoesGerencial() {
                           </TableCell>
                         </TableRow>
                       ))}
-                  </>
+                  </Fragment>
                 );
               })}
             </TableBody>
