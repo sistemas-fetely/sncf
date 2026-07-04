@@ -169,6 +169,7 @@ type FiltroPill =
   | "vinculadas"
   | "descartadas"
   | "sem_categoria"
+  | "sem_centro_custo"
   | "com_xml"
   | "com_pdf"
   ;
