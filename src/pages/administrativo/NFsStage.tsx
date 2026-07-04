@@ -96,6 +96,7 @@ type NFStage = {
   valor: number;
   descricao: string | null;
   plano_contas_id: string | null;
+  centro_custo_id: string | null;
   categoria_sugerida_ia?: boolean | null;
   data_vencimento: string | null;
   status: string;
