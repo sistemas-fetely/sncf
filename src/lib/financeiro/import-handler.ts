@@ -153,7 +153,7 @@ export async function importarNFs(nfs: NFParsed[]): Promise<ImportResult> {
         // Se a conta existente não tem categoria, aplica a regra que matcheou na NF
         if (!nf._match_pagamento.conta_plano_contas_id && nf._plano_contas_id) {
           updateData.plano_contas_id = nf._plano_contas_id;
-          updateData.centro_custo_id = nf._centro_custo_id ?? null;
+          if (nf._centro_custo_id) updateData.centro_custo_id = nf._centro_custo_id;
           updateData.categoria_sugerida_ia = true;
           updateData.categoria_confirmada = false;
         }
