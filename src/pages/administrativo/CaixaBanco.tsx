@@ -89,6 +89,7 @@ import {
   getQualidadeCategoria,
   corClass,
 } from "./CaixaBanco/utils";
+import MovimentacoesGerencial from "@/components/financeiro/MovimentacoesGerencial";
 
 type FormaPgtoLite = { id: string; nome: string };
 type Parceiro = { id: string; razao_social: string | null };
