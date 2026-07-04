@@ -478,6 +478,29 @@ export default function NFsStage() {
     }
   }
 
+  async function alterarCentroCusto(id: string, centroCustoId: string | null) {
+    setSalvandoCentroCusto((prev) => new Set(prev).add(id));
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update({ centro_custo_id: centroCustoId || null })
+        .eq("id", id);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(centroCustoId ? "Centro de custo salvo" : "Centro de custo removido");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro: " + msg);
+    } finally {
+      setSalvandoCentroCusto((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
   async function aceitarSugestao(nf: NFStage) {
     const sug = sugestoesPorNf[nf.id];
     if (!sug) return;
