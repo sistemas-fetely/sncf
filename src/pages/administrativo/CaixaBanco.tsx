@@ -680,6 +680,7 @@ export default function CaixaBanco() {
               { key: "apagar", label: "A pagar" },
               { key: "realizado", label: "Realizado" },
               { key: "receitas", label: "Receitas" },
+              { key: "gerencial", label: "Gerencial" },
             ] as { key: FiltroTipo; label: string }[]).map((p) => (
               <Button
                 key={p.key}
