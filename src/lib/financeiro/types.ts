@@ -19,6 +19,7 @@ export interface ItemNFParsed {
   _plano_contas_id?: string | null;
   _categoria_nome?: string | null;
   _centro_custo?: string | null;
+  _centro_custo_id?: string | null;
   _regra_origem?: "parceiro" | "ncm" | "texto" | "manual" | null;
 }
 
