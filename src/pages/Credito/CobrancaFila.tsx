@@ -757,10 +757,17 @@ function PedidosCobrancaTab() {
 
 export default function CobrancaFila() {
   const { data: pedidos = [] } = useCobrancaFila();
-  const { data: todosTitulos = [] } = useTitulosBoleto();
+  const { data: titulosCobranca = [] } = useTitulosCobranca();
 
   const totalPedidos = pedidos.length;
-  const totalTitulos = todosTitulos.length;
+  const totalTitulosAbertos = titulosCobranca.filter(
+    (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
+  ).length;
+
+  const tabTriggerCls =
+    "rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent";
+  const pillTriggerCls =
+    "rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground data-[state=active]:shadow-none";
 
   return (
     <div className="space-y-6">
@@ -771,57 +778,63 @@ export default function CobrancaFila() {
           { label: "Cobrança" },
         ]}
         title="Cobrança"
-        subtitle="Materialização de títulos, geração de remessas e retornos Safra"
+        subtitle="Gestão de títulos, remessas bancárias e cobrança"
       />
 
-      <Tabs defaultValue="pedidos" className="space-y-4">
+      <Tabs defaultValue="fila" className="space-y-4">
         <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-6">
           {[
-            { value: "pedidos", label: `Pedidos${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
-            { value: "primeiro-pagamento", label: "Primeiro Pagamento" },
-            { value: "titulos", label: `Títulos${totalTitulos > 0 ? ` · ${totalTitulos}` : ""}` },
-            { value: "todos-titulos", label: "Todos os títulos" },
-            { value: "remessas", label: "Remessas Safra" },
-            { value: "banco-safra", label: "Banco Safra" },
-            { value: "contas-receber", label: "Contas a Receber" },
+            { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
+            { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
+            { value: "banco", label: "Banco" },
             { value: "credito-cliente", label: "Crédito do cliente" },
           ].map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-            >
+            <TabsTrigger key={tab.value} value={tab.value} className={tabTriggerCls}>
               {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        <TabsContent value="pedidos">
-          <PedidosCobrancaTab />
-        </TabsContent>
-
-        <TabsContent value="primeiro-pagamento">
-          <PrimeiroPagamentoTab />
+        <TabsContent value="fila">
+          <Tabs defaultValue="materializacao" className="space-y-4">
+            <TabsList className="bg-transparent p-0 h-auto gap-2">
+              <TabsTrigger value="materializacao" className={pillTriggerCls}>
+                Materialização
+              </TabsTrigger>
+              <TabsTrigger value="primeiro-pagamento" className={pillTriggerCls}>
+                Primeiro Pagamento
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="materializacao">
+              <PedidosCobrancaTab />
+            </TabsContent>
+            <TabsContent value="primeiro-pagamento">
+              <PrimeiroPagamentoTab />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="titulos">
-          <TitulosBoletoTab />
+          <TitulosTab />
         </TabsContent>
 
-        <TabsContent value="todos-titulos">
-          <TodosTitulosTab />
-        </TabsContent>
-
-        <TabsContent value="remessas">
-          <RemessasSafraTab />
-        </TabsContent>
-
-        <TabsContent value="banco-safra">
-          <BancoSafra />
-        </TabsContent>
-
-        <TabsContent value="contas-receber">
-          <ContasReceberSops />
+        <TabsContent value="banco">
+          <Tabs defaultValue="remessas" className="space-y-4">
+            <TabsList className="bg-transparent p-0 h-auto gap-2">
+              <TabsTrigger value="remessas" className={pillTriggerCls}>
+                Remessas Safra
+              </TabsTrigger>
+              <TabsTrigger value="banco-safra" className={pillTriggerCls}>
+                Banco Safra
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="remessas">
+              <RemessasSafraTab />
+            </TabsContent>
+            <TabsContent value="banco-safra">
+              <BancoSafra />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="credito-cliente">
@@ -831,3 +844,4 @@ export default function CobrancaFila() {
     </div>
   );
 }
+
