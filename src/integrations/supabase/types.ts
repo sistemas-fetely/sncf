@@ -4795,6 +4795,13 @@ export type Database = {
             referencedRelation: "vw_recebivel_b2b"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "evento_titulo_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
         ]
       }
       fala_fetely_conhecimento: {
@@ -9607,6 +9614,13 @@ export type Database = {
             columns: ["titulo_id"]
             isOneToOne: false
             referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
             referencedColumns: ["id"]
           },
         ]
@@ -15115,6 +15129,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
+            columns: ["titulo_pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
             columns: ["titulo_renegociado_origem_id"]
             isOneToOne: false
@@ -15133,6 +15154,13 @@ export type Database = {
             columns: ["titulo_renegociado_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
             referencedColumns: ["id"]
           },
         ]
@@ -18387,6 +18415,187 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_frentes_investimento_kpis"
             referencedColumns: ["frente_id"]
+          },
+        ]
+      }
+      vw_titulos_cobranca: {
+        Row: {
+          banco_nome: string | null
+          banco_recebimento_id: string | null
+          boleto_codigo_rejeicao: string | null
+          boleto_enviado_em: string | null
+          boleto_status: string | null
+          conta_id: string | null
+          created_at: string | null
+          data_liquidacao_prevista: string | null
+          data_liquidacao_real: string | null
+          data_pagamento: string | null
+          data_pagamento_banco: string | null
+          data_proxima_acao_regua: string | null
+          data_vencimento_atual: string | null
+          data_vencimento_original: string | null
+          dias_atraso: number | null
+          eh_entrada: boolean | null
+          email_cobranca_enviado_em: string | null
+          id: string | null
+          linha_digitavel: string | null
+          nf_id: string | null
+          nf_numero: string | null
+          nosso_numero_seq: string | null
+          numero_parcela: number | null
+          numero_titulo: string | null
+          parceiro_cnpj: string | null
+          parceiro_id: string | null
+          parceiro_nome_fantasia: string | null
+          parceiro_razao_social: string | null
+          pausa_regua_automatica: boolean | null
+          pedido_estagio: string | null
+          pedido_id: string | null
+          pedido_id_externo: string | null
+          remessa_safra_id: string | null
+          status_gestao: string | null
+          status_real: string | null
+          tipo_pagamento: string | null
+          total_parcelas: number | null
+          valor_bruto: number | null
+          valor_desconto: number | null
+          valor_efetivo: number | null
+          valor_juros: number | null
+          valor_multa: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_banco_recebimento_id_fkey"
+            columns: ["banco_recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_movimentacoes_gerencial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_emitidas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_pedido_resolvido"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_remessa_safra_id_fkey"
+            columns: ["remessa_safra_id"]
+            isOneToOne: false
+            referencedRelation: "remessas_safra"
+            referencedColumns: ["id"]
           },
         ]
       }
