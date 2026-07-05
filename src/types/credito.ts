@@ -337,7 +337,11 @@ export type BoletoStatus =
   | "pendente"
   | "remessa_gerada"
   | "registrado"
-  | "rejeitado";
+  | "rejeitado"
+  | "vencido"
+  | "pago_manual"
+  | "pago_banco"
+  | "baixa_solicitada";
 
 export type RemessaStatus =
   | "gerada"

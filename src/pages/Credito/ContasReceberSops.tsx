@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 
 type Titulo = {
   id: string;
@@ -88,77 +89,8 @@ const BOLETO_STATUS_CONFIG: Record<string, { label: string; className: string }>
 
 const PAGE_SIZE = 25;
 
-function BaixaManualDialog({ titulo, onClose }: { titulo: Titulo; onClose: () => void }) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [dataPag, setDataPag] = useState(() => new Date().toISOString().slice(0, 10));
-  const [loading, setLoading] = useState(false);
+// BaixaManualDialog foi extraído para src/components/credito/BaixaManualDialog.tsx
 
-  const handleConfirm = async () => {
-    setLoading(true);
-    try {
-      const { error: rpcErr } = await (supabase as any).rpc("marcar_titulo_pago", {
-        p_titulo_id: titulo.id,
-        p_data_pagamento: dataPag + "T12:00:00" + ".000Z",
-      });
-      if (rpcErr) throw rpcErr;
-
-      if (titulo.boleto_status !== null) {
-        const { error: updErr } = await (supabase as any)
-          .from("titulo_a_receber")
-          .update({ boleto_status: "pago_manual" })
-          .eq("id", titulo.id);
-        if (updErr) throw updErr;
-      }
-
-      await qc.invalidateQueries({ queryKey: ["contas-receber-titulos"] });
-      toast({ title: "Baixa registrada" });
-      onClose();
-    } catch (e: any) {
-      toast({
-        title: "Erro ao registrar baixa",
-        description: e?.message ?? String(e),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Baixa manual</DialogTitle>
-          <DialogDescription>
-            Título <span className="font-mono">{titulo.numero_titulo ?? "—"}</span> ·{" "}
-            {formatBRL(titulo.valor_atual ?? titulo.valor_bruto ?? 0)} · venc.{" "}
-            {formatDateBR(titulo.data_vencimento_atual)}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-2">
-          <Label htmlFor="data-pag">Data do pagamento</Label>
-          <Input
-            id="data-pag"
-            type="date"
-            value={dataPag}
-            onChange={(e) => setDataPag(e.target.value)}
-          />
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button onClick={handleConfirm} disabled={loading || !dataPag}>
-            {loading ? "Registrando..." : "Confirmar baixa"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function BotaoEmailCobranca({ titulo }: { titulo: Titulo }) {
   const enviar = useEnviarEmailCobranca();
