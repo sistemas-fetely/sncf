@@ -48,11 +48,25 @@ export function useEnviarEmailNfBoletos() {
       if (errT) throw new Error(errT.message);
       const titulos = (titulosRaw ?? []) as any[];
       if (!titulos.length) throw new Error("Pedido não possui títulos de boleto.");
+      const enviaveis = new Set(["registrado", "remessa_gerada", "vencido"]);
       const pendentes = titulos.filter(
-        (t) => !["registrado", "remessa_gerada"].includes(t.boleto_status) || !t.linha_digitavel,
+        (t) => !enviaveis.has(t.boleto_status) || !t.linha_digitavel,
       );
       if (pendentes.length > 0) {
-        throw new Error("Há boletos sem remessa gerada neste pedido — gere a remessa Safra antes de enviar.");
+        // Mensagem específica: mostra o status real do primeiro bloqueio
+        const bloqueio = pendentes[0];
+        const statusReal = bloqueio.boleto_status ?? "sem status";
+        let msg: string;
+        if (!bloqueio.linha_digitavel) {
+          msg = `Parcela ${bloqueio.numero_parcela} sem linha digitável — gere a remessa Safra antes de enviar.`;
+        } else if (statusReal === "rejeitado") {
+          msg = `Boleto rejeitado pelo banco (parcela ${bloqueio.numero_parcela}) — corrija e gere nova remessa.`;
+        } else if (statusReal === "pendente") {
+          msg = `Boleto pendente (parcela ${bloqueio.numero_parcela}) — gere a remessa Safra antes de enviar.`;
+        } else {
+          msg = `Boleto em status "${statusReal}" (parcela ${bloqueio.numero_parcela}) — não pode ser enviado.`;
+        }
+        throw new Error(msg);
       }
 
       // c) NF (PDF + XML)

@@ -25,7 +25,11 @@ export function useBoletosDoPedido(pedido_id: string | undefined) {
       const boletoTitulos: BoletoTitulo[] = (data ?? []) as any;
       const qtdTotal = boletoTitulos.length;
       const qtdRegistrados = boletoTitulos.filter(
-        (t) => (t.boleto_status === "registrado" || t.boleto_status === "remessa_gerada") && !!t.linha_digitavel,
+        (t) =>
+          (t.boleto_status === "registrado" ||
+            t.boleto_status === "remessa_gerada" ||
+            t.boleto_status === "vencido") &&
+          !!t.linha_digitavel,
       ).length;
       return {
         boletoTitulos,
