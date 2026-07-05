@@ -5,10 +5,11 @@ import { useCobrancaFila } from "@/hooks/credito/useCobrancaFila";
 import { useTitulosBoleto } from "@/hooks/credito/useTitulosBoleto";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import BancoSafra from "@/pages/administrativo/BancoSafra";
-import ContasReceberSops from "@/pages/Credito/ContasReceberSops";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
-import TodosTitulosTab from "@/pages/Credito/TodosTitulosTab";
+import TitulosTab from "@/pages/Credito/TitulosTab";
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
+import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
+import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -52,37 +53,8 @@ function tempoNaFila(iso: string): string {
   return `${d}d ${h % 24}h`;
 }
 
-function BadgeBoletoStatus({ status, codigoRejeicao }: { status: BoletoStatus; codigoRejeicao?: string | null }) {
-  const map: Record<BoletoStatus, { label: string; className: string; icon: JSX.Element }> = {
-    pendente: {
-      label: "Pendente",
-      className: "bg-muted text-muted-foreground border border-border",
-      icon: <Clock className="h-3 w-3" />,
-    },
-    remessa_gerada: {
-      label: "Remessa gerada",
-      className: "bg-amber-50 text-amber-700 border border-amber-200",
-      icon: <FileText className="h-3 w-3" />,
-    },
-    registrado: {
-      label: "Registrado",
-      className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-      icon: <CheckCircle2 className="h-3 w-3" />,
-    },
-    rejeitado: {
-      label: codigoRejeicao ? `Rejeitado (${codigoRejeicao})` : "Rejeitado",
-      className: "bg-red-50 text-red-700 border border-red-200",
-      icon: <XCircle className="h-3 w-3" />,
-    },
-  };
-  const { label, className, icon } = map[status] ?? map.pendente;
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>
-      {icon}
-      {label}
-    </span>
-  );
-}
+// BadgeBoletoStatus foi extraído para src/components/credito/BadgeBoletoStatus.tsx
+
 
 function MiniPipeline({ titulos }: { titulos: TituloBoletoPendente[] }) {
   const counts = {
