@@ -510,6 +510,36 @@ export default function TitulosTab() {
                           ? new Date(detalhe.boleto_enviado_em).toLocaleString("pt-BR")
                           : "—"}
                       </div>
+                      {detalhe.boleto_status === "baixa_solicitada" && detalhe.reemissao_nova_data && (
+                        <Alert className="border-amber-300 bg-amber-50 text-amber-900">
+                          <AlertTriangle className="h-4 w-4 !text-amber-700" />
+                          <AlertDescription className="text-xs space-y-2">
+                            <div>
+                              <span className="font-medium">Reemissão agendada</span> — novo vencimento{" "}
+                              {formatDateBR(detalhe.reemissao_nova_data)}
+                              {detalhe.reemissao_novo_valor != null
+                                ? `, novo valor ${formatBRL(detalhe.reemissao_novo_valor)}`
+                                : ""}
+                              . Gere a remessa de baixa na aba Banco para efetivar.
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => setCancelandoReemissao(detalhe)}
+                            >
+                              Cancelar reemissão
+                            </Button>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      {detalhe.reemissao_aplicada_em && (
+                        <div className="text-xs text-muted-foreground">
+                          Reemitido em{" "}
+                          {new Date(detalhe.reemissao_aplicada_em).toLocaleString("pt-BR")}
+                          {detalhe.reemissao_motivo ? ` — motivo: ${detalhe.reemissao_motivo}` : ""}
+                        </div>
+                      )}
                     </div>
                   </section>
                 )}
