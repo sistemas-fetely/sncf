@@ -18464,6 +18464,10 @@ export type Database = {
           pedido_estagio: string | null
           pedido_id: string | null
           pedido_id_externo: string | null
+          reemissao_aplicada_em: string | null
+          reemissao_motivo: string | null
+          reemissao_nova_data: string | null
+          reemissao_novo_valor: number | null
           remessa_safra_id: string | null
           status_gestao: string | null
           status_real: string | null
