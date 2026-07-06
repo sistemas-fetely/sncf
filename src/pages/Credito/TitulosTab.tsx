@@ -585,7 +585,7 @@ export default function TitulosTab() {
                   const bloqueado = isVencido || isRejeitado;
                   if (!podeReenviarBoleto(detalhe) && !bloqueado) return null;
                   const tooltipMsg = isVencido
-                    ? "Boleto vencido não é pagável — reemita com nova data."
+                    ? "Boleto vencido não é pagável — use Reemitir boleto."
                     : isRejeitado
                     ? "Boleto rejeitado pelo banco."
                     : null;
@@ -608,6 +608,15 @@ export default function TitulosTab() {
                     </TooltipProvider>
                   );
                 })()}
+                {detalhe.tipo_pagamento === "boleto" &&
+                  (detalhe.boleto_status === "vencido" || detalhe.boleto_status === "rejeitado") &&
+                  detalhe.status_gestao !== "pago" &&
+                  detalhe.status_gestao !== "cancelado" && (
+                    <Button variant="outline" onClick={() => setReemitindo(detalhe)}>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Reemitir boleto
+                    </Button>
+                  )}
                 {detalhe.status_gestao === "pago" && (
                   <Button variant="outline" onClick={() => setConvertendo(detalhe)}>
                     Converter em crédito
