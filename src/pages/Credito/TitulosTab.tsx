@@ -16,6 +16,7 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -538,15 +539,35 @@ export default function TitulosTab() {
                     Copiar linha digitável
                   </Button>
                 )}
-                {podeReenviarBoleto(detalhe) && (
-                  <Button
-                    variant="outline"
-                    disabled={enviarBoleto.isPending}
-                    onClick={() => enviarBoleto.mutate(detalhe.id)}
-                  >
-                    {enviarBoleto.isPending ? "Enviando..." : "Reenviar boleto por e-mail"}
-                  </Button>
-                )}
+                {detalhe.tipo_pagamento === "boleto" && (() => {
+                  const isVencido = detalhe.boleto_status === "vencido";
+                  const isRejeitado = detalhe.boleto_status === "rejeitado";
+                  const bloqueado = isVencido || isRejeitado;
+                  if (!podeReenviarBoleto(detalhe) && !bloqueado) return null;
+                  const tooltipMsg = isVencido
+                    ? "Boleto vencido não é pagável — reemita com nova data."
+                    : isRejeitado
+                    ? "Boleto rejeitado pelo banco."
+                    : null;
+                  const btn = (
+                    <Button
+                      variant="outline"
+                      disabled={bloqueado || enviarBoleto.isPending}
+                      onClick={() => !bloqueado && enviarBoleto.mutate(detalhe.id)}
+                    >
+                      {enviarBoleto.isPending ? "Enviando..." : "Reenviar boleto por e-mail"}
+                    </Button>
+                  );
+                  if (!tooltipMsg) return btn;
+                  return (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
+                        <TooltipContent>{tooltipMsg}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })()}
                 {detalhe.status_gestao === "pago" && (
                   <Button variant="outline" onClick={() => setConvertendo(detalhe)}>
                     Converter em crédito

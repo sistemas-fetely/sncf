@@ -27,8 +27,7 @@ export function useBoletosDoPedido(pedido_id: string | undefined) {
       const qtdRegistrados = boletoTitulos.filter(
         (t) =>
           (t.boleto_status === "registrado" ||
-            t.boleto_status === "remessa_gerada" ||
-            t.boleto_status === "vencido") &&
+            t.boleto_status === "remessa_gerada") &&
           !!t.linha_digitavel,
       ).length;
       return {
