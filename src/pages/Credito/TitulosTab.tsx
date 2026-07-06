@@ -142,6 +142,8 @@ export default function TitulosTab() {
   const [detalhe, setDetalhe] = useState<TituloCobranca | null>(null);
   const [baixando, setBaixando] = useState<TituloCobranca | null>(null);
   const [convertendo, setConvertendo] = useState<TituloCobranca | null>(null);
+  const [reemitindo, setReemitindo] = useState<TituloCobranca | null>(null);
+  const [cancelandoReemissao, setCancelandoReemissao] = useState<TituloCobranca | null>(null);
 
   const kpis = useMemo(() => calcularKpis(titulos), [titulos]);
   const mesAtual = new Date().toISOString().slice(0, 7);
