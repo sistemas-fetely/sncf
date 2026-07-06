@@ -24,13 +24,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Copy, ExternalLink } from "lucide-react";
+import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
+import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 
 type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca";
