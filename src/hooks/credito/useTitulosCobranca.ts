@@ -46,6 +46,10 @@ export interface TituloCobranca {
   pedido_estagio: string | null;
   nf_numero: string | null;
   banco_nome: string | null;
+  reemissao_nova_data: string | null;
+  reemissao_novo_valor: number | null;
+  reemissao_motivo: string | null;
+  reemissao_aplicada_em: string | null;
 }
 
 export interface KpisTitulos {
