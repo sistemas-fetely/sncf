@@ -14840,6 +14840,10 @@ export type Database = {
           numero_titulo: string
           pausa_regua_automatica: boolean
           pedido_id: string
+          reemissao_aplicada_em: string | null
+          reemissao_motivo: string | null
+          reemissao_nova_data: string | null
+          reemissao_novo_valor: number | null
           remessa_safra_id: string | null
           status: string
           subestado_atraso: string
@@ -14895,6 +14899,10 @@ export type Database = {
           numero_titulo: string
           pausa_regua_automatica?: boolean
           pedido_id: string
+          reemissao_aplicada_em?: string | null
+          reemissao_motivo?: string | null
+          reemissao_nova_data?: string | null
+          reemissao_novo_valor?: number | null
           remessa_safra_id?: string | null
           status?: string
           subestado_atraso?: string
@@ -14950,6 +14958,10 @@ export type Database = {
           numero_titulo?: string
           pausa_regua_automatica?: boolean
           pedido_id?: string
+          reemissao_aplicada_em?: string | null
+          reemissao_motivo?: string | null
+          reemissao_nova_data?: string | null
+          reemissao_novo_valor?: number | null
           remessa_safra_id?: string | null
           status?: string
           subestado_atraso?: string
@@ -18937,6 +18949,10 @@ export type Database = {
         Args: { p_motivo: string; p_pedido_id: string }
         Returns: Json
       }
+      cancelar_reemissao_boleto: {
+        Args: { p_titulo_id: string }
+        Returns: Json
+      }
       clonar_pedido_cancelado: { Args: { p_pedido_id: string }; Returns: Json }
       comentar_pedido: {
         Args: { p_conteudo: string; p_pedido_id: string }
@@ -20113,6 +20129,15 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      solicitar_reemissao_boleto: {
+        Args: {
+          p_motivo?: string
+          p_nova_data: string
+          p_novo_valor?: number
+          p_titulo_id: string
+        }
+        Returns: Json
+      }
       submit_convite_cadastro: {
         Args: { _dados: Json; _token: string }
         Returns: boolean
