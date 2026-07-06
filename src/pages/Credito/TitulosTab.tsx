@@ -24,13 +24,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Copy, ExternalLink } from "lucide-react";
+import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
+import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 
 type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca";
@@ -134,6 +142,8 @@ export default function TitulosTab() {
   const [detalhe, setDetalhe] = useState<TituloCobranca | null>(null);
   const [baixando, setBaixando] = useState<TituloCobranca | null>(null);
   const [convertendo, setConvertendo] = useState<TituloCobranca | null>(null);
+  const [reemitindo, setReemitindo] = useState<TituloCobranca | null>(null);
+  const [cancelandoReemissao, setCancelandoReemissao] = useState<TituloCobranca | null>(null);
 
   const kpis = useMemo(() => calcularKpis(titulos), [titulos]);
   const mesAtual = new Date().toISOString().slice(0, 7);
@@ -500,6 +510,36 @@ export default function TitulosTab() {
                           ? new Date(detalhe.boleto_enviado_em).toLocaleString("pt-BR")
                           : "—"}
                       </div>
+                      {detalhe.boleto_status === "baixa_solicitada" && detalhe.reemissao_nova_data && (
+                        <Alert className="border-amber-300 bg-amber-50 text-amber-900">
+                          <AlertTriangle className="h-4 w-4 !text-amber-700" />
+                          <AlertDescription className="text-xs space-y-2">
+                            <div>
+                              <span className="font-medium">Reemissão agendada</span> — novo vencimento{" "}
+                              {formatDateBR(detalhe.reemissao_nova_data)}
+                              {detalhe.reemissao_novo_valor != null
+                                ? `, novo valor ${formatBRL(detalhe.reemissao_novo_valor)}`
+                                : ""}
+                              . Gere a remessa de baixa na aba Banco para efetivar.
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => setCancelandoReemissao(detalhe)}
+                            >
+                              Cancelar reemissão
+                            </Button>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      {detalhe.reemissao_aplicada_em && (
+                        <div className="text-xs text-muted-foreground">
+                          Reemitido em{" "}
+                          {new Date(detalhe.reemissao_aplicada_em).toLocaleString("pt-BR")}
+                          {detalhe.reemissao_motivo ? ` — motivo: ${detalhe.reemissao_motivo}` : ""}
+                        </div>
+                      )}
                     </div>
                   </section>
                 )}
@@ -545,7 +585,7 @@ export default function TitulosTab() {
                   const bloqueado = isVencido || isRejeitado;
                   if (!podeReenviarBoleto(detalhe) && !bloqueado) return null;
                   const tooltipMsg = isVencido
-                    ? "Boleto vencido não é pagável — reemita com nova data."
+                    ? "Boleto vencido não é pagável — use Reemitir boleto."
                     : isRejeitado
                     ? "Boleto rejeitado pelo banco."
                     : null;
@@ -568,6 +608,15 @@ export default function TitulosTab() {
                     </TooltipProvider>
                   );
                 })()}
+                {detalhe.tipo_pagamento === "boleto" &&
+                  (detalhe.boleto_status === "vencido" || detalhe.boleto_status === "rejeitado") &&
+                  detalhe.status_gestao !== "pago" &&
+                  detalhe.status_gestao !== "cancelado" && (
+                    <Button variant="outline" onClick={() => setReemitindo(detalhe)}>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Reemitir boleto
+                    </Button>
+                  )}
                 {detalhe.status_gestao === "pago" && (
                   <Button variant="outline" onClick={() => setConvertendo(detalhe)}>
                     Converter em crédito
@@ -613,6 +662,50 @@ export default function TitulosTab() {
           valor={convertendo.valor_efetivo}
         />
       )}
+
+      {reemitindo && (
+        <ReemitirBoletoDialog
+          titulo={reemitindo}
+          open={!!reemitindo}
+          onClose={() => setReemitindo(null)}
+        />
+      )}
+
+      <AlertDialog
+        open={!!cancelandoReemissao}
+        onOpenChange={(v) => !v && setCancelandoReemissao(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar reemissão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O boleto voltará ao status vencido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!cancelandoReemissao) return;
+                const id = cancelandoReemissao.id;
+                setCancelandoReemissao(null);
+                const { error } = await (supabase as any).rpc("cancelar_reemissao_boleto", {
+                  p_titulo_id: id,
+                });
+                if (error) {
+                  sonnerToast.error(error.message ?? "Erro ao cancelar reemissão.");
+                  return;
+                }
+                sonnerToast.success("Reemissão cancelada.");
+                qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+                setDetalhe(null);
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
