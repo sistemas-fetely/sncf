@@ -48,23 +48,26 @@ export function useEnviarEmailNfBoletos() {
       if (errT) throw new Error(errT.message);
       const titulos = (titulosRaw ?? []) as any[];
       if (!titulos.length) throw new Error("Pedido não possui títulos de boleto.");
-      const enviaveis = new Set(["registrado", "remessa_gerada", "vencido"]);
+      const enviaveis = new Set(["registrado", "remessa_gerada"]);
       const pendentes = titulos.filter(
         (t) => !enviaveis.has(t.boleto_status) || !t.linha_digitavel,
       );
       if (pendentes.length > 0) {
-        // Mensagem específica: mostra o status real do primeiro bloqueio
-        const bloqueio = pendentes[0];
-        const statusReal = bloqueio.boleto_status ?? "sem status";
+        // Prioriza causas mais graves: vencido > rejeitado > sem linha > pendente/outros
+        const vencido = pendentes.find((t) => t.boleto_status === "vencido");
+        const rejeitado = pendentes.find((t) => t.boleto_status === "rejeitado");
         let msg: string;
-        if (!bloqueio.linha_digitavel) {
-          msg = `Parcela ${bloqueio.numero_parcela} sem linha digitável — gere a remessa Safra antes de enviar.`;
-        } else if (statusReal === "rejeitado") {
-          msg = `Boleto rejeitado pelo banco (parcela ${bloqueio.numero_parcela}) — corrija e gere nova remessa.`;
-        } else if (statusReal === "pendente") {
-          msg = `Boleto pendente (parcela ${bloqueio.numero_parcela}) — gere a remessa Safra antes de enviar.`;
+        if (vencido) {
+          msg = `Boleto vencido (parcela ${vencido.numero_parcela}) — o boleto Safra não é pagável após o vencimento. Reemita o boleto com nova data antes de enviar ao cliente.`;
+        } else if (rejeitado) {
+          msg = `Boleto rejeitado pelo banco (parcela ${rejeitado.numero_parcela}) — corrija os dados e gere nova remessa.`;
         } else {
-          msg = `Boleto em status "${statusReal}" (parcela ${bloqueio.numero_parcela}) — não pode ser enviado.`;
+          const bloqueio = pendentes[0];
+          if (!bloqueio.linha_digitavel) {
+            msg = `Parcela ${bloqueio.numero_parcela} sem linha digitável — gere a remessa Safra antes de enviar.`;
+          } else {
+            msg = `Há boletos sem remessa gerada neste pedido — gere a remessa Safra antes de enviar.`;
+          }
         }
         throw new Error(msg);
       }
