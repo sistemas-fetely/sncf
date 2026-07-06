@@ -662,6 +662,50 @@ export default function TitulosTab() {
           valor={convertendo.valor_efetivo}
         />
       )}
+
+      {reemitindo && (
+        <ReemitirBoletoDialog
+          titulo={reemitindo}
+          open={!!reemitindo}
+          onClose={() => setReemitindo(null)}
+        />
+      )}
+
+      <AlertDialog
+        open={!!cancelandoReemissao}
+        onOpenChange={(v) => !v && setCancelandoReemissao(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar reemissão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O boleto voltará ao status vencido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!cancelandoReemissao) return;
+                const id = cancelandoReemissao.id;
+                setCancelandoReemissao(null);
+                const { error } = await (supabase as any).rpc("cancelar_reemissao_boleto", {
+                  p_titulo_id: id,
+                });
+                if (error) {
+                  sonnerToast.error(error.message ?? "Erro ao cancelar reemissão.");
+                  return;
+                }
+                sonnerToast.success("Reemissão cancelada.");
+                qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+                setDetalhe(null);
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
