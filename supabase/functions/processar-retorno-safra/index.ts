@@ -171,6 +171,7 @@ serve(async (req) => {
             id, numero_titulo, numero_parcela, total_parcelas,
             valor_bruto, data_vencimento_atual, boleto_status, pedido_id,
             nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
+            prorrogacao_nova_data, prorrogacao_solicitada_em,
             conta:contas_pagar_receber(
               parceiro:parceiros_comerciais(razao_social, email)
             )
