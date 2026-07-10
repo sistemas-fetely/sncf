@@ -44,6 +44,11 @@ const MAP: Record<string, StatusMap> = {
     className: "bg-amber-50 text-muted-foreground border border-amber-200",
     icon: <Clock className="h-3 w-3" />,
   },
+  baixado_banco: {
+    label: "Baixado (banco)",
+    className: "bg-muted text-muted-foreground border border-border",
+    icon: <Archive className="h-3 w-3" />,
+  },
 };
 
 export function BadgeBoletoStatus({
