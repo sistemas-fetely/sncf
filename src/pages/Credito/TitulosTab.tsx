@@ -32,6 +32,7 @@ import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog";
+import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
