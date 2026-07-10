@@ -243,6 +243,7 @@ export default function BancoSafra() {
   });
 
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
+  const [gerandoProrrogacao, setGerandoProrrogacao] = useState(false);
 
   // edição inline de boletos
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
