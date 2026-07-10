@@ -692,6 +692,14 @@ export default function TitulosTab() {
                       Reemitir boleto
                     </Button>
                   )}
+                {detalhe.tipo_pagamento === "boleto" &&
+                  detalhe.boleto_status === "registrado" &&
+                  (detalhe.status_gestao === "a_vencer" || detalhe.status_gestao === "vence_hoje") &&
+                  detalhe.prorrogacao_nova_data === null && (
+                    <Button variant="outline" onClick={() => setProrrogando(detalhe)}>
+                      Prorrogar vencimento
+                    </Button>
+                  )}
                 {detalhe.status_gestao === "pago" && (
                   <Button variant="outline" onClick={() => setConvertendo(detalhe)}>
                     Converter em crédito
