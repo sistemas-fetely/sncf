@@ -754,6 +754,14 @@ export default function TitulosTab() {
         />
       )}
 
+      {prorrogando && (
+        <ProrrogarVencimentoDialog
+          titulo={prorrogando}
+          open={!!prorrogando}
+          onClose={() => setProrrogando(null)}
+        />
+      )}
+
       <AlertDialog
         open={!!cancelandoReemissao}
         onOpenChange={(v) => !v && setCancelandoReemissao(null)}
