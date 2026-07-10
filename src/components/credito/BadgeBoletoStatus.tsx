@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Clock, FileText, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, FileText, AlertTriangle, Archive } from "lucide-react";
 import type { JSX } from "react";
 
 type StatusMap = { label: string; className: string; icon: JSX.Element };
@@ -43,6 +43,11 @@ const MAP: Record<string, StatusMap> = {
     label: "Baixa solicitada",
     className: "bg-amber-50 text-muted-foreground border border-amber-200",
     icon: <Clock className="h-3 w-3" />,
+  },
+  baixado_banco: {
+    label: "Baixado (banco)",
+    className: "bg-muted text-muted-foreground border border-border",
+    icon: <Archive className="h-3 w-3" />,
   },
 };
 

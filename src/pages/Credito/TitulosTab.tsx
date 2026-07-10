@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useTitulosCobranca,
   calcularKpis,
@@ -69,6 +69,45 @@ function BadgeStatusGestao({ status }: { status: StatusGestao }) {
     >
       {STATUS_LABEL[status]}
     </span>
+  );
+}
+
+function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
+  const { data } = useQuery({
+    queryKey: ["safra-motivo-rejeicao", codigo],
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            eq: (c: string, v: string) => {
+              maybeSingle: () => Promise<{ data: { descricao: string; observacao: string | null } | null; error: unknown }>;
+            };
+          };
+        };
+      })
+        .from("safra_motivos_rejeicao")
+        .select("descricao, observacao")
+        .eq("codigo", codigo)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    staleTime: 5 * 60_000,
+  });
+  if (!data) {
+    return (
+      <div className="text-xs text-red-700">
+        Rejeição {codigo}
+      </div>
+    );
+  }
+  return (
+    <div className="text-xs text-red-700 space-y-0.5">
+      <div>Rejeição {codigo} — {data.descricao}</div>
+      {data.observacao && (
+        <div className="text-[11px] text-muted-foreground">{data.observacao}</div>
+      )}
+    </div>
   );
 }
 
@@ -485,6 +524,9 @@ export default function TitulosTab() {
                         status={detalhe.boleto_status}
                         codigoRejeicao={detalhe.boleto_codigo_rejeicao}
                       />
+                      {detalhe.boleto_status === "rejeitado" && detalhe.boleto_codigo_rejeicao && (
+                        <MotivoRejeicaoSafra codigo={detalhe.boleto_codigo_rejeicao} />
+                      )}
                       <div className="text-xs">
                         <span className="text-muted-foreground">Nosso número: </span>
                         <span className="font-mono">{detalhe.nosso_numero_seq ?? "—"}</span>

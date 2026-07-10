@@ -6,48 +6,52 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ═════════════════════════════════════════════════════════════════════════
+// parse de linhas de detalhe do retorno CNAB 400 Safra
+// ═════════════════════════════════════════════════════════════════════════
 
 interface LinhaRetorno {
-  ocorrencia: string;
-  seuNumero: string;
-  nossoNumero: string;
-  motivoRejeicao: string;
+  numeroLinha: number;
+  ocorrencia: string;      // pos 109-110
+  seuNumero: string;       // pos 117-126
+  nossoNumero: string;     // pos 63-71
+  motivoRejeicao: string;  // pos 105-107
+  dataCreditoRaw: string;  // pos 296-301 (DDMMAA)
+  dataVencRaw: string;     // pos 147-152 (DDMMAA)
+  valorTituloRaw: string;  // pos 153-165 (13 dígitos, 2 decimais)
 }
 
-function parseLinha(linha: string): LinhaRetorno | null {
+function parseLinha(linha: string, numeroLinha: number): LinhaRetorno | null {
   if (linha.length < 400 || linha[0] !== "1") return null;
-  // Nosso número nas posições 63-71 (este offset já estava correto).
-  // Normaliza zeros à esquerda para casar com nosso_numero_seq (gravado sem padding no banco).
   const nnRaw = linha.substring(62, 71).trim();
   return {
+    numeroLinha,
     nossoNumero: nnRaw.replace(/^0+/, "") || nnRaw,
-    motivoRejeicao: linha.substring(104, 107).trim(), // NÃO validado p/ rejeição — manter como está por ora
-    ocorrencia:     linha.substring(108, 110).trim(), // 109-110 (correto)
-    seuNumero:      linha.substring(116, 126).trim(), // CORRIGIDO: 117-126 (número do doc no RETORNO) — uso só p/ log/exibição
+    motivoRejeicao: linha.substring(104, 107).trim(),
+    ocorrencia:     linha.substring(108, 110).trim(),
+    seuNumero:      linha.substring(116, 126).trim(),
+    dataVencRaw:    linha.substring(146, 152).trim(),
+    valorTituloRaw: linha.substring(152, 165).trim(),
+    dataCreditoRaw: linha.substring(295, 301).trim(),
   };
 }
 
-const OCORRENCIA_CONFIRMADA  = "02";
-const OCORRENCIAS_LIQUIDACAO = ["06", "09"];
-const OCORRENCIAS_REJEICAO   = ["03", "15", "16", "17"];
+function parseDDMMAA(s: string): string | null {
+  if (!/^\d{6}$/.test(s) || s === "000000") return null;
+  const dd = s.slice(0, 2), mm = s.slice(2, 4), aa = s.slice(4, 6);
+  const dNum = parseInt(dd, 10), mNum = parseInt(mm, 10);
+  if (dNum < 1 || dNum > 31 || mNum < 1 || mNum > 12) return null;
+  return `20${aa}-${mm}-${dd}`;
+}
 
-const MOTIVOS_REJEICAO: Record<string, string> = {
-  "001": "Código do banco inválido",
-  "004": "Código de movimento inválido",
-  "007": "Agência/conta inválida",
-  "008": "Nosso número inválido",
-  "010": "Carteira não cadastrada",
-  "015": "CNPJ/CPF do pagador inválido",
-  "016": "Agência cobradora inválida",
-  "017": "CEP do pagador inválido",
-  "018": "Data de vencimento inválida",
-  "021": "Espécie inválida",
-  "022": "Data de emissão inválida",
-  "060": "Movimento inválido para carteira",
-};
-
-function descricaoRejeicao(codigo: string): string {
-  return MOTIVOS_REJEICAO[codigo] ?? `Código de rejeição ${codigo}`;
+function parseValor13d2(s: string): number | null {
+  if (!/^\d{1,13}$/.test(s)) return null;
+  const padded = s.padStart(13, "0");
+  const inteiros = padded.slice(0, 11);
+  const decimais = padded.slice(11);
+  const v = parseInt(inteiros, 10) + parseInt(decimais, 10) / 100;
+  if (!Number.isFinite(v) || v <= 0) return null;
+  return v;
 }
 
 serve(async (req) => {
@@ -55,33 +59,63 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const anonKey    = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const anonKey     = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ ok: false, erro: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: false, erro: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     const sbUser = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
     const { data: userData, error: userErr } = await sbUser.auth.getUser();
     if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ ok: false, erro: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: false, erro: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     const sb = createClient(supabaseUrl, serviceKey);
 
     const body = await req.json();
     const arquivoConteudo: string = body.arquivo_conteudo ?? "";
     if (!arquivoConteudo) {
-      return new Response(JSON.stringify({ ok: false, erro: "arquivo_conteudo é obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: false, erro: "arquivo_conteudo é obrigatório" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const linhas   = arquivoConteudo.split(/\r?\n/).filter((l) => l.length >= 400);
-    const detalhes = linhas.map(parseLinha).filter((l): l is LinhaRetorno => l !== null);
+    // ── carrega dimensão de ocorrências (fonte da verdade) ─────────────────
+    const { data: dims, error: dimsErr } = await sb
+      .from("safra_ocorrencias_retorno")
+      .select("codigo, categoria, descricao, ativo, gera_data_credito");
+    if (dimsErr) {
+      return new Response(JSON.stringify({ ok: false, erro: `Falha ao carregar dimensão: ${dimsErr.message}` }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // deno-lint-ignore no-explicit-any
+    const mapaOcorrencias = new Map<string, any>((dims ?? []).map((d: any) => [d.codigo, d]));
+
+    // ── carrega dimensão de motivos de rejeição (para relatório) ───────────
+    const { data: mots } = await sb.from("safra_motivos_rejeicao").select("codigo, descricao");
+    const mapaMotivos = new Map<string, string>((mots ?? []).map((m: { codigo: string; descricao: string }) => [m.codigo, m.descricao]));
+    const descricaoRejeicao = (cod: string) => mapaMotivos.get(cod) ?? `Código de rejeição ${cod}`;
+
+    const linhasBrutas = arquivoConteudo.split(/\r?\n/);
+    const detalhes: LinhaRetorno[] = [];
+    linhasBrutas.forEach((l, i) => {
+      const parsed = parseLinha(l, i + 1);
+      if (parsed) detalhes.push(parsed);
+    });
     if (detalhes.length === 0) {
-      return new Response(JSON.stringify({ ok: false, erro: "Nenhuma linha de detalhe encontrada" }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: false, erro: "Nenhuma linha de detalhe encontrada" }), {
+        status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const headerLinha = linhas.find((l) => l[0] === "0");
+    // ── remessa (via header) ───────────────────────────────────────────────
+    const headerLinha = linhasBrutas.find((l) => l.length >= 400 && l[0] === "0");
     let remessaId: string | null = null;
     if (headerLinha && headerLinha.length >= 394) {
       const nroSeq = parseInt(headerLinha.substring(391, 394).trim(), 10);
@@ -91,142 +125,279 @@ serve(async (req) => {
       }
     }
 
-    // PB-1: Buscar conta bancária Safra (banco_codigo 422) — usada nos registros de movimentação
+    // ── conta bancária Safra p/ movimentacoes_bancarias ────────────────────
     const { data: safraConta } = await sb
-      .from("contas_bancarias")
-      .select("id")
-      .eq("banco_codigo", "422")
-      .eq("ativo", true)
-      .maybeSingle();
-
+      .from("contas_bancarias").select("id").eq("banco_codigo", "422").eq("ativo", true).maybeSingle();
     if (!safraConta) {
       console.warn("[retorno-safra] Conta bancária Safra (422) não encontrada — movimentacoes_bancarias não serão gravadas");
     }
 
-    let confirmados = 0, rejeitados = 0, liquidados = 0, emailsEnviados = 0;
+    // ── contadores + relatório ─────────────────────────────────────────────
+    const contadores = {
+      registros: 0, rejeicoes: 0, liquidacoes: 0, baixas: 0,
+      alteracoes: 0, informativos: 0, ignoradas: 0,
+    };
+    const alertas: string[] = [];
+    const erros: Array<{ linha: number; nosso_numero: string; erro: string }> = [];
+    const infoInformativos: Record<string, number> = {};
     const detalhesRejeicao: Array<{ numero_titulo: string; parceiro_nome: string; codigo_rejeicao: string; motivo: string }> = [];
 
     for (const linha of detalhes) {
-      const { data: titulo, error: tErr } = await sb
-        .from("titulo_a_receber")
-        .select(`
-          id, numero_titulo, numero_parcela, total_parcelas,
-          valor_bruto, data_vencimento_atual, boleto_status, pedido_id,
-          nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
-          conta:contas_pagar_receber(
-            parceiro:parceiros_comerciais(razao_social, email)
-          )
-        `)
-        .eq("nosso_numero_seq", linha.nossoNumero)
-        .maybeSingle();
+      try {
+        const dim = mapaOcorrencias.get(linha.ocorrencia);
 
-      if (tErr || !titulo) {
-        console.warn(`[retorno-safra] Título não encontrado: nossoNumero=${linha.nossoNumero} seuNumero=${linha.seuNumero}`);
-        continue;
-      }
-
-      // deno-lint-ignore no-explicit-any
-      const t = titulo as any;
-      const parceiro = t.conta?.parceiro;
-
-      // ── Ocorrência 02: Registro confirmado ────────────────────────────────
-      if (linha.ocorrencia === OCORRENCIA_CONFIRMADA) {
-        await sb.from("titulo_a_receber").update({ boleto_status: "registrado" }).eq("id", t.id);
-        confirmados++;
-
-      // ── Ocorrências 06/09: Liquidação ─────────────────────────────────────
-      } else if (OCORRENCIAS_LIQUIDACAO.includes(linha.ocorrencia)) {
-
-        if (t.boleto_status === "pago_manual") {
-          console.log(`[retorno-safra] Título ${t.id} já pago_manual — ocorrência ${linha.ocorrencia} ignorada`);
-          liquidados++;
+        // ── ocorrência desconhecida OU inativa ────────────────────────────
+        if (!dim || dim.ativo === false) {
+          contadores.ignoradas++;
+          alertas.push(
+            `Ocorrência ${linha.ocorrencia} (${dim?.descricao ?? "desconhecida"}) ignorada — título ${linha.nossoNumero}.`
+          );
           continue;
         }
 
-        const agora = new Date().toISOString();
+        const categoria = dim.categoria as string;
 
-        // 1. marcar_titulo_pago: status='pago' + cascade CPR
-        const { error: errMarca } = await sb.rpc("marcar_titulo_pago" as string, {
-          p_titulo_id: t.id,
-          p_data_pagamento: agora,
-        });
-        if (errMarca) {
-          console.error(`[retorno-safra] marcar_titulo_pago falhou para ${t.id}:`, errMarca);
+        // ── informativo: só conta ──────────────────────────────────────────
+        if (categoria === "informativo") {
+          contadores.informativos++;
+          infoInformativos[linha.ocorrencia] = (infoInformativos[linha.ocorrencia] ?? 0) + 1;
           continue;
         }
 
-        // 2. Atualiza campos específicos do ciclo boleto
-        const { error: errBoleto } = await sb
+        // ── busca do título (necessário para todos os branches restantes) ─
+        const { data: titulo, error: tErr } = await sb
           .from("titulo_a_receber")
-          .update({ boleto_status: "pago_banco", data_pagamento_banco: agora })
-          .eq("id", t.id);
-        if (errBoleto) {
-          console.error(`[retorno-safra] update boleto_status falhou para ${t.id}:`, errBoleto);
+          .select(`
+            id, numero_titulo, numero_parcela, total_parcelas,
+            valor_bruto, data_vencimento_atual, boleto_status, pedido_id,
+            nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
+            conta:contas_pagar_receber(
+              parceiro:parceiros_comerciais(razao_social, email)
+            )
+          `)
+          .eq("nosso_numero_seq", linha.nossoNumero)
+          .maybeSingle();
+
+        if (tErr) {
+          erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: tErr.message });
+          continue;
         }
 
-        // 3. Grava crédito no razão financeiro — idempotente via hash_unico (23505 = já gravado, ok)
-        if (safraConta) {
-          const { error: errMov } = await sb
-            .from("movimentacoes_bancarias")
-            .insert({
-              conta_bancaria_id:  safraConta.id,
-              data_transacao:     agora.slice(0, 10),
-              descricao:          `Boleto ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"} — ${parceiro?.razao_social ?? "Cliente"}`,
-              valor:              Number(t.valor_bruto),
-              tipo:               "credito",
-              origem:             "csv_safra",
-              hash_unico:         `safra_boleto_${t.id}`,
-              id_transacao_banco: linha.nossoNumero || null,
-              conciliado:         true,
-              conciliado_em:      agora,
-            });
-          if (errMov && errMov.code !== "23505") {
-            console.error(`[retorno-safra] insert movimentacao_bancaria falhou para ${t.id}:`, errMov);
+        // Título não encontrado: para BAIXA é esperado (reemissão); demais viram alerta.
+        if (!titulo) {
+          if (categoria === "baixa") {
+            contadores.baixas++;
+            alertas.push(`Baixa (${linha.ocorrencia}) para nosso número ${linha.nossoNumero} — título não encontrado (provável reemissão anterior).`);
+          } else {
+            alertas.push(`Título não encontrado para ocorrência ${linha.ocorrencia} — nosso número ${linha.nossoNumero}.`);
           }
+          continue;
         }
 
-        // 4. Avança pedido para pre_faturado (non-fatal)
-        if (t.pedido_id) {
-          const { error: errTransicao } = await sb.rpc("transicionar_pedido" as string, {
-            p_pedido_id: t.pedido_id,
-            p_para_estagio: "pre_faturado",
-            p_proxima_acao: "Pronto pra enviar pro Bling",
-            p_motivo: `Liquidação confirmada pelo Safra — ocorrência ${linha.ocorrencia}`,
+        // deno-lint-ignore no-explicit-any
+        const t = titulo as any;
+        const parceiro = t.conta?.parceiro;
+
+        // ═══════════════════════════════════════════════════════════════════
+        // REGISTRO (02)  — comportamento preservado
+        // ═══════════════════════════════════════════════════════════════════
+        if (categoria === "registro") {
+          await sb.from("titulo_a_receber").update({ boleto_status: "registrado" }).eq("id", t.id);
+          contadores.registros++;
+          continue;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // REJEIÇÃO (03)  — comportamento preservado
+        // ═══════════════════════════════════════════════════════════════════
+        if (categoria === "rejeicao") {
+          await sb.from("titulo_a_receber")
+            .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
+            .eq("id", t.id);
+          contadores.rejeicoes++;
+          detalhesRejeicao.push({
+            numero_titulo:   t.numero_titulo,
+            parceiro_nome:   parceiro?.razao_social ?? "—",
+            codigo_rejeicao: linha.motivoRejeicao,
+            motivo:          descricaoRejeicao(linha.motivoRejeicao),
           });
-          if (errTransicao) {
-            console.warn(`[retorno-safra] transicionar_pedido falhou para ${t.pedido_id}:`, errTransicao);
-          }
+          continue;
         }
 
-        liquidados++;
+        // ═══════════════════════════════════════════════════════════════════
+        // LIQUIDAÇÃO (06, 15, 41)
+        // ═══════════════════════════════════════════════════════════════════
+        if (categoria === "liquidacao") {
+          if (t.boleto_status === "pago_manual") {
+            console.log(`[retorno-safra] Título ${t.id} já pago_manual — ocorrência ${linha.ocorrencia} ignorada`);
+            contadores.liquidacoes++;
+            continue;
+          }
 
-      // ── Rejeições ─────────────────────────────────────────────────────────
-      } else if (OCORRENCIAS_REJEICAO.includes(linha.ocorrencia) || linha.motivoRejeicao !== "000") {
-        await sb.from("titulo_a_receber")
-          .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
-          .eq("id", t.id);
-        rejeitados++;
-        detalhesRejeicao.push({
-          numero_titulo:   t.numero_titulo,
-          parceiro_nome:   parceiro?.razao_social ?? "—",
-          codigo_rejeicao: linha.motivoRejeicao,
-          motivo:          descricaoRejeicao(linha.motivoRejeicao),
+          // Data de pagamento: prefere data de crédito do arquivo quando dim.gera_data_credito.
+          const agoraIso = new Date().toISOString();
+          let dataPagamentoIso = agoraIso;
+          if (dim.gera_data_credito) {
+            const dc = parseDDMMAA(linha.dataCreditoRaw);
+            if (dc) {
+              dataPagamentoIso = `${dc}T12:00:00.000Z`;
+            } else {
+              alertas.push(`Data de crédito inválida/zerada para título ${linha.nossoNumero} — usando data do processamento.`);
+            }
+          }
+
+          const { error: errMarca } = await sb.rpc("marcar_titulo_pago" as string, {
+            p_titulo_id: t.id,
+            p_data_pagamento: dataPagamentoIso,
+          });
+          if (errMarca) {
+            erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `marcar_titulo_pago: ${errMarca.message}` });
+            continue;
+          }
+
+          const { error: errBoleto } = await sb
+            .from("titulo_a_receber")
+            .update({ boleto_status: "pago_banco", data_pagamento_banco: dataPagamentoIso })
+            .eq("id", t.id);
+          if (errBoleto) {
+            erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update boleto: ${errBoleto.message}` });
+          }
+
+          if (safraConta) {
+            const { error: errMov } = await sb
+              .from("movimentacoes_bancarias")
+              .insert({
+                conta_bancaria_id:  safraConta.id,
+                data_transacao:     dataPagamentoIso.slice(0, 10),
+                descricao:          `Boleto ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"} — ${parceiro?.razao_social ?? "Cliente"}`,
+                valor:              Number(t.valor_bruto),
+                tipo:               "credito",
+                origem:             "csv_safra",
+                hash_unico:         `safra_boleto_${t.id}`,
+                id_transacao_banco: linha.nossoNumero || null,
+                conciliado:         true,
+                conciliado_em:      new Date().toISOString(),
+              });
+            if (errMov && errMov.code !== "23505") {
+              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `mov bancária: ${errMov.message}` });
+            }
+          }
+
+          if (t.pedido_id) {
+            const { error: errTransicao } = await sb.rpc("transicionar_pedido" as string, {
+              p_pedido_id: t.pedido_id,
+              p_para_estagio: "pre_faturado",
+              p_proxima_acao: "Pronto pra enviar pro Bling",
+              p_motivo: `Liquidação confirmada pelo Safra — ocorrência ${linha.ocorrencia}`,
+            });
+            if (errTransicao) {
+              console.warn(`[retorno-safra] transicionar_pedido falhou para ${t.pedido_id}:`, errTransicao);
+            }
+          }
+
+          contadores.liquidacoes++;
+          continue;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // BAIXA (09, 10, 40)  — NUNCA é pagamento
+        // ═══════════════════════════════════════════════════════════════════
+        if (categoria === "baixa") {
+          if (t.boleto_status === "pago_manual" || t.boleto_status === "pago_banco") {
+            alertas.push(
+              `⚠ Baixa (${linha.ocorrencia}) recebida para título ${linha.nossoNumero} já ${t.boleto_status} — verificar.`
+            );
+            contadores.baixas++;
+            continue;
+          }
+
+          await sb.from("titulo_a_receber")
+            .update({ boleto_status: "baixado_banco" })
+            .eq("id", t.id);
+
+          if (linha.ocorrencia === "09") {
+            alertas.push(
+              `⚠ Baixa automática pelo banco — título ${linha.nossoNumero}. Ação não solicitada pelo SNCF, verificar com o banco.`
+            );
+          }
+          contadores.baixas++;
+          continue;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ALTERAÇÃO (14 vencimento / 51 valor nominal)
+        // ═══════════════════════════════════════════════════════════════════
+        if (categoria === "alteracao") {
+          if (linha.ocorrencia === "14") {
+            const novaData = parseDDMMAA(linha.dataVencRaw);
+            if (!novaData) {
+              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: "Data de vencimento inválida na alteração 14" });
+              continue;
+            }
+            await sb.from("titulo_a_receber")
+              .update({ data_vencimento_atual: novaData })
+              .eq("id", t.id);
+            alertas.push(`Vencimento alterado para ${novaData} — título ${linha.nossoNumero}.`);
+            contadores.alteracoes++;
+            continue;
+          }
+          if (linha.ocorrencia === "51") {
+            const novoValor = parseValor13d2(linha.valorTituloRaw);
+            if (!novoValor) {
+              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: "Valor inválido na alteração 51" });
+              continue;
+            }
+            await sb.from("titulo_a_receber")
+              // deno-lint-ignore no-explicit-any
+              .update({ valor_atual: novoValor } as any)
+              .eq("id", t.id);
+            alertas.push(`Valor alterado para ${novoValor.toFixed(2)} — título ${linha.nossoNumero}.`);
+            contadores.alteracoes++;
+            continue;
+          }
+          // Outras alterações categorizadas: só contar
+          contadores.alteracoes++;
+          continue;
+        }
+
+        // fallback: categoria não prevista
+        contadores.ignoradas++;
+        alertas.push(`Categoria "${categoria}" não tratada (ocorrência ${linha.ocorrencia}) — título ${linha.nossoNumero}.`);
+      } catch (e) {
+        erros.push({
+          linha: linha.numeroLinha,
+          nosso_numero: linha.nossoNumero,
+          erro: e instanceof Error ? e.message : String(e),
         });
       }
     }
 
     if (remessaId) {
       await sb.from("remessas_safra").update({
-        status: rejeitados > 0 ? "com_rejeicoes" : "processada",
+        status: contadores.rejeicoes > 0 ? "com_rejeicoes" : "processada",
         retorno_processado_em: new Date().toISOString(),
       }).eq("id", remessaId);
     }
 
+    // Compat: campos antigos consumidos pela UI (confirmados/liquidados/rejeitados/detalhes_rejeicao)
     return new Response(
-      JSON.stringify({ ok: true, confirmados, liquidados, rejeitados, emails_enviados: emailsEnviados, detalhes_rejeicao: detalhesRejeicao, remessa_id: remessaId }),
+      JSON.stringify({
+        ok: true,
+        // legacy
+        confirmados: contadores.registros,
+        liquidados:  contadores.liquidacoes,
+        rejeitados:  contadores.rejeicoes,
+        emails_enviados: 0,
+        detalhes_rejeicao: detalhesRejeicao,
+        remessa_id: remessaId,
+        // novo relatório
+        contadores,
+        alertas,
+        erros,
+        informativos_por_codigo: infoInformativos,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (e) {
     console.error("processar-retorno-safra erro fatal", e);
     return new Response(
