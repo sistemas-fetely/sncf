@@ -211,6 +211,25 @@ serve(async (req) => {
         // REJEIÇÃO (03)  — comportamento preservado
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "rejeicao") {
+          // Rejeição de instrução de prorrogação (motivos 083, 112, 119)
+          // O boleto original segue válido — só a instrução falhou
+          if (
+            t.prorrogacao_solicitada_em !== null &&
+            ["083", "112", "119"].includes(linha.motivoRejeicao)
+          ) {
+            await sb.from("titulo_a_receber")
+              .update({
+                prorrogacao_nova_data:     null,
+                prorrogacao_solicitada_em: null,
+              } as any)
+              .eq("id", t.id);
+            const descMotivo = descricaoRejeicao(linha.motivoRejeicao);
+            alertas.push(
+              `⚠ Prorrogação rejeitada (motivo ${linha.motivoRejeicao}: ${descMotivo}) — boleto original permanece válido. Considere reemissão para o título ${linha.nossoNumero}.`
+            );
+            contadores.rejeicoes++;
+            continue;
+          }
           await sb.from("titulo_a_receber")
             .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
             .eq("id", t.id);
