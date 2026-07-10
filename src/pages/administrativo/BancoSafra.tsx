@@ -300,6 +300,30 @@ export default function BancoSafra() {
     }
   };
 
+  const handleGerarProrrogacao = async () => {
+    setGerandoProrrogacao(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
+        body: { tipo: "prorrogacao" },
+      });
+      if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de prorrogação");
+      const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.arquivo_nome;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: `Remessa de prorrogação gerada: ${data.qtd_titulos} boleto(s)` });
+      refetchBoletos();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erro ao gerar prorrogação", description: msg, variant: "destructive" });
+    } finally {
+      setGerandoProrrogacao(false);
+    }
+  };
+
   const kpis = useMemo(() => {
     const primeiroDia = new Date();
     primeiroDia.setDate(1);
