@@ -584,6 +584,37 @@ export default function TitulosTab() {
                           {detalhe.reemissao_motivo ? ` — motivo: ${detalhe.reemissao_motivo}` : ""}
                         </div>
                       )}
+                      {detalhe.prorrogacao_nova_data && (
+                        <Alert className="border-amber-200 bg-amber-50">
+                          <AlertDescription className="text-amber-800 text-xs">
+                            Prorrogação para {formatDateBR(detalhe.prorrogacao_nova_data)} pendente
+                            {detalhe.prorrogacao_solicitada_em
+                              ? " — remessa já enviada ao banco."
+                              : " — aguardando geração de remessa."}
+                            {!detalhe.prorrogacao_solicitada_em && (
+                              <button
+                                className="ml-2 underline text-amber-700 text-xs"
+                                onClick={async () => {
+                                  const { data, error } = await (supabase as any).rpc(
+                                    "cancelar_prorrogacao_boleto",
+                                    { p_titulo_id: detalhe.id },
+                                  );
+                                  if (error || (data && data.ok === false)) {
+                                    sonnerToast.error(
+                                      error?.message ?? data?.erro ?? "Erro ao cancelar prorrogação.",
+                                    );
+                                    return;
+                                  }
+                                  sonnerToast.success("Prorrogação cancelada.");
+                                  qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+                                }}
+                              >
+                                Cancelar
+                              </button>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
                   </section>
                 )}
