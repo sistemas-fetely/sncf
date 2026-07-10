@@ -12782,6 +12782,57 @@ export type Database = {
           },
         ]
       }
+      safra_motivos_rejeicao: {
+        Row: {
+          codigo: string
+          created_at: string
+          descricao: string
+          observacao: string | null
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          descricao: string
+          observacao?: string | null
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          observacao?: string | null
+        }
+        Relationships: []
+      }
+      safra_ocorrencias_retorno: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          codigo: string
+          created_at: string
+          descricao: string
+          gera_data_credito: boolean
+          observacao: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria: string
+          codigo: string
+          created_at?: string
+          descricao: string
+          gera_data_credito?: boolean
+          observacao?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          gera_data_credito?: boolean
+          observacao?: string | null
+        }
+        Relationships: []
+      }
       shopify_checkouts: {
         Row: {
           abandoned_checkout_url: string | null
