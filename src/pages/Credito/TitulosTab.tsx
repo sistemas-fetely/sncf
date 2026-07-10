@@ -524,6 +524,9 @@ export default function TitulosTab() {
                         status={detalhe.boleto_status}
                         codigoRejeicao={detalhe.boleto_codigo_rejeicao}
                       />
+                      {detalhe.boleto_status === "rejeitado" && detalhe.boleto_codigo_rejeicao && (
+                        <MotivoRejeicaoSafra codigo={detalhe.boleto_codigo_rejeicao} />
+                      )}
                       <div className="text-xs">
                         <span className="text-muted-foreground">Nosso número: </span>
                         <span className="font-mono">{detalhe.nosso_numero_seq ?? "—"}</span>
