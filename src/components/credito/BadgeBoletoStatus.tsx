@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Clock, FileText, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, FileText, AlertTriangle, Archive } from "lucide-react";
 import type { JSX } from "react";
 
 type StatusMap = { label: string; className: string; icon: JSX.Element };
