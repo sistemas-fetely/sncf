@@ -72,6 +72,45 @@ function BadgeStatusGestao({ status }: { status: StatusGestao }) {
   );
 }
 
+function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
+  const { data } = useQuery({
+    queryKey: ["safra-motivo-rejeicao", codigo],
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            eq: (c: string, v: string) => {
+              maybeSingle: () => Promise<{ data: { descricao: string; observacao: string | null } | null; error: unknown }>;
+            };
+          };
+        };
+      })
+        .from("safra_motivos_rejeicao")
+        .select("descricao, observacao")
+        .eq("codigo", codigo)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    staleTime: 5 * 60_000,
+  });
+  if (!data) {
+    return (
+      <div className="text-xs text-red-700">
+        Rejeição {codigo}
+      </div>
+    );
+  }
+  return (
+    <div className="text-xs text-red-700 space-y-0.5">
+      <div>Rejeição {codigo} — {data.descricao}</div>
+      {data.observacao && (
+        <div className="text-[11px] text-muted-foreground">{data.observacao}</div>
+      )}
+    </div>
+  );
+}
+
 function KpiCard({
   label, qtd, valor, ativo, onClick, tone,
 }: {
