@@ -171,6 +171,7 @@ serve(async (req) => {
             id, numero_titulo, numero_parcela, total_parcelas,
             valor_bruto, data_vencimento_atual, boleto_status, pedido_id,
             nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
+            prorrogacao_nova_data, prorrogacao_solicitada_em,
             conta:contas_pagar_receber(
               parceiro:parceiros_comerciais(razao_social, email)
             )
@@ -211,6 +212,25 @@ serve(async (req) => {
         // REJEIÇÃO (03)  — comportamento preservado
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "rejeicao") {
+          // Rejeição de instrução de prorrogação (motivos 083, 112, 119)
+          // O boleto original segue válido — só a instrução falhou
+          if (
+            t.prorrogacao_solicitada_em !== null &&
+            ["083", "112", "119"].includes(linha.motivoRejeicao)
+          ) {
+            await sb.from("titulo_a_receber")
+              .update({
+                prorrogacao_nova_data:     null,
+                prorrogacao_solicitada_em: null,
+              } as any)
+              .eq("id", t.id);
+            const descMotivo = descricaoRejeicao(linha.motivoRejeicao);
+            alertas.push(
+              `⚠ Prorrogação rejeitada (motivo ${linha.motivoRejeicao}: ${descMotivo}) — boleto original permanece válido. Considere reemissão para o título ${linha.nossoNumero}.`
+            );
+            contadores.rejeicoes++;
+            continue;
+          }
           await sb.from("titulo_a_receber")
             .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
             .eq("id", t.id);
@@ -335,9 +355,13 @@ serve(async (req) => {
               continue;
             }
             await sb.from("titulo_a_receber")
-              .update({ data_vencimento_atual: novaData })
+              .update({
+                data_vencimento_atual:      novaData,
+                prorrogacao_nova_data:      null,
+                prorrogacao_solicitada_em:  null,
+              } as any)
               .eq("id", t.id);
-            alertas.push(`Vencimento alterado para ${novaData} — título ${linha.nossoNumero}.`);
+            alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
             contadores.alteracoes++;
             continue;
           }

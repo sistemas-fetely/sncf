@@ -54,6 +54,8 @@ type TitulosBoleto = {
   valor_bruto: number | null;
   boleto_status: string | null;
   boleto_enviado_em: string | null;
+  prorrogacao_nova_data: string | null;
+  prorrogacao_solicitada_em: string | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
   pedido: { id_externo: string | null } | null;
 };
@@ -231,7 +233,7 @@ export default function BancoSafra() {
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(
-          "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo)",
+          "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo)",
         )
         .not("boleto_status", "is", null)
         .order("data_vencimento_atual", { ascending: true });
@@ -241,6 +243,7 @@ export default function BancoSafra() {
   });
 
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
+  const [gerandoProrrogacao, setGerandoProrrogacao] = useState(false);
 
   // edição inline de boletos
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
@@ -297,6 +300,30 @@ export default function BancoSafra() {
     }
   };
 
+  const handleGerarProrrogacao = async () => {
+    setGerandoProrrogacao(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
+        body: { tipo: "prorrogacao" },
+      });
+      if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de prorrogação");
+      const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.arquivo_nome;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: `Remessa de prorrogação gerada: ${data.qtd_titulos} boleto(s)` });
+      refetchBoletos();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erro ao gerar prorrogação", description: msg, variant: "destructive" });
+    } finally {
+      setGerandoProrrogacao(false);
+    }
+  };
+
   const kpis = useMemo(() => {
     const primeiroDia = new Date();
     primeiroDia.setDate(1);
@@ -322,12 +349,20 @@ export default function BancoSafra() {
     let pagosMes = 0;
     let vencidos = 0;
     let baixaPendente = 0;
+    let prorrogacaoPendente = 0;
     for (const b of boletos) {
       const s = b.boleto_status || "";
       if (s === "pendente" || s === "remessa_gerada") pendentes++;
       else if (s === "registrado") registrados++;
       else if (s === "vencido") vencidos++;
       else if (s === "baixa_solicitada") baixaPendente++;
+      if (
+        s === "registrado" &&
+        b.prorrogacao_nova_data &&
+        !b.prorrogacao_solicitada_em
+      ) {
+        prorrogacaoPendente++;
+      }
       if (
         (s === "pago_manual" || s === "pago_banco") &&
         b.data_vencimento_atual &&
@@ -336,7 +371,7 @@ export default function BancoSafra() {
         pagosMes++;
       }
     }
-    return { pendentes, registrados, pagosMes, vencidos, baixaPendente };
+    return { pendentes, registrados, pagosMes, vencidos, baixaPendente, prorrogacaoPendente };
   }, [boletos]);
 
   function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
@@ -655,7 +690,21 @@ export default function BancoSafra() {
             </Card>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={handleGerarProrrogacao}
+              disabled={boletosKpis.prorrogacaoPendente === 0 || gerandoProrrogacao}
+              className="gap-2"
+            >
+              {gerandoProrrogacao ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpFromLine className="h-4 w-4" />
+              )}
+              Gerar remessa de prorrogação
+              {boletosKpis.prorrogacaoPendente > 0 && ` (${boletosKpis.prorrogacaoPendente})`}
+            </Button>
             <Button
               variant="outline"
               onClick={handleGerarBaixa}

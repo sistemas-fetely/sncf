@@ -32,6 +32,7 @@ import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog";
+import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -183,6 +184,7 @@ export default function TitulosTab() {
   const [convertendo, setConvertendo] = useState<TituloCobranca | null>(null);
   const [reemitindo, setReemitindo] = useState<TituloCobranca | null>(null);
   const [cancelandoReemissao, setCancelandoReemissao] = useState<TituloCobranca | null>(null);
+  const [prorrogando, setProrrogando] = useState<TituloCobranca | null>(null);
 
   const kpis = useMemo(() => calcularKpis(titulos), [titulos]);
   const mesAtual = new Date().toISOString().slice(0, 7);
@@ -582,6 +584,37 @@ export default function TitulosTab() {
                           {detalhe.reemissao_motivo ? ` — motivo: ${detalhe.reemissao_motivo}` : ""}
                         </div>
                       )}
+                      {detalhe.prorrogacao_nova_data && (
+                        <Alert className="border-amber-200 bg-amber-50">
+                          <AlertDescription className="text-amber-800 text-xs">
+                            Prorrogação para {formatDateBR(detalhe.prorrogacao_nova_data)} pendente
+                            {detalhe.prorrogacao_solicitada_em
+                              ? " — remessa já enviada ao banco."
+                              : " — aguardando geração de remessa."}
+                            {!detalhe.prorrogacao_solicitada_em && (
+                              <button
+                                className="ml-2 underline text-amber-700 text-xs"
+                                onClick={async () => {
+                                  const { data, error } = await (supabase as any).rpc(
+                                    "cancelar_prorrogacao_boleto",
+                                    { p_titulo_id: detalhe.id },
+                                  );
+                                  if (error || (data && data.ok === false)) {
+                                    sonnerToast.error(
+                                      error?.message ?? data?.erro ?? "Erro ao cancelar prorrogação.",
+                                    );
+                                    return;
+                                  }
+                                  sonnerToast.success("Prorrogação cancelada.");
+                                  qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+                                }}
+                              >
+                                Cancelar
+                              </button>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
                   </section>
                 )}
@@ -659,6 +692,14 @@ export default function TitulosTab() {
                       Reemitir boleto
                     </Button>
                   )}
+                {detalhe.tipo_pagamento === "boleto" &&
+                  detalhe.boleto_status === "registrado" &&
+                  (detalhe.status_gestao === "a_vencer" || detalhe.status_gestao === "vence_hoje") &&
+                  detalhe.prorrogacao_nova_data === null && (
+                    <Button variant="outline" onClick={() => setProrrogando(detalhe)}>
+                      Prorrogar vencimento
+                    </Button>
+                  )}
                 {detalhe.status_gestao === "pago" && (
                   <Button variant="outline" onClick={() => setConvertendo(detalhe)}>
                     Converter em crédito
@@ -710,6 +751,14 @@ export default function TitulosTab() {
           titulo={reemitindo}
           open={!!reemitindo}
           onClose={() => setReemitindo(null)}
+        />
+      )}
+
+      {prorrogando && (
+        <ProrrogarVencimentoDialog
+          titulo={prorrogando}
+          open={!!prorrogando}
+          onClose={() => setProrrogando(null)}
         />
       )}
 

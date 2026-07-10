@@ -14891,6 +14891,8 @@ export type Database = {
           numero_titulo: string
           pausa_regua_automatica: boolean
           pedido_id: string
+          prorrogacao_nova_data: string | null
+          prorrogacao_solicitada_em: string | null
           reemissao_aplicada_em: string | null
           reemissao_motivo: string | null
           reemissao_nova_data: string | null
@@ -14950,6 +14952,8 @@ export type Database = {
           numero_titulo: string
           pausa_regua_automatica?: boolean
           pedido_id: string
+          prorrogacao_nova_data?: string | null
+          prorrogacao_solicitada_em?: string | null
           reemissao_aplicada_em?: string | null
           reemissao_motivo?: string | null
           reemissao_nova_data?: string | null
@@ -15009,6 +15013,8 @@ export type Database = {
           numero_titulo?: string
           pausa_regua_automatica?: boolean
           pedido_id?: string
+          prorrogacao_nova_data?: string | null
+          prorrogacao_solicitada_em?: string | null
           reemissao_aplicada_em?: string | null
           reemissao_motivo?: string | null
           reemissao_nova_data?: string | null
@@ -18515,6 +18521,8 @@ export type Database = {
           pedido_estagio: string | null
           pedido_id: string | null
           pedido_id_externo: string | null
+          prorrogacao_nova_data: string | null
+          prorrogacao_solicitada_em: string | null
           reemissao_aplicada_em: string | null
           reemissao_motivo: string | null
           reemissao_nova_data: string | null
@@ -19002,6 +19010,10 @@ export type Database = {
       }
       cancelar_pedido_pedido: {
         Args: { p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
+      cancelar_prorrogacao_boleto: {
+        Args: { p_titulo_id: string }
         Returns: Json
       }
       cancelar_reemissao_boleto: {
@@ -20184,6 +20196,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      solicitar_prorrogacao_boleto: {
+        Args: { p_nova_data: string; p_titulo_id: string }
+        Returns: Json
+      }
       solicitar_reemissao_boleto: {
         Args: {
           p_motivo?: string

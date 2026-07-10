@@ -358,6 +358,123 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // BRANCH: PRORROGAÇÃO (ocorrência 06)
+    // ═══════════════════════════════════════════════════════════════
+    if (tipo === "prorrogacao") {
+      const nroSeq = await proximoSequencial(sb);
+      const hoje   = new Date().toISOString().slice(0, 10);
+
+      const { data: titulos, error: tErr } = await sb
+        .from("titulo_a_receber")
+        .select(`
+          id, numero_titulo, numero_parcela, total_parcelas,
+          valor_bruto, data_vencimento_atual, nosso_numero_seq,
+          prorrogacao_nova_data,
+          conta:contas_pagar_receber(
+            parceiro:parceiros_comerciais(
+              id, razao_social, cnpj, cpf,
+              logradouro, numero, bairro, cep, cidade, uf
+            )
+          )
+        `)
+        .eq("boleto_status", "registrado")
+        .not("prorrogacao_nova_data", "is", null)
+        .is("prorrogacao_solicitada_em", null);
+
+      if (tErr) throw new Error(`Erro ao buscar títulos para prorrogação: ${tErr.message}`);
+
+      if (!titulos || titulos.length === 0) {
+        return new Response(
+          JSON.stringify({ ok: false, erro: "Nenhum título com prorrogação pendente" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // deno-lint-ignore no-explicit-any
+      const semNN = (titulos as any[]).filter((t: any) => !t.nosso_numero_seq);
+      if (semNN.length > 0) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            erro: "Títulos sem nosso_numero_seq — não foram registrados pelo banco",
+            // deno-lint-ignore no-explicit-any
+            titulos: semNN.map((t: any) => t.numero_titulo),
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const linhas: string[] = [];
+      linhas.push(gerarHeader(params, nroSeq, hoje));
+
+      let nroReg    = 2;
+      let valorTotal = 0;
+
+      // deno-lint-ignore no-explicit-any
+      for (const t of titulos as any[]) {
+        const tComNovaData = {
+          ...t,
+          data_vencimento_atual: t.prorrogacao_nova_data,
+          parceiro: t.conta?.parceiro,
+        };
+        linhas.push(gerarDetalhe(
+          tComNovaData,
+          String(t.nosso_numero_seq),
+          params, nroSeq, nroReg,
+          "06"
+        ));
+        valorTotal += Number(t.valor_bruto);
+        nroReg++;
+      }
+
+      // deno-lint-ignore no-explicit-any
+      linhas.push(gerarTrailer(nroSeq, (titulos as any[]).length, valorTotal, nroReg));
+      const arquivoConteudo = linhas.join("\r\n") + "\r\n";
+      const seqFormatado    = String(nroSeq).padStart(3, "0");
+      const arquivoNome     = `FETELY_PRORROG_SAFRA_${seqFormatado}.txt`;
+
+      const { data: remessa, error: remessaErr } = await sb
+        .from("remessas_safra")
+        .insert({
+          nro_sequencial: nroSeq,
+          gerado_por:     callerId,
+          // deno-lint-ignore no-explicit-any
+          qtd_titulos:    (titulos as any[]).length,
+          valor_total:    valorTotal,
+          status:         "gerada",
+          arquivo_nome:   arquivoNome,
+          tipo:           "prorrogacao",
+        })
+        .select("id")
+        .single();
+      if (remessaErr || !remessa) throw new Error(`Erro ao gravar remessa de prorrogação: ${remessaErr?.message}`);
+
+      // deno-lint-ignore no-explicit-any
+      for (const t of titulos as any[]) {
+        const { error: updErr } = await sb
+          .from("titulo_a_receber")
+          .update({ prorrogacao_solicitada_em: new Date().toISOString() } as any)
+          .eq("id", t.id);
+        if (updErr) throw new Error(`Erro ao marcar prorrogação enviada no título ${t.id}: ${updErr.message}`);
+      }
+
+      return new Response(
+        JSON.stringify({
+          ok:               true,
+          arquivo_conteudo: arquivoConteudo,
+          arquivo_nome:     arquivoNome,
+          // deno-lint-ignore no-explicit-any
+          remessa_id:       (remessa as any).id,
+          nro_sequencial:   nroSeq,
+          // deno-lint-ignore no-explicit-any
+          qtd_titulos:      (titulos as any[]).length,
+          valor_total:      valorTotal,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     // ═══════════════════════════════════════════════════════════════
     // BRANCH: ENTRADA
     // ═══════════════════════════════════════════════════════════════
