@@ -54,6 +54,8 @@ type TitulosBoleto = {
   valor_bruto: number | null;
   boleto_status: string | null;
   boleto_enviado_em: string | null;
+  prorrogacao_nova_data: string | null;
+  prorrogacao_solicitada_em: string | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
   pedido: { id_externo: string | null } | null;
 };
