@@ -355,9 +355,13 @@ serve(async (req) => {
               continue;
             }
             await sb.from("titulo_a_receber")
-              .update({ data_vencimento_atual: novaData })
+              .update({
+                data_vencimento_atual:      novaData,
+                prorrogacao_nova_data:      null,
+                prorrogacao_solicitada_em:  null,
+              } as any)
               .eq("id", t.id);
-            alertas.push(`Vencimento alterado para ${novaData} — título ${linha.nossoNumero}.`);
+            alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
             contadores.alteracoes++;
             continue;
           }
