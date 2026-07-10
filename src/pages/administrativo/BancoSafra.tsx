@@ -349,12 +349,20 @@ export default function BancoSafra() {
     let pagosMes = 0;
     let vencidos = 0;
     let baixaPendente = 0;
+    let prorrogacaoPendente = 0;
     for (const b of boletos) {
       const s = b.boleto_status || "";
       if (s === "pendente" || s === "remessa_gerada") pendentes++;
       else if (s === "registrado") registrados++;
       else if (s === "vencido") vencidos++;
       else if (s === "baixa_solicitada") baixaPendente++;
+      if (
+        s === "registrado" &&
+        b.prorrogacao_nova_data &&
+        !b.prorrogacao_solicitada_em
+      ) {
+        prorrogacaoPendente++;
+      }
       if (
         (s === "pago_manual" || s === "pago_banco") &&
         b.data_vencimento_atual &&
@@ -363,7 +371,7 @@ export default function BancoSafra() {
         pagosMes++;
       }
     }
-    return { pendentes, registrados, pagosMes, vencidos, baixaPendente };
+    return { pendentes, registrados, pagosMes, vencidos, baixaPendente, prorrogacaoPendente };
   }, [boletos]);
 
   function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
