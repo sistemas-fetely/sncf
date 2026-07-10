@@ -50,6 +50,8 @@ export interface TituloCobranca {
   reemissao_novo_valor: number | null;
   reemissao_motivo: string | null;
   reemissao_aplicada_em: string | null;
+  prorrogacao_nova_data: string | null;
+  prorrogacao_solicitada_em: string | null;
 }
 
 export interface KpisTitulos {
