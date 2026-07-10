@@ -690,7 +690,21 @@ export default function BancoSafra() {
             </Card>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={handleGerarProrrogacao}
+              disabled={boletosKpis.prorrogacaoPendente === 0 || gerandoProrrogacao}
+              className="gap-2"
+            >
+              {gerandoProrrogacao ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpFromLine className="h-4 w-4" />
+              )}
+              Gerar remessa de prorrogação
+              {boletosKpis.prorrogacaoPendente > 0 && ` (${boletosKpis.prorrogacaoPendente})`}
+            </Button>
             <Button
               variant="outline"
               onClick={handleGerarBaixa}
