@@ -49,6 +49,8 @@ const STATUS_LABEL: Record<StatusGestao, string> = {
   vence_hoje: "Vence hoje",
   atrasado: "Atrasado",
   pago: "Pago",
+  pago_com_atraso: "Pago c/ atraso",
+  pago_judicial: "Pago judicial",
   cancelado: "Cancelado",
 };
 
@@ -57,8 +59,11 @@ const STATUS_BADGE: Record<StatusGestao, string> = {
   vence_hoje: "bg-amber-50 text-amber-700 border border-amber-200",
   atrasado: "bg-red-50 text-red-700 border border-red-200",
   pago: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  pago_com_atraso: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  pago_judicial: "bg-slate-100 text-slate-700 border border-slate-300",
   cancelado: "bg-muted text-muted-foreground line-through",
 };
+
 
 function BadgeStatusGestao({ status }: { status: StatusGestao }) {
   return (
