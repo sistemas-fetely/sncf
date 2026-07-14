@@ -41,6 +41,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
+import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
+import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
+
 
 type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca";
 
