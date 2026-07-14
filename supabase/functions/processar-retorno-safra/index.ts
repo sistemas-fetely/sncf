@@ -199,6 +199,11 @@ serve(async (req) => {
       console.warn("[retorno-safra] Conta bancária Safra (422) não encontrada — movimentacoes_bancarias não serão gravadas");
     }
 
+    // ── parâmetros de remessa (para recálculo de código de barras) ─────────
+    const { data: paramRows } = await sb.from("parametros_remessa_safra").select("chave, valor");
+    const params: Record<string, string> = {};
+    for (const row of (paramRows ?? []) as { chave: string; valor: string }[]) params[row.chave] = row.valor;
+
     // ── contadores + relatório ─────────────────────────────────────────────
     const contadores = {
       registros: 0, rejeicoes: 0, liquidacoes: 0, baixas: 0,
