@@ -54,6 +54,73 @@ function parseValor13d2(s: string): number | null {
   return v;
 }
 
+// ─── Helpers de código de barras (copiados de gerar-remessa-safra) ──────────
+
+function dvMod10(numero: string): number {
+  let soma = 0, mult = 2;
+  for (const d of [...numero].reverse()) {
+    const v = parseInt(d) * mult;
+    soma += Math.floor(v / 10) + (v % 10);
+    mult = mult === 2 ? 1 : 2;
+  }
+  return (10 - soma % 10) % 10;
+}
+
+function dvGeralMod11(barras43: string): number {
+  let soma = 0, mult = 2;
+  for (const d of [...barras43].reverse()) {
+    soma += parseInt(d) * mult;
+    mult = mult < 9 ? mult + 1 : 2;
+  }
+  const resto = soma % 11;
+  return resto <= 1 ? 1 : 11 - resto;
+}
+
+function fatorVencimento(vencimentoIso: string): number {
+  const base = new Date("2022-05-29T00:00:00");
+  const venc = new Date(vencimentoIso + "T00:00:00");
+  return Math.round((venc.getTime() - base.getTime()) / 86400000);
+}
+
+function montarLinhaDigitavel(
+  nossoNumero: string,
+  vencimentoIso: string,
+  valorCents: number,
+  params: Record<string, string>
+): { linha: string; barras: string } {
+  const agencia  = params.agencia ?? "0005";
+  const conta7d  = params.conta_7d ?? "5804446";
+  const c1Base   = params.campo1_fixo ?? "422970050";
+  const sufixoC3 = params.sufixo_campo3 ?? "2";
+
+  const agencia5d = agencia.padStart(5, "0");
+  const conta9d   = conta7d.padStart(9, "0");
+  const c2Base    = agencia5d.slice(-1) + conta9d;
+  const c3Base    = nossoNumero + sufixoC3;
+
+  const dv1 = dvMod10(c1Base);
+  const dv2 = dvMod10(c2Base);
+  const dv3 = dvMod10(c3Base);
+
+  const fator    = fatorVencimento(vencimentoIso);
+  const fatorStr = String(fator).padStart(4, "0");
+  const valorStr = String(valorCents).padStart(10, "0");
+  const campoLivre = c1Base.slice(4) + c2Base + c3Base;
+
+  const barras43 = "4229" + fatorStr + valorStr + campoLivre;
+  const dvGeral  = dvGeralMod11(barras43);
+  const barras   = barras43.slice(0, 4) + dvGeral + barras43.slice(4);
+
+  const linha = (
+    `${c1Base.slice(0, 5)}.${c1Base.slice(5)}${dv1} ` +
+    `${c2Base.slice(0, 5)}.${c2Base.slice(5)}${dv2} ` +
+    `${c3Base.slice(0, 5)}.${c3Base.slice(5)}${dv3} ` +
+    `${dvGeral} ${fatorStr}${valorStr}`
+  );
+
+  return { linha, barras };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
