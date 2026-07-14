@@ -822,6 +822,11 @@ export default function CobrancaFila() {
           <TitulosTab />
         </TabsContent>
 
+        <TabsContent value="regua">
+          <ReguaTab />
+        </TabsContent>
+
+
         <TabsContent value="banco">
           <Tabs defaultValue="remessas" className="space-y-4">
             <TabsList className="bg-transparent p-0 h-auto gap-2">
