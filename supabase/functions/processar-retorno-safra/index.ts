@@ -426,14 +426,23 @@ serve(async (req) => {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: "Data de vencimento inválida na alteração 14" });
               continue;
             }
+
+            // Recalcula linha digitável e código de barras com a NOVA data
+            // (o fator de vencimento faz parte do código de barras)
+            const valorCents = Math.round(Number(t.valor_bruto) * 100);
+            const { linha: novaLinhaDigitavel, barras: novoCodigoBarras } =
+              montarLinhaDigitavel(String(t.nosso_numero_seq), novaData, valorCents, params);
+
             await sb.from("titulo_a_receber")
               .update({
                 data_vencimento_atual:      novaData,
+                linha_digitavel:            novaLinhaDigitavel,
+                codigo_barras_boleto:       novoCodigoBarras,
                 prorrogacao_nova_data:      null,
                 prorrogacao_solicitada_em:  null,
               } as any)
               .eq("id", t.id);
-            alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
+            alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. Código de barras recalculado. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
             contadores.alteracoes++;
             continue;
           }
