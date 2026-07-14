@@ -262,6 +262,8 @@ const App = () => (
               <Route path="/recebimento/cobranca/:pedidoId" element={<CobrancaDetalhe />} />
               <Route path="/recebimento/aguardando-pagamento/:pedidoId" element={<AguardandoPagamentoDetalhe />} />
               <Route path="/credito/regras-cadencia" element={<RegrasCadencia />} />
+              <Route path="/credito/regua-etapas" element={<ReguaEtapas />} />
+
 
               {/* Detail routes (sem sidebar) */}
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
