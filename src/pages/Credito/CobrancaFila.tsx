@@ -788,9 +788,11 @@ export default function CobrancaFila() {
           {[
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
+            { value: "regua", label: "Régua" },
             { value: "banco", label: "Banco" },
             { value: "credito-cliente", label: "Crédito do cliente" },
           ].map((tab) => (
+
             <TabsTrigger key={tab.value} value={tab.value} className={tabTriggerCls}>
               {tab.label}
             </TabsTrigger>
