@@ -528,12 +528,49 @@ export default function TitulosTab() {
                   <SheetTitle className="font-mono text-base">{detalhe.numero_titulo}</SheetTitle>
                   <BadgeStatusGestao status={detalhe.status_gestao} />
                 </div>
+                <div className="flex flex-wrap gap-1 pt-1">
+                  <BadgeSubestado sub={detalhe.subestado_atraso} />
+                  {detalhe.titulo_renegociado_origem_id && (
+                    <Badge variant="outline" className="text-[10px]">
+                      Título renegociado
+                    </Badge>
+                  )}
+                </div>
                 <SheetDescription className="text-2xl font-semibold text-foreground pt-2">
                   {formatBRL(detalhe.valor_efetivo)}
                 </SheetDescription>
               </SheetHeader>
 
+              {detalhe.pausa_regua_automatica && (
+                <Alert className="mt-4 border-amber-300 bg-amber-50">
+                  <AlertTriangle className="h-4 w-4 !text-amber-700" />
+                  <AlertDescription className="text-xs text-amber-900 flex items-center justify-between gap-2">
+                    <span>Régua pausada — título fora da fila automática.</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={async () => {
+                        const { data, error } = await (supabase as any).rpc(
+                          "despausar_regua_titulo",
+                          { p_titulo_id: detalhe.id },
+                        );
+                        if (error || (data && data.ok === false)) {
+                          sonnerToast.error(error?.message ?? data?.erro ?? "Erro ao despausar.");
+                          return;
+                        }
+                        sonnerToast.success("Régua despausada.");
+                        qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+                      }}
+                    >
+                      Despausar
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-4 mt-6 text-sm">
+
                 <section>
                   <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
                     Cliente
