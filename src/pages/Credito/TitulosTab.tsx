@@ -81,6 +81,53 @@ function BadgeStatusGestao({ status }: { status: StatusGestao }) {
   );
 }
 
+const SUBESTADO_LABEL: Record<Exclude<SubestadoAtraso, null | "em_dia">, string> = {
+  lembrete_amistoso: "Lembrete amistoso",
+  cobranca_ativa: "Cobrança ativa",
+  cobranca_dura: "Cobrança dura",
+  pre_juridico: "Pré-jurídico",
+  juridico: "Jurídico",
+};
+
+function BadgeSubestado({ sub }: { sub: SubestadoAtraso }) {
+  if (!sub || sub === "em_dia") return null;
+  return (
+    <Badge variant="outline" className="text-[10px]">
+      {SUBESTADO_LABEL[sub]}
+    </Badge>
+  );
+}
+
+function HistoricoReguaSection({ tituloId }: { tituloId: string }) {
+  const { data = [], isLoading } = useHistoricoReguaTitulo(tituloId, 5);
+  if (isLoading || data.length === 0) return null;
+  return (
+    <section>
+      <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+        Histórico da régua
+      </h4>
+      <ul className="space-y-1.5">
+        {data.map((h) => (
+          <li key={h.id} className="text-xs border-l-2 border-border pl-2">
+            <div className="flex items-center gap-2">
+              <span className="font-mono">{h.etapa_codigo}</span>
+              <Badge variant="secondary" className="text-[10px]">{h.resultado}</Badge>
+              {h.canal_efetivo && (
+                <span className="text-muted-foreground">{h.canal_efetivo}</span>
+              )}
+            </div>
+            <div className="text-muted-foreground">
+              {new Date(h.executada_em).toLocaleString("pt-BR")}
+            </div>
+            {h.observacao && <div className="text-muted-foreground italic">{h.observacao}</div>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+
 function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
   const { data } = useQuery({
     queryKey: ["safra-motivo-rejeicao", codigo],
