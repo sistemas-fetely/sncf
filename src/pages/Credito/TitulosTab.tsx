@@ -728,7 +728,10 @@ export default function TitulosTab() {
                     <dd className="font-mono font-medium">{formatBRL(detalhe.valor_efetivo)}</dd>
                   </dl>
                 </section>
+
+                <HistoricoReguaSection tituloId={detalhe.id} />
               </div>
+
 
               <SheetFooter className="mt-6 flex-col gap-2 sm:flex-col">
                 {detalhe.status_gestao !== "pago" && detalhe.status_gestao !== "cancelado" && (
