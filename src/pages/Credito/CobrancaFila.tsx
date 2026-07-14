@@ -7,6 +7,8 @@ import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import BancoSafra from "@/pages/administrativo/BancoSafra";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
+import ReguaTab from "@/pages/Credito/ReguaTab";
+
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
@@ -786,9 +788,11 @@ export default function CobrancaFila() {
           {[
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
+            { value: "regua", label: "Régua" },
             { value: "banco", label: "Banco" },
             { value: "credito-cliente", label: "Crédito do cliente" },
           ].map((tab) => (
+
             <TabsTrigger key={tab.value} value={tab.value} className={tabTriggerCls}>
               {tab.label}
             </TabsTrigger>
@@ -817,6 +821,11 @@ export default function CobrancaFila() {
         <TabsContent value="titulos">
           <TitulosTab />
         </TabsContent>
+
+        <TabsContent value="regua">
+          <ReguaTab />
+        </TabsContent>
+
 
         <TabsContent value="banco">
           <Tabs defaultValue="remessas" className="space-y-4">

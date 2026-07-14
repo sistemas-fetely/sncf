@@ -1,7 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type StatusGestao = "a_vencer" | "vence_hoje" | "atrasado" | "pago" | "cancelado";
+export type StatusGestao =
+  | "a_vencer"
+  | "vence_hoje"
+  | "atrasado"
+  | "pago"
+  | "pago_com_atraso"
+  | "pago_judicial"
+  | "cancelado";
+
+export type SubestadoAtraso =
+  | "em_dia"
+  | "lembrete_amistoso"
+  | "cobranca_ativa"
+  | "cobranca_dura"
+  | "pre_juridico"
+  | "juridico"
+  | null;
 
 export interface TituloCobranca {
   id: string;
@@ -33,6 +49,12 @@ export interface TituloCobranca {
   email_cobranca_enviado_em: string | null;
   data_proxima_acao_regua: string | null;
   pausa_regua_automatica: boolean;
+  subestado_atraso: SubestadoAtraso;
+  vip_relacionamento: boolean | null;
+  flag_bandeira_amarela: boolean | null;
+  flag_grupo_economico_inadimplente: boolean | null;
+  modalidade_renegociacao: number | null;
+  titulo_renegociado_origem_id: string | null;
   conta_id: string;
   pedido_id: string;
   nf_id: string | null;
@@ -53,6 +75,7 @@ export interface TituloCobranca {
   prorrogacao_nova_data: string | null;
   prorrogacao_solicitada_em: string | null;
 }
+
 
 export interface KpisTitulos {
   aVencer: { qtd: number; valor: number };

@@ -41,6 +41,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
+import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
+import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
+
 
 type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca";
 
@@ -49,6 +52,8 @@ const STATUS_LABEL: Record<StatusGestao, string> = {
   vence_hoje: "Vence hoje",
   atrasado: "Atrasado",
   pago: "Pago",
+  pago_com_atraso: "Pago c/ atraso",
+  pago_judicial: "Pago judicial",
   cancelado: "Cancelado",
 };
 
@@ -57,8 +62,11 @@ const STATUS_BADGE: Record<StatusGestao, string> = {
   vence_hoje: "bg-amber-50 text-amber-700 border border-amber-200",
   atrasado: "bg-red-50 text-red-700 border border-red-200",
   pago: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  pago_com_atraso: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  pago_judicial: "bg-slate-100 text-slate-700 border border-slate-300",
   cancelado: "bg-muted text-muted-foreground line-through",
 };
+
 
 function BadgeStatusGestao({ status }: { status: StatusGestao }) {
   return (
@@ -72,6 +80,53 @@ function BadgeStatusGestao({ status }: { status: StatusGestao }) {
     </span>
   );
 }
+
+const SUBESTADO_LABEL: Record<Exclude<SubestadoAtraso, null | "em_dia">, string> = {
+  lembrete_amistoso: "Lembrete amistoso",
+  cobranca_ativa: "Cobrança ativa",
+  cobranca_dura: "Cobrança dura",
+  pre_juridico: "Pré-jurídico",
+  juridico: "Jurídico",
+};
+
+function BadgeSubestado({ sub }: { sub: SubestadoAtraso }) {
+  if (!sub || sub === "em_dia") return null;
+  return (
+    <Badge variant="outline" className="text-[10px]">
+      {SUBESTADO_LABEL[sub]}
+    </Badge>
+  );
+}
+
+function HistoricoReguaSection({ tituloId }: { tituloId: string }) {
+  const { data = [], isLoading } = useHistoricoReguaTitulo(tituloId, 5);
+  if (isLoading || data.length === 0) return null;
+  return (
+    <section>
+      <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+        Histórico da régua
+      </h4>
+      <ul className="space-y-1.5">
+        {data.map((h) => (
+          <li key={h.id} className="text-xs border-l-2 border-border pl-2">
+            <div className="flex items-center gap-2">
+              <span className="font-mono">{h.etapa_codigo}</span>
+              <Badge variant="secondary" className="text-[10px]">{h.resultado}</Badge>
+              {h.canal_efetivo && (
+                <span className="text-muted-foreground">{h.canal_efetivo}</span>
+              )}
+            </div>
+            <div className="text-muted-foreground">
+              {new Date(h.executada_em).toLocaleString("pt-BR")}
+            </div>
+            {h.observacao && <div className="text-muted-foreground italic">{h.observacao}</div>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 
 function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
   const { data } = useQuery({
@@ -473,12 +528,49 @@ export default function TitulosTab() {
                   <SheetTitle className="font-mono text-base">{detalhe.numero_titulo}</SheetTitle>
                   <BadgeStatusGestao status={detalhe.status_gestao} />
                 </div>
+                <div className="flex flex-wrap gap-1 pt-1">
+                  <BadgeSubestado sub={detalhe.subestado_atraso} />
+                  {detalhe.titulo_renegociado_origem_id && (
+                    <Badge variant="outline" className="text-[10px]">
+                      Título renegociado
+                    </Badge>
+                  )}
+                </div>
                 <SheetDescription className="text-2xl font-semibold text-foreground pt-2">
                   {formatBRL(detalhe.valor_efetivo)}
                 </SheetDescription>
               </SheetHeader>
 
+              {detalhe.pausa_regua_automatica && (
+                <Alert className="mt-4 border-amber-300 bg-amber-50">
+                  <AlertTriangle className="h-4 w-4 !text-amber-700" />
+                  <AlertDescription className="text-xs text-amber-900 flex items-center justify-between gap-2">
+                    <span>Régua pausada — título fora da fila automática.</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={async () => {
+                        const { data, error } = await (supabase as any).rpc(
+                          "despausar_regua_titulo",
+                          { p_titulo_id: detalhe.id },
+                        );
+                        if (error || (data && data.ok === false)) {
+                          sonnerToast.error(error?.message ?? data?.erro ?? "Erro ao despausar.");
+                          return;
+                        }
+                        sonnerToast.success("Régua despausada.");
+                        qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+                      }}
+                    >
+                      Despausar
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-4 mt-6 text-sm">
+
                 <section>
                   <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
                     Cliente
@@ -636,7 +728,10 @@ export default function TitulosTab() {
                     <dd className="font-mono font-medium">{formatBRL(detalhe.valor_efetivo)}</dd>
                   </dl>
                 </section>
+
+                <HistoricoReguaSection tituloId={detalhe.id} />
               </div>
+
 
               <SheetFooter className="mt-6 flex-col gap-2 sm:flex-col">
                 {detalhe.status_gestao !== "pago" && detalhe.status_gestao !== "cancelado" && (
