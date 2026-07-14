@@ -12489,6 +12489,128 @@ export type Database = {
         }
         Relationships: []
       }
+      regua_cobranca_acoes_log: {
+        Row: {
+          canal_efetivo: string | null
+          dias_offset: number | null
+          etapa_codigo: string
+          executada_em: string
+          executada_por: string | null
+          id: string
+          mensagem_snapshot: string | null
+          observacao: string | null
+          perfil_usado: string
+          resultado: string
+          titulo_id: string
+        }
+        Insert: {
+          canal_efetivo?: string | null
+          dias_offset?: number | null
+          etapa_codigo: string
+          executada_em?: string
+          executada_por?: string | null
+          id?: string
+          mensagem_snapshot?: string | null
+          observacao?: string | null
+          perfil_usado?: string
+          resultado: string
+          titulo_id: string
+        }
+        Update: {
+          canal_efetivo?: string | null
+          dias_offset?: number | null
+          etapa_codigo?: string
+          executada_em?: string
+          executada_por?: string | null
+          id?: string
+          mensagem_snapshot?: string | null
+          observacao?: string | null
+          perfil_usado?: string
+          resultado?: string
+          titulo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regua_cobranca_acoes_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regua_cobranca_acoes_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_previsao_recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regua_cobranca_acoes_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regua_cobranca_acoes_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regua_cobranca_etapas: {
+        Row: {
+          ativa: boolean
+          canal_sugerido: string
+          codigo: string
+          created_at: string
+          custo_externo_previsto: number | null
+          descricao_acao: string
+          dias_offset: number
+          id: string
+          ordem: number
+          perfil_cadencia: string
+          requer_aprovacao: boolean
+          responsavel_default: string | null
+          template_mensagem: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          canal_sugerido: string
+          codigo: string
+          created_at?: string
+          custo_externo_previsto?: number | null
+          descricao_acao: string
+          dias_offset: number
+          id?: string
+          ordem: number
+          perfil_cadencia?: string
+          requer_aprovacao?: boolean
+          responsavel_default?: string | null
+          template_mensagem?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          canal_sugerido?: string
+          codigo?: string
+          created_at?: string
+          custo_externo_previsto?: number | null
+          descricao_acao?: string
+          dias_offset?: number
+          id?: string
+          ordem?: number
+          perfil_cadencia?: string
+          requer_aprovacao?: boolean
+          responsavel_default?: string | null
+          template_mensagem?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       remessas_contador: {
         Row: {
           created_at: string
@@ -18506,8 +18628,11 @@ export type Database = {
           dias_atraso: number | null
           eh_entrada: boolean | null
           email_cobranca_enviado_em: string | null
+          flag_bandeira_amarela: boolean | null
+          flag_grupo_economico_inadimplente: boolean | null
           id: string | null
           linha_digitavel: string | null
+          modalidade_renegociacao: number | null
           nf_id: string | null
           nf_numero: string | null
           nosso_numero_seq: string | null
@@ -18530,13 +18655,16 @@ export type Database = {
           remessa_safra_id: string | null
           status_gestao: string | null
           status_real: string | null
+          subestado_atraso: string | null
           tipo_pagamento: string | null
+          titulo_renegociado_origem_id: string | null
           total_parcelas: number | null
           valor_bruto: number | null
           valor_desconto: number | null
           valor_efetivo: number | null
           valor_juros: number | null
           valor_multa: number | null
+          vip_relacionamento: boolean | null
         }
         Relationships: [
           {
@@ -18670,6 +18798,34 @@ export type Database = {
             columns: ["remessa_safra_id"]
             isOneToOne: false
             referencedRelation: "remessas_safra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_previsao_recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
             referencedColumns: ["id"]
           },
         ]
@@ -19278,6 +19434,7 @@ export type Database = {
       desconciliar_movimentacao: { Args: { p_mov_id: string }; Returns: Json }
       desfazer_conciliacao_ofx: { Args: { p_ofx_id: string }; Returns: Json }
       desfazer_remessa: { Args: { p_remessa_id: string }; Returns: Json }
+      despausar_regua_titulo: { Args: { p_titulo_id: string }; Returns: Json }
       detectar_duplicatas_nf: {
         Args: { p_chaves: string[]; p_cnpj_numero?: Json }
         Returns: {
@@ -19587,6 +19744,7 @@ export type Database = {
         Args: { p_cpr_id: string }
         Returns: undefined
       }
+      fn_regua_materializar: { Args: never; Returns: Json }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       fn_transicionar_entregues: { Args: never; Returns: Json }
       fn_transicionar_expedidos: { Args: never; Returns: Json }
@@ -20028,6 +20186,18 @@ export type Database = {
         }
         Returns: Json
       }
+      registrar_acao_regua: {
+        Args: {
+          p_canal_efetivo?: string
+          p_dias_offset: number
+          p_etapa_codigo: string
+          p_mensagem?: string
+          p_observacao?: string
+          p_resultado: string
+          p_titulo_id: string
+        }
+        Returns: Json
+      }
       registrar_aceite_termo_uso: {
         Args: { _versao: string }
         Returns: undefined
@@ -20131,6 +20301,16 @@ export type Database = {
       }
       rejeitar_nf_pj: {
         Args: { _motivo: string; _nota_id: string }
+        Returns: Json
+      }
+      renegociar_titulo: {
+        Args: {
+          p_justificativa: string
+          p_modalidade: number
+          p_novo_tipo_pagamento?: string
+          p_parcelas: Json
+          p_titulo_id: string
+        }
         Returns: Json
       }
       resolver_parceiro_do_documento: {
