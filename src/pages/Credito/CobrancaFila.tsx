@@ -7,6 +7,8 @@ import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import BancoSafra from "@/pages/administrativo/BancoSafra";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
+import ReguaTab from "@/pages/Credito/ReguaTab";
+
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
