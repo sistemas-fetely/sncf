@@ -61,7 +61,8 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
   const [mensagem, setMensagem] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
   const [obsAberta, setObsAberta] = useState<boolean>(false);
-  const [destinatarios, setDestinatarios] = useState<string>("");
+  const [emails, setEmails] = useState<string[]>([]);
+  const [emailDraft, setEmailDraft] = useState<string>("");
   const [enviandoEmail, setEnviandoEmail] = useState(false);
 
   useEffect(() => {
@@ -70,21 +71,42 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
       setMensagem(interpolar(etapa?.template_mensagem ?? "", titulo));
       setObservacao("");
       setObsAberta(modo === "pulada");
-      setDestinatarios(titulo.parceiro_email_cobranca || titulo.parceiro_email || "");
+      const inicial = titulo.parceiro_email_cobranca || titulo.parceiro_email || "";
+      setEmails(inicial ? [inicial] : []);
+      setEmailDraft("");
     }
   }, [open, etapa, titulo, modo]);
 
-  const emails = useMemo(
-    () => destinatarios.split(/[,;]/).map((e) => e.trim()).filter(Boolean),
-    [destinatarios],
-  );
   const invalidos = emails.filter((e) => !EMAIL_RE.test(e));
+  const draftValido = emailDraft.trim() !== "" && EMAIL_RE.test(emailDraft.trim());
+  const effectiveEmails = useMemo(() => {
+    const trimmed = emailDraft.trim();
+    if (trimmed && EMAIL_RE.test(trimmed) && !emails.includes(trimmed)) {
+      return [...emails, trimmed];
+    }
+    return emails;
+  }, [emails, emailDraft]);
   const podeEnviarEmail =
-    canal === "email" && emails.length > 0 && invalidos.length === 0 && mensagem.trim().length > 0;
+    canal === "email" &&
+    effectiveEmails.length > 0 &&
+    effectiveEmails.every((e) => EMAIL_RE.test(e)) &&
+    mensagem.trim().length > 0;
+
+  const commitDraft = () => {
+    const parts = emailDraft.split(/[,;]/).map((e) => e.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    setEmails((prev) => {
+      const next = [...prev];
+      for (const p of parts) if (!next.includes(p)) next.push(p);
+      return next;
+    });
+    setEmailDraft("");
+  };
 
   const removerEmail = (email: string) => {
-    setDestinatarios(emails.filter((e) => e !== email).join(", "));
+    setEmails((prev) => prev.filter((e) => e !== email));
   };
+
 
   const registrar = async (canalEfetivo: CanalRegua | null, mensagemSnap: string | null) => {
     if (!etapa) throw new Error("Nenhuma etapa aplicável ao título.");
