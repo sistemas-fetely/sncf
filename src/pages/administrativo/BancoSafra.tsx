@@ -508,8 +508,6 @@ export default function BancoSafra() {
     setImportando(false);
   }
 
-  const saldo = contaSafra?.saldo_atual;
-
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -525,14 +523,28 @@ export default function BancoSafra() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Saldo atual</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
+              Saldo das movimentações
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertCircle className="h-3.5 w-3.5 text-muted-foreground/70" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    Calculado a partir das movimentações registradas no sistema
+                    (boletos liquidados). Não substitui o extrato bancário.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-700">
-              {saldo == null ? "—" : formatBRL(Number(saldo))}
+              {saldoMovimentacoes == null ? "—" : formatBRL(saldoMovimentacoes)}
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
