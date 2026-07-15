@@ -667,6 +667,26 @@ export default function TitulosTab() {
                   <p className="text-xs text-muted-foreground">
                     {detalhe.parceiro_cnpj ? formatCNPJ(detalhe.parceiro_cnpj) : ""}
                   </p>
+                  {(() => {
+                    const emailCob = detalhe.parceiro_email_cobranca ?? detalhe.parceiro_email;
+                    if (!emailCob) return null;
+                    return (
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">E-mail de cobrança: </span>
+                          <span>{emailCob}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => copiar(emailCob)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  })()}
                   {detalhe.pedido_id_externo && (
                     <button
                       onClick={() => navigate(`/pedidos/${detalhe.pedido_id}`)}
