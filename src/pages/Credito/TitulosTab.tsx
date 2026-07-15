@@ -854,6 +854,44 @@ export default function TitulosTab() {
                   </dl>
                 </section>
 
+                {detalhe.tipo_pagamento === "pix" && (
+                  <section>
+                    <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                      PIX
+                    </h4>
+                    {detalhe.link_pagamento ? (
+                      <div className="flex items-center gap-2">
+                        <code className="text-[11px] break-all bg-muted px-2 py-1 rounded flex-1 truncate">
+                          {detalhe.link_pagamento}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => copiar(detalhe.link_pagamento!)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Alert className="border-amber-300 bg-amber-50">
+                        <AlertTriangle className="h-4 w-4 !text-amber-700" />
+                        <AlertDescription className="text-xs text-amber-900">
+                          Sem link de pagamento — informe o link no detalhe da cobrança para habilitar o envio ao cliente.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <div className="mt-2">
+                      <EnviosBoletoSection
+                        pedidoId={detalhe.pedido_id}
+                        tituloId={detalhe.id}
+                        fallback={detalhe.email_cobranca_enviado_em}
+                      />
+                    </div>
+                  </section>
+                )}
+
+                <HistoricoInstrumentoSection tituloId={detalhe.id} />
                 <HistoricoReguaSection tituloId={detalhe.id} />
               </div>
 
