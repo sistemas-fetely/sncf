@@ -344,6 +344,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
         uf: uf.trim() || null,
         telefone: telefone.trim() || null,
         email: email.trim() || null,
+        email_cobranca: emailCobranca.trim() || null,
         canal_venda_id: canalVendaId,
         segmento: segmento.trim() || null,
         plano_contas_id: categoriaPadrao,
