@@ -77,6 +77,7 @@ export interface TituloCobranca {
   inconsistencia_pagamento?: boolean | null;
   parceiro_email?: string | null;
   parceiro_email_cobranca?: string | null;
+  link_pagamento?: string | null;
 }
 
 
