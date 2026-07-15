@@ -130,6 +130,78 @@ function HistoricoReguaSection({ tituloId }: { tituloId: string }) {
   );
 }
 
+const EVENTO_LABEL: Record<string, string> = {
+  reemissao_aplicada: "Reemissão aplicada",
+  prorrogacao_confirmada: "Prorrogação confirmada",
+  prorrogacao_rejeitada: "Prorrogação rejeitada",
+  vencimento_alterado: "Vencimento alterado",
+  boleto_marcado_vencido: "Boleto marcado vencido",
+  boleto_reativado: "Boleto reativado",
+};
+
+function EnviosBoletoSection({ pedidoId, tituloId, fallback }: { pedidoId: string | null; tituloId: string; fallback: string | null }) {
+  const { data = [] } = useEnviosBoletoTitulo(pedidoId, tituloId);
+  if (data.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground">
+        {fallback
+          ? `Boleto enviado em: ${new Date(fallback).toLocaleString("pt-BR")}`
+          : "Nenhum envio registrado pelo sistema"}
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Envios</div>
+      <ul className="space-y-1">
+        {data.map((e) => (
+          <li key={e.id} className="text-xs border-l-2 border-border pl-2">
+            <div>{e.destinatario}</div>
+            <div className="text-muted-foreground">
+              {new Date(e.enviado_em).toLocaleString("pt-BR")}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function HistoricoInstrumentoSection({ tituloId }: { tituloId: string }) {
+  const { data = [], isLoading } = useHistoricoInstrumento(tituloId, 8);
+  if (isLoading || data.length === 0) return null;
+  return (
+    <section>
+      <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+        Histórico do instrumento
+      </h4>
+      <ul className="space-y-1.5">
+        {data.map((h) => (
+          <li key={h.id} className="text-xs border-l-2 border-border pl-2">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{EVENTO_LABEL[h.evento] ?? h.evento}</span>
+              {h.origem && (
+                <span className="text-muted-foreground">· {h.origem}</span>
+              )}
+            </div>
+            {(h.data_anterior || h.data_nova) && (
+              <div className="text-muted-foreground">
+                {h.data_anterior ? formatDateBR(h.data_anterior) : "—"} → {h.data_nova ? formatDateBR(h.data_nova) : "—"}
+              </div>
+            )}
+            {h.detalhe && <div className="text-muted-foreground italic">{h.detalhe}</div>}
+            <div className="text-muted-foreground">
+              {new Date(h.created_at).toLocaleString("pt-BR")}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+
+
 
 function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
   const { data } = useQuery({
