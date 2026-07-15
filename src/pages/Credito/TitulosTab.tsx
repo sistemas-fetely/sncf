@@ -726,10 +726,13 @@ export default function TitulosTab() {
                       Boleto
                     </h4>
                     <div className="space-y-2">
-                      <BadgeBoletoStatus
-                        status={detalhe.boleto_status}
-                        codigoRejeicao={detalhe.boleto_codigo_rejeicao}
-                      />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <BadgeBoletoStatus
+                          status={detalhe.boleto_status}
+                          codigoRejeicao={detalhe.boleto_codigo_rejeicao}
+                        />
+                        <ReincidenteBadge tituloId={detalhe.id} />
+                      </div>
                       {detalhe.boleto_status === "rejeitado" && detalhe.boleto_codigo_rejeicao && (
                         <MotivoRejeicaoSafra codigo={detalhe.boleto_codigo_rejeicao} />
                       )}
