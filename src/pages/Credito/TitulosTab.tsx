@@ -619,6 +619,16 @@ export default function TitulosTab() {
                 </SheetDescription>
               </SheetHeader>
 
+              {detalhe.inconsistencia_pagamento && (
+                <Alert className="mt-4 border-red-300 bg-red-50">
+                  <AlertTriangle className="h-4 w-4 !text-red-700" />
+                  <AlertDescription className="text-xs text-red-900">
+                    ⚠ Inconsistência: este título tem data de pagamento registrada mas não está marcado como pago.
+                    Verifique com o financeiro antes de qualquer ação.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {detalhe.pausa_regua_automatica && (
                 <Alert className="mt-4 border-amber-300 bg-amber-50">
                   <AlertTriangle className="h-4 w-4 !text-amber-700" />
