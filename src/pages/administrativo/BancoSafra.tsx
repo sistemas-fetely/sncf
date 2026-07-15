@@ -802,7 +802,21 @@ export default function BancoSafra() {
               )}
               Gerar Remessa de Baixa
             </Button>
+            <Button
+              onClick={() => setEntradaDialogOpen(true)}
+              disabled={pendentesEntrada.length === 0 || gerandoEntrada}
+              className="gap-2"
+            >
+              {gerandoEntrada ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpFromLine className="h-4 w-4" />
+              )}
+              Gerar Remessa de Entrada
+              {pendentesEntrada.length > 0 && ` (${pendentesEntrada.length})`}
+            </Button>
           </div>
+
 
           <Card>
             <CardHeader>
