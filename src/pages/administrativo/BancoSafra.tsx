@@ -859,9 +859,19 @@ export default function BancoSafra() {
                       const vencido = b.boleto_status === "vencido";
                       const editavel = b.boleto_status === "pendente";
                       const registrado = b.boleto_status === "registrado" || b.boleto_status === "remessa_gerada";
+                      const pendentePassado =
+                        editavel && !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
                       return (
-                        <TableRow key={b.id}>
-                          <TableCell className={vencido ? "text-red-700 font-medium" : ""}>
+                        <TableRow
+                          key={b.id}
+                          className={pendentePassado ? "bg-red-50/60 border-l-2 border-l-red-400" : ""}
+                        >
+                          <TableCell className={vencido || pendentePassado ? "text-red-700 font-medium" : ""}>
+                            {pendentePassado && (
+                              <Badge className="mb-1 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
+                                Vencimento no passado
+                              </Badge>
+                            )}
                             {editavel ? (
                               <Input
                                 type="date"
