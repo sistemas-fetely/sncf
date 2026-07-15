@@ -157,8 +157,8 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
       const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "regua-cobranca",
-          recipientEmail: emails[0],
-          cc: emails.slice(1),
+          recipientEmail: effectiveEmails[0],
+          cc: effectiveEmails.slice(1),
           idempotencyKey: `regua-${titulo.id}-${etapa.codigo}-${etapa.dias_offset}`,
           templateData: { corpo: mensagem, assunto },
           ...(attachments ? { attachments } : {}),
