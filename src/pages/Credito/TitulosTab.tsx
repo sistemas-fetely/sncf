@@ -907,11 +907,6 @@ export default function TitulosTab() {
                     Baixa manual
                   </Button>
                 )}
-                {detalhe.linha_digitavel && (
-                  <Button variant="outline" onClick={() => copiar(detalhe.linha_digitavel!)}>
-                    Copiar linha digitável
-                  </Button>
-                )}
                 {detalhe.tipo_pagamento === "boleto" && (() => {
                   const isVencido = detalhe.boleto_status === "vencido";
                   const isRejeitado = detalhe.boleto_status === "rejeitado";
@@ -926,7 +921,7 @@ export default function TitulosTab() {
                     <Button
                       variant="outline"
                       disabled={bloqueado || enviarBoleto.isPending}
-                      onClick={() => !bloqueado && enviarBoleto.mutate(detalhe.id)}
+                      onClick={() => !bloqueado && setConfirmarEnvioBoleto(detalhe)}
                     >
                       {enviarBoleto.isPending ? "Enviando..." : "Reenviar boleto por e-mail"}
                     </Button>
@@ -941,6 +936,15 @@ export default function TitulosTab() {
                     </TooltipProvider>
                   );
                 })()}
+                {detalhe.tipo_pagamento === "pix" && (
+                  <Button
+                    variant="outline"
+                    disabled={!detalhe.link_pagamento || enviarCobranca.isPending}
+                    onClick={() => setConfirmarEnvioPix(detalhe)}
+                  >
+                    {enviarCobranca.isPending ? "Enviando..." : "Enviar cobrança por e-mail"}
+                  </Button>
+                )}
                 {detalhe.tipo_pagamento === "boleto" &&
                   (detalhe.boleto_status === "vencido" || detalhe.boleto_status === "rejeitado") &&
                   detalhe.status_gestao !== "pago" &&
