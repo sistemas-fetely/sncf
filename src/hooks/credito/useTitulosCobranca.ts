@@ -74,6 +74,9 @@ export interface TituloCobranca {
   reemissao_aplicada_em: string | null;
   prorrogacao_nova_data: string | null;
   prorrogacao_solicitada_em: string | null;
+  inconsistencia_pagamento?: boolean | null;
+  parceiro_email?: string | null;
+  parceiro_email_cobranca?: string | null;
 }
 
 
