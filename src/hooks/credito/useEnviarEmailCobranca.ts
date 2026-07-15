@@ -53,8 +53,9 @@ export function useEnviarEmailCobranca() {
       const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "link-cobranca",
-          recipientEmail: parceiro.email,
-          idempotencyKey: `link-cobranca-${titulo_id}`,
+          recipientEmail: destinatarios[0],
+          ccEmails: destinatarios.slice(1),
+          idempotencyKey: `link-cobranca-${titulo_id}-${destinatarios.join(",")}`,
           templateData: {
             parceiro_nome: parceiro.razao_social,
             tipo,
