@@ -604,6 +604,18 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
             </div>
+            <div className="mt-3">
+              <Label>E-mail de cobrança</Label>
+              <Input
+                type="email"
+                value={emailCobranca}
+                onChange={(e) => setEmailCobranca(e.target.value)}
+                placeholder="opcional"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Se vazio, usa o e-mail principal.
+              </p>
+            </div>
           </div>
 
           {/* Classificação */}
