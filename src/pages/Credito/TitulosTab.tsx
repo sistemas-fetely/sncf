@@ -707,8 +707,12 @@ export default function TitulosTab() {
                     <dd>{formatDateBR(detalhe.data_vencimento_original)}</dd>
                     <dt className="text-muted-foreground">Vencimento atual</dt>
                     <dd>{formatDateBR(detalhe.data_vencimento_atual)}</dd>
-                    <dt className="text-muted-foreground">Liquidação prevista</dt>
-                    <dd>{formatDateBR(detalhe.data_liquidacao_prevista)}</dd>
+                    {(detalhe.data_liquidacao_prevista !== null || detalhe.tipo_pagamento?.startsWith("cartao")) && (
+                      <>
+                        <dt className="text-muted-foreground">Liquidação prevista</dt>
+                        <dd>{formatDateBR(detalhe.data_liquidacao_prevista)}</dd>
+                      </>
+                    )}
                     <dt className="text-muted-foreground">Liquidação real</dt>
                     <dd>{formatDateBR(detalhe.data_liquidacao_real)}</dd>
                     <dt className="text-muted-foreground">Pago em (banco)</dt>
