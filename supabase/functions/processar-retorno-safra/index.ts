@@ -412,9 +412,32 @@ serve(async (req) => {
             continue;
           }
 
+          const nnAntes = t.nosso_numero_seq;
+          const dataAntes = t.data_vencimento_atual;
+          const tinhaReemissao = !!t.reemissao_nova_data;
+
           await sb.from("titulo_a_receber")
             .update({ boleto_status: "baixado_banco" })
             .eq("id", t.id);
+
+          if (tinhaReemissao) {
+            // Após a baixa, o trigger aplica a reemissão. Registra no log.
+            const { data: tAtual } = await sb
+              .from("titulo_a_receber")
+              .select("nosso_numero_seq, data_vencimento_atual")
+              .eq("id", t.id)
+              .maybeSingle() as any;
+            await sb.from("titulo_instrumento_log").insert({
+              titulo_id: t.id,
+              evento: "reemissao_aplicada",
+              data_anterior: dataAntes,
+              data_nova: tAtual?.data_vencimento_atual ?? t.reemissao_nova_data,
+              nosso_numero_anterior: nnAntes,
+              nosso_numero_novo: tAtual?.nosso_numero_seq ?? null,
+              detalhe: "Reemissão aplicada após baixa confirmada",
+              origem: "retorno_safra",
+            } as any);
+          }
 
           if (linha.ocorrencia === "09") {
             alertas.push(
