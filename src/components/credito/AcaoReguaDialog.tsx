@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -61,7 +60,8 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
   const [mensagem, setMensagem] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
   const [obsAberta, setObsAberta] = useState<boolean>(false);
-  const [destinatarios, setDestinatarios] = useState<string>("");
+  const [emails, setEmails] = useState<string[]>([]);
+  const [emailDraft, setEmailDraft] = useState<string>("");
   const [enviandoEmail, setEnviandoEmail] = useState(false);
 
   useEffect(() => {
@@ -70,21 +70,42 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
       setMensagem(interpolar(etapa?.template_mensagem ?? "", titulo));
       setObservacao("");
       setObsAberta(modo === "pulada");
-      setDestinatarios(titulo.parceiro_email_cobranca || titulo.parceiro_email || "");
+      const inicial = titulo.parceiro_email_cobranca || titulo.parceiro_email || "";
+      setEmails(inicial ? [inicial] : []);
+      setEmailDraft("");
     }
   }, [open, etapa, titulo, modo]);
 
-  const emails = useMemo(
-    () => destinatarios.split(/[,;]/).map((e) => e.trim()).filter(Boolean),
-    [destinatarios],
-  );
   const invalidos = emails.filter((e) => !EMAIL_RE.test(e));
+  const draftValido = emailDraft.trim() !== "" && EMAIL_RE.test(emailDraft.trim());
+  const effectiveEmails = useMemo(() => {
+    const trimmed = emailDraft.trim();
+    if (trimmed && EMAIL_RE.test(trimmed) && !emails.includes(trimmed)) {
+      return [...emails, trimmed];
+    }
+    return emails;
+  }, [emails, emailDraft]);
   const podeEnviarEmail =
-    canal === "email" && emails.length > 0 && invalidos.length === 0 && mensagem.trim().length > 0;
+    canal === "email" &&
+    effectiveEmails.length > 0 &&
+    effectiveEmails.every((e) => EMAIL_RE.test(e)) &&
+    mensagem.trim().length > 0;
+
+  const commitDraft = () => {
+    const parts = emailDraft.split(/[,;]/).map((e) => e.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    setEmails((prev) => {
+      const next = [...prev];
+      for (const p of parts) if (!next.includes(p)) next.push(p);
+      return next;
+    });
+    setEmailDraft("");
+  };
 
   const removerEmail = (email: string) => {
-    setDestinatarios(emails.filter((e) => e !== email).join(", "));
+    setEmails((prev) => prev.filter((e) => e !== email));
   };
+
 
   const registrar = async (canalEfetivo: CanalRegua | null, mensagemSnap: string | null) => {
     if (!etapa) throw new Error("Nenhuma etapa aplicável ao título.");
@@ -135,8 +156,8 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
       const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "regua-cobranca",
-          recipientEmail: emails[0],
-          cc: emails.slice(1),
+          recipientEmail: effectiveEmails[0],
+          cc: effectiveEmails.slice(1),
           idempotencyKey: `regua-${titulo.id}-${etapa.codigo}-${etapa.dias_offset}`,
           templateData: { corpo: mensagem, assunto },
           ...(attachments ? { attachments } : {}),
@@ -217,37 +238,66 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
                   {canal === "email" && (
                     <div className="space-y-2">
                       <Label>Destinatários</Label>
-                      <Input
-                        value={destinatarios}
-                        onChange={(e) => setDestinatarios(e.target.value)}
-                        placeholder="email1@dominio.com, email2@dominio.com"
-                      />
-                      {emails.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {emails.map((email) => {
-                            const invalido = !EMAIL_RE.test(email);
-                            return (
-                              <Badge
-                                key={email}
-                                variant={invalido ? "destructive" : "secondary"}
-                                className="gap-1 pr-1"
+                      <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 min-h-10 focus-within:ring-2 focus-within:ring-ring">
+                        {emails.map((email) => {
+                          const invalido = !EMAIL_RE.test(email);
+                          return (
+                            <Badge
+                              key={email}
+                              variant={invalido ? "destructive" : "secondary"}
+                              className="gap-1 pr-1"
+                            >
+                              <span className="text-xs">{email}</span>
+                              <button
+                                type="button"
+                                onClick={() => removerEmail(email)}
+                                className="rounded-full hover:bg-black/10 p-0.5"
+                                aria-label={`Remover ${email}`}
                               >
-                                <span className="text-xs">{email}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => removerEmail(email)}
-                                  className="rounded-full hover:bg-black/10 p-0.5"
-                                  aria-label={`Remover ${email}`}
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            );
-                          })}
-                        </div>
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                        <input
+                          type="text"
+                          value={emailDraft}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (/[,;]/.test(v)) {
+                              setEmailDraft(v);
+                              setTimeout(commitDraft, 0);
+                            } else {
+                              setEmailDraft(v);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === "Tab" || e.key === ",") {
+                              if (emailDraft.trim()) {
+                                e.preventDefault();
+                                commitDraft();
+                              }
+                            } else if (e.key === "Backspace" && emailDraft === "" && emails.length > 0) {
+                              e.preventDefault();
+                              setEmails((prev) => prev.slice(0, -1));
+                            }
+                          }}
+                          onBlur={() => emailDraft.trim() && commitDraft()}
+                          placeholder={emails.length === 0 ? "email@dominio.com" : ""}
+                          className="flex-1 min-w-[140px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        />
+                      </div>
+                      {emailDraft && !draftValido && (
+                        <p className="text-[11px] text-destructive">E-mail inválido</p>
+                      )}
+                      {invalidos.length > 0 && (
+                        <p className="text-[11px] text-destructive">
+                          Remova os e-mails inválidos: {invalidos.join(", ")}
+                        </p>
                       )}
                     </div>
                   )}
+
 
                   <div className="space-y-2">
                     <Label>
@@ -300,35 +350,41 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t flex-row items-center justify-between sm:justify-between gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={isPending}>
+        <DialogFooter className="px-6 py-4 border-t flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 flex-wrap">
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={isPending} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             {modo === "enviada" && canal === "email" && (
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => registrarForaMutation.mutate()}
                 disabled={!etapa || isPending}
+                className="w-full sm:w-auto"
               >
                 {registrarForaMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Registrar (enviei por fora)
+                Enviei por fora
               </Button>
             )}
             {modo === "enviada" && canal === "email" ? (
               <Button
+                size="sm"
                 onClick={enviarEmailERegistrar}
                 disabled={!etapa || !podeEnviarEmail || isPending}
+                className="w-full sm:w-auto"
               >
                 {enviandoEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Registrar e enviar e-mail
               </Button>
             ) : (
               <Button
+                size="sm"
                 onClick={() => registrarForaMutation.mutate()}
                 disabled={!etapa || isPending}
+                className="w-full sm:w-auto"
               >
                 {registrarForaMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -338,6 +394,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
             )}
           </div>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
