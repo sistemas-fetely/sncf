@@ -366,6 +366,36 @@ export default function BancoSafra() {
     }
   };
 
+  const handleGerarEntrada = async () => {
+    setGerandoEntrada(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
+        body: { tipo: "entrada" },
+      });
+      if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de entrada");
+      const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.arquivo_nome;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({
+        title: `Remessa de entrada gerada: ${data.qtd_titulos} boleto(s)`,
+        description: data.valor_total != null ? `Total: ${formatBRL(Number(data.valor_total))}` : undefined,
+      });
+      setEntradaDialogOpen(false);
+      await qc.invalidateQueries({ queryKey: ["boletos-safra"] });
+      refetchBoletos();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erro ao gerar entrada", description: msg, variant: "destructive" });
+    } finally {
+      setGerandoEntrada(false);
+    }
+  };
+
+
   const kpis = useMemo(() => {
     const primeiroDia = new Date();
     primeiroDia.setDate(1);
