@@ -353,6 +353,18 @@ serve(async (req) => {
             }
           }
 
+          // A5: valores reais do arquivo de retorno
+          const valorPagoArq = parseValor13d2(linha.valorPagoRaw);
+          const jurosArq     = parseValor13d2(linha.jurosMoraRaw) ?? 0;
+          const descontoArq  = parseValor13d2(linha.descontoRaw) ?? 0;
+
+          let valorCreditado = Number(t.valor_bruto);
+          if (valorPagoArq && valorPagoArq > 0 && valorPagoArq <= Number(t.valor_bruto) * 3) {
+            valorCreditado = valorPagoArq;
+          } else if (valorPagoArq !== null && valorPagoArq !== 0) {
+            alertas.push(`⚠ Valor pago fora do esperado no título ${linha.nossoNumero} (arquivo: ${valorPagoArq}) — movimentação lançada pelo valor nominal. Validar layout.`);
+          }
+
           const { error: errMarca } = await sb.rpc("marcar_titulo_pago" as string, {
             p_titulo_id: t.id,
             p_data_pagamento: dataPagamentoIso,
@@ -364,10 +376,19 @@ serve(async (req) => {
 
           const { error: errBoleto } = await sb
             .from("titulo_a_receber")
-            .update({ boleto_status: "pago_banco", data_pagamento_banco: dataPagamentoIso })
+            .update({
+              boleto_status: "pago_banco",
+              data_pagamento_banco: dataPagamentoIso,
+              valor_juros: jurosArq,
+              valor_desconto: descontoArq,
+            } as any)
             .eq("id", t.id);
           if (errBoleto) {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update boleto: ${errBoleto.message}` });
+          }
+
+          if (jurosArq > 0) {
+            alertas.push(`Título ${linha.nossoNumero} liquidado com R$ ${jurosArq.toFixed(2)} de juros de mora — creditado R$ ${valorCreditado.toFixed(2)}.`);
           }
 
           if (safraConta) {
