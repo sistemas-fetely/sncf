@@ -322,7 +322,9 @@ serve(async (req) => {
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "liquidacao") {
           if (t.boleto_status === "pago_manual") {
-            console.log(`[retorno-safra] Título ${t.id} já pago_manual — ocorrência ${linha.ocorrencia} ignorada`);
+            alertas.push(
+              `⚠ POSSÍVEL PAGAMENTO EM DOBRO: título ${t.nosso_numero_seq ?? t.numero_titulo} já estava baixado manualmente e o banco reportou liquidação. Confira o extrato e trate reembolso se necessário.`,
+            );
             contadores.liquidacoes++;
             continue;
           }
