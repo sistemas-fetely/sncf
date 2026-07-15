@@ -36,10 +36,12 @@ export function useEnviarEmailBoleto() {
 
       const { data: parceiro } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("razao_social, email")
+        .select("razao_social, email, email_cobranca")
         .eq("id", pedido.parceiro_id)
         .maybeSingle();
-      if (!parceiro?.email)
+      const emailPadrao = parceiro?.email_cobranca || parceiro?.email;
+      const destinatarios = destinatariosCustom?.length ? destinatariosCustom : (emailPadrao ? [emailPadrao] : []);
+      if (destinatarios.length === 0)
         throw new Error("Parceiro sem email cadastrado — atualize o cadastro antes de enviar");
 
       // 3. Gera PDF do boleto
