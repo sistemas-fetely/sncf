@@ -8,6 +8,9 @@ import {
   type StatusGestao,
 } from "@/hooks/credito/useTitulosCobranca";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
+import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
+import { ConfirmarEnvioEmailDialog } from "@/components/credito/ConfirmarEnvioEmailDialog";
+import { useEnviosBoletoTitulo, useHistoricoInstrumento } from "@/hooks/credito/useHistoricoTitulo";
 import {
   Sheet,
   SheetContent,
@@ -127,6 +130,89 @@ function HistoricoReguaSection({ tituloId }: { tituloId: string }) {
   );
 }
 
+const EVENTO_LABEL: Record<string, string> = {
+  reemissao_aplicada: "Reemissão aplicada",
+  prorrogacao_confirmada: "Prorrogação confirmada",
+  prorrogacao_rejeitada: "Prorrogação rejeitada",
+  vencimento_alterado: "Vencimento alterado",
+  boleto_marcado_vencido: "Boleto marcado vencido",
+  boleto_reativado: "Boleto reativado",
+};
+function ReincidenteBadge({ tituloId }: { tituloId: string }) {
+  const { data = [] } = useHistoricoInstrumento(tituloId, 20);
+  const count = data.filter((h) => h.evento === "reemissao_aplicada" || h.evento === "prorrogacao_confirmada").length;
+  if (count < 2) return null;
+  return (
+    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 text-[10px]">
+      Reincidente
+    </Badge>
+  );
+}
+
+
+function EnviosBoletoSection({ pedidoId, tituloId, fallback }: { pedidoId: string | null; tituloId: string; fallback: string | null }) {
+  const { data = [] } = useEnviosBoletoTitulo(pedidoId, tituloId);
+  if (data.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground">
+        {fallback
+          ? `Boleto enviado em: ${new Date(fallback).toLocaleString("pt-BR")}`
+          : "Nenhum envio registrado pelo sistema"}
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Envios</div>
+      <ul className="space-y-1">
+        {data.map((e) => (
+          <li key={e.id} className="text-xs border-l-2 border-border pl-2">
+            <div>{e.destinatario}</div>
+            <div className="text-muted-foreground">
+              {new Date(e.enviado_em).toLocaleString("pt-BR")}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function HistoricoInstrumentoSection({ tituloId }: { tituloId: string }) {
+  const { data = [], isLoading } = useHistoricoInstrumento(tituloId, 8);
+  if (isLoading || data.length === 0) return null;
+  return (
+    <section>
+      <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+        Histórico do instrumento
+      </h4>
+      <ul className="space-y-1.5">
+        {data.map((h) => (
+          <li key={h.id} className="text-xs border-l-2 border-border pl-2">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{EVENTO_LABEL[h.evento] ?? h.evento}</span>
+              {h.origem && (
+                <span className="text-muted-foreground">· {h.origem}</span>
+              )}
+            </div>
+            {(h.data_anterior || h.data_nova) && (
+              <div className="text-muted-foreground">
+                {h.data_anterior ? formatDateBR(h.data_anterior) : "—"} → {h.data_nova ? formatDateBR(h.data_nova) : "—"}
+              </div>
+            )}
+            {h.detalhe && <div className="text-muted-foreground italic">{h.detalhe}</div>}
+            <div className="text-muted-foreground">
+              {new Date(h.created_at).toLocaleString("pt-BR")}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+
+
 
 function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
   const { data } = useQuery({
@@ -226,6 +312,9 @@ export default function TitulosTab() {
   const { toast } = useToast();
   const { data: titulos = [], isLoading } = useTitulosCobranca();
   const enviarBoleto = useEnviarEmailBoleto();
+  const enviarCobranca = useEnviarEmailCobranca();
+  const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);
+  const [confirmarEnvioPix, setConfirmarEnvioPix] = useState<TituloCobranca | null>(null);
 
   const [cardsAtivos, setCardsAtivos] = useState<Set<string>>(
     new Set(["a_vencer", "vence_hoje", "atrasado"]),
@@ -541,6 +630,16 @@ export default function TitulosTab() {
                 </SheetDescription>
               </SheetHeader>
 
+              {detalhe.inconsistencia_pagamento && (
+                <Alert className="mt-4 border-red-300 bg-red-50">
+                  <AlertTriangle className="h-4 w-4 !text-red-700" />
+                  <AlertDescription className="text-xs text-red-900">
+                    ⚠ Inconsistência: este título tem data de pagamento registrada mas não está marcado como pago.
+                    Verifique com o financeiro antes de qualquer ação.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {detalhe.pausa_regua_automatica && (
                 <Alert className="mt-4 border-amber-300 bg-amber-50">
                   <AlertTriangle className="h-4 w-4 !text-amber-700" />
@@ -579,6 +678,26 @@ export default function TitulosTab() {
                   <p className="text-xs text-muted-foreground">
                     {detalhe.parceiro_cnpj ? formatCNPJ(detalhe.parceiro_cnpj) : ""}
                   </p>
+                  {(() => {
+                    const emailCob = detalhe.parceiro_email_cobranca ?? detalhe.parceiro_email;
+                    if (!emailCob) return null;
+                    return (
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">E-mail de cobrança: </span>
+                          <span>{emailCob}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => copiar(emailCob)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  })()}
                   {detalhe.pedido_id_externo && (
                     <button
                       onClick={() => navigate(`/pedidos/${detalhe.pedido_id}`)}
@@ -599,8 +718,12 @@ export default function TitulosTab() {
                     <dd>{formatDateBR(detalhe.data_vencimento_original)}</dd>
                     <dt className="text-muted-foreground">Vencimento atual</dt>
                     <dd>{formatDateBR(detalhe.data_vencimento_atual)}</dd>
-                    <dt className="text-muted-foreground">Liquidação prevista</dt>
-                    <dd>{formatDateBR(detalhe.data_liquidacao_prevista)}</dd>
+                    {(detalhe.data_liquidacao_prevista !== null || detalhe.tipo_pagamento?.startsWith("cartao")) && (
+                      <>
+                        <dt className="text-muted-foreground">Liquidação prevista</dt>
+                        <dd>{formatDateBR(detalhe.data_liquidacao_prevista)}</dd>
+                      </>
+                    )}
                     <dt className="text-muted-foreground">Liquidação real</dt>
                     <dd>{formatDateBR(detalhe.data_liquidacao_real)}</dd>
                     <dt className="text-muted-foreground">Pago em (banco)</dt>
@@ -614,10 +737,13 @@ export default function TitulosTab() {
                       Boleto
                     </h4>
                     <div className="space-y-2">
-                      <BadgeBoletoStatus
-                        status={detalhe.boleto_status}
-                        codigoRejeicao={detalhe.boleto_codigo_rejeicao}
-                      />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <BadgeBoletoStatus
+                          status={detalhe.boleto_status}
+                          codigoRejeicao={detalhe.boleto_codigo_rejeicao}
+                        />
+                        <ReincidenteBadge tituloId={detalhe.id} />
+                      </div>
                       {detalhe.boleto_status === "rejeitado" && detalhe.boleto_codigo_rejeicao && (
                         <MotivoRejeicaoSafra codigo={detalhe.boleto_codigo_rejeicao} />
                       )}
@@ -640,12 +766,11 @@ export default function TitulosTab() {
                           </Button>
                         </div>
                       )}
-                      <div className="text-xs text-muted-foreground">
-                        Boleto enviado em:{" "}
-                        {detalhe.boleto_enviado_em
-                          ? new Date(detalhe.boleto_enviado_em).toLocaleString("pt-BR")
-                          : "—"}
-                      </div>
+                      <EnviosBoletoSection
+                        pedidoId={detalhe.pedido_id}
+                        tituloId={detalhe.id}
+                        fallback={detalhe.boleto_enviado_em}
+                      />
                       {detalhe.boleto_status === "baixa_solicitada" && detalhe.reemissao_nova_data && (
                         <Alert className="border-amber-300 bg-amber-50 text-amber-900">
                           <AlertTriangle className="h-4 w-4 !text-amber-700" />
@@ -729,6 +854,44 @@ export default function TitulosTab() {
                   </dl>
                 </section>
 
+                {detalhe.tipo_pagamento === "pix" && (
+                  <section>
+                    <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                      PIX
+                    </h4>
+                    {detalhe.link_pagamento ? (
+                      <div className="flex items-center gap-2">
+                        <code className="text-[11px] break-all bg-muted px-2 py-1 rounded flex-1 truncate">
+                          {detalhe.link_pagamento}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => copiar(detalhe.link_pagamento!)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Alert className="border-amber-300 bg-amber-50">
+                        <AlertTriangle className="h-4 w-4 !text-amber-700" />
+                        <AlertDescription className="text-xs text-amber-900">
+                          Sem link de pagamento — informe o link no detalhe da cobrança para habilitar o envio ao cliente.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <div className="mt-2">
+                      <EnviosBoletoSection
+                        pedidoId={detalhe.pedido_id}
+                        tituloId={detalhe.id}
+                        fallback={detalhe.email_cobranca_enviado_em}
+                      />
+                    </div>
+                  </section>
+                )}
+
+                <HistoricoInstrumentoSection tituloId={detalhe.id} />
                 <HistoricoReguaSection tituloId={detalhe.id} />
               </div>
 
@@ -742,11 +905,6 @@ export default function TitulosTab() {
                     }}
                   >
                     Baixa manual
-                  </Button>
-                )}
-                {detalhe.linha_digitavel && (
-                  <Button variant="outline" onClick={() => copiar(detalhe.linha_digitavel!)}>
-                    Copiar linha digitável
                   </Button>
                 )}
                 {detalhe.tipo_pagamento === "boleto" && (() => {
@@ -763,7 +921,7 @@ export default function TitulosTab() {
                     <Button
                       variant="outline"
                       disabled={bloqueado || enviarBoleto.isPending}
-                      onClick={() => !bloqueado && enviarBoleto.mutate(detalhe.id)}
+                      onClick={() => !bloqueado && setConfirmarEnvioBoleto(detalhe)}
                     >
                       {enviarBoleto.isPending ? "Enviando..." : "Reenviar boleto por e-mail"}
                     </Button>
@@ -778,6 +936,15 @@ export default function TitulosTab() {
                     </TooltipProvider>
                   );
                 })()}
+                {detalhe.tipo_pagamento === "pix" && (
+                  <Button
+                    variant="outline"
+                    disabled={!detalhe.link_pagamento || enviarCobranca.isPending}
+                    onClick={() => setConfirmarEnvioPix(detalhe)}
+                  >
+                    {enviarCobranca.isPending ? "Enviando..." : "Enviar cobrança por e-mail"}
+                  </Button>
+                )}
                 {detalhe.tipo_pagamento === "boleto" &&
                   (detalhe.boleto_status === "vencido" || detalhe.boleto_status === "rejeitado") &&
                   detalhe.status_gestao !== "pago" &&
@@ -892,6 +1059,40 @@ export default function TitulosTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {confirmarEnvioBoleto && (
+        <ConfirmarEnvioEmailDialog
+          open={!!confirmarEnvioBoleto}
+          onOpenChange={(v) => !v && setConfirmarEnvioBoleto(null)}
+          titulo={confirmarEnvioBoleto}
+          emailPadrao={confirmarEnvioBoleto.parceiro_email_cobranca ?? confirmarEnvioBoleto.parceiro_email ?? null}
+          loading={enviarBoleto.isPending}
+          titleLabel="Reenviar boleto por e-mail"
+          onConfirm={(destinatarios) => {
+            enviarBoleto.mutate(
+              { titulo_id: confirmarEnvioBoleto.id, destinatarios },
+              { onSuccess: () => setConfirmarEnvioBoleto(null) },
+            );
+          }}
+        />
+      )}
+
+      {confirmarEnvioPix && (
+        <ConfirmarEnvioEmailDialog
+          open={!!confirmarEnvioPix}
+          onOpenChange={(v) => !v && setConfirmarEnvioPix(null)}
+          titulo={confirmarEnvioPix}
+          emailPadrao={confirmarEnvioPix.parceiro_email_cobranca ?? confirmarEnvioPix.parceiro_email ?? null}
+          loading={enviarCobranca.isPending}
+          titleLabel="Enviar cobrança por e-mail"
+          onConfirm={(destinatarios) => {
+            enviarCobranca.mutate(
+              { titulo_id: confirmarEnvioPix.id, destinatarios },
+              { onSuccess: () => setConfirmarEnvioPix(null) },
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

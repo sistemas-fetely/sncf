@@ -11,7 +11,9 @@ export function useEnviarEmailBoleto() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (titulo_id: string) => {
+    mutationFn: async (arg: string | { titulo_id: string; destinatarios?: string[] }) => {
+      const titulo_id = typeof arg === "string" ? arg : arg.titulo_id;
+      const destinatariosCustom = typeof arg === "string" ? undefined : arg.destinatarios;
       // 1. Busca título
       const { data: titulo, error: errT } = await (supabase as any)
         .from("titulo_a_receber")
@@ -34,10 +36,12 @@ export function useEnviarEmailBoleto() {
 
       const { data: parceiro } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("razao_social, email")
+        .select("razao_social, email, email_cobranca")
         .eq("id", pedido.parceiro_id)
         .maybeSingle();
-      if (!parceiro?.email)
+      const emailPadrao = parceiro?.email_cobranca || parceiro?.email;
+      const destinatarios = destinatariosCustom?.length ? destinatariosCustom : (emailPadrao ? [emailPadrao] : []);
+      if (destinatarios.length === 0)
         throw new Error("Parceiro sem email cadastrado — atualize o cadastro antes de enviar");
 
       // 3. Gera PDF do boleto
@@ -53,8 +57,9 @@ export function useEnviarEmailBoleto() {
       const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "boleto-safra",
-          recipientEmail: parceiro.email,
-          idempotencyKey: `boleto-safra-${titulo_id}`,
+          recipientEmail: destinatarios[0],
+          cc: destinatarios.slice(1),
+          idempotencyKey: `boleto-safra-${titulo_id}-${destinatarios.join(",")}`,
           templateData: {
             parceiro_nome:  parceiro.razao_social,
             numero_parcela: String(titulo.numero_parcela ?? "1"),
@@ -77,7 +82,7 @@ export function useEnviarEmailBoleto() {
         .update({ boleto_enviado_em: new Date().toISOString() })
         .eq("id", titulo_id);
 
-      return { email: parceiro.email, pedido_id_externo: pedido.id_externo };
+      return { email: destinatarios.join(", "), pedido_id_externo: pedido.id_externo };
     },
     onSuccess: (data) => {
       toast({
@@ -85,6 +90,7 @@ export function useEnviarEmailBoleto() {
         description: `Enviado para ${data.email} · Pedido ${data.pedido_id_externo}`,
       });
       qc.invalidateQueries({ queryKey: ["banco-safra-boletos"] });
+      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar boleto", description: e.message, variant: "destructive" });

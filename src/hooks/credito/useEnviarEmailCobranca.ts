@@ -11,7 +11,9 @@ export function useEnviarEmailCobranca() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (titulo_id: string) => {
+    mutationFn: async (arg: string | { titulo_id: string; destinatarios?: string[] }) => {
+      const titulo_id = typeof arg === "string" ? arg : arg.titulo_id;
+      const destinatariosCustom = typeof arg === "string" ? undefined : arg.destinatarios;
       // 1. Busca título
       const { data: titulo, error: errT } = await (supabase as any)
         .from("titulo_a_receber")
@@ -31,10 +33,12 @@ export function useEnviarEmailCobranca() {
 
       const { data: parceiro } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("razao_social, email")
+        .select("razao_social, email, email_cobranca")
         .eq("id", pedido.parceiro_id)
         .maybeSingle();
-      if (!parceiro?.email) throw new Error("Parceiro sem email cadastrado — atualize o cadastro antes de enviar");
+      const emailPadrao = parceiro?.email_cobranca || parceiro?.email;
+      const destinatarios = destinatariosCustom?.length ? destinatariosCustom : (emailPadrao ? [emailPadrao] : []);
+      if (destinatarios.length === 0) throw new Error("Parceiro sem email cadastrado — atualize o cadastro antes de enviar");
 
       // 3. Monta tipo legível
       const tipoLabel: Record<string, string> = {
@@ -49,8 +53,9 @@ export function useEnviarEmailCobranca() {
       const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "link-cobranca",
-          recipientEmail: parceiro.email,
-          idempotencyKey: `link-cobranca-${titulo_id}`,
+          recipientEmail: destinatarios[0],
+          cc: destinatarios.slice(1),
+          idempotencyKey: `link-cobranca-${titulo_id}-${destinatarios.join(",")}`,
           templateData: {
             parceiro_nome: parceiro.razao_social,
             tipo,
@@ -71,7 +76,7 @@ export function useEnviarEmailCobranca() {
         .update({ email_cobranca_enviado_em: new Date().toISOString() })
         .eq("id", titulo_id);
 
-      return { email: parceiro.email, pedido_id_externo: pedido.id_externo };
+      return { email: destinatarios.join(", "), pedido_id_externo: pedido.id_externo };
     },
     onSuccess: (data) => {
       toast({
@@ -79,6 +84,7 @@ export function useEnviarEmailCobranca() {
         description: `Enviado para ${data.email} · Pedido ${data.pedido_id_externo}`,
       });
       qc.invalidateQueries({ queryKey: ["contas-receber-titulos"] });
+      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar email", description: e.message, variant: "destructive" });

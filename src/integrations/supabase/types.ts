@@ -8992,6 +8992,7 @@ export type Database = {
           dados_bancarios: Json | null
           data_nascimento: string | null
           email: string | null
+          email_cobranca: string | null
           endereco_complemento: string | null
           endereco_entrega: Json | null
           forma_pagamento_padrao_id: string | null
@@ -9047,6 +9048,7 @@ export type Database = {
           dados_bancarios?: Json | null
           data_nascimento?: string | null
           email?: string | null
+          email_cobranca?: string | null
           endereco_complemento?: string | null
           endereco_entrega?: Json | null
           forma_pagamento_padrao_id?: string | null
@@ -9102,6 +9104,7 @@ export type Database = {
           dados_bancarios?: Json | null
           data_nascimento?: string | null
           email?: string | null
+          email_cobranca?: string | null
           endereco_complemento?: string | null
           endereco_entrega?: Json | null
           forma_pagamento_padrao_id?: string | null
@@ -15356,6 +15359,74 @@ export type Database = {
           },
         ]
       }
+      titulo_instrumento_log: {
+        Row: {
+          created_at: string
+          data_anterior: string | null
+          data_nova: string | null
+          detalhe: string | null
+          evento: string
+          id: string
+          nosso_numero_anterior: string | null
+          nosso_numero_novo: string | null
+          origem: string
+          titulo_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_anterior?: string | null
+          data_nova?: string | null
+          detalhe?: string | null
+          evento: string
+          id?: string
+          nosso_numero_anterior?: string | null
+          nosso_numero_novo?: string | null
+          origem?: string
+          titulo_id: string
+        }
+        Update: {
+          created_at?: string
+          data_anterior?: string | null
+          data_nova?: string | null
+          detalhe?: string | null
+          evento?: string
+          id?: string
+          nosso_numero_anterior?: string | null
+          nosso_numero_novo?: string | null
+          origem?: string
+          titulo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "titulo_instrumento_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_previsao_recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transp_fretes: {
         Row: {
           ad_valorem: number | null
@@ -18631,6 +18702,7 @@ export type Database = {
           flag_bandeira_amarela: boolean | null
           flag_grupo_economico_inadimplente: boolean | null
           id: string | null
+          inconsistencia_pagamento: boolean | null
           linha_digitavel: string | null
           modalidade_renegociacao: number | null
           nf_id: string | null
@@ -18639,6 +18711,8 @@ export type Database = {
           numero_parcela: number | null
           numero_titulo: string | null
           parceiro_cnpj: string | null
+          parceiro_email: string | null
+          parceiro_email_cobranca: string | null
           parceiro_id: string | null
           parceiro_nome_fantasia: string | null
           parceiro_razao_social: string | null

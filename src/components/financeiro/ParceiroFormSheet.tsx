@@ -50,6 +50,7 @@ export type Parceiro = {
   uf: string | null;
   telefone: string | null;
   email: string | null;
+  email_cobranca?: string | null;
   tipo: string | null;
   tipos: string[] | null;
   canal_venda_id: string | null;
@@ -138,6 +139,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
   const [uf, setUf] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
+  const [emailCobranca, setEmailCobranca] = useState("");
   const [canalVendaId, setCanalVendaId] = useState<string | null>(null);
   const [segmento, setSegmento] = useState("");
   const [categoriaPadrao, setCategoriaPadrao] = useState<string | null>(null);
@@ -202,6 +204,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
       setUf(editing.uf || "");
       setTelefone(editing.telefone || "");
       setEmail(editing.email || "");
+      setEmailCobranca(editing.email_cobranca || "");
       setCanalVendaId(editing.canal_venda_id ?? null);
       setSegmento(editing.segmento || "");
       setCategoriaPadrao(editing.plano_contas_id);
@@ -236,6 +239,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
       setUf("");
       setTelefone("");
       setEmail("");
+      setEmailCobranca("");
       setCanalVendaId(null);
       setSegmento("");
       setCategoriaPadrao(null);
@@ -340,6 +344,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
         uf: uf.trim() || null,
         telefone: telefone.trim() || null,
         email: email.trim() || null,
+        email_cobranca: emailCobranca.trim() || null,
         canal_venda_id: canalVendaId,
         segmento: segmento.trim() || null,
         plano_contas_id: categoriaPadrao,
@@ -598,6 +603,18 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
                 <Label>Email</Label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
+            </div>
+            <div className="mt-3">
+              <Label>E-mail de cobrança</Label>
+              <Input
+                type="email"
+                value={emailCobranca}
+                onChange={(e) => setEmailCobranca(e.target.value)}
+                placeholder="opcional"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Se vazio, usa o e-mail principal.
+              </p>
             </div>
           </div>
 

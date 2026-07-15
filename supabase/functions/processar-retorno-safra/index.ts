@@ -244,6 +244,7 @@ serve(async (req) => {
             valor_bruto, data_vencimento_atual, boleto_status, pedido_id,
             nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
             prorrogacao_nova_data, prorrogacao_solicitada_em,
+            reemissao_nova_data,
             conta:contas_pagar_receber(
               parceiro:parceiros_comerciais(razao_social, email)
             )
@@ -297,6 +298,12 @@ serve(async (req) => {
               } as any)
               .eq("id", t.id);
             const descMotivo = descricaoRejeicao(linha.motivoRejeicao);
+            await sb.from("titulo_instrumento_log").insert({
+              titulo_id: t.id,
+              evento: "prorrogacao_rejeitada",
+              detalhe: `Motivo ${linha.motivoRejeicao}: ${descMotivo}`,
+              origem: "retorno_safra",
+            } as any);
             alertas.push(
               `⚠ Prorrogação rejeitada (motivo ${linha.motivoRejeicao}: ${descMotivo}) — boleto original permanece válido. Considere reemissão para o título ${linha.nossoNumero}.`
             );
@@ -321,7 +328,9 @@ serve(async (req) => {
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "liquidacao") {
           if (t.boleto_status === "pago_manual") {
-            console.log(`[retorno-safra] Título ${t.id} já pago_manual — ocorrência ${linha.ocorrencia} ignorada`);
+            alertas.push(
+              `⚠ POSSÍVEL PAGAMENTO EM DOBRO: título ${t.nosso_numero_seq ?? t.numero_titulo} já estava baixado manualmente e o banco reportou liquidação. Confira o extrato e trate reembolso se necessário.`,
+            );
             contadores.liquidacoes++;
             continue;
           }
@@ -403,9 +412,32 @@ serve(async (req) => {
             continue;
           }
 
+          const nnAntes = t.nosso_numero_seq;
+          const dataAntes = t.data_vencimento_atual;
+          const tinhaReemissao = !!t.reemissao_nova_data;
+
           await sb.from("titulo_a_receber")
             .update({ boleto_status: "baixado_banco" })
             .eq("id", t.id);
+
+          if (tinhaReemissao) {
+            // Após a baixa, o trigger aplica a reemissão. Registra no log.
+            const { data: tAtual } = await sb
+              .from("titulo_a_receber")
+              .select("nosso_numero_seq, data_vencimento_atual")
+              .eq("id", t.id)
+              .maybeSingle() as any;
+            await sb.from("titulo_instrumento_log").insert({
+              titulo_id: t.id,
+              evento: "reemissao_aplicada",
+              data_anterior: dataAntes,
+              data_nova: tAtual?.data_vencimento_atual ?? t.reemissao_nova_data,
+              nosso_numero_anterior: nnAntes,
+              nosso_numero_novo: tAtual?.nosso_numero_seq ?? null,
+              detalhe: "Reemissão aplicada após baixa confirmada",
+              origem: "retorno_safra",
+            } as any);
+          }
 
           if (linha.ocorrencia === "09") {
             alertas.push(
@@ -433,15 +465,46 @@ serve(async (req) => {
             const { linha: novaLinhaDigitavel, barras: novoCodigoBarras } =
               montarLinhaDigitavel(String(t.nosso_numero_seq), novaData, valorCents, params);
 
+            const dataAnteriorVenc = t.data_vencimento_atual;
+            const tinhaProrrogPendente = t.prorrogacao_nova_data !== null || t.prorrogacao_solicitada_em !== null;
+            const hojeIso = new Date().toISOString().slice(0, 10);
+            const reativarBoleto = t.boleto_status === "vencido" && novaData >= hojeIso;
+
+            const updatePayload: Record<string, unknown> = {
+              data_vencimento_atual:      novaData,
+              linha_digitavel:            novaLinhaDigitavel,
+              codigo_barras_boleto:       novoCodigoBarras,
+              prorrogacao_nova_data:      null,
+              prorrogacao_solicitada_em:  null,
+            };
+            if (reativarBoleto) updatePayload.boleto_status = "registrado";
+
             await sb.from("titulo_a_receber")
-              .update({
-                data_vencimento_atual:      novaData,
-                linha_digitavel:            novaLinhaDigitavel,
-                codigo_barras_boleto:       novoCodigoBarras,
-                prorrogacao_nova_data:      null,
-                prorrogacao_solicitada_em:  null,
-              } as any)
+              .update(updatePayload as any)
               .eq("id", t.id);
+
+            const eventoLog = tinhaProrrogPendente ? "prorrogacao_confirmada" : "vencimento_alterado";
+            await sb.from("titulo_instrumento_log").insert({
+              titulo_id: t.id,
+              evento: eventoLog,
+              data_anterior: dataAnteriorVenc,
+              data_nova: novaData,
+              detalhe: "Retorno Safra ocorrência 14",
+              origem: "retorno_safra",
+            } as any);
+
+            if (reativarBoleto) {
+              await sb.from("titulo_instrumento_log").insert({
+                titulo_id: t.id,
+                evento: "boleto_reativado",
+                data_anterior: dataAnteriorVenc,
+                data_nova: novaData,
+                detalhe: "Boleto vencido reativado após prorrogação",
+                origem: "retorno_safra",
+              } as any);
+              alertas.push(`Boleto reativado — título ${linha.nossoNumero} voltou ao status registrado após prorrogação.`);
+            }
+
             alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. Código de barras recalculado. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
             contadores.alteracoes++;
             continue;
