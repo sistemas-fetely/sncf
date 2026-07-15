@@ -956,6 +956,68 @@ export default function BancoSafra() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={entradaDialogOpen} onOpenChange={(v) => !gerandoEntrada && setEntradaDialogOpen(v)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gerar Remessa de Entrada</DialogTitle>
+            <DialogDescription>
+              {pendentesEntrada.length} título(s) pendente(s) serão enviados ao Safra para registro.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pendentesPassado.length > 0 && (
+            <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 flex gap-2">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong>{pendentesPassado.length}</strong> título(s) com vencimento no passado — ajuste a data na lista antes de gerar, ou eles serão rejeitados pelo banco.
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-[360px] overflow-y-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendentesEntrada.map((b) => {
+                  const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
+                  return (
+                    <TableRow key={b.id} className={passado ? "bg-red-50/60" : ""}>
+                      <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
+                      <TableCell className="max-w-[220px] truncate">{b.conta?.parceiro?.razao_social || "—"}</TableCell>
+                      <TableCell className={passado ? "text-red-700 font-medium" : ""}>
+                        {formatDateBR(b.data_vencimento_atual)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatBRL(Number(b.valor_bruto || 0))}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEntradaDialogOpen(false)} disabled={gerandoEntrada}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleGerarEntrada}
+              disabled={gerandoEntrada || pendentesPassado.length > 0 || pendentesEntrada.length === 0}
+              className="gap-2"
+            >
+              {gerandoEntrada && <Loader2 className="h-4 w-4 animate-spin" />}
+              Confirmar e gerar remessa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
