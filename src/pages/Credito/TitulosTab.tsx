@@ -138,6 +138,17 @@ const EVENTO_LABEL: Record<string, string> = {
   boleto_marcado_vencido: "Boleto marcado vencido",
   boleto_reativado: "Boleto reativado",
 };
+function ReincidenteBadge({ tituloId }: { tituloId: string }) {
+  const { data = [] } = useHistoricoInstrumento(tituloId, 20);
+  const count = data.filter((h) => h.evento === "reemissao_aplicada" || h.evento === "prorrogacao_confirmada").length;
+  if (count < 2) return null;
+  return (
+    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 text-[10px]">
+      Reincidente
+    </Badge>
+  );
+}
+
 
 function EnviosBoletoSection({ pedidoId, tituloId, fallback }: { pedidoId: string | null; tituloId: string; fallback: string | null }) {
   const { data = [] } = useEnviosBoletoTitulo(pedidoId, tituloId);
