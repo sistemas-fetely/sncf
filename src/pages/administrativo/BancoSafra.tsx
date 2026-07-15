@@ -271,6 +271,21 @@ export default function BancoSafra() {
 
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
   const [gerandoProrrogacao, setGerandoProrrogacao] = useState(false);
+  const [gerandoEntrada, setGerandoEntrada] = useState(false);
+  const [entradaDialogOpen, setEntradaDialogOpen] = useState(false);
+
+  const hojeIso = new Date().toISOString().slice(0, 10);
+  const pendentesEntrada = useMemo(
+    () => boletos.filter((b) => b.boleto_status === "pendente"),
+    [boletos],
+  );
+  const pendentesPassado = useMemo(
+    () =>
+      pendentesEntrada.filter(
+        (b) => b.data_vencimento_atual && b.data_vencimento_atual < hojeIso,
+      ),
+    [pendentesEntrada, hojeIso],
+  );
 
   // edição inline de boletos
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
