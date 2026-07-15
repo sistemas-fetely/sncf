@@ -39,12 +39,14 @@ interface Props {
 
 function interpolar(tpl: string, titulo: TituloCobranca): string {
   const cliente = titulo.parceiro_nome_fantasia || titulo.parceiro_razao_social || "";
-  return (tpl ?? "")
-    .replaceAll("{cliente}", cliente)
-    .replaceAll("{valor}", formatBRL(titulo.valor_efetivo))
-    .replaceAll("{vencimento}", formatDateBR(titulo.data_vencimento_atual))
-    .replaceAll("{titulo}", titulo.numero_titulo ?? "")
-    .replaceAll("{cnpj}", titulo.parceiro_cnpj ?? "");
+  const map: Record<string, string> = {
+    "{cliente}": cliente,
+    "{valor}": formatBRL(titulo.valor_efetivo),
+    "{vencimento}": formatDateBR(titulo.data_vencimento_atual),
+    "{titulo}": titulo.numero_titulo ?? "",
+    "{cnpj}": titulo.parceiro_cnpj ?? "",
+  };
+  return (tpl ?? "").replace(/\{cliente\}|\{valor\}|\{vencimento\}|\{titulo\}|\{cnpj\}/g, (m) => map[m] ?? m);
 }
 
 export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
