@@ -139,6 +139,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
   const [uf, setUf] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
+  const [emailCobranca, setEmailCobranca] = useState("");
   const [canalVendaId, setCanalVendaId] = useState<string | null>(null);
   const [segmento, setSegmento] = useState("");
   const [categoriaPadrao, setCategoriaPadrao] = useState<string | null>(null);
