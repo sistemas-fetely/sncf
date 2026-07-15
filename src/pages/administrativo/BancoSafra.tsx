@@ -16,6 +16,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
@@ -226,6 +234,25 @@ export default function BancoSafra() {
     },
   });
 
+  // Saldo calculado a partir de TODAS as movimentações registradas
+  const { data: saldoMovimentacoes } = useQuery<number>({
+    queryKey: ["saldo-movimentacoes-safra", contaSafra?.id],
+    enabled: !!contaSafra?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("movimentacoes_bancarias")
+        .select("valor, tipo")
+        .eq("conta_bancaria_id", contaSafra!.id);
+      if (error) throw error;
+      let saldo = 0;
+      for (const m of (data as { valor: number; tipo: string }[]) ?? []) {
+        if (m.tipo === "credito") saldo += Number(m.valor || 0);
+        else if (m.tipo === "debito") saldo -= Number(m.valor || 0);
+      }
+      return saldo;
+    },
+  });
+
   const { data: boletos = [], isLoading: loadingBoletos, refetch: refetchBoletos } = useQuery<TitulosBoleto[]>({
     queryKey: ["boletos-safra"],
     enabled: activeTab === "boletos",
@@ -244,6 +271,21 @@ export default function BancoSafra() {
 
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
   const [gerandoProrrogacao, setGerandoProrrogacao] = useState(false);
+  const [gerandoEntrada, setGerandoEntrada] = useState(false);
+  const [entradaDialogOpen, setEntradaDialogOpen] = useState(false);
+
+  const hojeIso = new Date().toISOString().slice(0, 10);
+  const pendentesEntrada = useMemo(
+    () => boletos.filter((b) => b.boleto_status === "pendente"),
+    [boletos],
+  );
+  const pendentesPassado = useMemo(
+    () =>
+      pendentesEntrada.filter(
+        (b) => b.data_vencimento_atual && b.data_vencimento_atual < hojeIso,
+      ),
+    [pendentesEntrada, hojeIso],
+  );
 
   // edição inline de boletos
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
@@ -323,6 +365,36 @@ export default function BancoSafra() {
       setGerandoProrrogacao(false);
     }
   };
+
+  const handleGerarEntrada = async () => {
+    setGerandoEntrada(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
+        body: { tipo: "entrada" },
+      });
+      if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de entrada");
+      const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.arquivo_nome;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({
+        title: `Remessa de entrada gerada: ${data.qtd_titulos} boleto(s)`,
+        description: data.valor_total != null ? `Total: ${formatBRL(Number(data.valor_total))}` : undefined,
+      });
+      setEntradaDialogOpen(false);
+      await qc.invalidateQueries({ queryKey: ["boletos-safra"] });
+      refetchBoletos();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erro ao gerar entrada", description: msg, variant: "destructive" });
+    } finally {
+      setGerandoEntrada(false);
+    }
+  };
+
 
   const kpis = useMemo(() => {
     const primeiroDia = new Date();
@@ -436,8 +508,6 @@ export default function BancoSafra() {
     setImportando(false);
   }
 
-  const saldo = contaSafra?.saldo_atual;
-
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -453,14 +523,28 @@ export default function BancoSafra() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Saldo atual</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
+              Saldo das movimentações
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertCircle className="h-3.5 w-3.5 text-muted-foreground/70" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    Calculado a partir das movimentações registradas no sistema
+                    (boletos liquidados). Não substitui o extrato bancário.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-700">
-              {saldo == null ? "—" : formatBRL(Number(saldo))}
+              {saldoMovimentacoes == null ? "—" : formatBRL(saldoMovimentacoes)}
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
@@ -718,7 +802,21 @@ export default function BancoSafra() {
               )}
               Gerar Remessa de Baixa
             </Button>
+            <Button
+              onClick={() => setEntradaDialogOpen(true)}
+              disabled={pendentesEntrada.length === 0 || gerandoEntrada}
+              className="gap-2"
+            >
+              {gerandoEntrada ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpFromLine className="h-4 w-4" />
+              )}
+              Gerar Remessa de Entrada
+              {pendentesEntrada.length > 0 && ` (${pendentesEntrada.length})`}
+            </Button>
           </div>
+
 
           <Card>
             <CardHeader>
@@ -761,9 +859,19 @@ export default function BancoSafra() {
                       const vencido = b.boleto_status === "vencido";
                       const editavel = b.boleto_status === "pendente";
                       const registrado = b.boleto_status === "registrado" || b.boleto_status === "remessa_gerada";
+                      const pendentePassado =
+                        editavel && !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
                       return (
-                        <TableRow key={b.id}>
-                          <TableCell className={vencido ? "text-red-700 font-medium" : ""}>
+                        <TableRow
+                          key={b.id}
+                          className={pendentePassado ? "bg-red-50/60 border-l-2 border-l-red-400" : ""}
+                        >
+                          <TableCell className={vencido || pendentePassado ? "text-red-700 font-medium" : ""}>
+                            {pendentePassado && (
+                              <Badge className="mb-1 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
+                                Vencimento no passado
+                              </Badge>
+                            )}
                             {editavel ? (
                               <Input
                                 type="date"
@@ -848,6 +956,68 @@ export default function BancoSafra() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={entradaDialogOpen} onOpenChange={(v) => !gerandoEntrada && setEntradaDialogOpen(v)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gerar Remessa de Entrada</DialogTitle>
+            <DialogDescription>
+              {pendentesEntrada.length} título(s) pendente(s) serão enviados ao Safra para registro.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pendentesPassado.length > 0 && (
+            <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 flex gap-2">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong>{pendentesPassado.length}</strong> título(s) com vencimento no passado — ajuste a data na lista antes de gerar, ou eles serão rejeitados pelo banco.
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-[360px] overflow-y-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendentesEntrada.map((b) => {
+                  const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
+                  return (
+                    <TableRow key={b.id} className={passado ? "bg-red-50/60" : ""}>
+                      <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
+                      <TableCell className="max-w-[220px] truncate">{b.conta?.parceiro?.razao_social || "—"}</TableCell>
+                      <TableCell className={passado ? "text-red-700 font-medium" : ""}>
+                        {formatDateBR(b.data_vencimento_atual)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatBRL(Number(b.valor_bruto || 0))}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEntradaDialogOpen(false)} disabled={gerandoEntrada}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleGerarEntrada}
+              disabled={gerandoEntrada || pendentesPassado.length > 0 || pendentesEntrada.length === 0}
+              className="gap-2"
+            >
+              {gerandoEntrada && <Loader2 className="h-4 w-4 animate-spin" />}
+              Confirmar e gerar remessa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
