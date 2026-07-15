@@ -755,12 +755,11 @@ export default function TitulosTab() {
                           </Button>
                         </div>
                       )}
-                      <div className="text-xs text-muted-foreground">
-                        Boleto enviado em:{" "}
-                        {detalhe.boleto_enviado_em
-                          ? new Date(detalhe.boleto_enviado_em).toLocaleString("pt-BR")
-                          : "—"}
-                      </div>
+                      <EnviosBoletoSection
+                        pedidoId={detalhe.pedido_id}
+                        tituloId={detalhe.id}
+                        fallback={detalhe.boleto_enviado_em}
+                      />
                       {detalhe.boleto_status === "baixa_solicitada" && detalhe.reemissao_nova_data && (
                         <Alert className="border-amber-300 bg-amber-50 text-amber-900">
                           <AlertTriangle className="h-4 w-4 !text-amber-700" />
