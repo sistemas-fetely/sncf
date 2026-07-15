@@ -1059,6 +1059,40 @@ export default function TitulosTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {confirmarEnvioBoleto && (
+        <ConfirmarEnvioEmailDialog
+          open={!!confirmarEnvioBoleto}
+          onOpenChange={(v) => !v && setConfirmarEnvioBoleto(null)}
+          titulo={confirmarEnvioBoleto}
+          emailPadrao={confirmarEnvioBoleto.parceiro_email_cobranca ?? confirmarEnvioBoleto.parceiro_email ?? null}
+          loading={enviarBoleto.isPending}
+          titleLabel="Reenviar boleto por e-mail"
+          onConfirm={(destinatarios) => {
+            enviarBoleto.mutate(
+              { titulo_id: confirmarEnvioBoleto.id, destinatarios },
+              { onSuccess: () => setConfirmarEnvioBoleto(null) },
+            );
+          }}
+        />
+      )}
+
+      {confirmarEnvioPix && (
+        <ConfirmarEnvioEmailDialog
+          open={!!confirmarEnvioPix}
+          onOpenChange={(v) => !v && setConfirmarEnvioPix(null)}
+          titulo={confirmarEnvioPix}
+          emailPadrao={confirmarEnvioPix.parceiro_email_cobranca ?? confirmarEnvioPix.parceiro_email ?? null}
+          loading={enviarCobranca.isPending}
+          titleLabel="Enviar cobrança por e-mail"
+          onConfirm={(destinatarios) => {
+            enviarCobranca.mutate(
+              { titulo_id: confirmarEnvioPix.id, destinatarios },
+              { onSuccess: () => setConfirmarEnvioPix(null) },
+            );
+          }}
+        />
+      )}
     </div>
   );
 }
