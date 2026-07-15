@@ -465,15 +465,46 @@ serve(async (req) => {
             const { linha: novaLinhaDigitavel, barras: novoCodigoBarras } =
               montarLinhaDigitavel(String(t.nosso_numero_seq), novaData, valorCents, params);
 
+            const dataAnteriorVenc = t.data_vencimento_atual;
+            const tinhaProrrogPendente = t.prorrogacao_nova_data !== null || t.prorrogacao_solicitada_em !== null;
+            const hojeIso = new Date().toISOString().slice(0, 10);
+            const reativarBoleto = t.boleto_status === "vencido" && novaData >= hojeIso;
+
+            const updatePayload: Record<string, unknown> = {
+              data_vencimento_atual:      novaData,
+              linha_digitavel:            novaLinhaDigitavel,
+              codigo_barras_boleto:       novoCodigoBarras,
+              prorrogacao_nova_data:      null,
+              prorrogacao_solicitada_em:  null,
+            };
+            if (reativarBoleto) updatePayload.boleto_status = "registrado";
+
             await sb.from("titulo_a_receber")
-              .update({
-                data_vencimento_atual:      novaData,
-                linha_digitavel:            novaLinhaDigitavel,
-                codigo_barras_boleto:       novoCodigoBarras,
-                prorrogacao_nova_data:      null,
-                prorrogacao_solicitada_em:  null,
-              } as any)
+              .update(updatePayload as any)
               .eq("id", t.id);
+
+            const eventoLog = tinhaProrrogPendente ? "prorrogacao_confirmada" : "vencimento_alterado";
+            await sb.from("titulo_instrumento_log").insert({
+              titulo_id: t.id,
+              evento: eventoLog,
+              data_anterior: dataAnteriorVenc,
+              data_nova: novaData,
+              detalhe: "Retorno Safra ocorrência 14",
+              origem: "retorno_safra",
+            } as any);
+
+            if (reativarBoleto) {
+              await sb.from("titulo_instrumento_log").insert({
+                titulo_id: t.id,
+                evento: "boleto_reativado",
+                data_anterior: dataAnteriorVenc,
+                data_nova: novaData,
+                detalhe: "Boleto vencido reativado após prorrogação",
+                origem: "retorno_safra",
+              } as any);
+              alertas.push(`Boleto reativado — título ${linha.nossoNumero} voltou ao status registrado após prorrogação.`);
+            }
+
             alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. Código de barras recalculado. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
             contadores.alteracoes++;
             continue;
