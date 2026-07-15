@@ -57,8 +57,9 @@ export function useEnviarEmailBoleto() {
       const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "boleto-safra",
-          recipientEmail: parceiro.email,
-          idempotencyKey: `boleto-safra-${titulo_id}`,
+          recipientEmail: destinatarios[0],
+          ccEmails: destinatarios.slice(1),
+          idempotencyKey: `boleto-safra-${titulo_id}-${destinatarios.join(",")}`,
           templateData: {
             parceiro_nome:  parceiro.razao_social,
             numero_parcela: String(titulo.numero_parcela ?? "1"),
