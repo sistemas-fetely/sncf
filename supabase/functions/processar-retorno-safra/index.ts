@@ -298,6 +298,12 @@ serve(async (req) => {
               } as any)
               .eq("id", t.id);
             const descMotivo = descricaoRejeicao(linha.motivoRejeicao);
+            await sb.from("titulo_instrumento_log").insert({
+              titulo_id: t.id,
+              evento: "prorrogacao_rejeitada",
+              detalhe: `Motivo ${linha.motivoRejeicao}: ${descMotivo}`,
+              origem: "retorno_safra",
+            } as any);
             alertas.push(
               `⚠ Prorrogação rejeitada (motivo ${linha.motivoRejeicao}: ${descMotivo}) — boleto original permanece válido. Considere reemissão para o título ${linha.nossoNumero}.`
             );
