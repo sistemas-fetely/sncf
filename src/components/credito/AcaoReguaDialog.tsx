@@ -350,35 +350,41 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t flex-row items-center justify-between sm:justify-between gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={isPending}>
+        <DialogFooter className="px-6 py-4 border-t flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 flex-wrap">
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={isPending} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             {modo === "enviada" && canal === "email" && (
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => registrarForaMutation.mutate()}
                 disabled={!etapa || isPending}
+                className="w-full sm:w-auto"
               >
                 {registrarForaMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Registrar (enviei por fora)
+                Enviei por fora
               </Button>
             )}
             {modo === "enviada" && canal === "email" ? (
               <Button
+                size="sm"
                 onClick={enviarEmailERegistrar}
                 disabled={!etapa || !podeEnviarEmail || isPending}
+                className="w-full sm:w-auto"
               >
                 {enviandoEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Registrar e enviar e-mail
               </Button>
             ) : (
               <Button
+                size="sm"
                 onClick={() => registrarForaMutation.mutate()}
                 disabled={!etapa || isPending}
+                className="w-full sm:w-auto"
               >
                 {registrarForaMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -388,6 +394,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
             )}
           </div>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
