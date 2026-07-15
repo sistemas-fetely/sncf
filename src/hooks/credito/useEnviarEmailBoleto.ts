@@ -82,7 +82,7 @@ export function useEnviarEmailBoleto() {
         .update({ boleto_enviado_em: new Date().toISOString() })
         .eq("id", titulo_id);
 
-      return { email: parceiro.email, pedido_id_externo: pedido.id_externo };
+      return { email: destinatarios.join(", "), pedido_id_externo: pedido.id_externo };
     },
     onSuccess: (data) => {
       toast({
@@ -90,6 +90,7 @@ export function useEnviarEmailBoleto() {
         description: `Enviado para ${data.email} · Pedido ${data.pedido_id_externo}`,
       });
       qc.invalidateQueries({ queryKey: ["banco-safra-boletos"] });
+      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar boleto", description: e.message, variant: "destructive" });
