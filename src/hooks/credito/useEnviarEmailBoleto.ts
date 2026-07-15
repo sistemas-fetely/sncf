@@ -58,7 +58,7 @@ export function useEnviarEmailBoleto() {
         body: {
           templateName: "boleto-safra",
           recipientEmail: destinatarios[0],
-          ccEmails: destinatarios.slice(1),
+          cc: destinatarios.slice(1),
           idempotencyKey: `boleto-safra-${titulo_id}-${destinatarios.join(",")}`,
           templateData: {
             parceiro_nome:  parceiro.razao_social,

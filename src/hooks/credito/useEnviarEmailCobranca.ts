@@ -54,7 +54,7 @@ export function useEnviarEmailCobranca() {
         body: {
           templateName: "link-cobranca",
           recipientEmail: destinatarios[0],
-          ccEmails: destinatarios.slice(1),
+          cc: destinatarios.slice(1),
           idempotencyKey: `link-cobranca-${titulo_id}-${destinatarios.join(",")}`,
           templateData: {
             parceiro_nome: parceiro.razao_social,
