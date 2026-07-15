@@ -19,6 +19,9 @@ interface LinhaRetorno {
   dataCreditoRaw: string;  // pos 296-301 (DDMMAA)
   dataVencRaw: string;     // pos 147-152 (DDMMAA)
   valorTituloRaw: string;  // pos 153-165 (13 dígitos, 2 decimais)
+  descontoRaw: string;     // pos 241-253 (13 dígitos, 2 decimais)
+  valorPagoRaw: string;    // pos 254-266 (13 dígitos, 2 decimais)
+  jurosMoraRaw: string;    // pos 267-279 (13 dígitos, 2 decimais)
 }
 
 function parseLinha(linha: string, numeroLinha: number): LinhaRetorno | null {
@@ -32,6 +35,9 @@ function parseLinha(linha: string, numeroLinha: number): LinhaRetorno | null {
     seuNumero:      linha.substring(116, 126).trim(),
     dataVencRaw:    linha.substring(146, 152).trim(),
     valorTituloRaw: linha.substring(152, 165).trim(),
+    descontoRaw:    linha.substring(240, 253).trim(),
+    valorPagoRaw:   linha.substring(253, 266).trim(),
+    jurosMoraRaw:   linha.substring(266, 279).trim(),
     dataCreditoRaw: linha.substring(295, 301).trim(),
   };
 }
@@ -347,6 +353,18 @@ serve(async (req) => {
             }
           }
 
+          // A5: valores reais do arquivo de retorno
+          const valorPagoArq = parseValor13d2(linha.valorPagoRaw);
+          const jurosArq     = parseValor13d2(linha.jurosMoraRaw) ?? 0;
+          const descontoArq  = parseValor13d2(linha.descontoRaw) ?? 0;
+
+          let valorCreditado = Number(t.valor_bruto);
+          if (valorPagoArq && valorPagoArq > 0 && valorPagoArq <= Number(t.valor_bruto) * 3) {
+            valorCreditado = valorPagoArq;
+          } else if (valorPagoArq !== null && valorPagoArq !== 0) {
+            alertas.push(`⚠ Valor pago fora do esperado no título ${linha.nossoNumero} (arquivo: ${valorPagoArq}) — movimentação lançada pelo valor nominal. Validar layout.`);
+          }
+
           const { error: errMarca } = await sb.rpc("marcar_titulo_pago" as string, {
             p_titulo_id: t.id,
             p_data_pagamento: dataPagamentoIso,
@@ -358,10 +376,19 @@ serve(async (req) => {
 
           const { error: errBoleto } = await sb
             .from("titulo_a_receber")
-            .update({ boleto_status: "pago_banco", data_pagamento_banco: dataPagamentoIso })
+            .update({
+              boleto_status: "pago_banco",
+              data_pagamento_banco: dataPagamentoIso,
+              valor_juros: jurosArq,
+              valor_desconto: descontoArq,
+            } as any)
             .eq("id", t.id);
           if (errBoleto) {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update boleto: ${errBoleto.message}` });
+          }
+
+          if (jurosArq > 0) {
+            alertas.push(`Título ${linha.nossoNumero} liquidado com R$ ${jurosArq.toFixed(2)} de juros de mora — creditado R$ ${valorCreditado.toFixed(2)}.`);
           }
 
           if (safraConta) {
@@ -371,7 +398,7 @@ serve(async (req) => {
                 conta_bancaria_id:  safraConta.id,
                 data_transacao:     dataPagamentoIso.slice(0, 10),
                 descricao:          `Boleto ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"} — ${parceiro?.razao_social ?? "Cliente"}`,
-                valor:              Number(t.valor_bruto),
+                valor:              valorCreditado,
                 tipo:               "credito",
                 origem:             "csv_safra",
                 hash_unico:         `safra_boleto_${t.id}`,
