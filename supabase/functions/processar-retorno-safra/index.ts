@@ -398,7 +398,7 @@ serve(async (req) => {
                 conta_bancaria_id:  safraConta.id,
                 data_transacao:     dataPagamentoIso.slice(0, 10),
                 descricao:          `Boleto ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"} — ${parceiro?.razao_social ?? "Cliente"}`,
-                valor:              Number(t.valor_bruto),
+                valor:              valorCreditado,
                 tipo:               "credito",
                 origem:             "csv_safra",
                 hash_unico:         `safra_boleto_${t.id}`,
