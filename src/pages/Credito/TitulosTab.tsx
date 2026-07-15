@@ -301,6 +301,9 @@ export default function TitulosTab() {
   const { toast } = useToast();
   const { data: titulos = [], isLoading } = useTitulosCobranca();
   const enviarBoleto = useEnviarEmailBoleto();
+  const enviarCobranca = useEnviarEmailCobranca();
+  const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);
+  const [confirmarEnvioPix, setConfirmarEnvioPix] = useState<TituloCobranca | null>(null);
 
   const [cardsAtivos, setCardsAtivos] = useState<Set<string>>(
     new Set(["a_vencer", "vence_hoje", "atrasado"]),
