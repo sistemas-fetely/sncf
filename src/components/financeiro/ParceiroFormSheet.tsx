@@ -239,6 +239,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
       setUf("");
       setTelefone("");
       setEmail("");
+      setEmailCobranca("");
       setCanalVendaId(null);
       setSegmento("");
       setCategoriaPadrao(null);
