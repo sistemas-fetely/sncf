@@ -234,6 +234,25 @@ export default function BancoSafra() {
     },
   });
 
+  // Saldo calculado a partir de TODAS as movimentações registradas
+  const { data: saldoMovimentacoes } = useQuery<number>({
+    queryKey: ["saldo-movimentacoes-safra", contaSafra?.id],
+    enabled: !!contaSafra?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("movimentacoes_bancarias")
+        .select("valor, tipo")
+        .eq("conta_bancaria_id", contaSafra!.id);
+      if (error) throw error;
+      let saldo = 0;
+      for (const m of (data as { valor: number; tipo: string }[]) ?? []) {
+        if (m.tipo === "credito") saldo += Number(m.valor || 0);
+        else if (m.tipo === "debito") saldo -= Number(m.valor || 0);
+      }
+      return saldo;
+    },
+  });
+
   const { data: boletos = [], isLoading: loadingBoletos, refetch: refetchBoletos } = useQuery<TitulosBoleto[]>({
     queryKey: ["boletos-safra"],
     enabled: activeTab === "boletos",
