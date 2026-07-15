@@ -50,6 +50,7 @@ export type Parceiro = {
   uf: string | null;
   telefone: string | null;
   email: string | null;
+  email_cobranca?: string | null;
   tipo: string | null;
   tipos: string[] | null;
   canal_venda_id: string | null;
