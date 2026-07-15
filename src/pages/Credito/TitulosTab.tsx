@@ -8,6 +8,9 @@ import {
   type StatusGestao,
 } from "@/hooks/credito/useTitulosCobranca";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
+import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
+import { ConfirmarEnvioEmailDialog } from "@/components/credito/ConfirmarEnvioEmailDialog";
+import { useEnviosBoletoTitulo, useHistoricoInstrumento } from "@/hooks/credito/useHistoricoTitulo";
 import {
   Sheet,
   SheetContent,
