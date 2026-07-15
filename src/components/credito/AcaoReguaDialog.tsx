@@ -239,37 +239,66 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
                   {canal === "email" && (
                     <div className="space-y-2">
                       <Label>Destinatários</Label>
-                      <Input
-                        value={destinatarios}
-                        onChange={(e) => setDestinatarios(e.target.value)}
-                        placeholder="email1@dominio.com, email2@dominio.com"
-                      />
-                      {emails.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {emails.map((email) => {
-                            const invalido = !EMAIL_RE.test(email);
-                            return (
-                              <Badge
-                                key={email}
-                                variant={invalido ? "destructive" : "secondary"}
-                                className="gap-1 pr-1"
+                      <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 min-h-10 focus-within:ring-2 focus-within:ring-ring">
+                        {emails.map((email) => {
+                          const invalido = !EMAIL_RE.test(email);
+                          return (
+                            <Badge
+                              key={email}
+                              variant={invalido ? "destructive" : "secondary"}
+                              className="gap-1 pr-1"
+                            >
+                              <span className="text-xs">{email}</span>
+                              <button
+                                type="button"
+                                onClick={() => removerEmail(email)}
+                                className="rounded-full hover:bg-black/10 p-0.5"
+                                aria-label={`Remover ${email}`}
                               >
-                                <span className="text-xs">{email}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => removerEmail(email)}
-                                  className="rounded-full hover:bg-black/10 p-0.5"
-                                  aria-label={`Remover ${email}`}
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            );
-                          })}
-                        </div>
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                        <input
+                          type="text"
+                          value={emailDraft}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (/[,;]/.test(v)) {
+                              setEmailDraft(v);
+                              setTimeout(commitDraft, 0);
+                            } else {
+                              setEmailDraft(v);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === "Tab" || e.key === ",") {
+                              if (emailDraft.trim()) {
+                                e.preventDefault();
+                                commitDraft();
+                              }
+                            } else if (e.key === "Backspace" && emailDraft === "" && emails.length > 0) {
+                              e.preventDefault();
+                              setEmails((prev) => prev.slice(0, -1));
+                            }
+                          }}
+                          onBlur={() => emailDraft.trim() && commitDraft()}
+                          placeholder={emails.length === 0 ? "email@dominio.com" : ""}
+                          className="flex-1 min-w-[140px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        />
+                      </div>
+                      {emailDraft && !draftValido && (
+                        <p className="text-[11px] text-destructive">E-mail inválido</p>
+                      )}
+                      {invalidos.length > 0 && (
+                        <p className="text-[11px] text-destructive">
+                          Remova os e-mails inválidos: {invalidos.join(", ")}
+                        </p>
                       )}
                     </div>
                   )}
+
 
                   <div className="space-y-2">
                     <Label>
