@@ -11,7 +11,9 @@ export function useEnviarEmailCobranca() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (titulo_id: string) => {
+    mutationFn: async (arg: string | { titulo_id: string; destinatarios?: string[] }) => {
+      const titulo_id = typeof arg === "string" ? arg : arg.titulo_id;
+      const destinatariosCustom = typeof arg === "string" ? undefined : arg.destinatarios;
       // 1. Busca título
       const { data: titulo, error: errT } = await (supabase as any)
         .from("titulo_a_receber")
