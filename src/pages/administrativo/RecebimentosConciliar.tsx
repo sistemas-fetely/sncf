@@ -310,7 +310,11 @@ function RowCredito({
         <TableCell>
           <Badge className={badge.className}>{badge.label}</Badge>
         </TableCell>
+        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+          {credito.conta_nome || "—"}
+        </TableCell>
         <TableCell className="max-w-md truncate">{credito.descricao || "—"}</TableCell>
+
         <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
           {formatBRL(Number(credito.valor || 0))}
         </TableCell>
