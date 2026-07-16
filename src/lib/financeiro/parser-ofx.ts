@@ -141,6 +141,9 @@ export function parsearOFX(conteudo: string): OFXResultado {
       final: saldoFinal,
     },
     transacoes: transacoes.sort((a, b) => a.data.localeCompare(b.data)),
+    ignoradasSaldo,
+  };
+
   };
 }
 
