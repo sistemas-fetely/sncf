@@ -187,16 +187,10 @@ serve(async (req) => {
       });
     }
 
-    // ── remessa (via header) ───────────────────────────────────────────────
-    const headerLinha = linhasBrutas.find((l) => l.length >= 400 && l[0] === "0");
-    let remessaId: string | null = null;
-    if (headerLinha && headerLinha.length >= 394) {
-      const nroSeq = parseInt(headerLinha.substring(391, 394).trim(), 10);
-      if (!isNaN(nroSeq)) {
-        const { data: remessa } = await sb.from("remessas_safra").select("id").eq("nro_sequencial", nroSeq).maybeSingle();
-        remessaId = (remessa as { id: string } | null)?.id ?? null;
-      }
-    }
+    // ── promoção da remessa: vínculo real via título (não via header) ──────
+    const remessasTocadas = new Set<string>();
+    const remessasComRejeicao = new Set<string>();
+
 
     // ── conta bancária Safra p/ movimentacoes_bancarias ────────────────────
     const { data: safraConta } = await sb
