@@ -46,7 +46,14 @@ export function BaixaManualDialog({
       if (rpcErr) throw rpcErr;
 
       if (titulo.boleto_status !== null) {
-        const novoStatus = boletoVivo && solicitarBaixa ? "baixa_solicitada" : "pago_manual";
+        // Boleto nunca foi ao banco: limpa o pendente órfão (não há o que baixar).
+        // Boleto vivo com checkbox: solicita baixa. Demais: pago_manual.
+        const novoStatus =
+          titulo.boleto_status === "pendente"
+            ? null
+            : boletoVivo && solicitarBaixa
+              ? "baixa_solicitada"
+              : "pago_manual";
         const { error: updErr } = await (supabase as any)
           .from("titulo_a_receber")
           .update({ boleto_status: novoStatus })

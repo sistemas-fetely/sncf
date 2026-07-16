@@ -486,7 +486,8 @@ serve(async (req) => {
       .select(`id, numero_titulo, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, boleto_status, tipo_pagamento,
         conta:contas_pagar_receber(parceiro:parceiros_comerciais(id, razao_social, cnpj, cpf, email, cadastro_incompleto, logradouro, numero, bairro, cep, cidade, uf))`)
       .eq("boleto_status", "pendente")
-      .eq("tipo_pagamento", "boleto");
+      .eq("tipo_pagamento", "boleto")
+      .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao)");
     if (tituloIds.length > 0) query = query.in("id", tituloIds);
 
     const { data: titulos, error: titulosErr } = await query;

@@ -176,6 +176,7 @@ export default function BancoSafra() {
           "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo)",
         )
         .not("boleto_status", "is", null)
+        .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao)")
         .order("data_vencimento_atual", { ascending: true });
       if (error) throw error;
       return (data as unknown as TitulosBoleto[]) ?? [];
