@@ -456,6 +456,16 @@ function DivergenciasCobrancaSection() {
           </div>
         )}
       </CardContent>
+      <ImportarExtratoDialog
+        open={importarOpen}
+        onOpenChange={(v) => {
+          setImportarOpen(v);
+          if (!v) {
+            qc.invalidateQueries({ queryKey: QUERY_KEY });
+            qc.invalidateQueries({ queryKey: ["cobranca-divergencias"] });
+          }
+        }}
+      />
     </Card>
   );
 }
