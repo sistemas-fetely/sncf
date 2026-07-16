@@ -44,7 +44,9 @@ type Credito = {
   descricao: string | null;
   valor: number;
   conta_bancaria_id: string | null;
+  conta_nome: string | null;
 };
+
 
 type Sugestao = {
   titulo_id: string;
@@ -120,14 +122,37 @@ export default function RecebimentosConciliar() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes_bancarias")
-        .select("id, data_transacao, descricao, valor, conta_bancaria_id")
+        .select("id, data_transacao, descricao, valor, conta_bancaria_id, contas_bancarias(nome_exibicao)")
         .eq("tipo", "credito")
         .eq("conciliado", false)
         .order("data_transacao", { ascending: false });
       if (error) throw error;
-      return (data || []) as Credito[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((data || []) as any[]).map((r) => ({
+        id: r.id,
+        data_transacao: r.data_transacao,
+        descricao: r.descricao,
+        valor: r.valor,
+        conta_bancaria_id: r.conta_bancaria_id,
+        conta_nome: r.contas_bancarias?.nome_exibicao ?? null,
+      })) as Credito[];
     },
   });
+
+  const { data: baixasManuaisCount } = useQuery({
+    queryKey: ["baixas-manuais-aguardando-batimento"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("titulo_a_receber")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["pago", "pago_com_atraso", "pago_judicial"])
+        .is("movimentacao_baixa_id", null)
+        .eq("tipo_pagamento", "pix");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
 
   const creditos = data || [];
   const totalValor = creditos.reduce((s, c) => s + Number(c.valor || 0), 0);
@@ -135,7 +160,10 @@ export default function RecebimentosConciliar() {
   async function invalidar() {
     await qc.invalidateQueries({ queryKey: QUERY_KEY });
     await qc.invalidateQueries({ queryKey: ["cobranca-divergencias"] });
+    await qc.invalidateQueries({ queryKey: ["baixas-manuais-aguardando-batimento"] });
+    await qc.invalidateQueries({ queryKey: ["pagos-manuais-para-credito"] });
   }
+
 
   return (
     <div className="p-6 space-y-6">
@@ -149,7 +177,7 @@ export default function RecebimentosConciliar() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-normal text-muted-foreground">Créditos não conciliados</CardTitle>
@@ -166,7 +194,18 @@ export default function RecebimentosConciliar() {
             <div className="text-2xl font-bold text-green-700">{formatBRL(totalValor)}</div>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal text-muted-foreground">
+              Baixas manuais aguardando batimento
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-700">{baixasManuaisCount ?? "—"}</div>
+          </CardContent>
+        </Card>
       </div>
+
 
       <DivergenciasCobrancaSection />
 
@@ -197,10 +236,12 @@ export default function RecebimentosConciliar() {
                     <TableHead className="w-8" />
                     <TableHead>Data</TableHead>
                     <TableHead>Meio</TableHead>
+                    <TableHead>Conta</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead className="w-64" />
                   </TableRow>
+
                 </TableHeader>
                 <TableBody>
                   {creditos.map((c) => {
@@ -269,7 +310,11 @@ function RowCredito({
         <TableCell>
           <Badge className={badge.className}>{badge.label}</Badge>
         </TableCell>
+        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+          {credito.conta_nome || "—"}
+        </TableCell>
         <TableCell className="max-w-md truncate">{credito.descricao || "—"}</TableCell>
+
         <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
           {formatBRL(Number(credito.valor || 0))}
         </TableCell>
@@ -298,7 +343,7 @@ function RowCredito({
       </TableRow>
       {open && canExpand && (
         <TableRow>
-          <TableCell colSpan={6} className="bg-muted/30 p-4">
+          <TableCell colSpan={7} className="bg-muted/30 p-4">
             {meio === "cartao" ? (
               <PainelCesta credito={credito} invalidar={invalidar} onDone={onDone} />
             ) : (
@@ -361,6 +406,56 @@ function LinhaTitulo({
   );
 }
 
+type PagoManual = {
+  titulo_id: string;
+  numero_titulo: string | null;
+  cliente: string | null;
+  data_pagamento: string | null;
+  valor: number;
+};
+
+function usePagosManuais(credito: Credito, enabled: boolean) {
+  return useQuery({
+    queryKey: ["pagos-manuais-para-credito", credito.id],
+    enabled,
+    queryFn: async () => {
+      const dRef = new Date(credito.data_transacao + (credito.data_transacao.length === 10 ? "T00:00:00" : ""));
+      const dMin = new Date(dRef); dMin.setDate(dMin.getDate() - 7);
+      const dMax = new Date(dRef); dMax.setDate(dMax.getDate() + 7);
+      const iso = (x: Date) => x.toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("titulo_a_receber")
+        .select(
+          "id, numero_titulo, data_pagamento, valor_atual, valor_bruto, valor_juros, valor_desconto, " +
+          "conta:conta_id(parceiro:parceiro_id(razao_social, nome_fantasia))"
+        )
+        .in("status", ["pago", "pago_com_atraso", "pago_judicial"])
+        .is("movimentacao_baixa_id", null)
+        .gte("data_pagamento", iso(dMin))
+        .lte("data_pagamento", iso(dMax));
+      if (error) throw error;
+      const alvo = Number(credito.valor || 0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((data || []) as any[])
+        .map((r) => {
+          const valor =
+            Number(r.valor_atual ?? r.valor_bruto ?? 0) +
+            Number(r.valor_juros ?? 0) -
+            Number(r.valor_desconto ?? 0);
+          const parc = r.conta?.parceiro;
+          return {
+            titulo_id: r.id,
+            numero_titulo: r.numero_titulo ?? null,
+            cliente: parc?.razao_social ?? parc?.nome_fantasia ?? null,
+            data_pagamento: r.data_pagamento ?? null,
+            valor,
+          } as PagoManual;
+        })
+        .filter((p) => Math.abs(p.valor - alvo) <= 0.01);
+    },
+  });
+}
+
 function PainelUnico({
   credito,
   invalidar,
@@ -371,7 +466,9 @@ function PainelUnico({
   onDone: () => void;
 }) {
   const { data: sugestoes, isLoading } = useSugestoes(credito, true);
+  const { data: pagosManuais, isLoading: loadingPagos } = usePagosManuais(credito, true);
   const [conciliando, setConciliando] = useState<string | null>(null);
+  const [batendo, setBatendo] = useState<string | null>(null);
   const [mostrarDivergentes, setMostrarDivergentes] = useState(false);
 
   const { exatos, divergentes } = useMemo(() => {
@@ -384,6 +481,8 @@ function PainelUnico({
     }
     return { exatos: ex, divergentes: dv };
   }, [sugestoes]);
+
+  const pagos = pagosManuais || [];
 
   async function conciliar(s: Sugestao) {
     setConciliando(s.titulo_id);
@@ -412,7 +511,35 @@ function PainelUnico({
     }
   }
 
-  if (isLoading) {
+  async function confirmarBatimento(p: PagoManual) {
+    setBatendo(p.titulo_id);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("confirmar_batimento_titulo_pago", {
+        p_movimentacao_id: credito.id,
+        p_titulo_id: p.titulo_id,
+      });
+      if (error) {
+        toast.error(`Erro ao confirmar batimento: ${error.message}`);
+        return;
+      }
+      const r = data as { ok?: boolean; numero_titulo?: string; aviso?: string; error?: string } | null;
+      if (!r || r.ok !== true) {
+        toast.error(`Não foi possível bater: ${r?.error || "resposta inesperada"}`);
+        return;
+      }
+      toast.success(`Batimento confirmado — título ${r.numero_titulo || p.numero_titulo || ""}`);
+      if (r.aviso) toast.warning(r.aviso);
+      await invalidar();
+      onDone();
+    } catch (e) {
+      toast.error(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBatendo(null);
+    }
+  }
+
+  if (isLoading || loadingPagos) {
     return (
       <div className="space-y-2">
         <Skeleton className="h-8 w-full" />
@@ -421,17 +548,18 @@ function PainelUnico({
     );
   }
 
-  if (!sugestoes || sugestoes.length === 0) {
+  const semNada = exatos.length === 0 && divergentes.length === 0 && pagos.length === 0;
+  if (semNada) {
     return (
       <div className="py-6 text-center text-sm text-muted-foreground">
-        Nenhum título aberto com este valor na janela de 7 dias.
+        Nenhum candidato para este crédito na janela de 7 dias.
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {exatos.length > 0 ? (
+      {exatos.length > 0 && (
         <div>
           <div className="text-xs font-semibold text-muted-foreground mb-2">
             Valor exato ({exatos.length})
@@ -468,7 +596,52 @@ function PainelUnico({
             </Table>
           </div>
         </div>
-      ) : (
+      )}
+
+      {pagos.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-muted-foreground mb-2">
+            Baixados manualmente — aguardando batimento ({pagos.length})
+          </div>
+          <div className="border rounded-md bg-background">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nº título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Data pagamento</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pagos.map((p) => (
+                  <TableRow key={p.titulo_id}>
+                    <TableCell className="font-mono text-xs">{p.numero_titulo || "—"}</TableCell>
+                    <TableCell>{p.cliente || "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDateBR(p.data_pagamento)}</TableCell>
+                    <TableCell className="text-right font-mono whitespace-nowrap">
+                      {formatBRL(p.valor)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={batendo === p.titulo_id}
+                        onClick={() => confirmarBatimento(p)}
+                      >
+                        {batendo === p.titulo_id ? "Batendo..." : "Confirmar batimento"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {exatos.length === 0 && pagos.length === 0 && (
         <div className="py-4 text-center text-sm text-muted-foreground">
           Nenhum título aberto com este valor na janela de 7 dias.
         </div>
@@ -529,6 +702,7 @@ function PainelUnico({
     </div>
   );
 }
+
 
 function PainelCesta({
   credito,
