@@ -386,16 +386,27 @@ function DivergenciasCobrancaSection() {
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           Divergências de cobrança (boletos)
         </CardTitle>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleReprocessar}
-          disabled={reprocessando}
-          className="gap-2"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${reprocessando ? "animate-spin" : ""}`} />
-          Reprocessar casamento
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setImportarOpen(true)}
+            className="gap-2"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Importar extrato
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReprocessar}
+            disabled={reprocessando}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${reprocessando ? "animate-spin" : ""}`} />
+            Reprocessar casamento
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
