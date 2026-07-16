@@ -12749,6 +12749,8 @@ export type Database = {
       remessas_safra: {
         Row: {
           arquivo_nome: string
+          enviada_em: string | null
+          enviada_por: string | null
           gerado_em: string
           gerado_por: string | null
           id: string
@@ -12762,6 +12764,8 @@ export type Database = {
         }
         Insert: {
           arquivo_nome: string
+          enviada_em?: string | null
+          enviada_por?: string | null
           gerado_em?: string
           gerado_por?: string | null
           id?: string
@@ -12775,6 +12779,8 @@ export type Database = {
         }
         Update: {
           arquivo_nome?: string
+          enviada_em?: string | null
+          enviada_por?: string | null
           gerado_em?: string
           gerado_por?: string | null
           id?: string
