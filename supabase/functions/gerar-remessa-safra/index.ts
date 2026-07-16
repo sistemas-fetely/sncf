@@ -480,18 +480,35 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════
 
     const tituloIds: string[] = Array.isArray(body.titulo_ids) ? body.titulo_ids : [];
-    if (tituloIds.length === 0) {
-      return new Response(JSON.stringify({ ok: false, erro: "titulo_ids não pode ser vazio" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
-    const { data: titulos, error: titulosErr } = await sb
+    let query = sb
       .from("titulo_a_receber")
       .select(`id, numero_titulo, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, boleto_status, tipo_pagamento,
         conta:contas_pagar_receber(parceiro:parceiros_comerciais(id, razao_social, cnpj, cpf, email, cadastro_incompleto, logradouro, numero, bairro, cep, cidade, uf))`)
-      .in("id", tituloIds);
+      .eq("boleto_status", "pendente")
+      .eq("tipo_pagamento", "boleto");
+    if (tituloIds.length > 0) query = query.in("id", tituloIds);
+
+    const { data: titulos, error: titulosErr } = await query;
     if (titulosErr) throw new Error(`Erro ao buscar títulos: ${titulosErr.message}`);
     if (!titulos || titulos.length === 0) {
       return new Response(JSON.stringify({ ok: false, erro: "Nenhum título encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Defesa em profundidade: rejeitar vencimentos no passado
+    const hojeGuard = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    // deno-lint-ignore no-explicit-any
+    const passados = (titulos as any[]).filter((t: any) => t.data_vencimento_atual < hojeGuard);
+    if (passados.length > 0) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          erro: "Títulos com vencimento no passado não podem ser enviados",
+          // deno-lint-ignore no-explicit-any
+          titulos: passados.map((t: any) => ({ titulo_id: t.id, numero_titulo: t.numero_titulo, data_vencimento_atual: t.data_vencimento_atual })),
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const erros: Array<{ titulo_id: string; numero_titulo: string; motivo: string }> = [];
