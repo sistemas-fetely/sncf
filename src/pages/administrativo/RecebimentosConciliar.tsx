@@ -44,7 +44,9 @@ type Credito = {
   descricao: string | null;
   valor: number;
   conta_bancaria_id: string | null;
+  conta_nome: string | null;
 };
+
 
 type Sugestao = {
   titulo_id: string;
