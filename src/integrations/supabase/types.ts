@@ -19327,6 +19327,10 @@ export type Database = {
         Args: { p_conta_pagar_id: string; p_ofx_id: string }
         Returns: Json
       }
+      confirmar_batimento_titulo_pago: {
+        Args: { p_movimentacao_id: string; p_titulo_id: string }
+        Returns: Json
+      }
       confirmar_itau_lote_auto: {
         Args: { p_importacao_id: string }
         Returns: Json
