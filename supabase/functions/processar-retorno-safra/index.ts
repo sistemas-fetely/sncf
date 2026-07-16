@@ -556,6 +556,7 @@ serve(async (req) => {
               .update({ valor_atual: novoValor } as any)
               .eq("id", t.id);
             alertas.push(`Valor alterado para ${novoValor.toFixed(2)} — título ${linha.nossoNumero}.`);
+            if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             contadores.alteracoes++;
             continue;
           }
