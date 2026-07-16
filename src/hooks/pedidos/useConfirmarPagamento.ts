@@ -39,7 +39,7 @@ export function useConfirmarPagamento() {
       //    Só processa títulos com boleto_status não nulo e ainda não pagos
       const { data: boletoTitulos, error: errBusca } = await supabase
         .from("titulo_a_receber")
-        .select("id")
+        .select("id, boleto_status")
         .eq("pedido_id", pedido_id)
         .not("boleto_status", "is", null)
         .not("boleto_status", "in", "(pago_manual,pago_banco)");
@@ -59,11 +59,15 @@ export function useConfirmarPagamento() {
           });
           if (errMarca) throw errMarca;
 
-          // 2b. Seta boleto_status = 'pago_manual' (ciclo Safra — campo separado do status financeiro)
-          //     Garante que retorno bancário posterior (ocorrência 06/09) ignore este título
+          // 2b. Boleto nunca foi ao banco (pendente) → limpa o órfão (null).
+          //     Boleto já no banco → pago_manual (retorno posterior ignora).
+          const novoBoletoStatus =
+            (t as { boleto_status: string | null }).boleto_status === "pendente"
+              ? null
+              : "pago_manual";
           const { error: errBoleto } = await supabase
             .from("titulo_a_receber")
-            .update({ boleto_status: "pago_manual" })
+            .update({ boleto_status: novoBoletoStatus })
             .eq("id", t.id);
           if (errBoleto) throw errBoleto;
         }
