@@ -311,12 +311,20 @@ serve(async (req) => {
             alertas.push(
               `⚠ Prorrogação rejeitada (motivo ${linha.motivoRejeicao}: ${descMotivo}) — boleto original permanece válido. Considere reemissão para o título ${linha.nossoNumero}.`
             );
+            if (t.remessa_safra_id) {
+              remessasTocadas.add(t.remessa_safra_id);
+              remessasComRejeicao.add(t.remessa_safra_id);
+            }
             contadores.rejeicoes++;
             continue;
           }
           await sb.from("titulo_a_receber")
             .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
             .eq("id", t.id);
+          if (t.remessa_safra_id) {
+            remessasTocadas.add(t.remessa_safra_id);
+            remessasComRejeicao.add(t.remessa_safra_id);
+          }
           contadores.rejeicoes++;
           detalhesRejeicao.push({
             numero_titulo:   t.numero_titulo,
