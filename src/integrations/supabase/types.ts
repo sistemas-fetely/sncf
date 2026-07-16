@@ -7383,6 +7383,7 @@ export type Database = {
       movimentacoes_bancarias: {
         Row: {
           cartao_id: string | null
+          casada_com_id: string | null
           categoria_inconsistente: boolean
           centro_custo_id: string | null
           conciliado: boolean | null
@@ -7409,6 +7410,7 @@ export type Database = {
         }
         Insert: {
           cartao_id?: string | null
+          casada_com_id?: string | null
           categoria_inconsistente?: boolean
           centro_custo_id?: string | null
           conciliado?: boolean | null
@@ -7435,6 +7437,7 @@ export type Database = {
         }
         Update: {
           cartao_id?: string | null
+          casada_com_id?: string | null
           categoria_inconsistente?: boolean
           centro_custo_id?: string | null
           conciliado?: boolean | null
@@ -7465,6 +7468,13 @@ export type Database = {
             columns: ["cartao_id"]
             isOneToOne: false
             referencedRelation: "cartoes_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_casada_com_id_fkey"
+            columns: ["casada_com_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
             referencedColumns: ["id"]
           },
           {
@@ -17361,6 +17371,17 @@ export type Database = {
           },
         ]
       }
+      vw_cobranca_divergencias: {
+        Row: {
+          dia: string | null
+          diferenca: number | null
+          linhas_extrato: number | null
+          qtd_sinteticas: number | null
+          soma_sinteticas: number | null
+          valor_extrato: number | null
+        }
+        Relationships: []
+      }
       vw_contas_pagar_consolidado: {
         Row: {
           aprovado_em: string | null
@@ -19740,6 +19761,7 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: string
       }
+      fn_casar_sinteticas_extrato: { Args: never; Returns: Json }
       fn_classificar_pagamento: {
         Args: {
           p_condicao_solicitada: string
