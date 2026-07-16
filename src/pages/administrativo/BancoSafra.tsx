@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -287,6 +288,45 @@ export default function BancoSafra() {
     [pendentesEntrada, hojeIso],
   );
 
+  // seleção dinâmica no dialog
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const abrirDialogEntrada = () => {
+    const validos = pendentesEntrada
+      .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+      .map((b) => b.id);
+    setSelecionados(new Set(validos));
+    setEntradaDialogOpen(true);
+  };
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
+  const idsSelecionaveis = useMemo(
+    () =>
+      pendentesEntrada
+        .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+        .map((b) => b.id),
+    [pendentesEntrada, hojeIso],
+  );
+  const todosSelecionados =
+    idsSelecionaveis.length > 0 &&
+    idsSelecionaveis.every((id) => selecionados.has(id));
+  const toggleTodos = () => {
+    if (todosSelecionados) setSelecionados(new Set());
+    else setSelecionados(new Set(idsSelecionaveis));
+  };
+  const totalSelecionado = useMemo(
+    () =>
+      pendentesEntrada
+        .filter((b) => selecionados.has(b.id))
+        .reduce((s, b) => s + Number(b.valor_bruto || 0), 0),
+    [pendentesEntrada, selecionados],
+  );
+
   // edição inline de boletos
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
   const [salvando, setSalvando] = useState<Record<string, boolean>>({});
@@ -370,7 +410,7 @@ export default function BancoSafra() {
     setGerandoEntrada(true);
     try {
       const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
-        body: { tipo: "entrada" },
+        body: { tipo: "entrada", titulo_ids: Array.from(selecionados) },
       });
       if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de entrada");
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
@@ -803,7 +843,7 @@ export default function BancoSafra() {
               Gerar Remessa de Baixa
             </Button>
             <Button
-              onClick={() => setEntradaDialogOpen(true)}
+              onClick={abrirDialogEntrada}
               disabled={pendentesEntrada.length === 0 || gerandoEntrada}
               className="gap-2"
             >
@@ -962,15 +1002,15 @@ export default function BancoSafra() {
           <DialogHeader>
             <DialogTitle>Gerar Remessa de Entrada</DialogTitle>
             <DialogDescription>
-              {pendentesEntrada.length} título(s) pendente(s) serão enviados ao Safra para registro.
+              Selecione os títulos pendentes que serão enviados ao Safra para registro.
             </DialogDescription>
           </DialogHeader>
 
           {pendentesPassado.length > 0 && (
-            <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 flex gap-2">
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex gap-2">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <div>
-                <strong>{pendentesPassado.length}</strong> título(s) com vencimento no passado — ajuste a data na lista antes de gerar, ou eles serão rejeitados pelo banco.
+                <strong>{pendentesPassado.length}</strong> título(s) com vencimento no passado ficaram fora da seleção — ajuste as datas para incluí-los em outra remessa.
               </div>
             </div>
           )}
@@ -979,6 +1019,14 @@ export default function BancoSafra() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={todosSelecionados}
+                      onCheckedChange={toggleTodos}
+                      disabled={idsSelecionaveis.length === 0}
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
                   <TableHead>Título</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Vencimento</TableHead>
@@ -988,12 +1036,39 @@ export default function BancoSafra() {
               <TableBody>
                 {pendentesEntrada.map((b) => {
                   const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
+                  const marcado = selecionados.has(b.id);
                   return (
                     <TableRow key={b.id} className={passado ? "bg-red-50/60" : ""}>
+                      <TableCell>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Checkbox
+                                checked={marcado}
+                                onCheckedChange={() => toggleSelecionado(b.id)}
+                                disabled={passado}
+                                aria-label={`Selecionar ${b.numero_titulo}`}
+                              />
+                            </span>
+                          </TooltipTrigger>
+                          {passado && (
+                            <TooltipContent>
+                              Ajuste a data na lista para habilitar
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
                       <TableCell className="max-w-[220px] truncate">{b.conta?.parceiro?.razao_social || "—"}</TableCell>
                       <TableCell className={passado ? "text-red-700 font-medium" : ""}>
-                        {formatDateBR(b.data_vencimento_atual)}
+                        <div className="flex items-center gap-2">
+                          {formatDateBR(b.data_vencimento_atual)}
+                          {passado && (
+                            <Badge variant="outline" className="border-red-300 text-red-700 text-[10px]">
+                              Vencimento no passado
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right font-mono">{formatBRL(Number(b.valor_bruto || 0))}</TableCell>
                     </TableRow>
@@ -1009,11 +1084,11 @@ export default function BancoSafra() {
             </Button>
             <Button
               onClick={handleGerarEntrada}
-              disabled={gerandoEntrada || pendentesPassado.length > 0 || pendentesEntrada.length === 0}
+              disabled={gerandoEntrada || selecionados.size === 0}
               className="gap-2"
             >
               {gerandoEntrada && <Loader2 className="h-4 w-4 animate-spin" />}
-              Confirmar e gerar remessa
+              Gerar remessa com {selecionados.size} título(s) · {formatBRL(totalSelecionado)}
             </Button>
           </DialogFooter>
         </DialogContent>
