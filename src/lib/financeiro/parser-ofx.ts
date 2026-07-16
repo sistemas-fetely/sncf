@@ -143,9 +143,8 @@ export function parsearOFX(conteudo: string): OFXResultado {
     transacoes: transacoes.sort((a, b) => a.data.localeCompare(b.data)),
     ignoradasSaldo,
   };
-
-  };
 }
+
 
 /**
  * Converte SGML do OFX 1.x para XML válido.
