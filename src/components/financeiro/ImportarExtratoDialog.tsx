@@ -132,15 +132,42 @@ export function ImportarExtratoDialog({ open, onOpenChange, contaPreSelecionada 
 
       const ignoradasSaldo =
         impFormato === "ofx" ? (parsed as ReturnType<typeof parseOFX>).ignoradasSaldo : 0;
+
+      // F2 — casamento automático pós-importação (sintéticas de retorno vs. extrato real)
+      let casamentoMsg = "";
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: casamento, error: errCas } = await (supabase as any).rpc(
+          "fn_casar_sinteticas_extrato"
+        );
+        if (errCas) throw errCas;
+        const r = (casamento || {}) as {
+          linhas_extrato_casadas?: number;
+          sinteticas_casadas?: number;
+          divergencias?: unknown[];
+        };
+        const casadas = Number(r.linhas_extrato_casadas || 0);
+        const boletos = Number(r.sinteticas_casadas || 0);
+        const divs = Array.isArray(r.divergencias) ? r.divergencias.length : 0;
+        if (casadas > 0) casamentoMsg += ` · ${casadas} linhas de cobrança conciliadas (${boletos} boletos)`;
+        if (divs > 0) casamentoMsg += ` · ${divs} divergências — ver fila`;
+      } catch (e) {
+        toast.error(
+          "Falha no casamento pós-importação: " + (e instanceof Error ? e.message : String(e))
+        );
+      }
+
       toast.success(
         `${novas.length} movimentações importadas` +
           (duplicadas > 0 ? ` (${duplicadas} duplicadas ignoradas)` : "") +
-          (ignoradasSaldo > 0 ? ` · ${ignoradasSaldo} linhas de saldo ignoradas` : "")
+          (ignoradasSaldo > 0 ? ` · ${ignoradasSaldo} linhas de saldo ignoradas` : "") +
+          casamentoMsg
       );
       onOpenChange(false);
       setImpArquivo(null);
       qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
       qc.invalidateQueries({ queryKey: ["contas-bancarias"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-divergencias"] });
       qc.invalidateQueries({ queryKey: ["mov-conciliacao"] });
     } catch (e) {
       toast.error("Erro ao importar: " + (e instanceof Error ? e.message : String(e)));
