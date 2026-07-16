@@ -19282,6 +19282,14 @@ export type Database = {
         Args: { p_conteudo: string; p_pedido_id: string }
         Returns: Json
       }
+      conciliar_credito_cesta: {
+        Args: { p_movimentacao_id: string; p_titulo_ids: string[] }
+        Returns: Json
+      }
+      conciliar_credito_titulo: {
+        Args: { p_movimentacao_id: string; p_titulo_id: string }
+        Returns: Json
+      }
       conciliar_em_lote_ofx: {
         Args: {
           p_conta_ids: string[]
@@ -20023,6 +20031,10 @@ export type Database = {
       }
       marcar_compra_como_realizada: {
         Args: { p_compra_id: string; p_observacao?: string }
+        Returns: Json
+      }
+      marcar_credito_nao_recebivel: {
+        Args: { p_motivo: string; p_movimentacao_id: string }
         Returns: Json
       }
       marcar_documento_classificado: {
