@@ -125,6 +125,8 @@ export default function RecebimentosConciliar() {
         </Card>
       </div>
 
+      <DivergenciasCobrancaSection />
+
       <Card>
         <CardContent className="pt-6">
           {isLoading ? (
