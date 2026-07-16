@@ -160,7 +160,10 @@ export default function RecebimentosConciliar() {
   async function invalidar() {
     await qc.invalidateQueries({ queryKey: QUERY_KEY });
     await qc.invalidateQueries({ queryKey: ["cobranca-divergencias"] });
+    await qc.invalidateQueries({ queryKey: ["baixas-manuais-aguardando-batimento"] });
+    await qc.invalidateQueries({ queryKey: ["pagos-manuais-para-credito"] });
   }
+
 
   return (
     <div className="p-6 space-y-6">
