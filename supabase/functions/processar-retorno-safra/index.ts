@@ -280,6 +280,7 @@ serve(async (req) => {
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "registro") {
           await sb.from("titulo_a_receber").update({ boleto_status: "registrado" }).eq("id", t.id);
+          if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
           continue;
         }
