@@ -17,6 +17,7 @@ export interface MovimentacaoOFX {
 export interface OFXParsed {
   movimentacoes: MovimentacaoOFX[];
   saldo: number | null;
+  ignoradasSaldo: number;
 }
 
 function extrairTag(bloco: string, tag: string): string | null {
@@ -27,6 +28,7 @@ function extrairTag(bloco: string, tag: string): string | null {
 
 export function parseOFX(text: string): OFXParsed {
   const movimentacoes: MovimentacaoOFX[] = [];
+  let ignoradasSaldo = 0;
 
   // Cada transação fica entre <STMTTRN> e </STMTTRN>
   const regex = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
@@ -40,6 +42,19 @@ export function parseOFX(text: string): OFXParsed {
     const fitId = extrairTag(bloco, "FITID");
     const memo = extrairTag(bloco, "MEMO");
     const name = extrairTag(bloco, "NAME");
+    const trnType = extrairTag(bloco, "TRNTYPE");
+
+    // Dialeto Safra: blocos de saldo entram como STMTTRN. Ignorar.
+    const trnTypeNorm = (trnType || "").toUpperCase().trim();
+    const descNorm = (memo || name || "").toUpperCase().trim();
+    if (
+      trnTypeNorm === "BALANCE" ||
+      descNorm.startsWith("SALDO TOTAL") ||
+      descNorm.startsWith("SALDO INICIAL")
+    ) {
+      ignoradasSaldo++;
+      continue;
+    }
 
     const valor = parseFloat((trnAmt || "0").replace(",", ".")) || 0;
     const dataStr = dtPosted ? dtPosted.substring(0, 8) : null;
@@ -61,5 +76,6 @@ export function parseOFX(text: string): OFXParsed {
   const saldoMatch = text.match(/<BALAMT>([\-\d.,]+)/i);
   const saldo = saldoMatch ? parseFloat(saldoMatch[1].replace(",", ".")) : null;
 
-  return { movimentacoes, saldo };
+  return { movimentacoes, saldo, ignoradasSaldo };
 }
+
