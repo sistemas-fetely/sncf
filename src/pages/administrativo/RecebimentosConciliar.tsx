@@ -122,14 +122,37 @@ export default function RecebimentosConciliar() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes_bancarias")
-        .select("id, data_transacao, descricao, valor, conta_bancaria_id")
+        .select("id, data_transacao, descricao, valor, conta_bancaria_id, contas_bancarias(nome_exibicao)")
         .eq("tipo", "credito")
         .eq("conciliado", false)
         .order("data_transacao", { ascending: false });
       if (error) throw error;
-      return (data || []) as Credito[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((data || []) as any[]).map((r) => ({
+        id: r.id,
+        data_transacao: r.data_transacao,
+        descricao: r.descricao,
+        valor: r.valor,
+        conta_bancaria_id: r.conta_bancaria_id,
+        conta_nome: r.contas_bancarias?.nome_exibicao ?? null,
+      })) as Credito[];
     },
   });
+
+  const { data: baixasManuaisCount } = useQuery({
+    queryKey: ["baixas-manuais-aguardando-batimento"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("titulo_a_receber")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["pago", "pago_com_atraso", "pago_judicial"])
+        .is("movimentacao_baixa_id", null)
+        .eq("tipo_pagamento", "pix");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
 
   const creditos = data || [];
   const totalValor = creditos.reduce((s, c) => s + Number(c.valor || 0), 0);
