@@ -288,6 +288,45 @@ export default function BancoSafra() {
     [pendentesEntrada, hojeIso],
   );
 
+  // seleção dinâmica no dialog
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const abrirDialogEntrada = () => {
+    const validos = pendentesEntrada
+      .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+      .map((b) => b.id);
+    setSelecionados(new Set(validos));
+    setEntradaDialogOpen(true);
+  };
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
+  const idsSelecionaveis = useMemo(
+    () =>
+      pendentesEntrada
+        .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+        .map((b) => b.id),
+    [pendentesEntrada, hojeIso],
+  );
+  const todosSelecionados =
+    idsSelecionaveis.length > 0 &&
+    idsSelecionaveis.every((id) => selecionados.has(id));
+  const toggleTodos = () => {
+    if (todosSelecionados) setSelecionados(new Set());
+    else setSelecionados(new Set(idsSelecionaveis));
+  };
+  const totalSelecionado = useMemo(
+    () =>
+      pendentesEntrada
+        .filter((b) => selecionados.has(b.id))
+        .reduce((s, b) => s + Number(b.valor_bruto || 0), 0),
+    [pendentesEntrada, selecionados],
+  );
+
   // edição inline de boletos
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
   const [salvando, setSalvando] = useState<Record<string, boolean>>({});
