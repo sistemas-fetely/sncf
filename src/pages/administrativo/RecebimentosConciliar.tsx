@@ -344,6 +344,7 @@ type Divergencia = {
 function DivergenciasCobrancaSection() {
   const qc = useQueryClient();
   const [reprocessando, setReprocessando] = useState(false);
+  const [importarOpen, setImportarOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["cobranca-divergencias"],
