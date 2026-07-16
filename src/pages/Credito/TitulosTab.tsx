@@ -742,6 +742,7 @@ export default function TitulosTab() {
                           status={detalhe.boleto_status}
                           codigoRejeicao={detalhe.boleto_codigo_rejeicao}
                         />
+                        <BadgeConciliacaoExtrato tituloId={detalhe.id} statusReal={detalhe.status_real} />
                         <ReincidenteBadge tituloId={detalhe.id} />
                       </div>
                       {detalhe.boleto_status === "rejeitado" && detalhe.boleto_codigo_rejeicao && (
