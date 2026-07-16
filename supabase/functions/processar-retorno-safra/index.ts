@@ -577,11 +577,28 @@ serve(async (req) => {
       }
     }
 
-    if (remessaId) {
-      await sb.from("remessas_safra").update({
-        status: contadores.rejeicoes > 0 ? "com_rejeicoes" : "processada",
-        retorno_processado_em: new Date().toISOString(),
-      }).eq("id", remessaId);
+    // ── promoção do selo das remessas pelo vínculo real dos títulos ────────
+    const remessasPromovidas: string[] = [];
+    if (remessasTocadas.size > 0) {
+      const ids = Array.from(remessasTocadas);
+      const { data: atuais } = await sb
+        .from("remessas_safra")
+        .select("id, status")
+        .in("id", ids);
+      const nowIso = new Date().toISOString();
+      for (const r of (atuais ?? []) as Array<{ id: string; status: string }>) {
+        if (r.status !== "gerada" && r.status !== "enviada") continue; // não regride
+        const novoStatus = remessasComRejeicao.has(r.id) ? "com_rejeicoes" : "processada";
+        const { error: upErr } = await sb
+          .from("remessas_safra")
+          .update({ status: novoStatus, retorno_processado_em: nowIso })
+          .eq("id", r.id);
+        if (upErr) {
+          erros.push({ linha: 0, nosso_numero: "", erro: `promover remessa ${r.id}: ${upErr.message}` });
+        } else {
+          remessasPromovidas.push(r.id);
+        }
+      }
     }
 
     // Compat: campos antigos consumidos pela UI (confirmados/liquidados/rejeitados/detalhes_rejeicao)
@@ -594,7 +611,7 @@ serve(async (req) => {
         rejeitados:  contadores.rejeicoes,
         emails_enviados: 0,
         detalhes_rejeicao: detalhesRejeicao,
-        remessa_id: remessaId,
+        remessas_promovidas: remessasPromovidas,
         // novo relatório
         contadores,
         alertas,
