@@ -236,10 +236,12 @@ export default function RecebimentosConciliar() {
                     <TableHead className="w-8" />
                     <TableHead>Data</TableHead>
                     <TableHead>Meio</TableHead>
+                    <TableHead>Conta</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead className="w-64" />
                   </TableRow>
+
                 </TableHeader>
                 <TableBody>
                   {creditos.map((c) => {
