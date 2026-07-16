@@ -331,3 +331,118 @@ function RowComCandidatos({
     </>
   );
 }
+
+type Divergencia = {
+  dia: string;
+  valor_extrato: number;
+  soma_sinteticas: number;
+  diferenca: number;
+  qtd_sinteticas: number;
+};
+
+function DivergenciasCobrancaSection() {
+  const qc = useQueryClient();
+  const [reprocessando, setReprocessando] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["cobranca-divergencias"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_cobranca_divergencias")
+        .select("dia, valor_extrato, soma_sinteticas, diferenca, qtd_sinteticas")
+        .order("dia", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Divergencia[];
+    },
+  });
+
+  const divs = data || [];
+
+  async function handleReprocessar() {
+    setReprocessando(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: r, error } = await (supabase as any).rpc("fn_casar_sinteticas_extrato");
+      if (error) throw error;
+      const res = (r || {}) as { linhas_extrato_casadas?: number; sinteticas_casadas?: number };
+      toast.success(
+        `Casamento reprocessado — ${Number(res.linhas_extrato_casadas || 0)} linhas / ${Number(res.sinteticas_casadas || 0)} boletos`
+      );
+      await qc.invalidateQueries({ queryKey: ["cobranca-divergencias"] });
+    } catch (e) {
+      toast.error("Erro no reprocessamento: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setReprocessando(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          Divergências de cobrança (boletos)
+        </CardTitle>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleReprocessar}
+          disabled={reprocessando}
+          className="gap-2"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${reprocessando ? "animate-spin" : ""}`} />
+          Reprocessar casamento
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : divs.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            Nenhuma divergência — extrato e liquidações batem ✓
+          </div>
+        ) : (
+          <div className="border rounded-md overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Dia</TableHead>
+                  <TableHead className="text-right">Valor no extrato</TableHead>
+                  <TableHead className="text-right">Soma liquidações</TableHead>
+                  <TableHead className="text-right">Diferença</TableHead>
+                  <TableHead className="text-right">Qtd boletos</TableHead>
+                  <TableHead>Observação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {divs.map((d) => {
+                  const diff = Number(d.diferenca || 0);
+                  const qtd = Number(d.qtd_sinteticas || 0);
+                  const semLiq = qtd === 0 && Number(d.valor_extrato || 0) > 0;
+                  return (
+                    <TableRow key={d.dia}>
+                      <TableCell className="whitespace-nowrap">{formatDateBR(d.dia)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatBRL(Number(d.valor_extrato || 0))}</TableCell>
+                      <TableCell className="text-right font-mono">{formatBRL(Number(d.soma_sinteticas || 0))}</TableCell>
+                      <TableCell className={`text-right font-mono font-semibold ${diff !== 0 ? "text-red-600" : ""}`}>
+                        {formatBRL(diff)}
+                      </TableCell>
+                      <TableCell className="text-right">{qtd}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {semLiq ? "crédito de cobrança sem liquidações internas — retorno não processado ou era pré-sistema" : ""}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
