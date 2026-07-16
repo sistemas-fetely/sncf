@@ -13,9 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowDownToLine, Inbox, CheckCircle2, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from "lucide-react";
+import { ArrowDownToLine, Inbox, CheckCircle2, ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Upload } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { toast } from "sonner";
+import { ImportarExtratoDialog } from "@/components/financeiro/ImportarExtratoDialog";
 
 type Credito = {
   id: string;
@@ -343,6 +344,7 @@ type Divergencia = {
 function DivergenciasCobrancaSection() {
   const qc = useQueryClient();
   const [reprocessando, setReprocessando] = useState(false);
+  const [importarOpen, setImportarOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["cobranca-divergencias"],
@@ -384,16 +386,27 @@ function DivergenciasCobrancaSection() {
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           Divergências de cobrança (boletos)
         </CardTitle>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleReprocessar}
-          disabled={reprocessando}
-          className="gap-2"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${reprocessando ? "animate-spin" : ""}`} />
-          Reprocessar casamento
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setImportarOpen(true)}
+            className="gap-2"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Importar extrato
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReprocessar}
+            disabled={reprocessando}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${reprocessando ? "animate-spin" : ""}`} />
+            Reprocessar casamento
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -443,6 +456,16 @@ function DivergenciasCobrancaSection() {
           </div>
         )}
       </CardContent>
+      <ImportarExtratoDialog
+        open={importarOpen}
+        onOpenChange={(v) => {
+          setImportarOpen(v);
+          if (!v) {
+            qc.invalidateQueries({ queryKey: QUERY_KEY });
+            qc.invalidateQueries({ queryKey: ["cobranca-divergencias"] });
+          }
+        }}
+      />
     </Card>
   );
 }
