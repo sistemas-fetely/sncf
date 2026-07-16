@@ -429,6 +429,7 @@ serve(async (req) => {
             }
           }
 
+          if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.liquidacoes++;
           continue;
         }
