@@ -380,6 +380,42 @@ serve(async (req) => {
             continue;
           }
 
+          let movimentacaoBaixaId: string | null = null;
+          if (safraConta) {
+            const { data: movCriada, error: errMov } = await sb
+              .from("movimentacoes_bancarias")
+              .insert({
+                conta_bancaria_id:  safraConta.id,
+                data_transacao:     dataPagamentoIso.slice(0, 10),
+                descricao:          `Boleto ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"} — ${parceiro?.razao_social ?? "Cliente"}`,
+                valor:              valorCreditado,
+                tipo:               "credito",
+                origem:             "retorno_safra",
+                hash_unico:         `safra_boleto_${t.id}`,
+                id_transacao_banco: linha.nossoNumero || null,
+                conciliado:         true,
+                conciliado_em:      new Date().toISOString(),
+              })
+              .select("id")
+              .single();
+            if (errMov) {
+              if (errMov.code === "23505") {
+                // Idempotência: busca a movimentação já existente pelo hash para gravar a ponte
+                const { data: movExistente } = await sb
+                  .from("movimentacoes_bancarias")
+                  .select("id")
+                  .eq("hash_unico", `safra_boleto_${t.id}`)
+                  .maybeSingle();
+                movimentacaoBaixaId = movExistente?.id ?? null;
+              } else {
+                erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `mov bancária: ${errMov.message}` });
+                continue;
+              }
+            } else {
+              movimentacaoBaixaId = movCriada?.id ?? null;
+            }
+          }
+
           const { error: errBoleto } = await sb
             .from("titulo_a_receber")
             .update({
@@ -387,6 +423,7 @@ serve(async (req) => {
               data_pagamento_banco: dataPagamentoIso,
               valor_juros: jurosArq,
               valor_desconto: descontoArq,
+              ...(movimentacaoBaixaId ? { movimentacao_baixa_id: movimentacaoBaixaId } : {}),
             } as any)
             .eq("id", t.id);
           if (errBoleto) {
@@ -397,25 +434,6 @@ serve(async (req) => {
             alertas.push(`Título ${linha.nossoNumero} liquidado com R$ ${jurosArq.toFixed(2)} de juros de mora — creditado R$ ${valorCreditado.toFixed(2)}.`);
           }
 
-          if (safraConta) {
-            const { error: errMov } = await sb
-              .from("movimentacoes_bancarias")
-              .insert({
-                conta_bancaria_id:  safraConta.id,
-                data_transacao:     dataPagamentoIso.slice(0, 10),
-                descricao:          `Boleto ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"} — ${parceiro?.razao_social ?? "Cliente"}`,
-                valor:              valorCreditado,
-                tipo:               "credito",
-                origem:             "csv_safra",
-                hash_unico:         `safra_boleto_${t.id}`,
-                id_transacao_banco: linha.nossoNumero || null,
-                conciliado:         true,
-                conciliado_em:      new Date().toISOString(),
-              });
-            if (errMov && errMov.code !== "23505") {
-              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `mov bancária: ${errMov.message}` });
-            }
-          }
 
           if (t.pedido_id) {
             const { error: errTransicao } = await sb.rpc("transicionar_pedido" as string, {
