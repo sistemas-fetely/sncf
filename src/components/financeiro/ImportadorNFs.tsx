@@ -201,7 +201,8 @@ function extrairCnpjTomadorNFSe(xml: string): string {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xml, "text/xml");
   if (doc.getElementsByTagName("parsererror").length > 0) return "";
-  const tomadores = doc.getElementsByTagName("TomadorServico");
+  let tomadores = doc.getElementsByTagName("TomadorServico");
+  if (tomadores.length === 0) tomadores = doc.getElementsByTagName("Tomador");
   if (tomadores.length === 0) return "";
   const t = tomadores[0];
   const cnpjEls = t.getElementsByTagName("Cnpj");
