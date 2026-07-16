@@ -1097,3 +1097,53 @@ export default function TitulosTab() {
     </div>
   );
 }
+
+function BadgeConciliacaoExtrato({ tituloId, statusReal }: { tituloId: string; statusReal: string }) {
+  const isPagoBanco = statusReal === "pago_banco" || statusReal === "pago_banco_com_atraso";
+  const { data } = useQuery({
+    queryKey: ["conciliacao-extrato-titulo", tituloId],
+    enabled: isPagoBanco,
+    staleTime: 30_000,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: tit, error } = await (supabase as any)
+        .from("titulo_a_receber")
+        .select("movimentacao_baixa_id")
+        .eq("id", tituloId)
+        .maybeSingle();
+      if (error) throw error;
+      const movId = (tit as { movimentacao_baixa_id: string | null } | null)?.movimentacao_baixa_id;
+      if (!movId) return { conciliado: false };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: mov, error: e2 } = await (supabase as any)
+        .from("movimentacoes_bancarias")
+        .select("casada_com_id")
+        .eq("id", movId)
+        .maybeSingle();
+      if (e2) throw e2;
+      const casada = !!(mov as { casada_com_id: string | null } | null)?.casada_com_id;
+      return { conciliado: casada };
+    },
+  });
+
+  if (!isPagoBanco) return null;
+  const conciliado = data?.conciliado;
+
+  if (conciliado) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge className="bg-green-700 text-white hover:bg-green-700">Conciliado</Badge>
+          </TooltipTrigger>
+          <TooltipContent>Liquidação batida com o extrato bancário</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  return (
+    <Badge variant="secondary" className="bg-muted text-muted-foreground">
+      Aguardando extrato
+    </Badge>
+  );
+}
