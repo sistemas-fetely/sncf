@@ -478,6 +478,7 @@ serve(async (req) => {
               `⚠ Baixa automática pelo banco — título ${linha.nossoNumero}. Ação não solicitada pelo SNCF, verificar com o banco.`
             );
           }
+          if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.baixas++;
           continue;
         }
