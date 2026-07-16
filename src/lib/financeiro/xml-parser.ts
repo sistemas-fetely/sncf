@@ -1,30 +1,24 @@
 /**
  * Dispatcher unificado de XML fiscal.
  *
- * Detecta tipo do XML (NF-e produto ou NFS-e ABRASF) e chama o
+ * Detecta tipo do XML (NF-e produto, NFS-e ABRASF ou CT-e) e chama o
  * parser correspondente. Frontend usa esta função sempre que
  * receber um arquivo .xml — não precisa saber o tipo.
- *
- * Doutrina: 1 botão "Importar XML" na UI. Sistema detecta sozinho.
  */
 
 import type { NFParsed } from "./types";
 import { parseNFeXml } from "./xml-nfe-parser";
 import { parseNFSeXml, isXmlNFSeAbrasf } from "./xml-nfse-parser";
+import { parseCteXml, isXmlCte } from "./xml-cte-parser";
 
-export type TipoXmlDetectado = "nfe" | "nfse" | "desconhecido";
+export type TipoXmlDetectado = "nfe" | "nfse" | "cte" | "desconhecido";
 
-/**
- * Detecta tipo do XML pela raiz e namespace.
- */
 export function detectarTipoXml(xmlString: string): TipoXmlDetectado {
   if (!xmlString) return "desconhecido";
 
-  if (isXmlNFSeAbrasf(xmlString)) {
-    return "nfse";
-  }
+  if (isXmlNFSeAbrasf(xmlString)) return "nfse";
+  if (isXmlCte(xmlString)) return "cte";
 
-  // NF-e produto: namespace nfe.fazenda + raiz <NFe> ou <nfeProc>
   const lower = xmlString.toLowerCase();
   if (
     lower.includes("portalfiscal.inf.br/nfe") &&
@@ -36,13 +30,6 @@ export function detectarTipoXml(xmlString: string): TipoXmlDetectado {
   return "desconhecido";
 }
 
-/**
- * Parser unificado: recebe XML, devolve NFParsed enriquecido com
- * tipo_documento, pais_emissor e moeda.
- *
- * Retorna null se XML não for reconhecido (NFS-e SP/Rio com schema
- * próprio, XML corrompido, etc.).
- */
 export function parseXmlAny(xmlString: string): NFParsed | null {
   const tipo = detectarTipoXml(xmlString);
 
@@ -54,7 +41,7 @@ export function parseXmlAny(xmlString: string): NFParsed | null {
       tipo_documento: "nfe",
       pais_emissor: "BR",
       moeda: "BRL",
-    } as NFParsed & { tipo_documento: string; pais_emissor: string; moeda: string };
+    } as NFParsed;
   }
 
   if (tipo === "nfse") {
@@ -65,7 +52,13 @@ export function parseXmlAny(xmlString: string): NFParsed | null {
       tipo_documento: "nfse",
       pais_emissor: "BR",
       moeda: "BRL",
-    } as NFParsed & { tipo_documento: string; pais_emissor: string; moeda: string };
+    } as NFParsed;
+  }
+
+  if (tipo === "cte") {
+    const nf = parseCteXml(xmlString);
+    if (!nf) return null;
+    return nf;
   }
 
   return null;
