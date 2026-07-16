@@ -78,6 +78,7 @@ export function parsearOFX(conteudo: string): OFXResultado {
 
   // Transações: cada <STMTTRN>...</STMTTRN>
   const transacoes: OFXTransacao[] = [];
+  let ignoradasSaldo = 0;
   const regexTrn = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/g;
   let match;
   while ((match = regexTrn.exec(xmlValido)) !== null) {
@@ -86,9 +87,23 @@ export function parsearOFX(conteudo: string): OFXResultado {
     const data = extrairData(bloco, "DTPOSTED") || "";
     const valorRaw = extrairValor(bloco, "TRNAMT") || "0";
     const valor = parseFloat(valorRaw.replace(",", "."));
-    const descricao = (extrairValor(bloco, "MEMO") || extrairValor(bloco, "NAME") || "").trim();
+    const memoRaw = extrairValor(bloco, "MEMO");
+    const nameRaw = extrairValor(bloco, "NAME");
+    const descricao = (memoRaw || nameRaw || "").trim();
     const tipoTrn = extrairValor(bloco, "TRNTYPE") || "";
     const checknum = extrairValor(bloco, "CHECKNUM");
+
+    // Dialeto Safra: blocos de saldo entram como STMTTRN. Ignorar.
+    const tipoNorm = tipoTrn.toUpperCase().trim();
+    const descNorm = (memoRaw || nameRaw || "").toUpperCase().trim();
+    if (
+      tipoNorm === "BALANCE" ||
+      descNorm.startsWith("SALDO TOTAL") ||
+      descNorm.startsWith("SALDO INICIAL")
+    ) {
+      ignoradasSaldo++;
+      continue;
+    }
 
     if (fitid && data) {
       transacoes.push({
@@ -97,11 +112,12 @@ export function parsearOFX(conteudo: string): OFXResultado {
         valor,
         descricao: descricao || "(sem descrição)",
         tipo: tipoTrn,
-        memo: extrairValor(bloco, "MEMO"),
+        memo: memoRaw || undefined,
         checknum: checknum || undefined,
       });
     }
   }
+
 
   if (transacoes.length === 0) {
     throw new Error(
