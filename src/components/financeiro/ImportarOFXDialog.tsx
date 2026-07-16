@@ -413,6 +413,13 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
               )}
             </div>
 
+            {parseado.ignoradasSaldo > 0 && (
+              <div className="text-xs text-muted-foreground">
+                {parseado.ignoradasSaldo} linha{parseado.ignoradasSaldo > 1 ? "s" : ""} de saldo ignorada{parseado.ignoradasSaldo > 1 ? "s" : ""}
+              </div>
+            )}
+
+
             {/* Tabela de movimentações */}
             <div className="border rounded-md overflow-hidden">
               <div className="max-h-[400px] overflow-y-auto">
