@@ -843,7 +843,7 @@ export default function BancoSafra() {
               Gerar Remessa de Baixa
             </Button>
             <Button
-              onClick={() => setEntradaDialogOpen(true)}
+              onClick={abrirDialogEntrada}
               disabled={pendentesEntrada.length === 0 || gerandoEntrada}
               className="gap-2"
             >
