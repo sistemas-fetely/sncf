@@ -130,9 +130,12 @@ export function ImportarExtratoDialog({ open, onOpenChange, contaPreSelecionada 
         }
       }
 
+      const ignoradasSaldo =
+        impFormato === "ofx" ? (parsed as ReturnType<typeof parseOFX>).ignoradasSaldo : 0;
       toast.success(
         `${novas.length} movimentações importadas` +
-          (duplicadas > 0 ? ` (${duplicadas} duplicadas ignoradas)` : "")
+          (duplicadas > 0 ? ` (${duplicadas} duplicadas ignoradas)` : "") +
+          (ignoradasSaldo > 0 ? ` · ${ignoradasSaldo} linhas de saldo ignoradas` : "")
       );
       onOpenChange(false);
       setImpArquivo(null);
