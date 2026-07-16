@@ -13,9 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowDownToLine, Inbox, CheckCircle2, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from "lucide-react";
+import { ArrowDownToLine, Inbox, CheckCircle2, ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Upload } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { toast } from "sonner";
+import { ImportarExtratoDialog } from "@/components/financeiro/ImportarExtratoDialog";
 
 type Credito = {
   id: string;
