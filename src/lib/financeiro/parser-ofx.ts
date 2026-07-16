@@ -36,7 +36,9 @@ export interface OFXResultado {
     final: number | null;
   };
   transacoes: OFXTransacao[];
+  ignoradasSaldo: number;
 }
+
 
 /**
  * Parseia conteúdo do arquivo OFX.
