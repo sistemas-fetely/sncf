@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -13,7 +15,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowDownToLine, Inbox, CheckCircle2, ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Upload } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  ArrowDownToLine,
+  Inbox,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  AlertTriangle,
+  RefreshCw,
+  Upload,
+} from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { toast } from "sonner";
 import { ImportarExtratoDialog } from "@/components/financeiro/ImportarExtratoDialog";
@@ -35,6 +55,23 @@ type Sugestao = {
   status: string;
   diff_valor: number;
   dias_distancia: number;
+};
+
+type Meio = "pix" | "cartao" | "cobranca" | "outro";
+
+function detectarMeio(descricao: string | null): Meio {
+  const d = (descricao || "").toUpperCase().trim();
+  if (d.startsWith("PIX")) return "pix";
+  if (d.startsWith("RESUMO VENDAS CARTAO")) return "cartao";
+  if (d.startsWith("CREDITO COBRANCA")) return "cobranca";
+  return "outro";
+}
+
+const MEIO_BADGE: Record<Meio, { label: string; className: string }> = {
+  pix: { label: "PIX", className: "bg-blue-100 text-blue-800 hover:bg-blue-100" },
+  cartao: { label: "Cartão", className: "bg-purple-100 text-purple-800 hover:bg-purple-100" },
+  cobranca: { label: "Cobrança", className: "bg-gray-100 text-gray-700 hover:bg-gray-100" },
+  outro: { label: "Outro", className: "bg-muted text-muted-foreground hover:bg-muted" },
 };
 
 type StatusGrupo = "a_receber" | "vencido" | "pago" | "cancelado";
@@ -76,7 +113,7 @@ const QUERY_KEY = ["recebimentos-conciliar-creditos"];
 export default function RecebimentosConciliar() {
   const qc = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [baixandoTitulo, setBaixandoTitulo] = useState<string | null>(null);
+  const [naoRecebivelCredito, setNaoRecebivelCredito] = useState<Credito | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: QUERY_KEY,
@@ -94,6 +131,11 @@ export default function RecebimentosConciliar() {
 
   const creditos = data || [];
   const totalValor = creditos.reduce((s, c) => s + Number(c.valor || 0), 0);
+
+  async function invalidar() {
+    await qc.invalidateQueries({ queryKey: QUERY_KEY });
+    await qc.invalidateQueries({ queryKey: ["cobranca-divergencias"] });
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -154,52 +196,24 @@ export default function RecebimentosConciliar() {
                   <TableRow>
                     <TableHead className="w-8" />
                     <TableHead>Data</TableHead>
+                    <TableHead>Meio</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="w-32" />
+                    <TableHead className="w-64" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {creditos.map((c) => {
                     const open = expandedId === c.id;
                     return (
-                      <RowComCandidatos
+                      <RowCredito
                         key={c.id}
                         credito={c}
                         open={open}
                         onToggle={() => setExpandedId(open ? null : c.id)}
-                        baixandoTitulo={baixandoTitulo}
-                        onDarBaixa={async (titulo) => {
-                          setBaixandoTitulo(titulo.titulo_id);
-                          try {
-                            const { data: result, error } = await supabase.rpc(
-                              "baixar_titulo_conciliacao",
-                              {
-                                p_titulo_id: titulo.titulo_id,
-                                p_movimentacao_id: c.id,
-                              }
-                            );
-                            if (error) {
-                              toast.error(`Erro ao baixar título: ${error.message}`);
-                              return;
-                            }
-                            const r = result as { ok?: boolean; numero_titulo?: string; error?: string } | null;
-                            if (!r || r.ok !== true) {
-                              toast.error(
-                                `Não foi possível baixar o título: ${r?.error || "resposta inesperada do servidor"}`
-                              );
-                              return;
-                            }
-                            toast.success(`Título ${r.numero_titulo || titulo.numero_titulo || ""} baixado`);
-                            await qc.invalidateQueries({ queryKey: QUERY_KEY });
-                            setExpandedId(null);
-                          } catch (e: unknown) {
-                            const msg = e instanceof Error ? e.message : "Erro inesperado";
-                            toast.error(`Erro ao baixar título: ${msg}`);
-                          } finally {
-                            setBaixandoTitulo(null);
-                          }
-                        }}
+                        onNaoRecebivel={() => setNaoRecebivelCredito(c)}
+                        invalidar={invalidar}
+                        onDone={() => setExpandedId(null)}
                       />
                     );
                   })}
@@ -209,26 +223,98 @@ export default function RecebimentosConciliar() {
           )}
         </CardContent>
       </Card>
+
+      <NaoRecebivelDialog
+        credito={naoRecebivelCredito}
+        onClose={() => setNaoRecebivelCredito(null)}
+        onDone={async () => {
+          setNaoRecebivelCredito(null);
+          await invalidar();
+        }}
+      />
     </div>
   );
 }
 
-function RowComCandidatos({
+function RowCredito({
   credito,
   open,
   onToggle,
-  onDarBaixa,
-  baixandoTitulo,
+  onNaoRecebivel,
+  invalidar,
+  onDone,
 }: {
   credito: Credito;
   open: boolean;
   onToggle: () => void;
-  onDarBaixa: (t: Sugestao) => void | Promise<void>;
-  baixandoTitulo: string | null;
+  onNaoRecebivel: () => void;
+  invalidar: () => Promise<void>;
+  onDone: () => void;
 }) {
-  const { data: sugestoes, isLoading } = useQuery({
+  const meio = detectarMeio(credito.descricao);
+  const badge = MEIO_BADGE[meio];
+  const canExpand = meio !== "cobranca";
+
+  return (
+    <>
+      <TableRow>
+        <TableCell>
+          {canExpand ? (
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onToggle}>
+              {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+          ) : null}
+        </TableCell>
+        <TableCell className="whitespace-nowrap">{formatDateBR(credito.data_transacao)}</TableCell>
+        <TableCell>
+          <Badge className={badge.className}>{badge.label}</Badge>
+        </TableCell>
+        <TableCell className="max-w-md truncate">{credito.descricao || "—"}</TableCell>
+        <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
+          {formatBRL(Number(credito.valor || 0))}
+        </TableCell>
+        <TableCell className="text-right">
+          {meio === "cobranca" ? (
+            <span className="text-xs text-muted-foreground italic">motor automático</span>
+          ) : meio === "cartao" ? (
+            <Button size="sm" variant={open ? "secondary" : "default"} onClick={onToggle}>
+              Montar cesta
+            </Button>
+          ) : meio === "pix" ? (
+            <Button size="sm" variant={open ? "secondary" : "default"} onClick={onToggle}>
+              Ver candidatos
+            </Button>
+          ) : (
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant={open ? "secondary" : "default"} onClick={onToggle}>
+                Ver candidatos
+              </Button>
+              <Button size="sm" variant="outline" onClick={onNaoRecebivel}>
+                Não é recebível
+              </Button>
+            </div>
+          )}
+        </TableCell>
+      </TableRow>
+      {open && canExpand && (
+        <TableRow>
+          <TableCell colSpan={6} className="bg-muted/30 p-4">
+            {meio === "cartao" ? (
+              <PainelCesta credito={credito} invalidar={invalidar} onDone={onDone} />
+            ) : (
+              <PainelUnico credito={credito} invalidar={invalidar} onDone={onDone} />
+            )}
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
+function useSugestoes(credito: Credito, enabled: boolean) {
+  return useQuery({
     queryKey: ["sugerir-titulos", credito.id],
-    enabled: open,
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("sugerir_titulos_para_credito", {
         p_movimentacao_id: credito.id,
@@ -238,98 +324,428 @@ function RowComCandidatos({
       return (data || []) as Sugestao[];
     },
   });
+}
+
+function LinhaTitulo({
+  s,
+  right,
+}: {
+  s: Sugestao;
+  right: React.ReactNode;
+}) {
+  const grupo = GRUPO_DE_STATUS[s.status] ?? null;
+  const exato = Math.abs(Number(s.diff_valor || 0)) <= 0.01;
+  return (
+    <TableRow>
+      <TableCell className="font-mono text-xs">{s.numero_titulo || "—"}</TableCell>
+      <TableCell>{s.cliente || "—"}</TableCell>
+      <TableCell className="whitespace-nowrap">{formatDateBR(s.data_vencimento_atual)}</TableCell>
+      <TableCell className="text-right font-mono whitespace-nowrap">
+        <div className="flex items-center justify-end gap-2">
+          {exato && (
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              valor exato
+            </Badge>
+          )}
+          {formatBRL(Number(s.valor_atual || 0))}
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge className={grupo ? GRUPO_BADGE[grupo] : "bg-muted"}>
+          {grupo ? GRUPO_LABEL[grupo] : s.status}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right">{right}</TableCell>
+    </TableRow>
+  );
+}
+
+function PainelUnico({
+  credito,
+  invalidar,
+  onDone,
+}: {
+  credito: Credito;
+  invalidar: () => Promise<void>;
+  onDone: () => void;
+}) {
+  const { data: sugestoes, isLoading } = useSugestoes(credito, true);
+  const [conciliando, setConciliando] = useState<string | null>(null);
+  const [mostrarDivergentes, setMostrarDivergentes] = useState(false);
+
+  const { exatos, divergentes } = useMemo(() => {
+    const list = sugestoes || [];
+    const ex: Sugestao[] = [];
+    const dv: Sugestao[] = [];
+    for (const s of list) {
+      if (Math.abs(Number(s.diff_valor || 0)) <= 0.01) ex.push(s);
+      else dv.push(s);
+    }
+    return { exatos: ex, divergentes: dv };
+  }, [sugestoes]);
+
+  async function conciliar(s: Sugestao) {
+    setConciliando(s.titulo_id);
+    try {
+      const { data, error } = await supabase.rpc("conciliar_credito_titulo", {
+        p_movimentacao_id: credito.id,
+        p_titulo_id: s.titulo_id,
+      });
+      if (error) {
+        toast.error(`Erro ao conciliar: ${error.message}`);
+        return;
+      }
+      const r = data as { ok?: boolean; numero_titulo?: string; aviso?: string; error?: string } | null;
+      if (!r || r.ok !== true) {
+        toast.error(`Não foi possível conciliar: ${r?.error || "resposta inesperada"}`);
+        return;
+      }
+      toast.success(`Título ${r.numero_titulo || s.numero_titulo || ""} conciliado`);
+      if (r.aviso) toast.warning(r.aviso);
+      await invalidar();
+      onDone();
+    } catch (e) {
+      toast.error(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setConciliando(null);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+      </div>
+    );
+  }
+
+  if (!sugestoes || sugestoes.length === 0) {
+    return (
+      <div className="py-6 text-center text-sm text-muted-foreground">
+        Nenhum título aberto com este valor na janela de 7 dias.
+      </div>
+    );
+  }
 
   return (
-    <>
-      <TableRow>
-        <TableCell>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onToggle}>
-            {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </Button>
-        </TableCell>
-        <TableCell className="whitespace-nowrap">{formatDateBR(credito.data_transacao)}</TableCell>
-        <TableCell className="max-w-md truncate">{credito.descricao || "—"}</TableCell>
-        <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
-          {formatBRL(Number(credito.valor || 0))}
-        </TableCell>
-        <TableCell className="text-right">
-          <Button size="sm" variant={open ? "secondary" : "default"} onClick={onToggle}>
-            Conciliar
-          </Button>
-        </TableCell>
-      </TableRow>
-      {open && (
-        <TableRow>
-          <TableCell colSpan={5} className="bg-muted/30 p-4">
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : !sugestoes || sugestoes.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                Nenhum título candidato encontrado na janela de ±7 dias.
-              </div>
-            ) : (
-              <div className="border rounded-md bg-background">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nº título</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Vencimento</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sugestoes.map((s) => {
-                      const grupo = GRUPO_DE_STATUS[s.status] ?? null;
-                      const exato = Number(s.diff_valor) === 0;
-                      return (
-                        <TableRow key={s.titulo_id}>
-                          <TableCell className="font-mono text-xs">{s.numero_titulo || "—"}</TableCell>
-                          <TableCell>{s.cliente || "—"}</TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            {formatDateBR(s.data_vencimento_atual)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-2">
-                              {exato && (
-                                <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  valor exato
-                                </Badge>
-                              )}
-                              {formatBRL(Number(s.valor_atual || 0))}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={grupo ? GRUPO_BADGE[grupo] : "bg-muted"}>
-                              {grupo ? GRUPO_LABEL[grupo] : s.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              disabled={baixandoTitulo === s.titulo_id}
-                              onClick={() => onDarBaixa(s)}
-                            >
-                              {baixandoTitulo === s.titulo_id ? "Baixando..." : "Dar baixa"}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </TableCell>
-        </TableRow>
+    <div className="space-y-4">
+      {exatos.length > 0 ? (
+        <div>
+          <div className="text-xs font-semibold text-muted-foreground mb-2">
+            Valor exato ({exatos.length})
+          </div>
+          <div className="border rounded-md bg-background">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nº título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {exatos.map((s) => (
+                  <LinhaTitulo
+                    key={s.titulo_id}
+                    s={s}
+                    right={
+                      <Button
+                        size="sm"
+                        disabled={conciliando === s.titulo_id}
+                        onClick={() => conciliar(s)}
+                      >
+                        {conciliando === s.titulo_id ? "Conciliando..." : "Conciliar título"}
+                      </Button>
+                    }
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      ) : (
+        <div className="py-4 text-center text-sm text-muted-foreground">
+          Nenhum título aberto com este valor na janela de 7 dias.
+        </div>
       )}
-    </>
+
+      {divergentes.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setMostrarDivergentes((v) => !v)}
+            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground mb-2"
+          >
+            {mostrarDivergentes ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            Outros candidatos (valores divergentes) — {divergentes.length}
+          </button>
+          {mostrarDivergentes && (
+            <div className="border rounded-md bg-background">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nº título</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {divergentes.map((s) => (
+                    <LinhaTitulo
+                      key={s.titulo_id}
+                      s={s}
+                      right={
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span tabIndex={0}>
+                                <Button size="sm" disabled>
+                                  Conciliar título
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              valores divergem — conciliação bloqueada pelo servidor
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      }
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PainelCesta({
+  credito,
+  invalidar,
+  onDone,
+}: {
+  credito: Credito;
+  invalidar: () => Promise<void>;
+  onDone: () => void;
+}) {
+  const { data: sugestoes, isLoading } = useSugestoes(credito, true);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [conciliando, setConciliando] = useState(false);
+
+  function toggle(id: string) {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const soma = useMemo(() => {
+    const list = sugestoes || [];
+    return list.reduce((acc, s) => (selecionados.has(s.titulo_id) ? acc + Number(s.valor_atual || 0) : acc), 0);
+  }, [sugestoes, selecionados]);
+
+  const valorCredito = Number(credito.valor || 0);
+  const bate = Math.abs(soma - valorCredito) <= 0.01;
+  const qtd = selecionados.size;
+
+  async function conciliarCesta() {
+    if (!bate || qtd === 0) return;
+    setConciliando(true);
+    try {
+      const { data, error } = await supabase.rpc("conciliar_credito_cesta", {
+        p_movimentacao_id: credito.id,
+        p_titulo_ids: Array.from(selecionados),
+      });
+      if (error) {
+        toast.error(`Erro ao conciliar cesta: ${error.message}`);
+        return;
+      }
+      const r = data as { ok?: boolean; titulos?: number; valor?: number; error?: string } | null;
+      if (!r || r.ok !== true) {
+        toast.error(`Não foi possível conciliar: ${r?.error || "resposta inesperada"}`);
+        return;
+      }
+      toast.success(`Cesta conciliada — ${r.titulos ?? qtd} títulos / ${formatBRL(Number(r.valor ?? soma))}`);
+      await invalidar();
+      onDone();
+    } catch (e) {
+      toast.error(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setConciliando(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+      </div>
+    );
+  }
+
+  if (!sugestoes || sugestoes.length === 0) {
+    return (
+      <div className="py-6 text-center text-sm text-muted-foreground">
+        Nenhum título aberto com este valor na janela de 7 dias.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="border rounded-md bg-background">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-8" />
+              <TableHead>Nº título</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sugestoes.map((s) => {
+              const grupo = GRUPO_DE_STATUS[s.status] ?? null;
+              const checked = selecionados.has(s.titulo_id);
+              return (
+                <TableRow key={s.titulo_id}>
+                  <TableCell>
+                    <Checkbox checked={checked} onCheckedChange={() => toggle(s.titulo_id)} />
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{s.numero_titulo || "—"}</TableCell>
+                  <TableCell>{s.cliente || "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatDateBR(s.data_vencimento_atual)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono whitespace-nowrap">
+                    {formatBRL(Number(s.valor_atual || 0))}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={grupo ? GRUPO_BADGE[grupo] : "bg-muted"}>
+                      {grupo ? GRUPO_LABEL[grupo] : s.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 bg-background border rounded-md px-4 py-3 sticky bottom-0">
+        <div className="text-sm">
+          Selecionados: <span className="font-semibold">{qtd}</span>
+          {" · "}
+          Soma:{" "}
+          <span className={`font-mono font-semibold ${bate ? "text-green-700" : "text-red-600"}`}>
+            {formatBRL(soma)}
+          </span>
+          {" / Crédito: "}
+          <span className="font-mono">{formatBRL(valorCredito)}</span>
+        </div>
+        <Button
+          size="sm"
+          disabled={!bate || qtd === 0 || conciliando}
+          onClick={conciliarCesta}
+        >
+          {conciliando ? "Conciliando..." : `Conciliar cesta (${qtd} títulos)`}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function NaoRecebivelDialog({
+  credito,
+  onClose,
+  onDone,
+}: {
+  credito: Credito | null;
+  onClose: () => void;
+  onDone: () => Promise<void>;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [processando, setProcessando] = useState(false);
+  const open = credito !== null;
+  const podeSalvar = motivo.trim().length >= 5;
+
+  async function handleSalvar() {
+    if (!credito || !podeSalvar) return;
+    setProcessando(true);
+    try {
+      const { data, error } = await supabase.rpc("marcar_credito_nao_recebivel", {
+        p_movimentacao_id: credito.id,
+        p_motivo: motivo.trim(),
+      });
+      if (error) {
+        toast.error(`Erro: ${error.message}`);
+        return;
+      }
+      const r = data as { ok?: boolean; error?: string } | null;
+      if (!r || r.ok !== true) {
+        toast.error(`Não foi possível marcar: ${r?.error || "resposta inesperada"}`);
+        return;
+      }
+      toast.success("Crédito marcado como não recebível");
+      setMotivo("");
+      await onDone();
+    } catch (e) {
+      toast.error(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setProcessando(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v && !processando) {
+          setMotivo("");
+          onClose();
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Marcar crédito como não recebível</DialogTitle>
+          <DialogDescription>
+            O crédito será removido da fila de conciliação. Registre o motivo (mínimo 5 caracteres).
+          </DialogDescription>
+        </DialogHeader>
+        <Textarea
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="Ex.: estorno de fornecedor, transferência interna, etc."
+          rows={4}
+          disabled={processando}
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={processando}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSalvar} disabled={!podeSalvar || processando}>
+            {processando ? "Salvando..." : "Confirmar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
