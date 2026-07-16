@@ -410,7 +410,7 @@ export default function BancoSafra() {
     setGerandoEntrada(true);
     try {
       const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
-        body: { tipo: "entrada" },
+        body: { tipo: "entrada", titulo_ids: Array.from(selecionados) },
       });
       if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de entrada");
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
