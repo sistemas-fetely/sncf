@@ -1,7 +1,6 @@
-import { useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { parseCsvSafra } from "@/lib/financeiro/csv-safra-parser";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -29,32 +27,16 @@ import { useToast } from "@/hooks/use-toast";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
   AlertCircle,
-  ArrowDownToLine,
   ArrowUpFromLine,
-  CheckCircle2,
   Check,
-  FileSpreadsheet,
   FileText,
   Landmark,
   Loader2,
   Mail,
   MailCheck,
-  Upload,
 } from "lucide-react";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-type ContaSafra = { id: string; nome_exibicao: string; saldo_atual: number | null };
-
-type Movimentacao = {
-  id: string;
-  data_transacao: string;
-  descricao: string | null;
-  valor: number;
-  tipo: string;
-  conciliado: boolean;
-  origem: string | null;
-};
 
 type TitulosBoleto = {
   id: string;
@@ -181,82 +163,12 @@ function BotaoEmailBoleto({ boleto }: { boleto: any }) {
   );
 }
 
-async function gerarHashSafra(data: string, descricao: string, valor: number): Promise<string> {
-  const base = `${data}|${(descricao || "").trim()}|${Math.abs(valor).toFixed(2)}`;
-  const buf = new TextEncoder().encode(base);
-  const hash = await crypto.subtle.digest("SHA-256", buf);
-  const hex = Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-    .slice(0, 40);
-  return `safra_extrato_${hex}`;
-}
-
-type PreviewLinha = { data: string; descricao: string; valor: number; tipo: string };
-
 export default function BancoSafra() {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const parsedRef = useRef<ReturnType<typeof parseCsvSafra> | null>(null);
-
-  const [activeTab, setActiveTab] = useState<string>("extrato");
-  const [arquivoNome, setArquivoNome] = useState<string>("");
-  const [linhasPreview, setLinhasPreview] = useState<PreviewLinha[]>([]);
-  const [totalLinhas, setTotalLinhas] = useState<number>(0);
-  const [importando, setImportando] = useState<boolean>(false);
-
-  const { data: contaSafra } = useQuery<ContaSafra | null>({
-    queryKey: ["conta-bancaria-safra"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contas_bancarias")
-        .select("id, nome_exibicao, saldo_atual")
-        .eq("banco_codigo", "422")
-        .eq("ativo", true)
-        .maybeSingle();
-      if (error) throw error;
-      return (data as ContaSafra | null) ?? null;
-    },
-  });
-
-  const { data: movimentacoes = [], isLoading: loadingMov } = useQuery<Movimentacao[]>({
-    queryKey: ["movimentacoes-safra", contaSafra?.id],
-    enabled: activeTab === "extrato" && !!contaSafra?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes_bancarias")
-        .select("id, data_transacao, descricao, valor, tipo, conciliado, origem")
-        .eq("conta_bancaria_id", contaSafra!.id)
-        .order("data_transacao", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return (data as Movimentacao[]) ?? [];
-    },
-  });
-
-  // Saldo calculado a partir de TODAS as movimentações registradas
-  const { data: saldoMovimentacoes } = useQuery<number>({
-    queryKey: ["saldo-movimentacoes-safra", contaSafra?.id],
-    enabled: !!contaSafra?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes_bancarias")
-        .select("valor, tipo")
-        .eq("conta_bancaria_id", contaSafra!.id);
-      if (error) throw error;
-      let saldo = 0;
-      for (const m of (data as { valor: number; tipo: string }[]) ?? []) {
-        if (m.tipo === "credito") saldo += Number(m.valor || 0);
-        else if (m.tipo === "debito") saldo -= Number(m.valor || 0);
-      }
-      return saldo;
-    },
-  });
 
   const { data: boletos = [], isLoading: loadingBoletos, refetch: refetchBoletos } = useQuery<TitulosBoleto[]>({
     queryKey: ["boletos-safra"],
-    enabled: activeTab === "boletos",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("titulo_a_receber")
@@ -288,7 +200,6 @@ export default function BancoSafra() {
     [pendentesEntrada, hojeIso],
   );
 
-  // seleção dinâmica no dialog
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const abrirDialogEntrada = () => {
     const validos = pendentesEntrada
@@ -435,22 +346,6 @@ export default function BancoSafra() {
     }
   };
 
-
-  const kpis = useMemo(() => {
-    const primeiroDia = new Date();
-    primeiroDia.setDate(1);
-    primeiroDia.setHours(0, 0, 0, 0);
-    const iso = primeiroDia.toISOString().slice(0, 10);
-    let creditos = 0;
-    let debitos = 0;
-    for (const m of movimentacoes) {
-      if (!m.data_transacao || m.data_transacao < iso) continue;
-      if (m.tipo === "credito") creditos += Number(m.valor || 0);
-      else if (m.tipo === "debito") debitos += Number(m.valor || 0);
-    }
-    return { creditos, debitos, resultado: creditos - debitos };
-  }, [movimentacoes]);
-
   const boletosKpis = useMemo(() => {
     const primeiroDia = new Date();
     primeiroDia.setDate(1);
@@ -486,68 +381,6 @@ export default function BancoSafra() {
     return { pendentes, registrados, pagosMes, vencidos, baixaPendente, prorrogacaoPendente };
   }, [boletos]);
 
-  function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const texto = String(reader.result || "");
-      const parsed = parseCsvSafra(texto);
-      parsedRef.current = parsed;
-      const preview = parsed.movimentacoes.slice(0, 3).map((m) => ({
-        data: m.data_transacao,
-        descricao: m.descricao,
-        valor: m.valor,
-        tipo: m.tipo,
-      }));
-      setLinhasPreview(preview);
-      setTotalLinhas(parsed.movimentacoes.length);
-      setArquivoNome(file.name);
-    };
-    reader.readAsText(file, "utf-8");
-  }
-
-  async function handleImportar() {
-    if (!contaSafra?.id || !parsedRef.current) return;
-    setImportando(true);
-    let importadas = 0;
-    let duplicadas = 0;
-    let erros = 0;
-    for (const m of parsedRef.current.movimentacoes) {
-      const hash = await gerarHashSafra(m.data_transacao, m.descricao, m.valor);
-      const { error } = await supabase.from("movimentacoes_bancarias").insert({
-        conta_bancaria_id: contaSafra.id,
-        data_transacao: m.data_transacao,
-        descricao: m.descricao,
-        valor: Math.abs(m.valor),
-        tipo: m.valor >= 0 ? "credito" : "debito",
-        origem: "csv_safra",
-        hash_unico: hash,
-        conciliado: false,
-      });
-      if (error) {
-        if ((error as { code?: string }).code === "23505") duplicadas++;
-        else erros++;
-      } else {
-        importadas++;
-      }
-    }
-    await qc.invalidateQueries({ queryKey: ["movimentacoes-safra"] });
-    await qc.invalidateQueries({ queryKey: ["conta-bancaria-safra"] });
-    toast({
-      title: "Importação concluída",
-      description: `${importadas} importadas, ${duplicadas} duplicatas ignoradas${
-        erros ? `, ${erros} erros` : ""
-      }`,
-    });
-    setLinhasPreview([]);
-    setTotalLinhas(0);
-    setArquivoNome("");
-    parsedRef.current = null;
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setImportando(false);
-  }
-
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -556,446 +389,217 @@ export default function BancoSafra() {
           Banco Safra
         </h1>
         <p className="text-sm text-muted-foreground">
-          Extrato, boletos e conciliação — conta 422
+          Operação de boletos — conta 422
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
-              Saldo das movimentações
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <AlertCircle className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    Calculado a partir das movimentações registradas no sistema
-                    (boletos liquidados). Não substitui o extrato bancário.
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-700">
-              {saldoMovimentacoes == null ? "—" : formatBRL(saldoMovimentacoes)}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card px-4 py-2">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm divide-x divide-border">
+          <div className="pr-5">
+            <span className="text-muted-foreground text-xs mr-1.5">Pendentes</span>
+            <span className="font-semibold text-gray-700">{boletosKpis.pendentes}</span>
+          </div>
+          <div className="pl-5 pr-5">
+            <span className="text-muted-foreground text-xs mr-1.5">Registrados</span>
+            <span className="font-semibold text-blue-700">{boletosKpis.registrados}</span>
+          </div>
+          <div className="pl-5 pr-5">
+            <span className="text-muted-foreground text-xs mr-1.5">Pagos no mês</span>
+            <span className="font-semibold text-green-700">{boletosKpis.pagosMes}</span>
+          </div>
+          <div className="pl-5 pr-5">
+            <span className="text-muted-foreground text-xs mr-1.5">Vencidos</span>
+            <span className="font-semibold text-orange-700">{boletosKpis.vencidos}</span>
+          </div>
+          <div className="pl-5">
+            <span className="text-muted-foreground text-xs mr-1.5">Baixas pendentes</span>
+            <span className="font-semibold text-purple-700">{boletosKpis.baixaPendente}</span>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
-              <ArrowDownToLine className="h-4 w-4" /> Créditos mês
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700">{formatBRL(kpis.creditos)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
-              <ArrowUpFromLine className="h-4 w-4" /> Débitos mês
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-700">{formatBRL(kpis.debitos)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Resultado mês</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div
-              className={`text-2xl font-bold ${
-                kpis.resultado >= 0 ? "text-green-700" : "text-red-700"
-              }`}
-            >
-              {formatBRL(kpis.resultado)}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={abrirDialogEntrada}
+            disabled={pendentesEntrada.length === 0 || gerandoEntrada}
+            size="sm"
+            className="gap-2"
+          >
+            {gerandoEntrada ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ArrowUpFromLine className="h-4 w-4" />
+            )}
+            Entrada
+            {pendentesEntrada.length > 0 && ` (${pendentesEntrada.length})`}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGerarProrrogacao}
+            disabled={boletosKpis.prorrogacaoPendente === 0 || gerandoProrrogacao}
+            className="gap-2"
+          >
+            {gerandoProrrogacao ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ArrowUpFromLine className="h-4 w-4" />
+            )}
+            Prorrogação
+            {boletosKpis.prorrogacaoPendente > 0 && ` (${boletosKpis.prorrogacaoPendente})`}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGerarBaixa}
+            disabled={boletosKpis.baixaPendente === 0 || gerandoBaixa}
+            className="gap-2"
+          >
+            {gerandoBaixa ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ArrowUpFromLine className="h-4 w-4" />
+            )}
+            Baixa
+          </Button>
+        </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="extrato">Extrato</TabsTrigger>
-          <TabsTrigger value="boletos">Boletos</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="extrato" className="space-y-6">
-          <Card className="border-blue-200 bg-blue-50/30">
-            <CardHeader>
-              <CardTitle className="text-base">Importar extrato CSV</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Faça o download do extrato em formato CSV no Internet Banking Safra e importe aqui.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 flex-wrap">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={handleArquivoSelecionado}
-                />
-                <Button onClick={() => fileInputRef.current?.click()} variant="outline">
-                  <Upload className="h-4 w-4" />
-                  Selecionar arquivo CSV
-                </Button>
-                {arquivoNome && (
-                  <span className="text-sm text-muted-foreground flex items-center gap-1">
-                    <FileSpreadsheet className="h-4 w-4" />
-                    {arquivoNome}
-                  </span>
-                )}
-              </div>
-
-              {linhasPreview.length > 0 && (
-                <div className="space-y-3">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {linhasPreview.map((l, i) => (
-                        <TableRow key={i}>
-                          <TableCell>{formatDateBR(l.data)}</TableCell>
-                          <TableCell>{l.descricao}</TableCell>
-                          <TableCell
-                            className={`text-right font-mono ${
-                              l.valor >= 0 ? "text-green-700" : "text-red-700"
-                            }`}
-                          >
-                            {l.valor >= 0 ? "+" : "-"}
-                            {formatBRL(Math.abs(l.valor))}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <p className="text-xs text-muted-foreground">
-                    {totalLinhas} transações encontradas — {linhasPreview.length} exibidas como preview
-                  </p>
-                  <Button onClick={handleImportar} disabled={importando}>
-                    {importando ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Importando...
-                      </>
-                    ) : (
-                      <>Importar {totalLinhas} transações</>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                Movimentações Safra{" "}
-                <span className="text-sm text-muted-foreground font-normal">
-                  ({movimentacoes.length})
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingMov ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <Skeleton key={i} className="h-10 w-full" />
-                  ))}
-                </div>
-              ) : movimentacoes.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  Nenhuma movimentação ainda. Importe um extrato CSV para começar.
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead className="text-center">Conciliado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {movimentacoes.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell>{formatDateBR(m.data_transacao)}</TableCell>
-                        <TableCell className="max-w-[400px] truncate">{m.descricao || "—"}</TableCell>
-                        <TableCell>
-                          {m.tipo === "credito" ? (
-                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                              Crédito
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Débito</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell
-                          className={`text-right font-mono ${
-                            m.tipo === "credito" ? "text-green-700" : "text-red-700"
-                          }`}
-                        >
-                          {m.tipo === "credito" ? "+" : "-"}
-                          {formatBRL(Number(m.valor))}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {m.conciliado ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600 inline" />
-                          ) : (
-                            <AlertCircle className="h-4 w-4 text-gray-400 inline" />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="boletos" className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Pendentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-700">{boletosKpis.pendentes}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Registrados</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-700">{boletosKpis.registrados}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Pagos no mês</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-700">{boletosKpis.pagosMes}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Vencidos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-700">{boletosKpis.vencidos}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Baixas pendentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-700">{boletosKpis.baixaPendente}</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={handleGerarProrrogacao}
-              disabled={boletosKpis.prorrogacaoPendente === 0 || gerandoProrrogacao}
-              className="gap-2"
-            >
-              {gerandoProrrogacao ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowUpFromLine className="h-4 w-4" />
-              )}
-              Gerar remessa de prorrogação
-              {boletosKpis.prorrogacaoPendente > 0 && ` (${boletosKpis.prorrogacaoPendente})`}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleGerarBaixa}
-              disabled={boletosKpis.baixaPendente === 0 || gerandoBaixa}
-              className="gap-2"
-            >
-              {gerandoBaixa ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowUpFromLine className="h-4 w-4" />
-              )}
-              Gerar Remessa de Baixa
-            </Button>
-            <Button
-              onClick={abrirDialogEntrada}
-              disabled={pendentesEntrada.length === 0 || gerandoEntrada}
-              className="gap-2"
-            >
-              {gerandoEntrada ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowUpFromLine className="h-4 w-4" />
-              )}
-              Gerar Remessa de Entrada
-              {pendentesEntrada.length > 0 && ` (${pendentesEntrada.length})`}
-            </Button>
-          </div>
-
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                Boletos{" "}
-                <span className="text-sm text-muted-foreground font-normal">({boletos.length})</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingBoletos ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <Skeleton key={i} className="h-10 w-full" />
-                  ))}
-                </div>
-              ) : boletos.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  Nenhum boleto encontrado.
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Vencimento</TableHead>
-                      <TableHead>Título</TableHead>
-                      <TableHead>Pedido</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {boletos.map((b) => {
-                      const cfg =
-                        BOLETO_STATUS_CFG[b.boleto_status || ""] || {
-                          label: b.boleto_status || "—",
-                          cls: "bg-gray-100 text-gray-600",
-                        };
-                      const vencido = b.boleto_status === "vencido";
-                      const editavel = b.boleto_status === "pendente";
-                      const registrado = b.boleto_status === "registrado" || b.boleto_status === "remessa_gerada";
-                      const pendentePassado =
-                        editavel && !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
-                      return (
-                        <TableRow
-                          key={b.id}
-                          className={pendentePassado ? "bg-red-50/60 border-l-2 border-l-red-400" : ""}
-                        >
-                          <TableCell className={vencido || pendentePassado ? "text-red-700 font-medium" : ""}>
-                            {pendentePassado && (
-                              <Badge className="mb-1 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
-                                Vencimento no passado
-                              </Badge>
-                            )}
-                            {editavel ? (
-                              <Input
-                                type="date"
-                                className="h-8 w-[140px]"
-                                value={edits[b.id]?.data ?? b.data_vencimento_atual ?? ""}
-                                onChange={(e) =>
-                                  setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
-                                }
-                              />
-                            ) : registrado ? (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="inline-flex items-center gap-1.5">
-                                      {formatDateBR(b.data_vencimento_atual)}
-                                      <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Para alterar, solicite a baixa primeiro</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ) : (
-                              formatDateBR(b.data_vencimento_atual)
-                            )}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {b.numero_titulo || "—"}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {b.pedido?.id_externo || "—"}
-                          </TableCell>
-                          <TableCell className="max-w-[160px] truncate">
-                            {b.conta?.parceiro?.razao_social || "—"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={`${cfg.cls} hover:${cfg.cls}`}>{cfg.label}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-mono">
-                            {editavel ? (
-                              <Input
-                                type="text"
-                                inputMode="decimal"
-                                className="h-8 w-[110px] ml-auto text-right font-mono"
-                                value={edits[b.id]?.valor ?? String(b.valor_bruto ?? "")}
-                                onChange={(e) =>
-                                  setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], valor: e.target.value } }))
-                                }
-                              />
-                            ) : (
-                              formatBRL(Number(b.valor_bruto || 0))
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              {temEdicao(b.id) && (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={() => handleSalvar(b)}
-                                  disabled={salvando[b.id]}
-                                  className="h-8"
-                                >
-                                  {salvando[b.id] ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <Check className="h-3.5 w-3.5" />
-                                  )}
-                                  <span className="ml-1">Salvar</span>
-                                </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Boletos{" "}
+            <span className="text-sm text-muted-foreground font-normal">({boletos.length})</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingBoletos ? (
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : boletos.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Nenhum boleto encontrado.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {boletos.map((b) => {
+                  const cfg =
+                    BOLETO_STATUS_CFG[b.boleto_status || ""] || {
+                      label: b.boleto_status || "—",
+                      cls: "bg-gray-100 text-gray-600",
+                    };
+                  const vencido = b.boleto_status === "vencido";
+                  const editavel = b.boleto_status === "pendente";
+                  const registrado = b.boleto_status === "registrado" || b.boleto_status === "remessa_gerada";
+                  const pendentePassado =
+                    editavel && !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
+                  return (
+                    <TableRow
+                      key={b.id}
+                      className={pendentePassado ? "bg-red-50/60 border-l-2 border-l-red-400" : ""}
+                    >
+                      <TableCell className={vencido || pendentePassado ? "text-red-700 font-medium" : ""}>
+                        {pendentePassado && (
+                          <Badge className="mb-1 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
+                            Vencimento no passado
+                          </Badge>
+                        )}
+                        {editavel ? (
+                          <Input
+                            type="date"
+                            className="h-8 w-[140px]"
+                            value={edits[b.id]?.data ?? b.data_vencimento_atual ?? ""}
+                            onChange={(e) =>
+                              setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
+                            }
+                          />
+                        ) : registrado ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center gap-1.5">
+                                  {formatDateBR(b.data_vencimento_atual)}
+                                  <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Para alterar, solicite a baixa primeiro</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          formatDateBR(b.data_vencimento_atual)
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {b.numero_titulo || "—"}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {b.pedido?.id_externo || "—"}
+                      </TableCell>
+                      <TableCell className="max-w-[160px] truncate">
+                        {b.conta?.parceiro?.razao_social || "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${cfg.cls} hover:${cfg.cls}`}>{cfg.label}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {editavel ? (
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            className="h-8 w-[110px] ml-auto text-right font-mono"
+                            value={edits[b.id]?.valor ?? String(b.valor_bruto ?? "")}
+                            onChange={(e) =>
+                              setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], valor: e.target.value } }))
+                            }
+                          />
+                        ) : (
+                          formatBRL(Number(b.valor_bruto || 0))
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {temEdicao(b.id) && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleSalvar(b)}
+                              disabled={salvando[b.id]}
+                              className="h-8"
+                            >
+                              {salvando[b.id] ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5" />
                               )}
-                              <BotaoBaixarBoletoPdf boleto={b} />
-                              <BotaoEmailBoleto boleto={b} />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                              <span className="ml-1">Salvar</span>
+                            </Button>
+                          )}
+                          <BotaoBaixarBoletoPdf boleto={b} />
+                          <BotaoEmailBoleto boleto={b} />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={entradaDialogOpen} onOpenChange={(v) => !gerandoEntrada && setEntradaDialogOpen(v)}>
         <DialogContent className="max-w-2xl">
