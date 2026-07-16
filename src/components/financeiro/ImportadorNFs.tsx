@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileCode, Loader2, Upload } from "lucide-react";
+import JSZip from "jszip";
 import {
   Card,
   CardContent,
@@ -8,9 +9,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { parseXmlAny } from "@/lib/financeiro/xml-parser";
+import {
+  parseXmlAny,
+  detectarTipoXml,
+} from "@/lib/financeiro/xml-parser";
+import { isXmlNFSeAbrasf } from "@/lib/financeiro/xml-nfse-parser";
+import { isXmlCte, getCteTomadorCnpj } from "@/lib/financeiro/xml-cte-parser";
 import { verificarDuplicatas } from "@/lib/financeiro/import-handler";
 import { moverParaStage, type StageResult } from "@/lib/financeiro/stage-handler";
 import { limparCnpj, parseDataBR, parseValorBR } from "@/lib/financeiro/parsers";
@@ -19,6 +34,16 @@ import { PreviewNFsImportSimples } from "./PreviewNFsImportSimples";
 
 interface Props {
   onImported?: (result: StageResult) => void;
+}
+
+interface ZipReport {
+  total: number;
+  importadosNFe: number;
+  importadosNFSe: number;
+  importadosCTe: number;
+  duplicatas: number;
+  ignorados: Record<string, number>;
+  erros: number;
 }
 
 function readFileAsText(file: File): Promise<string> {
@@ -38,6 +63,13 @@ function isPdf(file: File): boolean {
 function isXml(file: File): boolean {
   if (file.type.includes("xml")) return true;
   return file.name.toLowerCase().endsWith(".xml");
+}
+
+function isZip(file: File): boolean {
+  if (file.type === "application/zip" || file.type === "application/x-zip-compressed") {
+    return true;
+  }
+  return file.name.toLowerCase().endsWith(".zip");
 }
 
 async function parseXmlFile(file: File): Promise<NFParsed | null> {
@@ -68,15 +100,11 @@ async function parsePdfFile(file: File): Promise<NFParsed | null> {
   const tipoDoc = payload.tipo_documento || "nfe";
   const isBoleto = tipoDoc === "boleto";
 
-  // Pra boleto, número da NF está em numero_documento_referencia (quando preenchido).
-  // numero_documento do boleto é "Nosso Número" do banco — não identifica a NF.
   const nfNumeroResolvido =
     isBoleto && payload.numero_documento_referencia
       ? String(payload.numero_documento_referencia)
       : String(payload.numero_documento || payload.numero || "");
 
-  // Defesa em profundidade: chave_acesso só pra NF-e/NFS-e e exatamente 44 dígitos numéricos.
-  // Edge function já filtra; redundância intencional pra blindar contra inconsistência futura.
   const chaveAcessoLimpa = (() => {
     if (isBoleto) return undefined;
     const raw = payload.chave_acesso;
@@ -125,7 +153,6 @@ async function parsePdfFile(file: File): Promise<NFParsed | null> {
     moeda: payload.moeda || "BRL",
     valor_origem: payload.valor_origem ?? null,
     taxa_conversao: payload.taxa_conversao ?? null,
-    // Campos de boleto (Edge Function preenche quando tipo_documento === "boleto")
     linha_digitavel: payload.linha_digitavel || null,
     numero_parcela: payload.numero_parcela ?? null,
     total_parcelas: payload.total_parcelas ?? null,
@@ -137,11 +164,186 @@ async function parsePdfFile(file: File): Promise<NFParsed | null> {
   return nf;
 }
 
+/**
+ * Busca CNPJs Fetely (unidades ativas). Normaliza para dígitos.
+ */
+async function fetchCnpjsFetely(): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("unidades")
+    .select("cnpj")
+    .eq("ativa", true)
+    .not("cnpj", "is", null);
+  if (error) throw error;
+  const set = new Set<string>();
+  for (const row of data || []) {
+    const d = String((row as any).cnpj || "").replace(/\D/g, "");
+    if (d) set.add(d);
+  }
+  return set;
+}
+
+/**
+ * Extrai CNPJ do <dest> num XML NF-e (independente de namespace).
+ */
+function extrairCnpjTagNFe(xml: string, tag: "dest" | "emit"): string {
+  const re = new RegExp(
+    `<${tag}[^>]*>[\\s\\S]*?<CNPJ>\\s*([0-9]+)\\s*</CNPJ>`,
+    "i",
+  );
+  const m = xml.match(re);
+  return m ? m[1].replace(/\D/g, "") : "";
+}
+
+/**
+ * Extrai CNPJ do tomador de uma NFS-e ABRASF.
+ */
+function extrairCnpjTomadorNFSe(xml: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, "text/xml");
+  if (doc.getElementsByTagName("parsererror").length > 0) return "";
+  const tomadores = doc.getElementsByTagName("TomadorServico");
+  if (tomadores.length === 0) return "";
+  const t = tomadores[0];
+  const cnpjEls = t.getElementsByTagName("Cnpj");
+  const raw = cnpjEls[0]?.textContent || "";
+  return raw.replace(/\D/g, "");
+}
+
+type ClassifResult =
+  | { acao: "importar"; tipo: "nfe" | "nfse" | "cte" }
+  | { acao: "ignorar"; motivo: string };
+
+function classificarXml(
+  xml: string,
+  caminho: string,
+  cnpjsFetely: Set<string>,
+): ClassifResult {
+  const lower = xml.toLowerCase();
+
+  // Eventos (sem documento completo)
+  if (
+    lower.includes("<proceventonfe") ||
+    lower.includes("<proceventocte") ||
+    lower.includes("<evento") && !lower.includes("<nfeproc") && !lower.includes("<cteproc")
+  ) {
+    if (!lower.includes("<infnfe") && !lower.includes("<infcte") && !lower.includes("<infnfse")) {
+      return { acao: "ignorar", motivo: "evento" };
+    }
+  }
+
+  // Canceladas pelo caminho
+  if (caminho.toLowerCase().includes("cancelad")) {
+    return { acao: "ignorar", motivo: "cancelada" };
+  }
+
+  const tipo = detectarTipoXml(xml);
+
+  if (tipo === "nfe") {
+    const dest = extrairCnpjTagNFe(xml, "dest");
+    const emit = extrairCnpjTagNFe(xml, "emit");
+    if (dest && cnpjsFetely.has(dest)) return { acao: "importar", tipo: "nfe" };
+    if (emit && cnpjsFetely.has(emit)) return { acao: "ignorar", motivo: "emitida (venda)" };
+    return { acao: "ignorar", motivo: "não destinada à Fetely" };
+  }
+
+  if (tipo === "cte") {
+    const tomador = getCteTomadorCnpj(xml);
+    if (tomador && cnpjsFetely.has(tomador)) return { acao: "importar", tipo: "cte" };
+    return { acao: "ignorar", motivo: "CTe não tomador" };
+  }
+
+  if (tipo === "nfse") {
+    const tomador = extrairCnpjTomadorNFSe(xml);
+    if (tomador && cnpjsFetely.has(tomador)) return { acao: "importar", tipo: "nfse" };
+    return { acao: "ignorar", motivo: "NFS-e não tomada pela Fetely" };
+  }
+
+  // fallback por regex quando detector geral falha (namespace exótico)
+  if (isXmlCte(xml)) {
+    const tomador = getCteTomadorCnpj(xml);
+    if (tomador && cnpjsFetely.has(tomador)) return { acao: "importar", tipo: "cte" };
+    return { acao: "ignorar", motivo: "CTe não tomador" };
+  }
+  if (isXmlNFSeAbrasf(xml)) {
+    const tomador = extrairCnpjTomadorNFSe(xml);
+    if (tomador && cnpjsFetely.has(tomador)) return { acao: "importar", tipo: "nfse" };
+    return { acao: "ignorar", motivo: "NFS-e não tomada pela Fetely" };
+  }
+
+  return { acao: "ignorar", motivo: "formato não reconhecido" };
+}
+
 export function ImportadorNFs({ onImported }: Props) {
   const qc = useQueryClient();
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [preview, setPreview] = useState<NFParsed[]>([]);
+  const [zipProgress, setZipProgress] = useState<{ atual: number; total: number } | null>(null);
+  const [zipReport, setZipReport] = useState<ZipReport | null>(null);
+
+  async function processarZip(file: File): Promise<NFParsed[]> {
+    const cnpjs = await fetchCnpjsFetely();
+    if (cnpjs.size === 0) {
+      toast.warning("Nenhum CNPJ Fetely cadastrado em Unidades — importação de ZIP não pode filtrar destinatários.");
+    }
+    const zip = await JSZip.loadAsync(file);
+    const entries = Object.values(zip.files).filter(
+      (e) => !e.dir && e.name.toLowerCase().endsWith(".xml"),
+    );
+
+    const report: ZipReport = {
+      total: entries.length,
+      importadosNFe: 0,
+      importadosNFSe: 0,
+      importadosCTe: 0,
+      duplicatas: 0,
+      ignorados: {},
+      erros: 0,
+    };
+
+    const aprovadas: NFParsed[] = [];
+    setZipProgress({ atual: 0, total: entries.length });
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      try {
+        const xml = await entry.async("string");
+        const classif = classificarXml(xml, entry.name, cnpjs);
+        if (classif.acao === "ignorar") {
+          report.ignorados[classif.motivo] = (report.ignorados[classif.motivo] || 0) + 1;
+        } else {
+          const nf = parseXmlAny(xml);
+          if (!nf) {
+            report.erros += 1;
+          } else {
+            // Cria File sintético pra manter pipeline uniforme (upload anexo se aplicável)
+            const nomeArquivo = entry.name.split("/").pop() || entry.name;
+            const arquivoSint = new File([xml], nomeArquivo, { type: "text/xml" });
+            nf._arquivo = arquivoSint;
+            aprovadas.push(nf);
+            if (classif.tipo === "nfe") report.importadosNFe += 1;
+            else if (classif.tipo === "nfse") report.importadosNFSe += 1;
+            else if (classif.tipo === "cte") report.importadosCTe += 1;
+          }
+        }
+      } catch {
+        report.erros += 1;
+      }
+      if ((i + 1) % 5 === 0 || i === entries.length - 1) {
+        setZipProgress({ atual: i + 1, total: entries.length });
+      }
+    }
+
+    // verificarDuplicatas roda no set aprovado — duplicatas contadas no report
+    const processadas = await verificarDuplicatas(aprovadas);
+    const dups = processadas.filter((n) => n._duplicata || n._ja_existe).length;
+    report.duplicatas = dups;
+    setZipReport(report);
+    return processadas.map((n) => ({
+      ...n,
+      _selecionada: !n._duplicata && !n._ambigua,
+    }));
+  }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -151,6 +353,11 @@ export function ImportadorNFs({ onImported }: Props) {
       const novas: NFParsed[] = [];
       for (const f of files) {
         try {
+          if (isZip(f)) {
+            const doZip = await processarZip(f);
+            novas.push(...doZip);
+            continue;
+          }
           let nf: NFParsed | null = null;
           if (isXml(f)) {
             nf = await parseXmlFile(f);
@@ -176,21 +383,28 @@ export function ImportadorNFs({ onImported }: Props) {
         }
       }
 
-      let processadas = [...novas];
-      processadas = await verificarDuplicatas(processadas);
+      // Para arquivos avulsos (não-zip), passa por verificarDuplicatas normal.
+      // Itens já vindos do ZIP já foram deduplicados. Distingue pela flag _selecionada
+      // ainda não definida para os avulsos.
+      const jaProcessadas = novas.filter((n) => n._selecionada !== undefined);
+      const paraProcessar = novas.filter((n) => n._selecionada === undefined);
+
+      let processadas = await verificarDuplicatas(paraProcessar);
       processadas = processadas.map((n) => ({
         ...n,
         _selecionada: !n._duplicata && !n._ambigua,
       }));
 
-      if (processadas.length > 0) {
-        setPreview((prev) => [...prev, ...processadas]);
+      const todas = [...jaProcessadas, ...processadas];
+      if (todas.length > 0) {
+        setPreview((prev) => [...prev, ...todas]);
         toast.success(
-          `${processadas.length} arquivo${processadas.length === 1 ? "" : "s"} processado${processadas.length === 1 ? "" : "s"}`,
+          `${todas.length} arquivo${todas.length === 1 ? "" : "s"} processado${todas.length === 1 ? "" : "s"}`,
         );
       }
     } finally {
       setParsing(false);
+      setZipProgress(null);
       e.target.value = "";
     }
   }
@@ -263,47 +477,111 @@ export function ImportadorNFs({ onImported }: Props) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <FileCode className="h-5 w-5 text-admin" />
-          Importar NFs (XML + PDF)
-        </CardTitle>
-        <CardDescription>
-          Selecione XMLs ou PDFs (DANFEs). Detecção automática. NF entra no stage
-          e fica disponível pra processamento posterior.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-3 mb-4">
-          <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-background hover:bg-accent text-sm">
-            {parsing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileCode className="h-5 w-5 text-admin" />
+            Importar NFs (XML + PDF + ZIP)
+          </CardTitle>
+          <CardDescription>
+            Selecione XMLs, PDFs (DANFEs) ou o ZIP mensal do Qive. Detecção automática:
+            NF-e, NFS-e e CTe onde a Fetely é destinatária/tomadora entram no stage;
+            emitidas, não-tomador, eventos e canceladas ficam de fora.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-background hover:bg-accent text-sm">
+              {parsing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              Selecionar arquivos
+              <input
+                type="file"
+                accept=".xml,.zip,application/pdf,text/xml,application/xml,application/zip,application/x-zip-compressed"
+                multiple
+                className="hidden"
+                onChange={handleFiles}
+                disabled={parsing || importing}
+              />
+            </label>
+            <span className="text-xs text-muted-foreground">
+              XML, PDF, ZIP (Qive) — múltiplos suportados
+            </span>
+            {zipProgress && (
+              <span className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Processando ZIP: {zipProgress.atual} de {zipProgress.total}
+              </span>
             )}
-            Selecionar arquivos
-            <input
-              type="file"
-              accept=".xml,application/pdf,text/xml,application/xml"
-              multiple
-              className="hidden"
-              onChange={handleFiles}
-              disabled={parsing || importing}
-            />
-          </label>
-          <span className="text-xs text-muted-foreground">
-            XML, PDF, múltiplos suportados
-          </span>
-        </div>
+          </div>
 
-        <PreviewNFsImportSimples
-          nfs={preview}
-          onChange={setPreview}
-          onImport={doImport}
-          importing={importing}
-        />
-      </CardContent>
-    </Card>
+          <PreviewNFsImportSimples
+            nfs={preview}
+            onChange={setPreview}
+            onImport={doImport}
+            importing={importing}
+          />
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={!!zipReport}
+        onOpenChange={(open) => !open && setZipReport(null)}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Relatório da importação do ZIP</DialogTitle>
+            <DialogDescription>
+              Resumo do processamento dos XMLs contidos no arquivo.
+            </DialogDescription>
+          </DialogHeader>
+          {zipReport && (
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Total de XMLs no ZIP</span>
+                <span className="font-medium">{zipReport.total}</span>
+              </div>
+              <div>
+                <div className="font-medium mb-1">Importados</div>
+                <ul className="ml-4 space-y-0.5 text-muted-foreground">
+                  <li>NF-e: <span className="text-foreground font-medium">{zipReport.importadosNFe}</span></li>
+                  <li>NFS-e: <span className="text-foreground font-medium">{zipReport.importadosNFSe}</span></li>
+                  <li>CTe: <span className="text-foreground font-medium">{zipReport.importadosCTe}</span></li>
+                </ul>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Duplicatas puladas</span>
+                <span className="font-medium">{zipReport.duplicatas}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Erros de leitura</span>
+                <span className="font-medium">{zipReport.erros}</span>
+              </div>
+              {Object.keys(zipReport.ignorados).length > 0 && (
+                <div>
+                  <div className="font-medium mb-1">Ignorados por motivo</div>
+                  <ul className="ml-4 space-y-0.5 text-muted-foreground">
+                    {Object.entries(zipReport.ignorados)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([motivo, count]) => (
+                        <li key={motivo}>
+                          {motivo}: <span className="text-foreground font-medium">{count}</span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setZipReport(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
