@@ -379,6 +379,8 @@ export interface RemessaSafra {
   status: RemessaStatus;
   arquivo_nome: string;
   retorno_processado_em: string | null;
+  enviada_em: string | null;
+  enviada_por: string | null;
 }
 
 export interface ValidacaoRemessa {

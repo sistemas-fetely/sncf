@@ -187,16 +187,10 @@ serve(async (req) => {
       });
     }
 
-    // ── remessa (via header) ───────────────────────────────────────────────
-    const headerLinha = linhasBrutas.find((l) => l.length >= 400 && l[0] === "0");
-    let remessaId: string | null = null;
-    if (headerLinha && headerLinha.length >= 394) {
-      const nroSeq = parseInt(headerLinha.substring(391, 394).trim(), 10);
-      if (!isNaN(nroSeq)) {
-        const { data: remessa } = await sb.from("remessas_safra").select("id").eq("nro_sequencial", nroSeq).maybeSingle();
-        remessaId = (remessa as { id: string } | null)?.id ?? null;
-      }
-    }
+    // ── promoção da remessa: vínculo real via título (não via header) ──────
+    const remessasTocadas = new Set<string>();
+    const remessasComRejeicao = new Set<string>();
+
 
     // ── conta bancária Safra p/ movimentacoes_bancarias ────────────────────
     const { data: safraConta } = await sb
@@ -250,8 +244,11 @@ serve(async (req) => {
             valor_bruto, data_vencimento_atual, boleto_status, pedido_id,
             nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
             prorrogacao_nova_data, prorrogacao_solicitada_em,
-            reemissao_nova_data,
+            reemissao_nova_data, remessa_safra_id,
             conta:contas_pagar_receber(
+              parceiro:parceiros_comerciais(razao_social, email)
+            )
+          `)
               parceiro:parceiros_comerciais(razao_social, email)
             )
           `)
@@ -283,6 +280,7 @@ serve(async (req) => {
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "registro") {
           await sb.from("titulo_a_receber").update({ boleto_status: "registrado" }).eq("id", t.id);
+          if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
           continue;
         }
@@ -313,12 +311,20 @@ serve(async (req) => {
             alertas.push(
               `⚠ Prorrogação rejeitada (motivo ${linha.motivoRejeicao}: ${descMotivo}) — boleto original permanece válido. Considere reemissão para o título ${linha.nossoNumero}.`
             );
+            if (t.remessa_safra_id) {
+              remessasTocadas.add(t.remessa_safra_id);
+              remessasComRejeicao.add(t.remessa_safra_id);
+            }
             contadores.rejeicoes++;
             continue;
           }
           await sb.from("titulo_a_receber")
             .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
             .eq("id", t.id);
+          if (t.remessa_safra_id) {
+            remessasTocadas.add(t.remessa_safra_id);
+            remessasComRejeicao.add(t.remessa_safra_id);
+          }
           contadores.rejeicoes++;
           detalhesRejeicao.push({
             numero_titulo:   t.numero_titulo,
@@ -423,6 +429,7 @@ serve(async (req) => {
             }
           }
 
+          if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.liquidacoes++;
           continue;
         }
@@ -471,6 +478,7 @@ serve(async (req) => {
               `⚠ Baixa automática pelo banco — título ${linha.nossoNumero}. Ação não solicitada pelo SNCF, verificar com o banco.`
             );
           }
+          if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.baixas++;
           continue;
         }
@@ -533,6 +541,7 @@ serve(async (req) => {
             }
 
             alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. Código de barras recalculado. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
+            if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             contadores.alteracoes++;
             continue;
           }
@@ -547,6 +556,7 @@ serve(async (req) => {
               .update({ valor_atual: novoValor } as any)
               .eq("id", t.id);
             alertas.push(`Valor alterado para ${novoValor.toFixed(2)} — título ${linha.nossoNumero}.`);
+            if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             contadores.alteracoes++;
             continue;
           }
@@ -567,11 +577,28 @@ serve(async (req) => {
       }
     }
 
-    if (remessaId) {
-      await sb.from("remessas_safra").update({
-        status: contadores.rejeicoes > 0 ? "com_rejeicoes" : "processada",
-        retorno_processado_em: new Date().toISOString(),
-      }).eq("id", remessaId);
+    // ── promoção do selo das remessas pelo vínculo real dos títulos ────────
+    const remessasPromovidas: string[] = [];
+    if (remessasTocadas.size > 0) {
+      const ids = Array.from(remessasTocadas);
+      const { data: atuais } = await sb
+        .from("remessas_safra")
+        .select("id, status")
+        .in("id", ids);
+      const nowIso = new Date().toISOString();
+      for (const r of (atuais ?? []) as Array<{ id: string; status: string }>) {
+        if (r.status !== "gerada" && r.status !== "enviada") continue; // não regride
+        const novoStatus = remessasComRejeicao.has(r.id) ? "com_rejeicoes" : "processada";
+        const { error: upErr } = await sb
+          .from("remessas_safra")
+          .update({ status: novoStatus, retorno_processado_em: nowIso })
+          .eq("id", r.id);
+        if (upErr) {
+          erros.push({ linha: 0, nosso_numero: "", erro: `promover remessa ${r.id}: ${upErr.message}` });
+        } else {
+          remessasPromovidas.push(r.id);
+        }
+      }
     }
 
     // Compat: campos antigos consumidos pela UI (confirmados/liquidados/rejeitados/detalhes_rejeicao)
@@ -584,7 +611,7 @@ serve(async (req) => {
         rejeitados:  contadores.rejeicoes,
         emails_enviados: 0,
         detalhes_rejeicao: detalhesRejeicao,
-        remessa_id: remessaId,
+        remessas_promovidas: remessasPromovidas,
         // novo relatório
         contadores,
         alertas,

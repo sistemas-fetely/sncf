@@ -11,7 +11,7 @@ export function useRemessasSafra() {
       const { data, error } = await (supabase as any)
         .from("remessas_safra")
         .select(
-          "id, nro_sequencial, gerado_em, qtd_titulos, valor_total, status, arquivo_nome, retorno_processado_em"
+          "id, nro_sequencial, gerado_em, qtd_titulos, valor_total, status, arquivo_nome, retorno_processado_em, enviada_em, enviada_por"
         )
         .order("gerado_em", { ascending: false });
 
@@ -27,6 +27,8 @@ export function useRemessasSafra() {
         status: r.status,
         arquivo_nome: r.arquivo_nome,
         retorno_processado_em: r.retorno_processado_em,
+        enviada_em: r.enviada_em ?? null,
+        enviada_por: r.enviada_por ?? null,
       }));
     },
   });

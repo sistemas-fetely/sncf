@@ -522,6 +522,8 @@ function TitulosBoletoTab() {
 function RemessasSafraTab() {
   const [importarOpen, setImportarOpen] = useState(false);
   const [baixandoId, setBaixandoId] = useState<string | null>(null);
+  const [marcarEnviadaTarget, setMarcarEnviadaTarget] = useState<{ id: string; arquivo_nome: string } | null>(null);
+  const [marcandoEnviada, setMarcandoEnviada] = useState(false);
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: remessas = [], isLoading } = useRemessasSafra();
@@ -555,6 +557,37 @@ function RemessasSafraTab() {
     }
   }
 
+  async function confirmarMarcarEnviada() {
+    if (!marcarEnviadaTarget) return;
+    setMarcandoEnviada(true);
+    try {
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+      const uid = userData?.user?.id ?? null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("remessas_safra")
+        .update({
+          status: "enviada",
+          enviada_em: new Date().toISOString(),
+          enviada_por: uid,
+        })
+        .eq("id", marcarEnviadaTarget.id);
+      if (error) throw error;
+      toast({ title: "Remessa marcada como enviada", description: marcarEnviadaTarget.arquivo_nome });
+      qc.invalidateQueries({ queryKey: ["remessas-safra"] });
+      setMarcarEnviadaTarget(null);
+    } catch (e) {
+      toast({
+        title: "Erro ao marcar como enviada",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setMarcandoEnviada(false);
+    }
+  }
+
   const statusMap: Record<string, { label: string; className: string }> = {
     gerada: { label: "Gerada", className: "bg-amber-50 text-amber-700 border border-amber-200" },
     enviada: { label: "Enviada", className: "bg-blue-50 text-blue-700 border border-blue-200" },
@@ -568,6 +601,7 @@ function RemessasSafraTab() {
     },
   };
 
+  const umDiaMs = 24 * 60 * 60 * 1000;
 
   return (
     <div className="space-y-4">
@@ -588,6 +622,7 @@ function RemessasSafraTab() {
             <TableRow>
               <TableHead>Arquivo</TableHead>
               <TableHead>Gerada em</TableHead>
+              <TableHead>Enviada em</TableHead>
               <TableHead className="text-right">Títulos</TableHead>
               <TableHead className="text-right">Valor total</TableHead>
               <TableHead>Retorno processado</TableHead>
@@ -599,24 +634,46 @@ function RemessasSafraTab() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="py-6">
+                <TableCell colSpan={8} className="py-6">
                   <Skeleton className="h-10 w-full" />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && remessas.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhuma remessa gerada ainda.
                 </TableCell>
               </TableRow>
             )}
             {remessas.map((r) => {
               const s = statusMap[r.status] ?? statusMap.gerada;
+              const esquecida =
+                r.status === "gerada" &&
+                !r.enviada_em &&
+                Date.now() - new Date(r.gerado_em).getTime() > umDiaMs;
               return (
-                <TableRow key={r.id}>
-                  <TableCell className="font-mono text-xs">{r.arquivo_nome}</TableCell>
+                <TableRow
+                  key={r.id}
+                  className={esquecida ? "bg-amber-50/60 hover:bg-amber-50" : undefined}
+                  title={
+                    esquecida
+                      ? "Gerada e nunca marcada como enviada — o arquivo subiu no SafraNet?"
+                      : undefined
+                  }
+                >
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-1.5">
+                      {esquecida && (
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                      )}
+                      {r.arquivo_nome}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-sm">{fmtDateTime(r.gerado_em)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {r.enviada_em ? fmtDateTime(r.enviada_em) : "—"}
+                  </TableCell>
                   <TableCell className="text-right">{r.qtd_titulos}</TableCell>
                   <TableCell className="text-right font-medium">
                     {formatBRL(r.valor_total)}
@@ -632,15 +689,29 @@ function RemessasSafraTab() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={baixandoId === r.id}
-                      onClick={() => baixarNovamente(r.id, r.arquivo_nome)}
-                    >
-                      <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                      {baixandoId === r.id ? "Baixando..." : "Baixar"}
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {r.status === "gerada" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setMarcarEnviadaTarget({ id: r.id, arquivo_nome: r.arquivo_nome })
+                          }
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                          Marcar enviada
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={baixandoId === r.id}
+                        onClick={() => baixarNovamente(r.id, r.arquivo_nome)}
+                      >
+                        <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                        {baixandoId === r.id ? "Baixando..." : "Baixar"}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -658,9 +729,38 @@ function RemessasSafraTab() {
           qc.invalidateQueries({ queryKey: ["titulos-boleto"] });
         }}
       />
+
+      <Dialog
+        open={!!marcarEnviadaTarget}
+        onOpenChange={(o) => !o && !marcandoEnviada && setMarcarEnviadaTarget(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Marcar remessa como enviada</DialogTitle>
+            <DialogDescription>
+              Confirma que o arquivo{" "}
+              <span className="font-mono">{marcarEnviadaTarget?.arquivo_nome}</span> foi enviado ao
+              SafraNet?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setMarcarEnviadaTarget(null)}
+              disabled={marcandoEnviada}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={confirmarMarcarEnviada} disabled={marcandoEnviada}>
+              {marcandoEnviada ? "Marcando..." : "Confirmar envio"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 // ─── Tab 1: Pedidos (comportamento original) ─────────────────────────────────
 
