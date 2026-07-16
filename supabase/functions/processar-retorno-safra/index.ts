@@ -244,8 +244,11 @@ serve(async (req) => {
             valor_bruto, data_vencimento_atual, boleto_status, pedido_id,
             nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
             prorrogacao_nova_data, prorrogacao_solicitada_em,
-            reemissao_nova_data,
+            reemissao_nova_data, remessa_safra_id,
             conta:contas_pagar_receber(
+              parceiro:parceiros_comerciais(razao_social, email)
+            )
+          `)
               parceiro:parceiros_comerciais(razao_social, email)
             )
           `)
