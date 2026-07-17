@@ -445,6 +445,41 @@ export default function NFsStage() {
     }
   }
 
+  async function stampRevisadaIfNull(id: string): Promise<Record<string, string> | null> {
+    const nf = nfs?.find((n) => n.id === id);
+    if (nf?.revisada_em) return null;
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData?.user?.id;
+    if (!uid) return null;
+    return { revisada_em: new Date().toISOString(), revisada_por: uid };
+  }
+
+  async function confirmarRevisao(ids: string[]) {
+    if (ids.length === 0) return;
+    setConfirmandoRevisao(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update({ revisada_em: new Date().toISOString(), revisada_por: uid })
+        .in("id", ids);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(
+        `${ids.length} NF${ids.length === 1 ? "" : "s"} confirmada${ids.length === 1 ? "" : "s"} como revisada${ids.length === 1 ? "" : "s"}`,
+      );
+      if (ids.length > 1) setSelecionadas(new Set());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao confirmar revisão: " + msg);
+    } finally {
+      setConfirmandoRevisao(false);
+    }
+  }
+
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
     try {
