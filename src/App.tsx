@@ -128,6 +128,8 @@ const RegrasOFX = lazy(() => import("@/pages/administrativo/RegrasOFX"));
 const DashboardFinanceiro = lazy(() => import("@/pages/administrativo/DashboardFinanceiro"));
 const InvestimentoLancamento = lazy(() => import("@/pages/administrativo/InvestimentoLancamento"));
 const FluxoFuturoInvestimento = lazy(() => import("@/pages/administrativo/FluxoFuturoInvestimento"));
+const ExtratoImportacao = lazy(() => import("@/pages/administrativo/ExtratoImportacao"));
+const ExtratoInbox = lazy(() => import("@/pages/administrativo/ExtratoInbox"));
 const CreditoIndex = lazy(() => import("@/pages/Credito/CreditoIndex"));
 const AnaliseDetalhe = lazy(() => import("@/pages/Credito/AnaliseDetalhe"));
 const ClienteDetalhe = lazy(() => import("@/pages/Credito/ClienteDetalhe"));
@@ -564,6 +566,8 @@ const App = () => (
               <Route path="contas-receber" element={<ContasReceber />} />
               <Route path="painel-financeiro-conta" element={<PainelFinanceiroConta />} />
               <Route path="recebimentos-conciliar" element={<RecebimentosConciliar />} />
+              <Route path="extrato-importacao" element={<ExtratoImportacao />} />
+              <Route path="extrato-inbox" element={<ExtratoInbox />} />
               <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
               <Route path="importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
               <Route path="nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
