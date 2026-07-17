@@ -481,6 +481,32 @@ export default function NFsStage() {
     }
   }
 
+  async function reaplicarRegras(ids: string[]) {
+    if (ids.length === 0) return;
+    setReaplicandoRegras(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("reaplicar_regras_stage_em_lote", {
+        p_ids: ids,
+      });
+      if (error) throw error;
+      const rows = (data || []) as Array<{ stage_id: string; acao: string; categoria_id: string | null }>;
+      if (rows.length === 0) {
+        toast.info("Nenhuma NF elegível — todas as selecionadas já possuem classificação");
+      } else {
+        const classificadas = rows.filter((r) => r.categoria_id).length;
+        const semRegra = rows.length - classificadas;
+        toast.success(`${classificadas} NFs classificadas pelas regras, ${semRegra} sem regra conhecida`);
+      }
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao reaplicar regras: " + msg);
+    } finally {
+      setReaplicandoRegras(false);
+    }
+  }
+
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
     try {
