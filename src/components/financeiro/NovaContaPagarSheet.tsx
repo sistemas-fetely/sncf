@@ -83,6 +83,8 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
   const [valor, setValor] = useState("");
   const [dataVenc, setDataVenc] = useState("");
   const [dataEmissao, setDataEmissao] = useState("");
+  const [competenciaMes, setCompetenciaMes] = useState("");
+  const [competenciaTocada, setCompetenciaTocada] = useState(false);
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [centroCustoId, setCentroCustoId] = useState<string | null>(null);
   const [linhaInvestimentoId, setLinhaInvestimentoId] = useState<string | null>(null);
@@ -267,6 +269,8 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       setValor("");
       setDataVenc("");
       setDataEmissao("");
+      setCompetenciaMes("");
+      setCompetenciaTocada(false);
       setCategoriaId(null);
       setCentroCustoId(null);
       setLinhaInvestimentoId(null);
@@ -285,6 +289,13 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       setEditandoDadosBancarios(false);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || competenciaTocada) return;
+    const base = dataEmissao ? new Date(dataEmissao + "T00:00:00") : new Date();
+    const mm = String(base.getMonth() + 1).padStart(2, "0");
+    setCompetenciaMes(base.getFullYear() + "-" + mm);
+  }, [open, dataEmissao, competenciaTocada]);
 
   const valorNum = Number(valor.replace(/\./g, "").replace(",", ".")) || 0;
 
@@ -340,6 +351,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       if (!descricao.trim()) throw new Error("Descrição é obrigatória");
       if (!valorNum || valorNum <= 0) throw new Error("Valor inválido");
       if (!dataVenc) throw new Error("Data de vencimento obrigatória");
+      if (!competenciaMes) throw new Error("Mês de competência é obrigatório");
 
       // Validações específicas por forma de pagamento
       if (exigeCartao && !cartaoId) {
@@ -371,6 +383,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
           valor: valorDaParcela(valorNum, parcelas, i),
           data_vencimento: venc.toISOString().slice(0, 10),
           nf_data_emissao: dataEmissao || null,
+          competencia: competenciaMes + "-01",
           plano_contas_id: categoriaId,
           parceiro_id: parceiroId,
           
@@ -555,6 +568,17 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
               <div>
                 <Label>Emissão</Label>
                 <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
+              </div>
+              <div>
+                <Label>Mês de competência *</Label>
+                <Input
+                  type="month"
+                  value={competenciaMes}
+                  onChange={(e) => {
+                    setCompetenciaMes(e.target.value);
+                    setCompetenciaTocada(true);
+                  }}
+                />
               </div>
             </div>
             {veioDeBoleto && (
