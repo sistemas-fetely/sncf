@@ -66,6 +66,7 @@ export async function verificarDuplicatas(nfs: NFParsed[]): Promise<NFParsed[]> 
     valor: n.valor || 0,
     data_emissao: n.nf_data_emissao || null,
     nf_numero: n.nf_numero || null,
+    chave: n.nf_chave_acesso || null,
   }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
