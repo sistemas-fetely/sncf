@@ -157,6 +157,7 @@ export async function moverParaStage(
         taxa_conversao: nf.taxa_conversao ?? null,
         numero_parcela: nf.numero_parcela ?? null,
         total_parcelas: nf.total_parcelas ?? null,
+        duplicatas: nf.duplicatas ?? null,
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
