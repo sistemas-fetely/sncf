@@ -4804,6 +4804,71 @@ export type Database = {
           },
         ]
       }
+      extrato_importacoes: {
+        Row: {
+          conta_bancaria_id: string | null
+          created_at: string
+          divergencia_saldo: number | null
+          erro_detalhe: string | null
+          fonte_tipo: string
+          id: string
+          importado_por: string | null
+          linhas_duplicadas: number
+          linhas_enriquecidas: number
+          linhas_lidas: number
+          linhas_novas: number
+          nome_arquivo: string
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          conta_bancaria_id?: string | null
+          created_at?: string
+          divergencia_saldo?: number | null
+          erro_detalhe?: string | null
+          fonte_tipo: string
+          id?: string
+          importado_por?: string | null
+          linhas_duplicadas?: number
+          linhas_enriquecidas?: number
+          linhas_lidas?: number
+          linhas_novas?: number
+          nome_arquivo: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          conta_bancaria_id?: string | null
+          created_at?: string
+          divergencia_saldo?: number | null
+          erro_detalhe?: string | null
+          fonte_tipo?: string
+          id?: string
+          importado_por?: string | null
+          linhas_duplicadas?: number
+          linhas_enriquecidas?: number
+          linhas_lidas?: number
+          linhas_novas?: number
+          nome_arquivo?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extrato_importacoes_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fala_fetely_conhecimento: {
         Row: {
           aprovado_em: string | null
@@ -7386,14 +7451,20 @@ export type Database = {
           casada_com_id: string | null
           categoria_inconsistente: boolean
           centro_custo_id: string | null
+          classe: string | null
+          classe_definida_por: string | null
           conciliado: boolean | null
           conciliado_em: string | null
           conciliado_por: string | null
           conta_bancaria_id: string | null
           conta_pagar_id: string | null
+          contraparte_documento: string | null
+          contraparte_nome: string | null
           created_at: string | null
+          data_hora: string | null
           data_transacao: string
           descricao: string
+          fonte_importacao_id: string | null
           hash_unico: string | null
           id: string
           id_transacao_banco: string | null
@@ -7401,10 +7472,13 @@ export type Database = {
           itau_planilha_id: string | null
           ofx_transacao_id: string | null
           origem: string | null
+          par_transferencia_id: string | null
           pg_em: string | null
           plano_contas_id: string | null
+          referencia_pedido: string | null
           saldo_pos_transacao: number | null
           tipo: string | null
+          tipo_meio: string | null
           tipo_pagamento: string | null
           valor: number
         }
@@ -7413,14 +7487,20 @@ export type Database = {
           casada_com_id?: string | null
           categoria_inconsistente?: boolean
           centro_custo_id?: string | null
+          classe?: string | null
+          classe_definida_por?: string | null
           conciliado?: boolean | null
           conciliado_em?: string | null
           conciliado_por?: string | null
           conta_bancaria_id?: string | null
           conta_pagar_id?: string | null
+          contraparte_documento?: string | null
+          contraparte_nome?: string | null
           created_at?: string | null
+          data_hora?: string | null
           data_transacao: string
           descricao: string
+          fonte_importacao_id?: string | null
           hash_unico?: string | null
           id?: string
           id_transacao_banco?: string | null
@@ -7428,10 +7508,13 @@ export type Database = {
           itau_planilha_id?: string | null
           ofx_transacao_id?: string | null
           origem?: string | null
+          par_transferencia_id?: string | null
           pg_em?: string | null
           plano_contas_id?: string | null
+          referencia_pedido?: string | null
           saldo_pos_transacao?: number | null
           tipo?: string | null
+          tipo_meio?: string | null
           tipo_pagamento?: string | null
           valor: number
         }
@@ -7440,14 +7523,20 @@ export type Database = {
           casada_com_id?: string | null
           categoria_inconsistente?: boolean
           centro_custo_id?: string | null
+          classe?: string | null
+          classe_definida_por?: string | null
           conciliado?: boolean | null
           conciliado_em?: string | null
           conciliado_por?: string | null
           conta_bancaria_id?: string | null
           conta_pagar_id?: string | null
+          contraparte_documento?: string | null
+          contraparte_nome?: string | null
           created_at?: string | null
+          data_hora?: string | null
           data_transacao?: string
           descricao?: string
+          fonte_importacao_id?: string | null
           hash_unico?: string | null
           id?: string
           id_transacao_banco?: string | null
@@ -7455,10 +7544,13 @@ export type Database = {
           itau_planilha_id?: string | null
           ofx_transacao_id?: string | null
           origem?: string | null
+          par_transferencia_id?: string | null
           pg_em?: string | null
           plano_contas_id?: string | null
+          referencia_pedido?: string | null
           saldo_pos_transacao?: number | null
           tipo?: string | null
+          tipo_meio?: string | null
           tipo_pagamento?: string | null
           valor?: number
         }
@@ -7503,6 +7595,13 @@ export type Database = {
             columns: ["ofx_transacao_id"]
             isOneToOne: false
             referencedRelation: "ofx_transacoes_stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_par_transferencia_id_fkey"
+            columns: ["par_transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
             referencedColumns: ["id"]
           },
           {
@@ -13442,6 +13541,7 @@ export type Database = {
           paid_at: string | null
           payment_method: string | null
           payment_method_raw: string | null
+          payment_reference: string | null
           refunded_amount: number
           shipping_city: string | null
           shipping_cost: number
@@ -13470,6 +13570,7 @@ export type Database = {
           paid_at?: string | null
           payment_method?: string | null
           payment_method_raw?: string | null
+          payment_reference?: string | null
           refunded_amount?: number
           shipping_city?: string | null
           shipping_cost?: number
@@ -13498,6 +13599,7 @@ export type Database = {
           paid_at?: string | null
           payment_method?: string | null
           payment_method_raw?: string | null
+          payment_reference?: string | null
           refunded_amount?: number
           shipping_city?: string | null
           shipping_cost?: number
