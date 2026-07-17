@@ -799,6 +799,7 @@ export default function NFsStage() {
         })
         .in("id", alvos);
       if (error) throw error;
+      marcarResolvidasNaSessao(alvos);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       toast.success(`Classificação aplicada a ${alvos.length} NF${alvos.length === 1 ? "" : "s"}`);
       setAplicarFonte(null);
