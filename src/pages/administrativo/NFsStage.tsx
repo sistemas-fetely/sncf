@@ -35,7 +35,6 @@ import {
 import {
   Layers,
   Search,
-  
   Trash2,
   CheckCircle2,
   Clock,
@@ -54,7 +53,10 @@ import {
   RefreshCw,
   Loader2,
   FolderOpen,
+  Copy,
+  FileWarning,
 } from "lucide-react";
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -114,6 +116,7 @@ type NFStage = {
   revisada_em?: string | null;
   revisada_por?: string | null;
   motivo_descarte?: string | null;
+  completude?: string | null;
   // Flags vindos da view vw_nfs_stage_completude
   tem_xml: boolean;
   tem_pdf: boolean;
@@ -171,20 +174,33 @@ type FiltroPill =
   | "a_revisar"
   | "nao_vinculadas"
   | "vinculadas"
-  | "descartadas"
-  | "sem_categoria"
-  | "sem_centro_custo"
-  | "com_xml"
-  | "com_pdf"
-  ;
+  | "incompletas"
+  | "docs_incompletos"
+  | "descartadas";
+
+function mesKeyDeNf(nf: NFStage): string | null {
+  const d = nf.nf_data_emissao || nf.created_at;
+  if (!d) return null;
+  return d.slice(0, 7); // YYYY-MM
+}
+
+function labelMes(mesKey: string): string {
+  const [ano, mes] = mesKey.split("-");
+  const nomes = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const idx = parseInt(mes, 10) - 1;
+  return `${nomes[idx] || mes}/${ano.slice(2)}`;
+}
 
 export default function NFsStage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [filtroPill, setFiltroPill] = useState<FiltroPill>("a_revisar");
+  const [mesFiltro, setMesFiltro] = useState<string | null>(null);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [paraDescartar, setParaDescartar] = useState<NFStage[]>([]);
+  const [aplicarFonte, setAplicarFonte] = useState<NFStage | null>(null);
+  const [aplicandoClassificacao, setAplicandoClassificacao] = useState(false);
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
   const [salvandoCentroCusto, setSalvandoCentroCusto] = useState<Set<string>>(new Set());
   const [confirmandoRevisao, setConfirmandoRevisao] = useState(false);
@@ -319,10 +335,7 @@ export default function NFsStage() {
     let list = nfs || [];
     if (filtroPill === "a_revisar") {
       list = list.filter(
-        (n) =>
-          !n.revisada_em &&
-          n.status !== "descartada" &&
-          !n.motivo_descarte,
+        (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
       );
     } else if (filtroPill === "nao_vinculadas") {
       list = list.filter((n) => n.status === "nao_vinculada");
@@ -330,14 +343,17 @@ export default function NFsStage() {
       list = list.filter((n) => n.status === "vinculada");
     } else if (filtroPill === "descartadas") {
       list = list.filter((n) => n.status === "descartada");
-    } else if (filtroPill === "sem_categoria") {
-      list = list.filter((n) => !n.plano_contas_id && n.status !== "descartada");
-    } else if (filtroPill === "sem_centro_custo") {
-      list = list.filter((n) => !n.centro_custo_id && n.status !== "descartada");
-    } else if (filtroPill === "com_xml") {
-      list = list.filter((n) => n.tem_xml && n.status !== "descartada");
-    } else if (filtroPill === "com_pdf") {
-      list = list.filter((n) => n.tem_pdf && n.status !== "descartada");
+    } else if (filtroPill === "incompletas") {
+      list = list.filter(
+        (n) => (!n.plano_contas_id || !n.centro_custo_id) && n.status !== "descartada",
+      );
+    } else if (filtroPill === "docs_incompletos") {
+      list = list.filter(
+        (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
+      );
+    }
+    if (mesFiltro) {
+      list = list.filter((n) => mesKeyDeNf(n) === mesFiltro);
     }
     if (busca.trim()) {
       const t = busca.toLowerCase();
@@ -361,26 +377,58 @@ export default function NFsStage() {
     });
 
     return list;
-  }, [nfs, filtroPill, busca, sort]);
+  }, [nfs, filtroPill, mesFiltro, busca, sort]);
 
-  // KPIs (sempre baseados em todos os dados, não filtered)
+  // KPIs — refletem filtro de mês ativo (mas ignoram a pill, senão eram sempre iguais)
   const totals = useMemo(() => {
-    const all = nfs || [];
+    const base = (nfs || []).filter((n) => !mesFiltro || mesKeyDeNf(n) === mesFiltro);
     return {
-      aRevisar: all.filter(
+      aRevisar: base.filter(
         (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
       ).length,
-      naoVinculadas: all.filter((n) => n.status === "nao_vinculada").length,
-      vinculadas: all.filter((n) => n.status === "vinculada").length,
-      descartadas: all.filter((n) => n.status === "descartada").length,
-      semCategoria: all.filter((n) => !n.plano_contas_id && n.status !== "descartada").length,
-      semCentroCusto: all.filter((n) => !n.centro_custo_id && n.status !== "descartada").length,
-      comXml: all.filter((n) => n.tem_xml && n.status !== "descartada").length,
-      comPdf: all.filter((n) => n.tem_pdf && n.status !== "descartada").length,
-      comBoleto: all.filter((n) => n.tem_boleto).length,
-      total: all.length,
+      naoVinculadas: base.filter((n) => n.status === "nao_vinculada").length,
+      vinculadas: base.filter((n) => n.status === "vinculada").length,
+      descartadas: base.filter((n) => n.status === "descartada").length,
+      incompletas: base.filter(
+        (n) => (!n.plano_contas_id || !n.centro_custo_id) && n.status !== "descartada",
+      ).length,
+      docsIncompletos: base.filter(
+        (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
+      ).length,
+      total: base.length,
     };
+  }, [nfs, mesFiltro]);
+
+  // Dados do gráfico por mês (eixo contínuo — meses sem NF aparecem com valor 0)
+  const chartData = useMemo(() => {
+    const map = new Map<string, { valor: number; qtd: number }>();
+    for (const n of nfs || []) {
+      if (n.status === "descartada") continue;
+      const k = mesKeyDeNf(n);
+      if (!k) continue;
+      const prev = map.get(k) || { valor: 0, qtd: 0 };
+      prev.valor += Number(n.valor || 0);
+      prev.qtd += 1;
+      map.set(k, prev);
+    }
+    if (map.size === 0) return [] as Array<{ mesKey: string; label: string; valor: number; qtd: number }>;
+    const keys = Array.from(map.keys()).sort();
+    const [firstY, firstM] = keys[0].split("-").map(Number);
+    const [lastY, lastM] = keys[keys.length - 1].split("-").map(Number);
+    const out: Array<{ mesKey: string; label: string; valor: number; qtd: number }> = [];
+    let y = firstY;
+    let m = firstM;
+    while (y < lastY || (y === lastY && m <= lastM)) {
+      const k = `${y}-${String(m).padStart(2, "0")}`;
+      const info = map.get(k) || { valor: 0, qtd: 0 };
+      out.push({ mesKey: k, label: labelMes(k), valor: info.valor, qtd: info.qtd });
+      m += 1;
+      if (m > 12) { m = 1; y += 1; }
+    }
+    return out;
   }, [nfs]);
+
+
 
 
   // Soma do valor das selecionadas
@@ -588,6 +636,39 @@ export default function NFsStage() {
     toast.success("Sugestão aplicada");
   }
 
+  async function aplicarClassificacaoASelecionadas(fonte: NFStage) {
+    if (!fonte.plano_contas_id) return;
+    const alvos = Array.from(selecionadas).filter((id) => id !== fonte.id);
+    if (alvos.length === 0) return;
+    setAplicandoClassificacao(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update({
+          plano_contas_id: fonte.plano_contas_id,
+          centro_custo_id: fonte.centro_custo_id,
+          categoria_sugerida_ia: false,
+          revisada_em: new Date().toISOString(),
+          revisada_por: uid,
+        })
+        .in("id", alvos);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(`Classificação aplicada a ${alvos.length} NF${alvos.length === 1 ? "" : "s"}`);
+      setAplicarFonte(null);
+      setSelecionadas(new Set());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao aplicar classificação: " + msg);
+    } finally {
+      setAplicandoClassificacao(false);
+    }
+  }
+
   async function aceitarTodasSugestoes() {
     if (!nfs) return;
     const aplicar = nfs.filter(
@@ -756,73 +837,103 @@ export default function NFsStage() {
           </div>
         </div>
 
-        {/* KPI pills (clicáveis = filtros) */}
-        <div className="flex flex-wrap gap-2">
-          <KpiPill
-            label="A revisar"
-            count={totals.aRevisar}
-            color="admin"
-            active={filtroPill === "a_revisar"}
-            onClick={() => setFiltroPill("a_revisar")}
-            icon={<AlertCircle className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Aguardando vínculo"
-            count={totals.naoVinculadas}
-            color="amber"
-            active={filtroPill === "nao_vinculadas"}
-            onClick={() => setFiltroPill("nao_vinculadas")}
-            icon={<Clock className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Vinculadas"
-            count={totals.vinculadas}
-            color="emerald"
-            icon={<CheckCircle2 className="h-4 w-4" />}
-            active={filtroPill === "vinculadas"}
-            onClick={() => setFiltroPill("vinculadas")}
-          />
-          <KpiPill
-            label="Sem categoria"
-            count={totals.semCategoria}
-            color="violet"
-            active={filtroPill === "sem_categoria"}
-            onClick={() => setFiltroPill("sem_categoria")}
-            icon={<AlertCircle className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Sem centro de custo"
-            count={totals.semCentroCusto}
-            color="violet"
-            active={filtroPill === "sem_centro_custo"}
-            onClick={() => setFiltroPill("sem_centro_custo")}
-            icon={<AlertCircle className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Com XML"
-            count={totals.comXml}
-            color="emerald"
-            active={filtroPill === "com_xml"}
-            onClick={() => setFiltroPill("com_xml")}
-            icon={<FileCode className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Com PDF"
-            count={totals.comPdf}
-            color="blue"
-            active={filtroPill === "com_pdf"}
-            onClick={() => setFiltroPill("com_pdf")}
-            icon={<FileCheck className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Descartadas"
-            count={totals.descartadas}
-            color="gray"
-            active={filtroPill === "descartadas"}
-            onClick={() => setFiltroPill("descartadas")}
-            icon={<Trash2 className="h-3 w-3" />}
-          />
+        {/* KPI pills (clicáveis = filtros) + Gráfico por mês */}
+        <div className="flex gap-4 items-start flex-wrap">
+          <div className="flex flex-wrap gap-2 flex-1 min-w-[600px]">
+            <KpiPill
+              label="A revisar"
+              count={totals.aRevisar}
+              color="admin"
+              active={filtroPill === "a_revisar"}
+              onClick={() => setFiltroPill("a_revisar")}
+              icon={<AlertCircle className="h-3 w-3" />}
+            />
+            <KpiPill
+              label="Aguardando vínculo"
+              count={totals.naoVinculadas}
+              color="amber"
+              active={filtroPill === "nao_vinculadas"}
+              onClick={() => setFiltroPill("nao_vinculadas")}
+              icon={<Clock className="h-3 w-3" />}
+            />
+            <KpiPill
+              label="Vinculadas"
+              count={totals.vinculadas}
+              color="emerald"
+              icon={<CheckCircle2 className="h-4 w-4" />}
+              active={filtroPill === "vinculadas"}
+              onClick={() => setFiltroPill("vinculadas")}
+            />
+            <KpiPill
+              label="Incompletas"
+              count={totals.incompletas}
+              color="violet"
+              active={filtroPill === "incompletas"}
+              onClick={() => setFiltroPill("incompletas")}
+              icon={<AlertCircle className="h-3 w-3" />}
+              description="sem plano ou centro"
+            />
+            <KpiPill
+              label="Docs incompletos"
+              count={totals.docsIncompletos}
+              color="blue"
+              active={filtroPill === "docs_incompletos"}
+              onClick={() => setFiltroPill("docs_incompletos")}
+              icon={<FileWarning className="h-3 w-3" />}
+              description="XML/PDF/boleto faltando"
+            />
+            <KpiPill
+              label="Descartadas"
+              count={totals.descartadas}
+              color="gray"
+              active={filtroPill === "descartadas"}
+              onClick={() => setFiltroPill("descartadas")}
+              icon={<Trash2 className="h-3 w-3" />}
+            />
+          </div>
+
+          {chartData.length > 0 && (
+            <div className="min-w-[280px] flex-1 max-w-[520px]" style={{ height: 110 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} />
+                  <RTooltip
+                    cursor={{ fill: "hsl(var(--muted))" }}
+                    formatter={(v: number, _n, p) => [
+                      `${formatBRL(Number(v))} · ${(p?.payload as { qtd: number })?.qtd || 0} NF${(p?.payload as { qtd: number })?.qtd === 1 ? "" : "s"}`,
+                      "Total",
+                    ]}
+                    labelFormatter={(l) => `Mês: ${l}`}
+                    contentStyle={{ fontSize: 11, borderRadius: 6 }}
+                  />
+                  <Bar
+                    dataKey="valor"
+                    onClick={(d) => {
+                      const k = (d as { mesKey?: string })?.mesKey;
+                      if (!k) return;
+                      setMesFiltro((prev) => (prev === k ? null : k));
+                    }}
+                    cursor="pointer"
+                  >
+                    {chartData.map((d) => (
+                      <Cell
+                        key={d.mesKey}
+                        fill={
+                          mesFiltro === null
+                            ? "hsl(var(--admin))"
+                            : mesFiltro === d.mesKey
+                              ? "hsl(var(--admin))"
+                              : "hsl(var(--muted-foreground) / 0.25)"
+                        }
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
+
 
         {/* Busca + Ações */}
         <div className="flex gap-2 items-center flex-wrap">
@@ -844,6 +955,25 @@ export default function NFsStage() {
               </button>
             )}
           </div>
+
+          {mesFiltro && (() => {
+            const info = chartData.find((d) => d.mesKey === mesFiltro);
+            return (
+              <Badge
+                variant="outline"
+                className="gap-1 text-xs border-admin/40 bg-admin/5 text-admin"
+              >
+                Mês: {info?.label || mesFiltro} ({info?.qtd || 0})
+                <button
+                  onClick={() => setMesFiltro(null)}
+                  className="ml-1 hover:text-foreground"
+                  title="Limpar filtro de mês"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            );
+          })()}
 
           {/* Resumo de valores */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -1226,6 +1356,19 @@ export default function NFsStage() {
                               <CheckCircle2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
+                          {nf.plano_contas_id &&
+                            selecionadas.size > 0 &&
+                            !(selecionadas.size === 1 && selecionadas.has(nf.id)) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-admin hover:text-admin hover:bg-admin/10"
+                                onClick={() => setAplicarFonte(nf)}
+                                title="Aplicar esta classificação às selecionadas"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -1315,6 +1458,61 @@ export default function NFsStage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog aplicar classificação às selecionadas */}
+      <AlertDialog
+        open={!!aplicarFonte}
+        onOpenChange={(v) => !v && !aplicandoClassificacao && setAplicarFonte(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar classificação às selecionadas?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <div>
+                  Você vai <strong>sobrescrever</strong> plano de contas e centro de custo em{" "}
+                  <strong>{Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length}</strong>{" "}
+                  NF{Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length === 1 ? "" : "s"} selecionada
+                  {Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length === 1 ? "" : "s"}.
+                </div>
+                <div className="rounded-md border bg-muted/40 p-3 space-y-1">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Classificação fonte</div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Plano de contas: </span>
+                    <strong>{aplicarFonte?.plano_contas_id ? mapCategorias[aplicarFonte.plano_contas_id] || "—" : "—"}</strong>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Centro de custo: </span>
+                    <strong>
+                      {aplicarFonte?.centro_custo_id
+                        ? centrosCusto.find((c) => c.id === aplicarFonte.centro_custo_id)?.nome || "—"
+                        : "— sem centro —"}
+                    </strong>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  As NFs de destino também serão marcadas como revisadas.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={aplicandoClassificacao}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={aplicandoClassificacao}
+              onClick={(e) => {
+                e.preventDefault();
+                if (aplicarFonte) void aplicarClassificacaoASelecionadas(aplicarFonte);
+              }}
+              className="bg-admin text-admin-foreground hover:bg-admin/90"
+            >
+              {aplicandoClassificacao && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Aplicar a {Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length} NF
+              {Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length === 1 ? "" : "s"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
