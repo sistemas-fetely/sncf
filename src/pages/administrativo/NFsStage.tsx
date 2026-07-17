@@ -698,7 +698,7 @@ export default function NFsStage() {
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
     try {
-      const stamp = await stampRevisadaIfNull(id);
+      const stamp = await stampRevisadaIfComplete(id, { plano_contas_id: categoriaId || null });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
@@ -709,6 +709,7 @@ export default function NFsStage() {
         })
         .eq("id", id);
       if (error) throw error;
+      if (stamp) marcarResolvidasNaSessao([id]);
 
       // Engine Universal: aprende com a classificação manual
       if (categoriaId) {
