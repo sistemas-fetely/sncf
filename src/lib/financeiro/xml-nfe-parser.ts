@@ -133,6 +133,7 @@ export function parseNFeXml(xmlString: string): NFParsed | null {
     nf_valor_impostos: parseFloat(icmsTot ? tag(icmsTot, "vTotTrib") : "0") || 0,
     meio_pagamento: mapearMeioPagamentoXml(tPag),
     itens,
+    duplicatas,
     _source: "xml_nfe",
   };
 }
