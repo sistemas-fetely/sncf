@@ -198,6 +198,8 @@ export default function NFsStage() {
   const [busca, setBusca] = useState("");
   const [filtroPill, setFiltroPill] = useState<FiltroPill>("a_revisar");
   const [mesFiltro, setMesFiltro] = useState<string | null>(null);
+  // Índice do fim da janela de 12 meses (aponta pro último mês visível dentro de chartData). null = default (mais recentes)
+  const [chartWindowEnd, setChartWindowEnd] = useState<number | null>(null);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [paraDescartar, setParaDescartar] = useState<NFStage[]>([]);
   const [aplicarFonte, setAplicarFonte] = useState<NFStage | null>(null);
