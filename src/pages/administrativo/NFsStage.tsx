@@ -171,6 +171,7 @@ function DocIndicator({ label, tem }: { label: string; tem: boolean }) {
 }
 
 type FiltroPill =
+  | "todas"
   | "a_revisar"
   | "nao_vinculadas"
   | "vinculadas"
@@ -333,7 +334,9 @@ export default function NFsStage() {
   // Filtro + Ordenação
   const filtered = useMemo(() => {
     let list = nfs || [];
-    if (filtroPill === "a_revisar") {
+    if (filtroPill === "todas") {
+      list = list.filter((n) => n.status !== "descartada" && !n.motivo_descarte);
+    } else if (filtroPill === "a_revisar") {
       list = list.filter(
         (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
       );
@@ -383,6 +386,7 @@ export default function NFsStage() {
   const totals = useMemo(() => {
     const base = (nfs || []).filter((n) => !mesFiltro || mesKeyDeNf(n) === mesFiltro);
     return {
+      todas: base.filter((n) => n.status !== "descartada" && !n.motivo_descarte).length,
       aRevisar: base.filter(
         (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
       ).length,
@@ -840,6 +844,14 @@ export default function NFsStage() {
         {/* KPI pills (clicáveis = filtros) + Gráfico por mês */}
         <div className="flex gap-4 items-start flex-wrap">
           <div className="flex flex-wrap gap-2 flex-1 min-w-[600px]">
+            <KpiPill
+              label="Todas"
+              count={totals.todas}
+              color="gray"
+              active={filtroPill === "todas"}
+              onClick={() => setFiltroPill("todas")}
+              icon={<Layers className="h-3 w-3" />}
+            />
             <KpiPill
               label="A revisar"
               count={totals.aRevisar}
