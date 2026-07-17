@@ -74,6 +74,8 @@ import {
   Copy,
   FileWarning,
   MoreHorizontal,
+  Wand2,
+
 } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
 import { useNavigate } from "react-router-dom";
