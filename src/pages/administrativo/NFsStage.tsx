@@ -1729,6 +1729,109 @@ export default function NFsStage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog Uniformizar classificação */}
+      <Dialog
+        open={uniformizarOpen}
+        onOpenChange={(v) => {
+          if (uniformizando) return;
+          setUniformizarOpen(v);
+          if (!v) setUniformizarEscolha(null);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-4 w-4 text-violet-600" />
+              Uniformizar classificação
+            </DialogTitle>
+            <DialogDescription>
+              Escolha a combinação de plano de contas + centro de custo que será aplicada a todas as{" "}
+              <strong>{selecionadas.size}</strong> NFs selecionadas. Todas serão marcadas como revisadas.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {combosSelecionadas.combos.length === 0 ? (
+              <div className="rounded-md border bg-amber-50 border-amber-200 p-3 text-sm text-amber-800">
+                Nenhuma das selecionadas tem classificação. Classifique ao menos uma NF antes de uniformizar.
+              </div>
+            ) : combosSelecionadas.combos.length === 1 && combosSelecionadas.semClass === 0 ? (
+              <div className="rounded-md border bg-emerald-50 border-emerald-200 p-3 text-sm text-emerald-800">
+                Todas as selecionadas já compartilham a mesma classificação — nada a uniformizar.
+              </div>
+            ) : (
+              <>
+                <RadioGroup
+                  value={uniformizarEscolha ?? ""}
+                  onValueChange={setUniformizarEscolha}
+                  className="space-y-2"
+                >
+                  {combosSelecionadas.combos.map((c) => {
+                    const catLabel = c.plano_contas_id
+                      ? mapCategorias[c.plano_contas_id] || "—"
+                      : "— sem plano —";
+                    const ccLabel = c.centro_custo_id
+                      ? centrosCusto.find((x) => x.id === c.centro_custo_id)?.nome || "—"
+                      : "— sem centro —";
+                    return (
+                      <label
+                        key={c.key}
+                        htmlFor={`combo-${c.key}`}
+                        className={cn(
+                          "flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors",
+                          uniformizarEscolha === c.key
+                            ? "border-violet-500 bg-violet-50"
+                            : "border-border hover:bg-muted/50",
+                        )}
+                      >
+                        <RadioGroupItem value={c.key} id={`combo-${c.key}`} className="mt-1" />
+                        <div className="flex-1 min-w-0 text-sm">
+                          <div className="font-medium truncate">{catLabel}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            Centro de custo: {ccLabel}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 text-xs">
+                          {c.count} de {combosSelecionadas.total}
+                        </Badge>
+                      </label>
+                    );
+                  })}
+                </RadioGroup>
+                {combosSelecionadas.semClass > 0 && (
+                  <div className="text-xs text-muted-foreground rounded border border-dashed p-2">
+                    <strong>{combosSelecionadas.semClass}</strong> das selecionadas está sem
+                    classificação — receberá a combinação escolhida.
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setUniformizarOpen(false)}
+              disabled={uniformizando}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void uniformizarClassificacao()}
+              disabled={
+                uniformizando ||
+                !uniformizarEscolha ||
+                combosSelecionadas.combos.length === 0
+              }
+              className="bg-violet-600 text-white hover:bg-violet-700"
+            >
+              {uniformizando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Aplicar a todas ({selecionadas.size})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
