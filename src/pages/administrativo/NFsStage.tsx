@@ -845,6 +845,14 @@ export default function NFsStage() {
         <div className="flex gap-4 items-start flex-wrap">
           <div className="flex flex-wrap gap-2 flex-1 min-w-[600px]">
             <KpiPill
+              label="Todas"
+              count={totals.todas}
+              color="gray"
+              active={filtroPill === "todas"}
+              onClick={() => setFiltroPill("todas")}
+              icon={<Layers className="h-3 w-3" />}
+            />
+            <KpiPill
               label="A revisar"
               count={totals.aRevisar}
               color="admin"
