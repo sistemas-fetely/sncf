@@ -316,7 +316,14 @@ export default function NFsStage() {
   // Filtro + Ordenação
   const filtered = useMemo(() => {
     let list = nfs || [];
-    if (filtroPill === "nao_vinculadas") {
+    if (filtroPill === "a_revisar") {
+      list = list.filter(
+        (n) =>
+          !n.revisada_em &&
+          n.status !== "descartada" &&
+          !n.motivo_descarte,
+      );
+    } else if (filtroPill === "nao_vinculadas") {
       list = list.filter((n) => n.status === "nao_vinculada");
     } else if (filtroPill === "vinculadas") {
       list = list.filter((n) => n.status === "vinculada");
