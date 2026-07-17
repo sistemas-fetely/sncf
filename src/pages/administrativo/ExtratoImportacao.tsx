@@ -406,7 +406,7 @@ export default function ExtratoImportacao() {
                     <FileText className="h-3 w-3" />
                     {f.name}
                     <span className="text-[10px] uppercase">
-                      {detectarFonte(f) || "?"}
+                      {detectarFonteBase(f) || "?"}
                     </span>
                   </li>
                 ))}
