@@ -33,6 +33,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Layers,
   Search,
   Trash2,
@@ -56,6 +63,7 @@ import {
   FolderOpen,
   Copy,
   FileWarning,
+  MoreHorizontal,
 } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
 import { useNavigate } from "react-router-dom";
