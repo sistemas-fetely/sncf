@@ -188,6 +188,7 @@ export default function NFsStage() {
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
   const [salvandoCentroCusto, setSalvandoCentroCusto] = useState<Set<string>>(new Set());
   const [confirmandoRevisao, setConfirmandoRevisao] = useState(false);
+  const [reaplicandoRegras, setReaplicandoRegras] = useState(false);
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
   const [classificandoIA, setClassificandoIA] = useState(false);
