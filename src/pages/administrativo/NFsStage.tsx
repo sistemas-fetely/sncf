@@ -111,6 +111,9 @@ type NFStage = {
   tipo_documento?: string | null;
   numero_parcela?: number | null;
   total_parcelas?: number | null;
+  revisada_em?: string | null;
+  revisada_por?: string | null;
+  motivo_descarte?: string | null;
   // Flags vindos da view vw_nfs_stage_completude
   tem_xml: boolean;
   tem_pdf: boolean;
