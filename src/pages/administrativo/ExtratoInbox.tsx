@@ -20,7 +20,9 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Inbox, Loader2, Search } from "lucide-react";
+import { Inbox, Loader2, Search, Play, ArrowLeftRight } from "lucide-react";
+import { Link } from "react-router-dom";
+
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
@@ -86,6 +88,23 @@ export default function ExtratoInbox() {
   const [classe, setClasse] = useState<string>("");
   const [nota, setNota] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [aplicandoRegras, setAplicandoRegras] = useState(false);
+
+  async function aplicarRegras() {
+    setAplicandoRegras(true);
+    try {
+      const { data, error } = await sb.rpc("fn_regras_aplicar");
+      if (error) throw error;
+      const n = typeof data === "number" ? data : (data ?? 0);
+      toast.success(`${n} movimentações classificadas`);
+      qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
+    } catch (e) {
+      toast.error("Falha: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setAplicandoRegras(false);
+    }
+  }
+
 
   const { data: contas = [] } = useQuery({
     queryKey: ["inbox-contas"],
@@ -148,8 +167,9 @@ export default function ExtratoInbox() {
       const passaFiltro = cond.length === 0 || cond.some(Boolean);
       if (!passaFiltro) return false;
       if (!b) return true;
-      const hay = `${m.descricao} ${m.contraparte_nome || ""} ${m.contraparte_documento || ""}`.toLowerCase();
+      const hay = `${m.descricao} ${m.contraparte_nome || ""} ${m.contraparte_documento || ""} ${m.referencia_pedido || ""}`.toLowerCase();
       return hay.includes(b);
+
     });
   }, [movs, filtros, busca]);
 
@@ -193,14 +213,33 @@ export default function ExtratoInbox() {
   return (
     <TooltipProvider>
       <div className="p-6 space-y-6 max-w-[1400px]">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Inbox className="h-6 w-6 text-admin" />
-            Inbox Extrato
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Movimentações bancárias abertas para classificação manual.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Inbox className="h-6 w-6 text-admin" />
+              Inbox Extrato
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Movimentações bancárias abertas para classificação manual.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild className="gap-2">
+              <Link to="/administrativo/extrato-pares">
+                <ArrowLeftRight className="h-4 w-4" />
+                Pares sugeridos
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={aplicarRegras}
+              disabled={aplicandoRegras}
+              className="gap-2"
+            >
+              {aplicandoRegras ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Aplicar regras
+            </Button>
+          </div>
         </div>
 
         {/* KPIs toggle */}
@@ -225,6 +264,7 @@ export default function ExtratoInbox() {
             </button>
           ))}
         </div>
+
 
         <Card>
           <CardContent className="pt-6 flex flex-wrap gap-3 items-end">

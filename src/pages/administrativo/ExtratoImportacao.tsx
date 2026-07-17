@@ -17,7 +17,10 @@ import { Upload, Loader2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
+import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
+import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
+
 import { formatDateBR } from "@/lib/format-currency";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,14 +44,30 @@ type Importacao = {
   created_at: string;
 };
 
-type Fonte = "ofx" | "safra_lancamentos";
+type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw";
 
-function detectarFonte(file: File): Fonte | null {
+function detectarFonteBase(file: File): "ofx" | "xlsx" | null {
   const nome = file.name.toLowerCase();
   if (nome.endsWith(".ofx")) return "ofx";
-  if (nome.endsWith(".xlsx")) return "safra_lancamentos";
+  if (nome.endsWith(".xlsx")) return "xlsx";
   return null;
 }
+
+async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw"> {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
+  // Vasculhar até 20 primeiras linhas por keyword
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const s = (rows[i] || [])
+      .map((c) => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+      .join("|");
+    if (/retirad|withdraw|mercado pago|mercadopago/.test(s)) return "mp_withdraw";
+  }
+  return "safra_lancamentos";
+}
+
 
 export default function ExtratoImportacao() {
   const { user } = useAuth();
@@ -85,8 +104,10 @@ export default function ExtratoImportacao() {
 
   async function processarArquivo(file: File) {
     if (!conta || !user) throw new Error("Selecione a conta bancária");
-    const fonte = detectarFonte(file);
-    if (!fonte) throw new Error(`Extensão não reconhecida: ${file.name}`);
+    const base = detectarFonteBase(file);
+    if (!base) throw new Error(`Extensão não reconhecida: ${file.name}`);
+    const fonte: Fonte = base === "ofx" ? "ofx" : await detectarSubtipoXlsx(file);
+
 
     const { data: impRow, error: errImp } = await sb
       .from("extrato_importacoes")
@@ -288,7 +309,68 @@ export default function ExtratoImportacao() {
           if (errIns) throw errIns;
           novas++;
         }
+      } else if (fonte === "mp_withdraw") {
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxMpWithdraw(buf);
+        linhasLidas = parsed.movimentacoes.length;
+        if (linhasLidas === 0) throw new Error("Nenhum saque válido na planilha");
+
+        const datas = parsed.movimentacoes
+          .map((m) => m.data_transacao!)
+          .filter(Boolean)
+          .sort();
+        periodoInicio = datas[0] || null;
+        periodoFim = datas[datas.length - 1] || null;
+
+        for (const m of parsed.movimentacoes) {
+          const valorAssinado = -m.valor; // saque = débito
+          const { data: exist } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id, contraparte_documento, id_transacao_banco")
+            .eq("hash_unico", m.hash_unico)
+            .maybeSingle();
+
+          if (exist) {
+            duplicadas++;
+            const patch: Record<string, unknown> = {};
+            if (!exist.contraparte_documento) {
+              patch.contraparte_nome = m.contraparte_nome;
+              patch.contraparte_documento = m.contraparte_documento;
+              patch.tipo_meio = m.tipo_meio;
+            }
+            if (!exist.id_transacao_banco) patch.id_transacao_banco = m.id_transacao_banco;
+            if (Object.keys(patch).length > 0) {
+              const { error: errUp } = await sb
+                .from("movimentacoes_bancarias")
+                .update(patch)
+                .eq("id", exist.id);
+              if (errUp) throw errUp;
+              enriquecidas++;
+            }
+            continue;
+          }
+
+          const { error: errIns } = await sb
+            .from("movimentacoes_bancarias")
+            .insert({
+              conta_bancaria_id: conta,
+              data_transacao: m.data_transacao,
+              descricao: m.descricao,
+              valor: valorAssinado,
+              tipo: "debito",
+              id_transacao_banco: m.id_transacao_banco,
+              hash_unico: m.hash_unico,
+              origem: "mp_withdraw",
+              contraparte_nome: m.contraparte_nome,
+              contraparte_documento: m.contraparte_documento,
+              tipo_meio: m.tipo_meio,
+              fonte_importacao_id: impId,
+            });
+          if (errIns) throw errIns;
+          novas++;
+        }
       }
+
 
       await sb
         .from("extrato_importacoes")
@@ -337,9 +419,19 @@ export default function ExtratoImportacao() {
         }
       }
       setArquivos([]);
+      // Aplicar regras automáticas nas linhas novas
+      try {
+        const { data, error } = await sb.rpc("fn_regras_aplicar");
+        if (error) throw error;
+        const n = typeof data === "number" ? data : (data ?? 0);
+        if (n > 0) toast.success(`Regras aplicadas: ${n} classificações automáticas`);
+      } catch (e) {
+        toast.error("Falha ao aplicar regras: " + (e instanceof Error ? e.message : String(e)));
+      }
       qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
       qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
       refetch();
+
     } finally {
       setProcessando(false);
     }
@@ -385,7 +477,7 @@ export default function ExtratoImportacao() {
                     <FileText className="h-3 w-3" />
                     {f.name}
                     <span className="text-[10px] uppercase">
-                      {detectarFonte(f) || "?"}
+                      {detectarFonteBase(f) || "?"}
                     </span>
                   </li>
                 ))}
