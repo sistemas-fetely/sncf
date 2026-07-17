@@ -20,7 +20,9 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Inbox, Loader2, Search } from "lucide-react";
+import { Inbox, Loader2, Search, Play, ArrowLeftRight } from "lucide-react";
+import { Link } from "react-router-dom";
+
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
