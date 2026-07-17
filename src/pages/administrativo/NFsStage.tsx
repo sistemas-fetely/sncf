@@ -1331,9 +1331,17 @@ export default function NFsStage() {
                             }
                             disabled={salvandoCentroCusto.has(nf.id)}
                           >
-                            <SelectTrigger className="h-8 text-xs">
+                            <SelectTrigger
+                              className="h-8 text-xs"
+                              title={
+                                nf.centro_custo_id
+                                  ? centrosCusto.find((c) => c.id === nf.centro_custo_id)?.nome
+                                  : undefined
+                              }
+                            >
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
+
                             <SelectContent>
                               <SelectItem value="__none__">— Sem centro —</SelectItem>
                               {centrosCusto.map((cc) => (
