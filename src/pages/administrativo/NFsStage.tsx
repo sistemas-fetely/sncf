@@ -804,73 +804,103 @@ export default function NFsStage() {
           </div>
         </div>
 
-        {/* KPI pills (clicáveis = filtros) */}
-        <div className="flex flex-wrap gap-2">
-          <KpiPill
-            label="A revisar"
-            count={totals.aRevisar}
-            color="admin"
-            active={filtroPill === "a_revisar"}
-            onClick={() => setFiltroPill("a_revisar")}
-            icon={<AlertCircle className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Aguardando vínculo"
-            count={totals.naoVinculadas}
-            color="amber"
-            active={filtroPill === "nao_vinculadas"}
-            onClick={() => setFiltroPill("nao_vinculadas")}
-            icon={<Clock className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Vinculadas"
-            count={totals.vinculadas}
-            color="emerald"
-            icon={<CheckCircle2 className="h-4 w-4" />}
-            active={filtroPill === "vinculadas"}
-            onClick={() => setFiltroPill("vinculadas")}
-          />
-          <KpiPill
-            label="Sem categoria"
-            count={totals.semCategoria}
-            color="violet"
-            active={filtroPill === "sem_categoria"}
-            onClick={() => setFiltroPill("sem_categoria")}
-            icon={<AlertCircle className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Sem centro de custo"
-            count={totals.semCentroCusto}
-            color="violet"
-            active={filtroPill === "sem_centro_custo"}
-            onClick={() => setFiltroPill("sem_centro_custo")}
-            icon={<AlertCircle className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Com XML"
-            count={totals.comXml}
-            color="emerald"
-            active={filtroPill === "com_xml"}
-            onClick={() => setFiltroPill("com_xml")}
-            icon={<FileCode className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Com PDF"
-            count={totals.comPdf}
-            color="blue"
-            active={filtroPill === "com_pdf"}
-            onClick={() => setFiltroPill("com_pdf")}
-            icon={<FileCheck className="h-3 w-3" />}
-          />
-          <KpiPill
-            label="Descartadas"
-            count={totals.descartadas}
-            color="gray"
-            active={filtroPill === "descartadas"}
-            onClick={() => setFiltroPill("descartadas")}
-            icon={<Trash2 className="h-3 w-3" />}
-          />
+        {/* KPI pills (clicáveis = filtros) + Gráfico por mês */}
+        <div className="flex gap-4 items-start flex-wrap">
+          <div className="flex flex-wrap gap-2 flex-1 min-w-[600px]">
+            <KpiPill
+              label="A revisar"
+              count={totals.aRevisar}
+              color="admin"
+              active={filtroPill === "a_revisar"}
+              onClick={() => setFiltroPill("a_revisar")}
+              icon={<AlertCircle className="h-3 w-3" />}
+            />
+            <KpiPill
+              label="Aguardando vínculo"
+              count={totals.naoVinculadas}
+              color="amber"
+              active={filtroPill === "nao_vinculadas"}
+              onClick={() => setFiltroPill("nao_vinculadas")}
+              icon={<Clock className="h-3 w-3" />}
+            />
+            <KpiPill
+              label="Vinculadas"
+              count={totals.vinculadas}
+              color="emerald"
+              icon={<CheckCircle2 className="h-4 w-4" />}
+              active={filtroPill === "vinculadas"}
+              onClick={() => setFiltroPill("vinculadas")}
+            />
+            <KpiPill
+              label="Incompletas"
+              count={totals.incompletas}
+              color="violet"
+              active={filtroPill === "incompletas"}
+              onClick={() => setFiltroPill("incompletas")}
+              icon={<AlertCircle className="h-3 w-3" />}
+              description="sem plano ou centro"
+            />
+            <KpiPill
+              label="Docs incompletos"
+              count={totals.docsIncompletos}
+              color="blue"
+              active={filtroPill === "docs_incompletos"}
+              onClick={() => setFiltroPill("docs_incompletos")}
+              icon={<FileWarning className="h-3 w-3" />}
+              description="XML/PDF/boleto faltando"
+            />
+            <KpiPill
+              label="Descartadas"
+              count={totals.descartadas}
+              color="gray"
+              active={filtroPill === "descartadas"}
+              onClick={() => setFiltroPill("descartadas")}
+              icon={<Trash2 className="h-3 w-3" />}
+            />
+          </div>
+
+          {chartData.length > 0 && (
+            <div className="min-w-[280px] flex-1 max-w-[520px]" style={{ height: 110 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} />
+                  <RTooltip
+                    cursor={{ fill: "hsl(var(--muted))" }}
+                    formatter={(v: number, _n, p) => [
+                      `${formatBRL(Number(v))} · ${(p?.payload as { qtd: number })?.qtd || 0} NF${(p?.payload as { qtd: number })?.qtd === 1 ? "" : "s"}`,
+                      "Total",
+                    ]}
+                    labelFormatter={(l) => `Mês: ${l}`}
+                    contentStyle={{ fontSize: 11, borderRadius: 6 }}
+                  />
+                  <Bar
+                    dataKey="valor"
+                    onClick={(d) => {
+                      const k = (d as { mesKey?: string })?.mesKey;
+                      if (!k) return;
+                      setMesFiltro((prev) => (prev === k ? null : k));
+                    }}
+                    cursor="pointer"
+                  >
+                    {chartData.map((d) => (
+                      <Cell
+                        key={d.mesKey}
+                        fill={
+                          mesFiltro === null
+                            ? "hsl(var(--admin))"
+                            : mesFiltro === d.mesKey
+                              ? "hsl(var(--admin))"
+                              : "hsl(var(--muted-foreground) / 0.25)"
+                        }
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
+
 
         {/* Busca + Ações */}
         <div className="flex gap-2 items-center flex-wrap">
