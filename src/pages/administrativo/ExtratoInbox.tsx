@@ -213,14 +213,33 @@ export default function ExtratoInbox() {
   return (
     <TooltipProvider>
       <div className="p-6 space-y-6 max-w-[1400px]">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Inbox className="h-6 w-6 text-admin" />
-            Inbox Extrato
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Movimentações bancárias abertas para classificação manual.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Inbox className="h-6 w-6 text-admin" />
+              Inbox Extrato
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Movimentações bancárias abertas para classificação manual.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild className="gap-2">
+              <Link to="/administrativo/extrato-pares">
+                <ArrowLeftRight className="h-4 w-4" />
+                Pares sugeridos
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={aplicarRegras}
+              disabled={aplicandoRegras}
+              className="gap-2"
+            >
+              {aplicandoRegras ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Aplicar regras
+            </Button>
+          </div>
         </div>
 
         {/* KPIs toggle */}
@@ -245,6 +264,7 @@ export default function ExtratoInbox() {
             </button>
           ))}
         </div>
+
 
         <Card>
           <CardContent className="pt-6 flex flex-wrap gap-3 items-end">
