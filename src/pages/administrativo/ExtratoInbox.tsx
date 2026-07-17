@@ -167,8 +167,9 @@ export default function ExtratoInbox() {
       const passaFiltro = cond.length === 0 || cond.some(Boolean);
       if (!passaFiltro) return false;
       if (!b) return true;
-      const hay = `${m.descricao} ${m.contraparte_nome || ""} ${m.contraparte_documento || ""}`.toLowerCase();
+      const hay = `${m.descricao} ${m.contraparte_nome || ""} ${m.contraparte_documento || ""} ${m.referencia_pedido || ""}`.toLowerCase();
       return hay.includes(b);
+
     });
   }, [movs, filtros, busca]);
 
