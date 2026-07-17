@@ -381,7 +381,10 @@ export default function NFsStage() {
       list = list.filter((n) => n.status !== "descartada" && !n.motivo_descarte);
     } else if (filtroPill === "a_revisar") {
       list = list.filter(
-        (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
+        (n) =>
+          n.status !== "descartada" &&
+          !n.motivo_descarte &&
+          (!n.revisada_em || resolvidasNaSessao.has(n.id)),
       );
     } else if (filtroPill === "nao_vinculadas") {
       list = list.filter((n) => n.status === "nao_vinculada");
