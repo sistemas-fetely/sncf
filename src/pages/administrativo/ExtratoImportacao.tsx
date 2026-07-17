@@ -419,9 +419,19 @@ export default function ExtratoImportacao() {
         }
       }
       setArquivos([]);
+      // Aplicar regras automáticas nas linhas novas
+      try {
+        const { data, error } = await sb.rpc("fn_regras_aplicar");
+        if (error) throw error;
+        const n = typeof data === "number" ? data : (data ?? 0);
+        if (n > 0) toast.success(`Regras aplicadas: ${n} classificações automáticas`);
+      } catch (e) {
+        toast.error("Falha ao aplicar regras: " + (e instanceof Error ? e.message : String(e)));
+      }
       qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
       qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
       refetch();
+
     } finally {
       setProcessando(false);
     }
