@@ -484,6 +484,27 @@ export default function NFsStage() {
       .reduce((s, n) => s + (n.valor || 0), 0);
   }, [selecionadas, nfs]);
 
+  // Combinações distintas de classificação entre as selecionadas (para diálogo Uniformizar)
+  const combosSelecionadas = useMemo(() => {
+    const selNfs = (nfs || []).filter((n) => selecionadas.has(n.id));
+    let semClass = 0;
+    const map = new Map<string, { plano_contas_id: string | null; centro_custo_id: string | null; count: number }>();
+    for (const n of selNfs) {
+      if (!n.plano_contas_id) {
+        semClass++;
+        continue;
+      }
+      const key = `${n.plano_contas_id}||${n.centro_custo_id ?? "null"}`;
+      const cur = map.get(key);
+      if (cur) cur.count++;
+      else map.set(key, { plano_contas_id: n.plano_contas_id, centro_custo_id: n.centro_custo_id ?? null, count: 1 });
+    }
+    const combos = Array.from(map.entries()).map(([key, v]) => ({ key, ...v }));
+    combos.sort((a, b) => b.count - a.count);
+    return { combos, semClass, total: selNfs.length };
+  }, [selecionadas, nfs]);
+
+
   // Soma das filtradas (independente de seleção)
   const totalFiltradas = useMemo(
     () => filtered.reduce((s, n) => s + (n.valor || 0), 0),
