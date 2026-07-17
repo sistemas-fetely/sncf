@@ -426,7 +426,7 @@ export default function NFsStage() {
     });
 
     return list;
-  }, [nfs, filtroPill, mesFiltro, busca, sort]);
+  }, [nfs, filtroPill, mesFiltro, busca, sort, resolvidasNaSessao]);
 
   // KPIs — refletem filtro de mês ativo (mas ignoram a pill, senão eram sempre iguais)
   const totals = useMemo(() => {
