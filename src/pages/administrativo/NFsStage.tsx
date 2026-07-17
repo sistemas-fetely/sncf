@@ -533,10 +533,11 @@ export default function NFsStage() {
   async function alterarCentroCusto(id: string, centroCustoId: string | null) {
     setSalvandoCentroCusto((prev) => new Set(prev).add(id));
     try {
+      const stamp = await stampRevisadaIfNull(id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
-        .update({ centro_custo_id: centroCustoId || null })
+        .update({ centro_custo_id: centroCustoId || null, ...(stamp || {}) })
         .eq("id", id);
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
