@@ -316,6 +316,15 @@ if (body.tipo === "canal_badges") {
       });
     }
 
+    // Normaliza itens_json: FOP envia preco_unitario; canônico interno do SNCF é valor_unitario.
+    // Garante que valor_unitario sempre exista, preservando preco_unitario para compatibilidade.
+    if (Array.isArray(body.itens_json)) {
+      body.itens_json = body.itens_json.map((it: any) => ({
+        ...it,
+        valor_unitario: it.valor_unitario ?? it.preco_unitario ?? null,
+      }));
+    }
+
     const { data, error } = await supabase.rpc("receber_pedido_externo", {
       // Originais (12)
       p_cnpj: body.cnpj,
