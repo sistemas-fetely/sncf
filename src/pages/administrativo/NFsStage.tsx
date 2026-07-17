@@ -1364,11 +1364,24 @@ export default function NFsStage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge className={STATUS_STYLES[nf.status]}>
-                          {nf.status === "parcial" && nf.qtd_boletos
-                            ? `Parcial (${despesasPorStage[nf.id] || 0}/${nf.qtd_boletos})`
-                            : STATUS_LABELS[nf.status] || nf.status}
-                        </Badge>
+                        {(() => {
+                          const fullLabel =
+                            nf.status === "parcial" && nf.qtd_boletos
+                              ? `Parcial (${despesasPorStage[nf.id] || 0}/${nf.qtd_boletos})`
+                              : STATUS_LABELS[nf.status] || nf.status;
+                          const shortLabel =
+                            nf.status === "parcial" && nf.qtd_boletos
+                              ? `${despesasPorStage[nf.id] || 0}/${nf.qtd_boletos}`
+                              : (STATUS_LABELS[nf.status] || nf.status).slice(0, 3);
+                          return (
+                            <Badge
+                              className={`${STATUS_STYLES[nf.status]} text-[10px] py-0 h-4 px-1.5`}
+                              title={fullLabel}
+                            >
+                              {shortLabel}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-center">
                         {nf.parceiro_id && pastaIdPorParceiro.get(nf.parceiro_id) ? (
@@ -1386,109 +1399,106 @@ export default function NFsStage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-center gap-1">
-                          {nf.tem_pdf && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => abrirDocumento(nf, "pdf_danfe")}
-                              title="Ver PDF DANFE"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          {nf.tem_xml && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => abrirDocumento(nf, "xml")}
-                              title="Ver XML"
-                            >
-                              <FileCode className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          {(() => {
-                            // Resumo NFe só faz sentido com XML disponível
-                            if (!nf.tem_xml) return null;
-                            const jaTem = !!nf.resumo_pdf_gerado_em;
-                            const loading = gerandoResumo.has(nf.id);
-                            if (jaTem) {
-                              return (
+                        {(() => {
+                          const podeRevisar =
+                            !nf.revisada_em &&
+                            nf.status !== "descartada" &&
+                            !nf.motivo_descarte;
+                          const loadingResumo = gerandoResumo.has(nf.id);
+                          const jaTemResumo = !!nf.resumo_pdf_gerado_em;
+                          const podeAplicar =
+                            !!nf.plano_contas_id &&
+                            selecionadas.size > 0 &&
+                            !(selecionadas.size === 1 && selecionadas.has(nf.id));
+                          return (
+                            <div className="flex items-center justify-center gap-1">
+                              {podeRevisar ? (
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  onClick={() => handleGerarResumo(nf, true)}
-                                  disabled={loading}
-                                  title="Regerar Resumo NFe"
+                                  className="h-7 w-7 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                                  onClick={() => confirmarRevisao([nf.id])}
+                                  disabled={confirmandoRevisao}
+                                  title="Confirmar revisão"
                                 >
-                                  {loading ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="h-3.5 w-3.5" />
-                                  )}
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
                                 </Button>
-                              );
-                            }
-                            return (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
-                                onClick={() => handleGerarResumo(nf, false)}
-                                disabled={loading}
-                                title="Gerar Resumo NFe"
-                              >
-                                {loading ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <FilePlus2 className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
-                            );
-                          })()}
-                          {!nf.revisada_em && nf.status !== "descartada" && !nf.motivo_descarte && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
-                              onClick={() => confirmarRevisao([nf.id])}
-                              disabled={confirmandoRevisao}
-                              title="Confirmar revisão"
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          {nf.plano_contas_id &&
-                            selecionadas.size > 0 &&
-                            !(selecionadas.size === 1 && selecionadas.has(nf.id)) && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-admin hover:text-admin hover:bg-admin/10"
-                                onClick={() => setAplicarFonte(nf)}
-                                title="Aplicar esta classificação às selecionadas"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => {
-                              if (confirm("Remover esta NF do repositório? Esta ação é permanente.")) {
-                                handleRemover(nf.id);
-                              }
-                            }}
-                            title="Remover"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                              ) : (
+                                <span className="w-7" />
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    title="Mais ações"
+                                  >
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  {nf.tem_pdf && (
+                                    <DropdownMenuItem
+                                      onClick={() => abrirDocumento(nf, "pdf_danfe")}
+                                    >
+                                      <Eye className="h-3.5 w-3.5 mr-2" />
+                                      Ver PDF DANFE
+                                    </DropdownMenuItem>
+                                  )}
+                                  {nf.tem_xml && (
+                                    <DropdownMenuItem
+                                      onClick={() => abrirDocumento(nf, "xml")}
+                                    >
+                                      <FileCode className="h-3.5 w-3.5 mr-2" />
+                                      Ver XML
+                                    </DropdownMenuItem>
+                                  )}
+                                  {nf.tem_xml && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleGerarResumo(nf, jaTemResumo)}
+                                      disabled={loadingResumo}
+                                    >
+                                      {loadingResumo ? (
+                                        <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                                      ) : jaTemResumo ? (
+                                        <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                                      ) : (
+                                        <FilePlus2 className="h-3.5 w-3.5 mr-2" />
+                                      )}
+                                      {jaTemResumo ? "Regerar Resumo NFe" : "Gerar Resumo NFe"}
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    disabled={!podeAplicar}
+                                    onClick={() => setAplicarFonte(nf)}
+                                  >
+                                    <Copy className="h-3.5 w-3.5 mr-2" />
+                                    Aplicar classificação às selecionadas
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                    onClick={() => {
+                                      if (
+                                        confirm(
+                                          "Remover esta NF do repositório? Esta ação é permanente.",
+                                        )
+                                      ) {
+                                        handleRemover(nf.id);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                    Remover
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          );
+                        })()}
                       </TableCell>
+
                     </TableRow>
                     {isExpandida && temItens && (
                       <TableRow className="bg-muted/20">
