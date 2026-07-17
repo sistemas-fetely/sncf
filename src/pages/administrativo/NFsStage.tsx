@@ -636,6 +636,39 @@ export default function NFsStage() {
     toast.success("Sugestão aplicada");
   }
 
+  async function aplicarClassificacaoASelecionadas(fonte: NFStage) {
+    if (!fonte.plano_contas_id) return;
+    const alvos = Array.from(selecionadas).filter((id) => id !== fonte.id);
+    if (alvos.length === 0) return;
+    setAplicandoClassificacao(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update({
+          plano_contas_id: fonte.plano_contas_id,
+          centro_custo_id: fonte.centro_custo_id,
+          categoria_sugerida_ia: false,
+          revisada_em: new Date().toISOString(),
+          revisada_por: uid,
+        })
+        .in("id", alvos);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(`Classificação aplicada a ${alvos.length} NF${alvos.length === 1 ? "" : "s"}`);
+      setAplicarFonte(null);
+      setSelecionadas(new Set());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao aplicar classificação: " + msg);
+    } finally {
+      setAplicandoClassificacao(false);
+    }
+  }
+
   async function aceitarTodasSugestoes() {
     if (!nfs) return;
     const aplicar = nfs.filter(
