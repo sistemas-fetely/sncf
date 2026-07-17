@@ -869,7 +869,7 @@ export default function NFsStage() {
 
         {/* KPI pills (clicáveis = filtros) + Gráfico por mês */}
         <div className="flex gap-4 items-start flex-wrap">
-          <div className="flex flex-wrap gap-2 flex-1 min-w-[600px]">
+          <div className="flex flex-wrap gap-2 flex-1 min-w-0">
             <KpiPill
               label="Todas"
               count={totals.todas}
