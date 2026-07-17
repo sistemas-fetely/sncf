@@ -171,6 +171,7 @@ function DocIndicator({ label, tem }: { label: string; tem: boolean }) {
 }
 
 type FiltroPill =
+  | "todas"
   | "a_revisar"
   | "nao_vinculadas"
   | "vinculadas"
