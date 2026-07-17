@@ -602,6 +602,45 @@ export default function NFsStage() {
     }
   }
 
+  async function uniformizarClassificacao() {
+    if (!uniformizarEscolha) return;
+    const ids = Array.from(selecionadas);
+    if (ids.length === 0) return;
+    const [pcRaw, ccRaw] = uniformizarEscolha.split("||");
+    const plano_contas_id = pcRaw === "null" ? null : pcRaw;
+    const centro_custo_id = ccRaw === "null" ? null : ccRaw;
+    setUniformizando(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update({
+          plano_contas_id,
+          centro_custo_id,
+          categoria_sugerida_ia: false,
+          revisada_em: new Date().toISOString(),
+          revisada_por: uid,
+        })
+        .in("id", ids);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(`${ids.length} NF${ids.length === 1 ? "" : "s"} uniformizada${ids.length === 1 ? "" : "s"}`);
+      setUniformizarOpen(false);
+      setUniformizarEscolha(null);
+      setSelecionadas(new Set());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao uniformizar: " + msg);
+    } finally {
+      setUniformizando(false);
+    }
+  }
+
+
+
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
     try {
