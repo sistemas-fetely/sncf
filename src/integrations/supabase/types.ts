@@ -18446,14 +18446,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -20922,7 +20922,9 @@ export type Database = {
           data_vencimento_atual: string
           dias_distancia: number
           diff_valor: number
+          nivel: string
           numero_titulo: string
+          score: number
           status: string
           titulo_id: string
           valor_atual: number
