@@ -22,20 +22,35 @@ export type MovimentacaoGerencial = {
 };
 
 /**
- * Lê a view vw_movimentacoes_gerencial filtrada por competência (primeiro dia do mês)
- * e tipo. Não está nos types gerados — usa cast padrão do projeto.
+ * Lê a view vw_movimentacoes_gerencial. Quando `competencia` é passada, filtra
+ * por ela (compat com chamadas antigas). Quando null/undefined, retorna todo o
+ * range gerencial (13 meses para trás até 1 à frente) para a visão de matriz.
  */
-export function useMovimentacoesGerencial(competencia: string, tipo: "pagar" | "receber" = "pagar") {
+export function useMovimentacoesGerencial(
+  competencia: string | null,
+  tipo: "pagar" | "receber" = "pagar",
+) {
   return useQuery({
-    queryKey: ["movimentacoes-gerencial", competencia, tipo],
+    queryKey: ["movimentacoes-gerencial", competencia ?? "range", tipo],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      let q = (supabase as any)
         .from("vw_movimentacoes_gerencial")
         .select("*")
-        .eq("competencia", competencia)
-        .eq("tipo", tipo)
-        .order("plano_contas_nome", { ascending: true, nullsFirst: true });
+        .eq("tipo", tipo);
+
+      if (competencia) {
+        q = q.eq("competencia", competencia);
+      } else {
+        const hoje = new Date();
+        const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 13, 1);
+        const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 2, 1);
+        const iso = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+        q = q.gte("competencia", iso(inicio)).lt("competencia", iso(fim));
+      }
+
+      const { data, error } = await q.order("competencia", { ascending: true });
       if (error) throw error;
       return (data || []) as MovimentacaoGerencial[];
     },
