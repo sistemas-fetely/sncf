@@ -890,12 +890,8 @@ export default function NFsStage() {
                   <TableHead className="w-10">
                     <Checkbox
                       checked={
-                        filtered
-                          .filter((n) => n.status === "pendente" || n.status === "classificada")
-                          .length > 0 &&
-                        filtered
-                          .filter((n) => n.status === "pendente" || n.status === "classificada")
-                          .every((n) => selecionadas.has(n.id))
+                        filtered.length > 0 &&
+                        filtered.every((n) => selecionadas.has(n.id))
                       }
                       onCheckedChange={toggleTodas}
                     />
