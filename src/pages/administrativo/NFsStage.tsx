@@ -877,6 +877,21 @@ export default function NFsStage() {
               </Button>
               <Button
                 variant="outline"
+                size="sm"
+                onClick={() => reaplicarRegras(Array.from(selecionadas))}
+                disabled={reaplicandoRegras}
+                className="gap-1"
+                title="Aplicar regras aprendidas nas selecionadas sem classificação"
+              >
+                {reaplicandoRegras ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                Reaplicar regras ({selecionadas.size})
+              </Button>
+              <Button
+                variant="outline"
                 size="icon"
                 onClick={() => {
                   const lista = filtered.filter((n) => selecionadas.has(n.id));
