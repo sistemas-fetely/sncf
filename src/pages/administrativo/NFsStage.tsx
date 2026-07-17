@@ -1352,9 +1352,13 @@ export default function NFsStage() {
                             </SelectContent>
                           </Select>
                         ) : nf.centro_custo_id ? (
-                          <span className="text-xs text-muted-foreground">
+                          <span
+                            className="text-xs text-muted-foreground block truncate"
+                            title={centrosCusto.find((c) => c.id === nf.centro_custo_id)?.nome || ""}
+                          >
                             {centrosCusto.find((c) => c.id === nf.centro_custo_id)?.nome || "—"}
                           </span>
+
                         ) : (
                           <span className="text-xs text-muted-foreground italic">—</span>
                         )}
