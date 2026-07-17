@@ -334,7 +334,9 @@ export default function NFsStage() {
   // Filtro + Ordenação
   const filtered = useMemo(() => {
     let list = nfs || [];
-    if (filtroPill === "a_revisar") {
+    if (filtroPill === "todas") {
+      list = list.filter((n) => n.status !== "descartada" && !n.motivo_descarte);
+    } else if (filtroPill === "a_revisar") {
       list = list.filter(
         (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
       );
