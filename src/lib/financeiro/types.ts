@@ -110,6 +110,12 @@ export interface NFParsed {
 
   // Parceiro_id resolvido após auto-cadastro (sobrescreve a busca por CNPJ no import-handler)
   _parceiro_id_resolvido?: string;
+
+  // Grupo <cobr> da NF-e (fatura + duplicatas). null quando o XML não tem <cobr>.
+  duplicatas?: {
+    fat: { nFat: string; vOrig: number; vDesc: number; vLiq: number } | null;
+    dup: { nDup: string; dVenc: string; vDup: number }[];
+  } | null;
 }
 
 export interface RegraCategorizacao {
