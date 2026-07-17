@@ -62,14 +62,15 @@ const PREFIXOS_LIMPAR = [
 
 function detectarTipoMeio(memo: string): TipoMeio {
   const s = memo.toUpperCase();
+  if (/\bTAR\b|TARIFA/.test(s)) return "tarifa";
   if (/\bPIX\b/.test(s)) return "pix";
   if (/\bTED\b|\bDOC\b/.test(s)) return "ted";
-  if (/\bTAR\b|TARIFA/.test(s)) return "tarifa";
   if (/\bREND\b|APLIC/.test(s)) return "rendimento";
   if (/SISPAG TRIBUTOS|\bDARF\b|\bDARE\b|SEFAZ/.test(s)) return "imposto";
   if (/BOLETO|COBRANCA|COBRANÇA/.test(s)) return "boleto";
   return "outro";
 }
+
 
 function extrairContraparte(memo: string): {
   nome: string | null;
