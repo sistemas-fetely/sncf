@@ -44,14 +44,30 @@ type Importacao = {
   created_at: string;
 };
 
-type Fonte = "ofx" | "safra_lancamentos";
+type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw";
 
-function detectarFonte(file: File): Fonte | null {
+function detectarFonteBase(file: File): "ofx" | "xlsx" | null {
   const nome = file.name.toLowerCase();
   if (nome.endsWith(".ofx")) return "ofx";
-  if (nome.endsWith(".xlsx")) return "safra_lancamentos";
+  if (nome.endsWith(".xlsx")) return "xlsx";
   return null;
 }
+
+async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw"> {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
+  // Vasculhar até 20 primeiras linhas por keyword
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const s = (rows[i] || [])
+      .map((c) => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+      .join("|");
+    if (/retirad|withdraw|mercado pago|mercadopago/.test(s)) return "mp_withdraw";
+  }
+  return "safra_lancamentos";
+}
+
 
 export default function ExtratoImportacao() {
   const { user } = useAuth();
