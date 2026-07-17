@@ -987,6 +987,23 @@ export default function NFsStage() {
                         {formatBRL(nf.valor)}
                       </TableCell>
                       <TableCell>
+                        <div className="mb-1">
+                          {nf.status === "descartada" || nf.motivo_descarte ? null : nf.revisada_em ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] py-0 h-4 border-emerald-300 text-emerald-700 bg-emerald-50"
+                            >
+                              Revisada
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] py-0 h-4 border-amber-300 text-amber-700 bg-amber-50"
+                            >
+                              A revisar
+                            </Badge>
+                          )}
+                        </div>
                         {podeClassificar ? (
                           <div className="flex items-center gap-1.5">
                             <CategoriaCombobox
