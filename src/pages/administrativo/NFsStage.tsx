@@ -835,6 +835,21 @@ export default function NFsStage() {
               </Badge>
               <Button
                 variant="outline"
+                size="sm"
+                onClick={() => confirmarRevisao(Array.from(selecionadas))}
+                disabled={confirmandoRevisao}
+                className="gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                title="Marcar as selecionadas como revisadas"
+              >
+                {confirmandoRevisao ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                Confirmar revisão ({selecionadas.size})
+              </Button>
+              <Button
+                variant="outline"
                 size="icon"
                 onClick={() => {
                   const lista = filtered.filter((n) => selecionadas.has(n.id));
