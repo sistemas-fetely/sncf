@@ -234,6 +234,24 @@ export default function NFsStage() {
   const [uniformizarOpen, setUniformizarOpen] = useState(false);
   const [uniformizarEscolha, setUniformizarEscolha] = useState<string | null>(null);
   const [uniformizando, setUniformizando] = useState(false);
+  // IDs que foram carimbadas como revisadas nesta sessão de filtro "A revisar".
+  // Mantém a linha visível para o usuário ver o feedback de progresso.
+  // É limpa ao trocar de pill, mês, busca ou recarregar a página.
+  const [resolvidasNaSessao, setResolvidasNaSessao] = useState<Set<string>>(new Set());
+
+  // Limpa o Set quando filtro/busca/mês mudam.
+  useEffect(() => {
+    setResolvidasNaSessao(new Set());
+  }, [filtroPill, mesFiltro, busca]);
+
+  function marcarResolvidasNaSessao(ids: string[]) {
+    if (ids.length === 0) return;
+    setResolvidasNaSessao((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.add(id);
+      return next;
+    });
+  }
 
   async function classificarComIA() {
     setClassificandoIA(true);
