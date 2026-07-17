@@ -1270,7 +1270,10 @@ export default function NFsStage() {
                           )}
                         </div>
                         {podeClassificar ? (
-                          <div className="flex items-center gap-1.5">
+                          <div
+                            className="flex items-center gap-1.5"
+                            title={nf.plano_contas_id ? mapCategorias[nf.plano_contas_id] : undefined}
+                          >
                             <CategoriaCombobox
                               options={categorias}
                               value={nf.plano_contas_id || null}
@@ -1280,6 +1283,7 @@ export default function NFsStage() {
                               placeholder="Classificar..."
                               disabled={salvando}
                             />
+
                             {nf.categoria_sugerida_ia && nf.plano_contas_id && (
                               <Sparkles
                                 className="h-3 w-3 text-purple-500 shrink-0"
