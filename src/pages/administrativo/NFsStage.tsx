@@ -923,6 +923,25 @@ export default function NFsStage() {
             )}
           </div>
 
+          {mesFiltro && (() => {
+            const info = chartData.find((d) => d.mesKey === mesFiltro);
+            return (
+              <Badge
+                variant="outline"
+                className="gap-1 text-xs border-admin/40 bg-admin/5 text-admin"
+              >
+                Mês: {info?.label || mesFiltro} ({info?.qtd || 0})
+                <button
+                  onClick={() => setMesFiltro(null)}
+                  className="ml-1 hover:text-foreground"
+                  title="Limpar filtro de mês"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            );
+          })()}
+
           {/* Resumo de valores */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Calculator className="h-3.5 w-3.5" />
