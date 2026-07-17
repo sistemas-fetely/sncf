@@ -571,6 +571,9 @@ const App = () => (
               <Route path="recebimentos-conciliar" element={<RecebimentosConciliar />} />
               <Route path="extrato-importacao" element={<ExtratoImportacao />} />
               <Route path="extrato-inbox" element={<ExtratoInbox />} />
+              <Route path="extrato-regras" element={<RegrasInbox />} />
+              <Route path="extrato-pares" element={<ParesTransferencia />} />
+
               <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
               <Route path="importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
               <Route path="nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
