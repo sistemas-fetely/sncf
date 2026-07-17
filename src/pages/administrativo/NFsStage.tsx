@@ -174,20 +174,33 @@ type FiltroPill =
   | "a_revisar"
   | "nao_vinculadas"
   | "vinculadas"
-  | "descartadas"
-  | "sem_categoria"
-  | "sem_centro_custo"
-  | "com_xml"
-  | "com_pdf"
-  ;
+  | "incompletas"
+  | "docs_incompletos"
+  | "descartadas";
+
+function mesKeyDeNf(nf: NFStage): string | null {
+  const d = nf.nf_data_emissao || nf.created_at;
+  if (!d) return null;
+  return d.slice(0, 7); // YYYY-MM
+}
+
+function labelMes(mesKey: string): string {
+  const [ano, mes] = mesKey.split("-");
+  const nomes = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const idx = parseInt(mes, 10) - 1;
+  return `${nomes[idx] || mes}/${ano.slice(2)}`;
+}
 
 export default function NFsStage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [filtroPill, setFiltroPill] = useState<FiltroPill>("a_revisar");
+  const [mesFiltro, setMesFiltro] = useState<string | null>(null);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [paraDescartar, setParaDescartar] = useState<NFStage[]>([]);
+  const [aplicarFonte, setAplicarFonte] = useState<NFStage | null>(null);
+  const [aplicandoClassificacao, setAplicandoClassificacao] = useState(false);
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
   const [salvandoCentroCusto, setSalvandoCentroCusto] = useState<Set<string>>(new Set());
   const [confirmandoRevisao, setConfirmandoRevisao] = useState(false);
