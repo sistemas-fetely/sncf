@@ -157,6 +157,10 @@ export function useImportarCsvShopify() {
         if (!shopify_id) continue;
 
         const paymentRaw = str(primeira["Payment Method"]);
+        const paymentReference =
+          str(primeira["Payment References"]) ??
+          str(primeira["Payment Reference"]) ??
+          str(primeira["payment_references"]);
 
         pedidos.push({
           shopify_id,
@@ -174,6 +178,7 @@ export function useImportarCsvShopify() {
           refunded_amount: numOr0(primeira["Refunded Amount"]),
           payment_method_raw: paymentRaw,
           payment_method: normalizarPagamento(paymentRaw),
+          payment_reference: paymentReference,
           shipping_method: str(primeira["Shipping Method"]),
           shipping_city: str(primeira["Shipping City"]),
           shipping_province: str(primeira["Shipping Province"]),
