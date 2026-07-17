@@ -613,6 +613,7 @@ export default function NFsStage() {
         .update({ revisada_em: new Date().toISOString(), revisada_por: uid })
         .in("id", ids);
       if (error) throw error;
+      marcarResolvidasNaSessao(ids);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       toast.success(
         `${ids.length} NF${ids.length === 1 ? "" : "s"} confirmada${ids.length === 1 ? "" : "s"} como revisada${ids.length === 1 ? "" : "s"}`,
