@@ -128,6 +128,8 @@ const RegrasOFX = lazy(() => import("@/pages/administrativo/RegrasOFX"));
 const DashboardFinanceiro = lazy(() => import("@/pages/administrativo/DashboardFinanceiro"));
 const InvestimentoLancamento = lazy(() => import("@/pages/administrativo/InvestimentoLancamento"));
 const FluxoFuturoInvestimento = lazy(() => import("@/pages/administrativo/FluxoFuturoInvestimento"));
+const ExtratoImportacao = lazy(() => import("@/pages/administrativo/ExtratoImportacao"));
+const ExtratoInbox = lazy(() => import("@/pages/administrativo/ExtratoInbox"));
 const CreditoIndex = lazy(() => import("@/pages/Credito/CreditoIndex"));
 const AnaliseDetalhe = lazy(() => import("@/pages/Credito/AnaliseDetalhe"));
 const ClienteDetalhe = lazy(() => import("@/pages/Credito/ClienteDetalhe"));
