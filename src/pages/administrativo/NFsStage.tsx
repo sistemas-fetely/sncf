@@ -35,7 +35,6 @@ import {
 import {
   Layers,
   Search,
-  
   Trash2,
   CheckCircle2,
   Clock,
@@ -54,7 +53,10 @@ import {
   RefreshCw,
   Loader2,
   FolderOpen,
+  Copy,
+  FileWarning,
 } from "lucide-react";
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
