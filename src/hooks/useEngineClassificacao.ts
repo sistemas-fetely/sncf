@@ -79,7 +79,7 @@ export async function registrarClassificacao(
     p_descricao: input.descricao || null,
     p_cnpj: input.cnpj || null,
     p_parceiro_id: input.parceiro_id || null,
-    p_plano_contas_id: input.plano_contas_id,
+    p_categoria_id: input.plano_contas_id,
     p_origem: input.origem || "manual",
     p_user_id: user?.id || null,
   });
