@@ -104,8 +104,10 @@ export default function ExtratoImportacao() {
 
   async function processarArquivo(file: File) {
     if (!conta || !user) throw new Error("Selecione a conta bancária");
-    const fonte = detectarFonte(file);
-    if (!fonte) throw new Error(`Extensão não reconhecida: ${file.name}`);
+    const base = detectarFonteBase(file);
+    if (!base) throw new Error(`Extensão não reconhecida: ${file.name}`);
+    const fonte: Fonte = base === "ofx" ? "ofx" : await detectarSubtipoXlsx(file);
+
 
     const { data: impRow, error: errImp } = await sb
       .from("extrato_importacoes")
