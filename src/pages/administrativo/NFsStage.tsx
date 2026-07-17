@@ -366,6 +366,9 @@ export default function NFsStage() {
   const totals = useMemo(() => {
     const all = nfs || [];
     return {
+      aRevisar: all.filter(
+        (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
+      ).length,
       naoVinculadas: all.filter((n) => n.status === "nao_vinculada").length,
       vinculadas: all.filter((n) => n.status === "vinculada").length,
       descartadas: all.filter((n) => n.status === "descartada").length,
