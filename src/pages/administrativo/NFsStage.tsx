@@ -953,14 +953,15 @@ export default function NFsStage() {
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                 )}
-                <div className="flex-1 min-w-0" style={{ height: 100 }}>
+                <div className="flex-1 min-w-0 overflow-hidden" style={{ height: 72 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartWindow.data} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                    <BarChart data={chartWindow.data} margin={{ top: 6, right: 2, left: 2, bottom: 0 }}>
                       <XAxis
                         dataKey="label"
-                        tick={{ fontSize: 10 }}
+                        tick={{ fontSize: 9 }}
                         interval="preserveStartEnd"
                         minTickGap={4}
+                        height={14}
                       />
                       <RTooltip
                         cursor={{ fill: "hsl(var(--muted))" }}
@@ -973,6 +974,7 @@ export default function NFsStage() {
                       />
                       <Bar
                         dataKey="valor"
+                        maxBarSize={16}
                         onClick={(d) => {
                           const k = (d as { mesKey?: string })?.mesKey;
                           if (!k) return;
@@ -980,6 +982,7 @@ export default function NFsStage() {
                         }}
                         cursor="pointer"
                       >
+
                         {chartWindow.data.map((d) => (
                           <Cell
                             key={d.mesKey}
