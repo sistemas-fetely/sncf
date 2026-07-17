@@ -47,6 +47,7 @@ import {
   Package,
   X,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   AlertCircle,
   FilePlus2,
@@ -198,6 +199,8 @@ export default function NFsStage() {
   const [busca, setBusca] = useState("");
   const [filtroPill, setFiltroPill] = useState<FiltroPill>("a_revisar");
   const [mesFiltro, setMesFiltro] = useState<string | null>(null);
+  // Índice do fim da janela de 12 meses (aponta pro último mês visível dentro de chartData). null = default (mais recentes)
+  const [chartWindowEnd, setChartWindowEnd] = useState<number | null>(null);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [paraDescartar, setParaDescartar] = useState<NFStage[]>([]);
   const [aplicarFonte, setAplicarFonte] = useState<NFStage | null>(null);
@@ -432,7 +435,22 @@ export default function NFsStage() {
     return out;
   }, [nfs]);
 
-
+  // Janela de 12 meses do gráfico
+  const CHART_WINDOW = 12;
+  const chartWindow = useMemo(() => {
+    if (chartData.length === 0) {
+      return { data: [] as typeof chartData, hasPrev: false, hasNext: false, endIdx: 0 };
+    }
+    const endIdx = chartWindowEnd ?? chartData.length - 1;
+    const clampedEnd = Math.min(Math.max(endIdx, Math.min(CHART_WINDOW - 1, chartData.length - 1)), chartData.length - 1);
+    const startIdx = Math.max(0, clampedEnd - CHART_WINDOW + 1);
+    return {
+      data: chartData.slice(startIdx, clampedEnd + 1),
+      hasPrev: startIdx > 0,
+      hasNext: clampedEnd < chartData.length - 1,
+      endIdx: clampedEnd,
+    };
+  }, [chartData, chartWindowEnd]);
 
 
   // Soma do valor das selecionadas
@@ -905,45 +923,95 @@ export default function NFsStage() {
           </div>
 
           {chartData.length > 0 && (
-            <div className="min-w-[280px] flex-1 max-w-[520px]" style={{ height: 110 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} />
-                  <RTooltip
-                    cursor={{ fill: "hsl(var(--muted))" }}
-                    formatter={(v: number, _n, p) => [
-                      `${formatBRL(Number(v))} · ${(p?.payload as { qtd: number })?.qtd || 0} NF${(p?.payload as { qtd: number })?.qtd === 1 ? "" : "s"}`,
-                      "Total",
-                    ]}
-                    labelFormatter={(l) => `Mês: ${l}`}
-                    contentStyle={{ fontSize: 11, borderRadius: 6 }}
-                  />
-                  <Bar
-                    dataKey="valor"
-                    onClick={(d) => {
-                      const k = (d as { mesKey?: string })?.mesKey;
-                      if (!k) return;
-                      setMesFiltro((prev) => (prev === k ? null : k));
+            <div
+              className="flex-1 basis-[320px] min-w-0 max-w-[560px] flex flex-col overflow-hidden"
+              style={{ height: 130 }}
+            >
+              <div className="flex items-center gap-1 min-w-0">
+                {chartData.length > CHART_WINDOW && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChartWindowEnd((prev) => {
+                        const cur = prev ?? chartData.length - 1;
+                        return Math.max(CHART_WINDOW - 1, cur - CHART_WINDOW);
+                      });
                     }}
-                    cursor="pointer"
+                    disabled={!chartWindow.hasPrev}
+                    className="shrink-0 h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="12 meses anteriores"
                   >
-                    {chartData.map((d) => (
-                      <Cell
-                        key={d.mesKey}
-                        fill={
-                          mesFiltro === null
-                            ? "hsl(var(--admin))"
-                            : mesFiltro === d.mesKey
-                              ? "hsl(var(--admin))"
-                              : "hsl(var(--muted-foreground) / 0.25)"
-                        }
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                )}
+                <div className="flex-1 min-w-0" style={{ height: 100 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartWindow.data} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 10 }}
+                        interval="preserveStartEnd"
+                        minTickGap={4}
                       />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                      <RTooltip
+                        cursor={{ fill: "hsl(var(--muted))" }}
+                        formatter={(v: number, _n, p) => [
+                          `${formatBRL(Number(v))} · ${(p?.payload as { qtd: number })?.qtd || 0} NF${(p?.payload as { qtd: number })?.qtd === 1 ? "" : "s"}`,
+                          "Total",
+                        ]}
+                        labelFormatter={(l) => `Mês: ${l}`}
+                        contentStyle={{ fontSize: 11, borderRadius: 6 }}
+                      />
+                      <Bar
+                        dataKey="valor"
+                        onClick={(d) => {
+                          const k = (d as { mesKey?: string })?.mesKey;
+                          if (!k) return;
+                          setMesFiltro((prev) => (prev === k ? null : k));
+                        }}
+                        cursor="pointer"
+                      >
+                        {chartWindow.data.map((d) => (
+                          <Cell
+                            key={d.mesKey}
+                            fill={
+                              mesFiltro === null
+                                ? "hsl(var(--admin))"
+                                : mesFiltro === d.mesKey
+                                  ? "hsl(var(--admin))"
+                                  : "hsl(var(--muted-foreground) / 0.25)"
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {chartData.length > CHART_WINDOW && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChartWindowEnd((prev) => {
+                        const cur = prev ?? chartData.length - 1;
+                        return Math.min(chartData.length - 1, cur + CHART_WINDOW);
+                      });
+                    }}
+                    disabled={!chartWindow.hasNext}
+                    className="shrink-0 h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="12 meses seguintes"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {chartData.length > CHART_WINDOW && chartWindow.data.length > 0 && (
+                <div className="text-[10px] text-muted-foreground text-center leading-tight mt-0.5">
+                  {chartWindow.data[0].label} – {chartWindow.data[chartWindow.data.length - 1].label}
+                </div>
+              )}
             </div>
           )}
+
         </div>
 
 
