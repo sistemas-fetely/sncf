@@ -88,6 +88,23 @@ export default function ExtratoInbox() {
   const [classe, setClasse] = useState<string>("");
   const [nota, setNota] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [aplicandoRegras, setAplicandoRegras] = useState(false);
+
+  async function aplicarRegras() {
+    setAplicandoRegras(true);
+    try {
+      const { data, error } = await sb.rpc("fn_regras_aplicar");
+      if (error) throw error;
+      const n = typeof data === "number" ? data : (data ?? 0);
+      toast.success(`${n} movimentações classificadas`);
+      qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
+    } catch (e) {
+      toast.error("Falha: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setAplicandoRegras(false);
+    }
+  }
+
 
   const { data: contas = [] } = useQuery({
     queryKey: ["inbox-contas"],
