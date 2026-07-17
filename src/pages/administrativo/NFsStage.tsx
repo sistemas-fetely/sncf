@@ -732,6 +732,14 @@ export default function NFsStage() {
         {/* KPI pills (clicáveis = filtros) */}
         <div className="flex flex-wrap gap-2">
           <KpiPill
+            label="A revisar"
+            count={totals.aRevisar}
+            color="admin"
+            active={filtroPill === "a_revisar"}
+            onClick={() => setFiltroPill("a_revisar")}
+            icon={<AlertCircle className="h-3 w-3" />}
+          />
+          <KpiPill
             label="Aguardando vínculo"
             count={totals.naoVinculadas}
             color="amber"
