@@ -290,6 +290,13 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open || competenciaTocada) return;
+    const base = dataEmissao ? new Date(dataEmissao + "T00:00:00") : new Date();
+    const mm = String(base.getMonth() + 1).padStart(2, "0");
+    setCompetenciaMes(base.getFullYear() + "-" + mm);
+  }, [open, dataEmissao, competenciaTocada]);
+
   const valorNum = Number(valor.replace(/\./g, "").replace(",", ".")) || 0;
 
   /**
