@@ -569,6 +569,17 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
                 <Label>Emissão</Label>
                 <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
               </div>
+              <div>
+                <Label>Mês de competência *</Label>
+                <Input
+                  type="month"
+                  value={competenciaMes}
+                  onChange={(e) => {
+                    setCompetenciaMes(e.target.value);
+                    setCompetenciaTocada(true);
+                  }}
+                />
+              </div>
             </div>
             {veioDeBoleto && (
               <p className="text-[10px] text-muted-foreground -mt-2">
