@@ -1175,12 +1175,13 @@ export default function NFsStage() {
                   <SortableTableHead column="categoria" sort={sort} onSort={setSort} className="min-w-[220px]">
                     Categoria
                   </SortableTableHead>
-                  <TableHead className="min-w-[180px]">Centro de custo</TableHead>
-                  <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-24">
+                  <TableHead className="min-w-[240px]">Centro de custo</TableHead>
+                  <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-16">
                     Status
                   </SortableTableHead>
                   <TableHead className="w-24 text-center">Pasta GED</TableHead>
-                  <TableHead className="w-24 text-center">Ações</TableHead>
+                  <TableHead className="w-[110px] text-center">Ações</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
