@@ -17,7 +17,10 @@ import { Upload, Loader2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
+import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
+import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
+
 import { formatDateBR } from "@/lib/format-currency";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
