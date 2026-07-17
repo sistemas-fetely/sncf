@@ -386,6 +386,7 @@ export default function NFsStage() {
   const totals = useMemo(() => {
     const base = (nfs || []).filter((n) => !mesFiltro || mesKeyDeNf(n) === mesFiltro);
     return {
+      todas: base.filter((n) => n.status !== "descartada" && !n.motivo_descarte).length,
       aRevisar: base.filter(
         (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
       ).length,
