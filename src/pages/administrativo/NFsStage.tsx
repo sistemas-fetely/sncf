@@ -679,6 +679,7 @@ export default function NFsStage() {
         })
         .in("id", ids);
       if (error) throw error;
+      marcarResolvidasNaSessao(ids);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       toast.success(`${ids.length} NF${ids.length === 1 ? "" : "s"} uniformizada${ids.length === 1 ? "" : "s"}`);
       setUniformizarOpen(false);
