@@ -580,9 +580,20 @@ export default function NFsStage() {
     }
   }
 
-  async function stampRevisadaIfNull(id: string): Promise<Record<string, string> | null> {
+  // Só carimba revisada se, APÓS a edição, a NF tiver plano_contas_id E centro_custo_id preenchidos.
+  // overrides descrevem os campos que estão sendo editados nesta chamada.
+  async function stampRevisadaIfComplete(
+    id: string,
+    overrides: { plano_contas_id?: string | null; centro_custo_id?: string | null },
+  ): Promise<Record<string, string> | null> {
     const nf = nfs?.find((n) => n.id === id);
-    if (nf?.revisada_em) return null;
+    if (!nf) return null;
+    if (nf.revisada_em) return null;
+    const nextPlano =
+      "plano_contas_id" in overrides ? overrides.plano_contas_id : nf.plano_contas_id;
+    const nextCentro =
+      "centro_custo_id" in overrides ? overrides.centro_custo_id : nf.centro_custo_id;
+    if (!nextPlano || !nextCentro) return null;
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData?.user?.id;
     if (!uid) return null;
