@@ -1172,6 +1172,18 @@ export default function NFsStage() {
                               </Button>
                             );
                           })()}
+                          {!nf.revisada_em && nf.status !== "descartada" && !nf.motivo_descarte && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                              onClick={() => confirmarRevisao([nf.id])}
+                              disabled={confirmandoRevisao}
+                              title="Confirmar revisão"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
