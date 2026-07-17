@@ -1356,6 +1356,19 @@ export default function NFsStage() {
                               <CheckCircle2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
+                          {nf.plano_contas_id &&
+                            selecionadas.size > 0 &&
+                            !(selecionadas.size === 1 && selecionadas.has(nf.id)) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-admin hover:text-admin hover:bg-admin/10"
+                                onClick={() => setAplicarFonte(nf)}
+                                title="Aplicar esta classificação às selecionadas"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           <Button
                             variant="ghost"
                             size="icon"
