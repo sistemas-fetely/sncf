@@ -83,6 +83,8 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
   const [valor, setValor] = useState("");
   const [dataVenc, setDataVenc] = useState("");
   const [dataEmissao, setDataEmissao] = useState("");
+  const [competenciaMes, setCompetenciaMes] = useState("");
+  const [competenciaTocada, setCompetenciaTocada] = useState(false);
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [centroCustoId, setCentroCustoId] = useState<string | null>(null);
   const [linhaInvestimentoId, setLinhaInvestimentoId] = useState<string | null>(null);
