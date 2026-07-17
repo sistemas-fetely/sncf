@@ -47,6 +47,7 @@ import {
   Package,
   X,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   AlertCircle,
   FilePlus2,
