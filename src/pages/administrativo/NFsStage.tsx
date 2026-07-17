@@ -932,9 +932,10 @@ export default function NFsStage() {
 
           {chartData.length > 0 && (
             <div
-              className="flex-1 basis-[320px] min-w-0 max-w-[560px] flex flex-col overflow-hidden"
-              style={{ height: 130 }}
+              className="w-full max-w-[420px] md:w-[320px] md:max-w-[320px] md:shrink-0 min-w-0 overflow-hidden flex flex-col"
+              style={{ height: 96 }}
             >
+
               <div className="flex items-center gap-1 min-w-0">
                 {chartData.length > CHART_WINDOW && (
                   <button
