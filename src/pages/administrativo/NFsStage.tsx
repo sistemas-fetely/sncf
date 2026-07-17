@@ -33,6 +33,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Layers,
   Search,
   Trash2,
@@ -56,6 +63,7 @@ import {
   FolderOpen,
   Copy,
   FileWarning,
+  MoreHorizontal,
 } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
 import { useNavigate } from "react-router-dom";
@@ -861,7 +869,7 @@ export default function NFsStage() {
 
         {/* KPI pills (clicáveis = filtros) + Gráfico por mês */}
         <div className="flex gap-4 items-start flex-wrap">
-          <div className="flex flex-wrap gap-2 flex-1 min-w-[600px]">
+          <div className="flex flex-wrap gap-2 flex-1 min-w-0">
             <KpiPill
               label="Todas"
               count={totals.todas}
@@ -924,9 +932,10 @@ export default function NFsStage() {
 
           {chartData.length > 0 && (
             <div
-              className="flex-1 basis-[320px] min-w-0 max-w-[560px] flex flex-col overflow-hidden"
-              style={{ height: 130 }}
+              className="w-full max-w-[420px] md:w-[320px] md:max-w-[320px] md:shrink-0 min-w-0 overflow-hidden flex flex-col"
+              style={{ height: 96 }}
             >
+
               <div className="flex items-center gap-1 min-w-0">
                 {chartData.length > CHART_WINDOW && (
                   <button
@@ -944,14 +953,15 @@ export default function NFsStage() {
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                 )}
-                <div className="flex-1 min-w-0" style={{ height: 100 }}>
+                <div className="flex-1 min-w-0 overflow-hidden" style={{ height: 72 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartWindow.data} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                    <BarChart data={chartWindow.data} margin={{ top: 6, right: 2, left: 2, bottom: 0 }}>
                       <XAxis
                         dataKey="label"
-                        tick={{ fontSize: 10 }}
+                        tick={{ fontSize: 9 }}
                         interval="preserveStartEnd"
                         minTickGap={4}
+                        height={14}
                       />
                       <RTooltip
                         cursor={{ fill: "hsl(var(--muted))" }}
@@ -964,6 +974,7 @@ export default function NFsStage() {
                       />
                       <Bar
                         dataKey="valor"
+                        maxBarSize={16}
                         onClick={(d) => {
                           const k = (d as { mesKey?: string })?.mesKey;
                           if (!k) return;
@@ -971,6 +982,7 @@ export default function NFsStage() {
                         }}
                         cursor="pointer"
                       >
+
                         {chartWindow.data.map((d) => (
                           <Cell
                             key={d.mesKey}
@@ -1163,12 +1175,13 @@ export default function NFsStage() {
                   <SortableTableHead column="categoria" sort={sort} onSort={setSort} className="min-w-[220px]">
                     Categoria
                   </SortableTableHead>
-                  <TableHead className="min-w-[180px]">Centro de custo</TableHead>
-                  <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-24">
+                  <TableHead className="min-w-[240px]">Centro de custo</TableHead>
+                  <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-16">
                     Status
                   </SortableTableHead>
                   <TableHead className="w-24 text-center">Pasta GED</TableHead>
-                  <TableHead className="w-24 text-center">Ações</TableHead>
+                  <TableHead className="w-[110px] text-center">Ações</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1257,7 +1270,10 @@ export default function NFsStage() {
                           )}
                         </div>
                         {podeClassificar ? (
-                          <div className="flex items-center gap-1.5">
+                          <div
+                            className="flex items-center gap-1.5"
+                            title={nf.plano_contas_id ? mapCategorias[nf.plano_contas_id] : undefined}
+                          >
                             <CategoriaCombobox
                               options={categorias}
                               value={nf.plano_contas_id || null}
@@ -1267,6 +1283,7 @@ export default function NFsStage() {
                               placeholder="Classificar..."
                               disabled={salvando}
                             />
+
                             {nf.categoria_sugerida_ia && nf.plano_contas_id && (
                               <Sparkles
                                 className="h-3 w-3 text-purple-500 shrink-0"
@@ -1318,9 +1335,17 @@ export default function NFsStage() {
                             }
                             disabled={salvandoCentroCusto.has(nf.id)}
                           >
-                            <SelectTrigger className="h-8 text-xs">
+                            <SelectTrigger
+                              className="h-8 text-xs"
+                              title={
+                                nf.centro_custo_id
+                                  ? centrosCusto.find((c) => c.id === nf.centro_custo_id)?.nome
+                                  : undefined
+                              }
+                            >
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
+
                             <SelectContent>
                               <SelectItem value="__none__">— Sem centro —</SelectItem>
                               {centrosCusto.map((cc) => (
@@ -1331,19 +1356,36 @@ export default function NFsStage() {
                             </SelectContent>
                           </Select>
                         ) : nf.centro_custo_id ? (
-                          <span className="text-xs text-muted-foreground">
+                          <span
+                            className="text-xs text-muted-foreground block truncate"
+                            title={centrosCusto.find((c) => c.id === nf.centro_custo_id)?.nome || ""}
+                          >
                             {centrosCusto.find((c) => c.id === nf.centro_custo_id)?.nome || "—"}
                           </span>
+
                         ) : (
                           <span className="text-xs text-muted-foreground italic">—</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge className={STATUS_STYLES[nf.status]}>
-                          {nf.status === "parcial" && nf.qtd_boletos
-                            ? `Parcial (${despesasPorStage[nf.id] || 0}/${nf.qtd_boletos})`
-                            : STATUS_LABELS[nf.status] || nf.status}
-                        </Badge>
+                        {(() => {
+                          const fullLabel =
+                            nf.status === "parcial" && nf.qtd_boletos
+                              ? `Parcial (${despesasPorStage[nf.id] || 0}/${nf.qtd_boletos})`
+                              : STATUS_LABELS[nf.status] || nf.status;
+                          const shortLabel =
+                            nf.status === "parcial" && nf.qtd_boletos
+                              ? `${despesasPorStage[nf.id] || 0}/${nf.qtd_boletos}`
+                              : (STATUS_LABELS[nf.status] || nf.status).slice(0, 3);
+                          return (
+                            <Badge
+                              className={`${STATUS_STYLES[nf.status]} text-[10px] py-0 h-4 px-1.5`}
+                              title={fullLabel}
+                            >
+                              {shortLabel}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-center">
                         {nf.parceiro_id && pastaIdPorParceiro.get(nf.parceiro_id) ? (
@@ -1361,109 +1403,106 @@ export default function NFsStage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-center gap-1">
-                          {nf.tem_pdf && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => abrirDocumento(nf, "pdf_danfe")}
-                              title="Ver PDF DANFE"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          {nf.tem_xml && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => abrirDocumento(nf, "xml")}
-                              title="Ver XML"
-                            >
-                              <FileCode className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          {(() => {
-                            // Resumo NFe só faz sentido com XML disponível
-                            if (!nf.tem_xml) return null;
-                            const jaTem = !!nf.resumo_pdf_gerado_em;
-                            const loading = gerandoResumo.has(nf.id);
-                            if (jaTem) {
-                              return (
+                        {(() => {
+                          const podeRevisar =
+                            !nf.revisada_em &&
+                            nf.status !== "descartada" &&
+                            !nf.motivo_descarte;
+                          const loadingResumo = gerandoResumo.has(nf.id);
+                          const jaTemResumo = !!nf.resumo_pdf_gerado_em;
+                          const podeAplicar =
+                            !!nf.plano_contas_id &&
+                            selecionadas.size > 0 &&
+                            !(selecionadas.size === 1 && selecionadas.has(nf.id));
+                          return (
+                            <div className="flex items-center justify-center gap-1">
+                              {podeRevisar ? (
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  onClick={() => handleGerarResumo(nf, true)}
-                                  disabled={loading}
-                                  title="Regerar Resumo NFe"
+                                  className="h-7 w-7 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                                  onClick={() => confirmarRevisao([nf.id])}
+                                  disabled={confirmandoRevisao}
+                                  title="Confirmar revisão"
                                 >
-                                  {loading ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="h-3.5 w-3.5" />
-                                  )}
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
                                 </Button>
-                              );
-                            }
-                            return (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
-                                onClick={() => handleGerarResumo(nf, false)}
-                                disabled={loading}
-                                title="Gerar Resumo NFe"
-                              >
-                                {loading ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <FilePlus2 className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
-                            );
-                          })()}
-                          {!nf.revisada_em && nf.status !== "descartada" && !nf.motivo_descarte && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
-                              onClick={() => confirmarRevisao([nf.id])}
-                              disabled={confirmandoRevisao}
-                              title="Confirmar revisão"
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          {nf.plano_contas_id &&
-                            selecionadas.size > 0 &&
-                            !(selecionadas.size === 1 && selecionadas.has(nf.id)) && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-admin hover:text-admin hover:bg-admin/10"
-                                onClick={() => setAplicarFonte(nf)}
-                                title="Aplicar esta classificação às selecionadas"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => {
-                              if (confirm("Remover esta NF do repositório? Esta ação é permanente.")) {
-                                handleRemover(nf.id);
-                              }
-                            }}
-                            title="Remover"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                              ) : (
+                                <span className="w-7" />
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    title="Mais ações"
+                                  >
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  {nf.tem_pdf && (
+                                    <DropdownMenuItem
+                                      onClick={() => abrirDocumento(nf, "pdf_danfe")}
+                                    >
+                                      <Eye className="h-3.5 w-3.5 mr-2" />
+                                      Ver PDF DANFE
+                                    </DropdownMenuItem>
+                                  )}
+                                  {nf.tem_xml && (
+                                    <DropdownMenuItem
+                                      onClick={() => abrirDocumento(nf, "xml")}
+                                    >
+                                      <FileCode className="h-3.5 w-3.5 mr-2" />
+                                      Ver XML
+                                    </DropdownMenuItem>
+                                  )}
+                                  {nf.tem_xml && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleGerarResumo(nf, jaTemResumo)}
+                                      disabled={loadingResumo}
+                                    >
+                                      {loadingResumo ? (
+                                        <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                                      ) : jaTemResumo ? (
+                                        <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                                      ) : (
+                                        <FilePlus2 className="h-3.5 w-3.5 mr-2" />
+                                      )}
+                                      {jaTemResumo ? "Regerar Resumo NFe" : "Gerar Resumo NFe"}
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    disabled={!podeAplicar}
+                                    onClick={() => setAplicarFonte(nf)}
+                                  >
+                                    <Copy className="h-3.5 w-3.5 mr-2" />
+                                    Aplicar classificação às selecionadas
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                    onClick={() => {
+                                      if (
+                                        confirm(
+                                          "Remover esta NF do repositório? Esta ação é permanente.",
+                                        )
+                                      ) {
+                                        handleRemover(nf.id);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                    Remover
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          );
+                        })()}
                       </TableCell>
+
                     </TableRow>
                     {isExpandida && temItens && (
                       <TableRow className="bg-muted/20">
