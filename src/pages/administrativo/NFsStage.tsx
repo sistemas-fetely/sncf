@@ -585,7 +585,9 @@ export default function NFsStage() {
       if (error) throw error;
       const rows = (data || []) as Array<{ stage_id: string; acao: string; categoria_id: string | null }>;
       if (rows.length === 0) {
-        toast.info("Nenhuma NF elegível — todas as selecionadas já possuem classificação");
+        toast.info(
+          "Todas as selecionadas já possuem classificação. Para igualá-las, use o botão Uniformizar.",
+        );
       } else {
         const classificadas = rows.filter((r) => r.categoria_id).length;
         const semRegra = rows.length - classificadas;
