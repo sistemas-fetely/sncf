@@ -86,6 +86,35 @@ export function parseNFeXml(xmlString: string): NFParsed | null {
     ncmPrincipal = principal.ncm || "";
   }
 
+  // Grupo <cobr> (fatura + duplicatas) — opcional na NF-e
+  const cobr = firstChild(nfe, "cobr");
+  let duplicatas: NFParsed["duplicatas"] = null;
+  if (cobr) {
+    const fatEl = firstChild(cobr, "fat");
+    const fat = fatEl
+      ? {
+          nFat: tag(fatEl, "nFat"),
+          vOrig: parseFloat(tag(fatEl, "vOrig")) || 0,
+          vDesc: parseFloat(tag(fatEl, "vDesc")) || 0,
+          vLiq: parseFloat(tag(fatEl, "vLiq")) || 0,
+        }
+      : null;
+    const dupNodes = (cobr as any).getElementsByTagNameNS
+      ? Array.from(
+          (cobr as any).getElementsByTagNameNS(NFE_NS, "dup") as HTMLCollectionOf<Element>,
+        )
+      : [];
+    const dupList: Element[] = dupNodes.length
+      ? (dupNodes as Element[])
+      : Array.from(cobr.getElementsByTagName("dup"));
+    const dup = dupList.map((d) => ({
+      nDup: tag(d, "nDup"),
+      dVenc: tag(d, "dVenc"),
+      vDup: parseFloat(tag(d, "vDup")) || 0,
+    }));
+    duplicatas = { fat, dup };
+  }
+
   const dhEmi = tag(ide, "dhEmi") || tag(ide, "dEmi");
   const dataEmissao = dhEmi ? dhEmi.substring(0, 10) : null;
 
@@ -104,6 +133,7 @@ export function parseNFeXml(xmlString: string): NFParsed | null {
     nf_valor_impostos: parseFloat(icmsTot ? tag(icmsTot, "vTotTrib") : "0") || 0,
     meio_pagamento: mapearMeioPagamentoXml(tPag),
     itens,
+    duplicatas,
     _source: "xml_nfe",
   };
 }
