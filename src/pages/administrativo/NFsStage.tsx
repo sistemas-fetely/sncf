@@ -232,6 +232,9 @@ export default function NFsStage() {
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
   const [classificandoIA, setClassificandoIA] = useState(false);
+  const [uniformizarOpen, setUniformizarOpen] = useState(false);
+  const [uniformizarEscolha, setUniformizarEscolha] = useState<string | null>(null);
+  const [uniformizando, setUniformizando] = useState(false);
 
   async function classificarComIA() {
     setClassificandoIA(true);
