@@ -1191,6 +1191,21 @@ export default function NFsStage() {
               </Button>
               <Button
                 variant="outline"
+                size="sm"
+                onClick={() => {
+                  // pré-seleciona o combo mais frequente
+                  const first = combosSelecionadas.combos[0];
+                  setUniformizarEscolha(first ? first.key : null);
+                  setUniformizarOpen(true);
+                }}
+                disabled={selecionadas.size < 2 || uniformizando}
+                className="gap-1 border-violet-300 text-violet-700 hover:bg-violet-50"
+                title="Igualar plano de contas e centro de custo de todas as selecionadas"
+              >
+                <Wand2 className="h-4 w-4" />
+                Uniformizar ({selecionadas.size})
+              <Button
+                variant="outline"
                 size="icon"
                 onClick={() => {
                   const lista = filtered.filter((n) => selecionadas.has(n.id));
