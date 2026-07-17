@@ -1462,6 +1462,61 @@ export default function NFsStage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AlertDialog aplicar classificação às selecionadas */}
+      <AlertDialog
+        open={!!aplicarFonte}
+        onOpenChange={(v) => !v && !aplicandoClassificacao && setAplicarFonte(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar classificação às selecionadas?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <div>
+                  Você vai <strong>sobrescrever</strong> plano de contas e centro de custo em{" "}
+                  <strong>{Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length}</strong>{" "}
+                  NF{Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length === 1 ? "" : "s"} selecionada
+                  {Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length === 1 ? "" : "s"}.
+                </div>
+                <div className="rounded-md border bg-muted/40 p-3 space-y-1">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Classificação fonte</div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Plano de contas: </span>
+                    <strong>{aplicarFonte?.plano_contas_id ? mapCategorias[aplicarFonte.plano_contas_id] || "—" : "—"}</strong>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Centro de custo: </span>
+                    <strong>
+                      {aplicarFonte?.centro_custo_id
+                        ? centrosCusto.find((c) => c.id === aplicarFonte.centro_custo_id)?.nome || "—"
+                        : "— sem centro —"}
+                    </strong>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  As NFs de destino também serão marcadas como revisadas.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={aplicandoClassificacao}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={aplicandoClassificacao}
+              onClick={(e) => {
+                e.preventDefault();
+                if (aplicarFonte) void aplicarClassificacaoASelecionadas(aplicarFonte);
+              }}
+              className="bg-admin text-admin-foreground hover:bg-admin/90"
+            >
+              {aplicandoClassificacao && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Aplicar a {Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length} NF
+              {Array.from(selecionadas).filter((id) => id !== aplicarFonte?.id).length === 1 ? "" : "s"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
