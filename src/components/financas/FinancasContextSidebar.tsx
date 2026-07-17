@@ -18,7 +18,8 @@ import {
   Target,
   Users,
   ArrowDownToLine,
-} from "lucide-react";
+  Inbox,
+
 import {
   Sidebar,
   SidebarContent,
