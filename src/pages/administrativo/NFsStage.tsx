@@ -483,12 +483,14 @@ export default function NFsStage() {
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
     try {
+      const stamp = await stampRevisadaIfNull(id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
         .update({
           plano_contas_id: categoriaId || null,
           categoria_sugerida_ia: false,
+          ...(stamp || {}),
         })
         .eq("id", id);
       if (error) throw error;
