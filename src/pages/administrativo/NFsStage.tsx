@@ -33,6 +33,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -64,6 +73,8 @@ import {
   Copy,
   FileWarning,
   MoreHorizontal,
+  Wand2,
+
 } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
 import { useNavigate } from "react-router-dom";
@@ -220,6 +231,9 @@ export default function NFsStage() {
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
   const [classificandoIA, setClassificandoIA] = useState(false);
+  const [uniformizarOpen, setUniformizarOpen] = useState(false);
+  const [uniformizarEscolha, setUniformizarEscolha] = useState<string | null>(null);
+  const [uniformizando, setUniformizando] = useState(false);
 
   async function classificarComIA() {
     setClassificandoIA(true);
@@ -469,6 +483,27 @@ export default function NFsStage() {
       .reduce((s, n) => s + (n.valor || 0), 0);
   }, [selecionadas, nfs]);
 
+  // Combinações distintas de classificação entre as selecionadas (para diálogo Uniformizar)
+  const combosSelecionadas = useMemo(() => {
+    const selNfs = (nfs || []).filter((n) => selecionadas.has(n.id));
+    let semClass = 0;
+    const map = new Map<string, { plano_contas_id: string | null; centro_custo_id: string | null; count: number }>();
+    for (const n of selNfs) {
+      if (!n.plano_contas_id) {
+        semClass++;
+        continue;
+      }
+      const key = `${n.plano_contas_id}||${n.centro_custo_id ?? "null"}`;
+      const cur = map.get(key);
+      if (cur) cur.count++;
+      else map.set(key, { plano_contas_id: n.plano_contas_id, centro_custo_id: n.centro_custo_id ?? null, count: 1 });
+    }
+    const combos = Array.from(map.entries()).map(([key, v]) => ({ key, ...v }));
+    combos.sort((a, b) => b.count - a.count);
+    return { combos, semClass, total: selNfs.length };
+  }, [selecionadas, nfs]);
+
+
   // Soma das filtradas (independente de seleção)
   const totalFiltradas = useMemo(
     () => filtered.reduce((s, n) => s + (n.valor || 0), 0),
@@ -570,7 +605,9 @@ export default function NFsStage() {
       if (error) throw error;
       const rows = (data || []) as Array<{ stage_id: string; acao: string; categoria_id: string | null }>;
       if (rows.length === 0) {
-        toast.info("Nenhuma NF elegível — todas as selecionadas já possuem classificação");
+        toast.info(
+          "Todas as selecionadas já possuem classificação. Para igualá-las, use o botão Uniformizar.",
+        );
       } else {
         const classificadas = rows.filter((r) => r.categoria_id).length;
         const semRegra = rows.length - classificadas;
@@ -584,6 +621,45 @@ export default function NFsStage() {
       setReaplicandoRegras(false);
     }
   }
+
+  async function uniformizarClassificacao() {
+    if (!uniformizarEscolha) return;
+    const ids = Array.from(selecionadas);
+    if (ids.length === 0) return;
+    const [pcRaw, ccRaw] = uniformizarEscolha.split("||");
+    const plano_contas_id = pcRaw === "null" ? null : pcRaw;
+    const centro_custo_id = ccRaw === "null" ? null : ccRaw;
+    setUniformizando(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update({
+          plano_contas_id,
+          centro_custo_id,
+          categoria_sugerida_ia: false,
+          revisada_em: new Date().toISOString(),
+          revisada_por: uid,
+        })
+        .in("id", ids);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(`${ids.length} NF${ids.length === 1 ? "" : "s"} uniformizada${ids.length === 1 ? "" : "s"}`);
+      setUniformizarOpen(false);
+      setUniformizarEscolha(null);
+      setSelecionadas(new Set());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao uniformizar: " + msg);
+    } finally {
+      setUniformizando(false);
+    }
+  }
+
+
 
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
@@ -1114,6 +1190,22 @@ export default function NFsStage() {
               </Button>
               <Button
                 variant="outline"
+                size="sm"
+                onClick={() => {
+                  // pré-seleciona o combo mais frequente
+                  const first = combosSelecionadas.combos[0];
+                  setUniformizarEscolha(first ? first.key : null);
+                  setUniformizarOpen(true);
+                }}
+                disabled={selecionadas.size < 2 || uniformizando}
+                className="gap-1 border-violet-300 text-violet-700 hover:bg-violet-50"
+                title="Igualar plano de contas e centro de custo de todas as selecionadas"
+              >
+                <Wand2 className="h-4 w-4" />
+                Uniformizar ({selecionadas.size})
+              </Button>
+              <Button
+                variant="outline"
                 size="icon"
                 onClick={() => {
                   const lista = filtered.filter((n) => selecionadas.has(n.id));
@@ -1636,6 +1728,109 @@ export default function NFsStage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog Uniformizar classificação */}
+      <Dialog
+        open={uniformizarOpen}
+        onOpenChange={(v) => {
+          if (uniformizando) return;
+          setUniformizarOpen(v);
+          if (!v) setUniformizarEscolha(null);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-4 w-4 text-violet-600" />
+              Uniformizar classificação
+            </DialogTitle>
+            <DialogDescription>
+              Escolha a combinação de plano de contas + centro de custo que será aplicada a todas as{" "}
+              <strong>{selecionadas.size}</strong> NFs selecionadas. Todas serão marcadas como revisadas.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {combosSelecionadas.combos.length === 0 ? (
+              <div className="rounded-md border bg-amber-50 border-amber-200 p-3 text-sm text-amber-800">
+                Nenhuma das selecionadas tem classificação. Classifique ao menos uma NF antes de uniformizar.
+              </div>
+            ) : combosSelecionadas.combos.length === 1 && combosSelecionadas.semClass === 0 ? (
+              <div className="rounded-md border bg-emerald-50 border-emerald-200 p-3 text-sm text-emerald-800">
+                Todas as selecionadas já compartilham a mesma classificação — nada a uniformizar.
+              </div>
+            ) : (
+              <>
+                <RadioGroup
+                  value={uniformizarEscolha ?? ""}
+                  onValueChange={setUniformizarEscolha}
+                  className="space-y-2"
+                >
+                  {combosSelecionadas.combos.map((c) => {
+                    const catLabel = c.plano_contas_id
+                      ? mapCategorias[c.plano_contas_id] || "—"
+                      : "— sem plano —";
+                    const ccLabel = c.centro_custo_id
+                      ? centrosCusto.find((x) => x.id === c.centro_custo_id)?.nome || "—"
+                      : "— sem centro —";
+                    return (
+                      <label
+                        key={c.key}
+                        htmlFor={`combo-${c.key}`}
+                        className={cn(
+                          "flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors",
+                          uniformizarEscolha === c.key
+                            ? "border-violet-500 bg-violet-50"
+                            : "border-border hover:bg-muted/50",
+                        )}
+                      >
+                        <RadioGroupItem value={c.key} id={`combo-${c.key}`} className="mt-1" />
+                        <div className="flex-1 min-w-0 text-sm">
+                          <div className="font-medium truncate">{catLabel}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            Centro de custo: {ccLabel}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 text-xs">
+                          {c.count} de {combosSelecionadas.total}
+                        </Badge>
+                      </label>
+                    );
+                  })}
+                </RadioGroup>
+                {combosSelecionadas.semClass > 0 && (
+                  <div className="text-xs text-muted-foreground rounded border border-dashed p-2">
+                    <strong>{combosSelecionadas.semClass}</strong> das selecionadas está sem
+                    classificação — receberá a combinação escolhida.
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setUniformizarOpen(false)}
+              disabled={uniformizando}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void uniformizarClassificacao()}
+              disabled={
+                uniformizando ||
+                !uniformizarEscolha ||
+                combosSelecionadas.combos.length === 0
+              }
+              className="bg-violet-600 text-white hover:bg-violet-700"
+            >
+              {uniformizando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Aplicar a todas ({selecionadas.size})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
