@@ -111,6 +111,9 @@ type NFStage = {
   tipo_documento?: string | null;
   numero_parcela?: number | null;
   total_parcelas?: number | null;
+  revisada_em?: string | null;
+  revisada_por?: string | null;
+  motivo_descarte?: string | null;
   // Flags vindos da view vw_nfs_stage_completude
   tem_xml: boolean;
   tem_pdf: boolean;
@@ -165,6 +168,7 @@ function DocIndicator({ label, tem }: { label: string; tem: boolean }) {
 }
 
 type FiltroPill =
+  | "a_revisar"
   | "nao_vinculadas"
   | "vinculadas"
   | "descartadas"
@@ -178,11 +182,12 @@ export default function NFsStage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
-  const [filtroPill, setFiltroPill] = useState<FiltroPill>("nao_vinculadas");
+  const [filtroPill, setFiltroPill] = useState<FiltroPill>("a_revisar");
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [paraDescartar, setParaDescartar] = useState<NFStage[]>([]);
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
   const [salvandoCentroCusto, setSalvandoCentroCusto] = useState<Set<string>>(new Set());
+  const [confirmandoRevisao, setConfirmandoRevisao] = useState(false);
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
   const [classificandoIA, setClassificandoIA] = useState(false);
@@ -311,7 +316,14 @@ export default function NFsStage() {
   // Filtro + Ordenação
   const filtered = useMemo(() => {
     let list = nfs || [];
-    if (filtroPill === "nao_vinculadas") {
+    if (filtroPill === "a_revisar") {
+      list = list.filter(
+        (n) =>
+          !n.revisada_em &&
+          n.status !== "descartada" &&
+          !n.motivo_descarte,
+      );
+    } else if (filtroPill === "nao_vinculadas") {
       list = list.filter((n) => n.status === "nao_vinculada");
     } else if (filtroPill === "vinculadas") {
       list = list.filter((n) => n.status === "vinculada");
@@ -354,6 +366,9 @@ export default function NFsStage() {
   const totals = useMemo(() => {
     const all = nfs || [];
     return {
+      aRevisar: all.filter(
+        (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
+      ).length,
       naoVinculadas: all.filter((n) => n.status === "nao_vinculada").length,
       vinculadas: all.filter((n) => n.status === "vinculada").length,
       descartadas: all.filter((n) => n.status === "descartada").length,
@@ -430,15 +445,52 @@ export default function NFsStage() {
     }
   }
 
+  async function stampRevisadaIfNull(id: string): Promise<Record<string, string> | null> {
+    const nf = nfs?.find((n) => n.id === id);
+    if (nf?.revisada_em) return null;
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData?.user?.id;
+    if (!uid) return null;
+    return { revisada_em: new Date().toISOString(), revisada_por: uid };
+  }
+
+  async function confirmarRevisao(ids: string[]) {
+    if (ids.length === 0) return;
+    setConfirmandoRevisao(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update({ revisada_em: new Date().toISOString(), revisada_por: uid })
+        .in("id", ids);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(
+        `${ids.length} NF${ids.length === 1 ? "" : "s"} confirmada${ids.length === 1 ? "" : "s"} como revisada${ids.length === 1 ? "" : "s"}`,
+      );
+      if (ids.length > 1) setSelecionadas(new Set());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao confirmar revisão: " + msg);
+    } finally {
+      setConfirmandoRevisao(false);
+    }
+  }
+
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
     try {
+      const stamp = await stampRevisadaIfNull(id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
         .update({
           plano_contas_id: categoriaId || null,
           categoria_sugerida_ia: false,
+          ...(stamp || {}),
         })
         .eq("id", id);
       if (error) throw error;
@@ -481,10 +533,11 @@ export default function NFsStage() {
   async function alterarCentroCusto(id: string, centroCustoId: string | null) {
     setSalvandoCentroCusto((prev) => new Set(prev).add(id));
     try {
+      const stamp = await stampRevisadaIfNull(id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
-        .update({ centro_custo_id: centroCustoId || null })
+        .update({ centro_custo_id: centroCustoId || null, ...(stamp || {}) })
         .eq("id", id);
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
@@ -679,6 +732,14 @@ export default function NFsStage() {
         {/* KPI pills (clicáveis = filtros) */}
         <div className="flex flex-wrap gap-2">
           <KpiPill
+            label="A revisar"
+            count={totals.aRevisar}
+            color="admin"
+            active={filtroPill === "a_revisar"}
+            onClick={() => setFiltroPill("a_revisar")}
+            icon={<AlertCircle className="h-3 w-3" />}
+          />
+          <KpiPill
             label="Aguardando vínculo"
             count={totals.naoVinculadas}
             color="amber"
@@ -774,6 +835,21 @@ export default function NFsStage() {
               </Badge>
               <Button
                 variant="outline"
+                size="sm"
+                onClick={() => confirmarRevisao(Array.from(selecionadas))}
+                disabled={confirmandoRevisao}
+                className="gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                title="Marcar as selecionadas como revisadas"
+              >
+                {confirmandoRevisao ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                Confirmar revisão ({selecionadas.size})
+              </Button>
+              <Button
+                variant="outline"
                 size="icon"
                 onClick={() => {
                   const lista = filtered.filter((n) => selecionadas.has(n.id));
@@ -814,12 +890,8 @@ export default function NFsStage() {
                   <TableHead className="w-10">
                     <Checkbox
                       checked={
-                        filtered
-                          .filter((n) => n.status === "pendente" || n.status === "classificada")
-                          .length > 0 &&
-                        filtered
-                          .filter((n) => n.status === "pendente" || n.status === "classificada")
-                          .every((n) => selecionadas.has(n.id))
+                        filtered.length > 0 &&
+                        filtered.every((n) => selecionadas.has(n.id))
                       }
                       onCheckedChange={toggleTodas}
                     />
@@ -915,6 +987,23 @@ export default function NFsStage() {
                         {formatBRL(nf.valor)}
                       </TableCell>
                       <TableCell>
+                        <div className="mb-1">
+                          {nf.status === "descartada" || nf.motivo_descarte ? null : nf.revisada_em ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] py-0 h-4 border-emerald-300 text-emerald-700 bg-emerald-50"
+                            >
+                              Revisada
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] py-0 h-4 border-amber-300 text-amber-700 bg-amber-50"
+                            >
+                              A revisar
+                            </Badge>
+                          )}
+                        </div>
                         {podeClassificar ? (
                           <div className="flex items-center gap-1.5">
                             <CategoriaCombobox
@@ -1083,6 +1172,18 @@ export default function NFsStage() {
                               </Button>
                             );
                           })()}
+                          {!nf.revisada_em && nf.status !== "descartada" && !nf.motivo_descarte && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                              onClick={() => confirmarRevisao([nf.id])}
+                              disabled={confirmandoRevisao}
+                              title="Confirmar revisão"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"

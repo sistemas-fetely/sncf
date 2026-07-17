@@ -8013,6 +8013,8 @@ export type Database = {
           resumo_pdf_gerado_em: string | null
           resumo_pdf_pendente: boolean
           resumo_pdf_storage_path: string | null
+          revisada_em: string | null
+          revisada_por: string | null
           status: string
           taxa_conversao: number | null
           tem_xml_obrigatorio: boolean
@@ -8054,6 +8056,8 @@ export type Database = {
           resumo_pdf_gerado_em?: string | null
           resumo_pdf_pendente?: boolean
           resumo_pdf_storage_path?: string | null
+          revisada_em?: string | null
+          revisada_por?: string | null
           status?: string
           taxa_conversao?: number | null
           tem_xml_obrigatorio?: boolean
@@ -8095,6 +8099,8 @@ export type Database = {
           resumo_pdf_gerado_em?: string | null
           resumo_pdf_pendente?: boolean
           resumo_pdf_storage_path?: string | null
+          revisada_em?: string | null
+          revisada_por?: string | null
           status?: string
           taxa_conversao?: number | null
           tem_xml_obrigatorio?: boolean
