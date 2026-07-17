@@ -335,10 +335,7 @@ export default function NFsStage() {
     let list = nfs || [];
     if (filtroPill === "a_revisar") {
       list = list.filter(
-        (n) =>
-          !n.revisada_em &&
-          n.status !== "descartada" &&
-          !n.motivo_descarte,
+        (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
       );
     } else if (filtroPill === "nao_vinculadas") {
       list = list.filter((n) => n.status === "nao_vinculada");
@@ -346,14 +343,17 @@ export default function NFsStage() {
       list = list.filter((n) => n.status === "vinculada");
     } else if (filtroPill === "descartadas") {
       list = list.filter((n) => n.status === "descartada");
-    } else if (filtroPill === "sem_categoria") {
-      list = list.filter((n) => !n.plano_contas_id && n.status !== "descartada");
-    } else if (filtroPill === "sem_centro_custo") {
-      list = list.filter((n) => !n.centro_custo_id && n.status !== "descartada");
-    } else if (filtroPill === "com_xml") {
-      list = list.filter((n) => n.tem_xml && n.status !== "descartada");
-    } else if (filtroPill === "com_pdf") {
-      list = list.filter((n) => n.tem_pdf && n.status !== "descartada");
+    } else if (filtroPill === "incompletas") {
+      list = list.filter(
+        (n) => (!n.plano_contas_id || !n.centro_custo_id) && n.status !== "descartada",
+      );
+    } else if (filtroPill === "docs_incompletos") {
+      list = list.filter(
+        (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
+      );
+    }
+    if (mesFiltro) {
+      list = list.filter((n) => mesKeyDeNf(n) === mesFiltro);
     }
     if (busca.trim()) {
       const t = busca.toLowerCase();
@@ -377,26 +377,58 @@ export default function NFsStage() {
     });
 
     return list;
-  }, [nfs, filtroPill, busca, sort]);
+  }, [nfs, filtroPill, mesFiltro, busca, sort]);
 
-  // KPIs (sempre baseados em todos os dados, não filtered)
+  // KPIs — refletem filtro de mês ativo (mas ignoram a pill, senão eram sempre iguais)
   const totals = useMemo(() => {
-    const all = nfs || [];
+    const base = (nfs || []).filter((n) => !mesFiltro || mesKeyDeNf(n) === mesFiltro);
     return {
-      aRevisar: all.filter(
+      aRevisar: base.filter(
         (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
       ).length,
-      naoVinculadas: all.filter((n) => n.status === "nao_vinculada").length,
-      vinculadas: all.filter((n) => n.status === "vinculada").length,
-      descartadas: all.filter((n) => n.status === "descartada").length,
-      semCategoria: all.filter((n) => !n.plano_contas_id && n.status !== "descartada").length,
-      semCentroCusto: all.filter((n) => !n.centro_custo_id && n.status !== "descartada").length,
-      comXml: all.filter((n) => n.tem_xml && n.status !== "descartada").length,
-      comPdf: all.filter((n) => n.tem_pdf && n.status !== "descartada").length,
-      comBoleto: all.filter((n) => n.tem_boleto).length,
-      total: all.length,
+      naoVinculadas: base.filter((n) => n.status === "nao_vinculada").length,
+      vinculadas: base.filter((n) => n.status === "vinculada").length,
+      descartadas: base.filter((n) => n.status === "descartada").length,
+      incompletas: base.filter(
+        (n) => (!n.plano_contas_id || !n.centro_custo_id) && n.status !== "descartada",
+      ).length,
+      docsIncompletos: base.filter(
+        (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
+      ).length,
+      total: base.length,
     };
+  }, [nfs, mesFiltro]);
+
+  // Dados do gráfico por mês (eixo contínuo — meses sem NF aparecem com valor 0)
+  const chartData = useMemo(() => {
+    const map = new Map<string, { valor: number; qtd: number }>();
+    for (const n of nfs || []) {
+      if (n.status === "descartada") continue;
+      const k = mesKeyDeNf(n);
+      if (!k) continue;
+      const prev = map.get(k) || { valor: 0, qtd: 0 };
+      prev.valor += Number(n.valor || 0);
+      prev.qtd += 1;
+      map.set(k, prev);
+    }
+    if (map.size === 0) return [] as Array<{ mesKey: string; label: string; valor: number; qtd: number }>;
+    const keys = Array.from(map.keys()).sort();
+    const [firstY, firstM] = keys[0].split("-").map(Number);
+    const [lastY, lastM] = keys[keys.length - 1].split("-").map(Number);
+    const out: Array<{ mesKey: string; label: string; valor: number; qtd: number }> = [];
+    let y = firstY;
+    let m = firstM;
+    while (y < lastY || (y === lastY && m <= lastM)) {
+      const k = `${y}-${String(m).padStart(2, "0")}`;
+      const info = map.get(k) || { valor: 0, qtd: 0 };
+      out.push({ mesKey: k, label: labelMes(k), valor: info.valor, qtd: info.qtd });
+      m += 1;
+      if (m > 12) { m = 1; y += 1; }
+    }
+    return out;
   }, [nfs]);
+
+
 
 
   // Soma do valor das selecionadas
