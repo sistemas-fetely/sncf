@@ -188,6 +188,7 @@ export default function NFsStage() {
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
   const [salvandoCentroCusto, setSalvandoCentroCusto] = useState<Set<string>>(new Set());
   const [confirmandoRevisao, setConfirmandoRevisao] = useState(false);
+  const [reaplicandoRegras, setReaplicandoRegras] = useState(false);
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
   const [classificandoIA, setClassificandoIA] = useState(false);
@@ -477,6 +478,32 @@ export default function NFsStage() {
       toast.error("Erro ao confirmar revisão: " + msg);
     } finally {
       setConfirmandoRevisao(false);
+    }
+  }
+
+  async function reaplicarRegras(ids: string[]) {
+    if (ids.length === 0) return;
+    setReaplicandoRegras(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("reaplicar_regras_stage_em_lote", {
+        p_ids: ids,
+      });
+      if (error) throw error;
+      const rows = (data || []) as Array<{ stage_id: string; acao: string; categoria_id: string | null }>;
+      if (rows.length === 0) {
+        toast.info("Nenhuma NF elegível — todas as selecionadas já possuem classificação");
+      } else {
+        const classificadas = rows.filter((r) => r.categoria_id).length;
+        const semRegra = rows.length - classificadas;
+        toast.success(`${classificadas} NFs classificadas pelas regras, ${semRegra} sem regra conhecida`);
+      }
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao reaplicar regras: " + msg);
+    } finally {
+      setReaplicandoRegras(false);
     }
   }
 
@@ -847,6 +874,21 @@ export default function NFsStage() {
                   <CheckCircle2 className="h-4 w-4" />
                 )}
                 Confirmar revisão ({selecionadas.size})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => reaplicarRegras(Array.from(selecionadas))}
+                disabled={reaplicandoRegras}
+                className="gap-1"
+                title="Aplicar regras aprendidas nas selecionadas sem classificação"
+              >
+                {reaplicandoRegras ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                Reaplicar regras ({selecionadas.size})
               </Button>
               <Button
                 variant="outline"

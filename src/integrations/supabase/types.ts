@@ -18177,6 +18177,7 @@ export type Database = {
           data_vencimento: string | null
           descricao: string | null
           documentos: Json | null
+          duplicatas: Json | null
           fonte: string | null
           fornecedor_cliente: string | null
           fornecedor_cnpj: string | null
@@ -18201,6 +18202,8 @@ export type Database = {
           resumo_pdf_gerado_em: string | null
           resumo_pdf_pendente: boolean | null
           resumo_pdf_storage_path: string | null
+          revisada_em: string | null
+          revisada_por: string | null
           soma_boletos: number | null
           status: string | null
           taxa_conversao: number | null
@@ -18288,14 +18291,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
