@@ -309,7 +309,68 @@ export default function ExtratoImportacao() {
           if (errIns) throw errIns;
           novas++;
         }
+      } else if (fonte === "mp_withdraw") {
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxMpWithdraw(buf);
+        linhasLidas = parsed.movimentacoes.length;
+        if (linhasLidas === 0) throw new Error("Nenhum saque válido na planilha");
+
+        const datas = parsed.movimentacoes
+          .map((m) => m.data_transacao!)
+          .filter(Boolean)
+          .sort();
+        periodoInicio = datas[0] || null;
+        periodoFim = datas[datas.length - 1] || null;
+
+        for (const m of parsed.movimentacoes) {
+          const valorAssinado = -m.valor; // saque = débito
+          const { data: exist } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id, contraparte_documento, id_transacao_banco")
+            .eq("hash_unico", m.hash_unico)
+            .maybeSingle();
+
+          if (exist) {
+            duplicadas++;
+            const patch: Record<string, unknown> = {};
+            if (!exist.contraparte_documento) {
+              patch.contraparte_nome = m.contraparte_nome;
+              patch.contraparte_documento = m.contraparte_documento;
+              patch.tipo_meio = m.tipo_meio;
+            }
+            if (!exist.id_transacao_banco) patch.id_transacao_banco = m.id_transacao_banco;
+            if (Object.keys(patch).length > 0) {
+              const { error: errUp } = await sb
+                .from("movimentacoes_bancarias")
+                .update(patch)
+                .eq("id", exist.id);
+              if (errUp) throw errUp;
+              enriquecidas++;
+            }
+            continue;
+          }
+
+          const { error: errIns } = await sb
+            .from("movimentacoes_bancarias")
+            .insert({
+              conta_bancaria_id: conta,
+              data_transacao: m.data_transacao,
+              descricao: m.descricao,
+              valor: valorAssinado,
+              tipo: "debito",
+              id_transacao_banco: m.id_transacao_banco,
+              hash_unico: m.hash_unico,
+              origem: "mp_withdraw",
+              contraparte_nome: m.contraparte_nome,
+              contraparte_documento: m.contraparte_documento,
+              tipo_meio: m.tipo_meio,
+              fonte_importacao_id: impId,
+            });
+          if (errIns) throw errIns;
+          novas++;
+        }
       }
+
 
       await sb
         .from("extrato_importacoes")
