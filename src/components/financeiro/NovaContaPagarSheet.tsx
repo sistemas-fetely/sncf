@@ -383,6 +383,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
           valor: valorDaParcela(valorNum, parcelas, i),
           data_vencimento: venc.toISOString().slice(0, 10),
           nf_data_emissao: dataEmissao || null,
+          competencia: competenciaMes + "-01",
           plano_contas_id: categoriaId,
           parceiro_id: parceiroId,
           
