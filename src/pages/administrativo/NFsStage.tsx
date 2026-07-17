@@ -434,7 +434,22 @@ export default function NFsStage() {
     return out;
   }, [nfs]);
 
-
+  // Janela de 12 meses do gráfico
+  const CHART_WINDOW = 12;
+  const chartWindow = useMemo(() => {
+    if (chartData.length === 0) {
+      return { data: [] as typeof chartData, hasPrev: false, hasNext: false, endIdx: 0 };
+    }
+    const endIdx = chartWindowEnd ?? chartData.length - 1;
+    const clampedEnd = Math.min(Math.max(endIdx, Math.min(CHART_WINDOW - 1, chartData.length - 1)), chartData.length - 1);
+    const startIdx = Math.max(0, clampedEnd - CHART_WINDOW + 1);
+    return {
+      data: chartData.slice(startIdx, clampedEnd + 1),
+      hasPrev: startIdx > 0,
+      hasNext: clampedEnd < chartData.length - 1,
+      endIdx: clampedEnd,
+    };
+  }, [chartData, chartWindowEnd]);
 
 
   // Soma do valor das selecionadas
