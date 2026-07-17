@@ -269,6 +269,8 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       setValor("");
       setDataVenc("");
       setDataEmissao("");
+      setCompetenciaMes("");
+      setCompetenciaTocada(false);
       setCategoriaId(null);
       setCentroCustoId(null);
       setLinhaInvestimentoId(null);
