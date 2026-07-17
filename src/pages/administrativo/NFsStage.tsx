@@ -234,6 +234,24 @@ export default function NFsStage() {
   const [uniformizarOpen, setUniformizarOpen] = useState(false);
   const [uniformizarEscolha, setUniformizarEscolha] = useState<string | null>(null);
   const [uniformizando, setUniformizando] = useState(false);
+  // IDs que foram carimbadas como revisadas nesta sessão de filtro "A revisar".
+  // Mantém a linha visível para o usuário ver o feedback de progresso.
+  // É limpa ao trocar de pill, mês, busca ou recarregar a página.
+  const [resolvidasNaSessao, setResolvidasNaSessao] = useState<Set<string>>(new Set());
+
+  // Limpa o Set quando filtro/busca/mês mudam.
+  useEffect(() => {
+    setResolvidasNaSessao(new Set());
+  }, [filtroPill, mesFiltro, busca]);
+
+  function marcarResolvidasNaSessao(ids: string[]) {
+    if (ids.length === 0) return;
+    setResolvidasNaSessao((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.add(id);
+      return next;
+    });
+  }
 
   async function classificarComIA() {
     setClassificandoIA(true);
@@ -363,7 +381,10 @@ export default function NFsStage() {
       list = list.filter((n) => n.status !== "descartada" && !n.motivo_descarte);
     } else if (filtroPill === "a_revisar") {
       list = list.filter(
-        (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
+        (n) =>
+          n.status !== "descartada" &&
+          !n.motivo_descarte &&
+          (!n.revisada_em || resolvidasNaSessao.has(n.id)),
       );
     } else if (filtroPill === "nao_vinculadas") {
       list = list.filter((n) => n.status === "nao_vinculada");
@@ -405,7 +426,7 @@ export default function NFsStage() {
     });
 
     return list;
-  }, [nfs, filtroPill, mesFiltro, busca, sort]);
+  }, [nfs, filtroPill, mesFiltro, busca, sort, resolvidasNaSessao]);
 
   // KPIs — refletem filtro de mês ativo (mas ignoram a pill, senão eram sempre iguais)
   const totals = useMemo(() => {
@@ -559,9 +580,20 @@ export default function NFsStage() {
     }
   }
 
-  async function stampRevisadaIfNull(id: string): Promise<Record<string, string> | null> {
+  // Só carimba revisada se, APÓS a edição, a NF tiver plano_contas_id E centro_custo_id preenchidos.
+  // overrides descrevem os campos que estão sendo editados nesta chamada.
+  async function stampRevisadaIfComplete(
+    id: string,
+    overrides: { plano_contas_id?: string | null; centro_custo_id?: string | null },
+  ): Promise<Record<string, string> | null> {
     const nf = nfs?.find((n) => n.id === id);
-    if (nf?.revisada_em) return null;
+    if (!nf) return null;
+    if (nf.revisada_em) return null;
+    const nextPlano =
+      "plano_contas_id" in overrides ? overrides.plano_contas_id : nf.plano_contas_id;
+    const nextCentro =
+      "centro_custo_id" in overrides ? overrides.centro_custo_id : nf.centro_custo_id;
+    if (!nextPlano || !nextCentro) return null;
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData?.user?.id;
     if (!uid) return null;
@@ -581,6 +613,7 @@ export default function NFsStage() {
         .update({ revisada_em: new Date().toISOString(), revisada_por: uid })
         .in("id", ids);
       if (error) throw error;
+      marcarResolvidasNaSessao(ids);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       toast.success(
         `${ids.length} NF${ids.length === 1 ? "" : "s"} confirmada${ids.length === 1 ? "" : "s"} como revisada${ids.length === 1 ? "" : "s"}`,
@@ -646,6 +679,7 @@ export default function NFsStage() {
         })
         .in("id", ids);
       if (error) throw error;
+      marcarResolvidasNaSessao(ids);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       toast.success(`${ids.length} NF${ids.length === 1 ? "" : "s"} uniformizada${ids.length === 1 ? "" : "s"}`);
       setUniformizarOpen(false);
@@ -664,7 +698,7 @@ export default function NFsStage() {
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
     try {
-      const stamp = await stampRevisadaIfNull(id);
+      const stamp = await stampRevisadaIfComplete(id, { plano_contas_id: categoriaId || null });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
@@ -675,6 +709,7 @@ export default function NFsStage() {
         })
         .eq("id", id);
       if (error) throw error;
+      if (stamp) marcarResolvidasNaSessao([id]);
 
       // Engine Universal: aprende com a classificação manual
       if (categoriaId) {
@@ -714,13 +749,14 @@ export default function NFsStage() {
   async function alterarCentroCusto(id: string, centroCustoId: string | null) {
     setSalvandoCentroCusto((prev) => new Set(prev).add(id));
     try {
-      const stamp = await stampRevisadaIfNull(id);
+      const stamp = await stampRevisadaIfComplete(id, { centro_custo_id: centroCustoId || null });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
         .update({ centro_custo_id: centroCustoId || null, ...(stamp || {}) })
         .eq("id", id);
       if (error) throw error;
+      if (stamp) marcarResolvidasNaSessao([id]);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       toast.success(centroCustoId ? "Centro de custo salvo" : "Centro de custo removido");
     } catch (e) {
@@ -763,6 +799,7 @@ export default function NFsStage() {
         })
         .in("id", alvos);
       if (error) throw error;
+      marcarResolvidasNaSessao(alvos);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       toast.success(`Classificação aplicada a ${alvos.length} NF${alvos.length === 1 ? "" : "s"}`);
       setAplicarFonte(null);
