@@ -363,6 +363,8 @@ const App = () => (
                 {/* /dashboard, /gestao-a-vista, /relatorios MIGRADOS pra GestaoVistaLayout (Sprint 2 — 29/04/2026) */}
                 <Route path="/desligamento/:id" element={<DesligamentoDetalhe />} />
                 <Route path="/pessoas" element={<Pessoas />} />
+                <Route path="/pessoas/novo" element={<PessoaForm />} />
+                <Route path="/pessoas/:id/editar" element={<PessoaForm />} />
                 <Route path="/colaboradores" element={
                   <ProtectedRoute permModule="colaboradores">
                     <RedirectToPessoasCLT />
