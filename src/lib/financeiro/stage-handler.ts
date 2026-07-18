@@ -158,6 +158,7 @@ export async function moverParaStage(
         numero_parcela: nf.numero_parcela ?? null,
         total_parcelas: nf.total_parcelas ?? null,
         duplicatas: nf.duplicatas ?? null,
+        meio_pagamento: nf.meio_pagamento ?? null,
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
