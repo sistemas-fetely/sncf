@@ -700,6 +700,21 @@ export default function NFsStage() {
 
 
 
+  function detectarIrmasDivergentes(
+    nfFonte: NFStage,
+    campo: "categoria" | "centro",
+    novoValor: string | null
+  ): NFStage[] {
+    if (!nfFonte.fornecedor_cnpj || !novoValor) return [];
+    return (nfs || []).filter((n) => {
+      if (n.id === nfFonte.id) return false;
+      if (n.fornecedor_cnpj !== nfFonte.fornecedor_cnpj) return false;
+      if (n.status === "descartada" || n.motivo_descarte) return false;
+      const valorAtual = campo === "categoria" ? n.plano_contas_id : n.centro_custo_id;
+      return valorAtual !== novoValor;
+    });
+  }
+
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
     try {
