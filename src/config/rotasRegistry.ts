@@ -35,14 +35,17 @@ export const ROTAS: RegraRota[] = [
   // Financeiro
   { prefixo: "/administrativo-fetely", status: "pronta", tela_slug: "tela.admin_fetely" },
   { prefixo: "/administrativo",        status: "pronta", tela_slug: "tela.financeiro"   },
-  // Admin do sistema (só super_admin via bypass — slug null = bloqueia todos os outros)
+  // Admin do sistema — slug null = só super_admin via bypass
+  // EXCETO /admin/cargos, que o Board pode ver com slug próprio
+  { prefixo: "/admin/cargos",  status: "pronta",        tela_slug: "tela.cargos"      },
   { prefixo: "/admin",         status: "pronta",        tela_slug: null               },
+  // People — abertas para Board (em_construcao para os demais)
+  { prefixo: "/pessoas",       status: "pronta",        tela_slug: "tela.pessoas"     },
+  { prefixo: "/organograma",   status: "pronta",        tela_slug: "tela.organograma" },
+  { prefixo: "/folha-pagamento", status: "pronta",      tela_slug: "tela.folha_pagamento" },
   // Em construção — bloqueados antes da checagem de slug
-  { prefixo: "/pessoas",          status: "em_construcao", tela_slug: null },
   { prefixo: "/colaboradores",    status: "em_construcao", tela_slug: null },
-  { prefixo: "/organograma",      status: "em_construcao", tela_slug: null },
   { prefixo: "/movimentacoes",    status: "em_construcao", tela_slug: null },
-  { prefixo: "/folha-pagamento",  status: "em_construcao", tela_slug: null },
   { prefixo: "/ferias",           status: "em_construcao", tela_slug: null },
   { prefixo: "/ponto",            status: "em_construcao", tela_slug: null },
   { prefixo: "/beneficios",       status: "em_construcao", tela_slug: null },
