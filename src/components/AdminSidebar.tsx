@@ -44,6 +44,13 @@ export function AdminSidebar() {
   const { roles } = useAuth();
   const collapsed = state === "collapsed";
 
+  const sistemaItemsFinal: MenuItem[] = [
+    ...sistemaItems,
+    ...(roles.includes("super_admin")
+      ? [{ title: "Visibilidade de Telas", url: "/admin/visibilidade", icon: Eye }]
+      : []),
+  ];
+
   const isItemActive = (url: string, end?: boolean) =>
     end ? location.pathname === url : location.pathname.startsWith(url);
 
