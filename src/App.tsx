@@ -327,8 +327,8 @@ const App = () => (
 
 
 
-              {/* SNCF — Portal + transversais (Tarefas, Templates, Usuários) */}
-              <Route element={<SNCFLayout />}>
+              {/* SNCF — Portal + transversais — App Simples, CasaLayout direto */}
+              {/* Doutrina CASA-2: SNCFLayout removido — rotas ficam direto no CasaLayout */}
               <Route path="/sncf" element={<PortalSNCF />} />
               <Route path="/tarefas" element={<MinhasTarefas />} />
               <Route path="/tarefas/time" element={<TarefasDoTime />} />
@@ -342,7 +342,6 @@ const App = () => (
               <Route path="/minhas-notas" element={<MinhasNotas />} />
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
-            </Route>
 
             {/* TI Fetely */}
             <Route path="/ti" element={<TILayout />}>
