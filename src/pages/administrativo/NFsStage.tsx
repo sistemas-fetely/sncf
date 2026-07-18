@@ -201,7 +201,8 @@ type FiltroPill =
   | "vinculadas"
   | "incompletas"
   | "docs_incompletos"
-  | "descartadas";
+  | "descartadas"
+  | "motor";
 
 function mesKeyDeNf(nf: NFStage): string | null {
   const d = nf.nf_data_emissao || nf.created_at;
