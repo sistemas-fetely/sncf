@@ -748,9 +748,21 @@ export default function NFsStage() {
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       qc.invalidateQueries({ queryKey: ["engine-regras-ativas"] });
 
-      // Feedback visual
+      // Feedback visual — checa irmãs divergentes do mesmo CNPJ
       if (categoriaId) {
-        toast.success("Categoria salva");
+        const nfFonte = nfs?.find((n) => n.id === id);
+        const irmas = nfFonte
+          ? detectarIrmasDivergentes(nfFonte, "categoria", categoriaId)
+          : [];
+        if (nfFonte && irmas.length > 0) {
+          setPropagacaoSugerida({
+            fonte: { ...nfFonte, plano_contas_id: categoriaId },
+            irmas,
+            campo: "categoria",
+          });
+        } else {
+          toast.success("Categoria salva");
+        }
       } else {
         toast.success("Categoria removida");
       }
