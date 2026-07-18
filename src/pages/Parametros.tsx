@@ -48,7 +48,7 @@ const CATEGORIAS_GERAL: CategoriaConfig[] = [
   { value: "area_negocio", label: "Áreas e Departamentos", icon: Monitor, description: "Estrutura organizacional: cada área contém seus departamentos. Cada pessoa pertence a 1 área e 1 departamento." },
   { value: "local_trabalho", label: "Locais de Trabalho", icon: Monitor, description: "Locais de trabalho disponíveis para colaboradores" },
   { value: "sistema", label: "Sistemas e Ferramentas", icon: Monitor, description: "Sistemas e ferramentas utilizados pela empresa" },
-  { value: "beneficio", label: "Benefícios", icon: Heart, description: "Tipos de benefícios oferecidos pela empresa" },
+  
   { value: "tipo_equipamento", label: "Tipos de Equipamento", icon: Package, description: "Tipos de equipamentos e seus estados" },
 ];
 
