@@ -410,6 +410,14 @@ export default function NFsStage() {
       list = list.filter(
         (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
       );
+    } else if (filtroPill === "motor") {
+      list = list.filter(
+        (n) =>
+          !!n.revisada_em &&
+          n.revisao_origem === "motor" &&
+          n.status !== "descartada" &&
+          !n.motivo_descarte,
+      );
     }
     if (mesFiltro) {
       list = list.filter((n) => mesKeyDeNf(n) === mesFiltro);
