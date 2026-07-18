@@ -107,6 +107,7 @@ export default function PessoaForm() {
   const [departamentos, setDepartamentos] = useState<Dim[]>([]);
   const [unidades, setUnidades] = useState<Dim[]>([]);
   const [formasPagamento, setFormasPagamento] = useState<Dim[]>([]);
+  const [pessoasAtivas, setPessoasAtivas] = useState<{ id: string; nome: string }[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
