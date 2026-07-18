@@ -3,15 +3,20 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolverRegraRota } from "@/config/rotasRegistry";
 import { usePermissoesDoUsuario, TELAS_PUBLICAS } from "@/hooks/usePermissoesDoUsuario";
+import { useRotasConfig, resolverRegraRotaBanco } from "@/hooks/useRotasConfig";
 
 export function RotaGate({ children }: { children: ReactNode }) {
   const { roles, loading } = useAuth();
   const location = useLocation();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const { data: permitidas, isLoading } = usePermissoesDoUsuario();
+  const { data: rotasBanco, isLoading: isLoadingRotas } = useRotasConfig();
 
-  // Aguarda auth ou carregamento de permissões (apenas para não-super_admin)
-  if (loading || (!isSuperAdmin && isLoading)) {
+  // super_admin vê tudo — nem espera o banco carregar.
+  if (isSuperAdmin) return <>{children}</>;
+
+  // Aguarda auth, permissões e config de rotas (só para não-super_admin).
+  if (loading || isLoading || isLoadingRotas) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -22,12 +27,15 @@ export function RotaGate({ children }: { children: ReactNode }) {
     );
   }
 
-  // super_admin vê tudo, inclusive telas em construção
-  if (isSuperAdmin) return <>{children}</>;
+  // Regra do banco (fonte ao vivo). Se não houver, fallback para o código.
+  const regraBanco = resolverRegraRotaBanco(location.pathname, rotasBanco);
+  const regraCodigo = resolverRegraRota(location.pathname);
 
-  const regra = resolverRegraRota(location.pathname);
+  // Merge: status vem do banco se a rota estiver lá; o tela_slug também.
+  // Se o banco não tem a rota (ou falhou), usa a regra do código inteira.
+  const regra = regraBanco ?? regraCodigo;
 
-  // Rota não registrada → nega
+  // Rota não registrada em lugar nenhum → nega
   if (!regra) return <Navigate to="/sem-permissao" replace />;
 
   // Em construção → nega (independente de grupo)

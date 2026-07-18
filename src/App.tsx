@@ -96,6 +96,7 @@ const MeusAcessos = lazy(() => import("@/pages/MeusAcessos"));
 const MinhasNotas = lazy(() => import("@/pages/MinhasNotas"));
 const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
 const HistoricoImportacoesPDF = lazy(() => import("@/pages/admin/HistoricoImportacoesPDF"));
+const GerenciarVisibilidade = lazy(() => import("@/pages/admin/GerenciarVisibilidade"));
 const GestaoAVista = lazy(() => import("@/pages/GestaoAVista"));
 const DocumentacaoGeral = lazy(() => import("@/pages/DocumentacaoGeral"));
 const PlanoDeContas = lazy(() => import("@/pages/administrativo/PlanoDeContas"));
@@ -550,6 +551,11 @@ const App = () => (
                 <Route path="importacoes-pdf" element={
                   <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
                     <HistoricoImportacoesPDF />
+                  </ProtectedRoute>
+                } />
+                <Route path="visibilidade" element={
+                  <ProtectedRoute allowedRoles={["super_admin"]}>
+                    <GerenciarVisibilidade />
                   </ProtectedRoute>
                 } />
               </Route>

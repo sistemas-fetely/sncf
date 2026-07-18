@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import {
   Sliders, Settings, UserCog, Shield,
-  ClipboardList, UsersRound, FilePlus,
+  ClipboardList, UsersRound, FilePlus, Eye,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
@@ -43,6 +43,13 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const { roles } = useAuth();
   const collapsed = state === "collapsed";
+
+  const sistemaItemsFinal: MenuItem[] = [
+    ...sistemaItems,
+    ...(roles.includes("super_admin")
+      ? [{ title: "Visibilidade de Telas", url: "/admin/visibilidade", icon: Eye }]
+      : []),
+  ];
 
   const isItemActive = (url: string, end?: boolean) =>
     end ? location.pathname === url : location.pathname.startsWith(url);
@@ -143,7 +150,7 @@ export function AdminSidebar() {
         <div className="mx-4 border-t border-sidebar-border/40" />
         {renderGroup("Pessoas & Acessos", pessoasItems)}
         <div className="mx-4 border-t border-sidebar-border/40" />
-        {renderGroup("Sistema", sistemaItems)}
+        {renderGroup("Sistema", sistemaItemsFinal)}
       </SidebarContent>
 
       <SidebarFooter className="p-4 space-y-2">
