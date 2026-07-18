@@ -452,6 +452,23 @@ export default function PessoaForm() {
                 <SelectContent>{unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Reporta a (gestor)</Label>
+              <Select
+                value={vinculo.gestor_pessoa_id || "__nenhum__"}
+                onValueChange={(v) => setVinculo({ ...vinculo, gestor_pessoa_id: v === "__nenhum__" ? "" : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="— sem gestor —" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__nenhum__">— sem gestor —</SelectItem>
+                  {pessoasAtivas
+                    .filter((pa) => pa.id !== id)
+                    .map((pa) => (
+                      <SelectItem key={pa.id} value={pa.id}>{pa.nome}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>Data de início *</Label><Input type="date" value={vinculo.data_inicio} onChange={(e) => setVinculo({ ...vinculo, data_inicio: e.target.value })} /></div>
             <div><Label>E-mail corporativo</Label><Input type="email" value={vinculo.email_corporativo} onChange={(e) => setVinculo({ ...vinculo, email_corporativo: e.target.value })} /></div>
             <div />
