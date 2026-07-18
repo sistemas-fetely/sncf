@@ -136,6 +136,7 @@ type NFStage = {
   total_parcelas?: number | null;
   revisada_em?: string | null;
   revisada_por?: string | null;
+  revisao_origem?: string | null;
   motivo_descarte?: string | null;
   meio_pagamento?: string | null;
   conta_pagar_id?: string | null;
