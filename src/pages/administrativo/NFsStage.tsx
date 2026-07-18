@@ -1546,12 +1546,22 @@ export default function NFsStage() {
                       <TableCell>
                         <div className="mb-1">
                           {nf.status === "descartada" || nf.motivo_descarte ? null : nf.revisada_em ? (
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] py-0 h-4 border-emerald-300 text-emerald-700 bg-emerald-50"
-                            >
-                              Revisada
-                            </Badge>
+                            nf.revisao_origem === "motor" ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] py-0 h-4 border-blue-300 text-blue-700 bg-blue-50"
+                                title="Classificada automaticamente — padrão confirmado por você anteriormente"
+                              >
+                                Motor
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] py-0 h-4 border-emerald-300 text-emerald-700 bg-emerald-50"
+                              >
+                                Revisada
+                              </Badge>
+                            )
                           ) : (
                             <Badge
                               variant="outline"
