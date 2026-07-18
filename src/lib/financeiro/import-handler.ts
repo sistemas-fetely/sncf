@@ -221,15 +221,19 @@ export async function importarNFs(nfs: NFParsed[]): Promise<ImportResult> {
         if (parceiro) {
           parceiro_id = parceiro.id;
         } else {
-          // Fallback: cria parceiro mínimo (caminho antigo, mantido para compatibilidade)
+          // Parceiro-rascunho: nasce com dados do XML, sinalizado para revisão humana
           const { data: novoParceiro, error: pErr } = await supabase
             .from("parceiros_comerciais")
             .insert({
               cnpj: nf.fornecedor_cnpj,
-              razao_social: nf.fornecedor_nome,
+              razao_social: nf.fornecedor_nome || nf.fornecedor_cnpj || "Fornecedor sem nome",
+              tipo_pessoa: "pj",
               tipo: "pj",
               tipos: ["fornecedor"],
               origem: nf._source === "csv_qive" ? "qive" : "nf_import",
+              cadastro_incompleto: true,
+              ativo: true,
+              observacao: "Criado automaticamente na importação de NF. Revisar cadastro.",
             } as any)
             .select("id")
             .single();
