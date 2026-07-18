@@ -553,6 +553,11 @@ const App = () => (
                     <HistoricoImportacoesPDF />
                   </ProtectedRoute>
                 } />
+                <Route path="visibilidade" element={
+                  <ProtectedRoute allowedRoles={["super_admin"]}>
+                    <GerenciarVisibilidade />
+                  </ProtectedRoute>
+                } />
               </Route>
 
 
