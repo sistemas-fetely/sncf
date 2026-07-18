@@ -238,6 +238,11 @@ export default function NFsStage() {
   // Mantém a linha visível para o usuário ver o feedback de progresso.
   // É limpa ao trocar de pill, mês, busca ou recarregar a página.
   const [resolvidasNaSessao, setResolvidasNaSessao] = useState<Set<string>>(new Set());
+  const [propagacaoSugerida, setPropagacaoSugerida] = useState<{
+    fonte: NFStage;
+    irmas: NFStage[];
+    campo: "categoria" | "centro";
+  } | null>(null);
 
   // Limpa o Set quando filtro/busca/mês mudam.
   useEffect(() => {
