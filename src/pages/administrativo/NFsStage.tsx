@@ -622,7 +622,7 @@ export default function NFsStage() {
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData?.user?.id;
     if (!uid) return null;
-    return { revisada_em: new Date().toISOString(), revisada_por: uid };
+    return { revisada_em: new Date().toISOString(), revisada_por: uid, revisao_origem: "humano" };
   }
 
   async function enviarParaPagamento(nf: NFStage) {
@@ -668,7 +668,7 @@ export default function NFsStage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
-        .update({ revisada_em: new Date().toISOString(), revisada_por: uid })
+        .update({ revisada_em: new Date().toISOString(), revisada_por: uid, revisao_origem: "humano" })
         .in("id", ids);
       if (error) throw error;
       marcarResolvidasNaSessao(ids);
