@@ -896,6 +896,7 @@ export type Database = {
           criado_por: string | null
           id: string
           tipo: string
+          updated_at: string
         }
         Insert: {
           ativo?: boolean | null
@@ -904,6 +905,7 @@ export type Database = {
           criado_por?: string | null
           id?: string
           tipo?: string
+          updated_at?: string
         }
         Update: {
           ativo?: boolean | null
@@ -912,6 +914,7 @@ export type Database = {
           criado_por?: string | null
           id?: string
           tipo?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -16721,6 +16724,79 @@ export type Database = {
           },
         ]
       }
+      vinculo_beneficios: {
+        Row: {
+          beneficio_id: string
+          created_at: string
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string
+          id: string
+          numero_cartao: string | null
+          observacoes: string | null
+          operadora: string | null
+          status: string
+          updated_at: string
+          valor_desconto: number
+          valor_empresa: number
+          vinculo_id: string
+        }
+        Insert: {
+          beneficio_id: string
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          numero_cartao?: string | null
+          observacoes?: string | null
+          operadora?: string | null
+          status?: string
+          updated_at?: string
+          valor_desconto?: number
+          valor_empresa?: number
+          vinculo_id: string
+        }
+        Update: {
+          beneficio_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          numero_cartao?: string | null
+          observacoes?: string | null
+          operadora?: string | null
+          status?: string
+          updated_at?: string
+          valor_desconto?: number
+          valor_empresa?: number
+          vinculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vinculo_beneficios_beneficio_id_fkey"
+            columns: ["beneficio_id"]
+            isOneToOne: false
+            referencedRelation: "beneficios_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+        ]
+      }
       vinculos: {
         Row: {
           agencia: string | null
@@ -18923,14 +18999,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -19841,6 +19917,30 @@ export type Database = {
           valor_venda: number | null
         }
         Relationships: []
+      }
+      vw_vinculo_beneficios_resumo: {
+        Row: {
+          qtd_beneficios_ativos: number | null
+          total_custo_empresa: number | null
+          total_desconto_colaborador: number | null
+          vinculo_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+        ]
       }
     }
     Functions: {
