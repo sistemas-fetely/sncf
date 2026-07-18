@@ -246,6 +246,7 @@ export default function PessoaForm() {
       cargo_id: vinculo.cargo_id || null,
       departamento_id: vinculo.departamento_id || null,
       unidade_id: vinculo.unidade_id || null,
+      gestor_pessoa_id: vinculo.gestor_pessoa_id || null,
       data_inicio: vinculo.data_inicio,
       valor_base: toNum(vinculo.valor_base),
       valor_transporte: toNum(vinculo.valor_transporte),
