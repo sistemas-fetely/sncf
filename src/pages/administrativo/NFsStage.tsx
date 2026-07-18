@@ -463,6 +463,13 @@ export default function NFsStage() {
       docsIncompletos: base.filter(
         (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
       ).length,
+      motor: base.filter(
+        (n) =>
+          !!n.revisada_em &&
+          n.revisao_origem === "motor" &&
+          n.status !== "descartada" &&
+          !n.motivo_descarte,
+      ).length,
       total: base.length,
     };
   }, [nfs, mesFiltro]);
