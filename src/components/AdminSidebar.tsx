@@ -150,7 +150,7 @@ export function AdminSidebar() {
         <div className="mx-4 border-t border-sidebar-border/40" />
         {renderGroup("Pessoas & Acessos", pessoasItems)}
         <div className="mx-4 border-t border-sidebar-border/40" />
-        {renderGroup("Sistema", sistemaItems)}
+        {renderGroup("Sistema", sistemaItemsFinal)}
       </SidebarContent>
 
       <SidebarFooter className="p-4 space-y-2">
