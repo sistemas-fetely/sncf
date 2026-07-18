@@ -702,7 +702,19 @@ export default function NFsStage() {
       } else {
         const classificadas = rows.filter((r) => r.categoria_id).length;
         const semRegra = rows.length - classificadas;
-        toast.success(`${classificadas} NFs classificadas pelas regras, ${semRegra} sem regra conhecida`);
+        const confirmadas = rows.filter((r) => r.acao === "classificada_confirmada").length;
+        const anomalas = rows.filter((r) => r.acao === "sugestao_valor_anomalo").length;
+        const partes: string[] = [
+          `${classificadas} NFs classificadas pelas regras`,
+          `${semRegra} sem regra conhecida`,
+        ];
+        if (confirmadas > 0) {
+          partes.push(`${confirmadas} classificada${confirmadas === 1 ? "" : "s"} e confirmada${confirmadas === 1 ? "" : "s"} automaticamente`);
+        }
+        if (anomalas > 0) {
+          partes.push(`${anomalas} com valor anômalo aguardando revisão`);
+        }
+        toast.success(partes.join(", "));
       }
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
     } catch (e) {
