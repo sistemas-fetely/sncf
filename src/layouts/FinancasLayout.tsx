@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 export default function FinancasLayout() {
-  const { user, roles, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -17,7 +17,9 @@ export default function FinancasLayout() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (!roles.includes("super_admin")) return <Navigate to="/sem-permissao" replace />;
+  // Controle de acesso delegado ao RotaGate (tela_slug: "tela.financeiro").
+  // Quem chega aqui já foi validado pelo RotaGate. Não duplicar a guarda.
+
 
   return (
     <SidebarProvider>
