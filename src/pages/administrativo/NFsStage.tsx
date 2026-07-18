@@ -1956,7 +1956,60 @@ export default function NFsStage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog — Sugestão de propagação para irmãs */}
+      <AlertDialog
+        open={!!propagacaoSugerida}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (propagacaoSugerida) {
+              toast.success(
+                propagacaoSugerida.campo === "categoria"
+                  ? "Categoria salva"
+                  : "Centro de custo salvo"
+              );
+            }
+            setPropagacaoSugerida(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Propagar para NFs do mesmo fornecedor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {propagacaoSugerida && (
+                <>
+                  Encontrei{" "}
+                  <strong>
+                    {propagacaoSugerida.irmas.length} outra
+                    {propagacaoSugerida.irmas.length === 1 ? "" : "s"} NF
+                    {propagacaoSugerida.irmas.length === 1 ? "" : "s"}
+                  </strong>{" "}
+                  de{" "}
+                  <strong>
+                    {propagacaoSugerida.fonte.fornecedor_razao_social ||
+                      propagacaoSugerida.fonte.fornecedor_cliente ||
+                      propagacaoSugerida.fonte.fornecedor_cnpj}
+                  </strong>{" "}
+                  com{" "}
+                  {propagacaoSugerida.campo === "categoria"
+                    ? "categoria diferente"
+                    : "centro de custo diferente"}
+                  . Deseja aplicar a mesma classificação para todas?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Ignorar</AlertDialogCancel>
+            <AlertDialogAction onClick={aplicarPropagacaoIrmas}>
+              Aplicar para todas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
