@@ -734,6 +734,7 @@ export default function NFsStage() {
           categoria_sugerida_ia: false,
           revisada_em: new Date().toISOString(),
           revisada_por: uid,
+          revisao_origem: "humano",
         })
         .in("id", ids);
       if (error) throw error;
@@ -898,11 +899,13 @@ export default function NFsStage() {
               categoria_sugerida_ia: false,
               revisada_em: new Date().toISOString(),
               revisada_por: uid,
+              revisao_origem: "humano",
             }
           : {
               centro_custo_id: fonte.centro_custo_id,
               revisada_em: new Date().toISOString(),
               revisada_por: uid,
+              revisao_origem: "humano",
             };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -950,6 +953,7 @@ export default function NFsStage() {
           categoria_sugerida_ia: false,
           revisada_em: new Date().toISOString(),
           revisada_por: uid,
+          revisao_origem: "humano",
         })
         .in("id", alvos);
       if (error) throw error;
