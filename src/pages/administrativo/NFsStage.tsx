@@ -74,6 +74,7 @@ import {
   FileWarning,
   MoreHorizontal,
   Wand2,
+  Send,
 
 } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
@@ -136,6 +137,8 @@ type NFStage = {
   revisada_em?: string | null;
   revisada_por?: string | null;
   motivo_descarte?: string | null;
+  meio_pagamento?: string | null;
+  conta_pagar_id?: string | null;
   completude?: string | null;
   // Flags vindos da view vw_nfs_stage_completude
   tem_xml: boolean;
@@ -603,6 +606,39 @@ export default function NFsStage() {
     const uid = userData?.user?.id;
     if (!uid) return null;
     return { revisada_em: new Date().toISOString(), revisada_por: uid };
+  }
+
+  async function enviarParaPagamento(nf: NFStage) {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("enviar_stage_para_pagamento", {
+        p_stage_id: nf.id,
+        p_user_id: uid,
+      });
+      if (error) throw error;
+
+      const r = Array.isArray(data) ? data[0] : data;
+      if (!r?.ok) {
+        toast.error(r?.motivo || "Não foi possível enviar para pagamento");
+        return;
+      }
+
+      const qtd = r.qtd_parcelas ?? 1;
+      toast.success(
+        qtd > 1
+          ? `${qtd} parcelas criadas em Contas a Pagar`
+          : "Pagamento criado em Contas a Pagar",
+      );
+      marcarResolvidasNaSessao([nf.id]);
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao enviar para pagamento: " + msg);
+    }
   }
 
   async function confirmarRevisao(ids: string[]) {
@@ -1710,6 +1746,27 @@ export default function NFsStage() {
                                     <Copy className="h-3.5 w-3.5 mr-2" />
                                     Aplicar classificação às selecionadas
                                   </DropdownMenuItem>
+                                  {!nf.conta_pagar_id &&
+                                    nf.status !== "descartada" &&
+                                    !nf.motivo_descarte &&
+                                    (() => {
+                                      const faltaClass =
+                                        !nf.plano_contas_id || !nf.centro_custo_id;
+                                      return (
+                                        <DropdownMenuItem
+                                          disabled={faltaClass}
+                                          onClick={() => enviarParaPagamento(nf)}
+                                          title={
+                                            faltaClass
+                                              ? "Complete a classificação antes de enviar"
+                                              : undefined
+                                          }
+                                        >
+                                          <Send className="h-3.5 w-3.5 mr-2" />
+                                          Enviar para pagamento
+                                        </DropdownMenuItem>
+                                      );
+                                    })()}
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive focus:bg-destructive/10"

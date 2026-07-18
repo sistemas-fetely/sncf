@@ -4524,6 +4524,44 @@ export type Database = {
         }
         Relationships: []
       }
+      departamentos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departamentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dependentes: {
         Row: {
           colaborador_id: string
@@ -7999,6 +8037,7 @@ export type Database = {
           itens: Json | null
           match_motivos: string | null
           match_score: number | null
+          meio_pagamento: string | null
           moeda: string
           motivo_descarte: string | null
           nf_chave_acesso: string | null
@@ -8042,6 +8081,7 @@ export type Database = {
           itens?: Json | null
           match_motivos?: string | null
           match_score?: number | null
+          meio_pagamento?: string | null
           moeda?: string
           motivo_descarte?: string | null
           nf_chave_acesso?: string | null
@@ -8085,6 +8125,7 @@ export type Database = {
           itens?: Json | null
           match_motivos?: string | null
           match_score?: number | null
+          meio_pagamento?: string | null
           moeda?: string
           motivo_descarte?: string | null
           nf_chave_acesso?: string | null
@@ -11257,6 +11298,102 @@ export type Database = {
         }
         Relationships: []
       }
+      pessoas: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          contato_emergencia_nome: string | null
+          contato_emergencia_telefone: string | null
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          data_nascimento: string | null
+          email_pessoal: string | null
+          estado_civil: string | null
+          etnia: string | null
+          foto_url: string | null
+          genero: string | null
+          id: string
+          logradouro: string | null
+          nacionalidade: string | null
+          nome_completo: string
+          nome_mae: string | null
+          nome_pai: string | null
+          numero: string | null
+          orgao_emissor: string | null
+          origem_contrato_pj_id: string | null
+          rg: string | null
+          telefone: string | null
+          uf: string | null
+          updated_at: string
+          usuario_id: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          contato_emergencia_nome?: string | null
+          contato_emergencia_telefone?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_nascimento?: string | null
+          email_pessoal?: string | null
+          estado_civil?: string | null
+          etnia?: string | null
+          foto_url?: string | null
+          genero?: string | null
+          id?: string
+          logradouro?: string | null
+          nacionalidade?: string | null
+          nome_completo: string
+          nome_mae?: string | null
+          nome_pai?: string | null
+          numero?: string | null
+          orgao_emissor?: string | null
+          origem_contrato_pj_id?: string | null
+          rg?: string | null
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          contato_emergencia_nome?: string | null
+          contato_emergencia_telefone?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_nascimento?: string | null
+          email_pessoal?: string | null
+          estado_civil?: string | null
+          etnia?: string | null
+          foto_url?: string | null
+          genero?: string | null
+          id?: string
+          logradouro?: string | null
+          nacionalidade?: string | null
+          nome_completo?: string
+          nome_mae?: string | null
+          nome_pai?: string | null
+          numero?: string | null
+          orgao_emissor?: string | null
+          origem_contrato_pj_id?: string | null
+          rg?: string | null
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       planilha_fatura_vinculo: {
         Row: {
           created_at: string
@@ -14234,6 +14371,30 @@ export type Database = {
         }
         Relationships: []
       }
+      sncf_rotas_config: {
+        Row: {
+          ordem: number
+          prefixo: string
+          status: string
+          tela_slug: string | null
+          updated_at: string
+        }
+        Insert: {
+          ordem?: number
+          prefixo: string
+          status?: string
+          tela_slug?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ordem?: number
+          prefixo?: string
+          status?: string
+          tela_slug?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sncf_sistemas: {
         Row: {
           ativo: boolean
@@ -16400,6 +16561,214 @@ export type Database = {
           },
         ]
       }
+      vinculos: {
+        Row: {
+          agencia: string | null
+          banco_codigo: string | null
+          banco_nome: string | null
+          cargo_id: string | null
+          categoria_pj: string | null
+          chave_pix: string | null
+          cnpj: string | null
+          conta: string | null
+          created_at: string
+          created_by: string | null
+          ctps_numero: string | null
+          ctps_serie: string | null
+          ctps_uf: string | null
+          data_admissao: string | null
+          data_fim: string | null
+          data_inicio: string
+          departamento_id: string | null
+          dia_vencimento: number | null
+          email_corporativo: string | null
+          fim_periodo_experiencia_1: string | null
+          fim_periodo_experiencia_2: string | null
+          forma_pagamento_id: string | null
+          gestor_pessoa_id: string | null
+          id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          jornada_semanal: number | null
+          matricula: string | null
+          nome_fantasia: string | null
+          objeto: string | null
+          observacoes: string | null
+          origem_contrato_pj_id: string | null
+          parceiro_comercial_id: string | null
+          pessoa_id: string
+          pis_pasep: string | null
+          razao_social: string | null
+          status: string
+          telefone_corporativo: string | null
+          tipo_conta: string | null
+          tipo_vinculo: string
+          unidade_id: string | null
+          updated_at: string
+          valor_base: number | null
+          valor_beneficios_extras: number | null
+          valor_transporte: number | null
+        }
+        Insert: {
+          agencia?: string | null
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          cargo_id?: string | null
+          categoria_pj?: string | null
+          chave_pix?: string | null
+          cnpj?: string | null
+          conta?: string | null
+          created_at?: string
+          created_by?: string | null
+          ctps_numero?: string | null
+          ctps_serie?: string | null
+          ctps_uf?: string | null
+          data_admissao?: string | null
+          data_fim?: string | null
+          data_inicio: string
+          departamento_id?: string | null
+          dia_vencimento?: number | null
+          email_corporativo?: string | null
+          fim_periodo_experiencia_1?: string | null
+          fim_periodo_experiencia_2?: string | null
+          forma_pagamento_id?: string | null
+          gestor_pessoa_id?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          jornada_semanal?: number | null
+          matricula?: string | null
+          nome_fantasia?: string | null
+          objeto?: string | null
+          observacoes?: string | null
+          origem_contrato_pj_id?: string | null
+          parceiro_comercial_id?: string | null
+          pessoa_id: string
+          pis_pasep?: string | null
+          razao_social?: string | null
+          status?: string
+          telefone_corporativo?: string | null
+          tipo_conta?: string | null
+          tipo_vinculo: string
+          unidade_id?: string | null
+          updated_at?: string
+          valor_base?: number | null
+          valor_beneficios_extras?: number | null
+          valor_transporte?: number | null
+        }
+        Update: {
+          agencia?: string | null
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          cargo_id?: string | null
+          categoria_pj?: string | null
+          chave_pix?: string | null
+          cnpj?: string | null
+          conta?: string | null
+          created_at?: string
+          created_by?: string | null
+          ctps_numero?: string | null
+          ctps_serie?: string | null
+          ctps_uf?: string | null
+          data_admissao?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          departamento_id?: string | null
+          dia_vencimento?: number | null
+          email_corporativo?: string | null
+          fim_periodo_experiencia_1?: string | null
+          fim_periodo_experiencia_2?: string | null
+          forma_pagamento_id?: string | null
+          gestor_pessoa_id?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          jornada_semanal?: number | null
+          matricula?: string | null
+          nome_fantasia?: string | null
+          objeto?: string | null
+          observacoes?: string | null
+          origem_contrato_pj_id?: string | null
+          parceiro_comercial_id?: string | null
+          pessoa_id?: string
+          pis_pasep?: string | null
+          razao_social?: string | null
+          status?: string
+          telefone_corporativo?: string | null
+          tipo_conta?: string | null
+          tipo_vinculo?: string
+          unidade_id?: string | null
+          updated_at?: string
+          valor_base?: number | null
+          valor_beneficios_extras?: number | null
+          valor_transporte?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vinculos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vinculos_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wns_fase_para_estagio: {
         Row: {
           ativo: boolean
@@ -18324,14 +18693,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -19903,6 +20272,10 @@ export type Database = {
         }[]
       }
       enviar_pedido_compra: { Args: { p_pedido_id: string }; Returns: Json }
+      enviar_stage_para_pagamento: {
+        Args: { p_stage_id: string; p_user_id?: string }
+        Returns: Json
+      }
       erguer_bandeira_vermelha: {
         Args: { p_motivo: string; p_parceiro_id: string }
         Returns: Json
@@ -20229,6 +20602,15 @@ export type Database = {
           fornecedor_cliente: string
           id: string
           valor: number
+        }[]
+      }
+      listar_rotas_config: {
+        Args: never
+        Returns: {
+          ordem: number
+          prefixo: string
+          status: string
+          tela_slug: string
         }[]
       }
       marcar_atencao_pedido: {
@@ -20678,6 +21060,22 @@ export type Database = {
           p_valor_b: number
         }
         Returns: number
+      }
+      set_rota_status: {
+        Args: { p_prefixo: string; p_status: string }
+        Returns: {
+          ordem: number
+          prefixo: string
+          status: string
+          tela_slug: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sncf_rotas_config"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_user_tema: {
         Args: { p_tema: string }
