@@ -608,6 +608,39 @@ export default function NFsStage() {
     return { revisada_em: new Date().toISOString(), revisada_por: uid };
   }
 
+  async function enviarParaPagamento(nf: NFStage) {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("enviar_stage_para_pagamento", {
+        p_stage_id: nf.id,
+        p_user_id: uid,
+      });
+      if (error) throw error;
+
+      const r = Array.isArray(data) ? data[0] : data;
+      if (!r?.ok) {
+        toast.error(r?.motivo || "Não foi possível enviar para pagamento");
+        return;
+      }
+
+      const qtd = r.qtd_parcelas ?? 1;
+      toast.success(
+        qtd > 1
+          ? `${qtd} parcelas criadas em Contas a Pagar`
+          : "Pagamento criado em Contas a Pagar",
+      );
+      marcarResolvidasNaSessao([nf.id]);
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao enviar para pagamento: " + msg);
+    }
+  }
+
   async function confirmarRevisao(ids: string[]) {
     if (ids.length === 0) return;
     setConfirmandoRevisao(true);
