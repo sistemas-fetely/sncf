@@ -1746,6 +1746,27 @@ export default function NFsStage() {
                                     <Copy className="h-3.5 w-3.5 mr-2" />
                                     Aplicar classificação às selecionadas
                                   </DropdownMenuItem>
+                                  {!nf.conta_pagar_id &&
+                                    nf.status !== "descartada" &&
+                                    !nf.motivo_descarte &&
+                                    (() => {
+                                      const faltaClass =
+                                        !nf.plano_contas_id || !nf.centro_custo_id;
+                                      return (
+                                        <DropdownMenuItem
+                                          disabled={faltaClass}
+                                          onClick={() => enviarParaPagamento(nf)}
+                                          title={
+                                            faltaClass
+                                              ? "Complete a classificação antes de enviar"
+                                              : undefined
+                                          }
+                                        >
+                                          <Send className="h-3.5 w-3.5 mr-2" />
+                                          Enviar para pagamento
+                                        </DropdownMenuItem>
+                                      );
+                                    })()}
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive focus:bg-destructive/10"
