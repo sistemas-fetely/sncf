@@ -136,6 +136,7 @@ type NFStage = {
   total_parcelas?: number | null;
   revisada_em?: string | null;
   revisada_por?: string | null;
+  revisao_origem?: string | null;
   motivo_descarte?: string | null;
   meio_pagamento?: string | null;
   conta_pagar_id?: string | null;
@@ -200,7 +201,8 @@ type FiltroPill =
   | "vinculadas"
   | "incompletas"
   | "docs_incompletos"
-  | "descartadas";
+  | "descartadas"
+  | "motor";
 
 function mesKeyDeNf(nf: NFStage): string | null {
   const d = nf.nf_data_emissao || nf.created_at;
@@ -408,6 +410,14 @@ export default function NFsStage() {
       list = list.filter(
         (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
       );
+    } else if (filtroPill === "motor") {
+      list = list.filter(
+        (n) =>
+          !!n.revisada_em &&
+          n.revisao_origem === "motor" &&
+          n.status !== "descartada" &&
+          !n.motivo_descarte,
+      );
     }
     if (mesFiltro) {
       list = list.filter((n) => mesKeyDeNf(n) === mesFiltro);
@@ -452,6 +462,13 @@ export default function NFsStage() {
       ).length,
       docsIncompletos: base.filter(
         (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
+      ).length,
+      motor: base.filter(
+        (n) =>
+          !!n.revisada_em &&
+          n.revisao_origem === "motor" &&
+          n.status !== "descartada" &&
+          !n.motivo_descarte,
       ).length,
       total: base.length,
     };
@@ -605,7 +622,7 @@ export default function NFsStage() {
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData?.user?.id;
     if (!uid) return null;
-    return { revisada_em: new Date().toISOString(), revisada_por: uid };
+    return { revisada_em: new Date().toISOString(), revisada_por: uid, revisao_origem: "humano" };
   }
 
   async function enviarParaPagamento(nf: NFStage) {
@@ -651,7 +668,7 @@ export default function NFsStage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
-        .update({ revisada_em: new Date().toISOString(), revisada_por: uid })
+        .update({ revisada_em: new Date().toISOString(), revisada_por: uid, revisao_origem: "humano" })
         .in("id", ids);
       if (error) throw error;
       marcarResolvidasNaSessao(ids);
@@ -685,7 +702,19 @@ export default function NFsStage() {
       } else {
         const classificadas = rows.filter((r) => r.categoria_id).length;
         const semRegra = rows.length - classificadas;
-        toast.success(`${classificadas} NFs classificadas pelas regras, ${semRegra} sem regra conhecida`);
+        const confirmadas = rows.filter((r) => r.acao === "classificada_confirmada").length;
+        const anomalas = rows.filter((r) => r.acao === "sugestao_valor_anomalo").length;
+        const partes: string[] = [
+          `${classificadas} NFs classificadas pelas regras`,
+          `${semRegra} sem regra conhecida`,
+        ];
+        if (confirmadas > 0) {
+          partes.push(`${confirmadas} classificada${confirmadas === 1 ? "" : "s"} e confirmada${confirmadas === 1 ? "" : "s"} automaticamente`);
+        }
+        if (anomalas > 0) {
+          partes.push(`${anomalas} com valor anômalo aguardando revisão`);
+        }
+        toast.success(partes.join(", "));
       }
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
     } catch (e) {
@@ -717,6 +746,7 @@ export default function NFsStage() {
           categoria_sugerida_ia: false,
           revisada_em: new Date().toISOString(),
           revisada_por: uid,
+          revisao_origem: "humano",
         })
         .in("id", ids);
       if (error) throw error;
@@ -881,11 +911,13 @@ export default function NFsStage() {
               categoria_sugerida_ia: false,
               revisada_em: new Date().toISOString(),
               revisada_por: uid,
+              revisao_origem: "humano",
             }
           : {
               centro_custo_id: fonte.centro_custo_id,
               revisada_em: new Date().toISOString(),
               revisada_por: uid,
+              revisao_origem: "humano",
             };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -933,6 +965,7 @@ export default function NFsStage() {
           categoria_sugerida_ia: false,
           revisada_em: new Date().toISOString(),
           revisada_por: uid,
+          revisao_origem: "humano",
         })
         .in("id", alvos);
       if (error) throw error;
@@ -1151,6 +1184,15 @@ export default function NFsStage() {
               icon={<CheckCircle2 className="h-4 w-4" />}
               active={filtroPill === "vinculadas"}
               onClick={() => setFiltroPill("vinculadas")}
+            />
+            <KpiPill
+              label="Motor"
+              count={totals.motor}
+              color="blue"
+              active={filtroPill === "motor"}
+              onClick={() => setFiltroPill("motor")}
+              icon={<Wand2 className="h-3 w-3" />}
+              description="carimbadas automaticamente"
             />
             <KpiPill
               label="Incompletas"
@@ -1520,12 +1562,22 @@ export default function NFsStage() {
                       <TableCell>
                         <div className="mb-1">
                           {nf.status === "descartada" || nf.motivo_descarte ? null : nf.revisada_em ? (
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] py-0 h-4 border-emerald-300 text-emerald-700 bg-emerald-50"
-                            >
-                              Revisada
-                            </Badge>
+                            nf.revisao_origem === "motor" ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] py-0 h-4 border-blue-300 text-blue-700 bg-blue-50"
+                                title="Classificada automaticamente — padrão confirmado por você anteriormente"
+                              >
+                                Motor
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] py-0 h-4 border-emerald-300 text-emerald-700 bg-emerald-50"
+                              >
+                                Revisada
+                              </Badge>
+                            )
                           ) : (
                             <Badge
                               variant="outline"

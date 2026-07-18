@@ -1990,6 +1990,60 @@ export type Database = {
         }
         Relationships: []
       }
+      classificacoes_confirmadas: {
+        Row: {
+          centro_custo_id: string | null
+          cnpj: string
+          confirmada_em: string
+          confirmada_por: string | null
+          created_at: string
+          id: string
+          ncm_prefixo: string
+          plano_contas_id: string
+          updated_at: string
+          valor_max_confirmado: number
+        }
+        Insert: {
+          centro_custo_id?: string | null
+          cnpj: string
+          confirmada_em?: string
+          confirmada_por?: string | null
+          created_at?: string
+          id?: string
+          ncm_prefixo?: string
+          plano_contas_id: string
+          updated_at?: string
+          valor_max_confirmado?: number
+        }
+        Update: {
+          centro_custo_id?: string | null
+          cnpj?: string
+          confirmada_em?: string
+          confirmada_por?: string | null
+          created_at?: string
+          id?: string
+          ncm_prefixo?: string
+          plano_contas_id?: string
+          updated_at?: string
+          valor_max_confirmado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classificacoes_confirmadas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classificacoes_confirmadas_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colaborador_acessos_sistemas: {
         Row: {
           colaborador_id: string
@@ -8054,6 +8108,7 @@ export type Database = {
           resumo_pdf_storage_path: string | null
           revisada_em: string | null
           revisada_por: string | null
+          revisao_origem: string | null
           status: string
           taxa_conversao: number | null
           tem_xml_obrigatorio: boolean
@@ -8098,6 +8153,7 @@ export type Database = {
           resumo_pdf_storage_path?: string | null
           revisada_em?: string | null
           revisada_por?: string | null
+          revisao_origem?: string | null
           status?: string
           taxa_conversao?: number | null
           tem_xml_obrigatorio?: boolean
@@ -8142,6 +8198,7 @@ export type Database = {
           resumo_pdf_storage_path?: string | null
           revisada_em?: string | null
           revisada_por?: string | null
+          revisao_origem?: string | null
           status?: string
           taxa_conversao?: number | null
           tem_xml_obrigatorio?: boolean
