@@ -35,6 +35,7 @@ import type { Parametro } from "@/hooks/useParametros";
 import { usePerfisV2 } from "@/hooks/usePerfisV2";
 import ParametrosFinanceiroTab from "@/components/financeiro/ParametrosFinanceiroTab";
 import ParametrosUnidadesSection from "@/components/parametros/ParametrosUnidadesSection";
+import ParametrosBeneficiosSection from "@/components/parametros/ParametrosBeneficiosSection";
 
 interface CategoriaConfig {
   value: string;
