@@ -187,6 +187,7 @@ export default function PessoaForm() {
             pis_pasep: v.pis_pasep || "", ctps_numero: v.ctps_numero || "",
             matricula: v.matricula || "", data_admissao: v.data_admissao || "",
             jornada_semanal: v.jornada_semanal?.toString() || "44",
+            gestor_pessoa_id: v.gestor_pessoa_id || "",
           });
         }
       } catch (err: any) {
