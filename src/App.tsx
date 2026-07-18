@@ -343,295 +343,299 @@ const App = () => (
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
 
-            {/* TI Fetely */}
-            <Route path="/ti" element={<TILayout />}>
-              <Route index element={<TIDashboard />} />
-              <Route path="ativos" element={<TIAtivos />} />
-              <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
-              {/* Redirects legados — documentação migrou pra SNCF */}
-              <Route path="documentacao" element={<Navigate to="/documentacao" replace />} />
-              <Route path="documentacao/novo" element={<Navigate to="/documentacao/novo" replace />} />
-              <Route path="documentacao/:slug" element={<TiDocSlugRedirect />} />
-            </Route>
-
-            {/* Protected routes */}
-            <Route element={<AppLayout />}>
-              {/* /dashboard, /gestao-a-vista, /relatorios MIGRADOS pra GestaoVistaLayout (Sprint 2 — 29/04/2026) */}
-              <Route path="/desligamento/:id" element={<DesligamentoDetalhe />} />
-              <Route path="/pessoas" element={<Pessoas />} />
-              <Route path="/colaboradores" element={
-                <ProtectedRoute permModule="colaboradores">
-                  <RedirectToPessoasCLT />
-                </ProtectedRoute>
-              } />
-              <Route path="/colaboradores/novo" element={
-                <ProtectedRoute permModule="colaboradores" permAction="create">
-                  <CadastroColaboradorCLTWrapper />
-                </ProtectedRoute>
-              } />
-              <Route path="/colaboradores/:id" element={
-                <ProtectedRoute permModule="colaboradores">
-                  <ColaboradorDetalhe />
-                </ProtectedRoute>
-              } />
-              <Route path="/organograma" element={
-                <ProtectedRoute permModule="organograma">
-                  <Organograma />
-                </ProtectedRoute>
-              } />
-              <Route path="/movimentacoes" element={
-                <ProtectedRoute permModule="movimentacoes">
-                  <Movimentacoes />
-                </ProtectedRoute>
-              } />
-
-              {/* CLT */}
-              <Route path="/folha-pagamento" element={
-                <ProtectedRoute permModule="folha_pagamento">
-                  <FolhaPagamento />
-                </ProtectedRoute>
-              } />
-              <Route path="/ferias" element={
-                <ProtectedRoute permModule="ferias">
-                  <Ferias />
-                </ProtectedRoute>
-              } />
-              <Route path="/ferias/colaborador/:id" element={
-                <ProtectedRoute permModule="ferias">
-                  <FeriasColaborador />
-                </ProtectedRoute>
-              } />
-              <Route path="/ponto" element={
-                <ProtectedRoute permModule="folha_pagamento">
-                  <PlaceholderPage title="Controle de Ponto" description="Apuração de horas e banco de horas" />
-                </ProtectedRoute>
-              } />
-              <Route path="/beneficios" element={
-                <ProtectedRoute permModule="beneficios">
-                  <Beneficios />
-                </ProtectedRoute>
-              } />
-
-              {/* PJ */}
-              <Route path="/contratos-pj" element={
-                <ProtectedRoute permModule="contratos_pj">
-                  <RedirectToPessoasPJ />
-                </ProtectedRoute>
-              } />
-              <Route path="/contratos-pj/novo" element={
-                <ProtectedRoute permModule="contratos_pj" permAction="create">
-                  <CadastroContratoPJ />
-                </ProtectedRoute>
-              } />
-              <Route path="/contratos-pj/novo-manual" element={
-                <ProtectedRoute permModule="contratos_pj" permAction="create">
-                  <CadastroManualContratoPJ />
-                </ProtectedRoute>
-              } />
-              <Route path="/contratos-pj/:id" element={
-                <ProtectedRoute permModule="contratos_pj">
-                  <ContratoPJDetalhe />
-                </ProtectedRoute>
-              } />
-              <Route path="/notas-fiscais" element={
-                <ProtectedRoute permModule="notas_fiscais">
-                  <NotasFiscais />
-                </ProtectedRoute>
-              } />
-              <Route path="/notas-fiscais/:id" element={
-                <ProtectedRoute permModule="notas_fiscais">
-                  <NotaFiscalDetalhe />
-                </ProtectedRoute>
-              } />
-              <Route path="/pagamentos-pj" element={
-                <ProtectedRoute permModule="pagamentos_pj">
-                  <PagamentosPJ />
-                </ProtectedRoute>
-              } />
-              <Route path="/pagamentos-pj/:contratoId" element={
-                <ProtectedRoute permModule="pagamentos_pj">
-                  <PagamentoPJRelatorio />
-                </ProtectedRoute>
-              } />
-
-              {/* RH */}
-              <Route path="/convites-cadastro" element={
-                <ProtectedRoute permModule="convites">
-                  <ConvitesCadastro />
-                </ProtectedRoute>
-              } />
-              <Route path="/convites-cadastro/:id" element={
-                <ProtectedRoute permModule="convites">
-                  <ConviteDetalhe />
-                </ProtectedRoute>
-              } />
-              <Route path="/onboarding" element={
-                <ProtectedRoute permModule="convites">
-                  <Onboarding />
-                </ProtectedRoute>
-              } />
-              <Route path="/onboarding/:id" element={
-                <ProtectedRoute permModule="convites">
-                  <OnboardingDetalhe />
-                </ProtectedRoute>
-              } />
-              <Route path="/recrutamento" element={
-                <ProtectedRoute permModule="recrutamento">
-                  <Recrutamento />
-                </ProtectedRoute>
-              } />
-              <Route path="/recrutamento/:id" element={
-                <ProtectedRoute permModule="recrutamento">
-                  <RecrutamentoDetalhe />
-                </ProtectedRoute>
-              } />
-              <Route path="/avaliacoes" element={
-                <ProtectedRoute permModule="avaliacoes">
-                  <PlaceholderPage title="Avaliações de Desempenho" description="Ciclos de avaliação e PDI" />
-                </ProtectedRoute>
-              } />
-              <Route path="/treinamentos" element={
-                <ProtectedRoute permModule="treinamentos">
-                  <PlaceholderPage title="Treinamentos" description="Controle de capacitação e certificados" />
-                </ProtectedRoute>
-              } />
-              {/* /relatorios MIGRADO pra GestaoVistaLayout (Sprint 2 — 29/04/2026) */}
-
-              {/* Redirects legados → Admin */}
-              <Route path="/parametros" element={<Navigate to="/admin/parametros" replace />} />
-              <Route path="/configuracoes" element={<Navigate to="/admin/configuracoes" replace />} />
-              <Route path="/configurar-perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
-              <Route path="/cargos" element={<Navigate to="/admin/cargos" replace />} />
-              <Route path="/cargos/enriquecimento" element={<Navigate to="/admin/cargos/enriquecimento" replace />} />
-              <Route path="/cargos/novo" element={<Navigate to="/admin/cargos/novo" replace />} />
-              <Route path="/cargos/:id" element={<CargosIdRedirect />} />
+              {/* ═══════════════════════════════════════════════
+                  Layouts abaixo: dentro do CasaLayout → cobertos pelo RotaGate
+                  ═══════════════════════════════════════════════ */}
+              {/* TI Fetely */}
+              <Route path="/ti" element={<TILayout />}>
+                <Route index element={<TIDashboard />} />
+                <Route path="ativos" element={<TIAtivos />} />
+                <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
+                {/* Redirects legados — documentação migrou pra SNCF */}
+                <Route path="documentacao" element={<Navigate to="/documentacao" replace />} />
+                <Route path="documentacao/novo" element={<Navigate to="/documentacao/novo" replace />} />
+                <Route path="documentacao/:slug" element={<TiDocSlugRedirect />} />
               </Route>
 
-            {/* ═══════════════════════════════════════════════
-                Administração (zona restrita: super_admin + admin_rh)
-                ═══════════════════════════════════════════════ */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Navigate to="/admin/cargos" replace />} />
-              <Route path="cargos" element={
-                <ProtectedRoute permModule="parametros"><Cargos /></ProtectedRoute>
-              } />
-              <Route path="cargos/novo" element={
-                <ProtectedRoute permModule="parametros"><CargoForm /></ProtectedRoute>
-              } />
-              <Route path="cargos/enriquecimento" element={
-                <ProtectedRoute permModule="parametros"><CargosEnriquecimento /></ProtectedRoute>
-              } />
-              <Route path="cargos/:id" element={
-                <ProtectedRoute permModule="parametros"><CargoForm /></ProtectedRoute>
-              } />
-              <Route path="parametros" element={
-                <ProtectedRoute permModule="parametros"><Parametros /></ProtectedRoute>
-              } />
-              <Route path="configuracoes" element={
-                <ProtectedRoute permModule="usuarios"><Configuracoes /></ProtectedRoute>
-              } />
-              <Route path="usuarios" element={
-                <ProtectedRoute permModule="usuarios"><GerenciarUsuarios /></ProtectedRoute>
-              } />
-              <Route path="usuarios/perfis" element={
-                <ProtectedRoute permModule="usuarios"><ConfigurarPerfis /></ProtectedRoute>
-              } />
-              <Route path="reportes" element={
-                <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
-                  <SistemaReportes />
-                </ProtectedRoute>
-              } />
-              <Route path="importacoes-pdf" element={
-                <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
-                  <HistoricoImportacoesPDF />
-                </ProtectedRoute>
-              } />
+              {/* Protected routes */}
+              <Route element={<AppLayout />}>
+                {/* /dashboard, /gestao-a-vista, /relatorios MIGRADOS pra GestaoVistaLayout (Sprint 2 — 29/04/2026) */}
+                <Route path="/desligamento/:id" element={<DesligamentoDetalhe />} />
+                <Route path="/pessoas" element={<Pessoas />} />
+                <Route path="/colaboradores" element={
+                  <ProtectedRoute permModule="colaboradores">
+                    <RedirectToPessoasCLT />
+                  </ProtectedRoute>
+                } />
+                <Route path="/colaboradores/novo" element={
+                  <ProtectedRoute permModule="colaboradores" permAction="create">
+                    <CadastroColaboradorCLTWrapper />
+                  </ProtectedRoute>
+                } />
+                <Route path="/colaboradores/:id" element={
+                  <ProtectedRoute permModule="colaboradores">
+                    <ColaboradorDetalhe />
+                  </ProtectedRoute>
+                } />
+                <Route path="/organograma" element={
+                  <ProtectedRoute permModule="organograma">
+                    <Organograma />
+                  </ProtectedRoute>
+                } />
+                <Route path="/movimentacoes" element={
+                  <ProtectedRoute permModule="movimentacoes">
+                    <Movimentacoes />
+                  </ProtectedRoute>
+                } />
+
+                {/* CLT */}
+                <Route path="/folha-pagamento" element={
+                  <ProtectedRoute permModule="folha_pagamento">
+                    <FolhaPagamento />
+                  </ProtectedRoute>
+                } />
+                <Route path="/ferias" element={
+                  <ProtectedRoute permModule="ferias">
+                    <Ferias />
+                  </ProtectedRoute>
+                } />
+                <Route path="/ferias/colaborador/:id" element={
+                  <ProtectedRoute permModule="ferias">
+                    <FeriasColaborador />
+                  </ProtectedRoute>
+                } />
+                <Route path="/ponto" element={
+                  <ProtectedRoute permModule="folha_pagamento">
+                    <PlaceholderPage title="Controle de Ponto" description="Apuração de horas e banco de horas" />
+                  </ProtectedRoute>
+                } />
+                <Route path="/beneficios" element={
+                  <ProtectedRoute permModule="beneficios">
+                    <Beneficios />
+                  </ProtectedRoute>
+                } />
+
+                {/* PJ */}
+                <Route path="/contratos-pj" element={
+                  <ProtectedRoute permModule="contratos_pj">
+                    <RedirectToPessoasPJ />
+                  </ProtectedRoute>
+                } />
+                <Route path="/contratos-pj/novo" element={
+                  <ProtectedRoute permModule="contratos_pj" permAction="create">
+                    <CadastroContratoPJ />
+                  </ProtectedRoute>
+                } />
+                <Route path="/contratos-pj/novo-manual" element={
+                  <ProtectedRoute permModule="contratos_pj" permAction="create">
+                    <CadastroManualContratoPJ />
+                  </ProtectedRoute>
+                } />
+                <Route path="/contratos-pj/:id" element={
+                  <ProtectedRoute permModule="contratos_pj">
+                    <ContratoPJDetalhe />
+                  </ProtectedRoute>
+                } />
+                <Route path="/notas-fiscais" element={
+                  <ProtectedRoute permModule="notas_fiscais">
+                    <NotasFiscais />
+                  </ProtectedRoute>
+                } />
+                <Route path="/notas-fiscais/:id" element={
+                  <ProtectedRoute permModule="notas_fiscais">
+                    <NotaFiscalDetalhe />
+                  </ProtectedRoute>
+                } />
+                <Route path="/pagamentos-pj" element={
+                  <ProtectedRoute permModule="pagamentos_pj">
+                    <PagamentosPJ />
+                  </ProtectedRoute>
+                } />
+                <Route path="/pagamentos-pj/:contratoId" element={
+                  <ProtectedRoute permModule="pagamentos_pj">
+                    <PagamentoPJRelatorio />
+                  </ProtectedRoute>
+                } />
+
+                {/* RH */}
+                <Route path="/convites-cadastro" element={
+                  <ProtectedRoute permModule="convites">
+                    <ConvitesCadastro />
+                  </ProtectedRoute>
+                } />
+                <Route path="/convites-cadastro/:id" element={
+                  <ProtectedRoute permModule="convites">
+                    <ConviteDetalhe />
+                  </ProtectedRoute>
+                } />
+                <Route path="/onboarding" element={
+                  <ProtectedRoute permModule="convites">
+                    <Onboarding />
+                  </ProtectedRoute>
+                } />
+                <Route path="/onboarding/:id" element={
+                  <ProtectedRoute permModule="convites">
+                    <OnboardingDetalhe />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recrutamento" element={
+                  <ProtectedRoute permModule="recrutamento">
+                    <Recrutamento />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recrutamento/:id" element={
+                  <ProtectedRoute permModule="recrutamento">
+                    <RecrutamentoDetalhe />
+                  </ProtectedRoute>
+                } />
+                <Route path="/avaliacoes" element={
+                  <ProtectedRoute permModule="avaliacoes">
+                    <PlaceholderPage title="Avaliações de Desempenho" description="Ciclos de avaliação e PDI" />
+                  </ProtectedRoute>
+                } />
+                <Route path="/treinamentos" element={
+                  <ProtectedRoute permModule="treinamentos">
+                    <PlaceholderPage title="Treinamentos" description="Controle de capacitação e certificados" />
+                  </ProtectedRoute>
+                } />
+                {/* /relatorios MIGRADO pra GestaoVistaLayout (Sprint 2 — 29/04/2026) */}
+
+                {/* Redirects legados → Admin */}
+                <Route path="/parametros" element={<Navigate to="/admin/parametros" replace />} />
+                <Route path="/configuracoes" element={<Navigate to="/admin/configuracoes" replace />} />
+                <Route path="/configurar-perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
+                <Route path="/cargos" element={<Navigate to="/admin/cargos" replace />} />
+                <Route path="/cargos/enriquecimento" element={<Navigate to="/admin/cargos/enriquecimento" replace />} />
+                <Route path="/cargos/novo" element={<Navigate to="/admin/cargos/novo" replace />} />
+                <Route path="/cargos/:id" element={<CargosIdRedirect />} />
+                </Route>
+
+              {/* ═══════════════════════════════════════════════
+                  Administração (zona restrita: super_admin + admin_rh)
+                  ═══════════════════════════════════════════════ */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Navigate to="/admin/cargos" replace />} />
+                <Route path="cargos" element={
+                  <ProtectedRoute permModule="parametros"><Cargos /></ProtectedRoute>
+                } />
+                <Route path="cargos/novo" element={
+                  <ProtectedRoute permModule="parametros"><CargoForm /></ProtectedRoute>
+                } />
+                <Route path="cargos/enriquecimento" element={
+                  <ProtectedRoute permModule="parametros"><CargosEnriquecimento /></ProtectedRoute>
+                } />
+                <Route path="cargos/:id" element={
+                  <ProtectedRoute permModule="parametros"><CargoForm /></ProtectedRoute>
+                } />
+                <Route path="parametros" element={
+                  <ProtectedRoute permModule="parametros"><Parametros /></ProtectedRoute>
+                } />
+                <Route path="configuracoes" element={
+                  <ProtectedRoute permModule="usuarios"><Configuracoes /></ProtectedRoute>
+                } />
+                <Route path="usuarios" element={
+                  <ProtectedRoute permModule="usuarios"><GerenciarUsuarios /></ProtectedRoute>
+                } />
+                <Route path="usuarios/perfis" element={
+                  <ProtectedRoute permModule="usuarios"><ConfigurarPerfis /></ProtectedRoute>
+                } />
+                <Route path="reportes" element={
+                  <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
+                    <SistemaReportes />
+                  </ProtectedRoute>
+                } />
+                <Route path="importacoes-pdf" element={
+                  <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
+                    <HistoricoImportacoesPDF />
+                  </ProtectedRoute>
+                } />
+              </Route>
+
+
+              {/* ═══════════════════════════════════════════════
+                  Pilar Administrativo (Financeiro, Contratos, Imóveis, Seguros, GED)
+                  Acesso restrito a super_admin (Fase 1)
+                  ═══════════════════════════════════════════════ */}
+              <Route path="/administrativo" element={<FinancasLayout />}>
+                <Route index element={<DashboardFinanceiro />} />
+                <Route path="plano-contas" element={<PlanoDeContas />} />
+                <Route path="investimento-lancamento" element={<InvestimentoLancamento />} />
+
+                <Route path="fluxo-caixa" element={<FluxoCaixa />} />
+                <Route path="contas-pagar" element={<ContasPagar />} />
+                <Route path="caixa-banco" element={<CaixaBanco />} />
+                <Route path="banco-safra" element={<BancoSafra />} />
+                <Route path="caixa-banco/contas" element={<ContasBancarias />} />
+                <Route path="conciliacao" element={<Conciliacao />} />
+                <Route path="regras-ofx" element={<RegrasOFX />} />
+                <Route path="contas-receber" element={<ContasReceber />} />
+                <Route path="painel-financeiro-conta" element={<PainelFinanceiroConta />} />
+                <Route path="recebimentos-conciliar" element={<RecebimentosConciliar />} />
+                <Route path="extrato-importacao" element={<ExtratoImportacao />} />
+                <Route path="extrato-inbox" element={<ExtratoInbox />} />
+                <Route path="extrato-regras" element={<RegrasInbox />} />
+                <Route path="extrato-pares" element={<ParesTransferencia />} />
+
+                <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
+                <Route path="importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
+                <Route path="nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
+                <Route path="documentos-pendentes" element={<Navigate to="/administrativo-fetely/documentos-pendentes" replace />} />
+                <Route path="faturas-cartao" element={<FaturasCartao />} />
+                
+                <Route path="fluxo-futuro" element={<FluxoCaixaFuturo />} />
+                <Route path="previsao-recebimentos" element={<PrevisaoRecebimentos />} />
+                <Route path="fluxo-futuro-investimento" element={<FluxoFuturoInvestimento />} />
+                <Route path="compromissos" element={<Compromissos />} />
+                <Route path="configuracao-integracao" element={<ConfiguracaoIntegracao />} />
+                {/* MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
+                    pedidos, produtos, contratos, imoveis, seguros, ged.
+                    Redirects logo abaixo mantêm compatibilidade com URLs antigas. */}
+                {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
+                <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
+                <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
+                <Route path="contratos" element={<Navigate to="/administrativo-fetely/contratos" replace />} />
+                <Route path="imoveis" element={<Navigate to="/administrativo-fetely/imoveis" replace />} />
+                <Route path="seguros" element={<Navigate to="/administrativo-fetely/seguros" replace />} />
+                <Route path="ged" element={<Navigate to="/administrativo-fetely/ged" replace />} />
+              </Route>
+
+              {/* ═══════════════════════════════════════════════
+                  ADMINISTRATIVO FETELY — Pilar novo (Sprint 2 — 29/04/2026)
+                  Recebe Contratos, Imóveis, Seguros, GED + Pedidos/Produtos (provisórios)
+                  ═══════════════════════════════════════════════ */}
+              <Route path="/administrativo-fetely" element={<AdministrativoLayout />}>
+                <Route index element={<Navigate to="/administrativo-fetely/contratos" replace />} />
+                <Route path="contratos" element={<AdminContratos />} />
+                <Route path="imoveis" element={<AdminImoveis />} />
+                <Route path="seguros" element={<AdminSeguros />} />
+                <Route path="ged" element={<AdminGED />} />
+                {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
+                <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
+                <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
+                {/* parceiros movido para SOPsLayout */}
+                <Route path="importar" element={<ImportarDados />} />
+                <Route path="nfs-stage" element={<NFsStage />} />
+                <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
+              </Route>
+
+              {/* ═══════════════════════════════════════════════
+                  GESTÃO À VISTA — Sistema novo (Sprint 2 — 29/04/2026)
+                  Recebe Dashboard + Relatórios (vindos do People).
+                  URLs preservadas (/dashboard, /relatorios) — só layout muda.
+                  ═══════════════════════════════════════════════ */}
+              <Route element={<GestaoVistaLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/gestao-a-vista" element={<GestaoAVista />} />
+                <Route path="/relatorios" element={
+                  <ProtectedRoute permModule="relatorios">
+                    <PlaceholderPage title="Relatórios e BI" description="Relatórios gerenciais e exportação" />
+                  </ProtectedRoute>
+                } />
+              </Route>
+
+
             </Route>
-
-
-            {/* ═══════════════════════════════════════════════
-                Pilar Administrativo (Financeiro, Contratos, Imóveis, Seguros, GED)
-                Acesso restrito a super_admin (Fase 1)
-                ═══════════════════════════════════════════════ */}
-            <Route path="/administrativo" element={<FinancasLayout />}>
-              <Route index element={<DashboardFinanceiro />} />
-              <Route path="plano-contas" element={<PlanoDeContas />} />
-              <Route path="investimento-lancamento" element={<InvestimentoLancamento />} />
-
-              <Route path="fluxo-caixa" element={<FluxoCaixa />} />
-              <Route path="contas-pagar" element={<ContasPagar />} />
-              <Route path="caixa-banco" element={<CaixaBanco />} />
-              <Route path="banco-safra" element={<BancoSafra />} />
-              <Route path="caixa-banco/contas" element={<ContasBancarias />} />
-              <Route path="conciliacao" element={<Conciliacao />} />
-              <Route path="regras-ofx" element={<RegrasOFX />} />
-              <Route path="contas-receber" element={<ContasReceber />} />
-              <Route path="painel-financeiro-conta" element={<PainelFinanceiroConta />} />
-              <Route path="recebimentos-conciliar" element={<RecebimentosConciliar />} />
-              <Route path="extrato-importacao" element={<ExtratoImportacao />} />
-              <Route path="extrato-inbox" element={<ExtratoInbox />} />
-              <Route path="extrato-regras" element={<RegrasInbox />} />
-              <Route path="extrato-pares" element={<ParesTransferencia />} />
-
-              <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
-              <Route path="importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
-              <Route path="nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
-              <Route path="documentos-pendentes" element={<Navigate to="/administrativo-fetely/documentos-pendentes" replace />} />
-              <Route path="faturas-cartao" element={<FaturasCartao />} />
-              
-              <Route path="fluxo-futuro" element={<FluxoCaixaFuturo />} />
-              <Route path="previsao-recebimentos" element={<PrevisaoRecebimentos />} />
-              <Route path="fluxo-futuro-investimento" element={<FluxoFuturoInvestimento />} />
-              <Route path="compromissos" element={<Compromissos />} />
-              <Route path="configuracao-integracao" element={<ConfiguracaoIntegracao />} />
-              {/* MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
-                  pedidos, produtos, contratos, imoveis, seguros, ged.
-                  Redirects logo abaixo mantêm compatibilidade com URLs antigas. */}
-              {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
-              <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-              <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
-              <Route path="contratos" element={<Navigate to="/administrativo-fetely/contratos" replace />} />
-              <Route path="imoveis" element={<Navigate to="/administrativo-fetely/imoveis" replace />} />
-              <Route path="seguros" element={<Navigate to="/administrativo-fetely/seguros" replace />} />
-              <Route path="ged" element={<Navigate to="/administrativo-fetely/ged" replace />} />
-            </Route>
-
-            {/* ═══════════════════════════════════════════════
-                ADMINISTRATIVO FETELY — Pilar novo (Sprint 2 — 29/04/2026)
-                Recebe Contratos, Imóveis, Seguros, GED + Pedidos/Produtos (provisórios)
-                ═══════════════════════════════════════════════ */}
-            <Route path="/administrativo-fetely" element={<AdministrativoLayout />}>
-              <Route index element={<Navigate to="/administrativo-fetely/contratos" replace />} />
-              <Route path="contratos" element={<AdminContratos />} />
-              <Route path="imoveis" element={<AdminImoveis />} />
-              <Route path="seguros" element={<AdminSeguros />} />
-              <Route path="ged" element={<AdminGED />} />
-              {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
-              <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-              <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
-              {/* parceiros movido para SOPsLayout */}
-              <Route path="importar" element={<ImportarDados />} />
-              <Route path="nfs-stage" element={<NFsStage />} />
-              <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
-            </Route>
-
-            {/* ═══════════════════════════════════════════════
-                GESTÃO À VISTA — Sistema novo (Sprint 2 — 29/04/2026)
-                Recebe Dashboard + Relatórios (vindos do People).
-                URLs preservadas (/dashboard, /relatorios) — só layout muda.
-                ═══════════════════════════════════════════════ */}
-            <Route element={<GestaoVistaLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/gestao-a-vista" element={<GestaoAVista />} />
-              <Route path="/relatorios" element={
-                <ProtectedRoute permModule="relatorios">
-                  <PlaceholderPage title="Relatórios e BI" description="Relatórios gerenciais e exportação" />
-                </ProtectedRoute>
-              } />
-            </Route>
-
-            </Route>
-            {/* fecha wrapper CasaLayout */}
+            {/* fecha wrapper CasaLayout — RotaGate cobre TI, People, Admin, Financeiro, Marca, Dashboard */}
 
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
