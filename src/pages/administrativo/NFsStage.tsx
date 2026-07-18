@@ -790,6 +790,19 @@ export default function NFsStage() {
       if (error) throw error;
       if (stamp) marcarResolvidasNaSessao([id]);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      // Sugestão de propagação para irmãs divergentes
+      const nfAtual = nfs?.find((n) => n.id === id);
+      if (nfAtual && centroCustoId) {
+        const irmas = detectarIrmasDivergentes(nfAtual, "centro", centroCustoId);
+        if (irmas.length > 0) {
+          setPropagacaoSugerida({
+            fonte: { ...nfAtual, centro_custo_id: centroCustoId },
+            irmas,
+            campo: "centro",
+          });
+          return;
+        }
+      }
       toast.success(centroCustoId ? "Centro de custo salvo" : "Centro de custo removido");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -800,6 +813,49 @@ export default function NFsStage() {
         next.delete(id);
         return next;
       });
+    }
+  }
+
+  async function aplicarPropagacaoIrmas() {
+    if (!propagacaoSugerida) return;
+    const { fonte, irmas, campo } = propagacaoSugerida;
+    const ids = irmas.map((n) => n.id);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+
+      const updatePayload =
+        campo === "categoria"
+          ? {
+              plano_contas_id: fonte.plano_contas_id,
+              categoria_sugerida_ia: false,
+              revisada_em: new Date().toISOString(),
+              revisada_por: uid,
+            }
+          : {
+              centro_custo_id: fonte.centro_custo_id,
+              revisada_em: new Date().toISOString(),
+              revisada_por: uid,
+            };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update(updatePayload)
+        .in("id", ids);
+
+      if (error) throw error;
+      marcarResolvidasNaSessao(ids);
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(
+        `${campo === "categoria" ? "Categoria" : "Centro de custo"} propagado para ${ids.length} NF${ids.length === 1 ? "" : "s"} da mesma empresa`
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao propagar: " + msg);
+    } finally {
+      setPropagacaoSugerida(null);
     }
   }
 
