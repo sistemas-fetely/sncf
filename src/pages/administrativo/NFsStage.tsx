@@ -74,6 +74,7 @@ import {
   FileWarning,
   MoreHorizontal,
   Wand2,
+  Send,
 
 } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
