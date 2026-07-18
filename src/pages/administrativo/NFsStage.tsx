@@ -1170,6 +1170,15 @@ export default function NFsStage() {
               onClick={() => setFiltroPill("vinculadas")}
             />
             <KpiPill
+              label="Motor"
+              count={totals.motor}
+              color="blue"
+              active={filtroPill === "motor"}
+              onClick={() => setFiltroPill("motor")}
+              icon={<Wand2 className="h-3 w-3" />}
+              description="carimbadas automaticamente"
+            />
+            <KpiPill
               label="Incompletas"
               count={totals.incompletas}
               color="violet"
