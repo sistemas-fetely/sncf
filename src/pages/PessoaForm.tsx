@@ -88,6 +88,7 @@ const emptyVinculo: VinculoForm = {
   email_corporativo: "", observacoes: "",
   cnpj: "", razao_social: "", nome_fantasia: "", categoria_pj: "", objeto: "",
   pis_pasep: "", ctps_numero: "", matricula: "", data_admissao: "", jornada_semanal: "44",
+  gestor_pessoa_id: "",
 };
 
 function onlyDigits(s: string) { return (s || "").replace(/\D/g, ""); }
