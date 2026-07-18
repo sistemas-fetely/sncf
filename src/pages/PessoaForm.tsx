@@ -69,6 +69,7 @@ interface VinculoForm {
   matricula: string;
   data_admissao: string;
   jornada_semanal: string;
+  gestor_pessoa_id: string;
 }
 
 const emptyPessoa: PessoaForm = {
@@ -87,6 +88,7 @@ const emptyVinculo: VinculoForm = {
   email_corporativo: "", observacoes: "",
   cnpj: "", razao_social: "", nome_fantasia: "", categoria_pj: "", objeto: "",
   pis_pasep: "", ctps_numero: "", matricula: "", data_admissao: "", jornada_semanal: "44",
+  gestor_pessoa_id: "",
 };
 
 function onlyDigits(s: string) { return (s || "").replace(/\D/g, ""); }
@@ -105,6 +107,7 @@ export default function PessoaForm() {
   const [departamentos, setDepartamentos] = useState<Dim[]>([]);
   const [unidades, setUnidades] = useState<Dim[]>([]);
   const [formasPagamento, setFormasPagamento] = useState<Dim[]>([]);
+  const [pessoasAtivas, setPessoasAtivas] = useState<{ id: string; nome: string }[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -114,16 +117,26 @@ export default function PessoaForm() {
   useEffect(() => {
     (async () => {
       try {
-        const [{ data: c }, { data: d }, { data: u }, { data: fp }] = await Promise.all([
+        const [{ data: c }, { data: d }, { data: u }, { data: fp }, { data: vgestor }] = await Promise.all([
           (supabase as any).from("cargos").select("id, nome").eq("ativo", true).order("nome"),
           (supabase as any).from("departamentos").select("id, nome").eq("ativo", true).order("nome"),
           (supabase as any).from("unidades").select("id, nome").order("nome"),
           (supabase as any).from("formas_pagamento").select("id, nome, codigo").order("ordem"),
+          (supabase as any)
+            .from("vinculos")
+            .select("pessoa_id, pessoas!vinculos_pessoa_id_fkey(id, nome_completo)")
+            .eq("status", "ativo")
+            .order("pessoas(nome_completo)"),
         ]);
         setCargos((c || []) as Dim[]);
         setDepartamentos((d || []) as Dim[]);
         setUnidades((u || []) as Dim[]);
         setFormasPagamento((fp || []) as Dim[]);
+        const mapa = new Map<string, string>();
+        for (const vg of (vgestor || []) as any[]) {
+          if (vg?.pessoas?.id) mapa.set(vg.pessoas.id, vg.pessoas.nome_completo);
+        }
+        setPessoasAtivas(Array.from(mapa, ([id, nome]) => ({ id, nome })));
       } catch (err: any) {
         toast.error("Erro ao carregar listas: " + humanizeError(err?.message || String(err)));
       }
@@ -174,6 +187,7 @@ export default function PessoaForm() {
             pis_pasep: v.pis_pasep || "", ctps_numero: v.ctps_numero || "",
             matricula: v.matricula || "", data_admissao: v.data_admissao || "",
             jornada_semanal: v.jornada_semanal?.toString() || "44",
+            gestor_pessoa_id: v.gestor_pessoa_id || "",
           });
         }
       } catch (err: any) {
@@ -232,6 +246,7 @@ export default function PessoaForm() {
       cargo_id: vinculo.cargo_id || null,
       departamento_id: vinculo.departamento_id || null,
       unidade_id: vinculo.unidade_id || null,
+      gestor_pessoa_id: vinculo.gestor_pessoa_id || null,
       data_inicio: vinculo.data_inicio,
       valor_base: toNum(vinculo.valor_base),
       valor_transporte: toNum(vinculo.valor_transporte),
@@ -435,6 +450,23 @@ export default function PessoaForm() {
               <Select value={vinculo.unidade_id} onValueChange={(v) => setVinculo({ ...vinculo, unidade_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>{unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Reporta a (gestor)</Label>
+              <Select
+                value={vinculo.gestor_pessoa_id || "__nenhum__"}
+                onValueChange={(v) => setVinculo({ ...vinculo, gestor_pessoa_id: v === "__nenhum__" ? "" : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="— sem gestor —" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__nenhum__">— sem gestor —</SelectItem>
+                  {pessoasAtivas
+                    .filter((pa) => pa.id !== id)
+                    .map((pa) => (
+                      <SelectItem key={pa.id} value={pa.id}>{pa.nome}</SelectItem>
+                    ))}
+                </SelectContent>
               </Select>
             </div>
             <div><Label>Data de início *</Label><Input type="date" value={vinculo.data_inicio} onChange={(e) => setVinculo({ ...vinculo, data_inicio: e.target.value })} /></div>

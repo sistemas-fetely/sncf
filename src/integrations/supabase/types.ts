@@ -11632,6 +11632,109 @@ export type Database = {
           },
         ]
       }
+      posicoes_planejadas: {
+        Row: {
+          ativo: boolean
+          cargo_id: string | null
+          created_at: string
+          created_by: string | null
+          data_abertura: string
+          data_prevista_ocupacao: string | null
+          departamento_id: string | null
+          descricao: string | null
+          id: string
+          observacoes: string | null
+          senioridade: string | null
+          status: string
+          tipo_vinculo: string | null
+          titulo: string
+          unidade_id: string | null
+          updated_at: string
+          vinculo_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cargo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_abertura?: string
+          data_prevista_ocupacao?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          senioridade?: string | null
+          status?: string
+          tipo_vinculo?: string | null
+          titulo: string
+          unidade_id?: string | null
+          updated_at?: string
+          vinculo_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cargo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_abertura?: string
+          data_prevista_ocupacao?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          senioridade?: string | null
+          status?: string
+          tipo_vinculo?: string | null
+          titulo?: string
+          unidade_id?: string | null
+          updated_at?: string
+          vinculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posicoes_planejadas_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+        ]
+      }
       prazo_liquidacao: {
         Row: {
           ativo: boolean
@@ -16719,6 +16822,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["departamento_id"]
+          },
+          {
             foreignKeyName: "vinculos_forma_pagamento_id_fkey"
             columns: ["forma_pagamento_id"]
             isOneToOne: false
@@ -16731,6 +16841,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pessoas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
           },
           {
             foreignKeyName: "vinculos_parceiro_comercial_id_fkey"
@@ -16759,6 +16876,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pessoas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
           },
           {
             foreignKeyName: "vinculos_unidade_id_fkey"
@@ -18086,6 +18210,23 @@ export type Database = {
           },
         ]
       }
+      vw_dimensionamento_areas: {
+        Row: {
+          custo_beneficios_extras: number | null
+          custo_transporte: number | null
+          custo_valor_base: number | null
+          departamento: string | null
+          departamento_id: string | null
+          ocupados: number | null
+          ocupados_clt: number | null
+          ocupados_pj: number | null
+          tamanho_planejado: number | null
+          vagas_abertas: number | null
+          vagas_em_processo: number | null
+          vagas_futuras: number | null
+        }
+        Relationships: []
+      }
       vw_documentos_envio_estados: {
         Row: {
           cancelada_apos_envio: boolean | null
@@ -18674,6 +18815,38 @@ export type Database = {
           },
         ]
       }
+      vw_organograma: {
+        Row: {
+          cargo: string | null
+          data_inicio: string | null
+          departamento: string | null
+          eh_topo: boolean | null
+          gestor_nome: string | null
+          gestor_pessoa_id: string | null
+          nome: string | null
+          pessoa_id: string | null
+          status: string | null
+          tipo_vinculo: string | null
+          unidade: string | null
+          vinculo_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+        ]
+      }
       vw_pares_transferencia_sugeridos: {
         Row: {
           conta_destino_id: string | null
@@ -18693,14 +18866,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
