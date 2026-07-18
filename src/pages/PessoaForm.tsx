@@ -69,6 +69,7 @@ interface VinculoForm {
   matricula: string;
   data_admissao: string;
   jornada_semanal: string;
+  gestor_pessoa_id: string;
 }
 
 const emptyPessoa: PessoaForm = {
