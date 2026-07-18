@@ -706,10 +706,23 @@ export default function NFsStage() {
     novoValor: string | null
   ): NFStage[] {
     if (!nfFonte.fornecedor_cnpj || !novoValor) return [];
+
+    // Prefixo NCM da NF fonte (4 dígitos) — null se não tiver itens com NCM
+    const ncmFonte = nfFonte.itens?.[0]?.ncm ?? null;
+    const prefixoFonte = ncmFonte ? ncmFonte.slice(0, 4) : null;
+
     return (nfs || []).filter((n) => {
       if (n.id === nfFonte.id) return false;
       if (n.fornecedor_cnpj !== nfFonte.fornecedor_cnpj) return false;
       if (n.status === "descartada" || n.motivo_descarte) return false;
+
+      // Se a fonte tem NCM, só agrupa com irmãs do mesmo prefixo NCM (4 dígitos)
+      // ou irmãs sem NCM (não excluir NFs que vieram sem item detalhado)
+      if (prefixoFonte) {
+        const ncmIrma = n.itens?.[0]?.ncm ?? null;
+        if (ncmIrma && ncmIrma.slice(0, 4) !== prefixoFonte) return false;
+      }
+
       const valorAtual = campo === "categoria" ? n.plano_contas_id : n.centro_custo_id;
       return valorAtual !== novoValor;
     });
