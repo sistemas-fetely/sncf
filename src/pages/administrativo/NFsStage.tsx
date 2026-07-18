@@ -238,6 +238,11 @@ export default function NFsStage() {
   // Mantém a linha visível para o usuário ver o feedback de progresso.
   // É limpa ao trocar de pill, mês, busca ou recarregar a página.
   const [resolvidasNaSessao, setResolvidasNaSessao] = useState<Set<string>>(new Set());
+  const [propagacaoSugerida, setPropagacaoSugerida] = useState<{
+    fonte: NFStage;
+    irmas: NFStage[];
+    campo: "categoria" | "centro";
+  } | null>(null);
 
   // Limpa o Set quando filtro/busca/mês mudam.
   useEffect(() => {
@@ -695,6 +700,21 @@ export default function NFsStage() {
 
 
 
+  function detectarIrmasDivergentes(
+    nfFonte: NFStage,
+    campo: "categoria" | "centro",
+    novoValor: string | null
+  ): NFStage[] {
+    if (!nfFonte.fornecedor_cnpj || !novoValor) return [];
+    return (nfs || []).filter((n) => {
+      if (n.id === nfFonte.id) return false;
+      if (n.fornecedor_cnpj !== nfFonte.fornecedor_cnpj) return false;
+      if (n.status === "descartada" || n.motivo_descarte) return false;
+      const valorAtual = campo === "categoria" ? n.plano_contas_id : n.centro_custo_id;
+      return valorAtual !== novoValor;
+    });
+  }
+
   async function alterarCategoria(id: string, categoriaId: string) {
     setSalvandoCategoria((prev) => new Set(prev).add(id));
     try {
@@ -728,9 +748,21 @@ export default function NFsStage() {
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
       qc.invalidateQueries({ queryKey: ["engine-regras-ativas"] });
 
-      // Feedback visual
+      // Feedback visual — checa irmãs divergentes do mesmo CNPJ
       if (categoriaId) {
-        toast.success("Categoria salva");
+        const nfFonte = nfs?.find((n) => n.id === id);
+        const irmas = nfFonte
+          ? detectarIrmasDivergentes(nfFonte, "categoria", categoriaId)
+          : [];
+        if (nfFonte && irmas.length > 0) {
+          setPropagacaoSugerida({
+            fonte: { ...nfFonte, plano_contas_id: categoriaId },
+            irmas,
+            campo: "categoria",
+          });
+        } else {
+          toast.success("Categoria salva");
+        }
       } else {
         toast.success("Categoria removida");
       }
@@ -758,6 +790,19 @@ export default function NFsStage() {
       if (error) throw error;
       if (stamp) marcarResolvidasNaSessao([id]);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      // Sugestão de propagação para irmãs divergentes
+      const nfAtual = nfs?.find((n) => n.id === id);
+      if (nfAtual && centroCustoId) {
+        const irmas = detectarIrmasDivergentes(nfAtual, "centro", centroCustoId);
+        if (irmas.length > 0) {
+          setPropagacaoSugerida({
+            fonte: { ...nfAtual, centro_custo_id: centroCustoId },
+            irmas,
+            campo: "centro",
+          });
+          return;
+        }
+      }
       toast.success(centroCustoId ? "Centro de custo salvo" : "Centro de custo removido");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -768,6 +813,49 @@ export default function NFsStage() {
         next.delete(id);
         return next;
       });
+    }
+  }
+
+  async function aplicarPropagacaoIrmas() {
+    if (!propagacaoSugerida) return;
+    const { fonte, irmas, campo } = propagacaoSugerida;
+    const ids = irmas.map((n) => n.id);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Usuário não autenticado");
+
+      const updatePayload =
+        campo === "categoria"
+          ? {
+              plano_contas_id: fonte.plano_contas_id,
+              categoria_sugerida_ia: false,
+              revisada_em: new Date().toISOString(),
+              revisada_por: uid,
+            }
+          : {
+              centro_custo_id: fonte.centro_custo_id,
+              revisada_em: new Date().toISOString(),
+              revisada_por: uid,
+            };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("nfs_stage")
+        .update(updatePayload)
+        .in("id", ids);
+
+      if (error) throw error;
+      marcarResolvidasNaSessao(ids);
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      toast.success(
+        `${campo === "categoria" ? "Categoria" : "Centro de custo"} propagado para ${ids.length} NF${ids.length === 1 ? "" : "s"} da mesma empresa`
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao propagar: " + msg);
+    } finally {
+      setPropagacaoSugerida(null);
     }
   }
 
@@ -1868,7 +1956,60 @@ export default function NFsStage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog — Sugestão de propagação para irmãs */}
+      <AlertDialog
+        open={!!propagacaoSugerida}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (propagacaoSugerida) {
+              toast.success(
+                propagacaoSugerida.campo === "categoria"
+                  ? "Categoria salva"
+                  : "Centro de custo salvo"
+              );
+            }
+            setPropagacaoSugerida(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Propagar para NFs do mesmo fornecedor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {propagacaoSugerida && (
+                <>
+                  Encontrei{" "}
+                  <strong>
+                    {propagacaoSugerida.irmas.length} outra
+                    {propagacaoSugerida.irmas.length === 1 ? "" : "s"} NF
+                    {propagacaoSugerida.irmas.length === 1 ? "" : "s"}
+                  </strong>{" "}
+                  de{" "}
+                  <strong>
+                    {propagacaoSugerida.fonte.fornecedor_razao_social ||
+                      propagacaoSugerida.fonte.fornecedor_cliente ||
+                      propagacaoSugerida.fonte.fornecedor_cnpj}
+                  </strong>{" "}
+                  com{" "}
+                  {propagacaoSugerida.campo === "categoria"
+                    ? "categoria diferente"
+                    : "centro de custo diferente"}
+                  . Deseja aplicar a mesma classificação para todas?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Ignorar</AlertDialogCancel>
+            <AlertDialogAction onClick={aplicarPropagacaoIrmas}>
+              Aplicar para todas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
