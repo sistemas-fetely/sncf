@@ -137,6 +137,8 @@ type NFStage = {
   revisada_em?: string | null;
   revisada_por?: string | null;
   motivo_descarte?: string | null;
+  meio_pagamento?: string | null;
+  conta_pagar_id?: string | null;
   completude?: string | null;
   // Flags vindos da view vw_nfs_stage_completude
   tem_xml: boolean;
