@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import VinculoBeneficiosSection from "@/components/pessoas/VinculoBeneficiosSection";
 import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
+import VinculoFinanceiroPJSection from "@/components/pessoas/VinculoFinanceiroPJSection";
 
 type Dim = { id: string; nome: string; codigo?: string };
 
