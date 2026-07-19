@@ -19670,6 +19670,23 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_pj_pagamentos: {
+        Row: {
+          cnpj_prestador: string | null
+          cpr_id: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          pessoa: string | null
+          pessoa_id: string | null
+          status: string | null
+          tipo: string | null
+          valor: number | null
+          valor_pago: number | null
+          vinculo_id: string | null
+        }
+        Relationships: []
+      }
       vw_previsao_recebimentos: {
         Row: {
           cliente: string | null
