@@ -676,6 +676,11 @@ export default function GerenciarUsuarios() {
               <Badge variant="outline" className="ml-2 text-[10px] py-0">Em breve</Badge>
             </TabsTrigger>
           )}
+          {isSuperAdmin && (
+            <TabsTrigger value="fantasmas" className="gap-2">
+              <Ghost className="h-4 w-4" /> Contas sem perfil
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
