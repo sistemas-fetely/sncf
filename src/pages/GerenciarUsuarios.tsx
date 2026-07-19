@@ -1149,3 +1149,119 @@ export default function GerenciarUsuarios() {
     </div>
   );
 }
+
+function ContasSemPerfilTab({ profileUserIds }: { profileUserIds: Set<string> }) {
+  const queryClient = useQueryClient();
+  const [targetUser, setTargetUser] = useState<{ id: string; email: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const { data: authUsers = [], isLoading } = useQuery({
+    queryKey: ["admin-auth-users-fantasmas"],
+    queryFn: async () => {
+      const result = await callManageUser("list_users", {});
+      return (result.users || []) as Array<{ id: string; email: string; created_at: string; last_sign_in_at: string | null }>;
+    },
+  });
+
+  const fantasmas = authUsers.filter((u) => !profileUserIds.has(u.id));
+
+  const fmtDate = (v: string | null) => {
+    if (!v) return "Nunca";
+    const d = new Date(v);
+    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+  };
+
+  const handleDelete = async () => {
+    if (!targetUser) return;
+    setDeleting(true);
+    try {
+      await callManageUser("delete_user", { user_id: targetUser.id });
+      toast.success(`Conta ${targetUser.email} excluída`);
+      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-auth-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-auth-users-fantasmas"] });
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
+      setTargetUser(null);
+    } catch (e: any) {
+      toast.error(`Falha ao excluir: ${e?.message || e}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Ghost className="h-5 w-5" /> Contas sem perfil
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Contas de autenticação que não têm registro em profiles. Excluí-las libera o e-mail para reuso.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+          </div>
+        ) : fantasmas.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+            <p>Nenhuma conta sem perfil. Tudo limpo.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>E-mail</TableHead>
+                <TableHead>Criado em</TableHead>
+                <TableHead>Último acesso</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {fantasmas.map((u) => (
+                <TableRow key={u.id}>
+                  <TableCell className="font-medium">{u.email}</TableCell>
+                  <TableCell>{fmtDate(u.created_at)}</TableCell>
+                  <TableCell>{fmtDate(u.last_sign_in_at)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setTargetUser({ id: u.id, email: u.email })}
+                      className="gap-1"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Excluir
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      <AlertDialog open={!!targetUser} onOpenChange={(o) => !o && !deleting && setTargetUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conta definitivamente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Excluir definitivamente a conta <strong>{targetUser?.email}</strong>? Esta ação remove o usuário de auth.users e não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Excluindo…</> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+}
