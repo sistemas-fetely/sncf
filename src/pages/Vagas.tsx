@@ -30,6 +30,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
+import { PreencherVagaDialog } from "@/components/vagas/PreencherVagaDialog";
 
 type StatusVaga = "aberta" | "em_processo" | "preenchida" | "cancelada";
 type StatusFiltro = "vivas" | "todas" | StatusVaga;
