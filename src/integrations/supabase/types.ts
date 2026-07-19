@@ -19220,6 +19220,26 @@ export type Database = {
           },
         ]
       }
+      vw_motor_fila_por_cnpj: {
+        Row: {
+          fornecedor: string | null
+          fornecedor_cnpj: string | null
+          qtd_a_revisar: number | null
+          valor_total: number | null
+        }
+        Relationships: []
+      }
+      vw_motor_resumo: {
+        Row: {
+          a_revisar: number | null
+          carimbadas_humano: number | null
+          carimbadas_motor: number | null
+          regras_confirmadas: number | null
+          revisadas: number | null
+          total_ativas: number | null
+        }
+        Relationships: []
+      }
       vw_movimentacoes_gerencial: {
         Row: {
           categoria_confirmada: boolean | null
