@@ -869,6 +869,183 @@ export default function AnaliseDespesas() {
         </CardContent>
       </Card>
 
+      {/* MATRIZ Centro de Custo × Meses */}
+      <Card className="card-shadow">
+        <CardContent className="p-4">
+          <div className="mb-3">
+            <h2 className="text-lg font-semibold">Matriz Centro de Custo × Meses</h2>
+            <p className="text-xs text-muted-foreground">
+              Bloco operacional. Quanto cada área consome por mês. Heatmap compara com o mês anterior da mesma linha.
+            </p>
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : matrizCentro.linhas.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Sem despesas operacionais</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="border-b">
+                  <tr className="text-muted-foreground">
+                    <th className="text-left py-2 px-2 sticky left-0 bg-background min-w-[200px]">Centro de custo</th>
+                    {meses.map((m) => (
+                      <th
+                        key={m}
+                        onClick={() => setMesSel(m)}
+                        className={`text-right py-2 px-2 cursor-pointer uppercase tracking-wider text-[10px] hover:text-foreground ${m === mesSel ? "bg-primary/10 text-primary" : ""}`}
+                      >
+                        {fmtMesLabel(m + "-01")}
+                      </th>
+                    ))}
+                    <th className="text-right py-2 px-2 text-[10px] uppercase tracking-wider bg-muted/30">Média 3m</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matrizCentro.linhas.map((c) => (
+                    <tr key={c.nome} className="border-b hover:bg-muted/30">
+                      <td className="py-1.5 px-2 sticky left-0 bg-background font-medium">{c.nome}</td>
+                      {meses.map((m, i) => {
+                        const v = c.porMes[m] ?? 0;
+                        const ant = i > 0 ? (c.porMes[meses[i - 1]] ?? 0) : 0;
+                        const isSel = m === mesSel;
+                        return (
+                          <td
+                            key={m}
+                            title={v ? formatBRL(v) : "—"}
+                            className={`text-right py-1.5 px-2 tabular-nums ${heatBg(v, ant)} ${isSel ? "outline outline-1 outline-primary/40" : ""}`}
+                          >
+                            {v ? fmtCompact(v) : <span className="text-muted-foreground/40">—</span>}
+                          </td>
+                        );
+                      })}
+                      <td className="text-right py-1.5 px-2 tabular-nums bg-muted/20 font-medium">
+                        {media3mDe(c.porMes) ? fmtCompact(media3mDe(c.porMes)) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-semibold">
+                    <td className="py-2 px-2 sticky left-0 bg-background">Total operacional</td>
+                    {meses.map((m) => {
+                      const v = matrizCentro.totaisPorMes[m] ?? 0;
+                      const isSel = m === mesSel;
+                      return (
+                        <td key={m} title={formatBRL(v)} className={`text-right py-2 px-2 tabular-nums ${isSel ? "bg-primary/10 text-primary" : ""}`}>
+                          {v ? fmtCompact(v) : "—"}
+                        </td>
+                      );
+                    })}
+                    <td className="text-right py-2 px-2 tabular-nums bg-muted/30">
+                      {(() => {
+                        const m = media3mDe(matrizCentro.totaisPorMes);
+                        return m ? fmtCompact(m) : "—";
+                      })()}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* GRÁFICO com toggle */}
+      <Card className="card-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Evolução mensal</h2>
+              <p className="text-xs text-muted-foreground">
+                {modoGrafico === "empilhado"
+                  ? "Operacional empilhado por grupo · CAPEX em série separada"
+                  : "Tendência por grupo — clique na legenda para isolar/ocultar"}
+              </p>
+            </div>
+            <ToggleGroup
+              type="single"
+              value={modoGrafico}
+              onValueChange={(v) => v && setModoGrafico(v as any)}
+              size="sm"
+            >
+              <ToggleGroupItem value="empilhado">Empilhado</ToggleGroupItem>
+              <ToggleGroupItem value="tendencia">Tendência</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-72 w-full" />
+          ) : chartData.rows.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">Sem dados</div>
+          ) : (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                {modoGrafico === "empilhado" ? (
+                  <BarChart data={chartData.rows} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="label" fontSize={11} />
+                    <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                    <RTooltip
+                      formatter={(v: any, name: any) => [formatBRL(Number(v)), name === "__capex" ? "CAPEX" : name]}
+                      labelFormatter={(l) => l}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => (v === "__capex" ? "CAPEX" : v)} />
+                    {mesSel && (
+                      <ReferenceLine
+                        x={fmtMesLabel(mesSel + "-01")}
+                        stroke="#1A4A3A"
+                        strokeDasharray="4 2"
+                      />
+                    )}
+                    {chartData.grupos.map((g, i) => (
+                      <Bar
+                        key={g} dataKey={g} stackId="op"
+                        fill={CORES_GRUPO[i % CORES_GRUPO.length]}
+                        onClick={(d: any) => d?.mes && setMesSel(d.mes)}
+                        cursor="pointer"
+                      />
+                    ))}
+                    <Bar
+                      dataKey="__capex" name="CAPEX" fill={COR_CAPEX}
+                      onClick={(d: any) => d?.mes && setMesSel(d.mes)}
+                      cursor="pointer"
+                    />
+                  </BarChart>
+                ) : (
+                  <LineChart data={chartData.rows} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="label" fontSize={11} />
+                    <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                    <RTooltip formatter={(v: any, name: any) => [formatBRL(Number(v)), name]} />
+                    <Legend
+                      wrapperStyle={{ fontSize: 11, cursor: "pointer" }}
+                      onClick={(o: any) => o?.value && toggleGrupoOculto(String(o.value))}
+                    />
+                    {mesSel && (
+                      <ReferenceLine
+                        x={fmtMesLabel(mesSel + "-01")}
+                        stroke="#1A4A3A"
+                        strokeDasharray="4 2"
+                      />
+                    )}
+                    {chartData.grupos.map((g, i) => (
+                      <Line
+                        key={g}
+                        dataKey={g}
+                        type="monotone"
+                        stroke={CORES_GRUPO[i % CORES_GRUPO.length]}
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        hide={gruposOcultos.has(g)}
+                      />
+                    ))}
+                  </LineChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* O QUE MUDOU */}
       <Card className="card-shadow">
         <CardContent className="p-4">
