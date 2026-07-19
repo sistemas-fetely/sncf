@@ -17,6 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { humanizeError } from "@/lib/errorMessages";
@@ -25,12 +26,15 @@ interface PessoaLinha {
   pessoa_id: string;
   nome: string;
   foto_url: string | null;
+  cpf: string | null;
   vinculo_id: string | null;
   tipo_vinculo: "CLT" | "PJ" | null;
   status: "ativo" | "desligado" | null;
   cargo: string | null;
   departamento: string | null;
   data_inicio: string | null;
+  incompleto: boolean;
+  motivos: string[];
 }
 
 const statusStyles: Record<string, string> = {
