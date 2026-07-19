@@ -105,6 +105,8 @@ export default function Pessoas() {
           status: v?.status ?? null,
           cargo: cargoResolvido,
           departamento: v?.departamento_id ? depMap.get(v.departamento_id) ?? null : null,
+          centro_custo_id: v?.centro_custo_id ?? null,
+          centro_custo: v?.centro_custo_id ? ccMap.get(v.centro_custo_id) ?? null : null,
           data_inicio: v?.data_inicio ?? null,
           incompleto: motivos.length > 0,
           motivos,
