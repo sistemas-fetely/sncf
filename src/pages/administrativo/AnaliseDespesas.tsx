@@ -8,7 +8,7 @@ import {
 import {
   BarChart3, ArrowDown, ArrowUp, ChevronDown, ChevronRight,
   AlertTriangle, Building2, Receipt, Package, Sparkles, TrendingUp, TrendingDown,
-  PlusCircle, MinusCircle, RefreshCw,
+  PlusCircle, MinusCircle, RefreshCw, Download, Users, Bot, User as UserIcon, Landmark,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,7 @@ interface Linha {
   valor: number;
   descricao: string | null;
   fornecedor_cliente: string | null;
+  parceiro_id: string | null;
   nf_numero: string | null;
   plano_codigo: string | null;
   plano_nome: string | null;
@@ -40,6 +41,8 @@ interface Linha {
   centro_nome: string | null;
   revisao_origem: string | null;
   classificacao_completa: boolean | null;
+  conta_pagar_id: string | null;
+  conciliada: boolean | null;
 }
 
 // ─── Cores ────────────────────────────────────────────────────────
@@ -354,6 +357,105 @@ export default function AnaliseDespesas() {
     return { aumentos, quedas, novos: novos.slice(0, 8), sumiram: sumiram.slice(0, 8) };
   }, [data, mesSel, mesAnteriorKey]);
 
+  // ─── Matriz Centro × Meses (operacional) ───────────────────────
+  const matrizCentro = useMemo(() => {
+    if (!data) return { linhas: [] as { nome: string; porMes: Record<string, number>; total: number }[], totaisPorMes: {} as Record<string, number> };
+    const map = new Map<string, { nome: string; porMes: Record<string, number>; total: number }>();
+    const totaisPorMes: Record<string, number> = {};
+    for (const r of data) {
+      if (r.bloco !== "operacional") continue;
+      const mk = monthKey(r.competencia);
+      const v = Number(r.valor ?? 0);
+      const nome = r.centro_nome ?? "— sem centro —";
+      const cur = map.get(nome) ?? { nome, porMes: {}, total: 0 };
+      cur.porMes[mk] = (cur.porMes[mk] ?? 0) + v;
+      cur.total += v;
+      map.set(nome, cur);
+      totaisPorMes[mk] = (totaisPorMes[mk] ?? 0) + v;
+    }
+    return { linhas: Array.from(map.values()).sort((a, b) => b.total - a.total), totaisPorMes };
+  }, [data]);
+
+  // ─── Top fornecedores do mês (operacional) ─────────────────────
+  const topFornecedores = useMemo(() => {
+    const map = new Map<string, { nome: string; valor: number; count: number; motor: number; humano: number }>();
+    let totalOp = 0;
+    for (const r of linhasMes) {
+      if (r.bloco !== "operacional") continue;
+      const nome = r.fornecedor_cliente ?? "— sem fornecedor —";
+      const cur = map.get(nome) ?? { nome, valor: 0, count: 0, motor: 0, humano: 0 };
+      const v = Number(r.valor ?? 0);
+      cur.valor += v;
+      cur.count += 1;
+      if (r.revisao_origem === "motor") cur.motor += 1;
+      else if (r.revisao_origem === "humano") cur.humano += 1;
+      map.set(nome, cur);
+      totalOp += v;
+    }
+    const linhas = Array.from(map.values()).sort((a, b) => b.valor - a.valor);
+    return { linhas, totalOp };
+  }, [linhasMes]);
+
+  // ─── Qualidade da classificação (mês) ──────────────────────────
+  const qualidadeMes = useMemo(() => {
+    let motor = 0, humano = 0, semOrigem = 0;
+    for (const r of linhasMes) {
+      if (r.revisao_origem === "motor") motor++;
+      else if (r.revisao_origem === "humano") humano++;
+      else semOrigem++;
+    }
+    const total = motor + humano + semOrigem;
+    return { motor, humano, semOrigem, total };
+  }, [linhasMes]);
+
+  // ─── Cobertura de conciliação (mês, operacional + capex) ───────
+  const coberturaMes = useMemo(() => {
+    let countTotal = 0, countConc = 0, valorTotal = 0, valorConc = 0;
+    for (const r of linhasMes) {
+      if (r.bloco !== "operacional" && r.bloco !== "capex") continue;
+      const v = Number(r.valor ?? 0);
+      countTotal++;
+      valorTotal += v;
+      if (r.conciliada) {
+        countConc++;
+        valorConc += v;
+      }
+    }
+    const pctCount = countTotal ? (countConc / countTotal) * 100 : 0;
+    const pctValor = valorTotal ? (valorConc / valorTotal) * 100 : 0;
+    return { countTotal, countConc, valorTotal, valorConc, pctCount, pctValor };
+  }, [linhasMes]);
+
+  // ─── Export XLSX ───────────────────────────────────────────────
+  async function exportarMes() {
+    if (!mesSel) { toast.error("Selecione um mês antes de exportar"); return; }
+    if (!linhasMes.length) { toast.error("Sem linhas no mês selecionado"); return; }
+    try {
+      const XLSX = await import("xlsx");
+      const rows = linhasMes.map((r) => ({
+        competencia: r.competencia,
+        fornecedor: r.fornecedor_cliente ?? "",
+        plano_codigo: r.plano_codigo ?? "",
+        plano_nome: r.plano_nome ?? "",
+        grupo_nome: r.grupo_nome ?? "",
+        bloco: r.bloco,
+        centro_nome: r.centro_nome ?? "",
+        valor: Number(r.valor ?? 0),
+        revisao_origem: r.revisao_origem ?? "",
+        conciliada: r.conciliada ? "sim" : "nao",
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Despesas");
+      XLSX.writeFile(wb, `analise_despesas_${mesSel}.xlsx`);
+      toast.success(`Exportado · ${rows.length} linhas`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao exportar");
+    }
+  }
+
+
+
   // ─── IA ─────────────────────────────────────────────────────────
   async function analisarComIA(force = false) {
     if (!mesSel || !mesAnteriorKey) {
@@ -400,14 +502,18 @@ export default function AnaliseDespesas() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <BarChart3 className="h-5 w-5" />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Análise de Despesas</h1>
           <p className="text-sm text-muted-foreground">Visão por competência — valor total no mês de emissão da NF</p>
         </div>
+        <Button variant="outline" size="sm" onClick={exportarMes} disabled={!mesSel || !linhasMes.length}>
+          <Download className="h-3.5 w-3.5 mr-2" />
+          Exportar mês (XLSX)
+        </Button>
       </div>
 
       {/* Seletor de mês */}
@@ -507,101 +613,40 @@ export default function AnaliseDespesas() {
         )}
       </div>
 
-      {/* GRÁFICO com toggle */}
-      <Card className="card-shadow">
+      {/* COBERTURA DE CONCILIAÇÃO — mês */}
+      <Card className="card-shadow border-l-4" style={{ borderLeftColor: "#1A4A3A" }}>
         <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">Evolução mensal</h2>
-              <p className="text-xs text-muted-foreground">
-                {modoGrafico === "empilhado"
-                  ? "Operacional empilhado por grupo · CAPEX em série separada"
-                  : "Tendência por grupo — clique na legenda para isolar/ocultar"}
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                <Landmark className="h-3.5 w-3.5" /> Cobertura de conciliação
+              </div>
+              <div className="mt-1 text-3xl font-bold tabular-nums">{fmtPct(coberturaMes.pctValor)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                <span className="tabular-nums">{formatBRL(coberturaMes.valorConc)}</span> de <span className="tabular-nums">{formatBRL(coberturaMes.valorTotal)}</span> já bateram com um débito bancário
+                {coberturaMes.countTotal > 0 && (
+                  <> · {coberturaMes.countConc}/{coberturaMes.countTotal} NFs ({fmtPct(coberturaMes.pctCount)})</>
+                )}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground max-w-xl">
+                As não-conciliadas não são erro — são pagamentos ainda não vinculados ao extrato.
               </p>
             </div>
-            <ToggleGroup
-              type="single"
-              value={modoGrafico}
-              onValueChange={(v) => v && setModoGrafico(v as any)}
-              size="sm"
-            >
-              <ToggleGroupItem value="empilhado">Empilhado</ToggleGroupItem>
-              <ToggleGroupItem value="tendencia">Tendência</ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-          {isLoading ? (
-            <Skeleton className="h-72 w-full" />
-          ) : chartData.rows.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">Sem dados</div>
-          ) : (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                {modoGrafico === "empilhado" ? (
-                  <BarChart data={chartData.rows} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="label" fontSize={11} />
-                    <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                    <RTooltip
-                      formatter={(v: any, name: any) => [formatBRL(Number(v)), name === "__capex" ? "CAPEX" : name]}
-                      labelFormatter={(l) => l}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => (v === "__capex" ? "CAPEX" : v)} />
-                    {mesSel && (
-                      <ReferenceLine
-                        x={fmtMesLabel(mesSel + "-01")}
-                        stroke="#1A4A3A"
-                        strokeDasharray="4 2"
-                      />
-                    )}
-                    {chartData.grupos.map((g, i) => (
-                      <Bar
-                        key={g} dataKey={g} stackId="op"
-                        fill={CORES_GRUPO[i % CORES_GRUPO.length]}
-                        onClick={(d: any) => d?.mes && setMesSel(d.mes)}
-                        cursor="pointer"
-                      />
-                    ))}
-                    <Bar
-                      dataKey="__capex" name="CAPEX" fill={COR_CAPEX}
-                      onClick={(d: any) => d?.mes && setMesSel(d.mes)}
-                      cursor="pointer"
-                    />
-                  </BarChart>
-                ) : (
-                  <LineChart data={chartData.rows} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="label" fontSize={11} />
-                    <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                    <RTooltip formatter={(v: any, name: any) => [formatBRL(Number(v)), name]} />
-                    <Legend
-                      wrapperStyle={{ fontSize: 11, cursor: "pointer" }}
-                      onClick={(o: any) => o?.value && toggleGrupoOculto(String(o.value))}
-                    />
-                    {mesSel && (
-                      <ReferenceLine
-                        x={fmtMesLabel(mesSel + "-01")}
-                        stroke="#1A4A3A"
-                        strokeDasharray="4 2"
-                      />
-                    )}
-                    {chartData.grupos.map((g, i) => (
-                      <Line
-                        key={g}
-                        dataKey={g}
-                        type="monotone"
-                        stroke={CORES_GRUPO[i % CORES_GRUPO.length]}
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        hide={gruposOcultos.has(g)}
-                      />
-                    ))}
-                  </LineChart>
-                )}
-              </ResponsiveContainer>
+            <div className="flex flex-col items-end gap-2 min-w-[220px]">
+              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full transition-all"
+                  style={{ width: `${Math.min(100, coberturaMes.pctValor)}%`, background: "#1A4A3A" }}
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate("/administrativo-fetely/conciliacao-despesas")}>
+                Conciliar →
+              </Button>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
+
 
       {/* MATRIZ Grupos × Meses */}
       <Card className="card-shadow">
@@ -824,6 +869,183 @@ export default function AnaliseDespesas() {
         </CardContent>
       </Card>
 
+      {/* MATRIZ Centro de Custo × Meses */}
+      <Card className="card-shadow">
+        <CardContent className="p-4">
+          <div className="mb-3">
+            <h2 className="text-lg font-semibold">Matriz Centro de Custo × Meses</h2>
+            <p className="text-xs text-muted-foreground">
+              Bloco operacional. Quanto cada área consome por mês. Heatmap compara com o mês anterior da mesma linha.
+            </p>
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : matrizCentro.linhas.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Sem despesas operacionais</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="border-b">
+                  <tr className="text-muted-foreground">
+                    <th className="text-left py-2 px-2 sticky left-0 bg-background min-w-[200px]">Centro de custo</th>
+                    {meses.map((m) => (
+                      <th
+                        key={m}
+                        onClick={() => setMesSel(m)}
+                        className={`text-right py-2 px-2 cursor-pointer uppercase tracking-wider text-[10px] hover:text-foreground ${m === mesSel ? "bg-primary/10 text-primary" : ""}`}
+                      >
+                        {fmtMesLabel(m + "-01")}
+                      </th>
+                    ))}
+                    <th className="text-right py-2 px-2 text-[10px] uppercase tracking-wider bg-muted/30">Média 3m</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matrizCentro.linhas.map((c) => (
+                    <tr key={c.nome} className="border-b hover:bg-muted/30">
+                      <td className="py-1.5 px-2 sticky left-0 bg-background font-medium">{c.nome}</td>
+                      {meses.map((m, i) => {
+                        const v = c.porMes[m] ?? 0;
+                        const ant = i > 0 ? (c.porMes[meses[i - 1]] ?? 0) : 0;
+                        const isSel = m === mesSel;
+                        return (
+                          <td
+                            key={m}
+                            title={v ? formatBRL(v) : "—"}
+                            className={`text-right py-1.5 px-2 tabular-nums ${heatBg(v, ant)} ${isSel ? "outline outline-1 outline-primary/40" : ""}`}
+                          >
+                            {v ? fmtCompact(v) : <span className="text-muted-foreground/40">—</span>}
+                          </td>
+                        );
+                      })}
+                      <td className="text-right py-1.5 px-2 tabular-nums bg-muted/20 font-medium">
+                        {media3mDe(c.porMes) ? fmtCompact(media3mDe(c.porMes)) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-semibold">
+                    <td className="py-2 px-2 sticky left-0 bg-background">Total operacional</td>
+                    {meses.map((m) => {
+                      const v = matrizCentro.totaisPorMes[m] ?? 0;
+                      const isSel = m === mesSel;
+                      return (
+                        <td key={m} title={formatBRL(v)} className={`text-right py-2 px-2 tabular-nums ${isSel ? "bg-primary/10 text-primary" : ""}`}>
+                          {v ? fmtCompact(v) : "—"}
+                        </td>
+                      );
+                    })}
+                    <td className="text-right py-2 px-2 tabular-nums bg-muted/30">
+                      {(() => {
+                        const m = media3mDe(matrizCentro.totaisPorMes);
+                        return m ? fmtCompact(m) : "—";
+                      })()}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* GRÁFICO com toggle */}
+      <Card className="card-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Evolução mensal</h2>
+              <p className="text-xs text-muted-foreground">
+                {modoGrafico === "empilhado"
+                  ? "Operacional empilhado por grupo · CAPEX em série separada"
+                  : "Tendência por grupo — clique na legenda para isolar/ocultar"}
+              </p>
+            </div>
+            <ToggleGroup
+              type="single"
+              value={modoGrafico}
+              onValueChange={(v) => v && setModoGrafico(v as any)}
+              size="sm"
+            >
+              <ToggleGroupItem value="empilhado">Empilhado</ToggleGroupItem>
+              <ToggleGroupItem value="tendencia">Tendência</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-72 w-full" />
+          ) : chartData.rows.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">Sem dados</div>
+          ) : (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                {modoGrafico === "empilhado" ? (
+                  <BarChart data={chartData.rows} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="label" fontSize={11} />
+                    <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                    <RTooltip
+                      formatter={(v: any, name: any) => [formatBRL(Number(v)), name === "__capex" ? "CAPEX" : name]}
+                      labelFormatter={(l) => l}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => (v === "__capex" ? "CAPEX" : v)} />
+                    {mesSel && (
+                      <ReferenceLine
+                        x={fmtMesLabel(mesSel + "-01")}
+                        stroke="#1A4A3A"
+                        strokeDasharray="4 2"
+                      />
+                    )}
+                    {chartData.grupos.map((g, i) => (
+                      <Bar
+                        key={g} dataKey={g} stackId="op"
+                        fill={CORES_GRUPO[i % CORES_GRUPO.length]}
+                        onClick={(d: any) => d?.mes && setMesSel(d.mes)}
+                        cursor="pointer"
+                      />
+                    ))}
+                    <Bar
+                      dataKey="__capex" name="CAPEX" fill={COR_CAPEX}
+                      onClick={(d: any) => d?.mes && setMesSel(d.mes)}
+                      cursor="pointer"
+                    />
+                  </BarChart>
+                ) : (
+                  <LineChart data={chartData.rows} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="label" fontSize={11} />
+                    <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                    <RTooltip formatter={(v: any, name: any) => [formatBRL(Number(v)), name]} />
+                    <Legend
+                      wrapperStyle={{ fontSize: 11, cursor: "pointer" }}
+                      onClick={(o: any) => o?.value && toggleGrupoOculto(String(o.value))}
+                    />
+                    {mesSel && (
+                      <ReferenceLine
+                        x={fmtMesLabel(mesSel + "-01")}
+                        stroke="#1A4A3A"
+                        strokeDasharray="4 2"
+                      />
+                    )}
+                    {chartData.grupos.map((g, i) => (
+                      <Line
+                        key={g}
+                        dataKey={g}
+                        type="monotone"
+                        stroke={CORES_GRUPO[i % CORES_GRUPO.length]}
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        hide={gruposOcultos.has(g)}
+                      />
+                    ))}
+                  </LineChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* O QUE MUDOU */}
       <Card className="card-shadow">
         <CardContent className="p-4">
@@ -862,6 +1084,109 @@ export default function AnaliseDespesas() {
               itens={oQueMudou.sumiram}
               vazio="Nenhum gasto zerou"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* TOP FORNECEDORES DO MÊS */}
+      <Card className="card-shadow">
+        <CardContent className="p-4">
+          <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Users className="h-4 w-4" /> Top fornecedores do mês
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Bloco operacional · concentração de gasto por fornecedor
+              </p>
+            </div>
+            {mesSel && (
+              <Badge variant="outline" className="text-[10px]">{fmtMesLabel(mesSel + "-01")}</Badge>
+            )}
+          </div>
+          {topFornecedores.linhas.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Sem fornecedores no mês</div>
+          ) : (
+            <TopFornecedoresTable
+              linhas={topFornecedores.linhas}
+              totalOp={topFornecedores.totalOp}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* QUALIDADE DA CLASSIFICAÇÃO */}
+      <Card className="card-shadow">
+        <CardContent className="p-4">
+          <div className="mb-3">
+            <h2 className="text-lg font-semibold">Qualidade da classificação</h2>
+            <p className="text-xs text-muted-foreground">
+              Como o mês foi classificado — automação vs revisão humana
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg border p-4">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Origem da classificação</div>
+              {qualidadeMes.total === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">Sem NFs no mês</p>
+              ) : (
+                <>
+                  <div className="flex h-3 rounded-full overflow-hidden bg-muted">
+                    <div
+                      className="bg-blue-500"
+                      style={{ width: `${(qualidadeMes.motor / qualidadeMes.total) * 100}%` }}
+                      title={`Motor: ${qualidadeMes.motor}`}
+                    />
+                    <div
+                      className="bg-amber-500"
+                      style={{ width: `${(qualidadeMes.humano / qualidadeMes.total) * 100}%` }}
+                      title={`Humano: ${qualidadeMes.humano}`}
+                    />
+                    <div
+                      className="bg-muted-foreground/30"
+                      style={{ width: `${(qualidadeMes.semOrigem / qualidadeMes.total) * 100}%` }}
+                      title={`Sem origem: ${qualidadeMes.semOrigem}`}
+                    />
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Bot className="h-3.5 w-3.5 text-blue-500" />
+                      <span className="tabular-nums font-medium">{qualidadeMes.motor}</span>
+                      <span className="text-muted-foreground">motor · {fmtPct((qualidadeMes.motor / qualidadeMes.total) * 100)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <UserIcon className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="tabular-nums font-medium">{qualidadeMes.humano}</span>
+                      <span className="text-muted-foreground">humano · {fmtPct((qualidadeMes.humano / qualidadeMes.total) * 100)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
+                      <span className="tabular-nums font-medium">{qualidadeMes.semOrigem}</span>
+                      <span className="text-muted-foreground">sem origem</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="rounded-lg border p-4">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Cobertura de classificação</div>
+              <div className="text-3xl font-bold tabular-nums">{fmtPct(classifMes.pct)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {classifMes.total - classifMes.naoClass} de {classifMes.total} NFs classificadas
+              </p>
+              {classifMes.naoClass > 0 ? (
+                <div className="mt-3 text-xs">
+                  <span className="text-amber-700">
+                    {classifMes.naoClass} não classificada{classifMes.naoClass > 1 ? "s" : ""} —
+                  </span>
+                  <Link to="/administrativo-fetely/nfs-stage" className="ml-1 underline text-primary">
+                    revisar
+                  </Link>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-emerald-700">Todas as linhas do mês estão classificadas</p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -977,6 +1302,76 @@ function ListaSimples({
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  );
+}
+
+function TopFornecedoresTable({
+  linhas, totalOp,
+}: {
+  linhas: { nome: string; valor: number; count: number; motor: number; humano: number }[];
+  totalOp: number;
+}) {
+  const [verTodos, setVerTodos] = useState(false);
+  const visiveis = verTodos ? linhas : linhas.slice(0, 15);
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="border-b text-muted-foreground">
+          <tr>
+            <th className="text-left py-2 px-2">Fornecedor</th>
+            <th className="text-right py-2 px-2">Valor</th>
+            <th className="text-right py-2 px-2 hidden sm:table-cell">% op mês</th>
+            <th className="text-right py-2 px-2 hidden sm:table-cell">Nº NFs</th>
+            <th className="text-right py-2 px-2">Origem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visiveis.map((f) => {
+            const pct = totalOp ? (f.valor / totalOp) * 100 : 0;
+            const dominante =
+              f.motor === 0 && f.humano === 0
+                ? null
+                : f.humano === 0
+                  ? "motor"
+                  : f.motor === 0
+                    ? "humano"
+                    : f.motor >= f.humano
+                      ? "motor"
+                      : "humano";
+            return (
+              <tr key={f.nome} className="border-b hover:bg-muted/30">
+                <td className="py-1.5 px-2 truncate max-w-[280px]" title={f.nome}>{f.nome}</td>
+                <td className="text-right py-1.5 px-2 tabular-nums font-medium">{formatBRL(f.valor)}</td>
+                <td className="text-right py-1.5 px-2 tabular-nums text-muted-foreground hidden sm:table-cell">
+                  {pct.toFixed(1).replace(".", ",")}%
+                </td>
+                <td className="text-right py-1.5 px-2 tabular-nums text-muted-foreground hidden sm:table-cell">{f.count}</td>
+                <td className="text-right py-1.5 px-2">
+                  {dominante === "motor" ? (
+                    <Badge variant="outline" className="text-[10px] border-blue-500/40 text-blue-700">
+                      <Bot className="h-3 w-3 mr-1" /> Motor
+                    </Badge>
+                  ) : dominante === "humano" ? (
+                    <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700">
+                      <UserIcon className="h-3 w-3 mr-1" /> Humano
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {linhas.length > 15 && (
+        <div className="mt-2 text-center">
+          <Button variant="ghost" size="sm" onClick={() => setVerTodos((v) => !v)}>
+            {verTodos ? "Mostrar top 15" : `Ver todos (${linhas.length})`}
+          </Button>
+        </div>
       )}
     </div>
   );
