@@ -57,6 +57,7 @@ export default function Pessoas() {
   const [desligarTarget, setDesligarTarget] = useState<PessoaLinha | null>(null);
   const [dataFim, setDataFim] = useState<string>(new Date().toISOString().slice(0, 10));
   const [desligando, setDesligando] = useState(false);
+  const [soloIncompletos, setSoloIncompletos] = useState(false);
 
   async function fetchData() {
     setLoading(true);
