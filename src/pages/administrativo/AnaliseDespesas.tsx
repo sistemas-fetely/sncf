@@ -31,6 +31,7 @@ interface Linha {
   valor: number;
   descricao: string | null;
   fornecedor_cliente: string | null;
+  parceiro_id: string | null;
   nf_numero: string | null;
   plano_codigo: string | null;
   plano_nome: string | null;
@@ -40,6 +41,8 @@ interface Linha {
   centro_nome: string | null;
   revisao_origem: string | null;
   classificacao_completa: boolean | null;
+  conta_pagar_id: string | null;
+  conciliada: boolean | null;
 }
 
 // ─── Cores ────────────────────────────────────────────────────────
