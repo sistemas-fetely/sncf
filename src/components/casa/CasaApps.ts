@@ -56,7 +56,7 @@ export const CASA_APPS: CasaApp[] = [
     ],
     icon: Users,
     permModule: null,
-    tela_slug: null,
+    tela_slug: "tela.pessoas",
   },
   {
     id: "financas",
