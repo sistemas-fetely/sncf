@@ -962,7 +962,7 @@ export default function NFsStage() {
           categoria_sugerida_ia: false,
           revisada_em: new Date().toISOString(),
           revisada_por: uid,
-          revisao_origem: "humano",
+          
         })
         .in("id", alvos);
       if (error) throw error;
