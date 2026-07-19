@@ -17082,34 +17082,58 @@ export type Database = {
       }
       transp_tabelas: {
         Row: {
+          adm_pct: number | null
           ativo: boolean
           criado_em: string | null
+          gris_base: string | null
+          gris_minimo: number | null
+          gris_pct: number | null
           id: string
           modal: string
           nome: string
+          pedagio_por_100kg: number | null
+          suframa: number | null
+          tas: number | null
           transportadora_id: string
+          tx_coleta: number | null
           vigencia_descricao: string | null
           vigencia_fim: string | null
           vigencia_inicio: string | null
         }
         Insert: {
+          adm_pct?: number | null
           ativo?: boolean
           criado_em?: string | null
+          gris_base?: string | null
+          gris_minimo?: number | null
+          gris_pct?: number | null
           id?: string
           modal?: string
           nome: string
+          pedagio_por_100kg?: number | null
+          suframa?: number | null
+          tas?: number | null
           transportadora_id: string
+          tx_coleta?: number | null
           vigencia_descricao?: string | null
           vigencia_fim?: string | null
           vigencia_inicio?: string | null
         }
         Update: {
+          adm_pct?: number | null
           ativo?: boolean
           criado_em?: string | null
+          gris_base?: string | null
+          gris_minimo?: number | null
+          gris_pct?: number | null
           id?: string
           modal?: string
           nome?: string
+          pedagio_por_100kg?: number | null
+          suframa?: number | null
+          tas?: number | null
           transportadora_id?: string
+          tx_coleta?: number | null
           vigencia_descricao?: string | null
           vigencia_fim?: string | null
           vigencia_inicio?: string | null
@@ -20357,14 +20381,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -20450,14 +20474,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -22323,6 +22347,18 @@ export type Database = {
         Returns: number
       }
       fn_gerar_numero_titulo: { Args: { p_parcela: number }; Returns: string }
+      fn_importar_tabela_preco: {
+        Args: {
+          p_modal: string
+          p_nome: string
+          p_taxas: Json
+          p_transportadora_id: string
+          p_vigencia_descricao: string
+          p_vigencia_inicio: string
+          p_zonas: Json
+        }
+        Returns: Json
+      }
       fn_job_entregue_por_eta: { Args: never; Returns: number }
       fn_log_evento_pedido: {
         Args: {
