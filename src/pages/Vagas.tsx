@@ -132,6 +132,10 @@ export default function Vagas() {
     () => new Map((dims?.departamentos || []).map((x) => [x.id, x.nome])),
     [dims],
   );
+  const uniMap = useMemo(
+    () => new Map((dims?.unidades || []).map((x) => [x.id, x.nome])),
+    [dims],
+  );
 
   const { data: vagas, isLoading } = useQuery({
     queryKey: ["posicoes-planejadas", statusFilter],
