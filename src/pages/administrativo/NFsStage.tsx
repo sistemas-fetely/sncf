@@ -622,7 +622,7 @@ export default function NFsStage() {
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData?.user?.id;
     if (!uid) return null;
-    return { revisada_em: new Date().toISOString(), revisada_por: uid, revisao_origem: "humano" };
+    return { revisada_em: new Date().toISOString(), revisada_por: uid };
   }
 
   async function enviarParaPagamento(nf: NFStage) {
