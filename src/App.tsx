@@ -136,6 +136,7 @@ const ExtratoImportacao = lazy(() => import("@/pages/administrativo/ExtratoImpor
 const ExtratoInbox = lazy(() => import("@/pages/administrativo/ExtratoInbox"));
 const RegrasInbox = lazy(() => import("@/pages/administrativo/RegrasInbox"));
 const ParesTransferencia = lazy(() => import("@/pages/administrativo/ParesTransferencia"));
+const AnaliseDespesas = lazy(() => import("@/pages/administrativo/AnaliseDespesas"));
 
 const CreditoIndex = lazy(() => import("@/pages/Credito/CreditoIndex"));
 const AnaliseDetalhe = lazy(() => import("@/pages/Credito/AnaliseDetalhe"));
@@ -571,6 +572,7 @@ const App = () => (
                   ═══════════════════════════════════════════════ */}
               <Route path="/administrativo" element={<FinancasLayout />}>
                 <Route index element={<DashboardFinanceiro />} />
+                <Route path="analise-despesas" element={<AnaliseDespesas />} />
                 <Route path="plano-contas" element={<PlanoDeContas />} />
                 <Route path="investimento-lancamento" element={<InvestimentoLancamento />} />
 

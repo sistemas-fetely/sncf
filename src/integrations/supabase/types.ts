@@ -18192,6 +18192,30 @@ export type Database = {
           },
         ]
       }
+      vw_analise_despesas: {
+        Row: {
+          bloco: string | null
+          centro_custo_id: string | null
+          centro_nome: string | null
+          classificacao_completa: boolean | null
+          competencia: string | null
+          descricao: string | null
+          fornecedor_cliente: string | null
+          grupo_codigo: string | null
+          grupo_nome: string | null
+          id: string | null
+          nf_numero: string | null
+          parceiro_id: string | null
+          plano_codigo: string | null
+          plano_contas_id: string | null
+          plano_nome: string | null
+          revisao_origem: string | null
+          status: string | null
+          tipo_plano: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_cobranca_divergencias: {
         Row: {
           dia: string | null
@@ -18934,14 +18958,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -18999,14 +19023,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
