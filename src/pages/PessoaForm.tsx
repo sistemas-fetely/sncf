@@ -546,7 +546,10 @@ export default function PessoaForm() {
           <VinculoBeneficiosSection vinculoId={vinculoId} />
           <VinculoExtrasSection vinculoId={vinculoId} />
           {vinculo.tipo_vinculo === "PJ" && (
-            <VinculoFinanceiroPJSection vinculoId={vinculoId} />
+            <>
+              <VinculoFinanceiroPJSection vinculoId={vinculoId} />
+              <VinculoPagamentosPJSection vinculoId={vinculoId} />
+            </>
           )}
         </div>
       )}
