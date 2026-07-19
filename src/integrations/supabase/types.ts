@@ -2088,6 +2088,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "classificacoes_confirmadas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "classificacoes_confirmadas_plano_contas_id_fkey"
             columns: ["plano_contas_id"]
             isOneToOne: false
@@ -2889,6 +2896,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centros_custo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromissos_parcelados_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
           },
           {
             foreignKeyName: "compromissos_parcelados_conta_bancaria_id_fkey"
@@ -3857,6 +3871,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_compra_registrada_id_fkey"
             columns: ["compra_registrada_id"]
             isOneToOne: false
@@ -4668,6 +4689,51 @@ export type Database = {
           token?: string
         }
         Relationships: []
+      }
+      custo_pessoas_mensal: {
+        Row: {
+          ano_mes: string
+          capturado_em: string
+          centro_custo_id: string | null
+          centro_custo_nome: string | null
+          custo_total: number
+          headcount: number
+          id: string
+        }
+        Insert: {
+          ano_mes: string
+          capturado_em?: string
+          centro_custo_id?: string | null
+          centro_custo_nome?: string | null
+          custo_total: number
+          headcount: number
+          id?: string
+        }
+        Update: {
+          ano_mes?: string
+          capturado_em?: string
+          centro_custo_id?: string | null
+          centro_custo_nome?: string | null
+          custo_total?: number
+          headcount?: number
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custo_pessoas_mensal_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custo_pessoas_mensal_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+        ]
       }
       custom_roles: {
         Row: {
@@ -5589,6 +5655,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centros_custo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatura_cartao_lancamentos_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
           },
           {
             foreignKeyName: "fatura_cartao_lancamentos_conta_pagar_id_fkey"
@@ -7995,6 +8068,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movimentacoes_bancarias_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_bancaria_id"]
             isOneToOne: false
@@ -8582,6 +8662,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "nfs_stage_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
@@ -9127,6 +9214,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centros_custo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofx_regras_automaticas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
           },
           {
             foreignKeyName: "ofx_regras_automaticas_conta_bancaria_id_fkey"
@@ -9819,6 +9913,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centros_custo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiros_comerciais_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
           },
           {
             foreignKeyName: "parceiros_comerciais_forma_pagamento_padrao_id_fkey"
@@ -11277,6 +11378,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pedidos_compra_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "pedidos_compra_departamento_id_fkey"
             columns: ["departamento_id"]
             isOneToOne: false
@@ -12008,6 +12116,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "plano_contas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "plano_contas_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -12220,6 +12335,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centros_custo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
           },
           {
             foreignKeyName: "posicoes_planejadas_departamento_id_fkey"
@@ -13317,6 +13439,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centros_custo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regras_categorizacao_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
           },
           {
             foreignKeyName: "regras_categorizacao_fornecedor_id_fkey"
@@ -16878,12 +17007,14 @@ export type Database = {
         Row: {
           adm_pct: number | null
           adv_pct: number
+          fv_pct: number | null
           gris_base: string
           gris_minimo: number | null
           gris_pct: number
           id: string
           kg_adicional: number
           modelo_peso: string
+          pedagio_por_100kg: number | null
           peso_minimo: number | null
           pesos: Json
           suframa: number | null
@@ -16892,17 +17023,20 @@ export type Database = {
           tas: number | null
           tipo: string
           tx_coleta: number | null
+          txa: number | null
           uf: string
         }
         Insert: {
           adm_pct?: number | null
           adv_pct?: number
+          fv_pct?: number | null
           gris_base?: string
           gris_minimo?: number | null
           gris_pct?: number
           id?: string
           kg_adicional?: number
           modelo_peso?: string
+          pedagio_por_100kg?: number | null
           peso_minimo?: number | null
           pesos: Json
           suframa?: number | null
@@ -16911,17 +17045,20 @@ export type Database = {
           tas?: number | null
           tipo: string
           tx_coleta?: number | null
+          txa?: number | null
           uf: string
         }
         Update: {
           adm_pct?: number | null
           adv_pct?: number
+          fv_pct?: number | null
           gris_base?: string
           gris_minimo?: number | null
           gris_pct?: number
           id?: string
           kg_adicional?: number
           modelo_peso?: string
+          pedagio_por_100kg?: number | null
           peso_minimo?: number | null
           pesos?: Json
           suframa?: number | null
@@ -16930,6 +17067,7 @@ export type Database = {
           tas?: number | null
           tipo?: string
           tx_coleta?: number | null
+          txa?: number | null
           uf?: string
         }
         Relationships: [
@@ -17736,6 +17874,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vinculos_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "vinculos_departamento_id_fkey"
             columns: ["departamento_id"]
             isOneToOne: false
@@ -18330,6 +18475,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_compromisso_parcelado_id_fkey"
             columns: ["compromisso_parcelado_id"]
             isOneToOne: false
@@ -18535,6 +18687,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centros_custo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_compromisso_parcelado_id_fkey"
@@ -19263,6 +19422,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_forma_pagamento_id_fkey"
             columns: ["forma_pagamento_id"]
             isOneToOne: false
@@ -19365,6 +19531,8 @@ export type Database = {
       vw_custo_pessoas: {
         Row: {
           cargo: string | null
+          centro_custo_id: string | null
+          centro_custo_nome: string | null
           custo_recorrente_mensal: number | null
           departamento: string | null
           nome: string | null
@@ -20031,6 +20199,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "nfs_stage_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
@@ -20116,14 +20291,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -20209,14 +20384,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -21525,6 +21700,7 @@ export type Database = {
         Args: { p_titulo_id: string }
         Returns: Json
       }
+      capturar_custo_mensal: { Args: never; Returns: number }
       clonar_pedido_cancelado: { Args: { p_pedido_id: string }; Returns: Json }
       comentar_pedido: {
         Args: { p_conteudo: string; p_pedido_id: string }
@@ -22066,34 +22242,16 @@ export type Database = {
           saldo_otimista: number
         }[]
       }
-      fn_frete_estimado:
-        | {
-            Args: {
-              p_cep_destino: string
-              p_peso_cobrado: number
-              p_transportadora_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_cep_destino: string
-              p_data_referencia?: string
-              p_peso_cobrado: number
-              p_transportadora_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_cep_destino: string
-              p_data_referencia?: string
-              p_peso_cobrado: number
-              p_transportadora_id: string
-              p_valor_mercantil?: number
-            }
-            Returns: Json
-          }
+      fn_frete_estimado: {
+        Args: {
+          p_cep_destino: string
+          p_data_referencia?: string
+          p_peso_cobrado: number
+          p_transportadora_id: string
+          p_valor_mercantil?: number
+        }
+        Returns: Json
+      }
       fn_gerar_cprs_de_contrato: {
         Args: { p_contrato_id: string }
         Returns: number

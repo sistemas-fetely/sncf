@@ -108,7 +108,7 @@ export default function Vagas() {
   const [cancelTarget, setCancelTarget] = useState<Vaga | null>(null);
   const [preencherTarget, setPreencherTarget] = useState<Vaga | null>(null);
 
-  // Dimensões
+  // Dimensões — cada fonte isolada para que uma falha não zere as outras
   const { data: dims } = useQuery({
     queryKey: ["vagas-dimensoes"],
     queryFn: async () => {
@@ -118,10 +118,10 @@ export default function Vagas() {
         (supabase as any).from("unidades").select("id, nome").order("nome"),
         (supabase as any).from("centros_custo").select("id, nome").eq("ativo", true).order("nome"),
       ]);
-      if (c.error) throw c.error;
-      if (d.error) throw d.error;
-      if (u.error) throw u.error;
-      if (cc.error) throw cc.error;
+      if (c.error) console.error("[vagas-dimensoes] cargos:", c.error);
+      if (d.error) console.error("[vagas-dimensoes] departamentos:", d.error);
+      if (u.error) console.error("[vagas-dimensoes] unidades:", u.error);
+      if (cc.error) console.error("[vagas-dimensoes] centros_custo:", cc.error);
       return {
         cargos: (c.data || []) as { id: string; nome: string }[],
         departamentos: (d.data || []) as { id: string; nome: string }[],
