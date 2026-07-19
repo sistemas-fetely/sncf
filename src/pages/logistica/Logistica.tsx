@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Truck, Loader2, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Truck, Loader2, Plus, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { cn } from "@/lib/utils";
