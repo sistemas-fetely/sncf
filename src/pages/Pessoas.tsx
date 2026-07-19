@@ -275,6 +275,7 @@ export default function Pessoas() {
                   <TableHead className="font-semibold">Nome</TableHead>
                   <TableHead className="font-semibold">Tipo</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Cargo</TableHead>
+                  <TableHead className="font-semibold hidden lg:table-cell">Centro de Custo</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Departamento</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Início</TableHead>
@@ -283,9 +284,9 @@ export default function Pessoas() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma pessoa encontrada.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma pessoa encontrada.</TableCell></TableRow>
                 ) : filtered.map((p) => (
                   <TableRow key={p.pessoa_id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/pessoas/${p.pessoa_id}/editar`)}>
                     <TableCell>
