@@ -59,6 +59,7 @@ import {
   FileCode,
   Eye,
   Sparkles,
+  Gauge,
   Calculator,
   Package,
   X,
