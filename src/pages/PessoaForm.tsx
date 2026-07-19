@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
+import VinculoBeneficiosSection from "@/components/pessoas/VinculoBeneficiosSection";
+import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
 
 type Dim = { id: string; nome: string; codigo?: string };
 
