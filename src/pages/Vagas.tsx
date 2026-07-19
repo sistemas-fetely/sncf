@@ -345,6 +345,11 @@ export default function Vagas() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {(v.status === "aberta" || v.status === "em_processo") && (
+                            <DropdownMenuItem onClick={() => setPreencherTarget(v)}>
+                              <UserPlus className="mr-2 h-4 w-4" /> Preencher vaga
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => openEdit(v)}>
                             <Edit className="mr-2 h-4 w-4" /> Editar
                           </DropdownMenuItem>
