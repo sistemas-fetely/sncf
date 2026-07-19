@@ -23,6 +23,8 @@ interface CustoLinha {
   nome: string;
   tipo_vinculo: "CLT" | "PJ" | string;
   departamento: string | null;
+  centro_custo_id: string | null;
+  centro_custo_nome: string | null;
   cargo: string | null;
   valor_base: number | null;
   valor_transporte: number | null;
