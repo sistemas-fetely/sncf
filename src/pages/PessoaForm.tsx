@@ -85,7 +85,7 @@ const emptyPessoa: PessoaForm = {
 
 const emptyVinculo: VinculoForm = {
   tipo_vinculo: "CLT",
-  cargo_id: "", departamento_id: "", unidade_id: "",
+  cargo_id: "", departamento_id: "", centro_custo_id: "", unidade_id: "",
   data_inicio: new Date().toISOString().slice(0, 10),
   valor_base: "", valor_transporte: "", valor_beneficios_extras: "",
   forma_pagamento_id: "", dia_vencimento: "5",
