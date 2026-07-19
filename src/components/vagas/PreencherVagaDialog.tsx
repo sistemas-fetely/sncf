@@ -20,9 +20,11 @@ interface Posicao {
   cargo_id: string | null;
   departamento_id: string | null;
   unidade_id: string | null;
+  centro_custo_id: string | null;
   tipo_vinculo: string | null;
   senioridade: string | null;
 }
+
 
 interface Props {
   posicao: Posicao | null;
@@ -62,9 +64,10 @@ export function PreencherVagaDialog({
         posicao.tipo_vinculo === "PJ" ? "PJ" : "CLT",
       );
       setValorBase("");
-      setCentroCustoId("");
+      setCentroCustoId(posicao.centro_custo_id || "");
     }
   }, [open, posicao]);
+
 
   // Pessoas sem vínculo ativo
   const { data: pessoasDisponiveis } = useQuery({

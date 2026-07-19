@@ -41,6 +41,7 @@ interface Vaga {
   departamento_id: string | null;
   unidade_id: string | null;
   cargo_id: string | null;
+  centro_custo_id: string | null;
   tipo_vinculo: string | null;
   senioridade: string | null;
   descricao: string | null;
@@ -55,6 +56,7 @@ interface FormState {
   departamento_id: string;
   unidade_id: string;
   cargo_id: string;
+  centro_custo_id: string;
   tipo_vinculo: string;
   senioridade: string;
   descricao: string;
@@ -68,6 +70,7 @@ const emptyForm: FormState = {
   departamento_id: "",
   unidade_id: "",
   cargo_id: "",
+  centro_custo_id: "",
   tipo_vinculo: "qualquer",
   senioridade: "",
   descricao: "",
@@ -75,6 +78,7 @@ const emptyForm: FormState = {
   observacoes: "",
   status: "aberta",
 };
+
 
 const NENHUM = "__nenhum__";
 
@@ -108,18 +112,21 @@ export default function Vagas() {
   const { data: dims } = useQuery({
     queryKey: ["vagas-dimensoes"],
     queryFn: async () => {
-      const [c, d, u] = await Promise.all([
+      const [c, d, u, cc] = await Promise.all([
         (supabase as any).from("cargos").select("id, nome").eq("ativo", true).order("nome"),
         (supabase as any).from("departamentos").select("id, nome").eq("ativo", true).order("nome"),
         (supabase as any).from("unidades").select("id, nome").order("nome"),
+        (supabase as any).from("centros_custo").select("id, nome").eq("ativo", true).order("nome"),
       ]);
       if (c.error) throw c.error;
       if (d.error) throw d.error;
       if (u.error) throw u.error;
+      if (cc.error) throw cc.error;
       return {
         cargos: (c.data || []) as { id: string; nome: string }[],
         departamentos: (d.data || []) as { id: string; nome: string }[],
         unidades: (u.data || []) as { id: string; nome: string }[],
+        centrosCusto: (cc.data || []) as { id: string; nome: string }[],
       };
     },
   });
@@ -136,6 +143,11 @@ export default function Vagas() {
     () => new Map((dims?.unidades || []).map((x) => [x.id, x.nome])),
     [dims],
   );
+  const ccMap = useMemo(
+    () => new Map((dims?.centrosCusto || []).map((x) => [x.id, x.nome])),
+    [dims],
+  );
+
 
   const { data: vagas, isLoading } = useQuery({
     queryKey: ["posicoes-planejadas", statusFilter],
@@ -170,6 +182,7 @@ export default function Vagas() {
       departamento_id: v.departamento_id || "",
       unidade_id: v.unidade_id || "",
       cargo_id: v.cargo_id || "",
+      centro_custo_id: v.centro_custo_id || "",
       tipo_vinculo: v.tipo_vinculo || "qualquer",
       senioridade: v.senioridade || "",
       descricao: v.descricao || "",
@@ -180,22 +193,28 @@ export default function Vagas() {
     setDialogOpen(true);
   }
 
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.titulo.trim()) {
         throw new Error("Título é obrigatório.");
+      }
+      if (!form.centro_custo_id) {
+        throw new Error("Centro de custo é obrigatório.");
       }
       const payload: any = {
         titulo: form.titulo.trim(),
         departamento_id: form.departamento_id || null,
         unidade_id: form.unidade_id || null,
         cargo_id: form.cargo_id || null,
+        centro_custo_id: form.centro_custo_id || null,
         tipo_vinculo: form.tipo_vinculo || null,
         senioridade: form.senioridade.trim() || null,
         descricao: form.descricao.trim() || null,
         data_prevista_ocupacao: form.data_prevista_ocupacao || null,
         observacoes: form.observacoes.trim() || null,
       };
+
 
       if (editing) {
         payload.status = form.status;
@@ -295,6 +314,7 @@ export default function Vagas() {
                 <TableRow className="bg-muted/50">
                   <TableHead className="font-semibold">Título</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Área</TableHead>
+                  <TableHead className="font-semibold hidden md:table-cell">Centro de custo</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Cargo</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Tipo</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Senioridade</TableHead>
@@ -305,11 +325,11 @@ export default function Vagas() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-10">
+                  <TableRow><TableCell colSpan={9} className="text-center py-10">
                     <div className="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                   </TableCell></TableRow>
                 ) : (vagas || []).length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-sm">
                     Nenhuma vaga neste filtro.
                   </TableCell></TableRow>
                 ) : (vagas || []).map((v) => (
@@ -318,9 +338,13 @@ export default function Vagas() {
                     <TableCell className="text-sm hidden md:table-cell">
                       {v.departamento_id ? depMap.get(v.departamento_id) || "—" : "—"}
                     </TableCell>
+                    <TableCell className="text-sm hidden md:table-cell">
+                      {v.centro_custo_id ? ccMap.get(v.centro_custo_id) || "—" : "—"}
+                    </TableCell>
                     <TableCell className="text-sm hidden lg:table-cell">
                       {v.cargo_id ? cargoMap.get(v.cargo_id) || "—" : "—"}
                     </TableCell>
+
                     <TableCell className="text-sm hidden md:table-cell">
                       {v.tipo_vinculo || "—"}
                     </TableCell>
@@ -432,6 +456,23 @@ export default function Vagas() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-1.5">
+                <Label>Centro de custo *</Label>
+                <Select
+                  value={form.centro_custo_id}
+                  onValueChange={(v) => setForm({ ...form, centro_custo_id: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                  <SelectContent>
+                    {(dims?.centrosCusto || []).map((cc) => (
+                      <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+
 
               <div className="space-y-1.5">
                 <Label>Cargo</Label>
