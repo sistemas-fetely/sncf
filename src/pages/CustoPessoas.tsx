@@ -23,6 +23,8 @@ interface CustoLinha {
   nome: string;
   tipo_vinculo: "CLT" | "PJ" | string;
   departamento: string | null;
+  centro_custo_id: string | null;
+  centro_custo_nome: string | null;
   cargo: string | null;
   valor_base: number | null;
   valor_transporte: number | null;
@@ -81,8 +83,8 @@ export default function CustoPessoas() {
   const porArea = useMemo(() => {
     const map = new Map<string, number>();
     for (const r of linhas) {
-      const dep = r.departamento || "Sem área";
-      map.set(dep, (map.get(dep) || 0) + num(r.custo_recorrente_mensal));
+      const cc = r.centro_custo_nome || "Sem centro de custo";
+      map.set(cc, (map.get(cc) || 0) + num(r.custo_recorrente_mensal));
     }
     return Array.from(map.entries())
       .map(([area, custo]) => ({ area, custo }))
@@ -171,7 +173,7 @@ export default function CustoPessoas() {
 
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             <Card>
-              <CardHeader><CardTitle className="text-base">Custo Mensal por Área</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Custo Mensal por Centro de Custo</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
@@ -228,7 +230,7 @@ export default function CustoPessoas() {
                   <TableRow>
                     <TableHead>Pessoa</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead>Área</TableHead>
+                    <TableHead>Centro de Custo</TableHead>
                     <TableHead className="text-right">Base</TableHead>
                     <TableHead className="text-right">Benefícios</TableHead>
                     <TableHead className="text-right">Extras</TableHead>
@@ -242,7 +244,7 @@ export default function CustoPessoas() {
                       <TableCell>
                         <Badge variant={r.tipo_vinculo === "CLT" ? "default" : "secondary"}>{r.tipo_vinculo}</Badge>
                       </TableCell>
-                      <TableCell>{r.departamento || "—"}</TableCell>
+                      <TableCell>{r.centro_custo_nome || "—"}</TableCell>
                       <TableCell className="text-right">{fmtBRL(num(r.valor_base) + num(r.valor_transporte))}</TableCell>
                       <TableCell className="text-right">{fmtBRL(num(r.total_beneficios))}</TableCell>
                       <TableCell className="text-right">{fmtBRL(num(r.total_extras_recorrentes))}</TableCell>
