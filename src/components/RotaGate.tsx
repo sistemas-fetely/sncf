@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolverRegraRota } from "@/config/rotasRegistry";
-import { usePermissoesDoUsuario, TELAS_PUBLICAS } from "@/hooks/usePermissoesDoUsuario";
+import { usePermissoesDoUsuario, TELAS_PUBLICAS, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 import { useRotasConfig, resolverRegraRotaBanco } from "@/hooks/useRotasConfig";
 
 export function RotaGate({ children }: { children: ReactNode }) {
