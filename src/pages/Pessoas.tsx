@@ -32,6 +32,8 @@ interface PessoaLinha {
   status: "ativo" | "desligado" | null;
   cargo: string | null;
   departamento: string | null;
+  centro_custo_id: string | null;
+  centro_custo: string | null;
   data_inicio: string | null;
   incompleto: boolean;
   motivos: string[];
@@ -58,21 +60,26 @@ export default function Pessoas() {
   const [dataFim, setDataFim] = useState<string>(new Date().toISOString().slice(0, 10));
   const [desligando, setDesligando] = useState(false);
   const [soloIncompletos, setSoloIncompletos] = useState(false);
+  const [filterCC, setFilterCC] = useState("todos");
+  const [centrosCusto, setCentrosCusto] = useState<{ id: string; codigo: string; nome: string }[]>([]);
 
   async function fetchData() {
     setLoading(true);
     try {
-      const [{ data: pessoas, error: e1 }, { data: vinculos, error: e2 }, { data: cargos }, { data: deps }] = await Promise.all([
+      const [{ data: pessoas, error: e1 }, { data: vinculos, error: e2 }, { data: cargos }, { data: deps }, { data: ccs }] = await Promise.all([
         (supabase as any).from("pessoas").select("id, nome_completo, foto_url, cpf").order("nome_completo"),
-        (supabase as any).from("vinculos").select("id, pessoa_id, tipo_vinculo, status, cargo_id, departamento_id, data_inicio").order("data_inicio", { ascending: false }),
+        (supabase as any).from("vinculos").select("id, pessoa_id, tipo_vinculo, status, cargo_id, departamento_id, centro_custo_id, data_inicio").order("data_inicio", { ascending: false }),
         (supabase as any).from("cargos").select("id, nome"),
         (supabase as any).from("departamentos").select("id, nome"),
+        (supabase as any).from("centros_custo").select("id, codigo, nome").eq("ativo", true).order("nome"),
       ]);
       if (e1) throw e1;
       if (e2) throw e2;
 
       const cargoMap = new Map<string, string>((cargos || []).map((c: any) => [c.id, c.nome]));
       const depMap = new Map<string, string>((deps || []).map((d: any) => [d.id, d.nome]));
+      const ccMap = new Map<string, string>((ccs || []).map((c: any) => [c.id, c.nome]));
+      setCentrosCusto((ccs || []) as any[]);
 
       // Escolhe vínculo ativo se existir; senão o mais recente
       const vincPorPessoa = new Map<string, any>();
@@ -98,6 +105,8 @@ export default function Pessoas() {
           status: v?.status ?? null,
           cargo: cargoResolvido,
           departamento: v?.departamento_id ? depMap.get(v.departamento_id) ?? null : null,
+          centro_custo_id: v?.centro_custo_id ?? null,
+          centro_custo: v?.centro_custo_id ? ccMap.get(v.centro_custo_id) ?? null : null,
           data_inicio: v?.data_inicio ?? null,
           incompleto: motivos.length > 0,
           motivos,
@@ -124,14 +133,16 @@ export default function Pessoas() {
     const matchSearch = !s ||
       l.nome.toLowerCase().includes(s) ||
       (l.cargo || "").toLowerCase().includes(s) ||
-      (l.departamento || "").toLowerCase().includes(s);
+      (l.departamento || "").toLowerCase().includes(s) ||
+      (l.centro_custo || "").toLowerCase().includes(s);
     const matchTipo = filterTipo === "todos" || l.tipo_vinculo === filterTipo;
     const matchStatus = filterStatus === "todos" ||
       (filterStatus === "ativo" && l.status === "ativo") ||
       (filterStatus === "desligado" && l.status !== "ativo");
+    const matchCC = filterCC === "todos" || l.centro_custo_id === filterCC;
     const matchIncompleto = !soloIncompletos || l.incompleto;
-    return matchSearch && matchTipo && matchStatus && matchIncompleto;
-  }), [linhas, search, filterTipo, filterStatus, soloIncompletos]);
+    return matchSearch && matchTipo && matchStatus && matchCC && matchIncompleto;
+  }), [linhas, search, filterTipo, filterStatus, filterCC, soloIncompletos]);
 
 
 
@@ -212,7 +223,7 @@ export default function Pessoas() {
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
+              <Input placeholder="Buscar por nome, cargo, departamento ou centro de custo..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
             </div>
             <Select value={filterTipo} onValueChange={setFilterTipo}>
               <SelectTrigger className="w-full sm:w-32"><SelectValue placeholder="Tipo" /></SelectTrigger>
@@ -228,6 +239,15 @@ export default function Pessoas() {
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="ativo">Ativo</SelectItem>
                 <SelectItem value="desligado">Desligado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterCC} onValueChange={setFilterCC}>
+              <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Centro de Custo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {centrosCusto.map((cc) => (
+                  <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -255,6 +275,7 @@ export default function Pessoas() {
                   <TableHead className="font-semibold">Nome</TableHead>
                   <TableHead className="font-semibold">Tipo</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Cargo</TableHead>
+                  <TableHead className="font-semibold hidden lg:table-cell">Centro de Custo</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Departamento</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Início</TableHead>
@@ -263,9 +284,9 @@ export default function Pessoas() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma pessoa encontrada.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma pessoa encontrada.</TableCell></TableRow>
                 ) : filtered.map((p) => (
                   <TableRow key={p.pessoa_id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/pessoas/${p.pessoa_id}/editar`)}>
                     <TableCell>
@@ -304,6 +325,7 @@ export default function Pessoas() {
                       ) : <span className="text-xs text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-sm hidden md:table-cell">{p.cargo || "—"}</TableCell>
+                    <TableCell className="text-sm hidden lg:table-cell">{p.centro_custo || "—"}</TableCell>
                     <TableCell className="text-sm hidden lg:table-cell">{p.departamento || "—"}</TableCell>
                     <TableCell>
                       {p.status ? (

@@ -47,6 +47,7 @@ interface VinculoForm {
   tipo_vinculo: "CLT" | "PJ";
   cargo_id: string;
   departamento_id: string;
+  centro_custo_id: string;
   unidade_id: string;
   data_inicio: string;
   valor_base: string;
@@ -84,7 +85,7 @@ const emptyPessoa: PessoaForm = {
 
 const emptyVinculo: VinculoForm = {
   tipo_vinculo: "CLT",
-  cargo_id: "", departamento_id: "", unidade_id: "",
+  cargo_id: "", departamento_id: "", centro_custo_id: "", unidade_id: "",
   data_inicio: new Date().toISOString().slice(0, 10),
   valor_base: "", valor_transporte: "", valor_beneficios_extras: "",
   forma_pagamento_id: "", dia_vencimento: "5",
@@ -109,6 +110,7 @@ export default function PessoaForm() {
 
   const [cargos, setCargos] = useState<Dim[]>([]);
   const [departamentos, setDepartamentos] = useState<Dim[]>([]);
+  const [centrosCusto, setCentrosCusto] = useState<Dim[]>([]);
   const [unidades, setUnidades] = useState<Dim[]>([]);
   const [formasPagamento, setFormasPagamento] = useState<Dim[]>([]);
   const [pessoasAtivas, setPessoasAtivas] = useState<{ id: string; nome: string }[]>([]);
@@ -121,9 +123,10 @@ export default function PessoaForm() {
   useEffect(() => {
     (async () => {
       try {
-        const [{ data: c }, { data: d }, { data: u }, { data: fp }, { data: vgestor }] = await Promise.all([
+        const [{ data: c }, { data: d }, { data: cc }, { data: u }, { data: fp }, { data: vgestor }] = await Promise.all([
           (supabase as any).from("cargos").select("id, nome").eq("ativo", true).order("nome"),
           (supabase as any).from("departamentos").select("id, nome").eq("ativo", true).order("nome"),
+          (supabase as any).from("centros_custo").select("id, nome, codigo").eq("ativo", true).order("nome"),
           (supabase as any).from("unidades").select("id, nome").order("nome"),
           (supabase as any).from("formas_pagamento").select("id, nome, codigo").order("ordem"),
           (supabase as any)
@@ -134,6 +137,7 @@ export default function PessoaForm() {
         ]);
         setCargos((c || []) as Dim[]);
         setDepartamentos((d || []) as Dim[]);
+        setCentrosCusto((cc || []) as Dim[]);
         setUnidades((u || []) as Dim[]);
         setFormasPagamento((fp || []) as Dim[]);
         const mapa = new Map<string, string>();
@@ -176,7 +180,7 @@ export default function PessoaForm() {
           setVinculoStatus(v.status);
           setVinculo({
             tipo_vinculo: v.tipo_vinculo,
-            cargo_id: v.cargo_id || "", departamento_id: v.departamento_id || "", unidade_id: v.unidade_id || "",
+            cargo_id: v.cargo_id || "", departamento_id: v.departamento_id || "", centro_custo_id: v.centro_custo_id || "", unidade_id: v.unidade_id || "",
             data_inicio: v.data_inicio || "",
             valor_base: v.valor_base?.toString() || "",
             valor_transporte: v.valor_transporte?.toString() || "",
@@ -249,6 +253,7 @@ export default function PessoaForm() {
       tipo_vinculo: vinculo.tipo_vinculo,
       cargo_id: vinculo.cargo_id || null,
       departamento_id: vinculo.departamento_id || null,
+      centro_custo_id: vinculo.centro_custo_id || null,
       unidade_id: vinculo.unidade_id || null,
       gestor_pessoa_id: vinculo.gestor_pessoa_id || null,
       data_inicio: vinculo.data_inicio,
@@ -447,6 +452,13 @@ export default function PessoaForm() {
               <Select value={vinculo.departamento_id} onValueChange={(v) => setVinculo({ ...vinculo, departamento_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>{departamentos.map((d) => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Centro de Custo</Label>
+              <Select value={vinculo.centro_custo_id} onValueChange={(v) => setVinculo({ ...vinculo, centro_custo_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                <SelectContent>{centrosCusto.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
