@@ -4878,6 +4878,39 @@ export type Database = {
           },
         ]
       }
+      extras_catalogo: {
+        Row: {
+          aplica_a: string
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          natureza_padrao: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          aplica_a?: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          natureza_padrao?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          aplica_a?: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          natureza_padrao?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       extrato_importacoes: {
         Row: {
           conta_bancaria_id: string | null
@@ -11793,6 +11826,13 @@ export type Database = {
             referencedRelation: "vw_organograma"
             referencedColumns: ["vinculo_id"]
           },
+          {
+            foreignKeyName: "posicoes_planejadas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
+          },
         ]
       }
       prazo_liquidacao: {
@@ -16795,6 +16835,90 @@ export type Database = {
             referencedRelation: "vw_organograma"
             referencedColumns: ["vinculo_id"]
           },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
+          },
+        ]
+      }
+      vinculo_extras: {
+        Row: {
+          competencia: string | null
+          created_at: string
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          extra_id: string
+          id: string
+          natureza: string
+          observacoes: string | null
+          status: string
+          updated_at: string
+          valor: number
+          vinculo_id: string
+        }
+        Insert: {
+          competencia?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          extra_id: string
+          id?: string
+          natureza: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number
+          vinculo_id: string
+        }
+        Update: {
+          competencia?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          extra_id?: string
+          id?: string
+          natureza?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number
+          vinculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vinculo_extras_extra_id_fkey"
+            columns: ["extra_id"]
+            isOneToOne: false
+            referencedRelation: "extras_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculo_extras_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculo_extras_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_extras_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
+          },
         ]
       }
       vinculos: {
@@ -18958,14 +19082,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -19023,14 +19147,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -19964,7 +20088,25 @@ export type Database = {
             referencedRelation: "vw_organograma"
             referencedColumns: ["vinculo_id"]
           },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
+          },
         ]
+      }
+      vw_vinculo_custo_total: {
+        Row: {
+          custo_recorrente_mensal: number | null
+          total_beneficios: number | null
+          total_extras_recorrentes: number | null
+          valor_base: number | null
+          valor_transporte: number | null
+          vinculo_id: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
