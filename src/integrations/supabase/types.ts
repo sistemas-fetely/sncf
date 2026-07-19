@@ -577,6 +577,13 @@ export type Database = {
             referencedRelation: "vw_nfs_stage_completude"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["nf_id"]
+          },
         ]
       }
       backup_cpr_fantasma_20260620: {
@@ -6263,6 +6270,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["nf_id"]
+          },
+          {
             foreignKeyName: "ged_documentos_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -8399,6 +8413,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nfs_stage_completude"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["nf_id"]
           },
         ]
       }
@@ -11831,6 +11852,13 @@ export type Database = {
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["vinculo_id"]
           },
           {
@@ -16853,6 +16881,13 @@ export type Database = {
             foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vw_vinculo_custo_total"
             referencedColumns: ["vinculo_id"]
           },
@@ -16931,6 +16966,13 @@ export type Database = {
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_extras_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["vinculo_id"]
           },
           {
@@ -17135,6 +17177,13 @@ export type Database = {
             referencedColumns: ["pessoa_id"]
           },
           {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
             foreignKeyName: "vinculos_parceiro_comercial_id_fkey"
             columns: ["parceiro_comercial_id"]
             isOneToOne: false
@@ -17174,6 +17223,13 @@ export type Database = {
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["pessoa_id"]
           },
           {
@@ -18417,6 +18473,13 @@ export type Database = {
             foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vw_vinculo_custo_total"
             referencedColumns: ["vinculo_id"]
           },
@@ -19180,14 +19243,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -19229,6 +19292,13 @@ export type Database = {
             columns: ["gestor_pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["pessoa_id"]
           },
         ]
@@ -19436,6 +19506,22 @@ export type Database = {
             referencedColumns: ["conta_id"]
           },
         ]
+      }
+      vw_pj_notas_fiscais: {
+        Row: {
+          cnpj_prestador: string | null
+          data_vencimento: string | null
+          nf_data_emissao: string | null
+          nf_id: string | null
+          nf_numero: string | null
+          nf_serie: string | null
+          pessoa: string | null
+          pessoa_id: string | null
+          status: string | null
+          valor: number | null
+          vinculo_id: string | null
+        }
+        Relationships: []
       }
       vw_previsao_recebimentos: {
         Row: {
@@ -20198,6 +20284,13 @@ export type Database = {
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["vinculo_id"]
           },
           {
