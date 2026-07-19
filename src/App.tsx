@@ -171,6 +171,7 @@ const ShopifyFulfillments = lazy(() => import("@/pages/vendas/shopify/ShopifyFul
 const ShopifyEstoque = lazy(() => import("@/pages/vendas/shopify/ShopifyEstoque"));
 const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
+const AnaliseCustoFrete = lazy(() => import("@/pages/logistica/AnaliseCustoFrete"));
 const CanalCPO = lazy(() => import("@/pages/CanalCPO"));
 const TesteFrete = lazy(() => import("@/pages/TesteFrete"));
 const TesteRastreio = lazy(() => import("@/pages/TesteRastreio"));
@@ -303,6 +304,7 @@ const App = () => (
                 <Route path="/vendas/shopify/fulfillments" element={<ShopifyFulfillments />} />
                 <Route path="/vendas/shopify/estoque" element={<ShopifyEstoque />} />
                 <Route path="/logistica" element={<Logistica />} />
+                <Route path="/logistica/analise-custo" element={<AnaliseCustoFrete />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
                 <Route path="/canal-cpo" element={<CanalCPO />} />
