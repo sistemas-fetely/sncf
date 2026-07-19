@@ -64,9 +64,10 @@ export function PreencherVagaDialog({
         posicao.tipo_vinculo === "PJ" ? "PJ" : "CLT",
       );
       setValorBase("");
-      setCentroCustoId("");
+      setCentroCustoId(posicao.centro_custo_id || "");
     }
   }, [open, posicao]);
+
 
   // Pessoas sem vínculo ativo
   const { data: pessoasDisponiveis } = useQuery({
