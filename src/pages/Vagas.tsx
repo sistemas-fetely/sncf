@@ -231,13 +231,13 @@ export default function Vagas() {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(editing ? "Vaga atualizada" : "Vaga criada");
-      qc.invalidateQueries({ queryKey: ["posicoes-planejadas"] });
-      qc.invalidateQueries({ queryKey: ["dimensionamento-areas"] });
       setDialogOpen(false);
       setEditing(null);
       setForm(emptyForm);
+      await qc.refetchQueries({ queryKey: ["posicoes-planejadas"], type: "all" });
+      qc.invalidateQueries({ queryKey: ["dimensionamento-areas"] });
     },
     onError: (err: any) => {
       toast.error(humanizeError(err?.message || String(err)));
