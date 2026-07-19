@@ -83,8 +83,8 @@ export default function CustoPessoas() {
   const porArea = useMemo(() => {
     const map = new Map<string, number>();
     for (const r of linhas) {
-      const dep = r.departamento || "Sem área";
-      map.set(dep, (map.get(dep) || 0) + num(r.custo_recorrente_mensal));
+      const cc = r.centro_custo_nome || "Sem centro de custo";
+      map.set(cc, (map.get(cc) || 0) + num(r.custo_recorrente_mensal));
     }
     return Array.from(map.entries())
       .map(([area, custo]) => ({ area, custo }))
