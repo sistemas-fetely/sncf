@@ -36,7 +36,8 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
         <TabsContent value="fretes" className="mt-4">
           <FretesEntregas transportadoraId={transportadora.id} transportadoraNome={nome} />
         </TabsContent>
-        <TabsContent value="tabela" className="mt-4">
+        <TabsContent value="tabela" className="mt-4 space-y-4">
+          <GestaoTabelasPreco transportadoraId={transportadora.id} />
           <TabelaPreco transportadoraId={transportadora.id} />
         </TabsContent>
       </Tabs>
