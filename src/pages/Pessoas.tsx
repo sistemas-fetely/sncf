@@ -223,7 +223,7 @@ export default function Pessoas() {
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
+              <Input placeholder="Buscar por nome, cargo, departamento ou centro de custo..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
             </div>
             <Select value={filterTipo} onValueChange={setFilterTipo}>
               <SelectTrigger className="w-full sm:w-32"><SelectValue placeholder="Tipo" /></SelectTrigger>
@@ -239,6 +239,15 @@ export default function Pessoas() {
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="ativo">Ativo</SelectItem>
                 <SelectItem value="desligado">Desligado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterCC} onValueChange={setFilterCC}>
+              <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Centro de Custo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {centrosCusto.map((cc) => (
+                  <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
