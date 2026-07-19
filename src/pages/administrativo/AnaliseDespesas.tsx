@@ -443,7 +443,7 @@ export default function AnaliseDespesas() {
                             </tr>
                           );
                         })}
-                      </>
+                      </FragmentGrupo>
                     );
                   })}
                 </tbody>
