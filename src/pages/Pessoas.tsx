@@ -325,6 +325,7 @@ export default function Pessoas() {
                       ) : <span className="text-xs text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-sm hidden md:table-cell">{p.cargo || "—"}</TableCell>
+                    <TableCell className="text-sm hidden lg:table-cell">{p.centro_custo || "—"}</TableCell>
                     <TableCell className="text-sm hidden lg:table-cell">{p.departamento || "—"}</TableCell>
                     <TableCell>
                       {p.status ? (
