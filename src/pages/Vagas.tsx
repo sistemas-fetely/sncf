@@ -102,6 +102,7 @@ export default function Vagas() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<Vaga | null>(null);
+  const [preencherTarget, setPreencherTarget] = useState<Vaga | null>(null);
 
   // Dimensões
   const { data: dims } = useQuery({
