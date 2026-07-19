@@ -357,6 +357,105 @@ export default function AnaliseDespesas() {
     return { aumentos, quedas, novos: novos.slice(0, 8), sumiram: sumiram.slice(0, 8) };
   }, [data, mesSel, mesAnteriorKey]);
 
+  // ─── Matriz Centro × Meses (operacional) ───────────────────────
+  const matrizCentro = useMemo(() => {
+    if (!data) return { linhas: [] as { nome: string; porMes: Record<string, number>; total: number }[], totaisPorMes: {} as Record<string, number> };
+    const map = new Map<string, { nome: string; porMes: Record<string, number>; total: number }>();
+    const totaisPorMes: Record<string, number> = {};
+    for (const r of data) {
+      if (r.bloco !== "operacional") continue;
+      const mk = monthKey(r.competencia);
+      const v = Number(r.valor ?? 0);
+      const nome = r.centro_nome ?? "— sem centro —";
+      const cur = map.get(nome) ?? { nome, porMes: {}, total: 0 };
+      cur.porMes[mk] = (cur.porMes[mk] ?? 0) + v;
+      cur.total += v;
+      map.set(nome, cur);
+      totaisPorMes[mk] = (totaisPorMes[mk] ?? 0) + v;
+    }
+    return { linhas: Array.from(map.values()).sort((a, b) => b.total - a.total), totaisPorMes };
+  }, [data]);
+
+  // ─── Top fornecedores do mês (operacional) ─────────────────────
+  const topFornecedores = useMemo(() => {
+    const map = new Map<string, { nome: string; valor: number; count: number; motor: number; humano: number }>();
+    let totalOp = 0;
+    for (const r of linhasMes) {
+      if (r.bloco !== "operacional") continue;
+      const nome = r.fornecedor_cliente ?? "— sem fornecedor —";
+      const cur = map.get(nome) ?? { nome, valor: 0, count: 0, motor: 0, humano: 0 };
+      const v = Number(r.valor ?? 0);
+      cur.valor += v;
+      cur.count += 1;
+      if (r.revisao_origem === "motor") cur.motor += 1;
+      else if (r.revisao_origem === "humano") cur.humano += 1;
+      map.set(nome, cur);
+      totalOp += v;
+    }
+    const linhas = Array.from(map.values()).sort((a, b) => b.valor - a.valor);
+    return { linhas, totalOp };
+  }, [linhasMes]);
+
+  // ─── Qualidade da classificação (mês) ──────────────────────────
+  const qualidadeMes = useMemo(() => {
+    let motor = 0, humano = 0, semOrigem = 0;
+    for (const r of linhasMes) {
+      if (r.revisao_origem === "motor") motor++;
+      else if (r.revisao_origem === "humano") humano++;
+      else semOrigem++;
+    }
+    const total = motor + humano + semOrigem;
+    return { motor, humano, semOrigem, total };
+  }, [linhasMes]);
+
+  // ─── Cobertura de conciliação (mês, operacional + capex) ───────
+  const coberturaMes = useMemo(() => {
+    let countTotal = 0, countConc = 0, valorTotal = 0, valorConc = 0;
+    for (const r of linhasMes) {
+      if (r.bloco !== "operacional" && r.bloco !== "capex") continue;
+      const v = Number(r.valor ?? 0);
+      countTotal++;
+      valorTotal += v;
+      if (r.conciliada) {
+        countConc++;
+        valorConc += v;
+      }
+    }
+    const pctCount = countTotal ? (countConc / countTotal) * 100 : 0;
+    const pctValor = valorTotal ? (valorConc / valorTotal) * 100 : 0;
+    return { countTotal, countConc, valorTotal, valorConc, pctCount, pctValor };
+  }, [linhasMes]);
+
+  // ─── Export XLSX ───────────────────────────────────────────────
+  async function exportarMes() {
+    if (!mesSel) { toast.error("Selecione um mês antes de exportar"); return; }
+    if (!linhasMes.length) { toast.error("Sem linhas no mês selecionado"); return; }
+    try {
+      const XLSX = await import("xlsx");
+      const rows = linhasMes.map((r) => ({
+        competencia: r.competencia,
+        fornecedor: r.fornecedor_cliente ?? "",
+        plano_codigo: r.plano_codigo ?? "",
+        plano_nome: r.plano_nome ?? "",
+        grupo_nome: r.grupo_nome ?? "",
+        bloco: r.bloco,
+        centro_nome: r.centro_nome ?? "",
+        valor: Number(r.valor ?? 0),
+        revisao_origem: r.revisao_origem ?? "",
+        conciliada: r.conciliada ? "sim" : "nao",
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Despesas");
+      XLSX.writeFile(wb, `analise_despesas_${mesSel}.xlsx`);
+      toast.success(`Exportado · ${rows.length} linhas`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao exportar");
+    }
+  }
+
+
+
   // ─── IA ─────────────────────────────────────────────────────────
   async function analisarComIA(force = false) {
     if (!mesSel || !mesAnteriorKey) {
