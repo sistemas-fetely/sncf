@@ -613,101 +613,40 @@ export default function AnaliseDespesas() {
         )}
       </div>
 
-      {/* GRÁFICO com toggle */}
-      <Card className="card-shadow">
+      {/* COBERTURA DE CONCILIAÇÃO — mês */}
+      <Card className="card-shadow border-l-4" style={{ borderLeftColor: "#1A4A3A" }}>
         <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">Evolução mensal</h2>
-              <p className="text-xs text-muted-foreground">
-                {modoGrafico === "empilhado"
-                  ? "Operacional empilhado por grupo · CAPEX em série separada"
-                  : "Tendência por grupo — clique na legenda para isolar/ocultar"}
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                <Landmark className="h-3.5 w-3.5" /> Cobertura de conciliação
+              </div>
+              <div className="mt-1 text-3xl font-bold tabular-nums">{fmtPct(coberturaMes.pctValor)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                <span className="tabular-nums">{formatBRL(coberturaMes.valorConc)}</span> de <span className="tabular-nums">{formatBRL(coberturaMes.valorTotal)}</span> já bateram com um débito bancário
+                {coberturaMes.countTotal > 0 && (
+                  <> · {coberturaMes.countConc}/{coberturaMes.countTotal} NFs ({fmtPct(coberturaMes.pctCount)})</>
+                )}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground max-w-xl">
+                As não-conciliadas não são erro — são pagamentos ainda não vinculados ao extrato.
               </p>
             </div>
-            <ToggleGroup
-              type="single"
-              value={modoGrafico}
-              onValueChange={(v) => v && setModoGrafico(v as any)}
-              size="sm"
-            >
-              <ToggleGroupItem value="empilhado">Empilhado</ToggleGroupItem>
-              <ToggleGroupItem value="tendencia">Tendência</ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-          {isLoading ? (
-            <Skeleton className="h-72 w-full" />
-          ) : chartData.rows.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">Sem dados</div>
-          ) : (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                {modoGrafico === "empilhado" ? (
-                  <BarChart data={chartData.rows} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="label" fontSize={11} />
-                    <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                    <RTooltip
-                      formatter={(v: any, name: any) => [formatBRL(Number(v)), name === "__capex" ? "CAPEX" : name]}
-                      labelFormatter={(l) => l}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => (v === "__capex" ? "CAPEX" : v)} />
-                    {mesSel && (
-                      <ReferenceLine
-                        x={fmtMesLabel(mesSel + "-01")}
-                        stroke="#1A4A3A"
-                        strokeDasharray="4 2"
-                      />
-                    )}
-                    {chartData.grupos.map((g, i) => (
-                      <Bar
-                        key={g} dataKey={g} stackId="op"
-                        fill={CORES_GRUPO[i % CORES_GRUPO.length]}
-                        onClick={(d: any) => d?.mes && setMesSel(d.mes)}
-                        cursor="pointer"
-                      />
-                    ))}
-                    <Bar
-                      dataKey="__capex" name="CAPEX" fill={COR_CAPEX}
-                      onClick={(d: any) => d?.mes && setMesSel(d.mes)}
-                      cursor="pointer"
-                    />
-                  </BarChart>
-                ) : (
-                  <LineChart data={chartData.rows} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="label" fontSize={11} />
-                    <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                    <RTooltip formatter={(v: any, name: any) => [formatBRL(Number(v)), name]} />
-                    <Legend
-                      wrapperStyle={{ fontSize: 11, cursor: "pointer" }}
-                      onClick={(o: any) => o?.value && toggleGrupoOculto(String(o.value))}
-                    />
-                    {mesSel && (
-                      <ReferenceLine
-                        x={fmtMesLabel(mesSel + "-01")}
-                        stroke="#1A4A3A"
-                        strokeDasharray="4 2"
-                      />
-                    )}
-                    {chartData.grupos.map((g, i) => (
-                      <Line
-                        key={g}
-                        dataKey={g}
-                        type="monotone"
-                        stroke={CORES_GRUPO[i % CORES_GRUPO.length]}
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        hide={gruposOcultos.has(g)}
-                      />
-                    ))}
-                  </LineChart>
-                )}
-              </ResponsiveContainer>
+            <div className="flex flex-col items-end gap-2 min-w-[220px]">
+              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full transition-all"
+                  style={{ width: `${Math.min(100, coberturaMes.pctValor)}%`, background: "#1A4A3A" }}
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate("/administrativo-fetely/conciliacao-despesas")}>
+                Conciliar →
+              </Button>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
+
 
       {/* MATRIZ Grupos × Meses */}
       <Card className="card-shadow">
