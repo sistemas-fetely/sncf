@@ -230,7 +230,7 @@ export default function CustoPessoas() {
                   <TableRow>
                     <TableHead>Pessoa</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead>Área</TableHead>
+                    <TableHead>Centro de Custo</TableHead>
                     <TableHead className="text-right">Base</TableHead>
                     <TableHead className="text-right">Benefícios</TableHead>
                     <TableHead className="text-right">Extras</TableHead>
