@@ -44,8 +44,8 @@ export function RotaGate({ children }: { children: ReactNode }) {
   // Telas públicas: qualquer aprovado passa sem checar grupo
   if (regra.tela_slug && TELAS_PUBLICAS.has(regra.tela_slug)) return <>{children}</>;
 
-  // Sem slug ou grupo não tem permissão → nega
-  if (!regra.tela_slug || !permitidas?.has(regra.tela_slug)) {
+  // Sem slug ou grupo não tem permissão → nega (helper aplica guarda-chuva de Finanças)
+  if (!temPermissaoTela(regra.tela_slug, permitidas)) {
     return <Navigate to="/sem-permissao" replace />;
   }
 
