@@ -1306,3 +1306,73 @@ function ListaSimples({
     </div>
   );
 }
+
+function TopFornecedoresTable({
+  linhas, totalOp,
+}: {
+  linhas: { nome: string; valor: number; count: number; motor: number; humano: number }[];
+  totalOp: number;
+}) {
+  const [verTodos, setVerTodos] = useState(false);
+  const visiveis = verTodos ? linhas : linhas.slice(0, 15);
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="border-b text-muted-foreground">
+          <tr>
+            <th className="text-left py-2 px-2">Fornecedor</th>
+            <th className="text-right py-2 px-2">Valor</th>
+            <th className="text-right py-2 px-2 hidden sm:table-cell">% op mês</th>
+            <th className="text-right py-2 px-2 hidden sm:table-cell">Nº NFs</th>
+            <th className="text-right py-2 px-2">Origem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visiveis.map((f) => {
+            const pct = totalOp ? (f.valor / totalOp) * 100 : 0;
+            const dominante =
+              f.motor === 0 && f.humano === 0
+                ? null
+                : f.humano === 0
+                  ? "motor"
+                  : f.motor === 0
+                    ? "humano"
+                    : f.motor >= f.humano
+                      ? "motor"
+                      : "humano";
+            return (
+              <tr key={f.nome} className="border-b hover:bg-muted/30">
+                <td className="py-1.5 px-2 truncate max-w-[280px]" title={f.nome}>{f.nome}</td>
+                <td className="text-right py-1.5 px-2 tabular-nums font-medium">{formatBRL(f.valor)}</td>
+                <td className="text-right py-1.5 px-2 tabular-nums text-muted-foreground hidden sm:table-cell">
+                  {pct.toFixed(1).replace(".", ",")}%
+                </td>
+                <td className="text-right py-1.5 px-2 tabular-nums text-muted-foreground hidden sm:table-cell">{f.count}</td>
+                <td className="text-right py-1.5 px-2">
+                  {dominante === "motor" ? (
+                    <Badge variant="outline" className="text-[10px] border-blue-500/40 text-blue-700">
+                      <Bot className="h-3 w-3 mr-1" /> Motor
+                    </Badge>
+                  ) : dominante === "humano" ? (
+                    <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700">
+                      <UserIcon className="h-3 w-3 mr-1" /> Humano
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {linhas.length > 15 && (
+        <div className="mt-2 text-center">
+          <Button variant="ghost" size="sm" onClick={() => setVerTodos((v) => !v)}>
+            {verTodos ? "Mostrar top 15" : `Ver todos (${linhas.length})`}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
