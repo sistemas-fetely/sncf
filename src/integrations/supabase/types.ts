@@ -21088,6 +21088,21 @@ export type Database = {
       gerar_periodos_ferias_pendentes: { Args: never; Returns: undefined }
       gerar_proximas_parcelas_pasta: { Args: never; Returns: number }
       get_convite_by_token: { Args: { _token: string }; Returns: Json }
+      get_folha_competencia: {
+        Args: { p_competencia: string }
+        Returns: {
+          departamento: string
+          extras_pontuais: number
+          extras_recorrentes: number
+          pessoa: string
+          tipo_vinculo: string
+          total_beneficios: number
+          total_mes: number
+          valor_base: number
+          valor_transporte: number
+          vinculo_id: string
+        }[]
+      }
       get_organograma_tree: {
         Args: never
         Returns: {

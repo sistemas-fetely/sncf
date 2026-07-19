@@ -32,6 +32,7 @@ const PessoaForm = lazy(() => import("@/pages/PessoaForm"));
 const PanoramaAreas = lazy(() => import("@/pages/PanoramaAreas"));
 const Vagas = lazy(() => import("@/pages/Vagas"));
 const CustoPessoas = lazy(() => import("@/pages/CustoPessoas"));
+const FolhaMensal = lazy(() => import("@/pages/FolhaMensal"));
 const ColaboradorDetalhe = lazy(() => import("@/pages/ColaboradorDetalhe"));
 const CadastroColaboradorCLTWrapper = lazy(() => import("@/components/colaborador-clt/CadastroColaboradorCLT").then(m => ({ default: m.CadastroColaboradorCLTWrapper })));
 const PlaceholderPage = lazy(() => import("@/pages/PlaceholderPage"));
@@ -371,6 +372,7 @@ const App = () => (
                 <Route path="/pessoas/panorama" element={<PanoramaAreas />} />
                 <Route path="/pessoas/vagas" element={<Vagas />} />
                 <Route path="/pessoas/custo" element={<CustoPessoas />} />
+                <Route path="/pessoas/folha" element={<FolhaMensal />} />
                 <Route path="/pessoas/novo" element={<PessoaForm />} />
                 <Route path="/pessoas/:id/editar" element={<PessoaForm />} />
                 <Route path="/colaboradores" element={
