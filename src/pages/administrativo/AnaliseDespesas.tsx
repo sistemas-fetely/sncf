@@ -216,11 +216,15 @@ export default function AnaliseDespesas() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <CasaPageHeader
-        icon={BarChart3}
-        title="Análise de Despesas"
-        description="Visão por competência — valor total no mês de emissão da NF"
-      />
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <BarChart3 className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Análise de Despesas</h1>
+          <p className="text-sm text-muted-foreground">Visão por competência — valor total no mês de emissão da NF</p>
+        </div>
+      </div>
 
       {/* Seletor de mês */}
       <div className="flex flex-wrap items-center gap-3">
