@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList,
+  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList, AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { humanizeError } from "@/lib/errorMessages";
@@ -25,12 +26,15 @@ interface PessoaLinha {
   pessoa_id: string;
   nome: string;
   foto_url: string | null;
+  cpf: string | null;
   vinculo_id: string | null;
   tipo_vinculo: "CLT" | "PJ" | null;
   status: "ativo" | "desligado" | null;
   cargo: string | null;
   departamento: string | null;
   data_inicio: string | null;
+  incompleto: boolean;
+  motivos: string[];
 }
 
 const statusStyles: Record<string, string> = {
@@ -53,12 +57,13 @@ export default function Pessoas() {
   const [desligarTarget, setDesligarTarget] = useState<PessoaLinha | null>(null);
   const [dataFim, setDataFim] = useState<string>(new Date().toISOString().slice(0, 10));
   const [desligando, setDesligando] = useState(false);
+  const [soloIncompletos, setSoloIncompletos] = useState(false);
 
   async function fetchData() {
     setLoading(true);
     try {
       const [{ data: pessoas, error: e1 }, { data: vinculos, error: e2 }, { data: cargos }, { data: deps }] = await Promise.all([
-        (supabase as any).from("pessoas").select("id, nome_completo, foto_url").order("nome_completo"),
+        (supabase as any).from("pessoas").select("id, nome_completo, foto_url, cpf").order("nome_completo"),
         (supabase as any).from("vinculos").select("id, pessoa_id, tipo_vinculo, status, cargo_id, departamento_id, data_inicio").order("data_inicio", { ascending: false }),
         (supabase as any).from("cargos").select("id, nome"),
         (supabase as any).from("departamentos").select("id, nome"),
@@ -79,16 +84,23 @@ export default function Pessoas() {
 
       const rows: PessoaLinha[] = ((pessoas || []) as any[]).map((p) => {
         const v = vincPorPessoa.get(p.id);
+        const cargoResolvido = v?.cargo_id ? cargoMap.get(v.cargo_id) ?? null : null;
+        const motivos: string[] = [];
+        if (!p.cpf || String(p.cpf).trim() === "") motivos.push("Sem CPF");
+        if (!cargoResolvido) motivos.push("Sem cargo");
         return {
           pessoa_id: p.id,
           nome: p.nome_completo,
           foto_url: p.foto_url,
+          cpf: p.cpf ?? null,
           vinculo_id: v?.id ?? null,
           tipo_vinculo: v?.tipo_vinculo ?? null,
           status: v?.status ?? null,
-          cargo: v?.cargo_id ? cargoMap.get(v.cargo_id) ?? null : null,
+          cargo: cargoResolvido,
           departamento: v?.departamento_id ? depMap.get(v.departamento_id) ?? null : null,
           data_inicio: v?.data_inicio ?? null,
+          incompleto: motivos.length > 0,
+          motivos,
         };
       });
       setLinhas(rows);
@@ -105,6 +117,7 @@ export default function Pessoas() {
   const totalAtivos = linhas.filter((l) => l.status === "ativo").length;
   const totalCLT = linhas.filter((l) => l.status === "ativo" && l.tipo_vinculo === "CLT").length;
   const totalPJ = linhas.filter((l) => l.status === "ativo" && l.tipo_vinculo === "PJ").length;
+  const totalIncompletos = linhas.filter((l) => l.incompleto).length;
 
   const filtered = useMemo(() => linhas.filter((l) => {
     const s = search.toLowerCase();
@@ -116,8 +129,11 @@ export default function Pessoas() {
     const matchStatus = filterStatus === "todos" ||
       (filterStatus === "ativo" && l.status === "ativo") ||
       (filterStatus === "desligado" && l.status !== "ativo");
-    return matchSearch && matchTipo && matchStatus;
-  }), [linhas, search, filterTipo, filterStatus]);
+    const matchIncompleto = !soloIncompletos || l.incompleto;
+    return matchSearch && matchTipo && matchStatus && matchIncompleto;
+  }), [linhas, search, filterTipo, filterStatus, soloIncompletos]);
+
+
 
   const initials = (name: string) =>
     name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -207,6 +223,22 @@ export default function Pessoas() {
             </Select>
           </div>
 
+          {totalIncompletos > 0 && (
+            <div className="mb-4">
+              <Button
+                type="button"
+                size="sm"
+                variant={soloIncompletos ? "default" : "outline"}
+                onClick={() => setSoloIncompletos((v) => !v)}
+                className={soloIncompletos ? "gap-2 bg-warning text-warning-foreground hover:bg-warning/90" : "gap-2 border-warning/40 text-warning hover:bg-warning/10"}
+              >
+                <AlertTriangle className="h-4 w-4" />
+                {totalIncompletos} cadastro(s) incompleto(s)
+                {soloIncompletos && <span className="text-xs opacity-80">· filtrando</span>}
+              </Button>
+            </div>
+          )}
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -234,6 +266,23 @@ export default function Pessoas() {
                           <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials(p.nome)}</AvatarFallback>
                         </Avatar>
                         <span className="font-medium text-sm">{p.nome}</span>
+                        {p.incompleto && (
+                          <TooltipProvider delayDuration={100}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="border-warning/40 bg-warning/10 text-warning gap-1 h-5 px-1.5 text-[10px] font-semibold"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Incompleto
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>{p.motivos.join(", ")}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
