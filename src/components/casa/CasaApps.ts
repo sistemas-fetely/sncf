@@ -19,6 +19,10 @@ export interface CasaApp {
   requireAdminRole?: boolean;
   /** Slug de tela para checagem de permissão por grupo (null = só super_admin) */
   tela_slug: string | null;
+  /** Prefixo de sub-slugs granulares: o app aparece se o usuário tiver
+   *  qualquer permissão com este prefixo (ex: "tela.fin_" para Finanças
+   *  recortada por tela), mesmo sem o slug-mãe. */
+  slugPrefix?: string;
 }
 
 export const CASA_APPS: CasaApp[] = [
