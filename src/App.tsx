@@ -30,6 +30,7 @@ const Colaboradores = lazy(() => import("@/pages/Colaboradores"));
 const Pessoas = lazy(() => import("@/pages/Pessoas"));
 const PessoaForm = lazy(() => import("@/pages/PessoaForm"));
 const PanoramaAreas = lazy(() => import("@/pages/PanoramaAreas"));
+const Vagas = lazy(() => import("@/pages/Vagas"));
 const ColaboradorDetalhe = lazy(() => import("@/pages/ColaboradorDetalhe"));
 const CadastroColaboradorCLTWrapper = lazy(() => import("@/components/colaborador-clt/CadastroColaboradorCLT").then(m => ({ default: m.CadastroColaboradorCLTWrapper })));
 const PlaceholderPage = lazy(() => import("@/pages/PlaceholderPage"));
