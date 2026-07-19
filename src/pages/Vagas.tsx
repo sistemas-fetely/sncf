@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, MoreHorizontal, Edit, PlayCircle, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Plus, MoreHorizontal, Edit, PlayCircle, CheckCircle2, XCircle, UserPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 import { Card, CardContent } from "@/components/ui/card";
