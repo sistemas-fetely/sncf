@@ -636,6 +636,7 @@ const App = () => (
                 {/* parceiros movido para SOPsLayout */}
                 <Route path="importar" element={<ImportarDados />} />
                 <Route path="nfs-stage" element={<NFsStage />} />
+                <Route path="motor-classificacao" element={<MotorClassificacao />} />
                 <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
               </Route>
 
