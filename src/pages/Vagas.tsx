@@ -360,13 +360,6 @@ export default function Vagas() {
                               <PlayCircle className="mr-2 h-4 w-4" /> Marcar em processo
                             </DropdownMenuItem>
                           )}
-                          {(v.status === "aberta" || v.status === "em_processo") && (
-                            <DropdownMenuItem
-                              onClick={() => statusMutation.mutate({ id: v.id, status: "preenchida" })}
-                            >
-                              <CheckCircle2 className="mr-2 h-4 w-4" /> Marcar preenchida
-                            </DropdownMenuItem>
-                          )}
                           {v.status !== "cancelada" && v.status !== "preenchida" && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
