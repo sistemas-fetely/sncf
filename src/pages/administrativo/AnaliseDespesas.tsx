@@ -502,14 +502,18 @@ export default function AnaliseDespesas() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <BarChart3 className="h-5 w-5" />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Análise de Despesas</h1>
           <p className="text-sm text-muted-foreground">Visão por competência — valor total no mês de emissão da NF</p>
         </div>
+        <Button variant="outline" size="sm" onClick={exportarMes} disabled={!mesSel || !linhasMes.length}>
+          <Download className="h-3.5 w-3.5 mr-2" />
+          Exportar mês (XLSX)
+        </Button>
       </div>
 
       {/* Seletor de mês */}
