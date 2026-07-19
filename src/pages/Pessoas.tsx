@@ -133,14 +133,16 @@ export default function Pessoas() {
     const matchSearch = !s ||
       l.nome.toLowerCase().includes(s) ||
       (l.cargo || "").toLowerCase().includes(s) ||
-      (l.departamento || "").toLowerCase().includes(s);
+      (l.departamento || "").toLowerCase().includes(s) ||
+      (l.centro_custo || "").toLowerCase().includes(s);
     const matchTipo = filterTipo === "todos" || l.tipo_vinculo === filterTipo;
     const matchStatus = filterStatus === "todos" ||
       (filterStatus === "ativo" && l.status === "ativo") ||
       (filterStatus === "desligado" && l.status !== "ativo");
+    const matchCC = filterCC === "todos" || l.centro_custo_id === filterCC;
     const matchIncompleto = !soloIncompletos || l.incompleto;
-    return matchSearch && matchTipo && matchStatus && matchIncompleto;
-  }), [linhas, search, filterTipo, filterStatus, soloIncompletos]);
+    return matchSearch && matchTipo && matchStatus && matchCC && matchIncompleto;
+  }), [linhas, search, filterTipo, filterStatus, filterCC, soloIncompletos]);
 
 
 
