@@ -2,6 +2,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Building2 } from "lucide-react";
 import { FretesEntregas } from "./FretesEntregas";
 import { TabelaPreco } from "./TabelaPreco";
+import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
 import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 
 function fmtCnpj(cnpj: string | null): string {
