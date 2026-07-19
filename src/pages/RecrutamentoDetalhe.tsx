@@ -892,6 +892,12 @@ export default function RecrutamentoDetalhe() {
 
   return (
     <div className="flex flex-col h-full -m-6 overflow-hidden">
+      <div className="px-6 pt-4">
+        <div className="rounded-md border border-warning/40 bg-warning/10 px-4 py-2 text-xs">
+          <strong className="text-warning">Fluxo de contratação desativado nesta tela.</strong>{" "}
+          <span className="text-foreground">Para contratar, use <a href="/pessoas/vagas" className="underline font-medium">Pessoas → Vagas</a>.</span>
+        </div>
+      </div>
       {/* HEADER */}
       <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
         <div className="flex items-center gap-3">
