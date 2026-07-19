@@ -70,6 +70,7 @@ export const CASA_APPS: CasaApp[] = [
     icon: Wallet,
     permModule: null,
     tela_slug: "tela.financeiro",
+    slugPrefix: "tela.fin_",
   },
   {
     id: "marca",
