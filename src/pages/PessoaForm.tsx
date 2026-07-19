@@ -123,9 +123,10 @@ export default function PessoaForm() {
   useEffect(() => {
     (async () => {
       try {
-        const [{ data: c }, { data: d }, { data: u }, { data: fp }, { data: vgestor }] = await Promise.all([
+        const [{ data: c }, { data: d }, { data: cc }, { data: u }, { data: fp }, { data: vgestor }] = await Promise.all([
           (supabase as any).from("cargos").select("id, nome").eq("ativo", true).order("nome"),
           (supabase as any).from("departamentos").select("id, nome").eq("ativo", true).order("nome"),
+          (supabase as any).from("centros_custo").select("id, nome, codigo").eq("ativo", true).order("nome"),
           (supabase as any).from("unidades").select("id, nome").order("nome"),
           (supabase as any).from("formas_pagamento").select("id, nome, codigo").order("ordem"),
           (supabase as any)
@@ -136,6 +137,7 @@ export default function PessoaForm() {
         ]);
         setCargos((c || []) as Dim[]);
         setDepartamentos((d || []) as Dim[]);
+        setCentrosCusto((cc || []) as Dim[]);
         setUnidades((u || []) as Dim[]);
         setFormasPagamento((fp || []) as Dim[]);
         const mapa = new Map<string, string>();
