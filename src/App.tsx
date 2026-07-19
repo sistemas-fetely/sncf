@@ -572,6 +572,7 @@ const App = () => (
                   ═══════════════════════════════════════════════ */}
               <Route path="/administrativo" element={<FinancasLayout />}>
                 <Route index element={<DashboardFinanceiro />} />
+                <Route path="analise-despesas" element={<AnaliseDespesas />} />
                 <Route path="plano-contas" element={<PlanoDeContas />} />
                 <Route path="investimento-lancamento" element={<InvestimentoLancamento />} />
 
