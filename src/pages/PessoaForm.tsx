@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
+import VinculoBeneficiosSection from "@/components/pessoas/VinculoBeneficiosSection";
+import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
 
 type Dim = { id: string; nome: string; codigo?: string };
 
@@ -535,6 +537,14 @@ export default function PessoaForm() {
           </div>
         </CardContent>
       </Card>
+
+      {isEdit && vinculoId && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Composição de Custo</h2>
+          <VinculoBeneficiosSection vinculoId={vinculoId} />
+          <VinculoExtrasSection vinculoId={vinculoId} />
+        </div>
+      )}
 
       <AlertDialog open={!!pessoaExistente} onOpenChange={(open) => { if (!open) setPessoaExistente(null); }}>
         <AlertDialogContent>
