@@ -367,6 +367,7 @@ const App = () => (
                 <Route path="/desligamento/:id" element={<DesligamentoDetalhe />} />
                 <Route path="/pessoas" element={<Pessoas />} />
                 <Route path="/pessoas/panorama" element={<PanoramaAreas />} />
+                <Route path="/pessoas/vagas" element={<Vagas />} />
                 <Route path="/pessoas/novo" element={<PessoaForm />} />
                 <Route path="/pessoas/:id/editar" element={<PessoaForm />} />
                 <Route path="/colaboradores" element={
