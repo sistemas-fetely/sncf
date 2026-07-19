@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList, AlertTriangle, Wallet,
+  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList, AlertTriangle, Wallet, CalendarDays,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
