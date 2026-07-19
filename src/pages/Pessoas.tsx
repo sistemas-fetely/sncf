@@ -32,6 +32,8 @@ interface PessoaLinha {
   status: "ativo" | "desligado" | null;
   cargo: string | null;
   departamento: string | null;
+  centro_custo_id: string | null;
+  centro_custo: string | null;
   data_inicio: string | null;
   incompleto: boolean;
   motivos: string[];
