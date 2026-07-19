@@ -117,6 +117,21 @@ export default function Pessoas() {
   const totalAtivos = linhas.filter((l) => l.status === "ativo").length;
   const totalCLT = linhas.filter((l) => l.status === "ativo" && l.tipo_vinculo === "CLT").length;
   const totalPJ = linhas.filter((l) => l.status === "ativo" && l.tipo_vinculo === "PJ").length;
+  const totalIncompletos = linhas.filter((l) => l.incompleto).length;
+
+  const filtered = useMemo(() => linhas.filter((l) => {
+    const s = search.toLowerCase();
+    const matchSearch = !s ||
+      l.nome.toLowerCase().includes(s) ||
+      (l.cargo || "").toLowerCase().includes(s) ||
+      (l.departamento || "").toLowerCase().includes(s);
+    const matchTipo = filterTipo === "todos" || l.tipo_vinculo === filterTipo;
+    const matchStatus = filterStatus === "todos" ||
+      (filterStatus === "ativo" && l.status === "ativo") ||
+      (filterStatus === "desligado" && l.status !== "ativo");
+    const matchIncompleto = !soloIncompletos || l.incompleto;
+    return matchSearch && matchTipo && matchStatus && matchIncompleto;
+  }), [linhas, search, filterTipo, filterStatus, soloIncompletos]);
 
   const filtered = useMemo(() => linhas.filter((l) => {
     const s = search.toLowerCase();
