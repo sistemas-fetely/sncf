@@ -2,6 +2,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Building2 } from "lucide-react";
 import { FretesEntregas } from "./FretesEntregas";
 import { TabelaPreco } from "./TabelaPreco";
+import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
 import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 
 function fmtCnpj(cnpj: string | null): string {
@@ -35,7 +36,8 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
         <TabsContent value="fretes" className="mt-4">
           <FretesEntregas transportadoraId={transportadora.id} transportadoraNome={nome} />
         </TabsContent>
-        <TabsContent value="tabela" className="mt-4">
+        <TabsContent value="tabela" className="mt-4 space-y-4">
+          <GestaoTabelasPreco transportadoraId={transportadora.id} />
           <TabelaPreco transportadoraId={transportadora.id} />
         </TabsContent>
       </Tabs>
