@@ -19,7 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatBRL } from "@/lib/format-currency";
-import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+
 
 // ─── Tipos ────────────────────────────────────────────────────────
 type Bloco = "operacional" | "capex" | "imposto" | "nao_classificado";
