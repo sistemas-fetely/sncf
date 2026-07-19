@@ -199,17 +199,22 @@ export default function Vagas() {
       if (!form.titulo.trim()) {
         throw new Error("Título é obrigatório.");
       }
+      if (!form.centro_custo_id) {
+        throw new Error("Centro de custo é obrigatório.");
+      }
       const payload: any = {
         titulo: form.titulo.trim(),
         departamento_id: form.departamento_id || null,
         unidade_id: form.unidade_id || null,
         cargo_id: form.cargo_id || null,
+        centro_custo_id: form.centro_custo_id || null,
         tipo_vinculo: form.tipo_vinculo || null,
         senioridade: form.senioridade.trim() || null,
         descricao: form.descricao.trim() || null,
         data_prevista_ocupacao: form.data_prevista_ocupacao || null,
         observacoes: form.observacoes.trim() || null,
       };
+
 
       if (editing) {
         payload.status = form.status;
