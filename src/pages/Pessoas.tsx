@@ -62,7 +62,7 @@ export default function Pessoas() {
     setLoading(true);
     try {
       const [{ data: pessoas, error: e1 }, { data: vinculos, error: e2 }, { data: cargos }, { data: deps }] = await Promise.all([
-        (supabase as any).from("pessoas").select("id, nome_completo, foto_url").order("nome_completo"),
+        (supabase as any).from("pessoas").select("id, nome_completo, foto_url, cpf").order("nome_completo"),
         (supabase as any).from("vinculos").select("id, pessoa_id, tipo_vinculo, status, cargo_id, departamento_id, data_inicio").order("data_inicio", { ascending: false }),
         (supabase as any).from("cargos").select("id, nome"),
         (supabase as any).from("departamentos").select("id, nome"),
