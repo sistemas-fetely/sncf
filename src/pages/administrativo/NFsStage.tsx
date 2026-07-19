@@ -915,7 +915,6 @@ export default function NFsStage() {
               centro_custo_id: fonte.centro_custo_id,
               revisada_em: new Date().toISOString(),
               revisada_por: uid,
-              revisao_origem: "humano",
             };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
