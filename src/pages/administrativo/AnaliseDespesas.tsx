@@ -8,7 +8,7 @@ import {
 import {
   BarChart3, ArrowDown, ArrowUp, ChevronDown, ChevronRight,
   AlertTriangle, Building2, Receipt, Package, Sparkles, TrendingUp, TrendingDown,
-  PlusCircle, MinusCircle, RefreshCw,
+  PlusCircle, MinusCircle, RefreshCw, Download, Users, Bot, User as UserIcon, Landmark,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
