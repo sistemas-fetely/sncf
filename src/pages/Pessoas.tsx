@@ -223,6 +223,22 @@ export default function Pessoas() {
             </Select>
           </div>
 
+          {totalIncompletos > 0 && (
+            <div className="mb-4">
+              <Button
+                type="button"
+                size="sm"
+                variant={soloIncompletos ? "default" : "outline"}
+                onClick={() => setSoloIncompletos((v) => !v)}
+                className={soloIncompletos ? "gap-2 bg-warning text-warning-foreground hover:bg-warning/90" : "gap-2 border-warning/40 text-warning hover:bg-warning/10"}
+              >
+                <AlertTriangle className="h-4 w-4" />
+                {totalIncompletos} cadastro(s) incompleto(s)
+                {soloIncompletos && <span className="text-xs opacity-80">· filtrando</span>}
+              </Button>
+            </div>
+          )}
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
