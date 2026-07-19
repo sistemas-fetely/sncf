@@ -1,172 +1,183 @@
-import { useState, useMemo, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useOrganograma } from "@/hooks/useOrganograma";
-import { OrgToolbar } from "@/components/organograma/OrgToolbar";
-import { OrgVisualView } from "@/components/organograma/OrgVisualView";
-import { OrgSyntheticView } from "@/components/organograma/OrgSyntheticView";
-import { OrgAnalyticView } from "@/components/organograma/OrgAnalyticView";
-import { OrgNodeDrawer } from "@/components/organograma/OrgNodeDrawer";
-import { OrgPosicaoModal } from "@/components/organograma/OrgPosicaoModal";
-import { OrgMoveConfirmDialog } from "@/components/organograma/OrgMoveConfirmDialog";
-import type { ViewMode, OrgFilters, PosicaoNode } from "@/types/organograma";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { ArrowLeft, Network, Loader2, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { humanizeError } from "@/lib/errorMessages";
 
-function filterTree(nodes: PosicaoNode[], filters: OrgFilters): PosicaoNode[] {
-  function matchNode(n: PosicaoNode): boolean {
-    if (filters.departamento !== "todos" && n.departamento !== filters.departamento) return false;
-    if (filters.filial !== "todos" && n.filial !== filters.filial) return false;
-    if (filters.vinculo !== "todos" && n.vinculo !== filters.vinculo) return false;
-    if (filters.status !== "todos" && n.status !== filters.status) return false;
-    if (filters.search) {
-      const s = filters.search.toLowerCase();
-      const match = n.nome_display.toLowerCase().includes(s) || n.titulo_cargo.toLowerCase().includes(s);
-      if (!match) return false;
-    }
-    return true;
-  }
-
-  function filterNode(node: PosicaoNode): PosicaoNode | null {
-    const filteredChildren = node.children.map(filterNode).filter(Boolean) as PosicaoNode[];
-    if (matchNode(node) || filteredChildren.length > 0) {
-      return { ...node, children: filteredChildren };
-    }
-    return null;
-  }
-
-  return nodes.map(filterNode).filter(Boolean) as PosicaoNode[];
+interface OrgRow {
+  vinculo_id: string;
+  pessoa_id: string;
+  nome: string;
+  tipo_vinculo: "CLT" | "PJ";
+  status: string;
+  data_inicio: string | null;
+  cargo: string | null;
+  departamento: string | null;
+  unidade: string | null;
+  gestor_pessoa_id: string | null;
+  gestor_nome: string | null;
+  eh_topo: boolean;
 }
 
-function flattenFiltered(nodes: PosicaoNode[]): PosicaoNode[] {
-  const result: PosicaoNode[] = [];
-  function walk(n: PosicaoNode) { result.push(n); n.children.forEach(walk); }
-  nodes.forEach(walk);
-  return result;
+function NoCard({
+  row,
+  level,
+  childrenByGestor,
+  visited,
+}: {
+  row: OrgRow;
+  level: number;
+  childrenByGestor: Map<string, OrgRow[]>;
+  visited: Set<string>;
+}) {
+  if (visited.has(row.pessoa_id)) return null;
+  const nextVisited = new Set(visited);
+  nextVisited.add(row.pessoa_id);
+
+  const filhos = childrenByGestor.get(row.pessoa_id) || [];
+  const compact = level >= 2;
+
+  return (
+    <div className="space-y-2">
+      <Card
+        className={`card-shadow border-l-4 ${
+          level === 0 ? "border-l-primary" : level === 1 ? "border-l-primary/60" : "border-l-primary/30"
+        }`}
+      >
+        <CardContent className={compact ? "p-2.5" : "p-3.5"}>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <p className={`font-semibold truncate ${compact ? "text-sm" : "text-base"}`}>{row.nome}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {row.cargo || "—"} {row.departamento ? `· ${row.departamento}` : ""}
+                {row.unidade ? ` · ${row.unidade}` : ""}
+              </p>
+            </div>
+            <Badge variant={row.tipo_vinculo === "CLT" ? "default" : "secondary"} className="shrink-0">
+              {row.tipo_vinculo}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+      {filhos.length > 0 && (
+        <div className="ml-6 pl-4 border-l border-border space-y-2">
+          {filhos.map((f) => (
+            <NoCard
+              key={f.vinculo_id}
+              row={f}
+              level={level + 1}
+              childrenByGestor={childrenByGestor}
+              visited={nextVisited}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Organograma() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const viewMode = (searchParams.get("view") as ViewMode) || "visual";
-  const { data, isLoading } = useOrganograma();
+  const navigate = useNavigate();
+  const [rows, setRows] = useState<OrgRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [filters, setFilters] = useState<OrgFilters>({
-    search: searchParams.get("search") || "",
-    departamento: searchParams.get("dept") || "todos",
-    filial: searchParams.get("filial") || "todos",
-    vinculo: searchParams.get("vinculo") || "todos",
-    status: searchParams.get("status") || "todos",
-    nivel: "todos",
-  });
-
-  const [selectedNode, setSelectedNode] = useState<PosicaoNode | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editNode, setEditNode] = useState<PosicaoNode | null>(null);
-
-  // Move confirm dialog state
-  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  const [movedNode, setMovedNode] = useState<PosicaoNode | null>(null);
-  const [moveTarget, setMoveTarget] = useState<PosicaoNode | null>(null);
-
-  const setViewMode = (v: ViewMode) => {
-    setSearchParams(prev => { prev.set("view", v); return prev; });
-  };
-
-  const handleNodeClick = useCallback((node: PosicaoNode) => {
-    setSelectedNode(node);
-    setDrawerOpen(true);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await (supabase as any).from("vw_organograma").select("*");
+      if (cancel) return;
+      if (error) {
+        toast.error(humanizeError(error.message));
+        setRows([]);
+      } else {
+        setRows((data || []) as OrgRow[]);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancel = true;
+    };
   }, []);
 
-  const handleCreatePosition = () => {
-    setEditNode(null);
-    setModalOpen(true);
-  };
-
-  const handleEditPosition = useCallback((node: PosicaoNode) => {
-    setEditNode(node);
-    setModalOpen(true);
-    setDrawerOpen(false);
-  }, []);
-
-  const handleMoveRequest = useCallback((movedId: string, newParentId: string) => {
-    if (!data) return;
-    const moved = data.flat.find(n => n.id === movedId);
-    const target = data.flat.find(n => n.id === newParentId);
-    if (moved && target && moved.id_pai !== target.id) {
-      setMovedNode(moved);
-      setMoveTarget(target);
-      setMoveDialogOpen(true);
+  const { roots, childrenByGestor, semGestor, total } = useMemo(() => {
+    const map = new Map<string, OrgRow[]>();
+    const rootsArr: OrgRow[] = [];
+    let sem = 0;
+    for (const r of rows) {
+      if (r.eh_topo || !r.gestor_pessoa_id) {
+        rootsArr.push(r);
+        sem++;
+      } else {
+        const arr = map.get(r.gestor_pessoa_id) || [];
+        arr.push(r);
+        map.set(r.gestor_pessoa_id, arr);
+      }
     }
-  }, [data]);
+    const cmp = (a: OrgRow, b: OrgRow) => a.nome.localeCompare(b.nome, "pt-BR");
+    rootsArr.sort(cmp);
+    for (const arr of map.values()) arr.sort(cmp);
+    return { roots: rootsArr, childrenByGestor: map, semGestor: sem, total: rows.length };
+  }, [rows]);
 
-  const filteredTree = useMemo(() => {
-    if (!data) return [];
-    const hasFilter = filters.search || filters.departamento !== "todos" || filters.filial !== "todos" || filters.vinculo !== "todos" || filters.status !== "todos";
-    if (!hasFilter) return data.tree;
-    return filterTree(data.tree, filters);
-  }, [data, filters]);
-
-  const filteredFlat = useMemo(() => flattenFiltered(filteredTree), [filteredTree]);
-
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-[500px] w-full" />
-      </div>
-    );
-  }
+  const todosTopo = total > 0 && semGestor === total;
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
-      <OrgToolbar
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        filters={filters}
-        onFiltersChange={setFilters}
-        allNodes={data?.flat || []}
-        onCreatePosition={handleCreatePosition}
-      />
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Network className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Organograma</h1>
+            <p className="text-sm text-muted-foreground">Hierarquia da equipe</p>
+          </div>
+        </div>
+        <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas")}>
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </Button>
+      </div>
 
-      {viewMode === "visual" && (
-        <OrgVisualView
-          tree={filteredTree}
-          filters={filters}
-          onNodeClick={handleNodeClick}
-          onMoveRequest={handleMoveRequest}
-        />
+      {!loading && todosTopo && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Nenhum gestor definido ainda</AlertTitle>
+          <AlertDescription>
+            Defina o gestor de cada pessoa no campo "Reporta a" (edição da pessoa) para a árvore se formar.
+          </AlertDescription>
+        </Alert>
       )}
-      {viewMode === "sintetico" && (
-        <OrgSyntheticView tree={filteredTree} flat={filteredFlat} filters={filters} onNodeClick={handleNodeClick} />
+      {!loading && !todosTopo && semGestor > 1 && (
+        <p className="text-xs text-muted-foreground">
+          {semGestor} pessoa(s) sem gestor definido (aparecem como raiz).
+        </p>
       )}
-      {viewMode === "analitico" && (
-        <OrgAnalyticView flat={filteredFlat} filters={filters} />
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">Nenhuma pessoa ativa.</div>
+      ) : (
+        <div className="space-y-3">
+          {roots.map((r) => (
+            <NoCard
+              key={r.vinculo_id}
+              row={r}
+              level={0}
+              childrenByGestor={childrenByGestor}
+              visited={new Set()}
+            />
+          ))}
+        </div>
       )}
-
-      <OrgNodeDrawer
-        node={selectedNode}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        allNodes={data?.flat || []}
-        onEditPosition={handleEditPosition}
-      />
-
-      <OrgPosicaoModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        editNode={editNode}
-        allNodes={data?.flat || []}
-      />
-
-      <OrgMoveConfirmDialog
-        open={moveDialogOpen}
-        onClose={() => setMoveDialogOpen(false)}
-        movedNode={movedNode}
-        newParent={moveTarget}
-        allNodes={data?.flat || []}
-      />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList, AlertTriangle, Wallet, CalendarDays,
+  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList, AlertTriangle, Wallet, CalendarDays, Network,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -178,6 +178,9 @@ export default function Pessoas() {
           </Button>
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/folha")}>
             <CalendarDays className="h-4 w-4" /> Folha
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/organograma")}>
+            <Network className="h-4 w-4" /> Organograma
           </Button>
           <Button className="gap-2" onClick={() => navigate("/pessoas/novo")}>
             <Plus className="h-4 w-4" /> Nova Pessoa
