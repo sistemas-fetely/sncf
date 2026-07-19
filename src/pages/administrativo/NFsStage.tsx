@@ -668,7 +668,7 @@ export default function NFsStage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from("nfs_stage")
-        .update({ revisada_em: new Date().toISOString(), revisada_por: uid, revisao_origem: "humano" })
+        .update({ revisada_em: new Date().toISOString(), revisada_por: uid })
         .in("id", ids);
       if (error) throw error;
       marcarResolvidasNaSessao(ids);
