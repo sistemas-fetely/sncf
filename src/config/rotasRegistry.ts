@@ -34,6 +34,14 @@ export const ROTAS: RegraRota[] = [
   { prefixo: "/ti",            status: "pronta",        tela_slug: "tela.ti"          },
   // Financeiro
   { prefixo: "/administrativo-fetely", status: "pronta", tela_slug: "tela.admin_fetely" },
+  // Telas de Finanças com slug próprio (recorte Board). Match por prefixo mais
+  // longo: estas vencem o /administrativo base. As não listadas caem em
+  // tela.financeiro (guarda-chuva) — só quem tem acesso total as vê.
+  { prefixo: "/administrativo/caixa-banco/contas", status: "pronta", tela_slug: "tela.fin_contas_bancarias" },
+  { prefixo: "/administrativo/painel-financeiro-conta", status: "pronta", tela_slug: "tela.fin_vencimentos" },
+  { prefixo: "/administrativo/contas-receber", status: "pronta", tela_slug: "tela.fin_receber" },
+  { prefixo: "/administrativo/caixa-banco", status: "pronta", tela_slug: "tela.fin_movimentacoes" },
+  { prefixo: "/administrativo/plano-contas", status: "pronta", tela_slug: "tela.fin_plano_contas" },
   { prefixo: "/administrativo",        status: "pronta", tela_slug: "tela.financeiro"   },
   // Admin do sistema — slug null = só super_admin via bypass
   // EXCETO /admin/cargos, que o Board pode ver com slug próprio
