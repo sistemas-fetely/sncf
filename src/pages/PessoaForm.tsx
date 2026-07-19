@@ -253,6 +253,7 @@ export default function PessoaForm() {
       tipo_vinculo: vinculo.tipo_vinculo,
       cargo_id: vinculo.cargo_id || null,
       departamento_id: vinculo.departamento_id || null,
+      centro_custo_id: vinculo.centro_custo_id || null,
       unidade_id: vinculo.unidade_id || null,
       gestor_pessoa_id: vinculo.gestor_pessoa_id || null,
       data_inicio: vinculo.data_inicio,
