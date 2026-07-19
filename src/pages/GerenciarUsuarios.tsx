@@ -960,6 +960,14 @@ export default function GerenciarUsuarios() {
           </TabsContent>
         )}
 
+        {isSuperAdmin && (
+          <TabsContent value="fantasmas" className="mt-4">
+            <ContasSemPerfilTab
+              profileUserIds={new Set((profiles || []).map((p: any) => p.user_id))}
+            />
+          </TabsContent>
+        )}
+
       </Tabs>
 
       {/* Hub da Pessoa v2 — perfis, níveis e unidades */}
