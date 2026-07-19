@@ -154,6 +154,9 @@ export default function Pessoas() {
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/panorama")}>
             <BarChart3 className="h-4 w-4" /> Panorama de Áreas
           </Button>
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/vagas")}>
+            <ClipboardList className="h-4 w-4" /> Vagas
+          </Button>
           <Button className="gap-2" onClick={() => navigate("/pessoas/novo")}>
             <Plus className="h-4 w-4" /> Nova Pessoa
           </Button>
