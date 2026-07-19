@@ -565,6 +565,15 @@ export default function Vagas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PreencherVagaDialog
+        posicao={preencherTarget}
+        open={!!preencherTarget}
+        onOpenChange={(o) => { if (!o) setPreencherTarget(null); }}
+        cargoNome={preencherTarget?.cargo_id ? cargoMap.get(preencherTarget.cargo_id) : undefined}
+        departamentoNome={preencherTarget?.departamento_id ? depMap.get(preencherTarget.departamento_id) : undefined}
+        unidadeNome={preencherTarget?.unidade_id ? uniMap.get(preencherTarget.unidade_id) : undefined}
+      />
     </div>
   );
 }
