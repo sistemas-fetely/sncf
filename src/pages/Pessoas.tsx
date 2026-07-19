@@ -60,6 +60,8 @@ export default function Pessoas() {
   const [dataFim, setDataFim] = useState<string>(new Date().toISOString().slice(0, 10));
   const [desligando, setDesligando] = useState(false);
   const [soloIncompletos, setSoloIncompletos] = useState(false);
+  const [filterCC, setFilterCC] = useState("todos");
+  const [centrosCusto, setCentrosCusto] = useState<{ id: string; codigo: string; nome: string }[]>([]);
 
   async function fetchData() {
     setLoading(true);
