@@ -14,9 +14,15 @@ export function CasaTopNav({ className }: { className?: string }) {
   const visibleApps = CASA_APPS.filter((a) => {
     if (a.hiddenFromTopNav) return false;
     if (isSuperAdmin) return true;
-    if (!a.tela_slug) return false;
-    if (TELAS_PUBLICAS.has(a.tela_slug)) return true;
-    return permitidas?.has(a.tela_slug) ?? false;
+    if (a.tela_slug && TELAS_PUBLICAS.has(a.tela_slug)) return true;
+    if (a.tela_slug && permitidas?.has(a.tela_slug)) return true;
+    // Acesso granular: aparece se tiver qualquer sub-slug do prefixo (ex: tela.fin_*)
+    if (a.slugPrefix && permitidas) {
+      for (const s of permitidas) {
+        if (s.startsWith(a.slugPrefix)) return true;
+      }
+    }
+    return false;
   });
 
   return (
