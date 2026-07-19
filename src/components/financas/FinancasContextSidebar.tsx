@@ -14,6 +14,7 @@ import {
   Landmark,
   Coins,
   LineChart,
+  BarChart3,
   TrendingUp,
   Target,
   Users,
