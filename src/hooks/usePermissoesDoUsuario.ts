@@ -5,6 +5,19 @@ import { supabase } from "@/integrations/supabase/client";
 // Telas acessíveis a qualquer usuário aprovado, independente de grupo.
 export const TELAS_PUBLICAS = new Set(["tela.home", "tela.self"]);
 
+// Guarda-chuva de Finanças: quem tem "tela.financeiro" vê TODAS as telas de
+// Finanças (slugs "tela.fin_*"). Grupos restritos (ex: Board) recebem só os
+// slugs específicos das telas que podem ver, sem o guarda-chuva.
+export function temPermissaoTela(
+  slug: string | null | undefined,
+  permitidas: Set<string> | undefined,
+): boolean {
+  if (!slug) return false;
+  if (permitidas?.has(slug)) return true;
+  if (slug.startsWith("tela.fin_") && permitidas?.has("tela.financeiro")) return true;
+  return false;
+}
+
 export function usePermissoesDoUsuario() {
   const { user, roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
