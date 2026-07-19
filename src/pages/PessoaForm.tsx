@@ -538,6 +538,14 @@ export default function PessoaForm() {
         </CardContent>
       </Card>
 
+      {isEdit && vinculoId && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Composição de Custo</h2>
+          <VinculoBeneficiosSection vinculoId={vinculoId} />
+          <VinculoExtrasSection vinculoId={vinculoId} />
+        </div>
+      )}
+
       <AlertDialog open={!!pessoaExistente} onOpenChange={(open) => { if (!open) setPessoaExistente(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
