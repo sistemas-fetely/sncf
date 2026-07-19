@@ -174,6 +174,7 @@ export default function Vagas() {
       departamento_id: v.departamento_id || "",
       unidade_id: v.unidade_id || "",
       cargo_id: v.cargo_id || "",
+      centro_custo_id: v.centro_custo_id || "",
       tipo_vinculo: v.tipo_vinculo || "qualquer",
       senioridade: v.senioridade || "",
       descricao: v.descricao || "",
@@ -183,6 +184,7 @@ export default function Vagas() {
     });
     setDialogOpen(true);
   }
+
 
   const saveMutation = useMutation({
     mutationFn: async () => {
