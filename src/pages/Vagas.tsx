@@ -112,18 +112,21 @@ export default function Vagas() {
   const { data: dims } = useQuery({
     queryKey: ["vagas-dimensoes"],
     queryFn: async () => {
-      const [c, d, u] = await Promise.all([
+      const [c, d, u, cc] = await Promise.all([
         (supabase as any).from("cargos").select("id, nome").eq("ativo", true).order("nome"),
         (supabase as any).from("departamentos").select("id, nome").eq("ativo", true).order("nome"),
         (supabase as any).from("unidades").select("id, nome").order("nome"),
+        (supabase as any).from("centros_custo").select("id, nome").eq("ativo", true).order("nome"),
       ]);
       if (c.error) throw c.error;
       if (d.error) throw d.error;
       if (u.error) throw u.error;
+      if (cc.error) throw cc.error;
       return {
         cargos: (c.data || []) as { id: string; nome: string }[],
         departamentos: (d.data || []) as { id: string; nome: string }[],
         unidades: (u.data || []) as { id: string; nome: string }[],
+        centrosCusto: (cc.data || []) as { id: string; nome: string }[],
       };
     },
   });
@@ -140,6 +143,11 @@ export default function Vagas() {
     () => new Map((dims?.unidades || []).map((x) => [x.id, x.nome])),
     [dims],
   );
+  const ccMap = useMemo(
+    () => new Map((dims?.centrosCusto || []).map((x) => [x.id, x.nome])),
+    [dims],
+  );
+
 
   const { data: vagas, isLoading } = useQuery({
     queryKey: ["posicoes-planejadas", statusFilter],
