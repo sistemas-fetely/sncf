@@ -458,6 +458,23 @@ export default function Vagas() {
               </div>
 
               <div className="space-y-1.5">
+                <Label>Centro de custo *</Label>
+                <Select
+                  value={form.centro_custo_id}
+                  onValueChange={(v) => setForm({ ...form, centro_custo_id: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                  <SelectContent>
+                    {(dims?.centrosCusto || []).map((cc) => (
+                      <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+
+
+              <div className="space-y-1.5">
                 <Label>Cargo</Label>
                 <Select
                   value={form.cargo_id || NENHUM}
