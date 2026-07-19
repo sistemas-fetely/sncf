@@ -303,33 +303,51 @@ Deno.serve(async (req) => {
 
       const userId = newUser.user.id;
 
+      // Rollback helper: desfaz a criação se qualquer etapa de integridade falhar.
+      // Torna create_user_v2 tudo-ou-nada: nunca deixa auth.user órfão nem meio-usuário.
+      const rollbackUser = async (motivo: string, detail?: string) => {
+        console.error("[create_user_v2] rollback:", motivo, detail);
+        await adminClient.from("grupo_acesso_usuarios").delete().eq("user_id", userId);
+        await adminClient.from("user_colaborador_link").delete().eq("user_id", userId);
+        await adminClient.from("profiles").delete().eq("user_id", userId);
+        await adminClient.auth.admin.deleteUser(userId);
+        return new Response(JSON.stringify({ error: motivo, detail: detail ?? null }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      };
+
       const profileColabTipo = vinculo_tipo === "clt" ? "clt"
         : vinculo_tipo === "pj" ? "pj"
         : "all";
-      await adminClient.from("profiles").upsert({
+      const { error: profileErr } = await adminClient.from("profiles").upsert({
         user_id: userId,
         full_name,
         approved: true,
         colaborador_tipo: profileColabTipo,
       }, { onConflict: "user_id" });
+      if (profileErr) return await rollbackUser("Falha ao criar o perfil do usuário", profileErr.message);
 
       if (vinculo_tipo) {
-        await adminClient.from("user_colaborador_link").insert({
+        const { error: vincErr } = await adminClient.from("user_colaborador_link").insert({
           user_id: userId,
           colaborador_clt_id: vinculo_tipo === "clt" ? colaborador_clt_id : null,
           contrato_pj_id: vinculo_tipo === "pj" ? contrato_pj_id : null,
           tipo_externo: vinculo_tipo === "externo" ? tipo_externo : null,
           vinculado_por: callerId,
         });
+        if (vincErr) return await rollbackUser("Falha ao criar o vínculo do usuário", vincErr.message);
 
         if (vinculo_tipo === "clt") {
-          await adminClient.from("colaboradores_clt")
+          const { error: cltErr } = await adminClient.from("colaboradores_clt")
             .update({ user_id: userId })
             .eq("id", colaborador_clt_id);
+          if (cltErr) return await rollbackUser("Falha ao vincular colaborador CLT", cltErr.message);
         } else if (vinculo_tipo === "pj") {
-          await adminClient.from("contratos_pj")
+          const { error: pjErr } = await adminClient.from("contratos_pj")
             .update({ user_id: userId })
             .eq("id", contrato_pj_id);
+          if (pjErr) return await rollbackUser("Falha ao vincular contrato PJ", pjErr.message);
         }
       }
 
@@ -339,8 +357,10 @@ Deno.serve(async (req) => {
           user_id: userId,
           adicionado_por: callerId,
         }));
-        await adminClient.from("grupo_acesso_usuarios").insert(grupoInserts);
+        const { error: grupoErr } = await adminClient.from("grupo_acesso_usuarios").insert(grupoInserts);
+        if (grupoErr) return await rollbackUser("Falha ao atribuir grupos ao usuário", grupoErr.message);
       }
+
 
       let linkPrimeiroAcesso: string | null = null;
       try {
