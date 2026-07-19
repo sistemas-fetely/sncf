@@ -1124,6 +1124,14 @@ export default function NFsStage() {
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="outline"
+              onClick={() => navigate("/administrativo-fetely/motor-classificacao")}
+              className="gap-2"
+            >
+              <Gauge className="h-4 w-4" />
+              Painel do Motor
+            </Button>
+            <Button
+              variant="outline"
               onClick={classificarComIA}
               disabled={classificandoIA}
               className="gap-2"
