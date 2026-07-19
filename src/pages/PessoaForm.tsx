@@ -544,6 +544,9 @@ export default function PessoaForm() {
           <h2 className="text-lg font-semibold">Composição de Custo</h2>
           <VinculoBeneficiosSection vinculoId={vinculoId} />
           <VinculoExtrasSection vinculoId={vinculoId} />
+          {vinculo.tipo_vinculo === "PJ" && (
+            <VinculoFinanceiroPJSection vinculoId={vinculoId} />
+          )}
         </div>
       )}
 
