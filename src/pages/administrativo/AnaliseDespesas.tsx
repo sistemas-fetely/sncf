@@ -408,7 +408,7 @@ export default function AnaliseDespesas() {
                     const dPct = ant ? (dValor / Math.abs(ant)) * 100 : null;
                     const isOpen = expandidos.has(g.codigo);
                     return (
-                      <FragmentGrupo key={g.codigo}>
+                      <Fragment key={g.codigo}>
                         <tr className="border-b hover:bg-muted/30 cursor-pointer" onClick={() => toggleGrupo(g.codigo)}>
                           <td className="py-2 px-2">
                             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
