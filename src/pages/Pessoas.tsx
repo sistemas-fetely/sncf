@@ -133,18 +133,7 @@ export default function Pessoas() {
     return matchSearch && matchTipo && matchStatus && matchIncompleto;
   }), [linhas, search, filterTipo, filterStatus, soloIncompletos]);
 
-  const filtered = useMemo(() => linhas.filter((l) => {
-    const s = search.toLowerCase();
-    const matchSearch = !s ||
-      l.nome.toLowerCase().includes(s) ||
-      (l.cargo || "").toLowerCase().includes(s) ||
-      (l.departamento || "").toLowerCase().includes(s);
-    const matchTipo = filterTipo === "todos" || l.tipo_vinculo === filterTipo;
-    const matchStatus = filterStatus === "todos" ||
-      (filterStatus === "ativo" && l.status === "ativo") ||
-      (filterStatus === "desligado" && l.status !== "ativo");
-    return matchSearch && matchTipo && matchStatus;
-  }), [linhas, search, filterTipo, filterStatus]);
+
 
   const initials = (name: string) =>
     name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
