@@ -1088,6 +1088,109 @@ export default function AnaliseDespesas() {
         </CardContent>
       </Card>
 
+      {/* TOP FORNECEDORES DO MÊS */}
+      <Card className="card-shadow">
+        <CardContent className="p-4">
+          <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Users className="h-4 w-4" /> Top fornecedores do mês
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Bloco operacional · concentração de gasto por fornecedor
+              </p>
+            </div>
+            {mesSel && (
+              <Badge variant="outline" className="text-[10px]">{fmtMesLabel(mesSel + "-01")}</Badge>
+            )}
+          </div>
+          {topFornecedores.linhas.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Sem fornecedores no mês</div>
+          ) : (
+            <TopFornecedoresTable
+              linhas={topFornecedores.linhas}
+              totalOp={topFornecedores.totalOp}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* QUALIDADE DA CLASSIFICAÇÃO */}
+      <Card className="card-shadow">
+        <CardContent className="p-4">
+          <div className="mb-3">
+            <h2 className="text-lg font-semibold">Qualidade da classificação</h2>
+            <p className="text-xs text-muted-foreground">
+              Como o mês foi classificado — automação vs revisão humana
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg border p-4">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Origem da classificação</div>
+              {qualidadeMes.total === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">Sem NFs no mês</p>
+              ) : (
+                <>
+                  <div className="flex h-3 rounded-full overflow-hidden bg-muted">
+                    <div
+                      className="bg-blue-500"
+                      style={{ width: `${(qualidadeMes.motor / qualidadeMes.total) * 100}%` }}
+                      title={`Motor: ${qualidadeMes.motor}`}
+                    />
+                    <div
+                      className="bg-amber-500"
+                      style={{ width: `${(qualidadeMes.humano / qualidadeMes.total) * 100}%` }}
+                      title={`Humano: ${qualidadeMes.humano}`}
+                    />
+                    <div
+                      className="bg-muted-foreground/30"
+                      style={{ width: `${(qualidadeMes.semOrigem / qualidadeMes.total) * 100}%` }}
+                      title={`Sem origem: ${qualidadeMes.semOrigem}`}
+                    />
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Bot className="h-3.5 w-3.5 text-blue-500" />
+                      <span className="tabular-nums font-medium">{qualidadeMes.motor}</span>
+                      <span className="text-muted-foreground">motor · {fmtPct((qualidadeMes.motor / qualidadeMes.total) * 100)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <UserIcon className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="tabular-nums font-medium">{qualidadeMes.humano}</span>
+                      <span className="text-muted-foreground">humano · {fmtPct((qualidadeMes.humano / qualidadeMes.total) * 100)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
+                      <span className="tabular-nums font-medium">{qualidadeMes.semOrigem}</span>
+                      <span className="text-muted-foreground">sem origem</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="rounded-lg border p-4">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Cobertura de classificação</div>
+              <div className="text-3xl font-bold tabular-nums">{fmtPct(classifMes.pct)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {classifMes.total - classifMes.naoClass} de {classifMes.total} NFs classificadas
+              </p>
+              {classifMes.naoClass > 0 ? (
+                <div className="mt-3 text-xs">
+                  <span className="text-amber-700">
+                    {classifMes.naoClass} não classificada{classifMes.naoClass > 1 ? "s" : ""} —
+                  </span>
+                  <Link to="/administrativo-fetely/nfs-stage" className="ml-1 underline text-primary">
+                    revisar
+                  </Link>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-emerald-700">Todas as linhas do mês estão classificadas</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* IA */}
       <Card className="card-shadow border-l-4" style={{ borderLeftColor: "#1A4A3A" }}>
         <CardContent className="p-4">
