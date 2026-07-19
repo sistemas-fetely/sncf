@@ -112,6 +112,7 @@ const PainelFinanceiroConta = lazy(() => import("@/pages/administrativo/PainelFi
 const Parceiros = lazy(() => import("@/pages/administrativo/Parceiros"));
 const ImportarDados = lazy(() => import("@/pages/administrativo/ImportarDados"));
 const NFsStage = lazy(() => import("@/pages/administrativo/NFsStage"));
+const MotorClassificacao = lazy(() => import("@/pages/administrativo/MotorClassificacao"));
 const FaturasCartao = lazy(() => import("@/pages/administrativo/FaturasCartao"));
 
 const FluxoCaixaFuturo = lazy(() => import("@/pages/administrativo/FluxoCaixaFuturo"));
