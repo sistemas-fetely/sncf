@@ -61,6 +61,7 @@ export function FinancasContextSidebar() {
                 label="Visão Geral"
                 end
               />
+              <FinancasSidebarItem to="/administrativo/analise-despesas" icon={BarChart3} label="Análise de Despesas" />
               <FinancasSidebarItem to="/administrativo/painel-financeiro-conta" icon={Users} label="Vencimentos x Cliente" />
             </SidebarMenu>
           </SidebarGroupContent>
