@@ -137,6 +137,13 @@ export default function Recrutamento() {
         )}
       </div>
 
+      <div className="rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+        <strong className="text-warning">Fluxo de contratação desativado nesta tela.</strong>{" "}
+        <span className="text-foreground">
+          Para contratar, use <a href="/pessoas/vagas" className="underline font-medium">Pessoas → Vagas</a>.
+        </span>
+      </div>
+
       {/* KPIs */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Vagas Abertas" value={vagasAbertas} icon={Briefcase} variant="success" />

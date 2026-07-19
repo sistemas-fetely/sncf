@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, MoreHorizontal, Edit, PlayCircle, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Plus, MoreHorizontal, Edit, PlayCircle, CheckCircle2, XCircle, UserPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +30,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
+import { PreencherVagaDialog } from "@/components/vagas/PreencherVagaDialog";
 
 type StatusVaga = "aberta" | "em_processo" | "preenchida" | "cancelada";
 type StatusFiltro = "vivas" | "todas" | StatusVaga;
@@ -101,6 +102,7 @@ export default function Vagas() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<Vaga | null>(null);
+  const [preencherTarget, setPreencherTarget] = useState<Vaga | null>(null);
 
   // Dimensões
   const { data: dims } = useQuery({
@@ -128,6 +130,10 @@ export default function Vagas() {
   );
   const depMap = useMemo(
     () => new Map((dims?.departamentos || []).map((x) => [x.id, x.nome])),
+    [dims],
+  );
+  const uniMap = useMemo(
+    () => new Map((dims?.unidades || []).map((x) => [x.id, x.nome])),
     [dims],
   );
 
@@ -339,6 +345,11 @@ export default function Vagas() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {(v.status === "aberta" || v.status === "em_processo") && (
+                            <DropdownMenuItem onClick={() => setPreencherTarget(v)}>
+                              <UserPlus className="mr-2 h-4 w-4" /> Preencher vaga
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => openEdit(v)}>
                             <Edit className="mr-2 h-4 w-4" /> Editar
                           </DropdownMenuItem>
@@ -347,13 +358,6 @@ export default function Vagas() {
                               onClick={() => statusMutation.mutate({ id: v.id, status: "em_processo" })}
                             >
                               <PlayCircle className="mr-2 h-4 w-4" /> Marcar em processo
-                            </DropdownMenuItem>
-                          )}
-                          {(v.status === "aberta" || v.status === "em_processo") && (
-                            <DropdownMenuItem
-                              onClick={() => statusMutation.mutate({ id: v.id, status: "preenchida" })}
-                            >
-                              <CheckCircle2 className="mr-2 h-4 w-4" /> Marcar preenchida
                             </DropdownMenuItem>
                           )}
                           {v.status !== "cancelada" && v.status !== "preenchida" && (
@@ -561,6 +565,15 @@ export default function Vagas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PreencherVagaDialog
+        posicao={preencherTarget}
+        open={!!preencherTarget}
+        onOpenChange={(o) => { if (!o) setPreencherTarget(null); }}
+        cargoNome={preencherTarget?.cargo_id ? cargoMap.get(preencherTarget.cargo_id) : undefined}
+        departamentoNome={preencherTarget?.departamento_id ? depMap.get(preencherTarget.departamento_id) : undefined}
+        unidadeNome={preencherTarget?.unidade_id ? uniMap.get(preencherTarget.unidade_id) : undefined}
+      />
     </div>
   );
 }
