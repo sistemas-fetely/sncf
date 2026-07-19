@@ -173,7 +173,7 @@ export default function CustoPessoas() {
 
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             <Card>
-              <CardHeader><CardTitle className="text-base">Custo Mensal por Área</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Custo Mensal por Centro de Custo</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
