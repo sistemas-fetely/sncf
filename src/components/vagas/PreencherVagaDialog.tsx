@@ -20,9 +20,11 @@ interface Posicao {
   cargo_id: string | null;
   departamento_id: string | null;
   unidade_id: string | null;
+  centro_custo_id: string | null;
   tipo_vinculo: string | null;
   senioridade: string | null;
 }
+
 
 interface Props {
   posicao: Posicao | null;
