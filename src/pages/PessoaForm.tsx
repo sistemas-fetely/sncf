@@ -47,6 +47,7 @@ interface VinculoForm {
   tipo_vinculo: "CLT" | "PJ";
   cargo_id: string;
   departamento_id: string;
+  centro_custo_id: string;
   unidade_id: string;
   data_inicio: string;
   valor_base: string;
