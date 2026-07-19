@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Users, Wallet, Briefcase, Building2 } from "lucide-react";
+import { ArrowLeft, Users, Wallet, Briefcase, Building2, ClipboardList } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -89,9 +89,14 @@ export default function PanoramaAreas() {
             Headcount e custo mensal por departamento
           </p>
         </div>
-        <Button variant="outline" onClick={() => navigate("/pessoas")} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Voltar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/pessoas/vagas")} className="gap-2">
+            <ClipboardList className="h-4 w-4" /> Gerenciar vagas
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/pessoas")} className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Voltar
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
