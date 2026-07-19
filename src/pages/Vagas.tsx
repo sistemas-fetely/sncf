@@ -314,6 +314,7 @@ export default function Vagas() {
                 <TableRow className="bg-muted/50">
                   <TableHead className="font-semibold">Título</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Área</TableHead>
+                  <TableHead className="font-semibold hidden md:table-cell">Centro de custo</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Cargo</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Tipo</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Senioridade</TableHead>
@@ -324,11 +325,11 @@ export default function Vagas() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-10">
+                  <TableRow><TableCell colSpan={9} className="text-center py-10">
                     <div className="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                   </TableCell></TableRow>
                 ) : (vagas || []).length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-sm">
                     Nenhuma vaga neste filtro.
                   </TableCell></TableRow>
                 ) : (vagas || []).map((v) => (
@@ -337,9 +338,13 @@ export default function Vagas() {
                     <TableCell className="text-sm hidden md:table-cell">
                       {v.departamento_id ? depMap.get(v.departamento_id) || "—" : "—"}
                     </TableCell>
+                    <TableCell className="text-sm hidden md:table-cell">
+                      {v.centro_custo_id ? ccMap.get(v.centro_custo_id) || "—" : "—"}
+                    </TableCell>
                     <TableCell className="text-sm hidden lg:table-cell">
                       {v.cargo_id ? cargoMap.get(v.cargo_id) || "—" : "—"}
                     </TableCell>
+
                     <TableCell className="text-sm hidden md:table-cell">
                       {v.tipo_vinculo || "—"}
                     </TableCell>
