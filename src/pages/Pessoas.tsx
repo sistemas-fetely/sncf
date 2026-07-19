@@ -66,17 +66,20 @@ export default function Pessoas() {
   async function fetchData() {
     setLoading(true);
     try {
-      const [{ data: pessoas, error: e1 }, { data: vinculos, error: e2 }, { data: cargos }, { data: deps }] = await Promise.all([
+      const [{ data: pessoas, error: e1 }, { data: vinculos, error: e2 }, { data: cargos }, { data: deps }, { data: ccs }] = await Promise.all([
         (supabase as any).from("pessoas").select("id, nome_completo, foto_url, cpf").order("nome_completo"),
-        (supabase as any).from("vinculos").select("id, pessoa_id, tipo_vinculo, status, cargo_id, departamento_id, data_inicio").order("data_inicio", { ascending: false }),
+        (supabase as any).from("vinculos").select("id, pessoa_id, tipo_vinculo, status, cargo_id, departamento_id, centro_custo_id, data_inicio").order("data_inicio", { ascending: false }),
         (supabase as any).from("cargos").select("id, nome"),
         (supabase as any).from("departamentos").select("id, nome"),
+        (supabase as any).from("centros_custo").select("id, codigo, nome").eq("ativo", true).order("nome"),
       ]);
       if (e1) throw e1;
       if (e2) throw e2;
 
       const cargoMap = new Map<string, string>((cargos || []).map((c: any) => [c.id, c.nome]));
       const depMap = new Map<string, string>((deps || []).map((d: any) => [d.id, d.nome]));
+      const ccMap = new Map<string, string>((ccs || []).map((c: any) => [c.id, c.nome]));
+      setCentrosCusto((ccs || []) as any[]);
 
       // Escolhe vínculo ativo se existir; senão o mais recente
       const vincPorPessoa = new Map<string, any>();
