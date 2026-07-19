@@ -2,6 +2,9 @@ import { NavLink } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import { SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePermissoesDoUsuario, TELAS_PUBLICAS, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
+import { resolverRegraRota } from "@/config/rotasRegistry";
 
 interface FinancasSidebarItemProps {
   to: string;
@@ -12,6 +15,18 @@ interface FinancasSidebarItemProps {
 }
 
 export function FinancasSidebarItem({ to, icon: Icon, label, end = false, activeClassName }: FinancasSidebarItemProps) {
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const { data: permitidas } = usePermissoesDoUsuario();
+
+  // Auto-ocultação por permissão. super_admin vê tudo; demais só o que o grupo
+  // libera (helper aplica o guarda-chuva de Finanças: tela.financeiro = tudo).
+  if (!isSuperAdmin) {
+    const slug = resolverRegraRota(to)?.tela_slug ?? null;
+    const publico = slug ? TELAS_PUBLICAS.has(slug) : false;
+    if (!publico && !temPermissaoTela(slug, permitidas)) return null;
+  }
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild tooltip={label}>

@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolverRegraRota } from "@/config/rotasRegistry";
-import { usePermissoesDoUsuario, TELAS_PUBLICAS } from "@/hooks/usePermissoesDoUsuario";
+import { usePermissoesDoUsuario, TELAS_PUBLICAS, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 import { useRotasConfig, resolverRegraRotaBanco } from "@/hooks/useRotasConfig";
 
 export function RotaGate({ children }: { children: ReactNode }) {
@@ -44,8 +44,8 @@ export function RotaGate({ children }: { children: ReactNode }) {
   // Telas públicas: qualquer aprovado passa sem checar grupo
   if (regra.tela_slug && TELAS_PUBLICAS.has(regra.tela_slug)) return <>{children}</>;
 
-  // Sem slug ou grupo não tem permissão → nega
-  if (!regra.tela_slug || !permitidas?.has(regra.tela_slug)) {
+  // Sem slug ou grupo não tem permissão → nega (helper aplica guarda-chuva de Finanças)
+  if (!temPermissaoTela(regra.tela_slug, permitidas)) {
     return <Navigate to="/sem-permissao" replace />;
   }
 

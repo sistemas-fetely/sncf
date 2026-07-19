@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, Line, ComposedChart,
@@ -190,6 +192,24 @@ function Insight({
 // ═══════════════════════════════════════════════════════════════════
 export default function DashboardFinanceiro() {
   const navigate = useNavigate();
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const { data: permitidas } = usePermissoesDoUsuario();
+
+  // Nó 1b: quem não pode ver a Visão Geral (não tem tela.financeiro) é
+  // redirecionado para a primeira tela de Finanças que puder ver. Ordem = a
+  // mesma da sidebar. Se não puder ver nenhuma, o RotaGate já teria barrado.
+  const podeVerVisaoGeral = isSuperAdmin || (permitidas?.has("tela.financeiro") ?? false);
+  if (!podeVerVisaoGeral) {
+    const primeira = [
+      { rota: "/administrativo/painel-financeiro-conta", slug: "tela.fin_vencimentos" },
+      { rota: "/administrativo/contas-receber", slug: "tela.fin_receber" },
+      { rota: "/administrativo/caixa-banco", slug: "tela.fin_movimentacoes" },
+      { rota: "/administrativo/caixa-banco/contas", slug: "tela.fin_contas_bancarias" },
+      { rota: "/administrativo/plano-contas", slug: "tela.fin_plano_contas" },
+    ].find((t) => temPermissaoTela(t.slug, permitidas));
+    return <Navigate to={primeira?.rota ?? "/sem-permissao"} replace />;
+  }
 
   const { data: saldoBancario = 0 } = useQuery({
     queryKey: ["saldo-bancario-total"],
