@@ -12149,6 +12149,7 @@ export type Database = {
         Row: {
           ativo: boolean
           cargo_id: string | null
+          centro_custo_id: string | null
           created_at: string
           created_by: string | null
           data_abertura: string
@@ -12168,6 +12169,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           cargo_id?: string | null
+          centro_custo_id?: string | null
           created_at?: string
           created_by?: string | null
           data_abertura?: string
@@ -12187,6 +12189,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           cargo_id?: string | null
+          centro_custo_id?: string | null
           created_at?: string
           created_by?: string | null
           data_abertura?: string
@@ -12209,6 +12212,13 @@ export type Database = {
             columns: ["cargo_id"]
             isOneToOne: false
             referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
             referencedColumns: ["id"]
           },
           {
@@ -16490,6 +16500,7 @@ export type Database = {
           ad_valorem: number | null
           adicionais: number | null
           atualizado_em: string
+          canal: string
           cte_emissao: string | null
           cte_numero: string
           cte_serie: string | null
@@ -16516,9 +16527,11 @@ export type Database = {
           ocorrencia_texto: string | null
           outros_valores: number | null
           pct_frete_nf: number | null
+          pedido_id: string | null
           peso_real: number | null
           peso_taxado: number | null
           prazo_entrega: string | null
+          rastreio_codigo: string | null
           referencia: string | null
           remetente: string | null
           remetente_cidade: string | null
@@ -16541,6 +16554,7 @@ export type Database = {
           ad_valorem?: number | null
           adicionais?: number | null
           atualizado_em?: string
+          canal?: string
           cte_emissao?: string | null
           cte_numero: string
           cte_serie?: string | null
@@ -16567,9 +16581,11 @@ export type Database = {
           ocorrencia_texto?: string | null
           outros_valores?: number | null
           pct_frete_nf?: number | null
+          pedido_id?: string | null
           peso_real?: number | null
           peso_taxado?: number | null
           prazo_entrega?: string | null
+          rastreio_codigo?: string | null
           referencia?: string | null
           remetente?: string | null
           remetente_cidade?: string | null
@@ -16592,6 +16608,7 @@ export type Database = {
           ad_valorem?: number | null
           adicionais?: number | null
           atualizado_em?: string
+          canal?: string
           cte_emissao?: string | null
           cte_numero?: string
           cte_serie?: string | null
@@ -16618,9 +16635,11 @@ export type Database = {
           ocorrencia_texto?: string | null
           outros_valores?: number | null
           pct_frete_nf?: number | null
+          pedido_id?: string | null
           peso_real?: number | null
           peso_taxado?: number | null
           prazo_entrega?: string | null
+          rastreio_codigo?: string | null
           referencia?: string | null
           remetente?: string | null
           remetente_cidade?: string | null
@@ -16640,6 +16659,41 @@ export type Database = {
           wns_pedido_id?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transp_fretes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
           {
             foreignKeyName: "transp_fretes_transportadora_id_fkey"
             columns: ["transportadora_id"]
@@ -16737,6 +16791,7 @@ export type Database = {
       }
       transp_tabela_atendimento: {
         Row: {
+          canal: string
           cep_final: number
           cep_inicial: number
           cidade: string | null
@@ -16749,6 +16804,7 @@ export type Database = {
           zona: string
         }
         Insert: {
+          canal?: string
           cep_final: number
           cep_inicial: number
           cidade?: string | null
@@ -16761,6 +16817,7 @@ export type Database = {
           zona: string
         }
         Update: {
+          canal?: string
           cep_final?: number
           cep_inicial?: number
           cidade?: string | null
@@ -16819,36 +16876,60 @@ export type Database = {
       }
       transp_tabela_tarifas: {
         Row: {
+          adm_pct: number | null
           adv_pct: number
+          gris_base: string
+          gris_minimo: number | null
           gris_pct: number
           id: string
           kg_adicional: number
+          modelo_peso: string
+          peso_minimo: number | null
           pesos: Json
+          suframa: number | null
           tabela_id: string
           tarifa_code: string
+          tas: number | null
           tipo: string
+          tx_coleta: number | null
           uf: string
         }
         Insert: {
+          adm_pct?: number | null
           adv_pct?: number
+          gris_base?: string
+          gris_minimo?: number | null
           gris_pct?: number
           id?: string
           kg_adicional?: number
+          modelo_peso?: string
+          peso_minimo?: number | null
           pesos: Json
+          suframa?: number | null
           tabela_id: string
           tarifa_code: string
+          tas?: number | null
           tipo: string
+          tx_coleta?: number | null
           uf: string
         }
         Update: {
+          adm_pct?: number | null
           adv_pct?: number
+          gris_base?: string
+          gris_minimo?: number | null
           gris_pct?: number
           id?: string
           kg_adicional?: number
+          modelo_peso?: string
+          peso_minimo?: number | null
           pesos?: Json
+          suframa?: number | null
           tabela_id?: string
           tarifa_code?: string
+          tas?: number | null
           tipo?: string
+          tx_coleta?: number | null
           uf?: string
         }
         Relationships: [
@@ -16866,8 +16947,10 @@ export type Database = {
           ativo: boolean
           criado_em: string | null
           id: string
+          modal: string
           nome: string
           transportadora_id: string
+          vigencia_descricao: string | null
           vigencia_fim: string | null
           vigencia_inicio: string | null
         }
@@ -16875,8 +16958,10 @@ export type Database = {
           ativo?: boolean
           criado_em?: string | null
           id?: string
+          modal?: string
           nome: string
           transportadora_id: string
+          vigencia_descricao?: string | null
           vigencia_fim?: string | null
           vigencia_inicio?: string | null
         }
@@ -16884,8 +16969,10 @@ export type Database = {
           ativo?: boolean
           criado_em?: string | null
           id?: string
+          modal?: string
           nome?: string
           transportadora_id?: string
+          vigencia_descricao?: string | null
           vigencia_fim?: string | null
           vigencia_inicio?: string | null
         }
@@ -20122,14 +20209,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -21979,14 +22066,34 @@ export type Database = {
           saldo_otimista: number
         }[]
       }
-      fn_frete_estimado: {
-        Args: {
-          p_cep_destino: string
-          p_peso_cobrado: number
-          p_transportadora_id: string
-        }
-        Returns: Json
-      }
+      fn_frete_estimado:
+        | {
+            Args: {
+              p_cep_destino: string
+              p_peso_cobrado: number
+              p_transportadora_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_cep_destino: string
+              p_data_referencia?: string
+              p_peso_cobrado: number
+              p_transportadora_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_cep_destino: string
+              p_data_referencia?: string
+              p_peso_cobrado: number
+              p_transportadora_id: string
+              p_valor_mercantil?: number
+            }
+            Returns: Json
+          }
       fn_gerar_cprs_de_contrato: {
         Args: { p_contrato_id: string }
         Returns: number
