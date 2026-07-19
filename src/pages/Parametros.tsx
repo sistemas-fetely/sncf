@@ -851,6 +851,7 @@ export default function Parametros() {
 
                 {key === "geral" && <ParametrosUnidadesSection />}
                 {key === "geral" && <ParametrosBeneficiosSection />}
+                {key === "geral" && <ParametrosExtrasSection />}
               </div>
             )}
           </TabsContent>
