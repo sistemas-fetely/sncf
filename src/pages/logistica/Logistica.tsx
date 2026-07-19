@@ -7,6 +7,7 @@ import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { cn } from "@/lib/utils";
 
 export default function Logistica() {
+  const navigate = useNavigate();
   const { data: transportadoras = [], isLoading } = useTransportadorasLogistica();
   const [ativaId, setAtivaId] = useState<string | null>(null);
 
