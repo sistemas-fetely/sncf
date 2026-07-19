@@ -41,6 +41,7 @@ interface Vaga {
   departamento_id: string | null;
   unidade_id: string | null;
   cargo_id: string | null;
+  centro_custo_id: string | null;
   tipo_vinculo: string | null;
   senioridade: string | null;
   descricao: string | null;
@@ -55,6 +56,7 @@ interface FormState {
   departamento_id: string;
   unidade_id: string;
   cargo_id: string;
+  centro_custo_id: string;
   tipo_vinculo: string;
   senioridade: string;
   descricao: string;
@@ -68,6 +70,7 @@ const emptyForm: FormState = {
   departamento_id: "",
   unidade_id: "",
   cargo_id: "",
+  centro_custo_id: "",
   tipo_vinculo: "qualquer",
   senioridade: "",
   descricao: "",
@@ -75,6 +78,7 @@ const emptyForm: FormState = {
   observacoes: "",
   status: "aberta",
 };
+
 
 const NENHUM = "__nenhum__";
 
