@@ -177,7 +177,7 @@ export default function PessoaForm() {
           setVinculoStatus(v.status);
           setVinculo({
             tipo_vinculo: v.tipo_vinculo,
-            cargo_id: v.cargo_id || "", departamento_id: v.departamento_id || "", unidade_id: v.unidade_id || "",
+            cargo_id: v.cargo_id || "", departamento_id: v.departamento_id || "", centro_custo_id: v.centro_custo_id || "", unidade_id: v.unidade_id || "",
             data_inicio: v.data_inicio || "",
             valor_base: v.valor_base?.toString() || "",
             valor_transporte: v.valor_transporte?.toString() || "",
