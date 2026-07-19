@@ -83,16 +83,23 @@ export default function Pessoas() {
 
       const rows: PessoaLinha[] = ((pessoas || []) as any[]).map((p) => {
         const v = vincPorPessoa.get(p.id);
+        const cargoResolvido = v?.cargo_id ? cargoMap.get(v.cargo_id) ?? null : null;
+        const motivos: string[] = [];
+        if (!p.cpf || String(p.cpf).trim() === "") motivos.push("Sem CPF");
+        if (!cargoResolvido) motivos.push("Sem cargo");
         return {
           pessoa_id: p.id,
           nome: p.nome_completo,
           foto_url: p.foto_url,
+          cpf: p.cpf ?? null,
           vinculo_id: v?.id ?? null,
           tipo_vinculo: v?.tipo_vinculo ?? null,
           status: v?.status ?? null,
-          cargo: v?.cargo_id ? cargoMap.get(v.cargo_id) ?? null : null,
+          cargo: cargoResolvido,
           departamento: v?.departamento_id ? depMap.get(v.departamento_id) ?? null : null,
           data_inicio: v?.data_inicio ?? null,
+          incompleto: motivos.length > 0,
+          motivos,
         };
       });
       setLinhas(rows);
