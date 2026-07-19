@@ -179,6 +179,9 @@ export default function Pessoas() {
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/folha")}>
             <CalendarDays className="h-4 w-4" /> Folha
           </Button>
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/organograma")}>
+            <Network className="h-4 w-4" /> Organograma
+          </Button>
           <Button className="gap-2" onClick={() => navigate("/pessoas/novo")}>
             <Plus className="h-4 w-4" /> Nova Pessoa
           </Button>
