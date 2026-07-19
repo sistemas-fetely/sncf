@@ -244,7 +244,7 @@ export default function CustoPessoas() {
                       <TableCell>
                         <Badge variant={r.tipo_vinculo === "CLT" ? "default" : "secondary"}>{r.tipo_vinculo}</Badge>
                       </TableCell>
-                      <TableCell>{r.departamento || "—"}</TableCell>
+                      <TableCell>{r.centro_custo_nome || "—"}</TableCell>
                       <TableCell className="text-right">{fmtBRL(num(r.valor_base) + num(r.valor_transporte))}</TableCell>
                       <TableCell className="text-right">{fmtBRL(num(r.total_beneficios))}</TableCell>
                       <TableCell className="text-right">{fmtBRL(num(r.total_extras_recorrentes))}</TableCell>
