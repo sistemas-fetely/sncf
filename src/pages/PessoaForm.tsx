@@ -455,6 +455,13 @@ export default function PessoaForm() {
               </Select>
             </div>
             <div>
+              <Label>Centro de Custo</Label>
+              <Select value={vinculo.centro_custo_id} onValueChange={(v) => setVinculo({ ...vinculo, centro_custo_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                <SelectContent>{centrosCusto.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label>Unidade</Label>
               <Select value={vinculo.unidade_id} onValueChange={(v) => setVinculo({ ...vinculo, unidade_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
