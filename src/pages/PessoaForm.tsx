@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import VinculoBeneficiosSection from "@/components/pessoas/VinculoBeneficiosSection";
 import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
+import VinculoFinanceiroPJSection from "@/components/pessoas/VinculoFinanceiroPJSection";
 
 type Dim = { id: string; nome: string; codigo?: string };
 
@@ -543,6 +544,9 @@ export default function PessoaForm() {
           <h2 className="text-lg font-semibold">Composição de Custo</h2>
           <VinculoBeneficiosSection vinculoId={vinculoId} />
           <VinculoExtrasSection vinculoId={vinculoId} />
+          {vinculo.tipo_vinculo === "PJ" && (
+            <VinculoFinanceiroPJSection vinculoId={vinculoId} />
+          )}
         </div>
       )}
 
