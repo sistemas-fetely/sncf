@@ -21,6 +21,8 @@ import {
   ArrowDownToLine,
   Inbox,
   Filter,
+  GitCompare,
+
 
 } from "lucide-react";
 
@@ -101,6 +103,7 @@ export function FinancasContextSidebar() {
               <FinancasSidebarItem to="/administrativo/recebimentos-conciliar" icon={ArrowUpCircle} label="Recebimentos a conciliar" />
               <FinancasSidebarItem to="/administrativo/extrato-importacao" icon={Upload} label="Importar Extratos" />
               <FinancasSidebarItem to="/administrativo/extrato-inbox" icon={Inbox} label="Inbox Extrato" />
+              <FinancasSidebarItem to="/administrativo/conciliacao-despesas" icon={GitCompare} label="Conciliar Despesas" />
               <FinancasSidebarItem to="/administrativo/extrato-regras" icon={Filter} label="Regras Automáticas" />
               <FinancasSidebarItem to="/administrativo/extrato-pares" icon={ArrowLeftRight} label="Pares Transferência" />
 
