@@ -266,6 +266,23 @@ export default function Pessoas() {
                           <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials(p.nome)}</AvatarFallback>
                         </Avatar>
                         <span className="font-medium text-sm">{p.nome}</span>
+                        {p.incompleto && (
+                          <TooltipProvider delayDuration={100}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="border-warning/40 bg-warning/10 text-warning gap-1 h-5 px-1.5 text-[10px] font-semibold"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Incompleto
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>{p.motivos.join(", ")}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
