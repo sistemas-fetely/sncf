@@ -225,17 +225,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/sncf"
-                    className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200"
-                  >
-                    <LayoutGrid className="h-[18px] w-[18px] shrink-0" />
-                    {!collapsed && <span>Portal SNCF</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -249,26 +238,13 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-4">
         {!collapsed && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/60 p-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground shadow-sm">
-                {initials}
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</span>
-                <Badge variant="outline" className="text-[10px] w-fit border-sidebar-border/60 text-sidebar-muted mt-0.5">
-                  {primaryRole}
-                </Badge>
-              </div>
-            </div>
-            <button
-              onClick={signOut}
-              className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sair
-            </button>
-          </div>
+          <button
+            onClick={signOut}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sair
+          </button>
         )}
       </SidebarFooter>
     </Sidebar>
