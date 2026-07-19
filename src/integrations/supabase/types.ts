@@ -18375,6 +18375,53 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_beneficios_consolidado: {
+        Row: {
+          beneficio: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          departamento: string | null
+          id: string | null
+          numero_cartao: string | null
+          operadora: string | null
+          pessoa: string | null
+          status: string | null
+          tipo_vinculo: string | null
+          valor_desconto: number | null
+          valor_empresa: number | null
+          vinculo_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
+          },
+        ]
+      }
       vw_cobranca_divergencias: {
         Row: {
           dia: string | null
