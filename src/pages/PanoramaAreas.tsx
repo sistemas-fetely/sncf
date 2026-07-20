@@ -76,7 +76,7 @@ export default function PanoramaAreas() {
   const totCusto = rows.reduce((s, r) => s + custoTotal(r), 0);
 
   const chartData = sorted.map((r) => ({
-    departamento: r.departamento,
+    centro_custo: r.centro_custo,
     custo: custoTotal(r),
   }));
 
