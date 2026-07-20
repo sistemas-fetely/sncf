@@ -149,14 +149,14 @@ export default function PanoramaAreas() {
 
       <Card className="card-shadow">
         <CardHeader>
-          <CardTitle className="text-base">Detalhamento por Área</CardTitle>
+          <CardTitle className="text-base">Detalhamento por Centro de Custo</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Área</TableHead>
+                  <TableHead className="font-semibold">Centro de Custo</TableHead>
                   <TableHead className="font-semibold text-right">Ocupados</TableHead>
                   <TableHead className="font-semibold text-right">CLT</TableHead>
                   <TableHead className="font-semibold text-right">PJ</TableHead>
@@ -169,12 +169,12 @@ export default function PanoramaAreas() {
                 {isLoading ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : sorted.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma área com dados ainda.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum centro de custo com dados ainda.</TableCell></TableRow>
                 ) : (
                   <>
                     {sorted.map((r) => (
-                      <TableRow key={r.departamento_id}>
-                        <TableCell className="font-medium text-sm">{r.departamento}</TableCell>
+                      <TableRow key={r.centro_custo_id}>
+                        <TableCell className="font-medium text-sm">{r.centro_custo}</TableCell>
                         <TableCell className="text-right text-sm">{r.ocupados}</TableCell>
                         <TableCell className="text-right text-sm">{r.ocupados_clt}</TableCell>
                         <TableCell className="text-right text-sm">{r.ocupados_pj}</TableCell>
