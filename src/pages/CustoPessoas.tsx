@@ -124,9 +124,7 @@ export default function CustoPessoas() {
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Custo recorrente mensal da equipe</p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas")}>
-          <ArrowLeft className="h-4 w-4" /> Voltar
-        </Button>
+        <SmartBackButton fallback="/pessoas" fallbackLabel="Voltar" />
       </div>
 
       {isLoading ? (
