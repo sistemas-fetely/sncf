@@ -38,6 +38,7 @@ const CadastroColaboradorCLTWrapper = lazy(() => import("@/components/colaborado
 const PlaceholderPage = lazy(() => import("@/pages/PlaceholderPage"));
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
 const Organograma = lazy(() => import("@/pages/Organograma"));
+const Reembolsos = lazy(() => import("@/pages/pessoas/Reembolsos"));
 const Login = lazy(() => import("@/pages/Login"));
 const RecuperarSenha = lazy(() => import("@/pages/RecuperarSenha"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
