@@ -18,6 +18,9 @@ import { toast } from "sonner";
 import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
 import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
+import { parseCsvSafraPayTipo2 } from "@/lib/financeiro/csv-safrapay-tipo2-parser";
+import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parser";
+import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
 import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
 
@@ -44,26 +47,30 @@ type Importacao = {
   created_at: string;
 };
 
-type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw";
+type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw" | "safrapay_tipo2" | "mp_settlement" | "mp_reserve_release";
 
-function detectarFonteBase(file: File): "ofx" | "xlsx" | null {
+function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | null {
   const nome = file.name.toLowerCase();
   if (nome.endsWith(".ofx")) return "ofx";
   if (nome.endsWith(".xlsx")) return "xlsx";
+  if (nome.endsWith(".csv")) return "csv";
   return null;
 }
 
-async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw"> {
+async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw" | "safrapay_tipo2" | "mp_settlement" | "mp_reserve_release"> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
-  // Vasculhar até 20 primeiras linhas por keyword
-  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+  for (let i = 0; i < Math.min(rows.length, 5); i++) {
     const s = (rows[i] || [])
       .map((c) => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
       .join("|");
-    if (/retirad|withdraw|mercado pago|mercadopago/.test(s)) return "mp_withdraw";
+    if (/retirad|withdraw/.test(s)) return "mp_withdraw";
+    if (/data de liberacao do dinheiro/.test(s)) return "mp_settlement";
+    if (/tipo de registro/.test(s) && /liberacoes|retiradas/.test(
+      (rows.slice(1, 10) || []).map(r => (r as unknown[]).map(c => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")).join("|")).join("|")
+    )) return "mp_reserve_release";
   }
   return "safra_lancamentos";
 }
@@ -106,7 +113,9 @@ export default function ExtratoImportacao() {
     if (!conta || !user) throw new Error("Selecione a conta bancária");
     const base = detectarFonteBase(file);
     if (!base) throw new Error(`Extensão não reconhecida: ${file.name}`);
-    const fonte: Fonte = base === "ofx" ? "ofx" : await detectarSubtipoXlsx(file);
+    const fonte: Fonte = base === "ofx" ? "ofx"
+      : base === "csv" ? "safrapay_tipo2"
+      : await detectarSubtipoXlsx(file);
 
 
     const { data: impRow, error: errImp } = await sb
