@@ -18,6 +18,9 @@ import { toast } from "sonner";
 import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
 import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
+import { parseCsvSafraPayTipo2 } from "@/lib/financeiro/csv-safrapay-tipo2-parser";
+import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parser";
+import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
 import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
 
@@ -44,26 +47,30 @@ type Importacao = {
   created_at: string;
 };
 
-type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw";
+type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw" | "safrapay_tipo2" | "mp_settlement" | "mp_reserve_release";
 
-function detectarFonteBase(file: File): "ofx" | "xlsx" | null {
+function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | null {
   const nome = file.name.toLowerCase();
   if (nome.endsWith(".ofx")) return "ofx";
   if (nome.endsWith(".xlsx")) return "xlsx";
+  if (nome.endsWith(".csv")) return "csv";
   return null;
 }
 
-async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw"> {
+async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw" | "safrapay_tipo2" | "mp_settlement" | "mp_reserve_release"> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
-  // Vasculhar até 20 primeiras linhas por keyword
-  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+  for (let i = 0; i < Math.min(rows.length, 5); i++) {
     const s = (rows[i] || [])
       .map((c) => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
       .join("|");
-    if (/retirad|withdraw|mercado pago|mercadopago/.test(s)) return "mp_withdraw";
+    if (/retirad|withdraw/.test(s)) return "mp_withdraw";
+    if (/data de liberacao do dinheiro/.test(s)) return "mp_settlement";
+    if (/tipo de registro/.test(s) && /liberacoes|retiradas/.test(
+      (rows.slice(1, 10) || []).map(r => (r as unknown[]).map(c => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")).join("|")).join("|")
+    )) return "mp_reserve_release";
   }
   return "safra_lancamentos";
 }
@@ -106,7 +113,9 @@ export default function ExtratoImportacao() {
     if (!conta || !user) throw new Error("Selecione a conta bancária");
     const base = detectarFonteBase(file);
     if (!base) throw new Error(`Extensão não reconhecida: ${file.name}`);
-    const fonte: Fonte = base === "ofx" ? "ofx" : await detectarSubtipoXlsx(file);
+    const fonte: Fonte = base === "ofx" ? "ofx"
+      : base === "csv" ? "safrapay_tipo2"
+      : await detectarSubtipoXlsx(file);
 
 
     const { data: impRow, error: errImp } = await sb
@@ -369,6 +378,123 @@ export default function ExtratoImportacao() {
           if (errIns) throw errIns;
           novas++;
         }
+      } else if (fonte === "safrapay_tipo2") {
+        const text = await file.text();
+        const parsed = parseCsvSafraPayTipo2(text);
+        linhasLidas = parsed.parcelas.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma parcela liquidada no arquivo SafraPay Tipo 2");
+
+        const datas = parsed.parcelas.map(p => p.dt_efetiva).filter(Boolean).sort();
+        periodoInicio = datas[0] || null;
+        periodoFim = datas[datas.length - 1] || null;
+
+        for (const p of parsed.parcelas) {
+          if (!p.dt_efetiva || !p.nsu) continue;
+          const hashKey = `safrapay2|${p.nsu}|${p.dt_efetiva}|${p.parcela_num}`;
+          const hash = await gerarHashMov(conta, p.dt_efetiva, p.valor_recebido, hashKey);
+
+          const { data: exist } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id")
+            .eq("hash_unico", hash)
+            .maybeSingle();
+          if (exist) { duplicadas++; continue; }
+
+          const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
+            conta_bancaria_id: conta,
+            data_transacao: p.dt_efetiva,
+            descricao: `SAFRAPAY ${p.produto} ${p.modalidade} PARC ${p.parcela_num}/${p.ncar} NSU ${p.nsu}`,
+            valor: p.valor_recebido,
+            tipo: "credito",
+            id_transacao_banco: p.nsu,
+            hash_unico: hash,
+            origem: "safrapay_tipo2",
+            tipo_meio: "cartao",
+            fonte_importacao_id: impId,
+          });
+          if (errIns) throw errIns;
+          novas++;
+        }
+
+      } else if (fonte === "mp_settlement") {
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxMpSettlement(buf);
+        linhasLidas = parsed.transacoes.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma transação no Settlement MP");
+
+        const datas = parsed.transacoes.map(t => t.data_liberacao).filter(Boolean).sort();
+        periodoInicio = datas[0] || null;
+        periodoFim = datas[datas.length - 1] || null;
+
+        for (const t of parsed.transacoes) {
+          if (!t.id_transacao_mp) continue;
+          const hash = await gerarHashMov(conta, t.data_liberacao || t.data_aprovacao, t.valor_liquido, `mp_settlement|${t.id_transacao_mp}`);
+
+          const { data: exist } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id")
+            .eq("hash_unico", hash)
+            .maybeSingle();
+          if (exist) { duplicadas++; continue; }
+
+          const tipoMeio = t.tipo_meio_pagamento.toLowerCase().includes("bancaria") ? "pix" : "cartao";
+
+          const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
+            conta_bancaria_id: conta,
+            data_transacao: t.data_liberacao || t.data_aprovacao,
+            descricao: `MP ${t.meio_pagamento.toUpperCase()} ${t.parcelas > 1 ? `${t.parcelas}x` : "AVISTA"}`,
+            valor: t.valor_liquido,
+            tipo: "credito",
+            id_transacao_banco: t.id_transacao_mp,
+            hash_unico: hash,
+            origem: "mp_settlement",
+            tipo_meio: tipoMeio,
+            referencia_pedido: t.codigo_referencia || null,
+            fonte_importacao_id: impId,
+          });
+          if (errIns) throw errIns;
+          novas++;
+        }
+
+      } else if (fonte === "mp_reserve_release") {
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxMpReserveRelease(buf);
+        linhasLidas = parsed.liberacoes.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma liberação no Reserve-Release MP");
+
+        const datas = parsed.liberacoes.map(l => l.data_liberacao).filter(Boolean).sort();
+        periodoInicio = datas[0] || null;
+        periodoFim = datas[datas.length - 1] || null;
+
+        for (const l of parsed.liberacoes) {
+          if (!l.id_operacao) continue;
+          const hash = await gerarHashMov(conta, l.data_liberacao, l.valor_liquido, `mp_rr|${l.id_operacao}`);
+
+          const { data: exist } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id")
+            .eq("hash_unico", hash)
+            .maybeSingle();
+          if (exist) { duplicadas++; continue; }
+
+          const tipoMeio = l.meio_pagamento.toLowerCase().includes("pix") ? "pix" : "cartao";
+
+          const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
+            conta_bancaria_id: conta,
+            data_transacao: l.data_liberacao,
+            descricao: `MP ${l.descricao.toUpperCase()} ${l.meio_pagamento.toUpperCase()}`,
+            valor: l.valor_liquido,
+            tipo: "credito",
+            id_transacao_banco: l.id_operacao,
+            hash_unico: hash,
+            origem: "mp_reserve_release",
+            tipo_meio: tipoMeio,
+            referencia_pedido: l.codigo_referencia || null,
+            fonte_importacao_id: impId,
+          });
+          if (errIns) throw errIns;
+          novas++;
+        }
       }
 
 
@@ -445,7 +571,7 @@ export default function ExtratoImportacao() {
           Importar Extratos
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          OFX (Itaú/Safra/qualquer banco) e XLSX Safra Lançamentos e Devoluções.
+          OFX (Itaú/Safra), XLSX Safra PIX, CSV SafraPay Tipo 2, XLSX MP Settlement e Reserve-Release.
         </p>
       </div>
 
@@ -463,11 +589,11 @@ export default function ExtratoImportacao() {
             </Select>
           </div>
           <div>
-            <Label>Arquivos (.ofx, .xlsx — múltiplos)</Label>
+            <Label>Arquivos (.ofx, .xlsx, .csv — múltiplos)</Label>
             <Input
               type="file"
               multiple
-              accept=".ofx,.xlsx"
+              accept=".ofx,.xlsx,.csv"
               onChange={(e) => setArquivos(Array.from(e.target.files || []))}
             />
             {arquivos.length > 0 && (
