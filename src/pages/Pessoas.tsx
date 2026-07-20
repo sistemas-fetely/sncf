@@ -184,7 +184,7 @@ export default function Pessoas() {
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/vagas")}>
             <ClipboardList className="h-4 w-4" /> Vagas
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/custo")}>
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/custo", { state: { from: "/pessoas", fromLabel: "Pessoas" } })}>
             <Wallet className="h-4 w-4" /> Custo
           </Button>
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/folha")}>
