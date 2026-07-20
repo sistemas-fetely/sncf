@@ -314,7 +314,7 @@ function RowCredito({
 }) {
   const meio = detectarMeio(credito.descricao);
   const badge = MEIO_BADGE[meio];
-  const canExpand = meio !== "cobranca";
+  const canExpand = true;
 
   return (
     <>
@@ -340,7 +340,9 @@ function RowCredito({
         </TableCell>
         <TableCell className="text-right">
           {meio === "cobranca" ? (
-            <span className="text-xs text-muted-foreground italic">motor automático</span>
+            <Button size="sm" variant={open ? "secondary" : "default"} onClick={onToggle}>
+              Ver título
+            </Button>
           ) : meio === "cartao" ? (
             <Button size="sm" variant={open ? "secondary" : "default"} onClick={onToggle}>
               Montar cesta
@@ -366,6 +368,8 @@ function RowCredito({
           <TableCell colSpan={7} className="bg-muted/30 p-4">
             {meio === "cartao" ? (
               <PainelCesta credito={credito} invalidar={invalidar} onDone={onDone} />
+            ) : meio === "cobranca" ? (
+              <PainelBoleto credito={credito} invalidar={invalidar} onDone={onDone} />
             ) : (
               <PainelUnico credito={credito} invalidar={invalidar} onDone={onDone} />
             )}
