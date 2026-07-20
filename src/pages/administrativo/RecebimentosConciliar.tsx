@@ -421,6 +421,9 @@ function LinhaTitulo({
         </div>
       </TableCell>
       <TableCell>
+        <NivelBadge nivel={s.nivel} score={s.score} />
+      </TableCell>
+      <TableCell>
         <Badge className={grupo ? GRUPO_BADGE[grupo] : "bg-muted"}>
           {grupo ? GRUPO_LABEL[grupo] : s.status}
         </Badge>
