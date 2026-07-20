@@ -770,7 +770,11 @@ function PainelBoleto({
       }
       const r = data as { ok?: boolean; numero_titulo?: string; aviso?: string; error?: string } | null;
       if (!r || r.ok !== true) {
-        toast.error(r?.error || "Erro inesperado");
+        const msgBanco = r?.error || "";
+        const msgExibir = msgBanco.toLowerCase().includes("pago") && msgBanco.toLowerCase().includes("concilia")
+          ? "O retorno CNAB deste boleto ainda não foi processado. Importe o arquivo de retorno do Safra e tente novamente."
+          : msgBanco || "Erro inesperado";
+        toast.error(msgExibir);
         return;
       }
       toast.success(`Boleto ${r.numero_titulo || s.numero_titulo || ""} conciliado`);
