@@ -106,6 +106,7 @@ export function FinancasContextSidebar() {
               <FinancasSidebarItem to="/administrativo/conciliacao-despesas" icon={GitCompare} label="Conciliar Despesas" />
               <FinancasSidebarItem to="/administrativo/extrato-regras" icon={Filter} label="Regras Automáticas" />
               <FinancasSidebarItem to="/administrativo/extrato-pares" icon={ArrowLeftRight} label="Pares Transferência" />
+              <FinancasSidebarItem to="/administrativo/conciliacao-cartao" icon={CreditCard} label="Conciliação Cartão" />
 
               <FinancasSidebarItem to="/administrativo/plano-contas" icon={FolderTree} label="Plano de Contas" />
               <FinancasSidebarItem to="/administrativo/conciliacao" icon={CheckCheck} label="Conciliação" />

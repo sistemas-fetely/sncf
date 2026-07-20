@@ -602,6 +602,7 @@ const App = () => (
                 <Route path="extrato-inbox" element={<ExtratoInbox />} />
                 <Route path="extrato-regras" element={<RegrasInbox />} />
                 <Route path="extrato-pares" element={<ParesTransferencia />} />
+                <Route path="conciliacao-cartao" element={<ConciliacaoCartao />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
 
                 <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
