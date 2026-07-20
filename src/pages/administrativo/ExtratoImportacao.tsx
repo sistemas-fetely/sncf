@@ -571,7 +571,7 @@ export default function ExtratoImportacao() {
           Importar Extratos
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          OFX (Itaú/Safra/qualquer banco) e XLSX Safra Lançamentos e Devoluções.
+          OFX (Itaú/Safra), XLSX Safra PIX, CSV SafraPay Tipo 2, XLSX MP Settlement e Reserve-Release.
         </p>
       </div>
 
@@ -589,11 +589,11 @@ export default function ExtratoImportacao() {
             </Select>
           </div>
           <div>
-            <Label>Arquivos (.ofx, .xlsx — múltiplos)</Label>
+            <Label>Arquivos (.ofx, .xlsx, .csv — múltiplos)</Label>
             <Input
               type="file"
               multiple
-              accept=".ofx,.xlsx"
+              accept=".ofx,.xlsx,.csv"
               onChange={(e) => setArquivos(Array.from(e.target.files || []))}
             />
             {arquivos.length > 0 && (
