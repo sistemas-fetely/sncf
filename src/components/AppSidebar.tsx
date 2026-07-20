@@ -74,6 +74,7 @@ const pessoasItems: MenuItem[] = [
   { title: "Convites de Cadastro", url: "/convites-cadastro", icon: MailPlus, permModule: "convites" },
   { title: "Onboarding", url: "/onboarding", icon: Rocket, permModule: "convites" },
   { title: "Movimentações", url: "/movimentacoes", icon: ArrowLeftRight, permModule: "movimentacoes" },
+  { title: "Reembolsos", url: "/pessoas/reembolsos", icon: Receipt, permModule: "colaboradores" },
   { title: "Avaliações", url: "/avaliacoes", icon: Award, permModule: "avaliacoes" },
   { title: "Treinamentos", url: "/treinamentos", icon: BookOpen, permModule: "treinamentos" },
 ];
