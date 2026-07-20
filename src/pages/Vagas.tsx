@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, MoreHorizontal, Edit, PlayCircle, CheckCircle2, XCircle, UserPlus } from "lucide-react";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { format, parseISO } from "date-fns";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -281,9 +282,7 @@ export default function Vagas() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/pessoas")} className="gap-2">
-            <ArrowLeft className="h-4 w-4" /> Voltar
-          </Button>
+          <SmartBackButton fallback="/pessoas" fallbackLabel="Voltar" />
           <Button onClick={openCreate} className="gap-2">
             <Plus className="h-4 w-4" /> Nova vaga
           </Button>
