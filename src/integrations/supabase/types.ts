@@ -2095,6 +2095,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "classificacoes_confirmadas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "classificacoes_confirmadas_plano_contas_id_fkey"
             columns: ["plano_contas_id"]
             isOneToOne: false
@@ -2902,6 +2909,13 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "compromissos_parcelados_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
           },
           {
@@ -3878,6 +3892,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_compra_registrada_id_fkey"
             columns: ["compra_registrada_id"]
             isOneToOne: false
@@ -4731,6 +4752,13 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "custo_pessoas_mensal_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
           },
         ]
@@ -5661,6 +5689,13 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "fatura_cartao_lancamentos_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
           },
           {
@@ -8075,6 +8110,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "movimentacoes_bancarias_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_bancaria_id"]
             isOneToOne: false
@@ -8669,6 +8711,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "nfs_stage_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
@@ -9220,6 +9269,13 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "ofx_regras_automaticas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
           },
           {
@@ -9919,6 +9975,13 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "parceiros_comerciais_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
           },
           {
@@ -11385,6 +11448,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "pedidos_compra_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "pedidos_compra_departamento_id_fkey"
             columns: ["departamento_id"]
             isOneToOne: false
@@ -12123,6 +12193,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "plano_contas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "plano_contas_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -12344,18 +12421,18 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
-            foreignKeyName: "posicoes_planejadas_departamento_id_fkey"
-            columns: ["departamento_id"]
+            foreignKeyName: "posicoes_planejadas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
             isOneToOne: false
-            referencedRelation: "departamentos"
-            referencedColumns: ["id"]
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
           },
           {
             foreignKeyName: "posicoes_planejadas_departamento_id_fkey"
             columns: ["departamento_id"]
             isOneToOne: false
-            referencedRelation: "vw_dimensionamento_areas"
-            referencedColumns: ["departamento_id"]
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "posicoes_planejadas_unidade_id_fkey"
@@ -13445,6 +13522,13 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "regras_categorizacao_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
           },
           {
@@ -18052,18 +18136,18 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
-            foreignKeyName: "vinculos_departamento_id_fkey"
-            columns: ["departamento_id"]
+            foreignKeyName: "vinculos_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
             isOneToOne: false
-            referencedRelation: "departamentos"
-            referencedColumns: ["id"]
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
           },
           {
             foreignKeyName: "vinculos_departamento_id_fkey"
             columns: ["departamento_id"]
             isOneToOne: false
-            referencedRelation: "vw_dimensionamento_areas"
-            referencedColumns: ["departamento_id"]
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "vinculos_forma_pagamento_id_fkey"
@@ -18653,6 +18737,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_compromisso_parcelado_id_fkey"
             columns: ["compromisso_parcelado_id"]
             isOneToOne: false
@@ -18864,6 +18955,13 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
           },
           {
@@ -19666,6 +19764,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_forma_pagamento_id_fkey"
             columns: ["forma_pagamento_id"]
             isOneToOne: false
@@ -19821,11 +19926,11 @@ export type Database = {
       }
       vw_dimensionamento_areas: {
         Row: {
+          centro_custo: string | null
+          centro_custo_id: string | null
           custo_beneficios_extras: number | null
           custo_transporte: number | null
           custo_valor_base: number | null
-          departamento: string | null
-          departamento_id: string | null
           ocupados: number | null
           ocupados_clt: number | null
           ocupados_pj: number | null
@@ -20443,6 +20548,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "nfs_stage_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
@@ -20528,14 +20640,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
