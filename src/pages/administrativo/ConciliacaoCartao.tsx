@@ -196,8 +196,8 @@ export default function ConciliacaoCartao() {
                     </Button>
                   );
                   return (
-                    <>
-                      <TableRow key={s.ofx_id} className="cursor-pointer" onClick={() => setExpanded((e) => ({ ...e, [s.ofx_id]: !e[s.ofx_id] }))}>
+                    <Fragment key={s.ofx_id}>
+                      <TableRow className="cursor-pointer" onClick={() => setExpanded((e) => ({ ...e, [s.ofx_id]: !e[s.ofx_id] }))}>
                         <TableCell>
                           {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                         </TableCell>
@@ -238,7 +238,7 @@ export default function ConciliacaoCartao() {
                       {isOpen && (
                         <ParcelasRow ofxId={s.ofx_id} parcelaIds={s.parcela_ids} />
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
