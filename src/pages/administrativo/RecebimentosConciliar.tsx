@@ -57,6 +57,8 @@ type Sugestao = {
   status: string;
   diff_valor: number;
   dias_distancia: number;
+  score: number;
+  nivel: string;
 };
 
 type Meio = "pix" | "cartao" | "cobranca" | "outro";
