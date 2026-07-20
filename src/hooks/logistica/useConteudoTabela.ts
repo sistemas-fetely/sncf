@@ -11,7 +11,7 @@ export interface TabelaAtiva {
   vigencia_fim: string | null;
   vigencia_descricao: string | null;
   gris_pct: number | null;
-  gris_base: number | null;
+  gris_base: string | null;
   gris_minimo: number | null;
   adm_pct: number | null;
   tx_coleta: number | null;
