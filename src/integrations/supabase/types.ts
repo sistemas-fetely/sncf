@@ -3664,6 +3664,7 @@ export type Database = {
           pendencias_no_envio: string[] | null
           plano_contas_id: string | null
           reembolsa_user_id: string | null
+          reembolsa_vinculo_id: string | null
           sla_aprovacao_dias: number | null
           sla_pagamento_dias: number | null
           status: string
@@ -3755,6 +3756,7 @@ export type Database = {
           pendencias_no_envio?: string[] | null
           plano_contas_id?: string | null
           reembolsa_user_id?: string | null
+          reembolsa_vinculo_id?: string | null
           sla_aprovacao_dias?: number | null
           sla_pagamento_dias?: number | null
           status?: string
@@ -3846,6 +3848,7 @@ export type Database = {
           pendencias_no_envio?: string[] | null
           plano_contas_id?: string | null
           reembolsa_user_id?: string | null
+          reembolsa_vinculo_id?: string | null
           sla_aprovacao_dias?: number | null
           sla_pagamento_dias?: number | null
           status?: string
@@ -4051,6 +4054,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
+            columns: ["reembolsa_vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
+            columns: ["reembolsa_vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
+            columns: ["reembolsa_vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
+            columns: ["reembolsa_vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
+            columns: ["reembolsa_vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
+            columns: ["reembolsa_vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
+            columns: ["reembolsa_vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_unidade_id_fkey"
@@ -13310,6 +13362,218 @@ export type Database = {
         }
         Relationships: []
       }
+      reembolso_categorias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          plano_contas_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          plano_contas_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          plano_contas_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reembolso_categorias_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reembolsos_colaborador: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          categoria_id: string
+          competencia: string
+          comprovante_url: string | null
+          cpr_id: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          motivo_rejeicao: string | null
+          sem_comprovante: boolean
+          status: string
+          updated_at: string
+          valor: number
+          vinculo_id: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          categoria_id: string
+          competencia: string
+          comprovante_url?: string | null
+          cpr_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          sem_comprovante?: boolean
+          status?: string
+          updated_at?: string
+          valor: number
+          vinculo_id: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          categoria_id?: string
+          competencia?: string
+          comprovante_url?: string | null
+          cpr_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          sem_comprovante?: boolean
+          status?: string
+          updated_at?: string
+          valor?: number
+          vinculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reembolsos_colaborador_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "reembolso_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_cpr_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
+          },
+        ]
+      }
       regras_automaticas_ofx: {
         Row: {
           ativa: boolean
@@ -20640,14 +20904,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -20733,14 +20997,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
