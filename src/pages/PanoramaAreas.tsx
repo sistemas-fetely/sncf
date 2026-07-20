@@ -90,7 +90,7 @@ export default function PanoramaAreas() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/pessoas/vagas")} className="gap-2">
+          <Button variant="outline" onClick={() => navigate("/pessoas/vagas", { state: { from: "/pessoas/panorama", fromLabel: "Panorama de Areas" } })} className="gap-2">
             <ClipboardList className="h-4 w-4" /> Gerenciar vagas
           </Button>
           <Button variant="outline" onClick={() => navigate("/pessoas")} className="gap-2">
