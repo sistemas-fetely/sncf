@@ -429,7 +429,7 @@ export function FilaPedidosPorArea({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/recebimento/cobranca/${p.id}`)}
+                          onClick={() => navigate(`/recebimento/cobranca/${p.id}`, { state: { from: "/pedidos", fromLabel: "Fila de Pedidos" } })}
                         >
                           <ExternalLink className="h-3 w-3 mr-1" />
                           Cobrança
