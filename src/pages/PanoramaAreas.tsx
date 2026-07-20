@@ -15,8 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 
 interface DimensionamentoArea {
-  departamento_id: string;
-  departamento: string;
+  centro_custo_id: string;
+  centro_custo: string;
   ocupados: number;
   ocupados_clt: number;
   ocupados_pj: number;
