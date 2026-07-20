@@ -136,7 +136,7 @@ export default function PanoramaAreas() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="departamento" angle={-25} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="centro_custo" angle={-25} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={(v) => fmtBRL(v)} tick={{ fontSize: 11 }} width={100} />
                   <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
                   <Bar dataKey="custo" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
