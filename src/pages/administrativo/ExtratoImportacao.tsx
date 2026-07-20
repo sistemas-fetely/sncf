@@ -378,6 +378,123 @@ export default function ExtratoImportacao() {
           if (errIns) throw errIns;
           novas++;
         }
+      } else if (fonte === "safrapay_tipo2") {
+        const text = await file.text();
+        const parsed = parseCsvSafraPayTipo2(text);
+        linhasLidas = parsed.parcelas.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma parcela liquidada no arquivo SafraPay Tipo 2");
+
+        const datas = parsed.parcelas.map(p => p.dt_efetiva).filter(Boolean).sort();
+        periodoInicio = datas[0] || null;
+        periodoFim = datas[datas.length - 1] || null;
+
+        for (const p of parsed.parcelas) {
+          if (!p.dt_efetiva || !p.nsu) continue;
+          const hashKey = `safrapay2|${p.nsu}|${p.dt_efetiva}|${p.parcela_num}`;
+          const hash = await gerarHashMov(conta, p.dt_efetiva, p.valor_recebido, hashKey);
+
+          const { data: exist } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id")
+            .eq("hash_unico", hash)
+            .maybeSingle();
+          if (exist) { duplicadas++; continue; }
+
+          const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
+            conta_bancaria_id: conta,
+            data_transacao: p.dt_efetiva,
+            descricao: `SAFRAPAY ${p.produto} ${p.modalidade} PARC ${p.parcela_num}/${p.ncar} NSU ${p.nsu}`,
+            valor: p.valor_recebido,
+            tipo: "credito",
+            id_transacao_banco: p.nsu,
+            hash_unico: hash,
+            origem: "safrapay_tipo2",
+            tipo_meio: "cartao",
+            fonte_importacao_id: impId,
+          });
+          if (errIns) throw errIns;
+          novas++;
+        }
+
+      } else if (fonte === "mp_settlement") {
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxMpSettlement(buf);
+        linhasLidas = parsed.transacoes.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma transação no Settlement MP");
+
+        const datas = parsed.transacoes.map(t => t.data_liberacao).filter(Boolean).sort();
+        periodoInicio = datas[0] || null;
+        periodoFim = datas[datas.length - 1] || null;
+
+        for (const t of parsed.transacoes) {
+          if (!t.id_transacao_mp) continue;
+          const hash = await gerarHashMov(conta, t.data_liberacao || t.data_aprovacao, t.valor_liquido, `mp_settlement|${t.id_transacao_mp}`);
+
+          const { data: exist } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id")
+            .eq("hash_unico", hash)
+            .maybeSingle();
+          if (exist) { duplicadas++; continue; }
+
+          const tipoMeio = t.tipo_meio_pagamento.toLowerCase().includes("bancaria") ? "pix" : "cartao";
+
+          const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
+            conta_bancaria_id: conta,
+            data_transacao: t.data_liberacao || t.data_aprovacao,
+            descricao: `MP ${t.meio_pagamento.toUpperCase()} ${t.parcelas > 1 ? `${t.parcelas}x` : "AVISTA"}`,
+            valor: t.valor_liquido,
+            tipo: "credito",
+            id_transacao_banco: t.id_transacao_mp,
+            hash_unico: hash,
+            origem: "mp_settlement",
+            tipo_meio: tipoMeio,
+            referencia_pedido: t.codigo_referencia || null,
+            fonte_importacao_id: impId,
+          });
+          if (errIns) throw errIns;
+          novas++;
+        }
+
+      } else if (fonte === "mp_reserve_release") {
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxMpReserveRelease(buf);
+        linhasLidas = parsed.liberacoes.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma liberação no Reserve-Release MP");
+
+        const datas = parsed.liberacoes.map(l => l.data_liberacao).filter(Boolean).sort();
+        periodoInicio = datas[0] || null;
+        periodoFim = datas[datas.length - 1] || null;
+
+        for (const l of parsed.liberacoes) {
+          if (!l.id_operacao) continue;
+          const hash = await gerarHashMov(conta, l.data_liberacao, l.valor_liquido, `mp_rr|${l.id_operacao}`);
+
+          const { data: exist } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id")
+            .eq("hash_unico", hash)
+            .maybeSingle();
+          if (exist) { duplicadas++; continue; }
+
+          const tipoMeio = l.meio_pagamento.toLowerCase().includes("pix") ? "pix" : "cartao";
+
+          const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
+            conta_bancaria_id: conta,
+            data_transacao: l.data_liberacao,
+            descricao: `MP ${l.descricao.toUpperCase()} ${l.meio_pagamento.toUpperCase()}`,
+            valor: l.valor_liquido,
+            tipo: "credito",
+            id_transacao_banco: l.id_operacao,
+            hash_unico: hash,
+            origem: "mp_reserve_release",
+            tipo_meio: tipoMeio,
+            referencia_pedido: l.codigo_referencia || null,
+            fonte_importacao_id: impId,
+          });
+          if (errIns) throw errIns;
+          novas++;
+        }
       }
 
 
