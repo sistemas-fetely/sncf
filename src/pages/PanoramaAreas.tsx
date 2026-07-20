@@ -15,8 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 
 interface DimensionamentoArea {
-  departamento_id: string;
-  departamento: string;
+  centro_custo_id: string;
+  centro_custo: string;
   ocupados: number;
   ocupados_clt: number;
   ocupados_pj: number;
@@ -76,7 +76,7 @@ export default function PanoramaAreas() {
   const totCusto = rows.reduce((s, r) => s + custoTotal(r), 0);
 
   const chartData = sorted.map((r) => ({
-    departamento: r.departamento,
+    centro_custo: r.centro_custo,
     custo: custoTotal(r),
   }));
 
@@ -86,7 +86,7 @@ export default function PanoramaAreas() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Panorama de Áreas</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Headcount e custo mensal por departamento
+            Headcount e custo mensal por centro de custo
           </p>
         </div>
         <div className="flex gap-2">
@@ -120,7 +120,7 @@ export default function PanoramaAreas() {
 
       <Card className="card-shadow">
         <CardHeader>
-          <CardTitle className="text-base">Custo Mensal por Área</CardTitle>
+          <CardTitle className="text-base">Custo Mensal por Centro de Custo</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -129,14 +129,14 @@ export default function PanoramaAreas() {
             </div>
           ) : chartData.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
-              Nenhuma área com dados ainda.
+              Nenhum centro de custo com dados ainda.
             </div>
           ) : (
             <div style={{ width: "100%", height: 320 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="departamento" angle={-25} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="centro_custo" angle={-25} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={(v) => fmtBRL(v)} tick={{ fontSize: 11 }} width={100} />
                   <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
                   <Bar dataKey="custo" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -149,14 +149,14 @@ export default function PanoramaAreas() {
 
       <Card className="card-shadow">
         <CardHeader>
-          <CardTitle className="text-base">Detalhamento por Área</CardTitle>
+          <CardTitle className="text-base">Detalhamento por Centro de Custo</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Área</TableHead>
+                  <TableHead className="font-semibold">Centro de Custo</TableHead>
                   <TableHead className="font-semibold text-right">Ocupados</TableHead>
                   <TableHead className="font-semibold text-right">CLT</TableHead>
                   <TableHead className="font-semibold text-right">PJ</TableHead>
@@ -169,12 +169,12 @@ export default function PanoramaAreas() {
                 {isLoading ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : sorted.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma área com dados ainda.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum centro de custo com dados ainda.</TableCell></TableRow>
                 ) : (
                   <>
                     {sorted.map((r) => (
-                      <TableRow key={r.departamento_id}>
-                        <TableCell className="font-medium text-sm">{r.departamento}</TableCell>
+                      <TableRow key={r.centro_custo_id}>
+                        <TableCell className="font-medium text-sm">{r.centro_custo}</TableCell>
                         <TableCell className="text-right text-sm">{r.ocupados}</TableCell>
                         <TableCell className="text-right text-sm">{r.ocupados_clt}</TableCell>
                         <TableCell className="text-right text-sm">{r.ocupados_pj}</TableCell>
