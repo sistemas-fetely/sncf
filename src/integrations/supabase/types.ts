@@ -22183,6 +22183,7 @@ export type Database = {
         Args: { _nota_id: string; _observacao_rh?: string }
         Returns: Json
       }
+      aprovar_reembolso: { Args: { p_reembolso_id: string }; Returns: string }
       atualizar_condicao_pagamento: {
         Args: {
           p_nova_condicao: string
