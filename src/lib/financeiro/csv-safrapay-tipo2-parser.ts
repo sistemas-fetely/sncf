@@ -49,7 +49,7 @@ function parseSafraData(dd_mm_aaaa: string): string {
 }
 
 export function parseCsvSafraPayTipo2(text: string): SafraPayTipo2Parsed {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  const lines = text.split(/\r\n|\r|\n/).filter(l => l.trim());
   const parcelas: SafraPayParcela[] = [];
   let ec = "";
   let anomes = "";
