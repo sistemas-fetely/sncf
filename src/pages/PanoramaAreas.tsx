@@ -120,7 +120,7 @@ export default function PanoramaAreas() {
 
       <Card className="card-shadow">
         <CardHeader>
-          <CardTitle className="text-base">Custo Mensal por Área</CardTitle>
+          <CardTitle className="text-base">Custo Mensal por Centro de Custo</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
