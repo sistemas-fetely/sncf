@@ -345,7 +345,7 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
     (pedido.link_pagamento as string | null | undefined) ??
     null;
 
-  const irParaCobranca = () => navigate(`/recebimento/cobranca/${pedido.id}`);
+  const irParaCobranca = () => navigate(`/recebimento/cobranca/${pedido.id}`, { state: { from: `/pedidos/${pedido.id}`, fromLabel: "Pedido" } });
   const formaEhBoleto = (pedido.forma_solicitada ?? "").toLowerCase().includes("boleto");
   const podeAjustarCobranca = ["cobranca", "aguardando_pagamento"].includes(pedido.estagio ?? "");
 
@@ -459,7 +459,7 @@ function AcoesPedidoCobranca({ pedido, parceiro }: { pedido: any; parceiro: any 
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      <Button className="w-full gap-2" onClick={() => navigate(`/recebimento/cobranca/${pedido.id}`)}>
+      <Button className="w-full gap-2" onClick={() => navigate(`/recebimento/cobranca/${pedido.id}`, { state: { from: `/pedidos/${pedido.id}`, fromLabel: "Pedido" } })}>
         <Package className="h-4 w-4" />Operacionar cobrança
       </Button>
       <BotaoSplitPedidoInline pedido={pedido} />

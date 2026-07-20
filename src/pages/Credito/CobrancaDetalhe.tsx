@@ -28,6 +28,7 @@ import { useCriarPortaoProvisorio } from "@/hooks/credito/useCriarPortaoProvisor
 import { usePermissions } from "@/hooks/usePermissions";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import type { TituloProposto } from "@/types/credito";
 import { formatCNPJ } from "@/lib/cnpj";
 import { supabase } from "@/integrations/supabase/client";
@@ -360,9 +361,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           </div>
 
           <div className="flex justify-between mt-6">
-            <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
+            <SmartBackButton fallback="/recebimento/cobranca" fallbackLabel="Voltar" />
             <div className="flex gap-2">
               <Button
                 onClick={handleSalvar}

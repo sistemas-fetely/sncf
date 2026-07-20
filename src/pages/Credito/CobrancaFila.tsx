@@ -817,7 +817,7 @@ function PedidosCobrancaTab() {
               <TableRow
                 key={p.pedido_id}
                 className="cursor-pointer hover:bg-muted/50"
-                onClick={() => navigate(`/recebimento/cobranca/${p.pedido_id}`)}
+                onClick={() => navigate(`/recebimento/cobranca/${p.pedido_id}`, { state: { from: "/recebimento/cobranca", fromLabel: "Fila de Cobrança" } })}
               >
                 <TableCell>
                   <span className="font-mono text-xs font-semibold text-primary">
