@@ -119,7 +119,7 @@ function FichaTabela({
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
         <FichaCell label="GRIS" value={fmtPct(ativa.gris_pct)} />
-        <FichaCell label="GRIS base" value={fmtBRL(ativa.gris_base)} />
+        <FichaCell label="GRIS base" value={ativa.gris_base ?? "—"} />
         <FichaCell label="GRIS mín" value={fmtBRL(ativa.gris_minimo)} />
         <FichaCell label="ADM" value={fmtPct(ativa.adm_pct)} />
         <FichaCell label="Pedágio /100kg" value={fmtBRL(ativa.pedagio_por_100kg)} />
