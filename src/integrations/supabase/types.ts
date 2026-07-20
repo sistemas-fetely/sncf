@@ -16918,6 +16918,153 @@ export type Database = {
           },
         ]
       }
+      transp_rastreio_nf: {
+        Row: {
+          atualizado_em: string
+          centro_custo: string | null
+          cep_destino: string | null
+          chave_nfe: string | null
+          cidade_destino: string | null
+          cnpj_destinatario: string | null
+          cte_numero: string | null
+          data_entrega: string | null
+          destinatario: string | null
+          eh_devolucao: boolean
+          id: string
+          importado_arquivo: string | null
+          importado_em: string
+          natureza_mercadoria: string | null
+          nf_numero: string
+          nf_serie: string | null
+          ocorrencia_ativa: string | null
+          ocorrencia_codigo: string | null
+          ocorrencia_data: string | null
+          pedido_id: string | null
+          previsao_entrega: string | null
+          recebedor: string | null
+          status: string | null
+          transportadora_id: string
+          uf_destino: string | null
+          valor_cte: number | null
+          valor_nf: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          centro_custo?: string | null
+          cep_destino?: string | null
+          chave_nfe?: string | null
+          cidade_destino?: string | null
+          cnpj_destinatario?: string | null
+          cte_numero?: string | null
+          data_entrega?: string | null
+          destinatario?: string | null
+          eh_devolucao?: boolean
+          id?: string
+          importado_arquivo?: string | null
+          importado_em?: string
+          natureza_mercadoria?: string | null
+          nf_numero: string
+          nf_serie?: string | null
+          ocorrencia_ativa?: string | null
+          ocorrencia_codigo?: string | null
+          ocorrencia_data?: string | null
+          pedido_id?: string | null
+          previsao_entrega?: string | null
+          recebedor?: string | null
+          status?: string | null
+          transportadora_id: string
+          uf_destino?: string | null
+          valor_cte?: number | null
+          valor_nf?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          centro_custo?: string | null
+          cep_destino?: string | null
+          chave_nfe?: string | null
+          cidade_destino?: string | null
+          cnpj_destinatario?: string | null
+          cte_numero?: string | null
+          data_entrega?: string | null
+          destinatario?: string | null
+          eh_devolucao?: boolean
+          id?: string
+          importado_arquivo?: string | null
+          importado_em?: string
+          natureza_mercadoria?: string | null
+          nf_numero?: string
+          nf_serie?: string | null
+          ocorrencia_ativa?: string | null
+          ocorrencia_codigo?: string | null
+          ocorrencia_data?: string | null
+          pedido_id?: string | null
+          previsao_entrega?: string | null
+          recebedor?: string | null
+          status?: string | null
+          transportadora_id?: string
+          uf_destino?: string | null
+          valor_cte?: number | null
+          valor_nf?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       transp_tabela_atendimento: {
         Row: {
           canal: string
@@ -22347,6 +22494,10 @@ export type Database = {
         Returns: number
       }
       fn_gerar_numero_titulo: { Args: { p_parcela: number }; Returns: string }
+      fn_importar_rastreio_nf: {
+        Args: { p_arquivo: string; p_nfs: Json; p_transportadora_id: string }
+        Returns: Json
+      }
       fn_importar_tabela_preco: {
         Args: {
           p_modal: string
