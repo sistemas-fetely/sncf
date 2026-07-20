@@ -28,6 +28,7 @@ import { useCriarPortaoProvisorio } from "@/hooks/credito/useCriarPortaoProvisor
 import { usePermissions } from "@/hooks/usePermissions";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import type { TituloProposto } from "@/types/credito";
 import { formatCNPJ } from "@/lib/cnpj";
 import { supabase } from "@/integrations/supabase/client";
