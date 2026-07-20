@@ -65,29 +65,11 @@ export default function Reembolsos() {
     enabled: !!user?.id,
     queryFn: async () => {
       const { data } = await supabase
-        .from("user_colaborador_link")
-        .select("colaborador_clt_id, contrato_pj_id")
-        .eq("user_id", user!.id)
-        .is("inativado_em", null)
+        .from("pessoas")
+        .select("id")
+        .eq("usuario_id", user!.id)
         .maybeSingle();
-      if (!data) return null;
-      if (data.colaborador_clt_id) {
-        const { data: c } = await supabase
-          .from("colaboradores_clt")
-          .select("pessoa_id")
-          .eq("id", data.colaborador_clt_id)
-          .maybeSingle();
-        return c?.pessoa_id ?? null;
-      }
-      if (data.contrato_pj_id) {
-        const { data: c } = await supabase
-          .from("contratos_pj")
-          .select("pessoa_id")
-          .eq("id", data.contrato_pj_id)
-          .maybeSingle();
-        return c?.pessoa_id ?? null;
-      }
-      return null;
+      return data?.id ?? null;
     },
   });
 
