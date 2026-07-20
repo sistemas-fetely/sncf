@@ -66,10 +66,7 @@ export default function ClienteDetalhe() {
                 Gerenciar crédito
               </Button>
             )}
-            <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate("/credito/clientes")}>
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Button>
+            <SmartBackButton fallback="/credito/clientes" fallbackLabel="Voltar" />
             {parceiro?.bandeira_vermelha ? (
               <BaixarBandeiraVermelhaDialog parceiro_id={parceiro.id} />
             ) : (
