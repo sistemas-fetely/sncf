@@ -16,6 +16,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
+import { SmartBackButton } from "@/components/SmartBackButton";
 
 interface CustoLinha {
   vinculo_id: string;
