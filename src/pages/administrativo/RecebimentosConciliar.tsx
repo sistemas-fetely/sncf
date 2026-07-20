@@ -498,15 +498,15 @@ function PainelUnico({
   const [batendo, setBatendo] = useState<string | null>(null);
   const [mostrarDivergentes, setMostrarDivergentes] = useState(false);
 
-  const { exatos, divergentes } = useMemo(() => {
-    const list = sugestoes || [];
-    const ex: Sugestao[] = [];
-    const dv: Sugestao[] = [];
+  const { altos, baixos } = useMemo(() => {
+    const list = (sugestoes || []).slice().sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    const hi: Sugestao[] = [];
+    const lo: Sugestao[] = [];
     for (const s of list) {
-      if (Math.abs(Number(s.diff_valor || 0)) <= 0.01) ex.push(s);
-      else dv.push(s);
+      if ((s.score ?? 0) >= 60) hi.push(s);
+      else lo.push(s);
     }
-    return { exatos: ex, divergentes: dv };
+    return { altos: hi, baixos: lo };
   }, [sugestoes]);
 
   const pagos = pagosManuais || [];
@@ -575,7 +575,7 @@ function PainelUnico({
     );
   }
 
-  const semNada = exatos.length === 0 && divergentes.length === 0 && pagos.length === 0;
+  const semNada = altos.length === 0 && baixos.length === 0 && pagos.length === 0;
   if (semNada) {
     return (
       <div className="py-6 text-center text-sm text-muted-foreground">
@@ -584,12 +584,51 @@ function PainelUnico({
     );
   }
 
+  const renderAcao = (s: Sugestao) => {
+    const score = s.score ?? 0;
+    const habilitado = score >= 60;
+    const btn = (
+      <Button
+        size="sm"
+        disabled={!habilitado || conciliando === s.titulo_id}
+        onClick={() => conciliar(s)}
+      >
+        {conciliando === s.titulo_id ? "Conciliando..." : "Conciliar título"}
+      </Button>
+    );
+    if (!habilitado) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0}>{btn}</span>
+            </TooltipTrigger>
+            <TooltipContent>Score baixo — conciliação bloqueada</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    if (score < 80) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0}>{btn}</span>
+            </TooltipTrigger>
+            <TooltipContent>Match por proximidade — confirme com atenção</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    return btn;
+  };
+
   return (
     <div className="space-y-4">
-      {exatos.length > 0 && (
+      {altos.length > 0 && (
         <div>
           <div className="text-xs font-semibold text-muted-foreground mb-2">
-            Valor exato ({exatos.length})
+            Candidatos ({altos.length})
           </div>
           <div className="border rounded-md bg-background">
             <Table>
@@ -599,25 +638,14 @@ function PainelUnico({
                   <TableHead>Cliente</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Nível</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exatos.map((s) => (
-                  <LinhaTitulo
-                    key={s.titulo_id}
-                    s={s}
-                    right={
-                      <Button
-                        size="sm"
-                        disabled={conciliando === s.titulo_id}
-                        onClick={() => conciliar(s)}
-                      >
-                        {conciliando === s.titulo_id ? "Conciliando..." : "Conciliar título"}
-                      </Button>
-                    }
-                  />
+                {altos.map((s) => (
+                  <LinhaTitulo key={s.titulo_id} s={s} right={renderAcao(s)} />
                 ))}
               </TableBody>
             </Table>
@@ -668,13 +696,13 @@ function PainelUnico({
         </div>
       )}
 
-      {exatos.length === 0 && pagos.length === 0 && (
+      {altos.length === 0 && pagos.length === 0 && (
         <div className="py-4 text-center text-sm text-muted-foreground">
-          Nenhum título aberto com este valor na janela de 7 dias.
+          Nenhum candidato com score suficiente na janela de 7 dias.
         </div>
       )}
 
-      {divergentes.length > 0 && (
+      {baixos.length > 0 && (
         <div>
           <button
             type="button"
@@ -682,7 +710,7 @@ function PainelUnico({
             className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground mb-2"
           >
             {mostrarDivergentes ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            Outros candidatos (valores divergentes) — {divergentes.length}
+            Outros candidatos (score baixo) — {baixos.length}
           </button>
           {mostrarDivergentes && (
             <div className="border rounded-md bg-background">
@@ -693,32 +721,14 @@ function PainelUnico({
                     <TableHead>Cliente</TableHead>
                     <TableHead>Vencimento</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Nível</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {divergentes.map((s) => (
-                    <LinhaTitulo
-                      key={s.titulo_id}
-                      s={s}
-                      right={
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span tabIndex={0}>
-                                <Button size="sm" disabled>
-                                  Conciliar título
-                                </Button>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              valores divergem — conciliação bloqueada pelo servidor
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      }
-                    />
+                  {baixos.map((s) => (
+                    <LinhaTitulo key={s.titulo_id} s={s} right={renderAcao(s)} />
                   ))}
                 </TableBody>
               </Table>
@@ -729,6 +739,103 @@ function PainelUnico({
     </div>
   );
 }
+
+function PainelBoleto({
+  credito,
+  invalidar,
+  onDone,
+}: {
+  credito: Credito;
+  invalidar: () => Promise<void>;
+  onDone: () => void;
+}) {
+  const { data: sugestoes, isLoading } = useSugestoes(credito, true);
+  const [conciliando, setConciliando] = useState<string | null>(null);
+
+  if (isLoading) return <Skeleton className="h-8 w-full" />;
+
+  const candidatos = (sugestoes || []).slice().sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+
+  async function confirmarBoleto(s: Sugestao) {
+    setConciliando(s.titulo_id);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("confirmar_batimento_titulo_pago", {
+        p_movimentacao_id: credito.id,
+        p_titulo_id: s.titulo_id,
+      });
+      if (error) {
+        toast.error(`Erro: ${error.message}`);
+        return;
+      }
+      const r = data as { ok?: boolean; numero_titulo?: string; aviso?: string; error?: string } | null;
+      if (!r || r.ok !== true) {
+        toast.error(r?.error || "Erro inesperado");
+        return;
+      }
+      toast.success(`Boleto ${r.numero_titulo || s.numero_titulo || ""} conciliado`);
+      if (r.aviso) toast.warning(r.aviso);
+      await invalidar();
+      onDone();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setConciliando(null);
+    }
+  }
+
+  if (candidatos.length === 0) {
+    return (
+      <div className="py-6 text-center text-sm text-muted-foreground">
+        Título correspondente não encontrado. O retorno CNAB pode ainda não ter sido importado.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-semibold text-muted-foreground">
+        Crédito de cobrança — confirme o título liquidado pelo banco (CNAB já baixou, aqui só carimba conciliado)
+      </div>
+      <div className="border rounded-md bg-background">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nº título</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead>Nível</TableHead>
+              <TableHead className="text-right">Ação</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {candidatos.map((s) => (
+              <TableRow key={s.titulo_id}>
+                <TableCell className="font-mono text-xs">{s.numero_titulo || "—"}</TableCell>
+                <TableCell>{s.cliente || "—"}</TableCell>
+                <TableCell className="whitespace-nowrap">{formatDateBR(s.data_vencimento_atual)}</TableCell>
+                <TableCell className="text-right font-mono">{formatBRL(Number(s.valor_atual || 0))}</TableCell>
+                <TableCell><NivelBadge nivel={s.nivel} score={s.score} /></TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={conciliando === s.titulo_id}
+                    onClick={() => confirmarBoleto(s)}
+                  >
+                    {conciliando === s.titulo_id ? "Confirmando..." : "Confirmar recebimento"}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
 
 
 function PainelCesta({
