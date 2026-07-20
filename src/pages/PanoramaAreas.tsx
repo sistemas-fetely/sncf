@@ -86,7 +86,7 @@ export default function PanoramaAreas() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Panorama de Áreas</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Headcount e custo mensal por departamento
+            Headcount e custo mensal por centro de custo
           </p>
         </div>
         <div className="flex gap-2">
