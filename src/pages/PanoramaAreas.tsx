@@ -129,7 +129,7 @@ export default function PanoramaAreas() {
             </div>
           ) : chartData.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
-              Nenhuma área com dados ainda.
+              Nenhum centro de custo com dados ainda.
             </div>
           ) : (
             <div style={{ width: "100%", height: 320 }}>
