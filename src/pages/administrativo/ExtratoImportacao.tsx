@@ -47,7 +47,7 @@ type Importacao = {
   created_at: string;
 };
 
-type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw" | "safrapay_tipo2" | "mp_settlement" | "mp_reserve_release";
+type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw" | "safrapay_liquidacao" | "mp_settlement" | "mp_release";
 
 function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | null {
   const nome = file.name.toLowerCase();
@@ -57,7 +57,7 @@ function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | null {
   return null;
 }
 
-async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw" | "safrapay_tipo2" | "mp_settlement" | "mp_reserve_release"> {
+async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw" | "safrapay_liquidacao" | "mp_settlement" | "mp_release"> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
@@ -70,7 +70,7 @@ async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "m
     if (/data de liberacao do dinheiro/.test(s)) return "mp_settlement";
     if (/tipo de registro/.test(s) && /liberacoes|retiradas/.test(
       (rows.slice(1, 10) || []).map(r => (r as unknown[]).map(c => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")).join("|")).join("|")
-    )) return "mp_reserve_release";
+    )) return "mp_release";
   }
   return "safra_lancamentos";
 }
@@ -114,7 +114,7 @@ export default function ExtratoImportacao() {
     const base = detectarFonteBase(file);
     if (!base) throw new Error(`Extensão não reconhecida: ${file.name}`);
     const fonte: Fonte = base === "ofx" ? "ofx"
-      : base === "csv" ? "safrapay_tipo2"
+      : base === "csv" ? "safrapay_liquidacao"
       : await detectarSubtipoXlsx(file);
 
 
@@ -378,7 +378,7 @@ export default function ExtratoImportacao() {
           if (errIns) throw errIns;
           novas++;
         }
-      } else if (fonte === "safrapay_tipo2") {
+      } else if (fonte === "safrapay_liquidacao") {
         const text = await file.text();
         const parsed = parseCsvSafraPayTipo2(text);
         linhasLidas = parsed.parcelas.length;
@@ -408,7 +408,7 @@ export default function ExtratoImportacao() {
             tipo: "credito",
             id_transacao_banco: p.nsu,
             hash_unico: hash,
-            origem: "safrapay_tipo2",
+            origem: "safrapay_liquidacao",
             tipo_meio: "cartao",
             fonte_importacao_id: impId,
           });
@@ -456,7 +456,7 @@ export default function ExtratoImportacao() {
           novas++;
         }
 
-      } else if (fonte === "mp_reserve_release") {
+      } else if (fonte === "mp_release") {
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxMpReserveRelease(buf);
         linhasLidas = parsed.liberacoes.length;
@@ -487,7 +487,7 @@ export default function ExtratoImportacao() {
             tipo: "credito",
             id_transacao_banco: l.id_operacao,
             hash_unico: hash,
-            origem: "mp_reserve_release",
+            origem: "mp_release",
             tipo_meio: tipoMeio,
             referencia_pedido: l.codigo_referencia || null,
             fonte_importacao_id: impId,
