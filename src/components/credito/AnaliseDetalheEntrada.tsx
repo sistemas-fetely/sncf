@@ -60,7 +60,7 @@ export function AnaliseDetalheEntrada({ analiseId }: Props) {
             <h1 className="text-2xl font-bold tracking-tight">
               <button
                 type="button"
-                onClick={() => parceiro?.id && navigate(`/credito/clientes/${parceiro.id}`)}
+                onClick={() => parceiro?.id && navigate(`/credito/clientes/${parceiro.id}`, { state: { from: `/credito/analises/${analiseId}`, fromLabel: "Análise" } })}
                 className="hover:underline text-left"
               >
                 {parceiro?.razao_social || "Cliente sem razão"}

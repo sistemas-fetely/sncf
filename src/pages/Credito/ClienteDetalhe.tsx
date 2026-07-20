@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, AlertTriangle, ExternalLink, Plus, Receipt } from "lucide-react";
+import { AlertTriangle, ExternalLink, Plus, Receipt } from "lucide-react";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { TimelineClienteVisual } from "@/components/credito/TimelineClienteVisual";
 import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/ErguerBandeiraVermelhaDialog";
@@ -65,10 +66,7 @@ export default function ClienteDetalhe() {
                 Gerenciar crédito
               </Button>
             )}
-            <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate("/credito/clientes")}>
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Button>
+            <SmartBackButton fallback="/credito/clientes" fallbackLabel="Voltar" />
             {parceiro?.bandeira_vermelha ? (
               <BaixarBandeiraVermelhaDialog parceiro_id={parceiro.id} />
             ) : (

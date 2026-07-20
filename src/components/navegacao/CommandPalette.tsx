@@ -244,7 +244,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
     (item: Exclude<ListItem, { type: "header" }>) => {
       if (item.type === "item") navigate(item.page.rota);
       else if (item.type === "analise") navigate(`/credito/analises/${item.row.id}`);
-      else if (item.type === "cliente") navigate(`/credito/clientes/${item.row.id}`);
+      else if (item.type === "cliente") navigate(`/credito/clientes/${item.row.id}`, { state: { from: "/credito/clientes", fromLabel: "Clientes" } });
       onOpenChange(false);
     },
     [navigate, onOpenChange]

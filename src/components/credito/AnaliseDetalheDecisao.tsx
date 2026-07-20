@@ -121,7 +121,7 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
                 variant="ghost"
                 size="sm"
                 className="mt-1"
-                onClick={() => navigate(`/credito/clientes/${parceiro.id}`)}
+                onClick={() => navigate(`/credito/clientes/${parceiro.id}`, { state: { from: `/credito/analises/${analiseId}`, fromLabel: "Análise" } })}
               >
                 Ver cliente
               </Button>

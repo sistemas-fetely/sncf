@@ -229,7 +229,7 @@ export default function CreditoClientesIndex() {
                       <tr
                         key={c.parceiro_id}
                         className="border-t hover:bg-accent/40 cursor-pointer"
-                        onClick={() => navigate(`/credito/clientes/${c.parceiro_id}`)}
+                        onClick={() => navigate(`/credito/clientes/${c.parceiro_id}`, { state: { from: "/credito/clientes", fromLabel: "Clientes" } })}
                       >
                       <td className="px-4 py-2">
                         <p className="font-medium truncate text-sm">{c.razao_social ?? c.cliente ?? "—"}</p>
