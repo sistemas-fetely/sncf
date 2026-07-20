@@ -62,16 +62,14 @@ async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "m
   const wb = XLSX.read(buf, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
-  for (let i = 0; i < Math.min(rows.length, 5); i++) {
-    const s = (rows[i] || [])
-      .map((c) => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
-      .join("|");
-    if (/retirad|withdraw/.test(s)) return "mp_withdraw";
-    if (/data de liberacao do dinheiro/.test(s)) return "mp_settlement";
-    if (/tipo de registro/.test(s) && /liberacoes|retiradas/.test(
-      (rows.slice(1, 10) || []).map(r => (r as unknown[]).map(c => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")).join("|")).join("|")
-    )) return "mp_release";
-  }
+
+  const cabecalho = rows.slice(0, 5)
+    .map((r) => (r || []).map((c) => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")).join("|"))
+    .join("|");
+
+  if (/data de liberacao do dinheiro/.test(cabecalho)) return "mp_settlement";
+  if (/valor liquido creditado/.test(cabecalho) && /saldo/.test(cabecalho)) return "mp_release";
+  if (/withdraw_id|numero da retirada/.test(cabecalho)) return "mp_withdraw";
   return "safra_lancamentos";
 }
 
