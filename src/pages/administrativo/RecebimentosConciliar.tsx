@@ -78,6 +78,24 @@ const MEIO_BADGE: Record<Meio, { label: string; className: string }> = {
   outro: { label: "Outro", className: "bg-muted text-muted-foreground hover:bg-muted" },
 };
 
+const NIVEL_CONFIG: Record<string, { label: string; cor: string }> = {
+  titulo_na_descricao: { label: "Nº título no extrato", cor: "bg-violet-100 text-violet-800" },
+  referencia_pedido: { label: "Ref. pedido", cor: "bg-blue-100 text-blue-800" },
+  cnpj_e_valor: { label: "CNPJ + valor", cor: "bg-sky-100 text-sky-800" },
+  cnpj: { label: "CNPJ", cor: "bg-cyan-100 text-cyan-800" },
+  valor_exato: { label: "Valor exato", cor: "bg-green-100 text-green-800" },
+  proximidade: { label: "Proximidade", cor: "bg-amber-100 text-amber-800" },
+};
+
+function NivelBadge({ nivel, score }: { nivel: string; score: number }) {
+  const cfg = NIVEL_CONFIG[nivel] ?? { label: nivel, cor: "bg-muted text-muted-foreground" };
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${cfg.cor}`}>
+      {cfg.label} <span className="opacity-60">{score}</span>
+    </span>
+  );
+}
+
 type StatusGrupo = "a_receber" | "vencido" | "pago" | "cancelado";
 
 const GRUPO_DE_STATUS: Record<string, StatusGrupo> = {
