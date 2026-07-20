@@ -345,7 +345,7 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
     (pedido.link_pagamento as string | null | undefined) ??
     null;
 
-  const irParaCobranca = () => navigate(`/recebimento/cobranca/${pedido.id}`);
+  const irParaCobranca = () => navigate(`/recebimento/cobranca/${pedido.id}`, { state: { from: `/pedidos/${pedido.id}`, fromLabel: "Pedido" } });
   const formaEhBoleto = (pedido.forma_solicitada ?? "").toLowerCase().includes("boleto");
   const podeAjustarCobranca = ["cobranca", "aguardando_pagamento"].includes(pedido.estagio ?? "");
 
