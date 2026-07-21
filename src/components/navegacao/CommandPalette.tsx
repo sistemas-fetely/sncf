@@ -33,7 +33,7 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/documentacao", titulo: "Documentação", pilar: "sncf", icon: FileText, tags: ["docs", "documentação", "manual"] },
   { rota: "/fala-fetely", titulo: "Fala Fetely", pilar: "sncf", icon: MessageSquare, tags: ["fala", "chat", "ia", "perguntar"] },
   { rota: "/fala-fetely/conhecimento", titulo: "Base de Conhecimento", pilar: "sncf", icon: BookOpen, tags: ["conhecimento", "base"] },
-  { rota: "/mural", titulo: "Mural Fetely", pilar: "sncf", icon: MessageSquare, tags: ["mural", "comunicação"] },
+  
   { rota: "/compras", titulo: "Compras", pilar: "sncf", icon: Receipt, tags: ["compras", "pedidos"] },
   { rota: "/credito", titulo: "Análise de Crédito", pilar: "sncf", icon: CreditCard, tags: ["crédito", "análise", "limite"] },
   { rota: "/comercial/estoque-virtual", titulo: "Estoque Virtual", pilar: "sncf", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },
