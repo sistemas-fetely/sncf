@@ -28,18 +28,28 @@ export function SmartBackButton({
   const from = (location.state as { from?: string; fromLabel?: string } | null)?.from;
   const fromLabel = (location.state as { from?: string; fromLabel?: string } | null)?.fromLabel;
 
-  const destino = from || fallback;
   const label = fromLabel || fallbackLabel;
+
+  const handleBack = () => {
+    if (from) {
+      navigate(from);
+    } else if (location.key !== "default") {
+      navigate(-1);
+    } else {
+      navigate(fallback);
+    }
+  };
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => navigate(destino)}
+      onClick={handleBack}
       className={`gap-2 text-muted-foreground hover:text-foreground ${className}`}
     >
       <ArrowLeft className="h-4 w-4" />
       {label}
     </Button>
   );
+
 }
