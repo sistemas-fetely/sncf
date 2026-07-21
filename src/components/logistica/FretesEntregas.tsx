@@ -79,9 +79,11 @@ export function FretesEntregas({ transportadoraId, transportadoraNome, hideImpor
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button onClick={() => setImportando(true)} className="gap-2">
-            <Upload className="h-4 w-4" /> Importar planilha
-          </Button>
+          {!hideImport && (
+            <Button onClick={() => setImportando(true)} className="gap-2">
+              <Upload className="h-4 w-4" /> Importar planilha
+            </Button>
+          )}
           {ultimoImport && (
             <span className="text-xs text-muted-foreground">atualizado {ultimoImport}</span>
           )}
