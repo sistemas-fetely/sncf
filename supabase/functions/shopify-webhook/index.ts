@@ -386,6 +386,19 @@ async function processarOrder(supabase: any, order: any, topic: string, utf8ok: 
     const shipLine =
       Array.isArray(order.shipping_lines) && order.shipping_lines.length ? order.shipping_lines[0] : null;
 
+    let payment_reference: string | null = null;
+    try {
+      const noteAttrs = Array.isArray(order.note_attributes) ? order.note_attributes : [];
+      const payUrlAttr = noteAttrs.find((a: any) => a?.name === "payment_url");
+      const payUrl = payUrlAttr?.value ? String(payUrlAttr.value) : null;
+      if (payUrl) {
+        const m = payUrl.match(/payments\/([0-9]+)/);
+        if (m) payment_reference = m[1];
+      }
+    } catch {
+      payment_reference = null;
+    }
+
     const pedido = {
       shopify_id,
       order_name: str(order.name) ?? "",
@@ -402,12 +415,14 @@ async function processarOrder(supabase: any, order: any, topic: string, utf8ok: 
       refunded_amount,
       payment_method_raw: paymentRaw,
       payment_method: normalizarPagamento(paymentRaw),
+      payment_reference,
       shipping_method: shipLine ? str(shipLine.title) : null,
       shipping_city: str(addr.city),
       shipping_province: str(addr.province),
       shipping_zip: str(addr.zip),
       updated_at: new Date().toISOString(),
     };
+
 
     const { error: upErr } = await supabase
       .from("shopify_pedidos")
