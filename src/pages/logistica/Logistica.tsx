@@ -88,6 +88,8 @@ export default function Logistica() {
 
           {isGeral ? (
             <VisaoGeralLogistica />
+          ) : isRastreio ? (
+            <RastreioNf />
           ) : ativa ? (
             <AbaTransportadora transportadora={ativa} />
           ) : (
