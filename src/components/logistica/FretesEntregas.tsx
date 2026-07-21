@@ -144,9 +144,11 @@ export function FretesEntregas({ transportadoraId, transportadoraNome, hideImpor
           <p className="text-sm text-muted-foreground">
             Nenhum frete importado ainda. Importe a planilha da {transportadoraNome}.
           </p>
-          <Button onClick={() => setImportando(true)} className="gap-2">
-            <Upload className="h-4 w-4" /> Importar planilha
-          </Button>
+          {!hideImport && (
+            <Button onClick={() => setImportando(true)} className="gap-2">
+              <Upload className="h-4 w-4" /> Importar planilha
+            </Button>
+          )}
         </div>
       ) : filtrados.length === 0 ? (
         <div className="border rounded-lg p-10 text-center text-sm text-muted-foreground">
