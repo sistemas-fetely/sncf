@@ -19,9 +19,10 @@ type Filtro = "todos" | "entregue" | "em_transito" | "atencao";
 interface Props {
   transportadoraId: string;
   transportadoraNome: string;
+  hideImport?: boolean;
 }
 
-export function FretesEntregas({ transportadoraId, transportadoraNome }: Props) {
+export function FretesEntregas({ transportadoraId, transportadoraNome, hideImport }: Props) {
   const { data: fretes = [], isLoading } = useFretesTransportadora(transportadoraId);
   const [importando, setImportando] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>("todos");
