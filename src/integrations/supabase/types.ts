@@ -402,13 +402,6 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
           {
-            foreignKeyName: "analises_credito_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
             foreignKeyName: "analises_credito_pre_aprovado_regra_id_fkey"
             columns: ["pre_aprovado_regra_id"]
             isOneToOne: false
@@ -1129,13 +1122,6 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "bling_envios_log_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
             referencedColumns: ["pedido_id"]
           },
         ]
@@ -7247,13 +7233,6 @@ export type Database = {
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
           },
-          {
-            foreignKeyName: "haver_aplicacao_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
         ]
       }
       haver_cliente: {
@@ -7340,13 +7319,6 @@ export type Database = {
             columns: ["origem_pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "haver_cliente_origem_pedido_id_fkey"
-            columns: ["origem_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -8708,13 +8680,6 @@ export type Database = {
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
           },
-          {
-            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
-            columns: ["pedido_venda_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
         ]
       }
       nfs_stage: {
@@ -9170,13 +9135,6 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "nfs_stage_venda_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
             referencedColumns: ["pedido_id"]
           },
         ]
@@ -10645,13 +10603,6 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
           {
-            foreignKeyName: "pedido_email_log_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
             foreignKeyName: "pedido_email_log_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
@@ -10770,13 +10721,6 @@ export type Database = {
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
           },
-          {
-            foreignKeyName: "pedido_eventos_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
         ]
       }
       pedido_itens: {
@@ -10860,13 +10804,6 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
             referencedColumns: ["pedido_id"]
           },
         ]
@@ -10961,13 +10898,6 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_portao_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
             referencedColumns: ["pedido_id"]
           },
         ]
@@ -11106,13 +11036,6 @@ export type Database = {
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
           },
-          {
-            foreignKeyName: "pedido_remessa_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
         ]
       }
       pedido_tarefas: {
@@ -11195,13 +11118,6 @@ export type Database = {
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
           },
-          {
-            foreignKeyName: "pedido_tarefas_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
         ]
       }
       pedido_transicoes: {
@@ -11279,13 +11195,6 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_transicoes_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
             referencedColumns: ["pedido_id"]
           },
         ]
@@ -11604,13 +11513,6 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
           {
-            foreignKeyName: "pedidos_pedido_origem_id_fkey"
-            columns: ["pedido_origem_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
             foreignKeyName: "pedidos_regra_pagamento_id_fkey"
             columns: ["regra_pagamento_id"]
             isOneToOne: false
@@ -11657,13 +11559,6 @@ export type Database = {
             columns: ["split_de_pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["split_de_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -17184,13 +17079,6 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
           {
-            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
             foreignKeyName: "titulo_a_receber_remessa_safra_id_fkey"
             columns: ["remessa_safra_id"]
             isOneToOne: false
@@ -17530,13 +17418,6 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
           {
-            foreignKeyName: "transp_fretes_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
             foreignKeyName: "transp_fretes_transportadora_id_fkey"
             columns: ["transportadora_id"]
             isOneToOne: false
@@ -17774,13 +17655,6 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -21447,14 +21321,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -21540,14 +21414,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -21734,13 +21608,6 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
           {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["split_de_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
             foreignKeyName: "pedidos_transportadora_id_fkey"
             columns: ["transportadora_id"]
             isOneToOne: false
@@ -21771,61 +21638,6 @@ export type Database = {
         ]
       }
       vw_pedidos_farol: {
-        Row: {
-          bloqueio: string | null
-          cliente: string | null
-          data_estagio: string | null
-          data_pg: string | null
-          dias_vs_meta: number | null
-          estagio: string | null
-          eta_vivo: string | null
-          expedido: boolean | null
-          fase_gargalo: string | null
-          fase_logistica: string | null
-          id_externo: string | null
-          meta: string | null
-          pago_apos_expedicao: boolean | null
-          parceiro_id: string | null
-          pedido_id: string | null
-          prazo: string | null
-          sla_cor: string | null
-          sla_fase_atual: number | null
-          status_label: string | null
-          tempo_na_fase: number | null
-          valor_liquido: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pedidos_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "parceiros_comerciais"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedidos_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "v_credito_resumo_financeiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "pedidos_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_logistica_agregado"
-            referencedColumns: ["transportadora_id"]
-          },
-          {
-            foreignKeyName: "pedidos_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_recebivel_por_conta"
-            referencedColumns: ["conta_id"]
-          },
-        ]
-      }
-      vw_pedidos_farol_novo: {
         Row: {
           bloqueio: string | null
           cliente: string | null
@@ -22661,13 +22473,6 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol_novo"
             referencedColumns: ["pedido_id"]
           },
           {
