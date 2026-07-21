@@ -52,6 +52,17 @@ export default function Logistica() {
             >
               <LayoutGrid className="h-3.5 w-3.5" /> Visão geral
             </button>
+            <button
+              onClick={() => setAtivaId("rastreio")}
+              className={cn(
+                "rounded-full px-3 py-1 text-sm border transition inline-flex items-center gap-1.5",
+                isRastreio
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground hover:bg-muted border-border"
+              )}
+            >
+              <Package className="h-3.5 w-3.5" /> Rastreio
+            </button>
             {transportadoras.map((t) => {
               const nome = t.nome_fantasia ?? t.razao_social;
               const ativo = t.id === ativaId;
