@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Truck, Loader2, Plus, TrendingUp, LayoutGrid } from "lucide-react";
+import { Truck, Loader2, Plus, TrendingUp, LayoutGrid, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { VisaoGeralLogistica } from "@/components/logistica/VisaoGeralLogistica";
+import { RastreioNf } from "@/components/logistica/RastreioNf";
 import { cn } from "@/lib/utils";
 
 export default function Logistica() {
@@ -14,6 +15,7 @@ export default function Logistica() {
 
   const ativa = transportadoras.find((t) => t.id === ativaId) ?? null;
   const isGeral = ativaId === "geral";
+  const isRastreio = ativaId === "rastreio";
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl space-y-4">
@@ -50,6 +52,17 @@ export default function Logistica() {
             >
               <LayoutGrid className="h-3.5 w-3.5" /> Visão geral
             </button>
+            <button
+              onClick={() => setAtivaId("rastreio")}
+              className={cn(
+                "rounded-full px-3 py-1 text-sm border transition inline-flex items-center gap-1.5",
+                isRastreio
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground hover:bg-muted border-border"
+              )}
+            >
+              <Package className="h-3.5 w-3.5" /> Rastreio
+            </button>
             {transportadoras.map((t) => {
               const nome = t.nome_fantasia ?? t.razao_social;
               const ativo = t.id === ativaId;
@@ -75,6 +88,8 @@ export default function Logistica() {
 
           {isGeral ? (
             <VisaoGeralLogistica />
+          ) : isRastreio ? (
+            <RastreioNf />
           ) : ativa ? (
             <AbaTransportadora transportadora={ativa} />
           ) : (
