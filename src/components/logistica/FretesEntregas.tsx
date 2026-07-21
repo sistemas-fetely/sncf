@@ -19,9 +19,10 @@ type Filtro = "todos" | "entregue" | "em_transito" | "atencao";
 interface Props {
   transportadoraId: string;
   transportadoraNome: string;
+  hideImport?: boolean;
 }
 
-export function FretesEntregas({ transportadoraId, transportadoraNome }: Props) {
+export function FretesEntregas({ transportadoraId, transportadoraNome, hideImport }: Props) {
   const { data: fretes = [], isLoading } = useFretesTransportadora(transportadoraId);
   const [importando, setImportando] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>("todos");
@@ -78,9 +79,11 @@ export function FretesEntregas({ transportadoraId, transportadoraNome }: Props) 
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button onClick={() => setImportando(true)} className="gap-2">
-            <Upload className="h-4 w-4" /> Importar planilha
-          </Button>
+          {!hideImport && (
+            <Button onClick={() => setImportando(true)} className="gap-2">
+              <Upload className="h-4 w-4" /> Importar planilha
+            </Button>
+          )}
           {ultimoImport && (
             <span className="text-xs text-muted-foreground">atualizado {ultimoImport}</span>
           )}
@@ -141,9 +144,11 @@ export function FretesEntregas({ transportadoraId, transportadoraNome }: Props) 
           <p className="text-sm text-muted-foreground">
             Nenhum frete importado ainda. Importe a planilha da {transportadoraNome}.
           </p>
-          <Button onClick={() => setImportando(true)} className="gap-2">
-            <Upload className="h-4 w-4" /> Importar planilha
-          </Button>
+          {!hideImport && (
+            <Button onClick={() => setImportando(true)} className="gap-2">
+              <Upload className="h-4 w-4" /> Importar planilha
+            </Button>
+          )}
         </div>
       ) : filtrados.length === 0 ? (
         <div className="border rounded-lg p-10 text-center text-sm text-muted-foreground">
