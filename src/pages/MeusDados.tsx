@@ -93,7 +93,7 @@ export default function MeusDados() {
     queryKey: ["meus-dados", "remuneracoes", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("remuneracoes")
         .select("*")
         .eq("user_id", user.id)
