@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   LayoutGrid, Users, Monitor, Star, Search,
@@ -107,6 +107,7 @@ type ListItem =
 
 export function CommandPalette({ open, onOpenChange }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -243,11 +244,11 @@ export function CommandPalette({ open, onOpenChange }: Props) {
   const handleSelectItem = useCallback(
     (item: Exclude<ListItem, { type: "header" }>) => {
       if (item.type === "item") navigate(item.page.rota);
-      else if (item.type === "analise") navigate(`/credito/analises/${item.row.id}`);
-      else if (item.type === "cliente") navigate(`/credito/clientes/${item.row.id}`, { state: { from: "/credito/clientes", fromLabel: "Clientes" } });
+      else if (item.type === "analise") navigate(`/credito/analises/${item.row.id}`, { state: { from: location.pathname, fromLabel: "Busca" } });
+      else if (item.type === "cliente") navigate(`/credito/clientes/${item.row.id}`, { state: { from: location.pathname, fromLabel: "Busca" } });
       onOpenChange(false);
     },
-    [navigate, onOpenChange]
+    [navigate, onOpenChange, location.pathname]
   );
 
   const handleKeyDown = useCallback(
