@@ -7,6 +7,8 @@ import {
   BookOpen, MessageSquare, Settings, Sliders,
   Receipt, Calendar, Heart, Building2, ChevronRight,
   CreditCard, UserSearch,
+  ShoppingCart, Truck, Store, DollarSign, Wallet, TrendingUp, GitCompare,
+  FileSignature, Home, Shield, FolderArchive, Route, ListChecks,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +16,7 @@ import { useRecentes } from "@/hooks/useRecentes";
 import { useFavoritos } from "@/hooks/useFavoritos";
 import { supabase } from "@/integrations/supabase/client";
 
-type Pilar = "sncf" | "people" | "ti" | "admin";
+type Pilar = "sncf" | "people" | "ti" | "admin" | "financas" | "marca" | "credito" | "sops";
 
 interface PageItem {
   rota: string;
@@ -35,8 +37,34 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/fala-fetely/conhecimento", titulo: "Base de Conhecimento", pilar: "sncf", icon: BookOpen, tags: ["conhecimento", "base"] },
   
   { rota: "/compras", titulo: "Compras", pilar: "sncf", icon: Receipt, tags: ["compras", "pedidos"] },
-  { rota: "/credito", titulo: "Análise de Crédito", pilar: "sncf", icon: CreditCard, tags: ["crédito", "análise", "limite"] },
-  { rota: "/comercial/estoque-virtual", titulo: "Estoque Virtual", pilar: "sncf", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },
+  { rota: "/credito", titulo: "Análise de Crédito", pilar: "credito", icon: CreditCard, tags: ["crédito", "análise", "limite"] },
+  { rota: "/comercial/estoque-virtual", titulo: "Estoque Virtual", pilar: "sops", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },
+
+  // SOPs
+  { rota: "/pedidos", titulo: "Pedidos", pilar: "sops", icon: ShoppingCart, tags: ["pedidos", "vendas", "ordens"] },
+  { rota: "/logistica", titulo: "Logística", pilar: "sops", icon: Truck, tags: ["logística", "frete", "transportadora", "entrega"] },
+  { rota: "/vendas/gestao-pedidos", titulo: "Gestão de Pedidos", pilar: "sops", icon: ListChecks, tags: ["gestão", "pedidos", "vendas"] },
+  { rota: "/vendas/shopify", titulo: "Shopify B2C", pilar: "sops", icon: Store, tags: ["shopify", "b2c", "ecommerce", "loja"] },
+  { rota: "/vendas/nfs", titulo: "NFs de Venda", pilar: "sops", icon: Receipt, tags: ["nfs", "notas", "fiscais", "venda"] },
+  { rota: "/recebimento/cobranca", titulo: "Cobrança", pilar: "sops", icon: DollarSign, tags: ["cobrança", "recebimento", "inadimplência"] },
+
+  // Finanças
+  { rota: "/administrativo", titulo: "Dashboard Financeiro", pilar: "financas", icon: TrendingUp, tags: ["financeiro", "dashboard", "administrativo"] },
+  { rota: "/administrativo/contas-pagar", titulo: "Contas a Pagar", pilar: "financas", icon: Wallet, tags: ["contas", "pagar", "despesas"] },
+  { rota: "/administrativo/contas-receber", titulo: "Contas a Receber", pilar: "financas", icon: Wallet, tags: ["contas", "receber", "recebimento"] },
+  { rota: "/administrativo/conciliacao", titulo: "Conciliação", pilar: "financas", icon: GitCompare, tags: ["conciliação", "extrato", "bancária"] },
+  { rota: "/administrativo/fluxo-caixa", titulo: "Fluxo de Caixa", pilar: "financas", icon: TrendingUp, tags: ["fluxo", "caixa", "financeiro"] },
+
+  // Marca
+  { rota: "/administrativo-fetely/contratos", titulo: "Contratos", pilar: "marca", icon: FileSignature, tags: ["contratos", "jurídico", "documentos"] },
+  { rota: "/administrativo-fetely/imoveis", titulo: "Imóveis", pilar: "marca", icon: Home, tags: ["imóveis", "aluguel", "propriedades"] },
+  { rota: "/administrativo-fetely/seguros", titulo: "Seguros", pilar: "marca", icon: Shield, tags: ["seguros", "apólice"] },
+  { rota: "/administrativo-fetely/ged", titulo: "GED", pilar: "marca", icon: FolderArchive, tags: ["ged", "documentos", "arquivo"] },
+
+  // Crédito
+  { rota: "/credito/clientes", titulo: "Clientes", pilar: "credito", icon: UserSearch, tags: ["clientes", "crédito", "parceiros"] },
+  { rota: "/credito/regua-etapas", titulo: "Régua de Etapas", pilar: "credito", icon: Route, tags: ["régua", "etapas", "cobrança"] },
+  { rota: "/credito/regras-cadencia", titulo: "Regras de Cadência", pilar: "credito", icon: ListChecks, tags: ["regras", "cadência", "cobrança"] },
 
   // People
   { rota: "/dashboard", titulo: "Dashboard People", pilar: "people", icon: Users, tags: ["dashboard", "rh", "resumo"] },
@@ -69,6 +97,10 @@ const PILAR_COLORS: Record<string, string> = {
   people: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
   ti: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
   admin: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+  financas: "bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20",
+  marca: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
+  credito: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20",
+  sops: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
 };
 
 const PILAR_LABELS: Record<string, string> = {
@@ -76,6 +108,10 @@ const PILAR_LABELS: Record<string, string> = {
   people: "People",
   ti: "TI",
   admin: "ADM",
+  financas: "Finanças",
+  marca: "Marca",
+  credito: "Crédito",
+  sops: "SOPs",
 };
 
 interface AnaliseRow {
