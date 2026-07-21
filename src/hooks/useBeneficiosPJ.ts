@@ -28,7 +28,7 @@ export function useBeneficiosPJ() {
   return useQuery({
     queryKey: ["beneficios_pj"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("beneficios_pj")
         .select("*, contratos_pj!inner(contato_nome, tipo_servico, departamento)")
         .order("created_at", { ascending: false });
@@ -56,7 +56,7 @@ export function useCriarBeneficioPJ() {
       data_fim?: string;
       observacoes?: string;
     }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("beneficios_pj")
         .insert(input as any)
         .select()
@@ -88,7 +88,7 @@ export function useEditarBeneficioPJ() {
       status?: string;
       observacoes?: string | null;
     }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("beneficios_pj")
         .update(updates as any)
         .eq("id", id);
@@ -106,7 +106,7 @@ export function useExcluirBeneficioPJ() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("beneficios_pj")
         .delete()
         .eq("id", id);

@@ -466,12 +466,12 @@ export function useDashboardData() {
         .select("id, nome_completo, departamento")
         .eq("status", "ativo");
 
-      const { data: beneficios } = await supabase
+      const { data: beneficios } = await (supabase as any)
         .from("beneficios_colaborador")
         .select("colaborador_id")
         .eq("status", "ativo");
 
-      const comBeneficio = new Set((beneficios || []).map((b) => b.colaborador_id));
+      const comBeneficio = new Set((beneficios || []).map((b: any) => b.colaborador_id));
 
       return (colaboradores || [])
         .filter((c) => !comBeneficio.has(c.id))
