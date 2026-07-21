@@ -15,6 +15,7 @@ export default function Logistica() {
 
   const ativa = transportadoras.find((t) => t.id === ativaId) ?? null;
   const isGeral = ativaId === "geral";
+  const isRastreio = ativaId === "rastreio";
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl space-y-4">
