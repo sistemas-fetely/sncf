@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePrimeiroPagamentoFila } from "@/hooks/credito/usePrimeiroPagamentoFila";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -16,8 +15,7 @@ import {
 import { Search, Info, Loader2 } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL } from "@/lib/format-currency";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useConfirmarPagamentoPortao } from "@/hooks/pedidos/useConfirmarPagamentoPortao";
 
 const fmtDate = (iso: string) =>
   iso ? new Date(iso + "T00:00:00").toLocaleDateString("pt-BR") : "—";
@@ -30,39 +28,20 @@ export default function PrimeiroPagamentoTab() {
   const [confirmando, setConfirmando] = useState<{ pedidoId: string; rotulo: string } | null>(null);
   const [dataPagamento, setDataPagamento] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [observacao, setObservacao] = useState<string>("");
-  const { toast } = useToast();
-  const qc = useQueryClient();
 
-  const confirmar = useMutation({
-    mutationFn: async (pedidoId: string) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any).rpc("confirmar_portao_pago", {
-        p_pedido_id: pedidoId,
-        p_data_pagamento: dataPagamento,
-        p_observacao: observacao?.trim() || undefined,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Portão confirmado",
-        description: "Pagamento registrado. O pedido avançou para pré-faturamento.",
-      });
-      qc.invalidateQueries({ queryKey: ["primeiro-pagamento-fila"] });
-      qc.invalidateQueries({ queryKey: ["cobranca-fila"] });
-      qc.invalidateQueries({ queryKey: ["aguardando-pagamento-fila"] });
-      setConfirmando(null);
-      setObservacao("");
-      setDataPagamento(new Date().toISOString().slice(0, 10));
-    },
-    onError: (err: Error) => {
-      toast({
-        title: "Erro ao confirmar portão",
-        description: err.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const confirmar = useConfirmarPagamentoPortao();
+
+  async function handleConfirmar() {
+    if (!confirmando) return;
+    await confirmar.mutateAsync({
+      pedido_id: confirmando.pedidoId,
+      data_pagamento: dataPagamento,
+      observacao,
+    });
+    setConfirmando(null);
+    setObservacao("");
+    setDataPagamento(new Date().toISOString().slice(0, 10));
+  }
 
   function abrirDialog(pedidoId: string, rotulo: string) {
     setDataPagamento(new Date().toISOString().slice(0, 10));
@@ -190,7 +169,7 @@ export default function PrimeiroPagamentoTab() {
               Cancelar
             </Button>
             <Button
-              onClick={() => confirmando && confirmar.mutate(confirmando.pedidoId)}
+              onClick={handleConfirmar}
               disabled={confirmar.isPending}
             >
               {confirmar.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
