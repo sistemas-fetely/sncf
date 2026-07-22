@@ -93,7 +93,7 @@ export default function MeusDados() {
     queryKey: ["meus-dados", "remuneracoes", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("remuneracoes")
         .select("*")
         .eq("user_id", user.id)
@@ -201,7 +201,7 @@ export default function MeusDados() {
         safe(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()),
         safe(supabase.from("colaboradores_clt").select("*").eq("user_id", userId).maybeSingle()),
         safe(supabase.from("contratos_pj").select("*").eq("user_id", userId).maybeSingle()),
-        safe(supabase.from("remuneracoes").select("*").eq("user_id", userId)),
+        safe((supabase as any).from("remuneracoes").select("*").eq("user_id", userId)),
         safe(supabase.from("fala_fetely_conversas").select("*").eq("user_id", userId)),
         safe(supabase.from("fala_fetely_mensagens").select("*, fala_fetely_conversas!inner(user_id)").eq("fala_fetely_conversas.user_id", userId)),
         safe(supabase.from("fala_fetely_memoria").select("*").eq("user_id", userId)),

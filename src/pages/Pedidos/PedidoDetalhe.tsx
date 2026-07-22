@@ -37,9 +37,7 @@ import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedid
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
-import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
-import { usePedidoPortaoProvisorio } from "@/hooks/pedidos/usePedidoPortaoProvisorio";
 import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 
@@ -516,14 +514,9 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
 }
 
 function AcoesAguardandoPagamento({ pedido }: { pedido: any }) {
-  const { data: temPortaoProvisorio, isLoading } = usePedidoPortaoProvisorio(pedido.id);
   return (
     <div className="flex flex-col gap-2 w-full">
-      {!isLoading && temPortaoProvisorio ? (
-        <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
-      ) : (
-        <ConfirmarPagamentoDialog pedido_id={pedido.id} valor_pedido={pedido.valor_liquido} />
-      )}
+      <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
       <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
       <BotaoSplitPedidoInline pedido={pedido} />
     </div>

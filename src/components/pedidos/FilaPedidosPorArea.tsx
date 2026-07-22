@@ -17,7 +17,7 @@ import { Search, Sparkles, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft
 import { cn } from "@/lib/utils";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
-import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
+import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
 import { Button } from "@/components/ui/button";
 
@@ -437,9 +437,8 @@ export function FilaPedidosPorArea({
                       )}
 
                       {p.estagio === "aguardando_pagamento" && (
-                        <ConfirmarPagamentoDialog
+                        <ConfirmarPortaoPagoDialog
                           pedido_id={p.id}
-                          valor_pedido={p.valor_liquido}
                         />
                       )}
 
