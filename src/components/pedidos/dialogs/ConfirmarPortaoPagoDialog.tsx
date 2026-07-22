@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +13,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useConfirmarPagamentoPortao } from "@/hooks/pedidos/useConfirmarPagamentoPortao";
 
 interface Props {
   pedido_id: string;
@@ -27,7 +25,7 @@ interface Props {
 export function ConfirmarPortaoPagoDialog({
   pedido_id,
   rotulo,
-  triggerLabel = "Confirmar portão (1º pagamento)",
+  triggerLabel = "Confirmar pagamento",
   triggerClassName,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -35,40 +33,19 @@ export function ConfirmarPortaoPagoDialog({
     new Date().toISOString().slice(0, 10),
   );
   const [observacao, setObservacao] = useState<string>("");
-  const { toast } = useToast();
-  const qc = useQueryClient();
 
-  const confirmar = useMutation({
-    mutationFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any).rpc("confirmar_portao_pago", {
-        p_pedido_id: pedido_id,
-        p_data_pagamento: dataPagamento,
-        p_observacao: observacao?.trim() || undefined,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Portão confirmado",
-        description:
-          "Pagamento registrado. O pedido avançou para pré-faturamento.",
-      });
-      ["pedido-detalhe", "pedidos-fila", "pedidos-pipeline", "cobranca-fila", "primeiro-pagamento-fila", "aguardando-pagamento-fila"].forEach(
-        (k) => qc.invalidateQueries({ queryKey: [k] }),
-      );
-      setOpen(false);
-      setObservacao("");
-      setDataPagamento(new Date().toISOString().slice(0, 10));
-    },
-    onError: (err: Error) => {
-      toast({
-        title: "Erro ao confirmar portão",
-        description: err.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const confirmar = useConfirmarPagamentoPortao();
+
+  const handleConfirmar = async () => {
+    await confirmar.mutateAsync({
+      pedido_id,
+      data_pagamento: dataPagamento,
+      observacao,
+    });
+    setOpen(false);
+    setObservacao("");
+    setDataPagamento(new Date().toISOString().slice(0, 10));
+  };
 
   return (
     <Dialog
@@ -83,7 +60,10 @@ export function ConfirmarPortaoPagoDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Confirmar pagamento do portão</DialogTitle>
-          {rotulo && <DialogDescription>{rotulo}</DialogDescription>}
+          <DialogDescription>
+            {rotulo ??
+              "Marca o portão como pago, gera os títulos definitivos e avança o pedido pra pré-faturamento."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -117,8 +97,8 @@ export function ConfirmarPortaoPagoDialog({
             Cancelar
           </Button>
           <Button
-            onClick={() => confirmar.mutate()}
-            disabled={confirmar.isPending}
+            onClick={handleConfirmar}
+            disabled={confirmar.isPending || !dataPagamento}
           >
             {confirmar.isPending && (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
