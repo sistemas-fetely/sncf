@@ -46,8 +46,8 @@ export function useConfirmarPagamentoPortao() {
         title: "Pagamento confirmado",
         description:
           titulos > 0 || parcelas > 0
-            ? `${titulos} título(s), ${parcelas} parcela(s). Pedido avançou pra pré-faturamento.`
-            : "Pedido avançou pra pré-faturamento.",
+            ? `${titulos} título(s), ${parcelas} parcela(s). Pedido avançou pra pré-separação.`
+            : "Pedido avançou pra pré-separação.",
       });
 
       const keys: (readonly unknown[])[] = [
