@@ -109,7 +109,31 @@ export function useImportarBraspress(transportadoraId: string | null) {
     const uid = userRes?.user?.id ?? null;
     const agora = new Date().toISOString();
 
+    setEtapa("Carregando de-para de ocorrências…");
+    const { data: deparaRows, error: deparaErr } = await sb
+      .from("transp_ocorrencia_depara")
+      .select("texto_padrao, codigo")
+      .eq("transportadora_id", transportadoraId)
+      .eq("ativo", true);
+    if (deparaErr) {
+      setProcessando(false);
+      toast.error("Erro ao carregar de-para de ocorrências: " + deparaErr.message);
+      throw deparaErr;
+    }
+    const depara = new Map<string, string>();
+    for (const d of (deparaRows ?? []) as { texto_padrao: string; codigo: string }[]) {
+      depara.set(String(d.texto_padrao ?? "").toUpperCase().trim(), String(d.codigo ?? "").trim());
+    }
+    function resolverOcorrencia(ultOcorr: unknown, status: unknown): string {
+      const t1 = String(ultOcorr ?? "").toUpperCase().trim();
+      const t2 = String(status ?? "").toUpperCase().trim();
+      if (t1 && depara.has(t1)) return `${depara.get(t1)} - ${t1}`;
+      if (t2 && depara.has(t2)) return `${depara.get(t2)} - ${t2}`;
+      return t1 || t2 || "";
+    }
+
     setEtapa("Normalizando linhas…");
+
 
     // RASTREIO (todas as linhas com NF)
     const rastreios = preview.rows
