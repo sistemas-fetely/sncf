@@ -184,7 +184,7 @@ export function useImportarBraspress(transportadoraId: string | null) {
           peso_real: peso,
           peso_taxado: peso,
           volumes: intVal(at(r, c.volume)),
-          ocorrencia_texto: str(at(r, c.ultOcorr)), // NÃO escrever ocorrencia_codigo (GENERATED)
+          ocorrencia_texto: resolverOcorrencia(at(r, c.ultOcorr), at(r, c.status)), // NÃO escrever ocorrencia_codigo (GENERATED)
           ocorrencia_data: parseDataBR(at(r, c.dtOcorr)),
           prazo_entrega: parseDataBR(at(r, c.previsao)),
           rastreio_codigo: cte,
