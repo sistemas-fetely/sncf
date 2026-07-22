@@ -109,7 +109,31 @@ export function useImportarBraspress(transportadoraId: string | null) {
     const uid = userRes?.user?.id ?? null;
     const agora = new Date().toISOString();
 
+    setEtapa("Carregando de-para de ocorrências…");
+    const { data: deparaRows, error: deparaErr } = await sb
+      .from("transp_ocorrencia_depara")
+      .select("texto_padrao, codigo")
+      .eq("transportadora_id", transportadoraId)
+      .eq("ativo", true);
+    if (deparaErr) {
+      setProcessando(false);
+      toast.error("Erro ao carregar de-para de ocorrências: " + deparaErr.message);
+      throw deparaErr;
+    }
+    const depara = new Map<string, string>();
+    for (const d of (deparaRows ?? []) as { texto_padrao: string; codigo: string }[]) {
+      depara.set(String(d.texto_padrao ?? "").toUpperCase().trim(), String(d.codigo ?? "").trim());
+    }
+    function resolverOcorrencia(ultOcorr: unknown, status: unknown): string {
+      const t1 = String(ultOcorr ?? "").toUpperCase().trim();
+      const t2 = String(status ?? "").toUpperCase().trim();
+      if (t1 && depara.has(t1)) return `${depara.get(t1)} - ${t1}`;
+      if (t2 && depara.has(t2)) return `${depara.get(t2)} - ${t2}`;
+      return t1 || t2 || "";
+    }
+
     setEtapa("Normalizando linhas…");
+
 
     // RASTREIO (todas as linhas com NF)
     const rastreios = preview.rows
@@ -124,7 +148,7 @@ export function useImportarBraspress(transportadoraId: string | null) {
         cidade_destino: str(at(r, c.cidadeDest)),
         uf_destino: str(at(r, c.ufDest)),
         status: str(at(r, c.status)),
-        ocorrencia_ativa: str(at(r, c.ultOcorr)),
+        ocorrencia_ativa: resolverOcorrencia(at(r, c.ultOcorr), at(r, c.status)),
         ocorrencia_data: parseDataBR(at(r, c.dtOcorr)),
         data_entrega: null, // Braspress não traz data de entrega dedicada (regra futura)
         previsao_entrega: parseDataBR(at(r, c.previsao)),
@@ -160,7 +184,7 @@ export function useImportarBraspress(transportadoraId: string | null) {
           peso_real: peso,
           peso_taxado: peso,
           volumes: intVal(at(r, c.volume)),
-          ocorrencia_texto: str(at(r, c.ultOcorr)), // NÃO escrever ocorrencia_codigo (GENERATED)
+          ocorrencia_texto: resolverOcorrencia(at(r, c.ultOcorr), at(r, c.status)), // NÃO escrever ocorrencia_codigo (GENERATED)
           ocorrencia_data: parseDataBR(at(r, c.dtOcorr)),
           prazo_entrega: parseDataBR(at(r, c.previsao)),
           rastreio_codigo: cte,

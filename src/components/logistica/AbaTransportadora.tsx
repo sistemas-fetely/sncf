@@ -8,6 +8,7 @@ import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
 import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
 import { ImportarRastreioDialog } from "./ImportarRastreioDialog";
 import { ImportarBraspressDialog } from "./ImportarBraspressDialog";
+import { OcorrenciasDepara } from "./OcorrenciasDepara";
 import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 
 function fmtCnpj(cnpj: string | null): string {
@@ -54,6 +55,7 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
         <TabsList>
           <TabsTrigger value="fretes">Fretes &amp; entregas</TabsTrigger>
           <TabsTrigger value="tabela">Tabela de preço</TabsTrigger>
+          <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
         </TabsList>
         <TabsContent value="fretes" className="mt-4">
           <FretesEntregas
@@ -66,6 +68,9 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
           <GestaoTabelasPreco transportadoraId={transportadora.id} />
           <ConteudoTabelaPreco transportadoraId={transportadora.id} />
           <TabelaPreco transportadoraId={transportadora.id} />
+        </TabsContent>
+        <TabsContent value="ocorrencias" className="mt-4">
+          <OcorrenciasDepara transportadoraId={transportadora.id} />
         </TabsContent>
       </Tabs>
 
