@@ -8,6 +8,7 @@ import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
 import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
 import { ImportarRastreioDialog } from "./ImportarRastreioDialog";
 import { ImportarBraspressDialog } from "./ImportarBraspressDialog";
+import { OcorrenciasDepara } from "./OcorrenciasDepara";
 import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 
 function fmtCnpj(cnpj: string | null): string {
