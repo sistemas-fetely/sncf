@@ -15084,17 +15084,37 @@ export type Database = {
             foreignKeyName: "shopify_itens_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_recebivel_b2c_pedido"
-            referencedColumns: ["shopify_id"]
-          },
-          {
-            foreignKeyName: "shopify_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_shopify_pedidos_rastreio"
             referencedColumns: ["shopify_id"]
           },
         ]
+      }
+      shopify_pagamento_ref: {
+        Row: {
+          created_at: string
+          fonte: string
+          id: number
+          order_name: string
+          shopify_id: string | null
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          fonte?: string
+          id?: never
+          order_name: string
+          shopify_id?: string | null
+          token: string
+        }
+        Update: {
+          created_at?: string
+          fonte?: string
+          id?: never
+          order_name?: string
+          shopify_id?: string | null
+          token?: string
+        }
+        Relationships: []
       }
       shopify_pedidos: {
         Row: {
@@ -17462,6 +17482,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "wns_pedidos"
             referencedColumns: ["pedidowns"]
+          },
+        ]
+      }
+      transp_ocorrencia_depara: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          id: string
+          texto_padrao: string
+          transportadora_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          id?: string
+          texto_padrao: string
+          transportadora_id: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          id?: string
+          texto_padrao?: string
+          transportadora_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_ocorrencia_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_ocorrencia_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_ocorrencia_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "transp_ocorrencia_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
           },
         ]
       }
@@ -21439,14 +21515,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -22190,6 +22266,7 @@ export type Database = {
           financial_status: string | null
           movimentacao_id: string | null
           mp_payment_id: string | null
+          mp_token: string | null
           order_name: string | null
           pedido_total_bruto: number | null
           shipping_city: string | null
@@ -22198,6 +22275,7 @@ export type Database = {
           status_atribuicao: string | null
           tipo_meio: string | null
           valor_liquido_mp: number | null
+          via_chave: string | null
         }
         Relationships: []
       }
