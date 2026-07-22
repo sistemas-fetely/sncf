@@ -55,6 +55,7 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
         <TabsList>
           <TabsTrigger value="fretes">Fretes &amp; entregas</TabsTrigger>
           <TabsTrigger value="tabela">Tabela de preço</TabsTrigger>
+          <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
         </TabsList>
         <TabsContent value="fretes" className="mt-4">
           <FretesEntregas
@@ -67,6 +68,9 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
           <GestaoTabelasPreco transportadoraId={transportadora.id} />
           <ConteudoTabelaPreco transportadoraId={transportadora.id} />
           <TabelaPreco transportadoraId={transportadora.id} />
+        </TabsContent>
+        <TabsContent value="ocorrencias" className="mt-4">
+          <OcorrenciasDepara transportadoraId={transportadora.id} />
         </TabsContent>
       </Tabs>
 
