@@ -148,7 +148,7 @@ export function useImportarBraspress(transportadoraId: string | null) {
         cidade_destino: str(at(r, c.cidadeDest)),
         uf_destino: str(at(r, c.ufDest)),
         status: str(at(r, c.status)),
-        ocorrencia_ativa: str(at(r, c.ultOcorr)),
+        ocorrencia_ativa: resolverOcorrencia(at(r, c.ultOcorr), at(r, c.status)),
         ocorrencia_data: parseDataBR(at(r, c.dtOcorr)),
         data_entrega: null, // Braspress não traz data de entrega dedicada (regra futura)
         previsao_entrega: parseDataBR(at(r, c.previsao)),
