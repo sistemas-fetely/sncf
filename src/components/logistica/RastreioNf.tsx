@@ -54,7 +54,7 @@ export function RastreioNf() {
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return data.filter((r) => {
+    const base = data.filter((r) => {
       if (filtroTransp !== "todas" && r.transportadora_id !== filtroTransp) return false;
       if (filtroStatus === "devolucoes") {
         if (!r.eh_devolucao) return false;
@@ -69,7 +69,22 @@ export function RastreioNf() {
       }
       return true;
     });
-  }, [data, filtroStatus, filtroTransp, busca]);
+    if (!sort) return base;
+    const toTs = (s: string | null) => {
+      if (!s) return null;
+      const t = new Date(s).getTime();
+      return isNaN(t) ? null : t;
+    };
+    return ordenarPor<RastreioNfRow, SortCol>(base, sort, {
+      nf: (r) => r.nf_numero ?? null,
+      transportadora: (r) => r.transportadora_nome ?? null,
+      destinatario: (r) => r.destinatario ?? null,
+      status: (r) => statusBadge(r.classe).label,
+      previsao: (r) => toTs(r.previsao_entrega),
+      entrega: (r) => toTs(r.data_entrega),
+      valor: (r) => (r.valor_nf != null ? Number(r.valor_nf) : null),
+    });
+  }, [data, filtroStatus, filtroTransp, busca, sort]);
 
   if (isLoading) {
     return (
