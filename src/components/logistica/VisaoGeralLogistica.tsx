@@ -377,14 +377,14 @@ export function VisaoGeralLogistica() {
             value={`${totais.pctNf.toFixed(1)}%`}
             icon={Percent}
             tone="info"
-            hint="das NFs em que cobramos"
+            hint="sobre NFs com frete"
           />
           <StatCardMini
-            label="Frete bancado"
-            value={`${totais.pctBancado.toFixed(1)}% · ${BRL.format(totais.subsidio)}`}
+            label="Subsídio de frete"
+            value={BRL.format(totais.subsidio)}
             icon={AlertTriangle}
-            tone={bancadoAlto ? "destructive" : totais.pctBancado > 0 ? "warning" : "success"}
-            hint="subsídio líquido ÷ faturado"
+            tone={totais.subsidio > 0 ? "destructive" : "success"}
+            hint={`${totais.pctBancado.toFixed(2)}% do faturamento — quanto a Fetely banca`}
           />
         </div>
 
