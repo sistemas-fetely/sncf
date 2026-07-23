@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { useRastreioNf, type RastreioNfRow } from "@/hooks/logistica/useRastreioNf";
 import { statusBadge } from "./CardFrete";
+import { SortableTableHead, ordenarPor, type SortState } from "@/components/shared/SortableTableHead";
+
+type SortCol = "nf" | "transportadora" | "destinatario" | "status" | "previsao" | "entrega" | "valor";
 
 const CLASSE_LABELS: Record<string, string> = {
   entregue: "Entregue",
@@ -33,6 +36,7 @@ export function RastreioNf() {
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroTransp, setFiltroTransp] = useState<string>("todas");
   const [busca, setBusca] = useState("");
+  const [sort, setSort] = useState<SortState<SortCol> | null>(null);
 
   const classesPresentes = useMemo(() => {
     const s = new Set<string>();
@@ -50,7 +54,7 @@ export function RastreioNf() {
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return data.filter((r) => {
+    const base = data.filter((r) => {
       if (filtroTransp !== "todas" && r.transportadora_id !== filtroTransp) return false;
       if (filtroStatus === "devolucoes") {
         if (!r.eh_devolucao) return false;
@@ -65,7 +69,22 @@ export function RastreioNf() {
       }
       return true;
     });
-  }, [data, filtroStatus, filtroTransp, busca]);
+    if (!sort) return base;
+    const toTs = (s: string | null) => {
+      if (!s) return null;
+      const t = new Date(s).getTime();
+      return isNaN(t) ? null : t;
+    };
+    return ordenarPor<RastreioNfRow, SortCol>(base, sort, {
+      nf: (r) => r.nf_numero ?? null,
+      transportadora: (r) => r.transportadora_nome ?? null,
+      destinatario: (r) => r.destinatario ?? null,
+      status: (r) => statusBadge(r.classe).label,
+      previsao: (r) => toTs(r.previsao_entrega),
+      entrega: (r) => toTs(r.data_entrega),
+      valor: (r) => (r.valor_nf != null ? Number(r.valor_nf) : null),
+    });
+  }, [data, filtroStatus, filtroTransp, busca, sort]);
 
   if (isLoading) {
     return (
@@ -142,25 +161,27 @@ export function RastreioNf() {
         </div>
       ) : (
         <div className="rounded-md border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="text-xs">
-                <TableHead>NF</TableHead>
-                <TableHead>Transportadora</TableHead>
-                <TableHead>Destinatário</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Previsão</TableHead>
-                <TableHead>Entrega</TableHead>
-                <TableHead className="text-right">Valor NF</TableHead>
-                <TableHead>Pedido</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtradas.map((r) => (
-                <LinhaRastreio key={r.id} r={r} />
-              ))}
-            </TableBody>
-          </Table>
+          <div className="max-h-[70vh] overflow-y-auto">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-card [&_tr]:bg-card">
+                <TableRow className="text-xs bg-card hover:bg-card">
+                  <SortableTableHead column="nf" sort={sort} onSort={setSort}>NF</SortableTableHead>
+                  <SortableTableHead column="transportadora" sort={sort} onSort={setSort}>Transportadora</SortableTableHead>
+                  <SortableTableHead column="destinatario" sort={sort} onSort={setSort}>Destinatário</SortableTableHead>
+                  <SortableTableHead column="status" sort={sort} onSort={setSort}>Status</SortableTableHead>
+                  <SortableTableHead column="previsao" sort={sort} onSort={setSort}>Previsão</SortableTableHead>
+                  <SortableTableHead column="entrega" sort={sort} onSort={setSort}>Entrega</SortableTableHead>
+                  <SortableTableHead column="valor" sort={sort} onSort={setSort} align="right" className="text-right">Valor NF</SortableTableHead>
+                  <TableHead>Pedido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtradas.map((r) => (
+                  <LinhaRastreio key={r.id} r={r} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>
