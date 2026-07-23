@@ -770,6 +770,43 @@ export default function ConciliacaoDespesas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={confirmarLoteOpen}
+        onOpenChange={(v) => !confirmarLoteRunning && setConfirmarLoteOpen(v)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Confirmar {comSugestao.filter((f) => selecionadas.has(f.id)).length} conciliações selecionadas
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Soma:{" "}
+              <span className="font-mono font-semibold">
+                {formatBRL(
+                  comSugestao
+                    .filter((f) => selecionadas.has(f.id))
+                    .reduce((s, f) => s + Number(f.valor || 0), 0),
+                )}
+              </span>
+              . Cada débito com sugestão de NF cria um CPR retroativo conciliado; cada débito com sugestão de CPR vincula o lançamento existente. A ação é aplicada item a item — falhas isoladas não interrompem o restante.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={confirmarLoteRunning}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmarLoteRunning}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmarSelecionadas();
+              }}
+            >
+              {confirmarLoteRunning && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
