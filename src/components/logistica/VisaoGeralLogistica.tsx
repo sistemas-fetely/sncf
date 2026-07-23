@@ -597,6 +597,9 @@ export function VisaoGeralLogistica() {
                       <TableCell className="text-right tabular-nums">
                         {(() => { const p = pctCobradoPara(r.transportadora); return p != null ? `${p.toFixed(2)}%` : "—"; })()}
                       </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {(() => { const p = pctCustoNfPara(r.transportadora_id); return p != null ? `${p.toFixed(2)}%` : "—"; })()}
+                      </TableCell>
 
                       <TableCell className="text-right tabular-nums">
                         {NUM.format(Math.round(n(r.peso_taxado_total)))} kg
