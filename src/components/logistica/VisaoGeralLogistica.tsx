@@ -74,7 +74,7 @@ function StatCardMini({
       <div className="min-w-0">
         <div className="text-xs text-muted-foreground truncate">{label}</div>
         <div className="text-lg font-semibold leading-tight truncate">{value}</div>
-        {hint ? <div className="text-[11px] text-muted-foreground truncate">{hint}</div> : null}
+        {hint ? <div className="text-[11px] text-muted-foreground leading-snug break-words">{hint}</div> : null}
       </div>
     </div>
   );
