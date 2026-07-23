@@ -8768,6 +8768,7 @@ export type Database = {
       }
       nfs_stage: {
         Row: {
+          arquivo_storage_path: string | null
           categoria_sugerida_ia: boolean
           centro_custo_id: string | null
           conta_pagar_id: string | null
@@ -8813,6 +8814,7 @@ export type Database = {
           valor_origem: number | null
         }
         Insert: {
+          arquivo_storage_path?: string | null
           categoria_sugerida_ia?: boolean
           centro_custo_id?: string | null
           conta_pagar_id?: string | null
@@ -8858,6 +8860,7 @@ export type Database = {
           valor_origem?: number | null
         }
         Update: {
+          arquivo_storage_path?: string | null
           categoria_sugerida_ia?: boolean
           centro_custo_id?: string | null
           conta_pagar_id?: string | null
