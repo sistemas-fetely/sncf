@@ -90,6 +90,8 @@ import {
   corClass,
 } from "./CaixaBanco/utils";
 import MovimentacoesGerencial from "@/components/financeiro/MovimentacoesGerencial";
+import AdicionarDocumentoDialog from "@/components/financas/AdicionarDocumentoDialog";
+import { FilePlus2 } from "lucide-react";
 
 type FormaPgtoLite = { id: string; nome: string };
 type Parceiro = { id: string; razao_social: string | null };
