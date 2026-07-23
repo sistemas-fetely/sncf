@@ -87,6 +87,7 @@ import { descartarStage } from "@/lib/financeiro/stage-handler";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
 import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { CategoriaCombobox } from "@/components/financeiro/CategoriaCombobox";
+import AdicionarDocumentoDialog from "@/components/financas/AdicionarDocumentoDialog";
 import { gerarResumoNFe, regerarResumoNFe } from "@/lib/financeiro/gerar-resumo-nfe";
 import {
   classificarComAprendizado,
