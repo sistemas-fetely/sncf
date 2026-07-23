@@ -563,8 +563,9 @@ export function VisaoGeralLogistica() {
                       <TableCell className="text-right tabular-nums">{BRL.format(n(r.frete_total))}</TableCell>
                       <TableCell className="text-right tabular-nums">{BRL.format(n(r.frete_medio))}</TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {r.pct_frete_nf_medio != null ? `${n(r.pct_frete_nf_medio).toFixed(1)}%` : "—"}
+                        {(() => { const p = pctCobradoPara(r.transportadora); return p != null ? `${p.toFixed(2)}%` : "—"; })()}
                       </TableCell>
+
                       <TableCell className="text-right tabular-nums">
                         {NUM.format(Math.round(n(r.peso_taxado_total)))} kg
                       </TableCell>
