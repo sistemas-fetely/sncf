@@ -14,10 +14,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, ExternalLink,
+  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Search, MailQuestion, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { BuscarDocumentoDialog } from "@/components/financeiro/BuscarDocumentoDialog";
+import { SolicitarDocumentoDialog } from "@/components/financeiro/SolicitarDocumentoDialog";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
