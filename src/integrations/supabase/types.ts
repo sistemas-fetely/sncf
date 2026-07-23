@@ -4949,6 +4949,127 @@ export type Database = {
           },
         ]
       }
+      documentos_venda: {
+        Row: {
+          atualizado_em: string
+          canal: string
+          canal_origem: string
+          cliente_doc_tipo: string | null
+          cliente_nome: string | null
+          cliente_ref: string | null
+          criado_em: string
+          data_documento: string
+          documento_externo: string | null
+          id: string
+          natureza_codigo: string | null
+          origem: string
+          ref_pedido_id: string | null
+          ref_shopify_id: string | null
+          valor_frete: number
+          valor_total: number
+        }
+        Insert: {
+          atualizado_em?: string
+          canal: string
+          canal_origem?: string
+          cliente_doc_tipo?: string | null
+          cliente_nome?: string | null
+          cliente_ref?: string | null
+          criado_em?: string
+          data_documento: string
+          documento_externo?: string | null
+          id?: string
+          natureza_codigo?: string | null
+          origem: string
+          ref_pedido_id?: string | null
+          ref_shopify_id?: string | null
+          valor_frete?: number
+          valor_total?: number
+        }
+        Update: {
+          atualizado_em?: string
+          canal?: string
+          canal_origem?: string
+          cliente_doc_tipo?: string | null
+          cliente_nome?: string | null
+          cliente_ref?: string | null
+          criado_em?: string
+          data_documento?: string
+          documento_externo?: string | null
+          id?: string
+          natureza_codigo?: string | null
+          origem?: string
+          ref_pedido_id?: string | null
+          ref_shopify_id?: string | null
+          valor_frete?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
+            columns: ["ref_pedido_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
+            columns: ["ref_pedido_id"]
+            isOneToOne: true
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
+            columns: ["ref_pedido_id"]
+            isOneToOne: true
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
+            columns: ["ref_pedido_id"]
+            isOneToOne: true
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
+            columns: ["ref_pedido_id"]
+            isOneToOne: true
+            referencedRelation: "vw_pedido_base"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
+            columns: ["ref_pedido_id"]
+            isOneToOne: true
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_shopify_id_fkey"
+            columns: ["ref_shopify_id"]
+            isOneToOne: true
+            referencedRelation: "shopify_pedidos"
+            referencedColumns: ["shopify_id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_shopify_id_fkey"
+            columns: ["ref_shopify_id"]
+            isOneToOne: true
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["shopify_id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_shopify_id_fkey"
+            columns: ["ref_shopify_id"]
+            isOneToOne: true
+            referencedRelation: "vw_shopify_pedidos_rastreio"
+            referencedColumns: ["shopify_id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -21786,14 +21907,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -22286,6 +22407,19 @@ export type Database = {
             referencedColumns: ["nf_id"]
           },
         ]
+      }
+      vw_produto_crosswalk: {
+        Row: {
+          ativo: boolean | null
+          bling_id_canonico: string | null
+          bling_ids_total: number | null
+          bling_preco_canonico: number | null
+          em_wns: boolean | null
+          needs_review: boolean | null
+          nome_comercial: string | null
+          sku: string | null
+        }
+        Relationships: []
       }
       vw_produtos_estoque_virtual: {
         Row: {
@@ -23963,6 +24097,10 @@ export type Database = {
       }
       fn_calcular_meta_entrega: {
         Args: { p_pedido_id: string }
+        Returns: string
+      }
+      fn_canal_pedido_sops: {
+        Args: { p_natureza_codigo: string }
         Returns: string
       }
       fn_casar_sinteticas_extrato: { Args: never; Returns: Json }
