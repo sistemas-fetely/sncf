@@ -272,14 +272,17 @@ export function VisaoGeralLogistica() {
 
   // Custo por UF (soma sobre transportadoras filtradas)
   const custoPorUf = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { custo: number; fretes: number }>();
     for (const r of custoUfRows) {
       const uf = r.destinatario_uf?.trim();
       if (!uf) continue;
-      map.set(uf, (map.get(uf) ?? 0) + n(r.frete_total));
+      const cur = map.get(uf) ?? { custo: 0, fretes: 0 };
+      cur.custo += n(r.frete_total);
+      cur.fretes += 1;
+      map.set(uf, cur);
     }
     return [...map.entries()]
-      .map(([uf, custo]) => ({ uf, custo }))
+      .map(([uf, v]) => ({ uf, custo: v.custo, fretes: v.fretes }))
       .sort((a, b) => b.custo - a.custo)
       .slice(0, 12);
   }, [custoUfRows]);
@@ -692,7 +695,7 @@ export function VisaoGeralLogistica() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <MapPin className="h-4 w-4 text-primary" />
-              <div className="text-sm font-medium">Custo por UF — top 12</div>
+              <div className="text-sm font-medium">Custo e volume por UF — top 12</div>
             </div>
             {custoUfQuery.error ? (
               <div className="text-sm text-muted-foreground py-8 text-center">
@@ -703,17 +706,39 @@ export function VisaoGeralLogistica() {
             ) : (
               <div style={{ width: "100%", height: 300 }}>
                 <ResponsiveContainer>
-                  <BarChart data={custoPorUf} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                  <ComposedChart data={custoPorUf} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="uf" tick={{ fontSize: 12 }} />
                     <YAxis
+                      yAxisId="left"
                       tick={{ fontSize: 12 }}
                       tickFormatter={(v) => `R$ ${Math.round(Number(v) / 1000)}k`}
                       width={80}
                     />
-                    <Tooltip formatter={(v: number) => BRL.format(Number(v))} />
-                    <Bar dataKey="custo" name="Custo" fill="hsl(var(--info))" />
-                  </BarChart>
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      tick={{ fontSize: 12 }}
+                      width={50}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      formatter={(v: number, name: string) =>
+                        name === "Custo (R$)" ? BRL.format(Number(v)) : `${Number(v).toLocaleString("pt-BR")} fretes`
+                      }
+                    />
+                    <Legend />
+                    <Bar yAxisId="left" dataKey="custo" name="Custo (R$)" fill="hsl(var(--info))" />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="fretes"
+                      name="Fretes (qtd)"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             )}
