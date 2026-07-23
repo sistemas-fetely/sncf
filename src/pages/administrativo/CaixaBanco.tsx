@@ -649,6 +649,10 @@ export default function CaixaBanco() {
               Espinha dorsal financeira (realizado + comprometido).
             </p>
           </div>
+          <Button onClick={() => setAddDocOpen(true)} className="bg-admin hover:bg-admin/90">
+            <FilePlus2 className="h-4 w-4 mr-2" />
+            Adicionar documento
+          </Button>
         </div>
 
         <div className="flex gap-2 flex-wrap items-center">
