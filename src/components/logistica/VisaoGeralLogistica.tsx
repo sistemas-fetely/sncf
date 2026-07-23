@@ -504,15 +504,37 @@ export function VisaoGeralLogistica() {
             value={BRL.format(totais.subsidio)}
             icon={AlertTriangle}
             tone={totais.subsidio > 0 ? "destructive" : "success"}
-            hint={`${totais.pctBancado.toFixed(2)}% do faturamento total`}
+            hint="quanto a Fetely banca"
           />
-          <StatCardMini
-            label="Subsídio nas NFs cobradas"
-            value={BRL.format(totais.subsidio)}
-            icon={AlertTriangle}
-            tone={totais.subsidio > 0 ? "destructive" : "success"}
-            hint={`${(totais.baseNfComFrete > 0 ? (totais.subsidio / totais.baseNfComFrete) * 100 : 0).toFixed(2)}% do faturamento das NFs com frete`}
-          />
+          {(() => {
+            const tone = totais.subsidio > 0 ? "destructive" : "success";
+            const toneCls =
+              tone === "destructive"
+                ? "bg-destructive/10 text-destructive"
+                : "bg-success/10 text-success";
+            const pctTotal = totais.pctBancado.toFixed(2);
+            const pctNfs = (totais.baseNfComFrete > 0 ? (totais.subsidio / totais.baseNfComFrete) * 100 : 0).toFixed(2);
+            return (
+              <div className="rounded-lg border bg-card p-3 flex items-center gap-3">
+                <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shrink-0", toneCls)}>
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs text-muted-foreground truncate">Peso do subsídio</div>
+                  <div className="flex flex-col gap-0.5 mt-0.5">
+                    <div className="leading-tight">
+                      <span className="text-base font-semibold">{pctTotal}%</span>{" "}
+                      <span className="text-[11px] text-muted-foreground">do faturamento total</span>
+                    </div>
+                    <div className="leading-tight">
+                      <span className="text-base font-semibold">{pctNfs}%</span>{" "}
+                      <span className="text-[11px] text-muted-foreground">das NFs com frete</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           <StatCardMini
             label="NFs c/ frete zero"
             value={NUM.format(totais.nfsSemFrete)}
