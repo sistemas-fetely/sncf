@@ -797,7 +797,7 @@ export function VisaoGeralLogistica() {
 
 
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <StatCardMini
             label="On-time %"
             value={`${opsKpis.onTimePct.toFixed(1)}%`}
@@ -824,6 +824,17 @@ export function VisaoGeralLogistica() {
             icon={Clock}
             tone="info"
             hint={`da emissão à entrega · ${NUM.format(prazoEntrega.entregas)} entregas`}
+          />
+          <StatCardMini
+            label="Gap vs prometido"
+            value={
+              opsKpis.gapMedio == null
+                ? "—"
+                : `${opsKpis.gapMedio > 0 ? "+" : ""}${opsKpis.gapMedio.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`
+            }
+            icon={CalendarClock}
+            tone={opsKpis.gapMedio == null ? "default" : opsKpis.gapMedio <= 0 ? "success" : "destructive"}
+            hint="realizado − prometido · negativo = adiantado"
           />
         </div>
 
