@@ -844,7 +844,7 @@ export function VisaoGeralLogistica() {
             <div className="px-4 py-3 border-b">
               <div className="text-sm font-medium">KPIs por transportadora</div>
               <div className="text-xs text-muted-foreground">
-                Prazo médio: negativo = adiantado · positivo = atrasado
+                Gap = realizado − prometido; negativo = adiantado
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -854,12 +854,15 @@ export function VisaoGeralLogistica() {
                     <TableHead>Transportadora</TableHead>
                     <TableHead className="text-right">Rastreios</TableHead>
                     <TableHead className="text-right">On-time %</TableHead>
-                    <TableHead className="text-right">Prazo médio (dias)</TableHead>
+                    <TableHead className="text-right">Gap vs prometido (dias)</TableHead>
+                    <TableHead className="text-right">Prazo médio de entrega (dias)</TableHead>
                     <TableHead className="text-right">Devolução %</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {opsPorTransp.map((r) => (
+                  {opsPorTransp.map((r) => {
+                    const lead = leadTimePorNome.get(r.transportadora);
+                    return (
                     <TableRow key={r.transportadora}>
                       <TableCell className="font-medium">{r.transportadora}</TableCell>
                       <TableCell className="text-right tabular-nums">{NUM.format(r.total)}</TableCell>
@@ -884,11 +887,19 @@ export function VisaoGeralLogistica() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
+                        {lead != null ? (
+                          lead.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
                         {r.devPct.toFixed(1)}%
                         <span className="text-muted-foreground text-[11px] ml-1">({NUM.format(r.devolucoes)})</span>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                   {opsPorTransp.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
