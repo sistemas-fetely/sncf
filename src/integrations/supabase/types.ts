@@ -8061,6 +8061,9 @@ export type Database = {
           data_hora: string | null
           data_transacao: string
           descricao: string
+          doc_solicitado_em: string | null
+          doc_solicitado_nota: string | null
+          doc_solicitado_por: string | null
           fonte_importacao_id: string | null
           hash_unico: string | null
           id: string
@@ -8098,6 +8101,9 @@ export type Database = {
           data_hora?: string | null
           data_transacao: string
           descricao: string
+          doc_solicitado_em?: string | null
+          doc_solicitado_nota?: string | null
+          doc_solicitado_por?: string | null
           fonte_importacao_id?: string | null
           hash_unico?: string | null
           id?: string
@@ -8135,6 +8141,9 @@ export type Database = {
           data_hora?: string | null
           data_transacao?: string
           descricao?: string
+          doc_solicitado_em?: string | null
+          doc_solicitado_nota?: string | null
+          doc_solicitado_por?: string | null
           fonte_importacao_id?: string | null
           hash_unico?: string | null
           id?: string
@@ -20468,6 +20477,9 @@ export type Database = {
           data_transacao: string | null
           descricao: string | null
           dias_em_aberto: number | null
+          doc_solicitado_em: string | null
+          doc_solicitado_nota: string | null
+          doc_solicitado_por: string | null
           fonte_sugestao: string | null
           id: string | null
           sugestao_contraparte: string | null
@@ -21588,14 +21600,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
