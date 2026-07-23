@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Loader2, TrendingUp, TrendingDown, DollarSign, Percent, Package, AlertTriangle,
-  Truck, CheckCircle2, RotateCcw, Filter, MapPin, BarChart3,
+  Truck, CheckCircle2, RotateCcw, Filter, MapPin, BarChart3, Clock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,6 +14,7 @@ import { useLogisticaPnl } from "@/hooks/logistica/useLogisticaPnl";
 import { useRastreioNf } from "@/hooks/logistica/useRastreioNf";
 import { useLogisticaCustoTransportadora } from "@/hooks/logistica/useLogisticaCustoTransportadora";
 import { useTranspFretesUf } from "@/hooks/logistica/useTranspFretesUf";
+import { useLogisticaPrazoEntrega } from "@/hooks/logistica/useLogisticaPrazoEntrega";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const NUM = new Intl.NumberFormat("pt-BR");
@@ -90,6 +91,7 @@ export function VisaoGeralLogistica() {
   const rastreioQuery = useRastreioNf();
   const custoTranspQuery = useLogisticaCustoTransportadora();
   const custoUfQuery = useTranspFretesUf();
+  const prazoQuery = useLogisticaPrazoEntrega();
 
   const [selected, setSelected] = useState<string>(""); // "" = Geral
 
@@ -97,6 +99,7 @@ export function VisaoGeralLogistica() {
   const rastreioAll = rastreioQuery.data ?? [];
   const custoTranspAll = custoTranspQuery.data ?? [];
   const custoUfAll = custoUfQuery.data ?? [];
+  const prazoAll = prazoQuery.data ?? [];
 
   // Opções de transportadora vêm do P&L (fonte canônica)
   const opcoesTransp = useMemo(() => {
@@ -292,6 +295,21 @@ export function VisaoGeralLogistica() {
     const entregues = rastreioRows.filter((r) => r.data_entrega).length;
     return { total, comDatas: comDatas.length, onTimePct, devolucoes, devPct, entregues };
   }, [rastreioRows]);
+
+  // Prazo médio de entrega (vw_logistica_prazo_entrega)
+  const prazoEntrega = useMemo(() => {
+    const rows = idsSelecionados
+      ? prazoAll.filter((r) => r.transportadora_id && idsSelecionados.has(r.transportadora_id))
+      : prazoAll;
+    let entregas = 0;
+    let diasTotal = 0;
+    for (const r of rows) {
+      entregas += n(r.entregas);
+      diasTotal += n(r.dias_total);
+    }
+    const media = entregas > 0 ? diasTotal / entregas : null;
+    return { entregas, diasTotal, media };
+  }, [prazoAll, idsSelecionados]);
 
   // KPIs operacionais por transportadora
   const opsPorTransp = useMemo(() => {
@@ -719,7 +737,7 @@ export function VisaoGeralLogistica() {
 
 
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatCardMini
             label="On-time %"
             value={`${opsKpis.onTimePct.toFixed(1)}%`}
@@ -736,6 +754,17 @@ export function VisaoGeralLogistica() {
           />
           <StatCardMini label="Entregues" value={NUM.format(opsKpis.entregues)} icon={Package} tone="success" />
           <StatCardMini label="Total rastreado" value={NUM.format(opsKpis.total)} icon={Truck} tone="info" />
+          <StatCardMini
+            label="Prazo médio de entrega"
+            value={
+              prazoEntrega.media == null
+                ? "—"
+                : `${prazoEntrega.media.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`
+            }
+            icon={Clock}
+            tone="info"
+            hint={`da emissão à entrega · ${NUM.format(prazoEntrega.entregas)} entregas`}
+          />
         </div>
 
         {/* KPIs por transportadora */}
