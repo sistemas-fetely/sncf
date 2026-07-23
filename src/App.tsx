@@ -142,6 +142,7 @@ const RegrasInbox = lazy(() => import("@/pages/administrativo/RegrasInbox"));
 const ParesTransferencia = lazy(() => import("@/pages/administrativo/ParesTransferencia"));
 const ConciliacaoCartao = lazy(() => import("@/pages/administrativo/ConciliacaoCartao"));
 const ConciliacaoDespesas = lazy(() => import("@/pages/administrativo/ConciliacaoDespesas"));
+const Despesas = lazy(() => import("@/pages/administrativo/Despesas"));
 const AnaliseDespesas = lazy(() => import("@/pages/administrativo/AnaliseDespesas"));
 
 const CreditoIndex = lazy(() => import("@/pages/Credito/CreditoIndex"));
