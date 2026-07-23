@@ -98,9 +98,20 @@ export default function ConciliacaoDespesas() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("vw_despesas_match_nf_sugestoes")
-        .select("mov_id, stage_id, nf_numero, score");
+        .select("mov_id, stage_id, nf_numero, score, nf_valor, nf_data_emissao, fornecedor_razao_social");
       if (error) throw error;
       return (data || []) as SugNF[];
+    },
+  });
+
+  const { data: sugestoesCPR = [] } = useQuery({
+    queryKey: ["conciliacao-sug-cpr"],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("vw_despesas_match_sugestoes")
+        .select("mov_id, cpr_valor, data_vencimento, data_pagamento, parceiro_nome");
+      if (error) throw error;
+      return (data || []) as SugCPR[];
     },
   });
 
@@ -109,6 +120,12 @@ export default function ConciliacaoDespesas() {
     for (const s of sugestoesNF) m.set(s.mov_id, s);
     return m;
   }, [sugestoesNF]);
+
+  const cprMap = useMemo(() => {
+    const m = new Map<string, SugCPR>();
+    for (const s of sugestoesCPR) m.set(s.mov_id, s);
+    return m;
+  }, [sugestoesCPR]);
 
   const comSugestao = useMemo(
     () =>
