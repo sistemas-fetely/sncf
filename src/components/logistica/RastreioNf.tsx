@@ -36,6 +36,7 @@ export function RastreioNf() {
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroTransp, setFiltroTransp] = useState<string>("todas");
   const [busca, setBusca] = useState("");
+  const [sort, setSort] = useState<SortState<SortCol> | null>(null);
 
   const classesPresentes = useMemo(() => {
     const s = new Set<string>();
