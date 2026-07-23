@@ -22,6 +22,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { BuscarDocumentoDialog } from "@/components/financeiro/BuscarDocumentoDialog";
 import { SolicitarDocumentoDialog } from "@/components/financeiro/SolicitarDocumentoDialog";
 import { ClassificarDiretoDialog } from "@/components/financeiro/ClassificarDiretoDialog";
+import { FurosPorFornecedor } from "@/components/financeiro/FurosPorFornecedor";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
