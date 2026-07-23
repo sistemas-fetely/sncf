@@ -551,7 +551,7 @@ export function VisaoGeralLogistica() {
                     <TableHead className="text-right">Fretes</TableHead>
                     <TableHead className="text-right">Frete total</TableHead>
                     <TableHead className="text-right">Frete médio</TableHead>
-                    <TableHead className="text-right">% frete/NF (médio)</TableHead>
+                    <TableHead className="text-right" title="frete cobrado ÷ NF, só c/ frete">% cobrado/NF</TableHead>
                     <TableHead className="text-right">Peso taxado</TableHead>
                   </TableRow>
                 </TableHeader>
