@@ -435,9 +435,9 @@ serve(async (req) => {
       );
     }
 
-    const totalExato = parseFloat(
-      blingParcelas.reduce((s, p) => s + p.valor, 0).toFixed(2),
-    );
+    const totalExato = geraTitulo
+      ? parseFloat(blingParcelas.reduce((s, p) => s + p.valor, 0).toFixed(2))
+      : remessaValor;
 
     // 9. Sync de produtos: cache → Bling GET → Bling POST (auto-cadastro)
     const stripQtdSuffix = (d: string) =>
