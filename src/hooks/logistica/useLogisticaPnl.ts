@@ -14,6 +14,7 @@ export interface LogisticaPnlRow {
   nfs_com_frete: number | null;
   ctes: number | null;
   receita_sem_custo: boolean | null;
+  base_nf_com_frete: number | null;
 }
 
 export function useLogisticaPnl() {
