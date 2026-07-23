@@ -14,12 +14,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Search, MailQuestion, Clock,
+  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Search, MailQuestion, Clock, Tags,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { BuscarDocumentoDialog } from "@/components/financeiro/BuscarDocumentoDialog";
 import { SolicitarDocumentoDialog } from "@/components/financeiro/SolicitarDocumentoDialog";
+import { ClassificarDiretoDialog } from "@/components/financeiro/ClassificarDiretoDialog";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -61,6 +62,7 @@ export default function ConciliacaoDespesas() {
   const [loteRunning, setLoteRunning] = useState(false);
   const [buscarOpen, setBuscarOpen] = useState(false);
   const [solicitarOpen, setSolicitarOpen] = useState(false);
+  const [classificarOpen, setClassificarOpen] = useState(false);
   const [furoAtivo, setFuroAtivo] = useState<Furo | null>(null);
   const [filtroFuros, setFiltroFuros] = useState<"todos" | "aguardando" | "sem_tratativa">("todos");
 
@@ -465,6 +467,15 @@ export default function ConciliacaoDespesas() {
                                 <MailQuestion className="h-3.5 w-3.5" />
                                 Solicitar doc
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => { setFuroAtivo(f); setClassificarOpen(true); }}
+                              >
+                                <Tags className="h-3.5 w-3.5" />
+                                Classificar direto
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -494,6 +505,12 @@ export default function ConciliacaoDespesas() {
       <SolicitarDocumentoDialog
         open={solicitarOpen}
         onOpenChange={setSolicitarOpen}
+        furo={furoAtivo}
+        onDone={invalidar}
+      />
+      <ClassificarDiretoDialog
+        open={classificarOpen}
+        onOpenChange={setClassificarOpen}
         furo={furoAtivo}
         onDone={invalidar}
       />

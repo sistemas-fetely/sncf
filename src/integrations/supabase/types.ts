@@ -23439,6 +23439,16 @@ export type Database = {
         Returns: Json
       }
       capturar_custo_mensal: { Args: never; Returns: number }
+      classificar_debito_direto: {
+        Args: {
+          p_centro_custo_id?: string
+          p_classe: string
+          p_mov_id: string
+          p_plano_contas_id: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       clonar_pedido_cancelado: { Args: { p_pedido_id: string }; Returns: Json }
       comentar_pedido: {
         Args: { p_conteudo: string; p_pedido_id: string }
