@@ -38,6 +38,9 @@ type Furo = {
   sugestao_stage_id: string | null;
   sugestao_contraparte: string | null;
   sugestao_score: number | null;
+  doc_solicitado_em: string | null;
+  doc_solicitado_por: string | null;
+  doc_solicitado_nota: string | null;
 };
 
 type SugNF = {
