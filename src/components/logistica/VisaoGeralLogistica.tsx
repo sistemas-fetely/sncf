@@ -88,8 +88,8 @@ function mesLabel(mes: string): string {
 export function VisaoGeralLogistica() {
   const pnlQuery = useLogisticaPnl();
   const rastreioQuery = useRastreioNf();
-  const custoTranspQuery = useLogisticaCustoTransp();
-  const custoUfQuery = useLogisticaCustoUf();
+  const custoTranspQuery = useLogisticaCustoTransportadora();
+  const custoUfQuery = useTranspFretesUf();
 
   const [selected, setSelected] = useState<string>(""); // "" = Geral
 
@@ -118,10 +118,20 @@ export function VisaoGeralLogistica() {
     () => (selected ? custoTranspAll.filter((r) => matchesTransp(r.transportadora, selected)) : custoTranspAll),
     [custoTranspAll, selected]
   );
+  // vw_transp_fretes tem só transportadora_id; resolve os ids das transportadoras selecionadas.
+  const idsSelecionados = useMemo(() => {
+    if (!selected) return null;
+    const ids = new Set<string>();
+    for (const r of custoTranspAll) {
+      if (r.transportadora_id && matchesTransp(r.transportadora, selected)) ids.add(r.transportadora_id);
+    }
+    return ids;
+  }, [custoTranspAll, selected]);
   const custoUfRows = useMemo(
-    () => (selected ? custoUfAll.filter((r) => matchesTransp(r.transportadora, selected)) : custoUfAll),
-    [custoUfAll, selected]
+    () => (idsSelecionados ? custoUfAll.filter((r) => r.transportadora_id && idsSelecionados.has(r.transportadora_id)) : custoUfAll),
+    [custoUfAll, idsSelecionados]
   );
+
 
   // Agregados P&L
   const totais = useMemo(() => {
