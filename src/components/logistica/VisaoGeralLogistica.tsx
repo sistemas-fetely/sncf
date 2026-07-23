@@ -1,27 +1,30 @@
-import { Loader2, Truck, PackageCheck, PackageX, AlertTriangle, RotateCcw, DollarSign } from "lucide-react";
+import { useMemo } from "react";
+import { Loader2, TrendingUp, TrendingDown, DollarSign, Percent, Package, AlertTriangle, Truck, CheckCircle2, RotateCcw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart, Line,
+} from "recharts";
 import { cn } from "@/lib/utils";
-import { useLogisticaAgregado, type LogisticaAgregadoRow } from "@/hooks/logistica/useLogisticaAgregado";
-import { pctClassPersonalizada } from "./pct-util";
+import { useLogisticaPnl, type LogisticaPnlRow } from "@/hooks/logistica/useLogisticaPnl";
+import { useRastreioNf } from "@/hooks/logistica/useRastreioNf";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const NUM = new Intl.NumberFormat("pt-BR");
-
-function n(v: number | null | undefined): number {
-  return Number(v ?? 0);
-}
+const n = (v: number | null | undefined) => Number(v ?? 0);
 
 function StatCardMini({
   label,
   value,
   icon: Icon,
   tone,
+  hint,
 }: {
   label: string;
   value: string;
   icon: React.ComponentType<{ className?: string }>;
   tone?: "success" | "info" | "warning" | "destructive" | "default";
+  hint?: string;
 }) {
   const toneCls =
     tone === "success"
@@ -41,23 +44,117 @@ function StatCardMini({
       <div className="min-w-0">
         <div className="text-xs text-muted-foreground truncate">{label}</div>
         <div className="text-lg font-semibold leading-tight truncate">{value}</div>
+        {hint ? <div className="text-[11px] text-muted-foreground truncate">{hint}</div> : null}
       </div>
     </div>
   );
 }
 
-export function VisaoGeralLogistica() {
-  const { data: rows = [], isLoading } = useLogisticaAgregado();
+function mesLabel(mes: string): string {
+  const d = new Date(mes.length === 10 ? `${mes}T00:00:00` : mes);
+  if (isNaN(d.getTime())) return mes;
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
 
-  if (isLoading) {
+export function VisaoGeralLogistica() {
+  const pnlQuery = useLogisticaPnl();
+  const rastreioQuery = useRastreioNf();
+
+  const pnlRows = pnlQuery.data ?? [];
+  const rastreioRows = rastreioQuery.data ?? [];
+
+  // Agregados P&L
+  const totais = useMemo(() => {
+    const receita = pnlRows.reduce((a, r) => a + n(r.receita_frete), 0);
+    const custo = pnlRows.reduce((a, r) => a + n(r.custo_frete), 0);
+    const margem = pnlRows.reduce((a, r) => a + n(r.margem), 0);
+    const baseNf = pnlRows.reduce((a, r) => a + n(r.base_nf), 0);
+    const nfs = pnlRows.reduce((a, r) => a + n(r.nfs), 0);
+    const nfsComFrete = pnlRows.reduce((a, r) => a + n(r.nfs_com_frete), 0);
+    const nfsSemFrete = Math.max(nfs - nfsComFrete, 0);
+    const pctRec = custo > 0 ? (receita / custo) * 100 : 0;
+    const pctNf = baseNf > 0 ? (receita / baseNf) * 100 : 0;
+    return { receita, custo, margem, baseNf, nfs, nfsComFrete, nfsSemFrete, pctRec, pctNf };
+  }, [pnlRows]);
+
+  // Série mensal (soma por mês)
+  const serieMensal = useMemo(() => {
+    const map = new Map<string, { mes: string; receita: number; custo: number; margem: number }>();
+    for (const r of pnlRows) {
+      const key = r.mes;
+      const cur = map.get(key) ?? { mes: key, receita: 0, custo: 0, margem: 0 };
+      cur.receita += n(r.receita_frete);
+      cur.custo += n(r.custo_frete);
+      cur.margem += n(r.margem);
+      map.set(key, cur);
+    }
+    return [...map.values()]
+      .sort((a, b) => (a.mes < b.mes ? -1 : 1))
+      .map((r) => ({ ...r, mesLabel: mesLabel(r.mes) }));
+  }, [pnlRows]);
+
+  // Agrupamento por transportadora
+  const porTransportadora = useMemo(() => {
+    const map = new Map<string, {
+      transportadora: string;
+      receita: number;
+      custo: number;
+      margem: number;
+      receita_sem_custo: boolean;
+    }>();
+    for (const r of pnlRows) {
+      const key = r.transportadora ?? "—";
+      const cur = map.get(key) ?? {
+        transportadora: key,
+        receita: 0,
+        custo: 0,
+        margem: 0,
+        receita_sem_custo: false,
+      };
+      cur.receita += n(r.receita_frete);
+      cur.custo += n(r.custo_frete);
+      cur.margem += n(r.margem);
+      if (r.receita_sem_custo) cur.receita_sem_custo = true;
+      map.set(key, cur);
+    }
+    return [...map.values()]
+      .filter((r) => r.receita !== 0 || r.custo !== 0)
+      .sort((a, b) => b.receita - a.receita);
+  }, [pnlRows]);
+
+  // KPIs operacionais (rastreio)
+  const opsKpis = useMemo(() => {
+    const total = rastreioRows.length;
+    const comDatas = rastreioRows.filter((r) => r.data_entrega && r.previsao_entrega);
+    const onTime = comDatas.filter((r) => new Date(r.data_entrega!) <= new Date(r.previsao_entrega!)).length;
+    const onTimePct = comDatas.length > 0 ? (onTime / comDatas.length) * 100 : 0;
+    const devolucoes = rastreioRows.filter((r) => r.eh_devolucao).length;
+    const devPct = total > 0 ? (devolucoes / total) * 100 : 0;
+    const entregues = rastreioRows.filter((r) => r.data_entrega).length;
+    return { total, comDatas: comDatas.length, onTimePct, devolucoes, devPct, entregues };
+  }, [rastreioRows]);
+
+  const mixTransp = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of rastreioRows) {
+      const key = r.transportadora_nome ?? "—";
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([nome, qtd]) => ({ nome, qtd }))
+      .sort((a, b) => b.qtd - a.qtd);
+  }, [rastreioRows]);
+
+  if (pnlQuery.isLoading || rastreioQuery.isLoading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando visão geral…
+        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando dashboard…
       </div>
     );
   }
 
-  if (rows.length === 0) {
+  const semDados = pnlRows.length === 0 && rastreioRows.length === 0;
+  if (semDados) {
     return (
       <div className="border rounded-lg p-10 text-center text-sm text-muted-foreground">
         Nenhum dado logístico ainda.
@@ -65,122 +162,220 @@ export function VisaoGeralLogistica() {
     );
   }
 
-  const totalFrete = rows.reduce((a, r) => a + n(r.frete_total), 0);
-  const totalCtes = rows.reduce((a, r) => a + n(r.total_ctes), 0);
-  const totalEntregues = rows.reduce((a, r) => a + n(r.entregues), 0);
-  const totalTransito = rows.reduce((a, r) => a + n(r.em_transito), 0);
-  const totalAtencao = rows.reduce((a, r) => a + n(r.atencao), 0);
-  const totalDevolucoes = rows.reduce((a, r) => a + n(r.devolucoes), 0);
-
-  const ordenadas = [...rows].sort((a, b) => n(b.frete_total) - n(a.frete_total));
+  const margemNeg = totais.margem < 0;
 
   return (
-    <div className="space-y-6">
-      {/* BLOCO 1 — Cards consolidados */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatCardMini label="Frete total" value={BRL.format(totalFrete)} icon={DollarSign} />
-        <StatCardMini label="CTes" value={NUM.format(totalCtes)} icon={Truck} tone="info" />
-        <StatCardMini label="Entregues" value={NUM.format(totalEntregues)} icon={PackageCheck} tone="success" />
-        <StatCardMini label="Em trânsito" value={NUM.format(totalTransito)} icon={Truck} tone="info" />
-        <StatCardMini label="Atenção" value={NUM.format(totalAtencao)} icon={AlertTriangle} tone="warning" />
-        <StatCardMini label="Devoluções" value={NUM.format(totalDevolucoes)} icon={RotateCcw} tone="destructive" />
-      </div>
+    <div className="space-y-8">
+      {/* ================= BLOCO 1 — P&L ================= */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold">P&L da Logística</h2>
+          <span className="text-xs text-muted-foreground">Receita cobrada × custo real por transportadora</span>
+        </div>
 
-      {/* BLOCO 2 — Comparativo por transportadora */}
-      <Card className="card-shadow">
-        <CardContent className="p-0">
-          <div className="px-4 py-3 border-b">
-            <div className="text-sm font-medium">Comparativo por transportadora</div>
-            <div className="text-xs text-muted-foreground">Ordenado por frete total</div>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Transportadora</TableHead>
-                  <TableHead className="text-right">CTes</TableHead>
-                  <TableHead className="text-right">Frete total</TableHead>
-                  <TableHead className="text-right">% Frete/NF</TableHead>
-                  <TableHead className="text-right">Entregues</TableHead>
-                  <TableHead className="text-right">Em trânsito</TableHead>
-                  <TableHead className="text-right">Atenção</TableHead>
-                  <TableHead className="text-right">Devoluções</TableHead>
-                  <TableHead className="text-right">Com pedido</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ordenadas.map((r) => {
-                  const pct = r.pct_frete_nf == null ? null : Number(r.pct_frete_nf);
-                  return (
-                    <TableRow key={r.transportadora_id}>
-                      <TableCell className="font-medium">{r.transportadora ?? "—"}</TableCell>
-                      <TableCell className="text-right">{NUM.format(n(r.total_ctes))}</TableCell>
-                      <TableCell className="text-right font-medium">{BRL.format(n(r.frete_total))}</TableCell>
-                      <TableCell className="text-right">
-                        {pct == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          <span
-                            className={cn(
-                              "inline-block px-1.5 py-0.5 rounded text-[11px] font-medium",
-                              pctClassPersonalizada(pct)
-                            )}
-                          >
-                            {pct.toFixed(1)}%
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">{NUM.format(n(r.entregues))}</TableCell>
-                      <TableCell className="text-right">{NUM.format(n(r.em_transito))}</TableCell>
-                      <TableCell className="text-right">{NUM.format(n(r.atencao))}</TableCell>
-                      <TableCell className="text-right">{NUM.format(n(r.devolucoes))}</TableCell>
-                      <TableCell className="text-right">{NUM.format(n(r.com_pedido))}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Cards de topo */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <StatCardMini
+            label="Receita de frete"
+            value={BRL.format(totais.receita)}
+            icon={TrendingUp}
+            tone="success"
+          />
+          <StatCardMini
+            label="Custo real"
+            value={BRL.format(totais.custo)}
+            icon={TrendingDown}
+            tone="info"
+          />
+          <StatCardMini
+            label="Margem"
+            value={BRL.format(totais.margem)}
+            icon={margemNeg ? TrendingDown : TrendingUp}
+            tone={margemNeg ? "destructive" : "success"}
+          />
+          <StatCardMini
+            label="% recuperação"
+            value={`${totais.pctRec.toFixed(1)}%`}
+            icon={Percent}
+            tone={totais.pctRec >= 100 ? "success" : "warning"}
+            hint="Receita ÷ custo"
+          />
+          <StatCardMini
+            label="Frete % da NF"
+            value={`${totais.pctNf.toFixed(1)}%`}
+            icon={Percent}
+            tone="info"
+            hint="Receita ÷ base NF"
+          />
+          <StatCardMini
+            label="NFs c/ frete zero"
+            value={NUM.format(totais.nfsSemFrete)}
+            icon={AlertTriangle}
+            tone="warning"
+            hint="Absorvido pela Fetely"
+          />
+        </div>
 
-      {/* BLOCO 3 — Participação no custo */}
-      <Card className="card-shadow">
-        <CardContent className="p-4 space-y-3">
-          <div>
-            <div className="text-sm font-medium">Participação no custo de frete</div>
-            <div className="text-xs text-muted-foreground">
-              Proporção de cada transportadora sobre {BRL.format(totalFrete)}
+        {/* Gráfico mensal */}
+        <Card className="card-shadow">
+          <CardContent className="p-4">
+            <div className="text-sm font-medium mb-3">Evolução mensal — receita × custo × margem</div>
+            {serieMensal.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-8 text-center">Sem dados de P&L.</div>
+            ) : (
+              <div style={{ width: "100%", height: 320 }}>
+                <ResponsiveContainer>
+                  <ComposedChart data={serieMensal} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="mesLabel" tick={{ fontSize: 12 }} />
+                    <YAxis
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(v) => `R$ ${Math.round(Number(v) / 1000)}k`}
+                      width={80}
+                    />
+                    <Tooltip formatter={(v: number) => BRL.format(Number(v))} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey="receita" name="Receita" fill="hsl(var(--success))" />
+                    <Bar dataKey="custo" name="Custo" fill="hsl(var(--info))" />
+                    <Line
+                      type="monotone"
+                      dataKey="margem"
+                      name="Margem"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Tabela por transportadora */}
+        <Card className="card-shadow">
+          <CardContent className="p-0">
+            <div className="px-4 py-3 border-b">
+              <div className="text-sm font-medium">Por transportadora</div>
+              <div className="text-xs text-muted-foreground">
+                Marcadas como "sem custo rastreado" quando não há CTe importado.
+              </div>
             </div>
-          </div>
-          <div className="space-y-2">
-            {ordenadas.map((r) => {
-              const share = totalFrete > 0 ? (n(r.frete_total) / totalFrete) * 100 : 0;
-              return <BarraParticipacao key={r.transportadora_id} row={r} share={share} />;
-            })}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Transportadora</TableHead>
+                    <TableHead className="text-right">Receita</TableHead>
+                    <TableHead className="text-right">Custo</TableHead>
+                    <TableHead className="text-right">Margem</TableHead>
+                    <TableHead className="text-right">% recuperação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {porTransportadora.map((r) => {
+                    const pctRec = r.custo > 0 ? (r.receita / r.custo) * 100 : 0;
+                    const neg = r.margem < 0;
+                    return (
+                      <TableRow key={r.transportadora}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <span>{r.transportadora}</span>
+                            {r.receita_sem_custo ? (
+                              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                sem custo rastreado
+                              </span>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{BRL.format(r.receita)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{BRL.format(r.custo)}</TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right tabular-nums font-medium",
+                            neg ? "text-destructive" : "text-success"
+                          )}
+                        >
+                          {BRL.format(r.margem)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r.custo > 0 ? `${pctRec.toFixed(1)}%` : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {porTransportadora.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                        Nenhuma transportadora com movimento.
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
-function BarraParticipacao({ row, share }: { row: LogisticaAgregadoRow; share: number }) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-medium truncate">{row.transportadora ?? "—"}</span>
-        <span className="text-muted-foreground tabular-nums">
-          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n(row.frete_total))} ·{" "}
-          <span className="font-medium text-foreground">{share.toFixed(1)}%</span>
-        </span>
-      </div>
-      <div className="h-2 rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full bg-primary rounded-full transition-all"
-          style={{ width: `${Math.max(share, 0.5)}%` }}
-        />
-      </div>
+      {/* ================= BLOCO 2 — KPIs OPERACIONAIS ================= */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Truck className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold">KPIs operacionais</h2>
+          <span className="text-xs text-muted-foreground">Baseado nos rastreios importados</span>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCardMini
+            label="On-time %"
+            value={`${opsKpis.onTimePct.toFixed(1)}%`}
+            icon={CheckCircle2}
+            tone={opsKpis.onTimePct >= 90 ? "success" : opsKpis.onTimePct >= 75 ? "warning" : "destructive"}
+            hint={`${NUM.format(opsKpis.comDatas)} rastreios avaliados`}
+          />
+          <StatCardMini
+            label="Taxa de devolução"
+            value={`${opsKpis.devPct.toFixed(1)}%`}
+            icon={RotateCcw}
+            tone={opsKpis.devPct <= 2 ? "success" : opsKpis.devPct <= 5 ? "warning" : "destructive"}
+            hint={`${NUM.format(opsKpis.devolucoes)} devoluções`}
+          />
+          <StatCardMini
+            label="Entregues"
+            value={NUM.format(opsKpis.entregues)}
+            icon={Package}
+            tone="success"
+          />
+          <StatCardMini
+            label="Total rastreado"
+            value={NUM.format(opsKpis.total)}
+            icon={Truck}
+            tone="info"
+          />
+        </div>
+
+        <Card className="card-shadow">
+          <CardContent className="p-4">
+            <div className="text-sm font-medium mb-3">Mix por transportadora — nº de rastreios</div>
+            {mixTransp.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-8 text-center">Sem rastreios ainda.</div>
+            ) : (
+              <div style={{ width: "100%", height: 280 }}>
+                <ResponsiveContainer>
+                  <BarChart data={mixTransp} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="nome" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} width={50} />
+                    <Tooltip formatter={(v: number) => NUM.format(Number(v))} />
+                    <Bar dataKey="qtd" name="Rastreios" fill="hsl(var(--primary))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
