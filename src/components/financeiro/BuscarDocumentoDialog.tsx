@@ -33,7 +33,7 @@ type Candidato = {
   fornecedor_cliente: string | null;
   fornecedor_cnpj: string | null;
   nf_data_emissao: string | null;
-  valor_total: number | null;
+  valor: number | null;
 };
 
 interface Props {
@@ -64,7 +64,7 @@ export function BuscarDocumentoDialog({ open, onOpenChange, furo, onDone }: Prop
 
       const { data, error } = await sb
         .from("nfs_stage")
-        .select("id, tipo_documento, nf_numero, fornecedor_razao_social, fornecedor_cliente, fornecedor_cnpj, nf_data_emissao, valor_total")
+        .select("id, tipo_documento, nf_numero, fornecedor_razao_social, fornecedor_cliente, fornecedor_cnpj, nf_data_emissao, valor")
         .not("revisada_em", "is", null)
         .is("conta_pagar_id", null)
         .is("motivo_descarte", null)
@@ -169,7 +169,7 @@ export function BuscarDocumentoDialog({ open, onOpenChange, furo, onDone }: Prop
               )}
               {candidatos.map((c) => {
                 const valorFuro = Number(furo?.valor || 0);
-                const valorNf = Number(c.valor_total || 0);
+                const valorNf = Number(c.valor || 0);
                 const diff = valorNf - valorFuro;
                 const bate = Math.abs(diff) < 0.01;
                 return (
