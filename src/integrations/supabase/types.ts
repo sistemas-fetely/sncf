@@ -24742,7 +24742,7 @@ export type Database = {
       solicitar_documento: {
         Args: {
           p_email: string
-          p_enviar: boolean
+          p_email_enviado: boolean
           p_mov_id: string
           p_nome: string
           p_nota: string
