@@ -2145,6 +2145,8 @@ export default function NFsStage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdicionarDocumentoDialog open={addDocOpen} onOpenChange={setAddDocOpen} />
     </div>
 
   );
