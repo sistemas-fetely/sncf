@@ -199,6 +199,43 @@ export function VisaoGeralLogistica() {
     [custoTranspAgg]
   );
 
+  // % justo (receita ÷ base_nf_com_frete) por transportadora — vem do P&L, respeita filtro
+  const pctCobradoAgg = useMemo(() => {
+    const map = new Map<string, { receita: number; base: number }>();
+    for (const r of pnlRows) {
+      const key = r.transportadora ?? "—";
+      const cur = map.get(key) ?? { receita: 0, base: 0 };
+      cur.receita += n(r.receita_frete);
+      cur.base += n(r.base_nf_com_frete);
+      map.set(key, cur);
+    }
+    return map;
+  }, [pnlRows]);
+
+  function pctCobradoPara(nome: string | null | undefined): number | null {
+    let receita = 0;
+    let base = 0;
+    for (const [k, v] of pctCobradoAgg) {
+      if (matchesTransp(k, nome ?? "")) {
+        receita += v.receita;
+        base += v.base;
+      }
+    }
+    if (base <= 0) return null;
+    return (receita / base) * 100;
+  }
+
+  const pctCobradoTotal = useMemo(() => {
+    let receita = 0;
+    let base = 0;
+    for (const v of pctCobradoAgg.values()) {
+      receita += v.receita;
+      base += v.base;
+    }
+    return base > 0 ? (receita / base) * 100 : null;
+  }, [pctCobradoAgg]);
+
+
   // Custo por UF (soma sobre transportadoras filtradas)
   const custoPorUf = useMemo(() => {
     const map = new Map<string, number>();
@@ -349,7 +386,7 @@ export function VisaoGeralLogistica() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <StatCardMini label="Receita de frete" value={BRL.format(totais.receita)} icon={TrendingUp} tone="success" />
           <StatCardMini label="Custo real" value={BRL.format(totais.custo)} icon={TrendingDown} tone="info" />
           <StatCardMini
@@ -372,6 +409,9 @@ export function VisaoGeralLogistica() {
             tone="info"
             hint="sobre NFs com frete"
           />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCardMini
             label="Subsídio de frete"
             value={BRL.format(totais.subsidio)}
@@ -379,9 +419,6 @@ export function VisaoGeralLogistica() {
             tone={totais.subsidio > 0 ? "destructive" : "success"}
             hint={`${totais.pctBancado.toFixed(2)}% do faturamento — quanto a Fetely banca`}
           />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatCardMini
             label="NFs c/ frete zero"
             value={NUM.format(totais.nfsSemFrete)}
@@ -403,6 +440,7 @@ export function VisaoGeralLogistica() {
             hint={`${NUM.format(totais.nfsComFrete)} NFs`}
           />
         </div>
+
 
         {/* Gráfico mensal */}
         <Card className="card-shadow">
@@ -513,7 +551,7 @@ export function VisaoGeralLogistica() {
                     <TableHead className="text-right">Fretes</TableHead>
                     <TableHead className="text-right">Frete total</TableHead>
                     <TableHead className="text-right">Frete médio</TableHead>
-                    <TableHead className="text-right">% frete/NF (médio)</TableHead>
+                    <TableHead className="text-right" title="frete cobrado ÷ NF, só c/ frete">% cobrado/NF</TableHead>
                     <TableHead className="text-right">Peso taxado</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -525,8 +563,9 @@ export function VisaoGeralLogistica() {
                       <TableCell className="text-right tabular-nums">{BRL.format(n(r.frete_total))}</TableCell>
                       <TableCell className="text-right tabular-nums">{BRL.format(n(r.frete_medio))}</TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {r.pct_frete_nf_medio != null ? `${n(r.pct_frete_nf_medio).toFixed(1)}%` : "—"}
+                        {(() => { const p = pctCobradoPara(r.transportadora); return p != null ? `${p.toFixed(2)}%` : "—"; })()}
                       </TableCell>
+
                       <TableCell className="text-right tabular-nums">
                         {NUM.format(Math.round(n(r.peso_taxado_total)))} kg
                       </TableCell>
@@ -549,7 +588,7 @@ export function VisaoGeralLogistica() {
                           <TableCell className="text-right tabular-nums">{NUM.format(totFretes)}</TableCell>
                           <TableCell className="text-right tabular-nums">{BRL.format(totalFreteTransp)}</TableCell>
                           <TableCell className="text-right tabular-nums">{BRL.format(medio)}</TableCell>
-                          <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                          <TableCell className="text-right tabular-nums">{pctCobradoTotal != null ? `${pctCobradoTotal.toFixed(2)}%` : "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{NUM.format(Math.round(totPeso))} kg</TableCell>
                         </TableRow>
                       );
