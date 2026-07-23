@@ -467,6 +467,15 @@ export default function ConciliacaoDespesas() {
                                 <MailQuestion className="h-3.5 w-3.5" />
                                 Solicitar doc
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => { setFuroAtivo(f); setClassificarOpen(true); }}
+                              >
+                                <Tags className="h-3.5 w-3.5" />
+                                Classificar direto
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
