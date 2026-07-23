@@ -301,12 +301,21 @@ serve(async (req) => {
     }
 
     // 4. Títulos (sempre do pedido — cobrança não fragmenta por remessa em v1)
+    // 4a. Descobrir se a natureza de operação do pedido gera título a receber
+    const { data: pedidoNatureza } = await supabase
+      .from("pedidos")
+      .select("natureza_operacao_id, naturezas_operacao(gera_titulo_receber)")
+      .eq("id", pedido_id)
+      .maybeSingle();
+    const geraTituloRaw = (pedidoNatureza as any)?.naturezas_operacao?.gera_titulo_receber;
+    const geraTitulo = geraTituloRaw == null ? true : Boolean(geraTituloRaw);
+
     const { data: titulos } = await supabase
       .from("titulo_a_receber")
       .select("id, numero_parcela, valor_bruto, data_vencimento_original, tipo_pagamento, eh_entrada")
       .eq("pedido_id", pedido_id)
       .order("numero_parcela");
-    if (!titulos || titulos.length === 0) {
+    if (geraTitulo && (!titulos || titulos.length === 0)) {
       return err("Pedido sem títulos — confirme o portão na aba Primeiro Pagamento, ou materialize a cobrança, antes de enviar ao Bling.", 409);
     }
 
