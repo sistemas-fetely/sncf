@@ -170,7 +170,9 @@ export function useImportarBraspress(transportadoraId: string | null) {
     const fretes = preview.rows
       .map((r) => {
         const cte = str(at(r, c.cte));
+        const nf = cleanNf(at(r, c.nf));
         if (!cte) return null;
+        if (!nf || !/^\d+$/.test(nf)) return null;
         const peso = num(at(r, c.peso));
         return {
           transportadora_id: transportadoraId,
