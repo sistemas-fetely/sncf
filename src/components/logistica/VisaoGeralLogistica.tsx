@@ -349,7 +349,7 @@ export function VisaoGeralLogistica() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <StatCardMini label="Receita de frete" value={BRL.format(totais.receita)} icon={TrendingUp} tone="success" />
           <StatCardMini label="Custo real" value={BRL.format(totais.custo)} icon={TrendingDown} tone="info" />
           <StatCardMini
@@ -372,6 +372,9 @@ export function VisaoGeralLogistica() {
             tone="info"
             hint="sobre NFs com frete"
           />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCardMini
             label="Subsídio de frete"
             value={BRL.format(totais.subsidio)}
@@ -379,9 +382,6 @@ export function VisaoGeralLogistica() {
             tone={totais.subsidio > 0 ? "destructive" : "success"}
             hint={`${totais.pctBancado.toFixed(2)}% do faturamento — quanto a Fetely banca`}
           />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatCardMini
             label="NFs c/ frete zero"
             value={NUM.format(totais.nfsSemFrete)}
@@ -403,6 +403,7 @@ export function VisaoGeralLogistica() {
             hint={`${NUM.format(totais.nfsComFrete)} NFs`}
           />
         </div>
+
 
         {/* Gráfico mensal */}
         <Card className="card-shadow">
