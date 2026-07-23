@@ -12,6 +12,35 @@ const jsonResponse = (status: number, body: unknown) =>
 
 const FOP_URL = "https://onalegxugtuxpfhonayq.supabase.co";
 
+const CAMPOS = [
+  "sku",
+  "nome_comercial",
+  "preco_atacado",
+  "peso_g",
+  "multiplos",
+  "ativo",
+  "altura_cm",
+  "largura_cm",
+  "profundidade_cm",
+  "ean",
+  "ncm",
+  "cest",
+  "marca",
+  "linha",
+  "grupo",
+  "tipo",
+  "colecao",
+  "cor_nome",
+  "tamanho_numero",
+  "descricao_produto",
+  "tipo_embalagem",
+  "material",
+  "material_descritivo",
+  "nome_completo",
+  "origem_fisc",
+  "origem_prod",
+] as const;
+
 serve(async () => {
   try {
     const supabase = createClient(
@@ -30,7 +59,7 @@ serve(async () => {
 
     // Puxa produtos ativos do FOP via PostgREST
     const resp = await fetch(
-      `${FOP_URL}/rest/v1/products?select=sku,nome_comercial,preco_atacado,peso_g,multiplos,ativo&ativo=eq.true&limit=2000`,
+      `${FOP_URL}/rest/v1/products?select=${CAMPOS.join(",")}&ativo=eq.true&limit=2000`,
       {
         headers: {
           "apikey": fopKey,
@@ -44,14 +73,7 @@ serve(async () => {
       throw new Error(`FOP respondeu ${resp.status}: ${err}`);
     }
 
-    const produtos = await resp.json() as Array<{
-      sku: string;
-      nome_comercial: string;
-      preco_atacado: number;
-      peso_g: number;
-      multiplos: number;
-      ativo: boolean;
-    }>;
+    const produtos = await resp.json() as Array<Record<string, unknown>>;
 
     if (!produtos || produtos.length === 0) {
       return jsonResponse(200, { ok: true, upsertados: 0, mensagem: "Nenhum produto ativo no FOP" });
@@ -67,15 +89,12 @@ serve(async () => {
       const { error } = await (supabase as any)
         .from("sncf_produtos")
         .upsert(
-          lote.map((p) => ({
-            sku:            p.sku,
-            nome_comercial: p.nome_comercial,
-            preco_atacado:  p.preco_atacado,
-            peso_g:         p.peso_g,
-            multiplos:      p.multiplos,
-            ativo:          p.ativo,
-            atualizado_em:  new Date().toISOString(),
-          })),
+          lote.map((p) => {
+            const row: Record<string, unknown> = {};
+            for (const campo of CAMPOS) row[campo] = p[campo];
+            row.atualizado_em = new Date().toISOString();
+            return row;
+          }),
           { onConflict: "sku" }
         );
 
