@@ -289,6 +289,7 @@ export function VisaoGeralLogistica() {
 
   // KPIs operacionais gerais
   const opsKpis = useMemo(() => {
+    const MS_DIA = 1000 * 60 * 60 * 24;
     const total = rastreioRows.length;
     const comDatas = rastreioRows.filter((r) => r.data_entrega && r.previsao_entrega);
     const onTime = comDatas.filter((r) => new Date(r.data_entrega!) <= new Date(r.previsao_entrega!)).length;
@@ -296,7 +297,18 @@ export function VisaoGeralLogistica() {
     const devolucoes = rastreioRows.filter((r) => r.eh_devolucao).length;
     const devPct = total > 0 ? (devolucoes / total) * 100 : 0;
     const entregues = rastreioRows.filter((r) => r.data_entrega).length;
-    return { total, comDatas: comDatas.length, onTimePct, devolucoes, devPct, entregues };
+    let gapSum = 0;
+    let gapN = 0;
+    for (const r of comDatas) {
+      const dEnt = new Date(r.data_entrega!);
+      const dPrev = new Date(r.previsao_entrega!);
+      if (!isNaN(dEnt.getTime()) && !isNaN(dPrev.getTime())) {
+        gapSum += (dEnt.getTime() - dPrev.getTime()) / MS_DIA;
+        gapN += 1;
+      }
+    }
+    const gapMedio = gapN > 0 ? gapSum / gapN : null;
+    return { total, comDatas: comDatas.length, onTimePct, devolucoes, devPct, entregues, gapMedio };
   }, [rastreioRows]);
 
   // Prazo médio de entrega (vw_logistica_prazo_entrega)
