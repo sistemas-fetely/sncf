@@ -144,7 +144,6 @@ export default function CaixaBanco() {
   const [aplicandoIA, setAplicandoIA] = useState(false);
   const [sugestaoMovId, setSugestaoMovId] = useState<string | null>(null);
   const [buscarNFContaId, setBuscarNFContaId] = useState<string | null>(null);
-  const [buscarNFContaId, setBuscarNFContaId] = useState<string | null>(null);
   const [buscarNFDescricao, setBuscarNFDescricao] = useState("");
   const [buscarNFValor, setBuscarNFValor] = useState(0);
   const [filaIAOpen, setFilaIAOpen] = useState(false);
