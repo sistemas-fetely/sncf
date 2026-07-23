@@ -296,6 +296,21 @@ export function VisaoGeralLogistica() {
     return { total, comDatas: comDatas.length, onTimePct, devolucoes, devPct, entregues };
   }, [rastreioRows]);
 
+  // Prazo médio de entrega (vw_logistica_prazo_entrega)
+  const prazoEntrega = useMemo(() => {
+    const rows = idsSelecionados
+      ? prazoAll.filter((r) => r.transportadora_id && idsSelecionados.has(r.transportadora_id))
+      : prazoAll;
+    let entregas = 0;
+    let diasTotal = 0;
+    for (const r of rows) {
+      entregas += n(r.entregas);
+      diasTotal += n(r.dias_total);
+    }
+    const media = entregas > 0 ? diasTotal / entregas : null;
+    return { entregas, diasTotal, media };
+  }, [prazoAll, idsSelecionados]);
+
   // KPIs operacionais por transportadora
   const opsPorTransp = useMemo(() => {
     const map = new Map<string, {
