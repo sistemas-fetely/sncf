@@ -168,7 +168,82 @@ export default function ConciliacaoDespesas() {
   function invalidar() {
     qc.invalidateQueries({ queryKey: ["conciliacao-furos"] });
     qc.invalidateQueries({ queryKey: ["conciliacao-sug-nf"] });
+    qc.invalidateQueries({ queryKey: ["conciliacao-sug-cpr"] });
     qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
+  }
+
+  function getValorDoc(f: Furo): number | null {
+    if (f.fonte_sugestao === "nf") {
+      const nf = nfMap.get(f.id);
+      return nf?.nf_valor != null ? Number(nf.nf_valor) : null;
+    }
+    if (f.fonte_sugestao === "cpr") {
+      const c = cprMap.get(f.id);
+      return c?.cpr_valor != null ? Number(c.cpr_valor) : null;
+    }
+    return null;
+  }
+
+  function getDataDoc(f: Furo): string | null {
+    if (f.fonte_sugestao === "nf") {
+      return nfMap.get(f.id)?.nf_data_emissao ?? null;
+    }
+    if (f.fonte_sugestao === "cpr") {
+      const c = cprMap.get(f.id);
+      return c?.data_pagamento || c?.data_vencimento || null;
+    }
+    return null;
+  }
+
+  async function confirmarSelecionadas() {
+    setConfirmarLoteRunning(true);
+    let ok = 0;
+    let falhas = 0;
+    let primeiraFalha: string | null = null;
+    try {
+      const p_user_id = await getUserId();
+      const alvos = comSugestao.filter((f) => selecionadas.has(f.id));
+      for (const f of alvos) {
+        try {
+          if (f.fonte_sugestao === "nf" && f.sugestao_stage_id) {
+            const { error } = await sb.rpc("conciliar_debito_com_nf", {
+              p_mov_id: f.id,
+              p_stage_id: f.sugestao_stage_id,
+              p_user_id,
+            });
+            if (error) throw error;
+          } else if (f.fonte_sugestao === "cpr" && f.sugestao_cpr_id) {
+            const { error } = await sb.rpc("confirmar_match_despesa", {
+              p_mov_id: f.id,
+              p_cpr_id: f.sugestao_cpr_id,
+              p_user_id,
+            });
+            if (error) throw error;
+          } else {
+            throw new Error("Sugestão inválida");
+          }
+          ok++;
+        } catch (e) {
+          falhas++;
+          const msg = e instanceof Error ? e.message : String(e);
+          if (primeiraFalha == null) primeiraFalha = msg;
+        }
+      }
+      if (falhas === 0) {
+        toast.success(`${ok} confirmadas`);
+      } else {
+        toast.error(`${ok} confirmadas, ${falhas} falharam`, {
+          description: primeiraFalha || undefined,
+        });
+      }
+    } catch (e) {
+      toast.error("Falha no lote: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setConfirmarLoteRunning(false);
+      setConfirmarLoteOpen(false);
+      setSelecionadas(new Set());
+      invalidar();
+    }
   }
 
   async function confirmarUm(f: Furo) {
