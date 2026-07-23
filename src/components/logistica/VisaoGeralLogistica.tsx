@@ -99,6 +99,7 @@ export function VisaoGeralLogistica() {
   const rastreioAll = rastreioQuery.data ?? [];
   const custoTranspAll = custoTranspQuery.data ?? [];
   const custoUfAll = custoUfQuery.data ?? [];
+  const prazoAll = prazoQuery.data ?? [];
 
   // Opções de transportadora vêm do P&L (fonte canônica)
   const opcoesTransp = useMemo(() => {
