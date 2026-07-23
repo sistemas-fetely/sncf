@@ -605,6 +605,7 @@ const App = () => (
                 <Route path="extrato-pares" element={<ParesTransferencia />} />
                 <Route path="conciliacao-cartao" element={<ConciliacaoCartao />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
+                <Route path="despesas" element={<Despesas />} />
 
                 <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
                 <Route path="importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
