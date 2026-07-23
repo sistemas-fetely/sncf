@@ -1124,6 +1124,13 @@ export default function NFsStage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Button
+              onClick={() => setAddDocOpen(true)}
+              className="bg-admin hover:bg-admin/90 gap-2"
+            >
+              <FilePlus2 className="h-4 w-4" />
+              Adicionar documento
+            </Button>
+            <Button
               variant="outline"
               onClick={() => navigate("/administrativo-fetely/motor-classificacao")}
               className="gap-2"
