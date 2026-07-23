@@ -203,8 +203,9 @@ export function VisaoGeralLogistica() {
   const custoPorUf = useMemo(() => {
     const map = new Map<string, number>();
     for (const r of custoUfRows) {
-      const key = r.uf ?? "—";
-      map.set(key, (map.get(key) ?? 0) + n(r.frete_total));
+      const uf = r.destinatario_uf?.trim();
+      if (!uf) continue;
+      map.set(uf, (map.get(uf) ?? 0) + n(r.frete_total));
     }
     return [...map.entries()]
       .map(([uf, custo]) => ({ uf, custo }))
