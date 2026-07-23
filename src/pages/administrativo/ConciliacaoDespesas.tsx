@@ -54,7 +54,7 @@ type SugNF = {
 
 export default function ConciliacaoDespesas() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  
   const [aba, setAba] = useState<"sugestao" | "furos">("sugestao");
   const [processando, setProcessando] = useState<string | null>(null);
   const [loteOpen, setLoteOpen] = useState(false);
