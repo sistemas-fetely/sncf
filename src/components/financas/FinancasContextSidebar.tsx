@@ -9,7 +9,6 @@ import {
   CheckCheck,
   Upload,
   FileText,
-  FileWarning,
   FolderTree,
   Landmark,
   Coins,
@@ -22,10 +21,8 @@ import {
   Inbox,
   Filter,
   GitCompare,
-
-
+  PieChart,
 } from "lucide-react";
-
 
 import {
   Sidebar,
@@ -52,64 +49,74 @@ export function FinancasContextSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="pt-4 gap-0">
-        {/* Item raiz */}
+        {/* LEITURA */}
         <SidebarGroup className="pb-3">
-          <SidebarGroupLabel className="px-3 py-2 text-[11px] uppercase tracking-[2px] text-muted-foreground h-auto">Tudo à Vista</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-3 py-2 text-[11px] uppercase tracking-[2px] text-muted-foreground h-auto">Leitura</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <FinancasSidebarItem
-                to="/administrativo"
-                icon={LayoutDashboard}
-                label="Visão Geral"
-                end
-              />
+              <FinancasSidebarItem to="/administrativo" icon={LayoutDashboard} label="Visão Geral" end />
+              <FinancasSidebarItem to="/administrativo/caixa-banco" icon={PieChart} label="Gerencial" end />
               <FinancasSidebarItem to="/administrativo/analise-despesas" icon={BarChart3} label="Análise de Despesas" />
-              <FinancasSidebarItem to="/administrativo/painel-financeiro-conta" icon={Users} label="Vencimentos x Cliente" />
+              <FinancasSidebarItem to="/administrativo/fluxo-caixa" icon={LineChart} label="Fluxo de Caixa" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* CPR */}
+        {/* DESPESAS */}
         <SidebarGroup className="border-t border-gold/10 py-3">
           <SidebarGroupContent>
-            <FinancasSidebarSection title="CPR" variant="primary">
-              <FinancasSidebarItem to="/administrativo/contas-pagar" icon={ArrowDownCircle} label="Contas a Pagar" />
-              <FinancasSidebarItem to="/administrativo/contas-receber" icon={ArrowUpCircle} label="Contas a Receber" />
-              <FinancasSidebarItem to="/administrativo/caixa-banco" icon={ArrowLeftRight} label="Movimentações" end />
-              <FinancasSidebarItem to="/administrativo/fluxo-caixa" icon={LineChart} label="Fluxo de Caixa" />
+            <FinancasSidebarSection title="Despesas" variant="primary">
+              <FinancasSidebarItem to="/administrativo-fetely/nfs-stage" icon={FileText} label="NFs de Despesa" />
+              <FinancasSidebarItem to="/administrativo/contas-pagar" icon={ArrowDownCircle} label="Contas a Pagar (Agenda)" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* BANCO */}
+        {/* CONTROLADORIA */}
         <SidebarGroup className="border-t border-gold/10 py-3">
           <SidebarGroupContent>
-            <FinancasSidebarSection title="Banco" variant="primary">
-              <FinancasSidebarItem to="/administrativo/faturas-cartao" icon={CreditCard} label="Faturas de Cartão" />
-              <FinancasSidebarItem to="/administrativo/compromissos" icon={Calendar} label="Contratos Recorrentes" />
-              <FinancasSidebarItem to="/administrativo/caixa-banco/contas" icon={Landmark} label="Contas Bancárias" />
-              <FinancasSidebarItem to="/administrativo/fluxo-futuro" icon={TrendingUp} label="Fluxo Futuro" />
+            <FinancasSidebarSection title="Controladoria" variant="primary">
+              <FinancasSidebarItem to="/administrativo/extrato-importacao" icon={Upload} label="Importar Extratos" />
+              <FinancasSidebarItem to="/administrativo/conciliacao-despesas" icon={GitCompare} label="Conciliar Despesas" />
+              <FinancasSidebarItem to="/administrativo/extrato-pares" icon={ArrowLeftRight} label="Pares Transferência" />
+              <FinancasSidebarItem to="/administrativo/conciliacao-cartao" icon={CreditCard} label="Conciliação Cartão" />
+              <FinancasSidebarItem to="/administrativo/extrato-regras" icon={Filter} label="Regras Automáticas" />
+              <FinancasSidebarItem to="/administrativo/extrato-inbox" icon={Inbox} label="Inbox Extrato" />
+            </FinancasSidebarSection>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* RECEITAS */}
+        <SidebarGroup className="border-t border-gold/10 py-3">
+          <SidebarGroupContent>
+            <FinancasSidebarSection title="Receitas" variant="primary">
+              <FinancasSidebarItem to="/administrativo/contas-receber" icon={ArrowUpCircle} label="Contas a Receber" />
+              <FinancasSidebarItem to="/administrativo/recebimentos-conciliar" icon={CheckCheck} label="Recebimentos a conciliar" />
               <FinancasSidebarItem to="/administrativo/previsao-recebimentos" icon={ArrowDownToLine} label="Previsão de Recebimentos" />
+              <FinancasSidebarItem to="/administrativo/painel-financeiro-conta" icon={Users} label="Vencimentos x Cliente" />
+            </FinancasSidebarSection>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* PROJEÇÕES */}
+        <SidebarGroup className="border-t border-gold/10 py-3">
+          <SidebarGroupContent>
+            <FinancasSidebarSection title="Projeções (em reformulação)" variant="primary">
+              <FinancasSidebarItem to="/administrativo/fluxo-futuro" icon={TrendingUp} label="Fluxo Futuro" />
               <FinancasSidebarItem to="/administrativo/fluxo-futuro-investimento" icon={Target} label="Fluxo Futuro Investimento" />
               <FinancasSidebarItem to="/administrativo/investimento-lancamento" icon={Coins} label="Investimento de Lançamento" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* ESTRUTURA */}
+        {/* CADASTROS */}
         <SidebarGroup className="border-t border-gold/10 py-3">
           <SidebarGroupContent>
-            <FinancasSidebarSection title="Estrutura" variant="primary">
-              <FinancasSidebarItem to="/administrativo/recebimentos-conciliar" icon={ArrowUpCircle} label="Recebimentos a conciliar" />
-              <FinancasSidebarItem to="/administrativo/extrato-importacao" icon={Upload} label="Importar Extratos" />
-              <FinancasSidebarItem to="/administrativo/extrato-inbox" icon={Inbox} label="Inbox Extrato" />
-              <FinancasSidebarItem to="/administrativo/conciliacao-despesas" icon={GitCompare} label="Conciliar Despesas" />
-              <FinancasSidebarItem to="/administrativo/extrato-regras" icon={Filter} label="Regras Automáticas" />
-              <FinancasSidebarItem to="/administrativo/extrato-pares" icon={ArrowLeftRight} label="Pares Transferência" />
-              <FinancasSidebarItem to="/administrativo/conciliacao-cartao" icon={CreditCard} label="Conciliação Cartão" />
-
+            <FinancasSidebarSection title="Cadastros" variant="primary">
               <FinancasSidebarItem to="/administrativo/plano-contas" icon={FolderTree} label="Plano de Contas" />
-              <FinancasSidebarItem to="/administrativo/conciliacao" icon={CheckCheck} label="Conciliação" />
+              <FinancasSidebarItem to="/administrativo/caixa-banco/contas" icon={Landmark} label="Contas Bancárias" />
+              <FinancasSidebarItem to="/administrativo/compromissos" icon={Calendar} label="Contratos Recorrentes" />
+              <FinancasSidebarItem to="/administrativo/faturas-cartao" icon={CreditCard} label="Faturas de Cartão" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
