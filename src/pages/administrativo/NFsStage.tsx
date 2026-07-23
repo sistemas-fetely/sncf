@@ -87,6 +87,7 @@ import { descartarStage } from "@/lib/financeiro/stage-handler";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
 import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { CategoriaCombobox } from "@/components/financeiro/CategoriaCombobox";
+import AdicionarDocumentoDialog from "@/components/financas/AdicionarDocumentoDialog";
 import { gerarResumoNFe, regerarResumoNFe } from "@/lib/financeiro/gerar-resumo-nfe";
 import {
   classificarComAprendizado,
@@ -222,6 +223,7 @@ export default function NFsStage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [addDocOpen, setAddDocOpen] = useState(false);
   const [filtroPill, setFiltroPill] = useState<FiltroPill>("a_revisar");
   const [mesFiltro, setMesFiltro] = useState<string | null>(null);
   // Índice do fim da janela de 12 meses (aponta pro último mês visível dentro de chartData). null = default (mais recentes)
@@ -1122,6 +1124,13 @@ export default function NFsStage() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              onClick={() => setAddDocOpen(true)}
+              className="bg-admin hover:bg-admin/90 gap-2"
+            >
+              <FilePlus2 className="h-4 w-4" />
+              Adicionar documento
+            </Button>
             <Button
               variant="outline"
               onClick={() => navigate("/administrativo-fetely/motor-classificacao")}
@@ -2136,6 +2145,8 @@ export default function NFsStage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdicionarDocumentoDialog open={addDocOpen} onOpenChange={setAddDocOpen} />
     </div>
 
   );

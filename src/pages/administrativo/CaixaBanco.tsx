@@ -90,8 +90,6 @@ import {
   corClass,
 } from "./CaixaBanco/utils";
 import MovimentacoesGerencial from "@/components/financeiro/MovimentacoesGerencial";
-import AdicionarDocumentoDialog from "@/components/financas/AdicionarDocumentoDialog";
-import { FilePlus2 } from "lucide-react";
 
 type FormaPgtoLite = { id: string; nome: string };
 type Parceiro = { id: string; razao_social: string | null };
@@ -146,7 +144,6 @@ export default function CaixaBanco() {
   const [aplicandoIA, setAplicandoIA] = useState(false);
   const [sugestaoMovId, setSugestaoMovId] = useState<string | null>(null);
   const [buscarNFContaId, setBuscarNFContaId] = useState<string | null>(null);
-  const [addDocOpen, setAddDocOpen] = useState(false);
   const [buscarNFDescricao, setBuscarNFDescricao] = useState("");
   const [buscarNFValor, setBuscarNFValor] = useState(0);
   const [filaIAOpen, setFilaIAOpen] = useState(false);
@@ -649,10 +646,6 @@ export default function CaixaBanco() {
               Espinha dorsal financeira (realizado + comprometido).
             </p>
           </div>
-          <Button onClick={() => setAddDocOpen(true)} className="bg-admin hover:bg-admin/90">
-            <FilePlus2 className="h-4 w-4 mr-2" />
-            Adicionar documento
-          </Button>
         </div>
 
         <div className="flex gap-2 flex-wrap items-center">
@@ -1312,8 +1305,6 @@ export default function CaixaBanco() {
           if (!o) setModalDocNfId(null);
         }}
       />
-
-      <AdicionarDocumentoDialog open={addDocOpen} onOpenChange={setAddDocOpen} />
     </div>
   );
 
