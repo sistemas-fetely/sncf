@@ -22,6 +22,7 @@ import {
   Filter,
   GitCompare,
   PieChart,
+  Receipt,
 } from "lucide-react";
 
 import {
