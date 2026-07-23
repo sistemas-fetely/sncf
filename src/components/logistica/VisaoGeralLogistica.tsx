@@ -737,7 +737,7 @@ export function VisaoGeralLogistica() {
 
 
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatCardMini
             label="On-time %"
             value={`${opsKpis.onTimePct.toFixed(1)}%`}
@@ -754,6 +754,17 @@ export function VisaoGeralLogistica() {
           />
           <StatCardMini label="Entregues" value={NUM.format(opsKpis.entregues)} icon={Package} tone="success" />
           <StatCardMini label="Total rastreado" value={NUM.format(opsKpis.total)} icon={Truck} tone="info" />
+          <StatCardMini
+            label="Prazo médio de entrega"
+            value={
+              prazoEntrega.media == null
+                ? "—"
+                : `${prazoEntrega.media.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`
+            }
+            icon={Clock}
+            tone="info"
+            hint={`da emissão à entrega · ${NUM.format(prazoEntrega.entregas)} entregas`}
+          />
         </div>
 
         {/* KPIs por transportadora */}
