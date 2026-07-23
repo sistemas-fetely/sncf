@@ -77,6 +77,9 @@ export default function ConciliacaoDespesas() {
   const [classificarOpen, setClassificarOpen] = useState(false);
   const [furoAtivo, setFuroAtivo] = useState<Furo | null>(null);
   const [filtroFuros, setFiltroFuros] = useState<"todos" | "aguardando" | "sem_tratativa">("todos");
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [confirmarLoteOpen, setConfirmarLoteOpen] = useState(false);
+  const [confirmarLoteRunning, setConfirmarLoteRunning] = useState(false);
 
   const { data: furos = [], isLoading } = useQuery({
     queryKey: ["conciliacao-furos"],
