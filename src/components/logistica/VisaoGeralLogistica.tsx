@@ -12,8 +12,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useLogisticaPnl } from "@/hooks/logistica/useLogisticaPnl";
 import { useRastreioNf } from "@/hooks/logistica/useRastreioNf";
-import { useLogisticaCustoTransp } from "@/hooks/logistica/useLogisticaCustoTransp";
-import { useLogisticaCustoUf } from "@/hooks/logistica/useLogisticaCustoUf";
+import { useLogisticaCustoTransportadora } from "@/hooks/logistica/useLogisticaCustoTransportadora";
+import { useTranspFretesUf } from "@/hooks/logistica/useTranspFretesUf";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const NUM = new Intl.NumberFormat("pt-BR");
