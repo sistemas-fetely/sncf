@@ -235,6 +235,37 @@ export function VisaoGeralLogistica() {
     return base > 0 ? (receita / base) * 100 : null;
   }, [pctCobradoAgg]);
 
+  // % custo/NF por transportadora (Σ frete_total ÷ Σ valor_nf), a partir de vw_transp_fretes
+  const custoNfPorId = useMemo(() => {
+    const map = new Map<string, { frete: number; nf: number }>();
+    for (const r of custoUfRows) {
+      if (!r.transportadora_id) continue;
+      const cur = map.get(r.transportadora_id) ?? { frete: 0, nf: 0 };
+      cur.frete += n(r.frete_total);
+      cur.nf += n(r.valor_nf);
+      map.set(r.transportadora_id, cur);
+    }
+    return map;
+  }, [custoUfRows]);
+
+  function pctCustoNfPara(id: string | null | undefined): number | null {
+    if (!id) return null;
+    const v = custoNfPorId.get(id);
+    if (!v || v.nf <= 0) return null;
+    return (v.frete / v.nf) * 100;
+  }
+
+  const pctCustoNfTotal = useMemo(() => {
+    let frete = 0;
+    let nf = 0;
+    for (const v of custoNfPorId.values()) {
+      frete += v.frete;
+      nf += v.nf;
+    }
+    return nf > 0 ? (frete / nf) * 100 : null;
+  }, [custoNfPorId]);
+
+
 
   // Custo por UF (soma sobre transportadoras filtradas)
   const custoPorUf = useMemo(() => {
@@ -552,6 +583,7 @@ export function VisaoGeralLogistica() {
                     <TableHead className="text-right">Frete total</TableHead>
                     <TableHead className="text-right">Frete médio</TableHead>
                     <TableHead className="text-right" title="frete cobrado ÷ NF, só c/ frete">% cobrado/NF</TableHead>
+                    <TableHead className="text-right" title="Σ frete_total ÷ Σ valor_nf, só NFs com custo">% custo/NF</TableHead>
                     <TableHead className="text-right">Peso taxado</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -565,6 +597,9 @@ export function VisaoGeralLogistica() {
                       <TableCell className="text-right tabular-nums">
                         {(() => { const p = pctCobradoPara(r.transportadora); return p != null ? `${p.toFixed(2)}%` : "—"; })()}
                       </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {(() => { const p = pctCustoNfPara(r.transportadora_id); return p != null ? `${p.toFixed(2)}%` : "—"; })()}
+                      </TableCell>
 
                       <TableCell className="text-right tabular-nums">
                         {NUM.format(Math.round(n(r.peso_taxado_total)))} kg
@@ -573,7 +608,7 @@ export function VisaoGeralLogistica() {
                   ))}
                   {custoTranspAgg.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-6">
+                      <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
                         Sem CTes.
                       </TableCell>
                     </TableRow>
@@ -589,6 +624,7 @@ export function VisaoGeralLogistica() {
                           <TableCell className="text-right tabular-nums">{BRL.format(totalFreteTransp)}</TableCell>
                           <TableCell className="text-right tabular-nums">{BRL.format(medio)}</TableCell>
                           <TableCell className="text-right tabular-nums">{pctCobradoTotal != null ? `${pctCobradoTotal.toFixed(2)}%` : "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{pctCustoNfTotal != null ? `${pctCustoNfTotal.toFixed(2)}%` : "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{NUM.format(Math.round(totPeso))} kg</TableCell>
                         </TableRow>
                       );

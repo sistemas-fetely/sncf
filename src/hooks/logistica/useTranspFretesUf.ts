@@ -6,6 +6,7 @@ export interface TranspFreteUfRow {
   transportadora_id: string | null;
   destinatario_uf: string | null;
   frete_total: number | null;
+  valor_nf: number | null;
   classe: string | null;
 }
 
@@ -16,7 +17,7 @@ export function useTranspFretesUf() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_transp_fretes")
-        .select("transportadora_id, destinatario_uf, frete_total, classe");
+        .select("transportadora_id, destinatario_uf, frete_total, valor_nf, classe");
       if (error) throw new Error(humanizeError(error.message));
       return (data ?? []) as TranspFreteUfRow[];
     },
