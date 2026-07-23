@@ -161,25 +161,27 @@ export function RastreioNf() {
         </div>
       ) : (
         <div className="rounded-md border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="text-xs">
-                <TableHead>NF</TableHead>
-                <TableHead>Transportadora</TableHead>
-                <TableHead>Destinatário</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Previsão</TableHead>
-                <TableHead>Entrega</TableHead>
-                <TableHead className="text-right">Valor NF</TableHead>
-                <TableHead>Pedido</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtradas.map((r) => (
-                <LinhaRastreio key={r.id} r={r} />
-              ))}
-            </TableBody>
-          </Table>
+          <div className="max-h-[70vh] overflow-y-auto">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-card [&_tr]:bg-card">
+                <TableRow className="text-xs bg-card hover:bg-card">
+                  <SortableTableHead column="nf" sort={sort} onSort={setSort}>NF</SortableTableHead>
+                  <SortableTableHead column="transportadora" sort={sort} onSort={setSort}>Transportadora</SortableTableHead>
+                  <SortableTableHead column="destinatario" sort={sort} onSort={setSort}>Destinatário</SortableTableHead>
+                  <SortableTableHead column="status" sort={sort} onSort={setSort}>Status</SortableTableHead>
+                  <SortableTableHead column="previsao" sort={sort} onSort={setSort}>Previsão</SortableTableHead>
+                  <SortableTableHead column="entrega" sort={sort} onSort={setSort}>Entrega</SortableTableHead>
+                  <SortableTableHead column="valor" sort={sort} onSort={setSort} align="right" className="text-right">Valor NF</SortableTableHead>
+                  <TableHead>Pedido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtradas.map((r) => (
+                  <LinhaRastreio key={r.id} r={r} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>
