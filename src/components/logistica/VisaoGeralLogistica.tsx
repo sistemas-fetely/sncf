@@ -473,38 +473,44 @@ export function VisaoGeralLogistica() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCardMini label="Receita de frete" value={BRL.format(totais.receita)} icon={TrendingUp} tone="success" />
-          <StatCardMini label="Custo real" value={BRL.format(totais.custo)} icon={TrendingDown} tone="info" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <StatCardMini
+            label="Receita de frete"
+            value={BRL.format(totais.receita)}
+            icon={TrendingUp}
+            tone="success"
+            hint={`${NUM.format(totais.nfsComFrete)} de ${NUM.format(totais.nfs)} NFs cobradas · ${NUM.format(totais.nfsSemFrete)} sem frete`}
+          />
+          <StatCardMini
+            label="Custo real"
+            value={BRL.format(totais.custo)}
+            icon={TrendingDown}
+            tone="info"
+            hint="pago às transportadoras"
+          />
           <StatCardMini
             label="Margem"
             value={BRL.format(totais.margem)}
             icon={margemNeg ? TrendingDown : TrendingUp}
             tone={margemNeg ? "destructive" : "success"}
+            hint="= subsídio que a Fetely banca"
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <StatCardMini
             label="% recuperação"
             value={`${totais.pctRec.toFixed(1)}%`}
             icon={Percent}
             tone={totais.pctRec >= 100 ? "success" : "warning"}
-            hint="Receita ÷ custo"
+            hint="receita ÷ custo"
           />
           <StatCardMini
-            label="% da NF"
-            value={`${totais.pctNf.toFixed(1)}%`}
+            label="Frete cobrado/NF"
+            value={`${totais.pctNf.toFixed(2)}%`}
             icon={Percent}
             tone="info"
             hint="sobre NFs com frete"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatCardMini
-            label="Subsídio de frete"
-            value={BRL.format(totais.subsidio)}
-            icon={AlertTriangle}
-            tone={totais.subsidio > 0 ? "destructive" : "success"}
-            hint="quanto a Fetely banca"
           />
           {(() => {
             const tone = totais.subsidio > 0 ? "destructive" : "success";
@@ -535,26 +541,6 @@ export function VisaoGeralLogistica() {
               </div>
             );
           })()}
-          <StatCardMini
-            label="NFs c/ frete zero"
-            value={NUM.format(totais.nfsSemFrete)}
-            icon={AlertTriangle}
-            tone="warning"
-            hint="Absorvido pela Fetely"
-          />
-          <StatCardMini
-            label="Base NF (total)"
-            value={BRL.format(totais.baseNf)}
-            icon={DollarSign}
-            hint={`${NUM.format(totais.nfs)} NFs`}
-          />
-          <StatCardMini
-            label="Base NF (c/ frete)"
-            value={BRL.format(totais.baseNfComFrete)}
-            icon={DollarSign}
-            tone="info"
-            hint={`${NUM.format(totais.nfsComFrete)} NFs`}
-          />
         </div>
 
 
