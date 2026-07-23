@@ -206,19 +206,23 @@ export default function ConciliacaoDespesas() {
       for (const f of alvos) {
         try {
           if (f.fonte_sugestao === "nf" && f.sugestao_stage_id) {
-            const { error } = await sb.rpc("conciliar_debito_com_nf", {
+            const { data, error } = await sb.rpc("conciliar_debito_com_nf", {
               p_mov_id: f.id,
               p_stage_id: f.sugestao_stage_id,
               p_user_id,
             });
             if (error) throw error;
+            const res = data as { ok?: boolean; erro?: string } | null;
+            if (res && res.ok === false) throw new Error(res.erro || "Operação recusada");
           } else if (f.fonte_sugestao === "cpr" && f.sugestao_cpr_id) {
-            const { error } = await sb.rpc("confirmar_match_despesa", {
+            const { data, error } = await sb.rpc("confirmar_match_despesa", {
               p_mov_id: f.id,
               p_cpr_id: f.sugestao_cpr_id,
               p_user_id,
             });
             if (error) throw error;
+            const res = data as { ok?: boolean; erro?: string } | null;
+            if (res && res.ok === false) throw new Error(res.erro || "Operação recusada");
           } else {
             throw new Error("Sugestão inválida");
           }
