@@ -540,7 +540,23 @@ export function VisaoGeralLogistica() {
                         Sem CTes.
                       </TableCell>
                     </TableRow>
-                  ) : null}
+                  ) : (
+                    (() => {
+                      const totFretes = custoTranspAgg.reduce((a, r) => a + n(r.qtd_fretes), 0);
+                      const totPeso = custoTranspAgg.reduce((a, r) => a + n(r.peso_taxado_total), 0);
+                      const medio = totFretes > 0 ? totalFreteTransp / totFretes : 0;
+                      return (
+                        <TableRow className="bg-muted/40 font-semibold">
+                          <TableCell>Total</TableCell>
+                          <TableCell className="text-right tabular-nums">{NUM.format(totFretes)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{BRL.format(totalFreteTransp)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{BRL.format(medio)}</TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                          <TableCell className="text-right tabular-nums">{NUM.format(Math.round(totPeso))} kg</TableCell>
+                        </TableRow>
+                      );
+                    })()
+                  )}
                 </TableBody>
               </Table>
             </div>
