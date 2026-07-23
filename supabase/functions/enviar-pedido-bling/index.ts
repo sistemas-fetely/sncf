@@ -302,13 +302,9 @@ serve(async (req) => {
 
     // 4. Títulos (sempre do pedido — cobrança não fragmenta por remessa em v1)
     // 4a. Descobrir se a natureza de operação do pedido gera título a receber
-    const { data: pedidoNatureza } = await supabase
-      .from("pedidos")
-      .select("natureza_operacao_id, naturezas_operacao(gera_titulo_receber)")
-      .eq("id", pedido_id)
-      .maybeSingle();
-    const geraTituloRaw = (pedidoNatureza as any)?.naturezas_operacao?.gera_titulo_receber;
-    const geraTitulo = geraTituloRaw == null ? true : Boolean(geraTituloRaw);
+    const { data: geraTituloRpc } = await supabase.rpc("fn_pedido_gera_titulo", { p_pedido_id: pedido_id });
+    const geraTitulo = geraTituloRpc == null ? true : Boolean(geraTituloRpc);
+
 
     const { data: titulos } = await supabase
       .from("titulo_a_receber")
