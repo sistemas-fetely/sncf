@@ -272,14 +272,17 @@ export function VisaoGeralLogistica() {
 
   // Custo por UF (soma sobre transportadoras filtradas)
   const custoPorUf = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { custo: number; fretes: number }>();
     for (const r of custoUfRows) {
       const uf = r.destinatario_uf?.trim();
       if (!uf) continue;
-      map.set(uf, (map.get(uf) ?? 0) + n(r.frete_total));
+      const cur = map.get(uf) ?? { custo: 0, fretes: 0 };
+      cur.custo += n(r.frete_total);
+      cur.fretes += 1;
+      map.set(uf, cur);
     }
     return [...map.entries()]
-      .map(([uf, custo]) => ({ uf, custo }))
+      .map(([uf, v]) => ({ uf, custo: v.custo, fretes: v.fretes }))
       .sort((a, b) => b.custo - a.custo)
       .slice(0, 12);
   }, [custoUfRows]);
