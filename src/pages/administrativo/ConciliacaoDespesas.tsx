@@ -582,17 +582,39 @@ export default function ConciliacaoDespesas() {
         const nSemTrat = semSugestao.length - nAguardando;
         return (
           <>
-            <ToggleGroup
-              type="single"
-              value={filtroFuros}
-              onValueChange={(v) => v && setFiltroFuros(v as typeof filtroFuros)}
-              className="justify-start"
-            >
-              <ToggleGroupItem value="todos">Todos ({semSugestao.length})</ToggleGroupItem>
-              <ToggleGroupItem value="aguardando">Aguardando documento ({nAguardando})</ToggleGroupItem>
-              <ToggleGroupItem value="sem_tratativa">Sem tratativa ({nSemTrat})</ToggleGroupItem>
-            </ToggleGroup>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <ToggleGroup
+                type="single"
+                value={filtroFuros}
+                onValueChange={(v) => v && setFiltroFuros(v as typeof filtroFuros)}
+                className="justify-start"
+              >
+                <ToggleGroupItem value="todos">Todos ({semSugestao.length})</ToggleGroupItem>
+                <ToggleGroupItem value="aguardando">Aguardando documento ({nAguardando})</ToggleGroupItem>
+                <ToggleGroupItem value="sem_tratativa">Sem tratativa ({nSemTrat})</ToggleGroupItem>
+              </ToggleGroup>
 
+              <ToggleGroup
+                type="single"
+                size="sm"
+                value={visaoFuros}
+                onValueChange={(v) => v && setVisaoFuros(v as typeof visaoFuros)}
+              >
+                <ToggleGroupItem value="fornecedor">Por fornecedor</ToggleGroupItem>
+                <ToggleGroupItem value="lancamento">Por lançamento</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
+            {visaoFuros === "fornecedor" && (
+              <FurosPorFornecedor
+                furos={furosFiltrados}
+                onBuscar={(f) => { setFuroAtivo(f as Furo); setBuscarOpen(true); }}
+                onSolicitar={(f) => { setFuroAtivo(f as Furo); setSolicitarOpen(true); }}
+                onClassificar={(f) => { setFuroAtivo(f as Furo); setClassificarOpen(true); }}
+              />
+            )}
+
+            {visaoFuros === "lancamento" && (
             <Card>
               <CardContent className="p-0">
                 <Table>
