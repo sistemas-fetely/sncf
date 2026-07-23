@@ -222,6 +222,7 @@ export default function NFsStage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [addDocOpen, setAddDocOpen] = useState(false);
   const [filtroPill, setFiltroPill] = useState<FiltroPill>("a_revisar");
   const [mesFiltro, setMesFiltro] = useState<string | null>(null);
   // Índice do fim da janela de 12 meses (aponta pro último mês visível dentro de chartData). null = default (mais recentes)
