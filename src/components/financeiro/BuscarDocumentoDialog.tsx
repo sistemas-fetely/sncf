@@ -33,7 +33,7 @@ type Candidato = {
   fornecedor_cliente: string | null;
   fornecedor_cnpj: string | null;
   nf_data_emissao: string | null;
-  valor_total: number | null;
+  valor: number | null;
 };
 
 interface Props {
