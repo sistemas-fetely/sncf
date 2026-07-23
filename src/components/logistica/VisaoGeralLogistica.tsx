@@ -313,7 +313,7 @@ export function VisaoGeralLogistica() {
   }
 
   const margemNeg = totais.margem < 0;
-  const bancadoAlto = totais.pctBancado >= 5;
+  
 
   return (
     <div className="space-y-8">
