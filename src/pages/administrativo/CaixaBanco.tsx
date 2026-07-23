@@ -1305,8 +1305,6 @@ export default function CaixaBanco() {
           if (!o) setModalDocNfId(null);
         }}
       />
-
-      <AdicionarDocumentoDialog open={addDocOpen} onOpenChange={setAddDocOpen} />
     </div>
   );
 
