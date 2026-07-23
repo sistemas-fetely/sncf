@@ -369,6 +369,29 @@ export function VisaoGeralLogistica() {
       .sort((a, b) => b.total - a.total);
   }, [rastreioRows]);
 
+  // Lead time (prazo_medio_dias) por nome de transportadora, via resolução name↔id no custoTranspAll
+  const leadTimePorNome = useMemo(() => {
+    const prazoPorId = new Map<string, number>();
+    for (const r of prazoAll) {
+      if (r.transportadora_id && r.prazo_medio_dias != null) {
+        prazoPorId.set(r.transportadora_id, Number(r.prazo_medio_dias));
+      }
+    }
+    const out = new Map<string, number>();
+    for (const nome of new Set(rastreioRows.map((r) => r.transportadora_nome ?? "—"))) {
+      for (const c of custoTranspAll) {
+        if (c.transportadora_id && matchesTransp(c.transportadora, nome)) {
+          const v = prazoPorId.get(c.transportadora_id);
+          if (v != null) {
+            out.set(nome, v);
+            break;
+          }
+        }
+      }
+    }
+    return out;
+  }, [prazoAll, custoTranspAll, rastreioRows]);
+
   const mixTransp = useMemo(() => {
     const map = new Map<string, number>();
     for (const r of rastreioRows) {
