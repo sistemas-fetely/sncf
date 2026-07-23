@@ -59,6 +59,10 @@ export default function ConciliacaoDespesas() {
   const [processando, setProcessando] = useState<string | null>(null);
   const [loteOpen, setLoteOpen] = useState(false);
   const [loteRunning, setLoteRunning] = useState(false);
+  const [buscarOpen, setBuscarOpen] = useState(false);
+  const [solicitarOpen, setSolicitarOpen] = useState(false);
+  const [furoAtivo, setFuroAtivo] = useState<Furo | null>(null);
+  const [filtroFuros, setFiltroFuros] = useState<"todos" | "aguardando" | "sem_tratativa">("todos");
 
   const { data: furos = [], isLoading } = useQuery({
     queryKey: ["conciliacao-furos"],
