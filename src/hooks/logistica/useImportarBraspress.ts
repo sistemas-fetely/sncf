@@ -90,6 +90,7 @@ export function useImportarBraspress(transportadoraId: string | null) {
       destinatario: idxDe(h, "DESTINATARIO"),
       dtEmissao: idxDe(h, "DATA EMISSÃO"),
       previsao: idxDe(h, "PREVISÃO DE ENTREGA"),
+      previsaoOriginal: idxDe(h, "PREVISÃO DE ENTREGA ORIGINAL"),
       status: idxDe(h, "STATUS"),
       ultOcorr: idxDe(h, "ULTIMA OCORRÊNCIA"),
       dtOcorr: idxDe(h, "DATA OCORRÊNCIA"),
