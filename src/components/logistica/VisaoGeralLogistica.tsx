@@ -343,6 +343,11 @@ export function VisaoGeralLogistica() {
           <h2 className="text-base font-semibold">P&L da Logística</h2>
           <span className="text-xs text-muted-foreground">Receita cobrada × custo real</span>
         </div>
+        {pnlQuery.error ? (
+          <div className="text-xs text-muted-foreground border rounded-md px-3 py-2">
+            Não foi possível carregar o P&L.
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCardMini label="Receita de frete" value={BRL.format(totais.receita)} icon={TrendingUp} tone="success" />
