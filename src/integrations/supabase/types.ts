@@ -8431,6 +8431,62 @@ export type Database = {
         }
         Relationships: []
       }
+      naturezas_operacao: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          dispensa_analise: boolean
+          entra_receita: boolean
+          forma_pagamento_default_id: string | null
+          gera_despesa: boolean
+          gera_titulo_receber: boolean
+          id: string
+          nome: string
+          ordem: number
+          precificacao: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          dispensa_analise?: boolean
+          entra_receita?: boolean
+          forma_pagamento_default_id?: string | null
+          gera_despesa?: boolean
+          gera_titulo_receber?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          precificacao?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          dispensa_analise?: boolean
+          entra_receita?: boolean
+          forma_pagamento_default_id?: string | null
+          gera_despesa?: boolean
+          gera_titulo_receber?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          precificacao?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "naturezas_operacao_forma_pagamento_default_id_fkey"
+            columns: ["forma_pagamento_default_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       navegacao_log: {
         Row: {
           acessado_em: string
@@ -11282,6 +11338,7 @@ export type Database = {
           itens_json: Json | null
           link_pagamento: string | null
           marcacao: string | null
+          natureza_operacao_id: string
           nf_data: string | null
           nf_email_enviado_em: string | null
           nf_numero: string | null
@@ -11360,6 +11417,7 @@ export type Database = {
           itens_json?: Json | null
           link_pagamento?: string | null
           marcacao?: string | null
+          natureza_operacao_id?: string
           nf_data?: string | null
           nf_email_enviado_em?: string | null
           nf_numero?: string | null
@@ -11438,6 +11496,7 @@ export type Database = {
           itens_json?: Json | null
           link_pagamento?: string | null
           marcacao?: string | null
+          natureza_operacao_id?: string
           nf_data?: string | null
           nf_email_enviado_em?: string | null
           nf_numero?: string | null
@@ -11475,6 +11534,13 @@ export type Database = {
             columns: ["forma_pagamento_id"]
             isOneToOne: false
             referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_natureza_operacao_id_fkey"
+            columns: ["natureza_operacao_id"]
+            isOneToOne: false
+            referencedRelation: "naturezas_operacao"
             referencedColumns: ["id"]
           },
           {
@@ -21177,6 +21243,22 @@ export type Database = {
           mes: string | null
           pct_frete_nf_medio: number | null
           qtd_fretes: number | null
+        }
+        Relationships: []
+      }
+      vw_logistica_pnl_mensal: {
+        Row: {
+          base_nf: number | null
+          cnpj_raiz: string | null
+          ctes: number | null
+          custo_frete: number | null
+          margem: number | null
+          mes: string | null
+          nfs: number | null
+          nfs_com_frete: number | null
+          receita_frete: number | null
+          receita_sem_custo: boolean | null
+          transportadora: string | null
         }
         Relationships: []
       }
