@@ -67,7 +67,8 @@ export function FinancasContextSidebar() {
         <SidebarGroup className="border-t border-gold/10 py-3">
           <SidebarGroupContent>
             <FinancasSidebarSection title="Despesas" variant="primary">
-              <FinancasSidebarItem to="/administrativo-fetely/nfs-stage" icon={FileText} label="NFs de Despesa" />
+              <FinancasSidebarItem to="/administrativo/despesas" icon={Receipt} label="Despesas" />
+              <FinancasSidebarItem to="/administrativo-fetely/nfs-stage" icon={FileText} label="Triagem de Documentos" />
               <FinancasSidebarItem to="/administrativo/contas-pagar" icon={ArrowDownCircle} label="Contas a Pagar (Agenda)" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
