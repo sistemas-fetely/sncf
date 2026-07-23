@@ -389,86 +389,180 @@ export default function ConciliacaoDespesas() {
             </Card>
           )}
 
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[45%]">Débito</TableHead>
-                    <TableHead className="w-[45%]">Sugestão</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && (
-                    <TableRow><TableCell colSpan={3} className="text-center py-6">
-                      <Loader2 className="h-4 w-4 animate-spin inline" />
-                    </TableCell></TableRow>
-                  )}
-                  {!isLoading && comSugestao.length === 0 && (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">
-                      Nenhum débito com sugestão
-                    </TableCell></TableRow>
-                  )}
-                  {comSugestao.map((f) => {
-                    const nf = nfMap.get(f.id);
-                    const seguro = (f.sugestao_score ?? 0) >= 5;
-                    return (
-                      <TableRow key={f.id}>
-                        <TableCell className="text-xs align-top">
-                          <div className="font-medium">
-                            {formatDateBR(f.data_transacao)} · {f.banco || "—"}
-                          </div>
-                          <div className="text-muted-foreground truncate max-w-[420px]" title={f.descricao || ""}>
-                            {f.descricao || "—"}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="font-mono font-semibold">{formatBRL(Number(f.valor))}</span>
-                            {f.tipo_meio && <Badge variant="outline" className="text-[10px]">{f.tipo_meio}</Badge>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs align-top">
-                          <div className="font-medium">{f.sugestao_contraparte || "—"}</div>
-                          {f.fonte_sugestao === "nf" && nf?.nf_numero && (
-                            <div className="text-muted-foreground">NF {nf.nf_numero}</div>
-                          )}
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="font-mono text-[10px]">
-                              score {f.sugestao_score ?? "?"}
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px] uppercase">
-                              {f.fonte_sugestao}
-                            </Badge>
-                            {seguro && (
-                              <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-600 gap-1">
-                                <ShieldCheck className="h-3 w-3" /> seguro
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={processando === f.id}
-                            onClick={() => confirmarUm(f)}
-                            className="gap-1"
-                          >
-                            {processando === f.id
-                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              : <CheckCircle2 className="h-3.5 w-3.5" />}
-                            Confirmar
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          {(() => {
+            const idsVisiveis = comSugestao.map((f) => f.id);
+            const nSelecionadas = idsVisiveis.filter((id) => selecionadas.has(id)).length;
+            const somaSelecionadas = comSugestao
+              .filter((f) => selecionadas.has(f.id))
+              .reduce((s, f) => s + Number(f.valor || 0), 0);
+            const todasMarcadas =
+              idsVisiveis.length > 0 && idsVisiveis.every((id) => selecionadas.has(id));
+            const algumasMarcadas = nSelecionadas > 0 && !todasMarcadas;
+
+            function toggleTodas(marcar: boolean) {
+              setSelecionadas((prev) => {
+                const next = new Set(prev);
+                if (marcar) idsVisiveis.forEach((id) => next.add(id));
+                else idsVisiveis.forEach((id) => next.delete(id));
+                return next;
+              });
+            }
+
+            function toggleUma(id: string, marcar: boolean) {
+              setSelecionadas((prev) => {
+                const next = new Set(prev);
+                if (marcar) next.add(id);
+                else next.delete(id);
+                return next;
+              });
+            }
+
+            return (
+              <>
+                {nSelecionadas > 0 && (
+                  <div className="sticky top-0 z-10 flex items-center justify-between gap-4 rounded-md border bg-primary/5 px-4 py-2 text-sm shadow-sm">
+                    <div>
+                      <span className="font-medium">{nSelecionadas} selecionadas</span>
+                      <span className="text-muted-foreground"> · soma </span>
+                      <span className="font-mono font-semibold">{formatBRL(somaSelecionadas)}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => setConfirmarLoteOpen(true)}
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Confirmar selecionadas
+                    </Button>
+                  </div>
+                )}
+
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[36px]">
+                            <Checkbox
+                              checked={todasMarcadas ? true : algumasMarcadas ? "indeterminate" : false}
+                              onCheckedChange={(v) => toggleTodas(!!v)}
+                              aria-label="Selecionar todas"
+                            />
+                          </TableHead>
+                          <TableHead className="w-[42%]">Débito</TableHead>
+                          <TableHead className="w-[42%]">Sugestão</TableHead>
+                          <TableHead />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {isLoading && (
+                          <TableRow><TableCell colSpan={4} className="text-center py-6">
+                            <Loader2 className="h-4 w-4 animate-spin inline" />
+                          </TableCell></TableRow>
+                        )}
+                        {!isLoading && comSugestao.length === 0 && (
+                          <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                            Nenhum débito com sugestão
+                          </TableCell></TableRow>
+                        )}
+                        {comSugestao.map((f) => {
+                          const nf = nfMap.get(f.id);
+                          const seguro = (f.sugestao_score ?? 0) >= 5;
+                          const valorDoc = getValorDoc(f);
+                          const dataDoc = getDataDoc(f);
+                          const valorDebito = Number(f.valor || 0);
+                          const delta = valorDoc != null ? valorDoc - valorDebito : null;
+                          const bate = delta != null && Math.abs(delta) < 0.01;
+                          const checked = selecionadas.has(f.id);
+                          return (
+                            <TableRow key={f.id} data-state={checked ? "selected" : undefined}>
+                              <TableCell className="align-top">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => toggleUma(f.id, !!v)}
+                                  aria-label="Selecionar débito"
+                                />
+                              </TableCell>
+                              <TableCell className="text-xs align-top">
+                                <div className="font-medium">
+                                  {formatDateBR(f.data_transacao)} · {f.banco || "—"}
+                                </div>
+                                <div className="text-muted-foreground truncate max-w-[420px]" title={f.descricao || ""}>
+                                  {f.descricao || "—"}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="font-mono font-semibold">{formatBRL(valorDebito)}</span>
+                                  {f.tipo_meio && <Badge variant="outline" className="text-[10px]">{f.tipo_meio}</Badge>}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-xs align-top">
+                                <div className="font-medium">{f.sugestao_contraparte || "—"}</div>
+                                {f.fonte_sugestao === "nf" && nf?.nf_numero && (
+                                  <div className="text-muted-foreground">NF {nf.nf_numero}</div>
+                                )}
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  {valorDoc != null && (
+                                    <span className="font-mono font-semibold">{formatBRL(valorDoc)}</span>
+                                  )}
+                                  {dataDoc && (
+                                    <span className="text-muted-foreground">{formatDateBR(dataDoc)}</span>
+                                  )}
+                                  {delta != null && (
+                                    bate ? (
+                                      <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-600">
+                                        valor bate
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[10px] border-amber-400 text-amber-700 dark:text-amber-500"
+                                      >
+                                        Δ {formatBRL(delta)}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge variant="outline" className="font-mono text-[10px]">
+                                    score {f.sugestao_score ?? "?"}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-[10px] uppercase">
+                                    {f.fonte_sugestao}
+                                  </Badge>
+                                  {seguro && (
+                                    <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-600 gap-1">
+                                      <ShieldCheck className="h-3 w-3" /> seguro
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="align-top">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={processando === f.id}
+                                  onClick={() => confirmarUm(f)}
+                                  className="gap-1"
+                                >
+                                  {processando === f.id
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                  Confirmar
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </>
+            );
+          })()}
         </>
       )}
+
 
       {aba === "furos" && (() => {
         const furosFiltrados = semSugestao.filter((f) => {
