@@ -136,30 +136,35 @@ export function useImportarBraspress(transportadoraId: string | null) {
     setEtapa("Normalizando linhas…");
 
 
-    // RASTREIO (todas as linhas com NF)
+    // RASTREIO (todas as linhas com NF numérica)
     const rastreios = preview.rows
-      .map((r) => ({
-        nf_numero: cleanNf(at(r, c.nf)),
-        nf_serie: SERIE_PADRAO,
-        cte_numero: str(at(r, c.cte)),
-        chave_nfe: null,
-        destinatario: str(at(r, c.destinatario)),
-        cnpj_destinatario: padCnpj(at(r, c.cnpjDest)),
-        cep_destino: null,
-        cidade_destino: str(at(r, c.cidadeDest)),
-        uf_destino: str(at(r, c.ufDest)),
-        status: str(at(r, c.status)),
-        ocorrencia_ativa: resolverOcorrencia(at(r, c.ultOcorr), at(r, c.status)),
-        ocorrencia_data: parseDataBR(at(r, c.dtOcorr)),
-        data_entrega: null, // Braspress não traz data de entrega dedicada (regra futura)
-        previsao_entrega: parseDataBR(at(r, c.previsao)),
-        recebedor: null,
-        valor_nf: num(at(r, c.valorMerc)),
-        valor_cte: num(at(r, c.valorFrete)),
-        centro_custo: null,
-        natureza_mercadoria: null,
-      }))
-      .filter((x) => x.nf_numero);
+      .map((r) => {
+        const ocorrenciaResolvida = resolverOcorrencia(at(r, c.ultOcorr), at(r, c.status));
+        const codigoOcorr = (ocorrenciaResolvida.split(" - ")[0].match(/^\d+/) || [""])[0];
+        return {
+          nf_numero: cleanNf(at(r, c.nf)),
+          nf_serie: SERIE_PADRAO,
+          cte_numero: str(at(r, c.cte)),
+          chave_nfe: null,
+          destinatario: str(at(r, c.destinatario)),
+          cnpj_destinatario: padCnpj(at(r, c.cnpjDest)),
+          cep_destino: null,
+          cidade_destino: str(at(r, c.cidadeDest)),
+          uf_destino: str(at(r, c.ufDest)),
+          status: str(at(r, c.status)),
+          ocorrencia_ativa: ocorrenciaResolvida,
+          ocorrencia_data: parseDataBR(at(r, c.dtOcorr)),
+          data_entrega: codigoOcorr === "001" ? parseDataBR(at(r, c.dtOcorr)) : null,
+          previsao_entrega: parseDataBR(at(r, c.previsaoOriginal)) ?? parseDataBR(at(r, c.previsao)),
+          recebedor: null,
+          valor_nf: num(at(r, c.valorMerc)),
+          valor_cte: num(at(r, c.valorFrete)),
+          centro_custo: null,
+          natureza_mercadoria: null,
+        };
+      })
+      .filter((x) => x.nf_numero && /^\d+$/.test(x.nf_numero));
+
 
     // FRETE (só linhas COM cte_numero — NOT NULL na transp_fretes)
     const fretes = preview.rows
