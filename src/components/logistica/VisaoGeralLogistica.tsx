@@ -725,12 +725,12 @@ export function VisaoGeralLogistica() {
           </CardContent>
         </Card>
 
-        {/* Custo por UF */}
+        {/* Custo × volume por UF */}
         <Card className="card-shadow">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <MapPin className="h-4 w-4 text-primary" />
-              <div className="text-sm font-medium">Custo e volume por UF — top 12</div>
+              <div className="text-sm font-medium">Custo × volume por UF — top 12</div>
             </div>
             {custoUfQuery.error ? (
               <div className="text-sm text-muted-foreground py-8 text-center">
@@ -739,47 +739,73 @@ export function VisaoGeralLogistica() {
             ) : custoPorUf.length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center">Sem dados.</div>
             ) : (
-              <div style={{ width: "100%", height: 300 }}>
-                <ResponsiveContainer>
-                  <ComposedChart data={custoPorUf} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="uf" tick={{ fontSize: 12 }} />
-                    <YAxis
-                      yAxisId="left"
-                      tick={{ fontSize: 12 }}
-                      tickFormatter={(v) => `R$ ${Math.round(Number(v) / 1000)}k`}
-                      width={80}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      tick={{ fontSize: 12 }}
-                      width={50}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      formatter={(v: number, name: string) =>
-                        name === "Custo (R$)" ? BRL.format(Number(v)) : `${Number(v).toLocaleString("pt-BR")} fretes`
-                      }
-                    />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="custo" name="Custo (R$)" fill="hsl(var(--info))" />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="fretes"
-                      name="Fretes (qtd)"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
+              (() => {
+                const palette = [
+                  "hsl(var(--primary))",
+                  "hsl(var(--info))",
+                  "hsl(var(--success))",
+                  "hsl(var(--warning))",
+                  "hsl(var(--destructive))",
+                  "hsl(var(--accent))",
+                  "#8b5cf6",
+                  "#ec4899",
+                  "#14b8a6",
+                  "#f59e0b",
+                  "#0ea5e9",
+                  "#84cc16",
+                ];
+                const corPorUf = new Map<string, string>();
+                custoPorUf.forEach((d, i) => corPorUf.set(d.uf, palette[i % palette.length]));
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Custo por UF (R$)</div>
+                      <div style={{ width: "100%", height: 300 }}>
+                        <ResponsiveContainer>
+                          <BarChart data={custoPorUf} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                            <XAxis dataKey="uf" tick={{ fontSize: 12 }} />
+                            <YAxis
+                              tick={{ fontSize: 12 }}
+                              tickFormatter={(v) => `R$ ${Math.round(Number(v) / 1000)}k`}
+                              width={80}
+                            />
+                            <Tooltip formatter={(v: number) => BRL.format(Number(v))} />
+                            <Bar dataKey="custo" name="Custo (R$)">
+                              {custoPorUf.map((d) => (
+                                <Cell key={d.uf} fill={corPorUf.get(d.uf)!} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Fretes por UF (qtd)</div>
+                      <div style={{ width: "100%", height: 300 }}>
+                        <ResponsiveContainer>
+                          <BarChart data={custoPorUf} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                            <XAxis dataKey="uf" tick={{ fontSize: 12 }} />
+                            <YAxis tick={{ fontSize: 12 }} width={50} allowDecimals={false} />
+                            <Tooltip formatter={(v: number) => `${Number(v).toLocaleString("pt-BR")} fretes`} />
+                            <Bar dataKey="fretes" name="Fretes (qtd)">
+                              {custoPorUf.map((d) => (
+                                <Cell key={d.uf} fill={corPorUf.get(d.uf)!} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
             )}
           </CardContent>
         </Card>
       </section>
+
 
       {/* ================= BLOCO 2 — KPIs OPERACIONAIS ================= */}
       <section className="space-y-4">
