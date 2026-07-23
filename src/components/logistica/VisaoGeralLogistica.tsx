@@ -199,6 +199,43 @@ export function VisaoGeralLogistica() {
     [custoTranspAgg]
   );
 
+  // % justo (receita ÷ base_nf_com_frete) por transportadora — vem do P&L, respeita filtro
+  const pctCobradoAgg = useMemo(() => {
+    const map = new Map<string, { receita: number; base: number }>();
+    for (const r of pnlRows) {
+      const key = r.transportadora ?? "—";
+      const cur = map.get(key) ?? { receita: 0, base: 0 };
+      cur.receita += n(r.receita_frete);
+      cur.base += n(r.base_nf_com_frete);
+      map.set(key, cur);
+    }
+    return map;
+  }, [pnlRows]);
+
+  function pctCobradoPara(nome: string | null | undefined): number | null {
+    let receita = 0;
+    let base = 0;
+    for (const [k, v] of pctCobradoAgg) {
+      if (matchesTransp(k, nome ?? "")) {
+        receita += v.receita;
+        base += v.base;
+      }
+    }
+    if (base <= 0) return null;
+    return (receita / base) * 100;
+  }
+
+  const pctCobradoTotal = useMemo(() => {
+    let receita = 0;
+    let base = 0;
+    for (const v of pctCobradoAgg.values()) {
+      receita += v.receita;
+      base += v.base;
+    }
+    return base > 0 ? (receita / base) * 100 : null;
+  }, [pctCobradoAgg]);
+
+
   // Custo por UF (soma sobre transportadoras filtradas)
   const custoPorUf = useMemo(() => {
     const map = new Map<string, number>();
