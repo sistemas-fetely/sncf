@@ -91,6 +91,7 @@ export function VisaoGeralLogistica() {
   const rastreioQuery = useRastreioNf();
   const custoTranspQuery = useLogisticaCustoTransportadora();
   const custoUfQuery = useTranspFretesUf();
+  const prazoQuery = useLogisticaPrazoEntrega();
 
   const [selected, setSelected] = useState<string>(""); // "" = Geral
 
