@@ -508,6 +508,12 @@ export default function ConciliacaoDespesas() {
         furo={furoAtivo}
         onDone={invalidar}
       />
+      <ClassificarDiretoDialog
+        open={classificarOpen}
+        onOpenChange={setClassificarOpen}
+        furo={furoAtivo}
+        onDone={invalidar}
+      />
 
 
       <AlertDialog open={loteOpen} onOpenChange={(v) => !loteRunning && setLoteOpen(v)}>
