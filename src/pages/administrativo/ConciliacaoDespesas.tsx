@@ -361,78 +361,143 @@ export default function ConciliacaoDespesas() {
         </>
       )}
 
-      {aba === "furos" && (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Banco</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Contraparte</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Dias</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading && (
-                  <TableRow><TableCell colSpan={7} className="text-center py-6">
-                    <Loader2 className="h-4 w-4 animate-spin inline" />
-                  </TableCell></TableRow>
-                )}
-                {!isLoading && semSugestao.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">
-                    Nenhum furo sem sugestão
-                  </TableCell></TableRow>
-                )}
-                {semSugestao.map((f) => (
-                  <TableRow key={f.id}>
-                    <TableCell className="text-xs whitespace-nowrap">{formatDateBR(f.data_transacao)}</TableCell>
-                    <TableCell className="text-xs">{f.banco || "—"}</TableCell>
-                    <TableCell className="text-xs max-w-[320px] truncate" title={f.descricao || ""}>
-                      {f.descricao || "—"}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      <div>{f.contraparte_nome || "—"}</div>
-                      {f.contraparte_documento && (
-                        <div className="text-muted-foreground">{f.contraparte_documento}</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-right whitespace-nowrap">{formatBRL(Number(f.valor))}</TableCell>
-                    <TableCell>
-                      {(f.dias_em_aberto ?? 0) > 30 ? (
-                        <Badge variant="destructive" className="text-[10px]">{f.dias_em_aberto}d</Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">{f.dias_em_aberto ?? 0}d</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1"
-                        onClick={() => navigate("/administrativo/extrato-inbox")}
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        Abrir inbox
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {semSugestao.length > 0 && (
-                  <TableRow className="bg-muted/40 font-semibold">
-                    <TableCell colSpan={4} className="text-xs">Total</TableCell>
-                    <TableCell className="font-mono text-right">{formatBRL(valorSemSug)}</TableCell>
-                    <TableCell colSpan={2} />
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+      {aba === "furos" && (() => {
+        const furosFiltrados = semSugestao.filter((f) => {
+          if (filtroFuros === "aguardando") return !!f.doc_solicitado_em;
+          if (filtroFuros === "sem_tratativa") return !f.doc_solicitado_em;
+          return true;
+        });
+        const totalFiltrado = furosFiltrados.reduce((s, f) => s + Number(f.valor || 0), 0);
+        const nAguardando = semSugestao.filter((f) => !!f.doc_solicitado_em).length;
+        const nSemTrat = semSugestao.length - nAguardando;
+        return (
+          <>
+            <ToggleGroup
+              type="single"
+              value={filtroFuros}
+              onValueChange={(v) => v && setFiltroFuros(v as typeof filtroFuros)}
+              className="justify-start"
+            >
+              <ToggleGroupItem value="todos">Todos ({semSugestao.length})</ToggleGroupItem>
+              <ToggleGroupItem value="aguardando">Aguardando documento ({nAguardando})</ToggleGroupItem>
+              <ToggleGroupItem value="sem_tratativa">Sem tratativa ({nSemTrat})</ToggleGroupItem>
+            </ToggleGroup>
+
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Banco</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Contraparte</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Dias</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading && (
+                      <TableRow><TableCell colSpan={7} className="text-center py-6">
+                        <Loader2 className="h-4 w-4 animate-spin inline" />
+                      </TableCell></TableRow>
+                    )}
+                    {!isLoading && furosFiltrados.length === 0 && (
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">
+                        Nenhum furo neste filtro
+                      </TableCell></TableRow>
+                    )}
+                    {furosFiltrados.map((f) => {
+                      const diasSol = f.doc_solicitado_em
+                        ? Math.max(0, Math.floor(
+                            (Date.now() - new Date(f.doc_solicitado_em).getTime()) / 86400000,
+                          ))
+                        : null;
+                      return (
+                        <TableRow key={f.id}>
+                          <TableCell className="text-xs whitespace-nowrap">{formatDateBR(f.data_transacao)}</TableCell>
+                          <TableCell className="text-xs">{f.banco || "—"}</TableCell>
+                          <TableCell className="text-xs max-w-[320px] truncate" title={f.descricao || ""}>
+                            {f.descricao || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            <div>{f.contraparte_nome || "—"}</div>
+                            {f.contraparte_documento && (
+                              <div className="text-muted-foreground">{f.contraparte_documento}</div>
+                            )}
+                            {diasSol !== null && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] mt-1 gap-1 border-amber-400 text-amber-700 dark:text-amber-500"
+                                title={f.doc_solicitado_nota || undefined}
+                              >
+                                <Clock className="h-2.5 w-2.5" />
+                                aguardando doc · {diasSol}d
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono text-right whitespace-nowrap">{formatBRL(Number(f.valor))}</TableCell>
+                          <TableCell>
+                            {(f.dias_em_aberto ?? 0) > 30 ? (
+                              <Badge variant="destructive" className="text-[10px]">{f.dias_em_aberto}d</Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{f.dias_em_aberto ?? 0}d</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => { setFuroAtivo(f); setBuscarOpen(true); }}
+                              >
+                                <Search className="h-3.5 w-3.5" />
+                                Buscar documento
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => { setFuroAtivo(f); setSolicitarOpen(true); }}
+                              >
+                                <MailQuestion className="h-3.5 w-3.5" />
+                                Solicitar doc
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {furosFiltrados.length > 0 && (
+                      <TableRow className="bg-muted/40 font-semibold">
+                        <TableCell colSpan={4} className="text-xs">Total</TableCell>
+                        <TableCell className="font-mono text-right">{formatBRL(totalFiltrado)}</TableCell>
+                        <TableCell colSpan={2} />
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </>
+        );
+      })()}
+
+      <BuscarDocumentoDialog
+        open={buscarOpen}
+        onOpenChange={setBuscarOpen}
+        furo={furoAtivo}
+        onDone={invalidar}
+      />
+      <SolicitarDocumentoDialog
+        open={solicitarOpen}
+        onOpenChange={setSolicitarOpen}
+        furo={furoAtivo}
+        onDone={invalidar}
+      />
+
 
       <AlertDialog open={loteOpen} onOpenChange={(v) => !loteRunning && setLoteOpen(v)}>
         <AlertDialogContent className="max-w-2xl">
