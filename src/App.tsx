@@ -307,7 +307,7 @@ const App = () => (
                 <Route path="/vendas/shopify/fulfillments" element={<ShopifyFulfillments />} />
                 <Route path="/vendas/shopify/estoque" element={<ShopifyEstoque />} />
                 <Route path="/logistica" element={<Logistica />} />
-                <Route path="/logistica/analise-custo" element={<AnaliseCustoFrete />} />
+                <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
                 <Route path="/canal-cpo" element={<CanalCPO />} />
