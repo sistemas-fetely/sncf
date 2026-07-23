@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -22,6 +22,7 @@ type Furo = {
   valor: number;
   data_transacao: string;
   contraparte_nome: string | null;
+  contraparte_documento: string | null;
   descricao: string | null;
 };
 
@@ -43,44 +44,124 @@ interface Props {
   onDone: () => void;
 }
 
+const STOP_TOKENS = new Set([
+  "DIVERSOS", "PAG", "TIT", "SISPAG", "PIX", "ENVIADO",
+  "LTDA", "SA", "S/A", "ME", "EIRELI", "DE", "DA", "DO", "DAS", "DOS", "E",
+]);
+
+function montarTermoInicial(furo: Furo | null): string {
+  if (!furo) return "";
+  const doc = (furo.contraparte_documento || "").replace(/\D/g, "");
+  if (doc.length >= 8) return doc;
+  const nome = (furo.contraparte_nome || "").toUpperCase();
+  if (!nome) return "";
+  const tokens = nome
+    .split(/\s+/)
+    .map((t) => t.replace(/[^\wÀ-ÿ]/g, ""))
+    .filter((t) => t.length >= 3 && !STOP_TOKENS.has(t) && !/^\d+$/.test(t));
+  return tokens.slice(0, 2).join(" ");
+}
+
 export function BuscarDocumentoDialog({ open, onOpenChange, furo, onDone }: Props) {
   const [termo, setTermo] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [candidatos, setCandidatos] = useState<Candidato[]>([]);
   const [vinculando, setVinculando] = useState<string | null>(null);
+  const debounceRef = useRef<number | null>(null);
+  const reqIdRef = useRef(0);
 
-  async function buscar() {
-    if (!termo.trim()) return;
+  async function buscar(termoBusca: string) {
+    const t = termoBusca.trim();
+    if (t.length < 2) {
+      setCandidatos([]);
+      setBuscando(false);
+      return;
+    }
+    const myReq = ++reqIdRef.current;
     setBuscando(true);
     try {
-      const t = termo.trim();
-      const digits = t.replace(/\D/g, "");
-      const orParts = [
-        `fornecedor_razao_social.ilike.%${t}%`,
-        `fornecedor_cliente.ilike.%${t}%`,
-        `nf_numero.ilike.%${t}%`,
-      ];
-      if (digits) orParts.push(`fornecedor_cnpj.ilike.%${digits}%`);
-
-      const { data, error } = await sb
+      const tokens = t.split(/\s+/).filter(Boolean);
+      let query = sb
         .from("nfs_stage")
         .select("id, tipo_documento, nf_numero, fornecedor_razao_social, fornecedor_cliente, fornecedor_cnpj, nf_data_emissao, valor")
         .not("revisada_em", "is", null)
         .is("conta_pagar_id", null)
         .is("motivo_descarte", null)
         .not("status", "in", "(descartada,duplicata)")
-        .not("plano_contas_id", "is", null)
-        .or(orParts.join(","))
+        .not("plano_contas_id", "is", null);
+
+      for (const tok of tokens) {
+        const digits = tok.replace(/\D/g, "");
+        const parts = [
+          `fornecedor_razao_social.ilike.%${tok}%`,
+          `fornecedor_cliente.ilike.%${tok}%`,
+          `nf_numero.ilike.%${tok}%`,
+        ];
+        if (digits.length >= 4) parts.push(`fornecedor_cnpj.ilike.%${digits}%`);
+        query = query.or(parts.join(","));
+      }
+
+      const { data, error } = await query
         .order("nf_data_emissao", { ascending: false })
         .limit(30);
       if (error) throw error;
-      setCandidatos((data || []) as Candidato[]);
+      if (myReq !== reqIdRef.current) return;
+
+      const valorFuro = Number(furo?.valor || 0);
+      const rows = ((data || []) as Candidato[]).slice().sort((a, b) => {
+        const da = Math.abs(Number(a.valor || 0) - valorFuro);
+        const db = Math.abs(Number(b.valor || 0) - valorFuro);
+        if (da !== db) return da - db;
+        const ea = a.nf_data_emissao || "";
+        const eb = b.nf_data_emissao || "";
+        return eb.localeCompare(ea);
+      });
+      setCandidatos(rows);
     } catch (e) {
-      toast.error("Falha na busca: " + (e instanceof Error ? e.message : String(e)));
+      if (myReq === reqIdRef.current) {
+        toast.error("Falha na busca: " + (e instanceof Error ? e.message : String(e)));
+      }
     } finally {
-      setBuscando(false);
+      if (myReq === reqIdRef.current) setBuscando(false);
     }
   }
+
+  // Pré-busca ao abrir
+  useEffect(() => {
+    if (!open) {
+      setTermo("");
+      setCandidatos([]);
+      setBuscando(false);
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      return;
+    }
+    const inicial = montarTermoInicial(furo);
+    setTermo(inicial);
+    if (inicial.length >= 2) {
+      buscar(inicial);
+    } else {
+      setCandidatos([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, furo?.id]);
+
+  // Debounce ao digitar
+  useEffect(() => {
+    if (!open) return;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    if (termo.trim().length < 2) {
+      setCandidatos([]);
+      setBuscando(false);
+      return;
+    }
+    debounceRef.current = window.setTimeout(() => {
+      buscar(termo);
+    }, 350);
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [termo, open]);
 
   async function vincular(c: Candidato) {
     if (!furo) return;
@@ -133,17 +214,18 @@ export function BuscarDocumentoDialog({ open, onOpenChange, furo, onDone }: Prop
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
+            className="pl-8 pr-8"
             placeholder="Razão social, número da NF ou CNPJ"
             value={termo}
             onChange={(e) => setTermo(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") buscar(); }}
+            autoFocus
           />
-          <Button onClick={buscar} disabled={buscando || !termo.trim()} className="gap-1">
-            {buscando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            Buscar
-          </Button>
+          {buscando && (
+            <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+          )}
         </div>
 
         <div className="max-h-[50vh] overflow-y-auto">
@@ -163,7 +245,11 @@ export function BuscarDocumentoDialog({ open, onOpenChange, furo, onDone }: Prop
               {candidatos.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
-                    {buscando ? "Buscando..." : "Digite um termo e clique em Buscar"}
+                    {buscando
+                      ? "Buscando..."
+                      : termo.trim().length < 2
+                        ? "Digite ao menos 2 caracteres"
+                        : "Nenhum documento elegível encontrado"}
                   </TableCell>
                 </TableRow>
               )}
