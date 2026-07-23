@@ -72,6 +72,18 @@ export function FinancasContextSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* RECEITAS */}
+        <SidebarGroup className="border-t border-gold/10 py-3">
+          <SidebarGroupContent>
+            <FinancasSidebarSection title="Receitas" variant="primary">
+              <FinancasSidebarItem to="/administrativo/contas-receber" icon={ArrowUpCircle} label="Contas a Receber" />
+              <FinancasSidebarItem to="/administrativo/recebimentos-conciliar" icon={CheckCheck} label="Recebimentos a conciliar" />
+              <FinancasSidebarItem to="/administrativo/previsao-recebimentos" icon={ArrowDownToLine} label="Previsão de Recebimentos" />
+              <FinancasSidebarItem to="/administrativo/painel-financeiro-conta" icon={Users} label="Vencimentos x Cliente" />
+            </FinancasSidebarSection>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {/* CONTROLADORIA */}
         <SidebarGroup className="border-t border-gold/10 py-3">
           <SidebarGroupContent>
@@ -82,18 +94,6 @@ export function FinancasContextSidebar() {
               <FinancasSidebarItem to="/administrativo/conciliacao-cartao" icon={CreditCard} label="Conciliação Cartão" />
               <FinancasSidebarItem to="/administrativo/extrato-regras" icon={Filter} label="Regras Automáticas" />
               <FinancasSidebarItem to="/administrativo/extrato-inbox" icon={Inbox} label="Inbox Extrato" />
-            </FinancasSidebarSection>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* RECEITAS */}
-        <SidebarGroup className="border-t border-gold/10 py-3">
-          <SidebarGroupContent>
-            <FinancasSidebarSection title="Receitas" variant="primary">
-              <FinancasSidebarItem to="/administrativo/contas-receber" icon={ArrowUpCircle} label="Contas a Receber" />
-              <FinancasSidebarItem to="/administrativo/recebimentos-conciliar" icon={CheckCheck} label="Recebimentos a conciliar" />
-              <FinancasSidebarItem to="/administrativo/previsao-recebimentos" icon={ArrowDownToLine} label="Previsão de Recebimentos" />
-              <FinancasSidebarItem to="/administrativo/painel-financeiro-conta" icon={Users} label="Vencimentos x Cliente" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
