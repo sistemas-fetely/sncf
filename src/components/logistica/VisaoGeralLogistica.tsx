@@ -278,23 +278,10 @@ export function VisaoGeralLogistica() {
   }, [rastreioRows]);
 
   const isLoading =
-    pnlQuery.isLoading || rastreioQuery.isLoading || custoTranspQuery.isLoading || custoUfQuery.isLoading;
-
-  // Fail-loud dos hooks novos
-  if (custoTranspQuery.error) {
-    return (
-      <div className="border border-destructive/40 bg-destructive/5 rounded-lg p-6 text-sm text-destructive">
-        Erro carregando custo por transportadora: {(custoTranspQuery.error as Error).message}
-      </div>
-    );
-  }
-  if (custoUfQuery.error) {
-    return (
-      <div className="border border-destructive/40 bg-destructive/5 rounded-lg p-6 text-sm text-destructive">
-        Erro carregando custo por UF: {(custoUfQuery.error as Error).message}
-      </div>
-    );
-  }
+    (pnlQuery.isLoading && !pnlQuery.error) ||
+    (rastreioQuery.isLoading && !rastreioQuery.error) ||
+    (custoTranspQuery.isLoading && !custoTranspQuery.error) ||
+    (custoUfQuery.isLoading && !custoUfQuery.error);
 
   if (isLoading) {
     return (
