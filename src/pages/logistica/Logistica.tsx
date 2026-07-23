@@ -19,19 +19,9 @@ export default function Logistica() {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl space-y-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Truck className="h-6 w-6 text-gold" />
-          <h1 className="font-serif text-2xl">Logística</h1>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate("/logistica/analise-custo")}
-          className="gap-2"
-        >
-          <TrendingUp className="h-4 w-4" /> Análise de custo
-        </Button>
+      <div className="flex items-center gap-2">
+        <Truck className="h-6 w-6 text-gold" />
+        <h1 className="font-serif text-2xl">Logística</h1>
       </div>
 
       {isLoading ? (
