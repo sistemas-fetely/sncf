@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { useRastreioNf, type RastreioNfRow } from "@/hooks/logistica/useRastreioNf";
 import { statusBadge } from "./CardFrete";
+import { SortableTableHead, ordenarPor, type SortState } from "@/components/shared/SortableTableHead";
+
+type SortCol = "nf" | "transportadora" | "destinatario" | "status" | "previsao" | "entrega" | "valor";
 
 const CLASSE_LABELS: Record<string, string> = {
   entregue: "Entregue",
