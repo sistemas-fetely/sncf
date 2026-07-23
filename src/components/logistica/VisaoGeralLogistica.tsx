@@ -591,7 +591,11 @@ export function VisaoGeralLogistica() {
               <MapPin className="h-4 w-4 text-primary" />
               <div className="text-sm font-medium">Custo por UF — top 12</div>
             </div>
-            {custoPorUf.length === 0 ? (
+            {custoUfQuery.error ? (
+              <div className="text-sm text-muted-foreground py-8 text-center">
+                Não foi possível carregar custo por UF.
+              </div>
+            ) : custoPorUf.length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center">Sem dados.</div>
             ) : (
               <div style={{ width: "100%", height: 300 }}>
