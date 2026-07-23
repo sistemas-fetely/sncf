@@ -52,6 +52,17 @@ type SugNF = {
   stage_id: string;
   nf_numero: string | null;
   score: number;
+  nf_valor: number | null;
+  nf_data_emissao: string | null;
+  fornecedor_razao_social: string | null;
+};
+
+type SugCPR = {
+  mov_id: string;
+  cpr_valor: number | null;
+  data_vencimento: string | null;
+  data_pagamento: string | null;
+  parceiro_nome: string | null;
 };
 
 export default function ConciliacaoDespesas() {
