@@ -608,7 +608,7 @@ export function VisaoGeralLogistica() {
                   ))}
                   {custoTranspAgg.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-6">
+                      <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
                         Sem CTes.
                       </TableCell>
                     </TableRow>
@@ -624,6 +624,7 @@ export function VisaoGeralLogistica() {
                           <TableCell className="text-right tabular-nums">{BRL.format(totalFreteTransp)}</TableCell>
                           <TableCell className="text-right tabular-nums">{BRL.format(medio)}</TableCell>
                           <TableCell className="text-right tabular-nums">{pctCobradoTotal != null ? `${pctCobradoTotal.toFixed(2)}%` : "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{pctCustoNfTotal != null ? `${pctCustoNfTotal.toFixed(2)}%` : "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{NUM.format(Math.round(totPeso))} kg</TableCell>
                         </TableRow>
                       );
