@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Loader2, TrendingUp, TrendingDown, DollarSign, Percent, Package, AlertTriangle,
-  Truck, CheckCircle2, RotateCcw, Filter, MapPin, BarChart3, Clock,
+  Truck, CheckCircle2, RotateCcw, Filter, MapPin, BarChart3, Clock, CalendarClock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -289,6 +289,7 @@ export function VisaoGeralLogistica() {
 
   // KPIs operacionais gerais
   const opsKpis = useMemo(() => {
+    const MS_DIA = 1000 * 60 * 60 * 24;
     const total = rastreioRows.length;
     const comDatas = rastreioRows.filter((r) => r.data_entrega && r.previsao_entrega);
     const onTime = comDatas.filter((r) => new Date(r.data_entrega!) <= new Date(r.previsao_entrega!)).length;
@@ -296,7 +297,18 @@ export function VisaoGeralLogistica() {
     const devolucoes = rastreioRows.filter((r) => r.eh_devolucao).length;
     const devPct = total > 0 ? (devolucoes / total) * 100 : 0;
     const entregues = rastreioRows.filter((r) => r.data_entrega).length;
-    return { total, comDatas: comDatas.length, onTimePct, devolucoes, devPct, entregues };
+    let gapSum = 0;
+    let gapN = 0;
+    for (const r of comDatas) {
+      const dEnt = new Date(r.data_entrega!);
+      const dPrev = new Date(r.previsao_entrega!);
+      if (!isNaN(dEnt.getTime()) && !isNaN(dPrev.getTime())) {
+        gapSum += (dEnt.getTime() - dPrev.getTime()) / MS_DIA;
+        gapN += 1;
+      }
+    }
+    const gapMedio = gapN > 0 ? gapSum / gapN : null;
+    return { total, comDatas: comDatas.length, onTimePct, devolucoes, devPct, entregues, gapMedio };
   }, [rastreioRows]);
 
   // Prazo médio de entrega (vw_logistica_prazo_entrega)
@@ -356,6 +368,29 @@ export function VisaoGeralLogistica() {
       }))
       .sort((a, b) => b.total - a.total);
   }, [rastreioRows]);
+
+  // Lead time (prazo_medio_dias) por nome de transportadora, via resolução name↔id no custoTranspAll
+  const leadTimePorNome = useMemo(() => {
+    const prazoPorId = new Map<string, number>();
+    for (const r of prazoAll) {
+      if (r.transportadora_id && r.prazo_medio_dias != null) {
+        prazoPorId.set(r.transportadora_id, Number(r.prazo_medio_dias));
+      }
+    }
+    const out = new Map<string, number>();
+    for (const nome of new Set(rastreioRows.map((r) => r.transportadora_nome ?? "—"))) {
+      for (const c of custoTranspAll) {
+        if (c.transportadora_id && matchesTransp(c.transportadora, nome)) {
+          const v = prazoPorId.get(c.transportadora_id);
+          if (v != null) {
+            out.set(nome, v);
+            break;
+          }
+        }
+      }
+    }
+    return out;
+  }, [prazoAll, custoTranspAll, rastreioRows]);
 
   const mixTransp = useMemo(() => {
     const map = new Map<string, number>();
@@ -762,7 +797,7 @@ export function VisaoGeralLogistica() {
 
 
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <StatCardMini
             label="On-time %"
             value={`${opsKpis.onTimePct.toFixed(1)}%`}
@@ -790,6 +825,17 @@ export function VisaoGeralLogistica() {
             tone="info"
             hint={`da emissão à entrega · ${NUM.format(prazoEntrega.entregas)} entregas`}
           />
+          <StatCardMini
+            label="Gap vs prometido"
+            value={
+              opsKpis.gapMedio == null
+                ? "—"
+                : `${opsKpis.gapMedio > 0 ? "+" : ""}${opsKpis.gapMedio.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`
+            }
+            icon={CalendarClock}
+            tone={opsKpis.gapMedio == null ? "default" : opsKpis.gapMedio <= 0 ? "success" : "destructive"}
+            hint="realizado − prometido · negativo = adiantado"
+          />
         </div>
 
         {/* KPIs por transportadora */}
@@ -798,7 +844,7 @@ export function VisaoGeralLogistica() {
             <div className="px-4 py-3 border-b">
               <div className="text-sm font-medium">KPIs por transportadora</div>
               <div className="text-xs text-muted-foreground">
-                Prazo médio: negativo = adiantado · positivo = atrasado
+                Gap = realizado − prometido; negativo = adiantado
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -808,12 +854,15 @@ export function VisaoGeralLogistica() {
                     <TableHead>Transportadora</TableHead>
                     <TableHead className="text-right">Rastreios</TableHead>
                     <TableHead className="text-right">On-time %</TableHead>
-                    <TableHead className="text-right">Prazo médio (dias)</TableHead>
+                    <TableHead className="text-right">Gap vs prometido (dias)</TableHead>
+                    <TableHead className="text-right">Prazo médio de entrega (dias)</TableHead>
                     <TableHead className="text-right">Devolução %</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {opsPorTransp.map((r) => (
+                  {opsPorTransp.map((r) => {
+                    const lead = leadTimePorNome.get(r.transportadora);
+                    return (
                     <TableRow key={r.transportadora}>
                       <TableCell className="font-medium">{r.transportadora}</TableCell>
                       <TableCell className="text-right tabular-nums">{NUM.format(r.total)}</TableCell>
@@ -838,14 +887,22 @@ export function VisaoGeralLogistica() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
+                        {lead != null ? (
+                          lead.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
                         {r.devPct.toFixed(1)}%
                         <span className="text-muted-foreground text-[11px] ml-1">({NUM.format(r.devolucoes)})</span>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                   {opsPorTransp.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-6">
                         Sem rastreios.
                       </TableCell>
                     </TableRow>
