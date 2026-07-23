@@ -16445,6 +16445,99 @@ export type Database = {
           },
         ]
       }
+      solicitacoes_documento: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          email_enviado: boolean
+          email_message_id: string | null
+          id: string
+          movimentacao_id: string
+          nota: string | null
+          solicitado_para_email: string | null
+          solicitado_para_nome: string | null
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          email_enviado?: boolean
+          email_message_id?: string | null
+          id?: string
+          movimentacao_id: string
+          nota?: string | null
+          solicitado_para_email?: string | null
+          solicitado_para_nome?: string | null
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          email_enviado?: boolean
+          email_message_id?: string | null
+          id?: string
+          movimentacao_id?: string
+          nota?: string | null
+          solicitado_para_email?: string | null
+          solicitado_para_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_cartao_sugestoes"
+            referencedColumns: ["ofx_id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["credito_id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["debito_id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2c_pedido"
+            referencedColumns: ["movimentacao_id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -24646,6 +24739,17 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      solicitar_documento: {
+        Args: {
+          p_email: string
+          p_enviar: boolean
+          p_mov_id: string
+          p_nome: string
+          p_nota: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       solicitar_prorrogacao_boleto: {
         Args: { p_nova_data: string; p_titulo_id: string }
         Returns: Json
