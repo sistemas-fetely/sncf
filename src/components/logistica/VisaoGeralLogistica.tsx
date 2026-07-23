@@ -636,6 +636,14 @@ export function VisaoGeralLogistica() {
           <span className="text-xs text-muted-foreground">Baseado nos rastreios importados</span>
         </div>
 
+        {rastreioQuery.error ? (
+          <div className="text-xs text-muted-foreground border rounded-md px-3 py-2">
+            Não foi possível carregar os rastreios.
+          </div>
+        ) : null}
+
+
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCardMini
             label="On-time %"
