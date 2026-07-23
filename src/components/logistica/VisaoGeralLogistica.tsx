@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Loader2, TrendingUp, TrendingDown, DollarSign, Percent, Package, AlertTriangle,
-  Truck, CheckCircle2, RotateCcw, Filter, MapPin, BarChart3, Clock,
+  Truck, CheckCircle2, RotateCcw, Filter, MapPin, BarChart3, Clock, CalendarClock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
