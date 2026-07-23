@@ -203,8 +203,9 @@ export function VisaoGeralLogistica() {
   const custoPorUf = useMemo(() => {
     const map = new Map<string, number>();
     for (const r of custoUfRows) {
-      const key = r.uf ?? "—";
-      map.set(key, (map.get(key) ?? 0) + n(r.frete_total));
+      const uf = r.destinatario_uf?.trim();
+      if (!uf) continue;
+      map.set(uf, (map.get(uf) ?? 0) + n(r.frete_total));
     }
     return [...map.entries()]
       .map(([uf, custo]) => ({ uf, custo }))
@@ -277,23 +278,10 @@ export function VisaoGeralLogistica() {
   }, [rastreioRows]);
 
   const isLoading =
-    pnlQuery.isLoading || rastreioQuery.isLoading || custoTranspQuery.isLoading || custoUfQuery.isLoading;
-
-  // Fail-loud dos hooks novos
-  if (custoTranspQuery.error) {
-    return (
-      <div className="border border-destructive/40 bg-destructive/5 rounded-lg p-6 text-sm text-destructive">
-        Erro carregando custo por transportadora: {(custoTranspQuery.error as Error).message}
-      </div>
-    );
-  }
-  if (custoUfQuery.error) {
-    return (
-      <div className="border border-destructive/40 bg-destructive/5 rounded-lg p-6 text-sm text-destructive">
-        Erro carregando custo por UF: {(custoUfQuery.error as Error).message}
-      </div>
-    );
-  }
+    (pnlQuery.isLoading && !pnlQuery.error) ||
+    (rastreioQuery.isLoading && !rastreioQuery.error) ||
+    (custoTranspQuery.isLoading && !custoTranspQuery.error) ||
+    (custoUfQuery.isLoading && !custoUfQuery.error);
 
   if (isLoading) {
     return (
@@ -355,6 +343,11 @@ export function VisaoGeralLogistica() {
           <h2 className="text-base font-semibold">P&L da Logística</h2>
           <span className="text-xs text-muted-foreground">Receita cobrada × custo real</span>
         </div>
+        {pnlQuery.error ? (
+          <div className="text-xs text-muted-foreground border rounded-md px-3 py-2">
+            Não foi possível carregar o P&L.
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCardMini label="Receita de frete" value={BRL.format(totais.receita)} icon={TrendingUp} tone="success" />
@@ -506,6 +499,11 @@ export function VisaoGeralLogistica() {
             <div className="px-4 py-3 border-b">
               <div className="text-sm font-medium">Detalhe operacional por transportadora</div>
               <div className="text-xs text-muted-foreground">Fonte: CTes importados</div>
+              {custoTranspQuery.error ? (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Não foi possível carregar o detalhamento por transportadora.
+                </div>
+              ) : null}
             </div>
             <div className="overflow-x-auto">
               <Table>
@@ -603,7 +601,11 @@ export function VisaoGeralLogistica() {
               <MapPin className="h-4 w-4 text-primary" />
               <div className="text-sm font-medium">Custo por UF — top 12</div>
             </div>
-            {custoPorUf.length === 0 ? (
+            {custoUfQuery.error ? (
+              <div className="text-sm text-muted-foreground py-8 text-center">
+                Não foi possível carregar custo por UF.
+              </div>
+            ) : custoPorUf.length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center">Sem dados.</div>
             ) : (
               <div style={{ width: "100%", height: 300 }}>
@@ -633,6 +635,14 @@ export function VisaoGeralLogistica() {
           <h2 className="text-base font-semibold">KPIs operacionais</h2>
           <span className="text-xs text-muted-foreground">Baseado nos rastreios importados</span>
         </div>
+
+        {rastreioQuery.error ? (
+          <div className="text-xs text-muted-foreground border rounded-md px-3 py-2">
+            Não foi possível carregar os rastreios.
+          </div>
+        ) : null}
+
+
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCardMini
