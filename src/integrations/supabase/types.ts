@@ -7620,6 +7620,227 @@ export type Database = {
           },
         ]
       }
+      importacao_fabrica: {
+        Row: {
+          ativo: boolean
+          cidade_pais: string | null
+          codigo: string
+          criado_em: string
+          id: number
+          nome: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cidade_pais?: string | null
+          codigo: string
+          criado_em?: string
+          id?: never
+          nome?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cidade_pais?: string | null
+          codigo?: string
+          criado_em?: string
+          id?: never
+          nome?: string | null
+        }
+        Relationships: []
+      }
+      importacao_linha: {
+        Row: {
+          atualizado_em: string
+          cbm_caixa_master: number | null
+          cbm_total: number | null
+          colecao: string | null
+          criado_em: string
+          custo_fob_kit: number | null
+          custo_fob_total: number | null
+          custo_setup: number | null
+          descricao_original: string | null
+          ean: string | null
+          grupo_produto: string | null
+          id: number
+          importacao_pedido_id: number
+          invoice: string | null
+          qtd_inner_master: number | null
+          qtd_kits: number | null
+          qtd_kits_inner: number | null
+          qtd_kits_master: number | null
+          qtd_und_kit: number | null
+          qtd_unitaria: number | null
+          ref_item: string | null
+          ref_pi: string | null
+          sku: string | null
+          total_caixas_inner: number | null
+          total_caixas_master: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          cbm_caixa_master?: number | null
+          cbm_total?: number | null
+          colecao?: string | null
+          criado_em?: string
+          custo_fob_kit?: number | null
+          custo_fob_total?: number | null
+          custo_setup?: number | null
+          descricao_original?: string | null
+          ean?: string | null
+          grupo_produto?: string | null
+          id?: never
+          importacao_pedido_id: number
+          invoice?: string | null
+          qtd_inner_master?: number | null
+          qtd_kits?: number | null
+          qtd_kits_inner?: number | null
+          qtd_kits_master?: number | null
+          qtd_und_kit?: number | null
+          qtd_unitaria?: number | null
+          ref_item?: string | null
+          ref_pi?: string | null
+          sku?: string | null
+          total_caixas_inner?: number | null
+          total_caixas_master?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          cbm_caixa_master?: number | null
+          cbm_total?: number | null
+          colecao?: string | null
+          criado_em?: string
+          custo_fob_kit?: number | null
+          custo_fob_total?: number | null
+          custo_setup?: number | null
+          descricao_original?: string | null
+          ean?: string | null
+          grupo_produto?: string | null
+          id?: never
+          importacao_pedido_id?: number
+          invoice?: string | null
+          qtd_inner_master?: number | null
+          qtd_kits?: number | null
+          qtd_kits_inner?: number | null
+          qtd_kits_master?: number | null
+          qtd_und_kit?: number | null
+          qtd_unitaria?: number | null
+          ref_item?: string | null
+          ref_pi?: string | null
+          sku?: string | null
+          total_caixas_inner?: number | null
+          total_caixas_master?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      importacao_pedido: {
+        Row: {
+          atualizado_em: string
+          caixas_inner: number | null
+          caixas_master: number | null
+          cbm_total: number | null
+          criado_em: string
+          eta: string | null
+          etd: string | null
+          fabrica_id: number | null
+          id: number
+          numero_pedido: string
+          observacao: string | null
+          pedido_agregado: string | null
+          qtd_kits: number | null
+          rocabella_ref: string | null
+          status_id: number | null
+          total_conteineres: number | null
+          valor_fob_total: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          caixas_inner?: number | null
+          caixas_master?: number | null
+          cbm_total?: number | null
+          criado_em?: string
+          eta?: string | null
+          etd?: string | null
+          fabrica_id?: number | null
+          id?: never
+          numero_pedido: string
+          observacao?: string | null
+          pedido_agregado?: string | null
+          qtd_kits?: number | null
+          rocabella_ref?: string | null
+          status_id?: number | null
+          total_conteineres?: number | null
+          valor_fob_total?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          caixas_inner?: number | null
+          caixas_master?: number | null
+          cbm_total?: number | null
+          criado_em?: string
+          eta?: string | null
+          etd?: string | null
+          fabrica_id?: number | null
+          id?: never
+          numero_pedido?: string
+          observacao?: string | null
+          pedido_agregado?: string | null
+          qtd_kits?: number | null
+          rocabella_ref?: string | null
+          status_id?: number | null
+          total_conteineres?: number | null
+          valor_fob_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_pedido_fabrica_id_fkey"
+            columns: ["fabrica_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_fabrica"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      importacao_status: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          criado_em: string
+          descricao: string | null
+          id: number
+          ordem: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          criado_em?: string
+          descricao?: string | null
+          id?: never
+          ordem?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          criado_em?: string
+          descricao?: string | null
+          id?: never
+          ordem?: number | null
+        }
+        Relationships: []
+      }
       integracoes_config: {
         Row: {
           access_token: string | null
@@ -20734,6 +20955,7 @@ export type Database = {
           doc_solicitado_nota: string | null
           doc_solicitado_por: string | null
           fonte_sugestao: string | null
+          fornecedor_tem_doc: boolean | null
           id: string | null
           sugestao_contraparte: string | null
           sugestao_cpr_id: string | null
@@ -21972,14 +22194,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
