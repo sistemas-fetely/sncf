@@ -494,6 +494,11 @@ export function VisaoGeralLogistica() {
             <div className="px-4 py-3 border-b">
               <div className="text-sm font-medium">Detalhe operacional por transportadora</div>
               <div className="text-xs text-muted-foreground">Fonte: CTes importados</div>
+              {custoTranspQuery.error ? (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Não foi possível carregar o detalhamento por transportadora.
+                </div>
+              ) : null}
             </div>
             <div className="overflow-x-auto">
               <Table>
