@@ -12,8 +12,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useLogisticaPnl } from "@/hooks/logistica/useLogisticaPnl";
 import { useRastreioNf } from "@/hooks/logistica/useRastreioNf";
-import { useLogisticaCustoTransp } from "@/hooks/logistica/useLogisticaCustoTransp";
-import { useLogisticaCustoUf } from "@/hooks/logistica/useLogisticaCustoUf";
+import { useLogisticaCustoTransportadora } from "@/hooks/logistica/useLogisticaCustoTransportadora";
+import { useTranspFretesUf } from "@/hooks/logistica/useTranspFretesUf";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const NUM = new Intl.NumberFormat("pt-BR");
@@ -88,8 +88,8 @@ function mesLabel(mes: string): string {
 export function VisaoGeralLogistica() {
   const pnlQuery = useLogisticaPnl();
   const rastreioQuery = useRastreioNf();
-  const custoTranspQuery = useLogisticaCustoTransp();
-  const custoUfQuery = useLogisticaCustoUf();
+  const custoTranspQuery = useLogisticaCustoTransportadora();
+  const custoUfQuery = useTranspFretesUf();
 
   const [selected, setSelected] = useState<string>(""); // "" = Geral
 
@@ -118,10 +118,20 @@ export function VisaoGeralLogistica() {
     () => (selected ? custoTranspAll.filter((r) => matchesTransp(r.transportadora, selected)) : custoTranspAll),
     [custoTranspAll, selected]
   );
+  // vw_transp_fretes tem só transportadora_id; resolve os ids das transportadoras selecionadas.
+  const idsSelecionados = useMemo(() => {
+    if (!selected) return null;
+    const ids = new Set<string>();
+    for (const r of custoTranspAll) {
+      if (r.transportadora_id && matchesTransp(r.transportadora, selected)) ids.add(r.transportadora_id);
+    }
+    return ids;
+  }, [custoTranspAll, selected]);
   const custoUfRows = useMemo(
-    () => (selected ? custoUfAll.filter((r) => matchesTransp(r.transportadora, selected)) : custoUfAll),
-    [custoUfAll, selected]
+    () => (idsSelecionados ? custoUfAll.filter((r) => r.transportadora_id && idsSelecionados.has(r.transportadora_id)) : custoUfAll),
+    [custoUfAll, idsSelecionados]
   );
+
 
   // Agregados P&L
   const totais = useMemo(() => {
@@ -194,7 +204,7 @@ export function VisaoGeralLogistica() {
     const map = new Map<string, number>();
     for (const r of custoUfRows) {
       const key = r.uf ?? "—";
-      map.set(key, (map.get(key) ?? 0) + n(r.custo_frete));
+      map.set(key, (map.get(key) ?? 0) + n(r.frete_total));
     }
     return [...map.entries()]
       .map(([uf, custo]) => ({ uf, custo }))
@@ -303,7 +313,7 @@ export function VisaoGeralLogistica() {
   }
 
   const margemNeg = totais.margem < 0;
-  const bancadoAlto = totais.pctBancado >= 5;
+  
 
   return (
     <div className="space-y-8">
@@ -367,14 +377,14 @@ export function VisaoGeralLogistica() {
             value={`${totais.pctNf.toFixed(1)}%`}
             icon={Percent}
             tone="info"
-            hint="das NFs em que cobramos"
+            hint="sobre NFs com frete"
           />
           <StatCardMini
-            label="Frete bancado"
-            value={`${totais.pctBancado.toFixed(1)}% · ${BRL.format(totais.subsidio)}`}
+            label="Subsídio de frete"
+            value={BRL.format(totais.subsidio)}
             icon={AlertTriangle}
-            tone={bancadoAlto ? "destructive" : totais.pctBancado > 0 ? "warning" : "success"}
-            hint="subsídio líquido ÷ faturado"
+            tone={totais.subsidio > 0 ? "destructive" : "success"}
+            hint={`${totais.pctBancado.toFixed(2)}% do faturamento — quanto a Fetely banca`}
           />
         </div>
 
@@ -530,7 +540,23 @@ export function VisaoGeralLogistica() {
                         Sem CTes.
                       </TableCell>
                     </TableRow>
-                  ) : null}
+                  ) : (
+                    (() => {
+                      const totFretes = custoTranspAgg.reduce((a, r) => a + n(r.qtd_fretes), 0);
+                      const totPeso = custoTranspAgg.reduce((a, r) => a + n(r.peso_taxado_total), 0);
+                      const medio = totFretes > 0 ? totalFreteTransp / totFretes : 0;
+                      return (
+                        <TableRow className="bg-muted/40 font-semibold">
+                          <TableCell>Total</TableCell>
+                          <TableCell className="text-right tabular-nums">{NUM.format(totFretes)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{BRL.format(totalFreteTransp)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{BRL.format(medio)}</TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                          <TableCell className="text-right tabular-nums">{NUM.format(Math.round(totPeso))} kg</TableCell>
+                        </TableRow>
+                      );
+                    })()
+                  )}
                 </TableBody>
               </Table>
             </div>
