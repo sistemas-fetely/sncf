@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 
-export interface LogisticaCustoTranspRow {
+export interface LogisticaCustoTransportadoraRow {
+  transportadora_id: string | null;
   transportadora: string | null;
   qtd_fretes: number | null;
   frete_total: number | null;
@@ -11,17 +12,17 @@ export interface LogisticaCustoTranspRow {
   peso_taxado_total: number | null;
 }
 
-export function useLogisticaCustoTransp() {
+export function useLogisticaCustoTransportadora() {
   return useQuery({
-    queryKey: ["logistica", "custo-transp"],
-    queryFn: async (): Promise<LogisticaCustoTranspRow[]> => {
+    queryKey: ["logistica", "custo-transportadora"],
+    queryFn: async (): Promise<LogisticaCustoTransportadoraRow[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_logistica_custo_transportadora")
         .select("*")
         .order("frete_total", { ascending: false });
       if (error) throw new Error(humanizeError(error.message));
-      return (data ?? []) as LogisticaCustoTranspRow[];
+      return (data ?? []) as LogisticaCustoTransportadoraRow[];
     },
     staleTime: 5 * 60 * 1000,
   });
