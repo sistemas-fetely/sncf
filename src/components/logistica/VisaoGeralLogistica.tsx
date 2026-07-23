@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Loader2, TrendingUp, TrendingDown, DollarSign, Percent, Package, AlertTriangle,
-  Truck, CheckCircle2, RotateCcw, Filter, MapPin, BarChart3,
+  Truck, CheckCircle2, RotateCcw, Filter, MapPin, BarChart3, Clock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,6 +14,7 @@ import { useLogisticaPnl } from "@/hooks/logistica/useLogisticaPnl";
 import { useRastreioNf } from "@/hooks/logistica/useRastreioNf";
 import { useLogisticaCustoTransportadora } from "@/hooks/logistica/useLogisticaCustoTransportadora";
 import { useTranspFretesUf } from "@/hooks/logistica/useTranspFretesUf";
+import { useLogisticaPrazoEntrega } from "@/hooks/logistica/useLogisticaPrazoEntrega";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const NUM = new Intl.NumberFormat("pt-BR");
