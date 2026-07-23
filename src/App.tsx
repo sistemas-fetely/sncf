@@ -142,6 +142,7 @@ const RegrasInbox = lazy(() => import("@/pages/administrativo/RegrasInbox"));
 const ParesTransferencia = lazy(() => import("@/pages/administrativo/ParesTransferencia"));
 const ConciliacaoCartao = lazy(() => import("@/pages/administrativo/ConciliacaoCartao"));
 const ConciliacaoDespesas = lazy(() => import("@/pages/administrativo/ConciliacaoDespesas"));
+const Despesas = lazy(() => import("@/pages/administrativo/Despesas"));
 const AnaliseDespesas = lazy(() => import("@/pages/administrativo/AnaliseDespesas"));
 
 const CreditoIndex = lazy(() => import("@/pages/Credito/CreditoIndex"));
@@ -604,6 +605,7 @@ const App = () => (
                 <Route path="extrato-pares" element={<ParesTransferencia />} />
                 <Route path="conciliacao-cartao" element={<ConciliacaoCartao />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
+                <Route path="despesas" element={<Despesas />} />
 
                 <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
                 <Route path="importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
