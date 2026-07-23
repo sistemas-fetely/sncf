@@ -7,7 +7,6 @@ import { RastreioNf } from "@/components/logistica/RastreioNf";
 import { cn } from "@/lib/utils";
 
 export default function Logistica() {
-  const navigate = useNavigate();
   const { data: transportadoras = [], isLoading } = useTransportadorasLogistica();
   const [ativaId, setAtivaId] = useState<string>("geral");
 
