@@ -21814,14 +21814,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -22417,6 +22417,29 @@ export type Database = {
           em_wns: boolean | null
           needs_review: boolean | null
           nome_comercial: string | null
+          sku: string | null
+        }
+        Relationships: []
+      }
+      vw_produto_fiscal: {
+        Row: {
+          ativo: boolean | null
+          atualizado_em: string | null
+          bling_id_canonico: string | null
+          bling_ids_total: number | null
+          bling_preco_canonico: number | null
+          cest: string | null
+          colecao: string | null
+          ean: string | null
+          linha: string | null
+          marca: string | null
+          ncm: string | null
+          needs_review: boolean | null
+          nome_comercial: string | null
+          nome_completo: string | null
+          origem_fisc: string | null
+          origem_prod: string | null
+          preco_atacado: number | null
           sku: string | null
         }
         Relationships: []

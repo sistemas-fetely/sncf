@@ -14,13 +14,13 @@ export default function Produtos() {
   const [busca, setBusca] = useState("");
 
   const { data: produtos = [], isLoading } = useQuery({
-    queryKey: ["produtos"],
+    queryKey: ["produto_fiscal"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("produtos")
+      const { data, error } = await (supabase as any)
+        .from("vw_produto_fiscal")
         .select("*")
-        .order("nome", { ascending: true })
-        .limit(1000);
+        .order("nome_comercial", { ascending: true })
+        .limit(2000);
       if (error) throw error;
       return data || [];
     },
@@ -30,14 +30,9 @@ export default function Produtos() {
     const q = busca.trim().toLowerCase();
     if (!q) return produtos;
     return produtos.filter((p: any) =>
-      [p.codigo, p.nome, p.linha, p.gtin].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
+      [p.nome_comercial, p.ean, p.sku].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
     );
   }, [produtos, busca]);
-
-  // KPI CANDIDATO: Total de SKUs ativos
-  // KPI CANDIDATO: Margem média (preço_venda - preço_custo) / preço_venda
-  // KPI CANDIDATO: Produtos com estoque abaixo do mínimo
-  // KPI CANDIDATO: Top produtos por valor de estoque
 
   return (
     <div className="space-y-6">
@@ -55,7 +50,7 @@ export default function Produtos() {
         <CardHeader>
           <CardTitle>Catálogo</CardTitle>
           <Input
-            placeholder="Buscar por código, nome, linha ou GTIN..."
+            placeholder="Buscar por nome, EAN ou SKU..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="max-w-md mt-2"
@@ -78,30 +73,44 @@ export default function Produtos() {
                   <TableHead>Código</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Linha</TableHead>
+                  <TableHead>NCM</TableHead>
                   <TableHead className="text-right">Preço Venda</TableHead>
-                  <TableHead className="text-right">Estoque</TableHead>
                   <TableHead>Ativo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtrados.map((p: any) => (
-                  <TableRow key={p.id}>
+                  <TableRow key={p.id ?? p.sku}>
                     <TableCell>
                       {p.imagem_url ? (
                         <img
                           src={p.imagem_url}
-                          alt={p.nome}
+                          alt={p.nome_comercial}
                           className="h-8 w-8 rounded object-cover border"
                         />
                       ) : (
                         <div className="h-8 w-8 rounded bg-muted" />
                       )}
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{p.codigo || "—"}</TableCell>
-                    <TableCell className="max-w-[320px] truncate">{p.nome}</TableCell>
+                    <TableCell className="font-mono text-xs">{p.sku || "—"}</TableCell>
+                    <TableCell className="max-w-[320px]">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="truncate">{p.nome_comercial}</span>
+                        {Number(p.bling_ids_total) > 1 && (
+                          <Badge variant="outline" className="text-[10px]">
+                            Bling: {p.bling_ids_total} registros
+                          </Badge>
+                        )}
+                        {p.needs_review && (
+                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700">
+                            sem preço
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-xs">{p.linha || "—"}</TableCell>
-                    <TableCell className="text-right font-medium">{fmtBRL(p.preco_venda)}</TableCell>
-                    <TableCell className="text-right text-xs">{p.estoque_atual ?? 0}</TableCell>
+                    <TableCell className="font-mono text-xs">{p.ncm || "—"}</TableCell>
+                    <TableCell className="text-right font-medium">{fmtBRL(p.bling_preco_canonico)}</TableCell>
                     <TableCell>
                       {p.ativo ? (
                         <Badge className="bg-emerald-600 hover:bg-emerald-600">Ativo</Badge>
