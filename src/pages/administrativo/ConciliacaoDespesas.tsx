@@ -735,6 +735,22 @@ export default function ConciliacaoDespesas() {
                                 <Tags className="h-3.5 w-3.5" />
                                 Classificar direto
                               </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="gap-1"
+                                      onClick={() => { setFuroAtivo(f); setFaturaCartaoOpen(true); }}
+                                    >
+                                      <CreditCard className="h-3.5 w-3.5" />
+                                      Fatura
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Pagar fatura de cartão</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                           </TableCell>
                         </TableRow>
