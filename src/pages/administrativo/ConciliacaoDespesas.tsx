@@ -47,6 +47,7 @@ type Furo = {
   doc_solicitado_por: string | null;
   doc_solicitado_nota: string | null;
   fornecedor_tem_doc: boolean | null;
+  fornecedor_conta_corrente: boolean | null;
 };
 
 type SugNF = {
