@@ -569,6 +569,12 @@ export default function ExtratoImportacao() {
     try {
       for (const f of arquivos) {
         try {
+          if (await ehRelatorioPagamentosItau(f)) {
+            toast.error(
+              "Este arquivo é o Relatório de Pagamentos Itaú — use o card 'Pagamentos Itaú' abaixo nesta mesma página."
+            );
+            continue;
+          }
           await processarArquivo(f);
         } catch (e) {
           toast.error(
