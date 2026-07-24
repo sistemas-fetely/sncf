@@ -81,6 +81,27 @@ export default function ExtratoImportacao() {
   const [conta, setConta] = useState<string>("");
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
+  const [reprocessandoItau, setReprocessandoItau] = useState(false);
+
+  async function enriquecerItau() {
+    setReprocessandoItau(true);
+    try {
+      const { data, error } = await sb.rpc("enriquecer_pagamentos_itau");
+      if (error) throw error;
+      const vinc = data?.vinculados ?? 0;
+      const enr = data?.enriquecidas ?? 0;
+      const amb = data?.ambiguos ?? 0;
+      let msg = `Vínculo: ${vinc} pagamentos ligados ao extrato, ${enr} débitos identificados`;
+      if (amb > 0) msg += ` · ${amb} ambíguos — tratar manualmente`;
+      toast.success(msg);
+      qc.invalidateQueries({ queryKey: ["conciliacao-furos"] });
+      qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
+    } catch (e) {
+      toast.error("Falha ao enriquecer: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setReprocessandoItau(false);
+    }
+  }
 
   const { data: contas = [] } = useQuery({
     queryKey: ["extrato-import-contas"],
