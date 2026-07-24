@@ -17,6 +17,7 @@ export type FuroLike = {
   doc_solicitado_em: string | null;
   doc_solicitado_nota: string | null;
   fornecedor_tem_doc?: boolean | null;
+  fornecedor_conta_corrente?: boolean | null;
 };
 
 interface Props {
@@ -24,6 +25,7 @@ interface Props {
   onBuscar: (f: FuroLike) => void;
   onSolicitar: (f: FuroLike) => void;
   onClassificar: (f: FuroLike) => void;
+  onAbater: (f: FuroLike) => void;
 }
 
 type Grupo = {
