@@ -478,6 +478,9 @@ export default function ContasPagar() {
         </div>
       </div>
 
+      <ContasCorrentesFornecedorCard />
+
+
       {/* Barra de filtros */}
       <div className="flex items-center gap-3 flex-wrap">
         <Input
