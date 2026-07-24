@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight, Search, MailQuestion, Tags, Clock, FileCheck2, Repeat } from "lucide-react";
+import { ChevronRight, Search, MailQuestion, Tags, Clock, FileCheck2, Repeat, Wallet } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
 export type FuroLike = {
@@ -17,6 +17,7 @@ export type FuroLike = {
   doc_solicitado_em: string | null;
   doc_solicitado_nota: string | null;
   fornecedor_tem_doc?: boolean | null;
+  fornecedor_conta_corrente?: boolean | null;
 };
 
 interface Props {
@@ -24,6 +25,7 @@ interface Props {
   onBuscar: (f: FuroLike) => void;
   onSolicitar: (f: FuroLike) => void;
   onClassificar: (f: FuroLike) => void;
+  onAbater: (f: FuroLike) => void;
 }
 
 type Grupo = {
@@ -35,6 +37,7 @@ type Grupo = {
   primeira: string;
   ultima: string;
   temDoc: boolean;
+  temContaCorrente: boolean;
   nAguardando: number;
 };
 
@@ -47,7 +50,7 @@ function digitos(s: string | null | undefined): string {
   return (s || "").replace(/\D/g, "");
 }
 
-export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar }: Props) {
+export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar, onAbater }: Props) {
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
 
   const grupos = useMemo<Grupo[]>(() => {
@@ -83,6 +86,7 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
       const datas = itens.map((i) => i.data_transacao).sort();
       const total = itens.reduce((s, i) => s + Number(i.valor || 0), 0);
       const temDoc = itens.some((i) => !!i.fornecedor_tem_doc);
+      const temContaCorrente = itens.some((i) => !!i.fornecedor_conta_corrente);
       const nAguardando = itens.filter((i) => !!i.doc_solicitado_em).length;
       out.push({
         chave,
@@ -93,6 +97,7 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
         primeira: datas[0],
         ultima: datas[datas.length - 1],
         temDoc,
+        temContaCorrente,
         nAguardando,
       });
     }
@@ -142,6 +147,11 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                           <FileCheck2 className="h-2.5 w-2.5" /> tem docs no sistema
                         </Badge>
                       )}
+                      {g.temContaCorrente && (
+                        <Badge variant="outline" className="text-[10px] border-purple-500 text-purple-700 dark:text-purple-400 gap-1">
+                          <Wallet className="h-2.5 w-2.5" /> conta corrente
+                        </Badge>
+                      )}
                       {recorrente && (
                         <Badge variant="outline" className="text-[10px] border-blue-500 text-blue-700 dark:text-blue-400 gap-1">
                           <Repeat className="h-2.5 w-2.5" /> recorrente
@@ -189,6 +199,11 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                         )}
                         <div className="w-28 shrink-0 text-right font-mono">{formatBRL(Number(f.valor))}</div>
                         <div className="flex gap-1 shrink-0">
+                          {f.fornecedor_conta_corrente && (
+                            <Button size="sm" className="gap-1 h-7" onClick={() => onAbater(f)}>
+                              <Wallet className="h-3 w-3" /> Abater em c/c
+                            </Button>
+                          )}
                           <Button size="sm" variant="outline" className="gap-1 h-7" onClick={() => onBuscar(f)}>
                             <Search className="h-3 w-3" /> Buscar
                           </Button>

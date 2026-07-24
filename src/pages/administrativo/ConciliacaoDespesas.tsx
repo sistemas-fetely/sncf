@@ -47,6 +47,7 @@ type Furo = {
   doc_solicitado_por: string | null;
   doc_solicitado_nota: string | null;
   fornecedor_tem_doc: boolean | null;
+  fornecedor_conta_corrente: boolean | null;
 };
 
 type SugNF = {
@@ -83,6 +84,29 @@ export default function ConciliacaoDespesas() {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [confirmarLoteOpen, setConfirmarLoteOpen] = useState(false);
   const [confirmarLoteRunning, setConfirmarLoteRunning] = useState(false);
+  const [abaterAlvo, setAbaterAlvo] = useState<Furo | null>(null);
+  const [abaterRunning, setAbaterRunning] = useState(false);
+
+  async function executarAbater() {
+    if (!abaterAlvo) return;
+    setAbaterRunning(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const { data, error } = await sb.rpc("abater_conta_corrente", {
+        p_mov_id: abaterAlvo.id,
+        p_user_id: userRes.user?.id ?? null,
+      });
+      if (error) { toast.error(error.message); return; }
+      if (data?.ok === false) { toast.error(data?.erro || "Falha ao abater"); return; }
+      toast.success(`Abatido em conta corrente de ${data?.fornecedor ?? "fornecedor"}`);
+      qc.invalidateQueries({ queryKey: ["conciliacao-furos"] });
+      qc.invalidateQueries({ queryKey: ["conciliacao-sug-nf"] });
+      qc.invalidateQueries({ queryKey: ["conciliacao-sug-cpr"] });
+      setAbaterAlvo(null);
+    } finally {
+      setAbaterRunning(false);
+    }
+  }
 
   const { data: furos = [], isLoading } = useQuery({
     queryKey: ["conciliacao-furos"],
@@ -611,6 +635,7 @@ export default function ConciliacaoDespesas() {
                 onBuscar={(f) => { setFuroAtivo(f as Furo); setBuscarOpen(true); }}
                 onSolicitar={(f) => { setFuroAtivo(f as Furo); setSolicitarOpen(true); }}
                 onClassificar={(f) => { setFuroAtivo(f as Furo); setClassificarOpen(true); }}
+                onAbater={(f) => setAbaterAlvo(f as Furo)}
               />
             )}
 
@@ -833,6 +858,27 @@ export default function ConciliacaoDespesas() {
             >
               {confirmarLoteRunning && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!abaterAlvo} onOpenChange={(v) => !abaterRunning && !v && setAbaterAlvo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Abater em conta corrente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Abater <span className="font-mono font-semibold">{formatBRL(Number(abaterAlvo?.valor || 0))}</span> em conta corrente do fornecedor? O débito sai da fila amarrado ao fornecedor, sem vínculo a NF específica.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={abaterRunning}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={abaterRunning}
+              onClick={(e) => { e.preventDefault(); void executarAbater(); }}
+            >
+              {abaterRunning && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Abater
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

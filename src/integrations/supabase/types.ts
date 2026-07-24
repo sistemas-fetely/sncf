@@ -6556,6 +6556,30 @@ export type Database = {
           },
         ]
       }
+      fornecedor_regime_pagamento: {
+        Row: {
+          ativo: boolean
+          cnpj: string
+          criado_em: string
+          nome: string
+          regime: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj: string
+          criado_em?: string
+          nome: string
+          regime?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj?: string
+          criado_em?: string
+          nome?: string
+          regime?: string
+        }
+        Relationships: []
+      }
       frenet_carteira_extrato: {
         Row: {
           data_hora: string | null
@@ -20982,6 +21006,7 @@ export type Database = {
           doc_solicitado_nota: string | null
           doc_solicitado_por: string | null
           fonte_sugestao: string | null
+          fornecedor_conta_corrente: boolean | null
           fornecedor_tem_doc: boolean | null
           id: string | null
           sugestao_contraparte: string | null
@@ -20991,6 +21016,19 @@ export type Database = {
           tem_sugestao: boolean | null
           tipo_meio: string | null
           valor: number | null
+        }
+        Relationships: []
+      }
+      vw_conta_corrente_fornecedor: {
+        Row: {
+          cnpj: string | null
+          documentado: number | null
+          n_docs: number | null
+          n_pagamentos: number | null
+          nome: string | null
+          pago: number | null
+          saldo_devedor: number | null
+          ultimo_pagamento: string | null
         }
         Relationships: []
       }
@@ -21361,6 +21399,22 @@ export type Database = {
           tipo_controle: string | null
           total_pagar_12m: number | null
           total_receber_12m: number | null
+        }
+        Relationships: []
+      }
+      vw_fato_frete: {
+        Row: {
+          canal: string | null
+          custo_frete: number | null
+          data_evento: string | null
+          documento_ref: string | null
+          documento_venda_id: string | null
+          fonte: string | null
+          fonte_id: string | null
+          municipio_destino: string | null
+          rastreio: string | null
+          transportadora_id: string | null
+          uf_destino: string | null
         }
         Relationships: []
       }
@@ -21739,6 +21793,23 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_logistica_agregado_canal: {
+        Row: {
+          atencao: number | null
+          canal: string | null
+          coletados: number | null
+          com_pedido: number | null
+          custo_com_nf: number | null
+          custo_frete: number | null
+          devolucoes_rastreio: number | null
+          em_transito: number | null
+          entregues: number | null
+          envios: number | null
+          transportadora_id: string | null
+          valor_nf_total: number | null
+        }
+        Relationships: []
+      }
       vw_logistica_custo_transportadora: {
         Row: {
           frete_medio: number | null
@@ -21832,6 +21903,7 @@ export type Database = {
         Row: {
           base_nf: number | null
           base_nf_com_frete: number | null
+          canal: string | null
           cnpj_raiz: string | null
           ctes: number | null
           custo_frete: number | null
@@ -22221,14 +22293,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -23680,6 +23752,10 @@ export type Database = {
     }
     Functions: {
       _meio_pagamento_nascida_paga: { Args: never; Returns: string }
+      abater_conta_corrente: {
+        Args: { p_mov_id: string; p_user_id?: string }
+        Returns: Json
+      }
       ajustar_haver_cliente:
         | {
             Args: {

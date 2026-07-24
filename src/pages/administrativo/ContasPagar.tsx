@@ -478,6 +478,9 @@ export default function ContasPagar() {
         </div>
       </div>
 
+      <ContasCorrentesFornecedorCard />
+
+
       {/* Barra de filtros */}
       <div className="flex items-center gap-3 flex-wrap">
         <Input
@@ -760,6 +763,71 @@ function KpiCard({
           <div className="text-xs text-muted-foreground truncate">{label}</div>
           <div className="text-2xl font-bold leading-tight">{count}</div>
           <div className="text-xs text-muted-foreground font-mono">{formatBRL(valor)}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+type CcFornecedor = {
+  cnpj: string | null;
+  nome: string | null;
+  documentado: number | null;
+  n_docs: number | null;
+  pago: number | null;
+  n_pagamentos: number | null;
+  saldo_devedor: number | null;
+  ultimo_pagamento: string | null;
+};
+
+function ContasCorrentesFornecedorCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["vw-conta-corrente-fornecedor"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_conta_corrente_fornecedor")
+        .select("*")
+        .order("saldo_devedor", { ascending: false });
+      if (error) throw error;
+      return (data || []) as CcFornecedor[];
+    },
+  });
+
+  if (isLoading || !data || data.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-sm">Contas correntes de fornecedor</h3>
+          <span className="text-xs text-muted-foreground">{data.length} fornecedor{data.length === 1 ? "" : "es"}</span>
+        </div>
+        <div className="divide-y">
+          {data.map((r) => {
+            const saldo = Number(r.saldo_devedor || 0);
+            return (
+              <div key={(r.cnpj || r.nome || "") + ""} className="py-2 flex items-center gap-4 text-sm">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{r.nome || "—"}</div>
+                  {r.cnpj && <div className="text-[11px] text-muted-foreground font-mono">{r.cnpj}</div>}
+                </div>
+                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                  Documentado <span className="font-mono">{formatBRL(Number(r.documentado || 0))}</span> ({r.n_docs || 0} doc{(r.n_docs || 0) === 1 ? "" : "s"})
+                </div>
+                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                  Pago <span className="font-mono">{formatBRL(Number(r.pago || 0))}</span> ({r.n_pagamentos || 0} pagto{(r.n_pagamentos || 0) === 1 ? "" : "s"}
+                  {r.ultimo_pagamento ? ` · último ${formatDateBR(r.ultimo_pagamento)}` : ""})
+                </div>
+                <div className={cn(
+                  "text-right font-mono font-semibold whitespace-nowrap min-w-[110px]",
+                  saldo > 0 ? "text-amber-600" : "text-emerald-600",
+                )}>
+                  {formatBRL(saldo)}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
