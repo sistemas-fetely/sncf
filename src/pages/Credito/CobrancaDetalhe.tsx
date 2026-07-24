@@ -409,6 +409,7 @@ export default function CobrancaDetalhe() {
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editarCondicaoOpen, setEditarCondicaoOpen] = useState(false);
+  const [ajustarDescontoOpen, setAjustarDescontoOpen] = useState(false);
   const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
   const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
   const [diasPrimeiroPagamento, setDiasPrimeiroPagamento] = useState<number>(DIAS_PRIMEIRO_PAGAMENTO_FALLBACK);
