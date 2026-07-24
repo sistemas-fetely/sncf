@@ -37,6 +37,7 @@ type Grupo = {
   primeira: string;
   ultima: string;
   temDoc: boolean;
+  temContaCorrente: boolean;
   nAguardando: number;
 };
 
