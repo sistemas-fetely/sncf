@@ -58,6 +58,18 @@ function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | null {
   return null;
 }
 
+async function ehRelatorioPagamentosItau(file: File): Promise<boolean> {
+  if (!file.name.toLowerCase().endsWith(".xlsx")) return false;
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
+  const cabecalho = rows.slice(0, 10)
+    .map((r) => (r || []).map((c) => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")).join("|"))
+    .join("|");
+  return /tipo de pagamento/.test(cabecalho) && /nome favorecido/.test(cabecalho);
+}
+
 async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw" | "safrapay_liquidacao" | "mp_settlement" | "mp_release"> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
