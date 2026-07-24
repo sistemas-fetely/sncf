@@ -533,8 +533,9 @@ export default function Parametros() {
         {Object.entries(MODULO_MAP).map(([key]) => (
           <TabsContent key={key} value={key}>
             {key === "financeiro" && (
-              <div className="mb-6">
+              <div className="mb-6 space-y-6">
                 <ParametrosFinanceiroTab />
+                {isSuperAdmin && <ParametrosCondicoesPagamento />}
               </div>
             )}
             {isLoading ? (
