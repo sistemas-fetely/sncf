@@ -52,7 +52,7 @@ function digitos(s: string | null | undefined): string {
   return (s || "").replace(/\D/g, "");
 }
 
-export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar, onAbater }: Props) {
+export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar, onAbater, onFatura }: Props) {
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
 
   const grupos = useMemo<Grupo[]>(() => {
