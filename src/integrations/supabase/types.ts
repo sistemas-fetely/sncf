@@ -21019,6 +21019,17 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_conta_corrente_extrato: {
+        Row: {
+          cnpj: string | null
+          data: string | null
+          descricao: string | null
+          ref: string | null
+          tipo: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_conta_corrente_fornecedor: {
         Row: {
           cnpj: string | null
