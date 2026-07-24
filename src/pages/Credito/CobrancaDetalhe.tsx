@@ -1181,6 +1181,17 @@ export default function CobrancaDetalhe() {
         pedidoId={pedidoQ.data?.id ?? ""}
         idExterno={pedidoQ.data?.id_externo ?? ""}
       />
+
+      <AjustarDescontoDialog
+        open={ajustarDescontoOpen}
+        onClose={() => setAjustarDescontoOpen(false)}
+        pedidoId={pedidoQ.data?.id ?? ""}
+        idExterno={pedidoQ.data?.id_externo ?? ""}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        valorBruto={Number((pedidoQ.data as any)?.valor_bruto ?? 0)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        bonusPixValor={Number((pedidoQ.data as any)?.bonus_pix_valor ?? 0)}
+      />
     </div>
   );
 }
