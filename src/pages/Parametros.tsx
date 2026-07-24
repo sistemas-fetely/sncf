@@ -37,6 +37,7 @@ import ParametrosFinanceiroTab from "@/components/financeiro/ParametrosFinanceir
 import ParametrosUnidadesSection from "@/components/parametros/ParametrosUnidadesSection";
 import ParametrosBeneficiosSection from "@/components/parametros/ParametrosBeneficiosSection";
 import ParametrosExtrasSection from "@/components/parametros/ParametrosExtrasSection";
+import ParametrosCondicoesPagamento from "@/components/parametros/ParametrosCondicoesPagamento";
 
 interface CategoriaConfig {
   value: string;
