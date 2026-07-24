@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight, Search, MailQuestion, Tags, Clock, FileCheck2, Repeat } from "lucide-react";
+import { ChevronRight, Search, MailQuestion, Tags, Clock, FileCheck2, Repeat, Wallet } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
 export type FuroLike = {
