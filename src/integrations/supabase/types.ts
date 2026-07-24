@@ -10368,6 +10368,51 @@ export type Database = {
           },
         ]
       }
+      parametros_precificacao: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          base: string | null
+          chave: string
+          criado_em: string
+          descricao: string | null
+          id: string
+          ordem: number
+          rotulo: string
+          tipo: string
+          unidade: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          base?: string | null
+          chave: string
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          ordem?: number
+          rotulo: string
+          tipo: string
+          unidade: string
+          valor: number
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          base?: string | null
+          chave?: string
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          ordem?: number
+          rotulo?: string
+          tipo?: string
+          unidade?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       parametros_remessa_safra: {
         Row: {
           atualizado_em: string
@@ -16272,6 +16317,7 @@ export type Database = {
           peso_g: number
           preco_atacado: number
           preco_custo: number | null
+          preco_varejo: number | null
           profundidade_cm: number | null
           sku: string
           tamanho_numero: string | null
@@ -16302,6 +16348,7 @@ export type Database = {
           peso_g?: number
           preco_atacado?: number
           preco_custo?: number | null
+          preco_varejo?: number | null
           profundidade_cm?: number | null
           sku: string
           tamanho_numero?: string | null
@@ -16332,6 +16379,7 @@ export type Database = {
           peso_g?: number
           preco_atacado?: number
           preco_custo?: number | null
+          preco_varejo?: number | null
           profundidade_cm?: number | null
           sku?: string
           tamanho_numero?: string | null
@@ -17415,6 +17463,7 @@ export type Database = {
           link_pagamento: string | null
           modalidade_renegociacao: number | null
           movimentacao_baixa_id: string | null
+          nf_devolucao: string | null
           nf_id: string | null
           nosso_numero_safra: string | null
           nosso_numero_seq: string | null
@@ -17476,6 +17525,7 @@ export type Database = {
           link_pagamento?: string | null
           modalidade_renegociacao?: number | null
           movimentacao_baixa_id?: string | null
+          nf_devolucao?: string | null
           nf_id?: string | null
           nosso_numero_safra?: string | null
           nosso_numero_seq?: string | null
@@ -17537,6 +17587,7 @@ export type Database = {
           link_pagamento?: string | null
           modalidade_renegociacao?: number | null
           movimentacao_baixa_id?: string | null
+          nf_devolucao?: string | null
           nf_id?: string | null
           nosso_numero_safra?: string | null
           nosso_numero_seq?: string | null
@@ -22276,14 +22327,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -23213,6 +23264,24 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_resultado_produto: {
+        Row: {
+          abaixo_piso_b2b: boolean | null
+          abaixo_piso_b2c: boolean | null
+          colecao: string | null
+          custo: number | null
+          grupo: string | null
+          nome_comercial: string | null
+          preco_b2b: number | null
+          preco_b2c: number | null
+          resultado_b2b: number | null
+          resultado_b2c: number | null
+          resultado_pct_b2b: number | null
+          resultado_pct_b2c: number | null
+          sku: string | null
+        }
+        Relationships: []
+      }
       vw_shopify_pedidos_rastreio: {
         Row: {
           cancelled_at: string | null
@@ -24060,6 +24129,18 @@ export type Database = {
       }
       calcular_docs_status: { Args: { p_conta_id: string }; Returns: string }
       calcular_peso_pedido: { Args: { p_pedido_id: string }; Returns: Json }
+      calcular_resultado_precificacao: {
+        Args: { p_base_credito?: number; p_custo: number; p_preco: number }
+        Returns: {
+          abaixo_piso: boolean
+          cogs: number
+          credito: number
+          despesas: number
+          faturamento: number
+          resultado: number
+          resultado_pct: number
+        }[]
+      }
       cancelar_conta_pagar: { Args: { p_conta_id: string }; Returns: Json }
       cancelar_item_pedido: {
         Args: { p_item_id: string; p_motivo: string }
@@ -24644,6 +24725,14 @@ export type Database = {
       fn_aplicar_cadencia_credito: {
         Args: { p_analise_id: string }
         Returns: string
+      }
+      fn_avaliar_impacto_edicao_pedido: {
+        Args: {
+          p_nova_condicao: string
+          p_novo_valor_liquido?: number
+          p_pedido_id: string
+        }
+        Returns: Json
       }
       fn_calcular_meta_entrega: {
         Args: { p_pedido_id: string }
@@ -25323,6 +25412,14 @@ export type Database = {
       registrar_correcao_regra: {
         Args: { p_regra_id: string }
         Returns: undefined
+      }
+      registrar_devolucao_pedido: {
+        Args: {
+          p_motivo?: string
+          p_nf_devolucao?: string
+          p_pedido_id: string
+        }
+        Returns: Json
       }
       registrar_documento_intake: { Args: { p_dados: Json }; Returns: Json }
       registrar_evento_pedido: {
