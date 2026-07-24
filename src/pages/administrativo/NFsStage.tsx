@@ -1766,6 +1766,17 @@ export default function NFsStage() {
                               ) : (
                                 <span className="w-7" />
                               )}
+                              {!!nf.revisada_em && nf.status !== "descartada" && !nf.motivo_descarte && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                                  onClick={() => setPlanoDoc(nf)}
+                                  title="Plano de pagamento"
+                                >
+                                  <CalendarClock className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
