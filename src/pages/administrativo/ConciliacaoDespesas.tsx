@@ -862,6 +862,27 @@ export default function ConciliacaoDespesas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!abaterAlvo} onOpenChange={(v) => !abaterRunning && !v && setAbaterAlvo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Abater em conta corrente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Abater <span className="font-mono font-semibold">{formatBRL(Number(abaterAlvo?.valor || 0))}</span> em conta corrente do fornecedor? O débito sai da fila amarrado ao fornecedor, sem vínculo a NF específica.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={abaterRunning}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={abaterRunning}
+              onClick={(e) => { e.preventDefault(); void executarAbater(); }}
+            >
+              {abaterRunning && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Abater
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
