@@ -15,7 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Search, MailQuestion, Clock, Tags,
+  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Search, MailQuestion, Clock, Tags, CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -23,6 +23,8 @@ import { BuscarDocumentoDialog } from "@/components/financeiro/BuscarDocumentoDi
 import { SolicitarDocumentoDialog } from "@/components/financeiro/SolicitarDocumentoDialog";
 import { ClassificarDiretoDialog } from "@/components/financeiro/ClassificarDiretoDialog";
 import { FurosPorFornecedor } from "@/components/financeiro/FurosPorFornecedor";
+import { PagarFaturaCartaoDialog } from "@/components/financeiro/PagarFaturaCartaoDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
