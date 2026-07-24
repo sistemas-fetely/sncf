@@ -27,6 +27,7 @@ interface Props {
   onSolicitar: (f: FuroLike) => void;
   onClassificar: (f: FuroLike) => void;
   onAbater: (f: FuroLike) => void;
+  onFatura: (f: FuroLike) => void;
 }
 
 type Grupo = {
