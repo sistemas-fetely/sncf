@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight, Search, MailQuestion, Tags, Clock, FileCheck2, Repeat, Wallet } from "lucide-react";
+import { ChevronRight, Search, MailQuestion, Tags, Clock, FileCheck2, Repeat, Wallet, CreditCard } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
 export type FuroLike = {
@@ -26,6 +27,7 @@ interface Props {
   onSolicitar: (f: FuroLike) => void;
   onClassificar: (f: FuroLike) => void;
   onAbater: (f: FuroLike) => void;
+  onFatura: (f: FuroLike) => void;
 }
 
 type Grupo = {
@@ -50,7 +52,7 @@ function digitos(s: string | null | undefined): string {
   return (s || "").replace(/\D/g, "");
 }
 
-export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar, onAbater }: Props) {
+export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar, onAbater, onFatura }: Props) {
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
 
   const grupos = useMemo<Grupo[]>(() => {
@@ -213,6 +215,16 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                           <Button size="sm" variant="outline" className="gap-1 h-7" onClick={() => onClassificar(f)}>
                             <Tags className="h-3 w-3" /> Classificar
                           </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="outline" className="gap-1 h-7" onClick={() => onFatura(f)}>
+                                  <CreditCard className="h-3 w-3" /> Fatura
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Pagar fatura de cartão</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </div>
                     );

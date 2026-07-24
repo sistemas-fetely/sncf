@@ -15,7 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Search, MailQuestion, Clock, Tags,
+  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Search, MailQuestion, Clock, Tags, CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -23,6 +23,8 @@ import { BuscarDocumentoDialog } from "@/components/financeiro/BuscarDocumentoDi
 import { SolicitarDocumentoDialog } from "@/components/financeiro/SolicitarDocumentoDialog";
 import { ClassificarDiretoDialog } from "@/components/financeiro/ClassificarDiretoDialog";
 import { FurosPorFornecedor } from "@/components/financeiro/FurosPorFornecedor";
+import { PagarFaturaCartaoDialog } from "@/components/financeiro/PagarFaturaCartaoDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -78,6 +80,7 @@ export default function ConciliacaoDespesas() {
   const [buscarOpen, setBuscarOpen] = useState(false);
   const [solicitarOpen, setSolicitarOpen] = useState(false);
   const [classificarOpen, setClassificarOpen] = useState(false);
+  const [faturaCartaoOpen, setFaturaCartaoOpen] = useState(false);
   const [furoAtivo, setFuroAtivo] = useState<Furo | null>(null);
   const [filtroFuros, setFiltroFuros] = useState<"todos" | "aguardando" | "sem_tratativa">("todos");
   const [visaoFuros, setVisaoFuros] = useState<"fornecedor" | "lancamento">("fornecedor");
@@ -636,6 +639,7 @@ export default function ConciliacaoDespesas() {
                 onSolicitar={(f) => { setFuroAtivo(f as Furo); setSolicitarOpen(true); }}
                 onClassificar={(f) => { setFuroAtivo(f as Furo); setClassificarOpen(true); }}
                 onAbater={(f) => setAbaterAlvo(f as Furo)}
+                onFatura={(f) => { setFuroAtivo(f as Furo); setFaturaCartaoOpen(true); }}
               />
             )}
 
@@ -731,6 +735,22 @@ export default function ConciliacaoDespesas() {
                                 <Tags className="h-3.5 w-3.5" />
                                 Classificar direto
                               </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="gap-1"
+                                      onClick={() => { setFuroAtivo(f); setFaturaCartaoOpen(true); }}
+                                    >
+                                      <CreditCard className="h-3.5 w-3.5" />
+                                      Fatura
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Pagar fatura de cartão</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -767,6 +787,12 @@ export default function ConciliacaoDespesas() {
       <ClassificarDiretoDialog
         open={classificarOpen}
         onOpenChange={setClassificarOpen}
+        furo={furoAtivo}
+        onDone={invalidar}
+      />
+      <PagarFaturaCartaoDialog
+        open={faturaCartaoOpen}
+        onOpenChange={setFaturaCartaoOpen}
         furo={furoAtivo}
         onDone={invalidar}
       />
