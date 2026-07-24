@@ -13,8 +13,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Upload, Loader2, FileText } from "lucide-react";
+import { Upload, Loader2, FileText, Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { ImportadorItauPagamentos } from "@/components/financeiro/ImportadorItauPagamentos";
 import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
 import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
@@ -80,6 +81,27 @@ export default function ExtratoImportacao() {
   const [conta, setConta] = useState<string>("");
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
+  const [reprocessandoItau, setReprocessandoItau] = useState(false);
+
+  async function enriquecerItau() {
+    setReprocessandoItau(true);
+    try {
+      const { data, error } = await sb.rpc("enriquecer_pagamentos_itau");
+      if (error) throw error;
+      const vinc = data?.vinculados ?? 0;
+      const enr = data?.enriquecidas ?? 0;
+      const amb = data?.ambiguos ?? 0;
+      let msg = `Vínculo: ${vinc} pagamentos ligados ao extrato, ${enr} débitos identificados`;
+      if (amb > 0) msg += ` · ${amb} ambíguos — tratar manualmente`;
+      toast.success(msg);
+      qc.invalidateQueries({ queryKey: ["conciliacao-furos"] });
+      qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
+    } catch (e) {
+      toast.error("Falha ao enriquecer: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setReprocessandoItau(false);
+    }
+  }
 
   const { data: contas = [] } = useQuery({
     queryKey: ["extrato-import-contas"],
@@ -618,6 +640,32 @@ export default function ExtratoImportacao() {
           </Button>
         </CardContent>
       </Card>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Pagamentos Itaú (Consulta de Pagamentos)</h2>
+            <p className="text-xs text-muted-foreground">
+              Enriquece débitos anônimos (PAG TIT) do extrato cruzando data + valor + conta.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={enriquecerItau}
+            disabled={reprocessandoItau}
+            className="gap-2"
+          >
+            {reprocessandoItau ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+            Reprocessar vínculos
+          </Button>
+        </div>
+        <ImportadorItauPagamentos
+          contaBancariaId={conta || undefined}
+          onSuccess={() => { enriquecerItau(); }}
+        />
+      </div>
+
 
       <div>
         <h2 className="text-lg font-semibold mb-2">Histórico de importações</h2>
