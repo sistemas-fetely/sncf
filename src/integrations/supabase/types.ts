@@ -3080,6 +3080,56 @@ export type Database = {
           },
         ]
       }
+      condicoes_pagamento: {
+        Row: {
+          ativo: boolean
+          condicao_canonica: string
+          created_at: string
+          descricao: string | null
+          forma: string
+          id: string
+          ordem: number
+          regra_codigo: string
+          rotulo: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          condicao_canonica: string
+          created_at?: string
+          descricao?: string | null
+          forma: string
+          id?: string
+          ordem?: number
+          regra_codigo: string
+          rotulo: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          condicao_canonica?: string
+          created_at?: string
+          descricao?: string | null
+          forma?: string
+          id?: string
+          ordem?: number
+          regra_codigo?: string
+          rotulo?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condicoes_pagamento_regra_codigo_fkey"
+            columns: ["regra_codigo"]
+            isOneToOne: false
+            referencedRelation: "regras_pagamento_pedido"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       config_financeiro_externo: {
         Row: {
           ativo: boolean | null
@@ -22841,6 +22891,25 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_produtos_duplicados: {
+        Row: {
+          ativo: boolean | null
+          atualizado: string | null
+          bling_id: string | null
+          confianca: string | null
+          criado: string | null
+          estoque: number | null
+          estoque_grupo: number | null
+          n_cards: number | null
+          ncm: string | null
+          nome: string | null
+          preco: number | null
+          rank_sug: number | null
+          sku: string | null
+          sugerido_manter: boolean | null
+        }
+        Relationships: []
+      }
       vw_produtos_estoque_virtual: {
         Row: {
           ativo: boolean | null
@@ -24065,6 +24134,37 @@ export type Database = {
         Args: { p_conta_pagar_id: string; p_ofx_id: string }
         Returns: Json
       }
+      condicao_pagamento_salvar: {
+        Args: {
+          p_ativo?: boolean
+          p_condicao_canonica: string
+          p_descricao?: string
+          p_forma: string
+          p_ordem?: number
+          p_regra_codigo: string
+          p_rotulo: string
+          p_slug: string
+        }
+        Returns: {
+          ativo: boolean
+          condicao_canonica: string
+          created_at: string
+          descricao: string | null
+          forma: string
+          id: string
+          ordem: number
+          regra_codigo: string
+          rotulo: string
+          slug: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "condicoes_pagamento"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       confirmar_batimento_titulo_pago: {
         Args: { p_movimentacao_id: string; p_titulo_id: string }
         Returns: Json
@@ -24415,6 +24515,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      enriquecer_debitos_itau_pagamentos: { Args: never; Returns: Json }
       enriquecer_fatura_cartao: {
         Args: { p_fatura_id: string }
         Returns: {
@@ -24434,6 +24535,7 @@ export type Database = {
           out_score: number
         }[]
       }
+      enriquecer_pagamentos_itau: { Args: never; Returns: Json }
       enriquecer_parceiro_com_bancarios: {
         Args: { p_dados: Json; p_parceiro_id: string }
         Returns: Json
