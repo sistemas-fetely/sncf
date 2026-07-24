@@ -790,6 +790,12 @@ export default function ConciliacaoDespesas() {
         furo={furoAtivo}
         onDone={invalidar}
       />
+      <PagarFaturaCartaoDialog
+        open={faturaCartaoOpen}
+        onOpenChange={setFaturaCartaoOpen}
+        furo={furoAtivo}
+        onDone={invalidar}
+      />
 
 
       <AlertDialog open={loteOpen} onOpenChange={(v) => !loteRunning && setLoteOpen(v)}>
