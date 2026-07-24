@@ -210,6 +210,7 @@ export function ImportadorItauPagamentos({ contaBancariaId: contaBancariaIdProp,
 
       toast.success(`${dadosLinhas.length} pagamento(s) importado(s)`);
       qc.invalidateQueries({ queryKey: ["itau-importacoes"] });
+      onSuccess?.(dadosLinhas.length);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       toast.error("Erro: " + (e?.message ?? String(e)));
