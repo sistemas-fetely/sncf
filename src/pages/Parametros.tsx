@@ -37,6 +37,7 @@ import ParametrosFinanceiroTab from "@/components/financeiro/ParametrosFinanceir
 import ParametrosUnidadesSection from "@/components/parametros/ParametrosUnidadesSection";
 import ParametrosBeneficiosSection from "@/components/parametros/ParametrosBeneficiosSection";
 import ParametrosExtrasSection from "@/components/parametros/ParametrosExtrasSection";
+import ParametrosCondicoesPagamento from "@/components/parametros/ParametrosCondicoesPagamento";
 
 interface CategoriaConfig {
   value: string;
@@ -532,8 +533,9 @@ export default function Parametros() {
         {Object.entries(MODULO_MAP).map(([key]) => (
           <TabsContent key={key} value={key}>
             {key === "financeiro" && (
-              <div className="mb-6">
+              <div className="mb-6 space-y-6">
                 <ParametrosFinanceiroTab />
+                {isSuperAdmin && <ParametrosCondicoesPagamento />}
               </div>
             )}
             {isLoading ? (
