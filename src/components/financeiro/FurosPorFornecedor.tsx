@@ -147,6 +147,11 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                           <FileCheck2 className="h-2.5 w-2.5" /> tem docs no sistema
                         </Badge>
                       )}
+                      {g.temContaCorrente && (
+                        <Badge variant="outline" className="text-[10px] border-purple-500 text-purple-700 dark:text-purple-400 gap-1">
+                          <Wallet className="h-2.5 w-2.5" /> conta corrente
+                        </Badge>
+                      )}
                       {recorrente && (
                         <Badge variant="outline" className="text-[10px] border-blue-500 text-blue-700 dark:text-blue-400 gap-1">
                           <Repeat className="h-2.5 w-2.5" /> recorrente
