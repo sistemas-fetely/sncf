@@ -215,6 +215,16 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                           <Button size="sm" variant="outline" className="gap-1 h-7" onClick={() => onClassificar(f)}>
                             <Tags className="h-3 w-3" /> Classificar
                           </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="outline" className="gap-1 h-7" onClick={() => onFatura(f)}>
+                                  <CreditCard className="h-3 w-3" /> Fatura
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Pagar fatura de cartão</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </div>
                     );
