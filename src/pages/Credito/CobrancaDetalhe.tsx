@@ -37,6 +37,7 @@ import { useParametros } from "@/hooks/useParametros";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
 import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
+import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDescontoDialog";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
@@ -95,7 +96,7 @@ function usePedidoMinimo(pedidoId: string | undefined) {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(`
-          id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada, parceiro_id,
+          id, id_externo, estagio, data_pedido, valor_bruto, valor_liquido, bonus_pix_valor, condicao_solicitada, parceiro_id,
           itens_json, frete_tipo, valor_frete, exige_portao,
           parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf),
           analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em, exige_portao)
@@ -408,6 +409,7 @@ export default function CobrancaDetalhe() {
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editarCondicaoOpen, setEditarCondicaoOpen] = useState(false);
+  const [ajustarDescontoOpen, setAjustarDescontoOpen] = useState(false);
   const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
   const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
   const [diasPrimeiroPagamento, setDiasPrimeiroPagamento] = useState<number>(DIAS_PRIMEIRO_PAGAMENTO_FALLBACK);
@@ -1108,6 +1110,15 @@ export default function CobrancaDetalhe() {
           )}
 
           <div className="flex justify-end gap-3 mt-6">
+            {isSuperAdmin && (
+              <Button
+                variant="ghost"
+                onClick={() => setAjustarDescontoOpen(true)}
+                disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+              >
+                Ajustar desconto
+              </Button>
+            )}
             <Button
               variant="ghost"
               onClick={() => setEditarCondicaoOpen(true)}
@@ -1169,6 +1180,17 @@ export default function CobrancaDetalhe() {
         onClose={() => setEditarCondicaoOpen(false)}
         pedidoId={pedidoQ.data?.id ?? ""}
         idExterno={pedidoQ.data?.id_externo ?? ""}
+      />
+
+      <AjustarDescontoDialog
+        open={ajustarDescontoOpen}
+        onClose={() => setAjustarDescontoOpen(false)}
+        pedidoId={pedidoQ.data?.id ?? ""}
+        idExterno={pedidoQ.data?.id_externo ?? ""}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        valorBruto={Number((pedidoQ.data as any)?.valor_bruto ?? 0)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        bonusPixValor={Number((pedidoQ.data as any)?.bonus_pix_valor ?? 0)}
       />
     </div>
   );
