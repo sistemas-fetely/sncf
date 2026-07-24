@@ -635,6 +635,7 @@ export default function ConciliacaoDespesas() {
                 onBuscar={(f) => { setFuroAtivo(f as Furo); setBuscarOpen(true); }}
                 onSolicitar={(f) => { setFuroAtivo(f as Furo); setSolicitarOpen(true); }}
                 onClassificar={(f) => { setFuroAtivo(f as Furo); setClassificarOpen(true); }}
+                onAbater={(f) => setAbaterAlvo(f as Furo)}
               />
             )}
 
