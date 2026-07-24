@@ -6117,6 +6117,7 @@ export type Database = {
           fonte_importacao: string | null
           id: string
           importacao_lote_id: string | null
+          movimentacao_bancaria_id: string | null
           numero_documento: string | null
           observacao: string | null
           pdf_nome_original: string | null
@@ -6141,6 +6142,7 @@ export type Database = {
           fonte_importacao?: string | null
           id?: string
           importacao_lote_id?: string | null
+          movimentacao_bancaria_id?: string | null
           numero_documento?: string | null
           observacao?: string | null
           pdf_nome_original?: string | null
@@ -6165,6 +6167,7 @@ export type Database = {
           fonte_importacao?: string | null
           id?: string
           importacao_lote_id?: string | null
+          movimentacao_bancaria_id?: string | null
           numero_documento?: string | null
           observacao?: string | null
           pdf_nome_original?: string | null
@@ -22273,14 +22276,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25096,14 +25099,19 @@ export type Database = {
         Returns: Json
       }
       org_sync_in_progress: { Args: never; Returns: boolean }
-      pagar_fatura_cartao: {
-        Args: {
-          p_conta_bancaria_id?: string
-          p_data_pagamento?: string
-          p_fatura_id: string
-        }
-        Returns: Json
-      }
+      pagar_fatura_cartao:
+        | {
+            Args: {
+              p_conta_bancaria_id?: string
+              p_data_pagamento?: string
+              p_fatura_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: { p_fatura_id: string; p_mov_id: string; p_user_id?: string }
+            Returns: Json
+          }
       perfil_area_do_departamento: {
         Args: { _departamento_id: string }
         Returns: {
