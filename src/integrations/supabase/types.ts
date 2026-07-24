@@ -4626,6 +4626,33 @@ export type Database = {
           },
         ]
       }
+      correios_faturas_arquivos: {
+        Row: {
+          baixado_em: string
+          csv_analitico: string
+          data_fechamento: string | null
+          fatura_id: number
+          valor_total: number | null
+          vencimento: string | null
+        }
+        Insert: {
+          baixado_em?: string
+          csv_analitico: string
+          data_fechamento?: string | null
+          fatura_id: number
+          valor_total?: number | null
+          vencimento?: string | null
+        }
+        Update: {
+          baixado_em?: string
+          csv_analitico?: string
+          data_fechamento?: string | null
+          fatura_id?: number
+          valor_total?: number | null
+          vencimento?: string | null
+        }
+        Relationships: []
+      }
       correios_lancamentos: {
         Row: {
           atualizado_em: string
@@ -22101,14 +22128,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
