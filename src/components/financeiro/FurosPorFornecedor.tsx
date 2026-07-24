@@ -86,6 +86,7 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
       const datas = itens.map((i) => i.data_transacao).sort();
       const total = itens.reduce((s, i) => s + Number(i.valor || 0), 0);
       const temDoc = itens.some((i) => !!i.fornecedor_tem_doc);
+      const temContaCorrente = itens.some((i) => !!i.fornecedor_conta_corrente);
       const nAguardando = itens.filter((i) => !!i.doc_solicitado_em).length;
       out.push({
         chave,
@@ -96,6 +97,7 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
         primeira: datas[0],
         ultima: datas[datas.length - 1],
         temDoc,
+        temContaCorrente,
         nAguardando,
       });
     }
