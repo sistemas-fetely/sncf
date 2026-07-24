@@ -80,6 +80,7 @@ export default function ConciliacaoDespesas() {
   const [buscarOpen, setBuscarOpen] = useState(false);
   const [solicitarOpen, setSolicitarOpen] = useState(false);
   const [classificarOpen, setClassificarOpen] = useState(false);
+  const [faturaCartaoOpen, setFaturaCartaoOpen] = useState(false);
   const [furoAtivo, setFuroAtivo] = useState<Furo | null>(null);
   const [filtroFuros, setFiltroFuros] = useState<"todos" | "aguardando" | "sem_tratativa">("todos");
   const [visaoFuros, setVisaoFuros] = useState<"fornecedor" | "lancamento">("fornecedor");
