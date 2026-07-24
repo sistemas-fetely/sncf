@@ -233,6 +233,7 @@ export default function NFsStage() {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [paraDescartar, setParaDescartar] = useState<NFStage[]>([]);
   const [aplicarFonte, setAplicarFonte] = useState<NFStage | null>(null);
+  const [planoDoc, setPlanoDoc] = useState<NFStage | null>(null);
   const [aplicandoClassificacao, setAplicandoClassificacao] = useState(false);
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
   const [salvandoCentroCusto, setSalvandoCentroCusto] = useState<Set<string>>(new Set());
