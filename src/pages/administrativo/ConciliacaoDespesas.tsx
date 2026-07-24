@@ -84,6 +84,29 @@ export default function ConciliacaoDespesas() {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [confirmarLoteOpen, setConfirmarLoteOpen] = useState(false);
   const [confirmarLoteRunning, setConfirmarLoteRunning] = useState(false);
+  const [abaterAlvo, setAbaterAlvo] = useState<Furo | null>(null);
+  const [abaterRunning, setAbaterRunning] = useState(false);
+
+  async function executarAbater() {
+    if (!abaterAlvo) return;
+    setAbaterRunning(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const { data, error } = await sb.rpc("abater_conta_corrente", {
+        p_mov_id: abaterAlvo.id,
+        p_user_id: userRes.user?.id ?? null,
+      });
+      if (error) { toast.error(error.message); return; }
+      if (data?.ok === false) { toast.error(data?.erro || "Falha ao abater"); return; }
+      toast.success(`Abatido em conta corrente de ${data?.fornecedor ?? "fornecedor"}`);
+      qc.invalidateQueries({ queryKey: ["conciliacao-furos"] });
+      qc.invalidateQueries({ queryKey: ["conciliacao-sug-nf"] });
+      qc.invalidateQueries({ queryKey: ["conciliacao-sug-cpr"] });
+      setAbaterAlvo(null);
+    } finally {
+      setAbaterRunning(false);
+    }
+  }
 
   const { data: furos = [], isLoading } = useQuery({
     queryKey: ["conciliacao-furos"],
