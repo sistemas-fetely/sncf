@@ -639,6 +639,7 @@ export default function ConciliacaoDespesas() {
                 onSolicitar={(f) => { setFuroAtivo(f as Furo); setSolicitarOpen(true); }}
                 onClassificar={(f) => { setFuroAtivo(f as Furo); setClassificarOpen(true); }}
                 onAbater={(f) => setAbaterAlvo(f as Furo)}
+                onFatura={(f) => { setFuroAtivo(f as Furo); setFaturaCartaoOpen(true); }}
               />
             )}
 
