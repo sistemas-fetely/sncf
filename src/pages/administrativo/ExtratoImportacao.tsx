@@ -13,8 +13,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Upload, Loader2, FileText } from "lucide-react";
+import { Upload, Loader2, FileText, Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { ImportadorItauPagamentos } from "@/components/financeiro/ImportadorItauPagamentos";
 import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
 import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
