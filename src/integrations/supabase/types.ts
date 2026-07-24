@@ -22221,14 +22221,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -24594,6 +24594,10 @@ export type Database = {
         Returns: number
       }
       gerar_periodos_ferias_pendentes: { Args: never; Returns: undefined }
+      gerar_plano_pagamento: {
+        Args: { p_parcelas: Json; p_stage_id: string; p_user_id?: string }
+        Returns: Json
+      }
       gerar_proximas_parcelas_pasta: { Args: never; Returns: number }
       get_convite_by_token: { Args: { _token: string }; Returns: Json }
       get_folha_competencia: {

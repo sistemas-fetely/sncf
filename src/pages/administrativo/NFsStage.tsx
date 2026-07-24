@@ -76,8 +76,10 @@ import {
   MoreHorizontal,
   Wand2,
   Send,
+  CalendarClock,
 
 } from "lucide-react";
+import PlanoPagamentoDialog from "@/components/financeiro/PlanoPagamentoDialog";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -231,6 +233,7 @@ export default function NFsStage() {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [paraDescartar, setParaDescartar] = useState<NFStage[]>([]);
   const [aplicarFonte, setAplicarFonte] = useState<NFStage | null>(null);
+  const [planoDoc, setPlanoDoc] = useState<NFStage | null>(null);
   const [aplicandoClassificacao, setAplicandoClassificacao] = useState(false);
   const [salvandoCategoria, setSalvandoCategoria] = useState<Set<string>>(new Set());
   const [salvandoCentroCusto, setSalvandoCentroCusto] = useState<Set<string>>(new Set());
@@ -1763,6 +1766,17 @@ export default function NFsStage() {
                               ) : (
                                 <span className="w-7" />
                               )}
+                              {!!nf.revisada_em && nf.status !== "descartada" && !nf.motivo_descarte && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                                  onClick={() => setPlanoDoc(nf)}
+                                  title="Plano de pagamento"
+                                >
+                                  <CalendarClock className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
@@ -2147,6 +2161,24 @@ export default function NFsStage() {
       </AlertDialog>
 
       <AdicionarDocumentoDialog open={addDocOpen} onOpenChange={setAddDocOpen} />
+      {planoDoc && (
+        <PlanoPagamentoDialog
+          open={!!planoDoc}
+          onOpenChange={(v) => !v && setPlanoDoc(null)}
+          doc={{
+            id: planoDoc.id,
+            nf_numero: planoDoc.nf_numero,
+            fornecedor: planoDoc.fornecedor_razao_social || planoDoc.fornecedor_cliente,
+            valor: Number(planoDoc.valor) || 0,
+            data_vencimento: planoDoc.data_vencimento,
+          }}
+          onDone={() => {
+            qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+            qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
+            setPlanoDoc(null);
+          }}
+        />
+      )}
     </div>
 
   );
