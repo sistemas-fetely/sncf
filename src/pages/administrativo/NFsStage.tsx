@@ -2161,6 +2161,24 @@ export default function NFsStage() {
       </AlertDialog>
 
       <AdicionarDocumentoDialog open={addDocOpen} onOpenChange={setAddDocOpen} />
+      {planoDoc && (
+        <PlanoPagamentoDialog
+          open={!!planoDoc}
+          onOpenChange={(v) => !v && setPlanoDoc(null)}
+          doc={{
+            id: planoDoc.id,
+            nf_numero: planoDoc.nf_numero,
+            fornecedor: planoDoc.fornecedor_razao_social || planoDoc.fornecedor_cliente,
+            valor: Number(planoDoc.valor) || 0,
+            data_vencimento: planoDoc.data_vencimento,
+          }}
+          onDone={() => {
+            qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+            qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
+            setPlanoDoc(null);
+          }}
+        />
+      )}
     </div>
 
   );
