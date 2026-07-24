@@ -76,8 +76,10 @@ import {
   MoreHorizontal,
   Wand2,
   Send,
+  CalendarClock,
 
 } from "lucide-react";
+import PlanoPagamentoDialog from "@/components/financeiro/PlanoPagamentoDialog";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
