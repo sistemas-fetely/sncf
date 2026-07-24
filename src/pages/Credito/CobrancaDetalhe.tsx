@@ -95,7 +95,7 @@ function usePedidoMinimo(pedidoId: string | undefined) {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(`
-          id, id_externo, estagio, data_pedido, valor_liquido, condicao_solicitada, parceiro_id,
+          id, id_externo, estagio, data_pedido, valor_bruto, valor_liquido, bonus_pix_valor, condicao_solicitada, parceiro_id,
           itens_json, frete_tipo, valor_frete, exige_portao,
           parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf),
           analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em, exige_portao)
