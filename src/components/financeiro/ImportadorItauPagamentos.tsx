@@ -283,11 +283,11 @@ export function ImportadorItauPagamentos({ contaBancariaId: contaBancariaIdProp,
               </span>
             </div>
             <div className="text-muted-foreground">
-              Próximo passo: ir para{" "}
-              <a href="/administrativo/conciliacao" className="underline font-medium">
-                Conciliação Bancária
-              </a>{" "}
-              e vincular cada linha à movimentação correspondente.
+              Os vínculos com o extrato rodam automaticamente; confira os débitos identificados em{" "}
+              <a href="/administrativo/conciliacao-despesas" className="underline font-medium">
+                Conciliar Despesas
+              </a>
+              .
             </div>
           </div>
         )}
