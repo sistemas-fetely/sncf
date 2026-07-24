@@ -780,6 +780,146 @@ type CcFornecedor = {
   ultimo_pagamento: string | null;
 };
 
+type CcExtratoRow = {
+  cnpj: string;
+  data: string;
+  tipo: "documento" | "abatimento";
+  descricao: string;
+  valor: number;
+  ref: string;
+};
+
+function ContaCorrenteFornecedorRow({ r }: { r: CcFornecedor }) {
+  const [open, setOpen] = useState(false);
+  const saldo = Number(r.saldo_devedor || 0);
+
+  const { data: extrato, isLoading: loadingExtrato, error: extratoError } = useQuery({
+    queryKey: ["cc-extrato", r.cnpj],
+    enabled: open && !!r.cnpj,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_conta_corrente_extrato")
+        .select("*")
+        .eq("cnpj", r.cnpj)
+        .order("data");
+      if (error) throw error;
+      return (data || []) as CcExtratoRow[];
+    },
+  });
+
+  let acumulado = 0;
+  const linhasComSaldo = (extrato || []).map((mov) => {
+    acumulado += Number(mov.valor || 0);
+    return { mov, saldo: acumulado };
+  });
+  const saldoFinal = acumulado;
+
+  return (
+    <div className="py-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-4 text-sm text-left hover:bg-muted/40 rounded px-1 -mx-1"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")}
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium truncate">{r.nome || "—"}</div>
+          {r.cnpj && <div className="text-[11px] text-muted-foreground font-mono">{r.cnpj}</div>}
+        </div>
+        <div className="text-xs text-muted-foreground whitespace-nowrap">
+          Documentado <span className="font-mono">{formatBRL(Number(r.documentado || 0))}</span> ({r.n_docs || 0} doc{(r.n_docs || 0) === 1 ? "" : "s"})
+        </div>
+        <div className="text-xs text-muted-foreground whitespace-nowrap">
+          Pago <span className="font-mono">{formatBRL(Number(r.pago || 0))}</span> ({r.n_pagamentos || 0} pagto{(r.n_pagamentos || 0) === 1 ? "" : "s"}
+          {r.ultimo_pagamento ? ` · último ${formatDateBR(r.ultimo_pagamento)}` : ""})
+        </div>
+        <div className={cn(
+          "text-right font-mono font-semibold whitespace-nowrap min-w-[110px]",
+          saldo > 0 ? "text-amber-600" : "text-emerald-600",
+        )}>
+          {formatBRL(saldo)}
+        </div>
+      </button>
+
+      {open && (
+        <div className="mt-2 ml-6 border rounded-md bg-muted/20">
+          {loadingExtrato ? (
+            <div className="p-3 flex items-center gap-2 text-xs text-muted-foreground">
+              <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+                <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              Carregando extrato…
+            </div>
+          ) : extratoError ? (
+            <div className="p-3 text-xs text-destructive">
+              Erro ao carregar extrato: {(extratoError as Error).message}
+            </div>
+          ) : linhasComSaldo.length === 0 ? (
+            <div className="p-3 text-xs text-muted-foreground">Sem movimentos.</div>
+          ) : (
+            <div className="divide-y">
+              {linhasComSaldo.map(({ mov, saldo: acc }, idx) => {
+                const val = Number(mov.valor || 0);
+                const isDoc = mov.tipo === "documento";
+                return (
+                  <div key={idx} className="px-3 py-1.5 flex items-center gap-3 text-xs">
+                    <div className="whitespace-nowrap font-mono text-muted-foreground w-[78px]">
+                      {formatDateBR(mov.data)}
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[10px] px-1.5 py-0",
+                        isDoc ? "border-amber-500 text-amber-600" : "border-emerald-500 text-emerald-600",
+                      )}
+                    >
+                      {isDoc ? "+ documento" : "− abatimento"}
+                    </Badge>
+                    <div className="flex-1 min-w-0 truncate" title={mov.descricao || ""}>
+                      {mov.descricao || "—"}
+                    </div>
+                    <div className={cn(
+                      "font-mono whitespace-nowrap min-w-[100px] text-right",
+                      val >= 0 ? "text-amber-600" : "text-emerald-600",
+                    )}>
+                      {val >= 0 ? "+" : "−"}{formatBRL(Math.abs(val))}
+                    </div>
+                    <div className="font-mono whitespace-nowrap min-w-[110px] text-right text-muted-foreground">
+                      {formatBRL(acc)}
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="px-3 py-2 flex items-center justify-between text-xs bg-muted/40">
+                <span className="font-medium">Saldo devedor</span>
+                <span className={cn(
+                  "font-mono font-semibold",
+                  saldoFinal > 0 ? "text-amber-600" : "text-emerald-600",
+                )}>
+                  {formatBRL(saldoFinal)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ContasCorrentesFornecedorCard() {
   const { data, isLoading } = useQuery({
     queryKey: ["vw-conta-corrente-fornecedor"],
@@ -804,30 +944,9 @@ function ContasCorrentesFornecedorCard() {
           <span className="text-xs text-muted-foreground">{data.length} fornecedor{data.length === 1 ? "" : "es"}</span>
         </div>
         <div className="divide-y">
-          {data.map((r) => {
-            const saldo = Number(r.saldo_devedor || 0);
-            return (
-              <div key={(r.cnpj || r.nome || "") + ""} className="py-2 flex items-center gap-4 text-sm">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{r.nome || "—"}</div>
-                  {r.cnpj && <div className="text-[11px] text-muted-foreground font-mono">{r.cnpj}</div>}
-                </div>
-                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                  Documentado <span className="font-mono">{formatBRL(Number(r.documentado || 0))}</span> ({r.n_docs || 0} doc{(r.n_docs || 0) === 1 ? "" : "s"})
-                </div>
-                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                  Pago <span className="font-mono">{formatBRL(Number(r.pago || 0))}</span> ({r.n_pagamentos || 0} pagto{(r.n_pagamentos || 0) === 1 ? "" : "s"}
-                  {r.ultimo_pagamento ? ` · último ${formatDateBR(r.ultimo_pagamento)}` : ""})
-                </div>
-                <div className={cn(
-                  "text-right font-mono font-semibold whitespace-nowrap min-w-[110px]",
-                  saldo > 0 ? "text-amber-600" : "text-emerald-600",
-                )}>
-                  {formatBRL(saldo)}
-                </div>
-              </div>
-            );
-          })}
+          {data.map((r) => (
+            <ContaCorrenteFornecedorRow key={(r.cnpj || r.nome || "") + ""} r={r} />
+          ))}
         </div>
       </CardContent>
     </Card>
