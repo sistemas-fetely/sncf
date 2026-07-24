@@ -1110,6 +1110,15 @@ export default function CobrancaDetalhe() {
           )}
 
           <div className="flex justify-end gap-3 mt-6">
+            {isSuperAdmin && (
+              <Button
+                variant="ghost"
+                onClick={() => setAjustarDescontoOpen(true)}
+                disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+              >
+                Ajustar desconto
+              </Button>
+            )}
             <Button
               variant="ghost"
               onClick={() => setEditarCondicaoOpen(true)}
