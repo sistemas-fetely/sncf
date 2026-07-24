@@ -199,6 +199,11 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                         )}
                         <div className="w-28 shrink-0 text-right font-mono">{formatBRL(Number(f.valor))}</div>
                         <div className="flex gap-1 shrink-0">
+                          {f.fornecedor_conta_corrente && (
+                            <Button size="sm" className="gap-1 h-7" onClick={() => onAbater(f)}>
+                              <Wallet className="h-3 w-3" /> Abater em c/c
+                            </Button>
+                          )}
                           <Button size="sm" variant="outline" className="gap-1 h-7" onClick={() => onBuscar(f)}>
                             <Search className="h-3 w-3" /> Buscar
                           </Button>
