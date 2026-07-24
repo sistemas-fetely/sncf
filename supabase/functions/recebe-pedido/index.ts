@@ -280,6 +280,7 @@ if (body.tipo === "canal_badges") {
             origem_fisc:          p.origem_fisc         ?? null,
             origem_prod:          p.origem_prod         ?? null,
             preco_atacado:        p.preco_atacado,
+            preco_varejo:         p.preco_varejo        ?? null,
             peso_g:               p.peso_g,
             multiplos:            p.multiplos,
             ativo:                p.ativo,
