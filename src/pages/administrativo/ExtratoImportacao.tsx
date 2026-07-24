@@ -641,6 +641,32 @@ export default function ExtratoImportacao() {
         </CardContent>
       </Card>
 
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Pagamentos Itaú (Consulta de Pagamentos)</h2>
+            <p className="text-xs text-muted-foreground">
+              Enriquece débitos anônimos (PAG TIT) do extrato cruzando data + valor + conta.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={enriquecerItau}
+            disabled={reprocessandoItau}
+            className="gap-2"
+          >
+            {reprocessandoItau ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+            Reprocessar vínculos
+          </Button>
+        </div>
+        <ImportadorItauPagamentos
+          contaBancariaId={conta || undefined}
+          onSuccess={() => { enriquecerItau(); }}
+        />
+      </div>
+
+
       <div>
         <h2 className="text-lg font-semibold mb-2">Histórico de importações</h2>
         <Card>
