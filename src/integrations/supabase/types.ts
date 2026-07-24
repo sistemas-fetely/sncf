@@ -18446,6 +18446,7 @@ export type Database = {
           uf: string
           zona: string
           zona_pendente: boolean
+          zona_polo_fallback: boolean
         }
         Insert: {
           canal?: string
@@ -18460,6 +18461,7 @@ export type Database = {
           uf: string
           zona: string
           zona_pendente?: boolean
+          zona_polo_fallback?: boolean
         }
         Update: {
           canal?: string
@@ -18474,6 +18476,7 @@ export type Database = {
           uf?: string
           zona?: string
           zona_pendente?: boolean
+          zona_polo_fallback?: boolean
         }
         Relationships: [
           {
@@ -23869,6 +23872,15 @@ export type Database = {
             }
             Returns: Json
           }
+      alterar_desconto_pedido: {
+        Args: {
+          p_motivo?: string
+          p_pedido_id: string
+          p_tipo: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       analisar_pedido_vs_programa: {
         Args: { p_pedido_id: string }
         Returns: Json
