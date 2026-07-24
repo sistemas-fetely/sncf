@@ -75,9 +75,10 @@ function parsearValor(valor: any): number {
 
 interface ImportadorItauPagamentosProps {
   contaBancariaId?: string;
+  onSuccess?: (total: number) => void;
 }
 
-export function ImportadorItauPagamentos({ contaBancariaId: contaBancariaIdProp }: ImportadorItauPagamentosProps = {}) {
+export function ImportadorItauPagamentos({ contaBancariaId: contaBancariaIdProp, onSuccess }: ImportadorItauPagamentosProps = {}) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [contaBancariaIdInterno, setContaBancariaIdInterno] = useState("");
