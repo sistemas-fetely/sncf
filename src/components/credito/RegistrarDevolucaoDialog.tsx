@@ -301,6 +301,19 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
                   placeholder="número da NF de retorno — pode preencher depois"
                 />
               </div>
+              {previewOk.havers_a_revisar > 0 && (
+                <div className="flex items-start gap-2 p-3 rounded-md border bg-amber-50 border-amber-200">
+                  <Checkbox
+                    id="gerar-haver"
+                    checked={gerarHaver}
+                    onCheckedChange={(v) => setGerarHaver(v === true)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="gerar-haver" className="text-xs text-amber-900 font-normal cursor-pointer leading-relaxed">
+                    Gerar haver de <strong>{formatBRL(previewOk.havers_valor_total ?? 0)}</strong> — valor já pago e recebido (com lastro bancário) volta como crédito do cliente.
+                  </Label>
+                </div>
+              )}
             </div>
           </>
         )}
