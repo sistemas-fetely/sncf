@@ -100,6 +100,7 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
   const qc = useQueryClient();
   const [motivo, setMotivo] = useState("");
   const [nfDevolucao, setNfDevolucao] = useState("");
+  const [gerarHaver, setGerarHaver] = useState(false);
 
   const preview = useQuery({
     queryKey: ["preview-devolucao", pedidoId],
