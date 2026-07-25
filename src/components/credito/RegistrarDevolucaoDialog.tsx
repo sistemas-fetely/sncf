@@ -49,6 +49,7 @@ interface PreviewOk {
   titulos_a_devolver: number;
   boletos_a_baixar: number;
   havers_a_revisar: number;
+  havers_valor_total?: number;
   fantasmas_a_reverter: number;
   itens: PreviewItem[];
 }
