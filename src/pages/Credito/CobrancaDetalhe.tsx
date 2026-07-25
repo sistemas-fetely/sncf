@@ -862,6 +862,12 @@ export default function CobrancaDetalhe() {
           </Button>
         </CardHeader>
         <CardContent>
+          <ImpactoEdicaoBanner
+            pedidoId={pedidoQ.data?.id}
+            novaCondicao={proposta.condicao_original}
+            novoValorLiquido={totalEditado}
+            className="mb-4"
+          />
           {/* Faixa de controles: total a cobrar + parcelas iguais */}
           <div className="flex flex-wrap items-end gap-4 mb-4 p-3 rounded-md border bg-muted/30">
             <div className="space-y-1">
@@ -1192,6 +1198,7 @@ export default function CobrancaDetalhe() {
         valorBruto={Number((pedidoQ.data as any)?.valor_bruto ?? 0)}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         bonusPixValor={Number((pedidoQ.data as any)?.bonus_pix_valor ?? 0)}
+        condicaoAtual={proposta?.condicao_original ?? pedidoQ.data?.condicao_solicitada ?? null}
       />
     </div>
   );
