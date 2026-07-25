@@ -1102,6 +1102,56 @@ export default function TitulosTab() {
         />
       )}
 
+      {cancelandoPedido && (
+        <CancelarPedidoDialog
+          pedidoId={cancelandoPedido.pedido_id}
+          pedidoIdExterno={cancelandoPedido.pedido_id_externo}
+          open={!!cancelandoPedido}
+          onClose={() => {
+            setCancelandoPedido(null);
+            setDetalhe(null);
+          }}
+        />
+      )}
+
+      {devolvendo && (
+        <RegistrarDevolucaoDialog
+          pedidoId={devolvendo.pedido_id}
+          pedidoIdExterno={devolvendo.pedido_id_externo}
+          open={!!devolvendo}
+          onClose={() => {
+            setDevolvendo(null);
+            setDetalhe(null);
+          }}
+        />
+      )}
+
+      {baixandoPerda && (
+        <BaixarPorPerdaDialog
+          tituloId={baixandoPerda.id}
+          numeroTitulo={baixandoPerda.numero_titulo}
+          valor={baixandoPerda.valor_efetivo}
+          open={!!baixandoPerda}
+          onClose={() => {
+            setBaixandoPerda(null);
+            setDetalhe(null);
+          }}
+        />
+      )}
+
+      {renegociando && (
+        <RenegociarTituloDialog
+          titulo={renegociando}
+          etapa={null}
+          open={!!renegociando}
+          onClose={() => {
+            setRenegociando(null);
+            qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+          }}
+        />
+      )}
+
+
       <AlertDialog
         open={!!cancelandoReemissao}
         onOpenChange={(v) => !v && setCancelandoReemissao(null)}
