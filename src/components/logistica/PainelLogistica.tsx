@@ -495,56 +495,88 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
         </Card>
         ) : null}
 
-        {/* Detalhe operacional por transportadora */}
-        <Card className="card-shadow">
-          <CardContent className="p-0">
-            <div className="px-4 py-3 border-b">
-              <div className="text-sm font-medium">Detalhe operacional por transportadora</div>
-              <div className="text-xs text-muted-foreground">Fonte: CTes (B2B) + postagens (B2C)</div>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Transportadora</TableHead>
-                    <TableHead className="text-right">Fretes</TableHead>
-                    <TableHead className="text-right">Frete total</TableHead>
-                    <TableHead className="text-right">Frete médio</TableHead>
-                    <TableHead className="text-right" title="frete cobrado ÷ NF, só c/ frete">% cobrado/NF</TableHead>
-                    <TableHead className="text-right" title="Σ frete_total ÷ Σ valor_nf">% custo/NF</TableHead>
-                    <TableHead className="text-right">Peso taxado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {detalhePorTransp.map((r) => {
-                    const ehB2c = r.canalB2c;
-                    const extras = extrasPorId.get(r.id);
-                    const pctCob = pctCobradoPorId(r.id);
-                    const pctCusto = !ehB2c && extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null;
-                    const peso = !ehB2c ? n(extras?.peso) : null;
-                    const medio = r.fretes > 0 ? r.total / r.fretes : 0;
-                    return (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-medium">{r.nome}</TableCell>
-                        <TableCell className="text-right tabular-nums">{NUM.format(r.fretes)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{BRL.format(r.total)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{BRL.format(medio)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{pctCob != null ? `${pctCob.toFixed(2)}%` : <span className="text-muted-foreground">—</span>}</TableCell>
-                        <TableCell className="text-right tabular-nums">{pctCusto != null ? `${pctCusto.toFixed(2)}%` : <span className="text-muted-foreground">—</span>}</TableCell>
-                        <TableCell className="text-right tabular-nums">{peso != null ? `${NUM.format(Math.round(peso))} kg` : <span className="text-muted-foreground">—</span>}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {detalhePorTransp.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">Sem fretes.</TableCell></TableRow>
-                  ) : null}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Detalhe financeiro do carrier / Detalhe operacional por transportadora */}
+        {isTransp ? (() => {
+          const r = detalhePorTransp[0];
+          if (!r) {
+            return (
+              <Card className="card-shadow">
+                <CardContent className="p-6 text-sm text-muted-foreground text-center">Sem fretes.</CardContent>
+              </Card>
+            );
+          }
+          const ehB2c = r.canalB2c;
+          const extras = extrasPorId.get(r.id);
+          const pctCob = pctCobradoPorId(r.id);
+          const pctCusto = !ehB2c && extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null;
+          const peso = !ehB2c ? n(extras?.peso) : null;
+          const medio = r.fretes > 0 ? r.total / r.fretes : 0;
+          return (
+            <Card className="card-shadow">
+              <CardContent className="p-4">
+                <div className="text-sm font-medium mb-3">Detalhe financeiro — {r.nome}</div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <StatCardMini label="Frete total" value={BRL.format(r.total)} icon={DollarSign} tone="info" hint={`${NUM.format(r.fretes)} envios`} />
+                  <StatCardMini label="Frete médio" value={BRL.format(medio)} icon={DollarSign} tone="default" />
+                  <StatCardMini label="% cobrado/NF" value={pctCob != null ? `${pctCob.toFixed(2)}%` : "—"} icon={Percent} tone="info" hint={ehB2c ? "n/a no B2C" : "frete cobrado ÷ NF"} />
+                  <StatCardMini label="% custo/NF" value={pctCusto != null ? `${pctCusto.toFixed(2)}%` : "—"} icon={Percent} tone="default" hint={ehB2c ? "n/a no B2C" : "Σ frete ÷ Σ valor_nf"} />
+                  <StatCardMini label="Peso taxado" value={peso != null ? `${NUM.format(Math.round(peso))} kg` : "—"} icon={Package} tone="default" hint={ehB2c ? "n/a no B2C" : undefined} />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })() : (
+          <Card className="card-shadow">
+            <CardContent className="p-0">
+              <div className="px-4 py-3 border-b">
+                <div className="text-sm font-medium">Detalhe operacional por transportadora</div>
+                <div className="text-xs text-muted-foreground">Fonte: CTes (B2B) + postagens (B2C)</div>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Transportadora</TableHead>
+                      <TableHead className="text-right">Fretes</TableHead>
+                      <TableHead className="text-right">Frete total</TableHead>
+                      <TableHead className="text-right">Frete médio</TableHead>
+                      <TableHead className="text-right" title="frete cobrado ÷ NF, só c/ frete">% cobrado/NF</TableHead>
+                      <TableHead className="text-right" title="Σ frete_total ÷ Σ valor_nf">% custo/NF</TableHead>
+                      <TableHead className="text-right">Peso taxado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detalhePorTransp.map((r) => {
+                      const ehB2c = r.canalB2c;
+                      const extras = extrasPorId.get(r.id);
+                      const pctCob = pctCobradoPorId(r.id);
+                      const pctCusto = !ehB2c && extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null;
+                      const peso = !ehB2c ? n(extras?.peso) : null;
+                      const medio = r.fretes > 0 ? r.total / r.fretes : 0;
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-medium">{r.nome}</TableCell>
+                          <TableCell className="text-right tabular-nums">{NUM.format(r.fretes)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{BRL.format(r.total)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{BRL.format(medio)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{pctCob != null ? `${pctCob.toFixed(2)}%` : <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-right tabular-nums">{pctCusto != null ? `${pctCusto.toFixed(2)}%` : <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-right tabular-nums">{peso != null ? `${NUM.format(Math.round(peso))} kg` : <span className="text-muted-foreground">—</span>}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {detalhePorTransp.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">Sem fretes.</TableCell></TableRow>
+                    ) : null}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Participação */}
+        {!isTransp ? (
         <Card className="card-shadow">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -574,6 +606,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             )}
           </CardContent>
         </Card>
+        ) : null}
 
         {/* Custo × volume por UF */}
         <Card className="card-shadow">
