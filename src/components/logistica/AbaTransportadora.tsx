@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Building2, Upload, Truck } from "lucide-react";
 import { FretesEntregas } from "./FretesEntregas";
+import { FretesEntregasB2C } from "./FretesEntregasB2C";
 import { TabelaPreco } from "./TabelaPreco";
 import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
 import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
@@ -20,7 +21,11 @@ function fmtCnpj(cnpj: string | null): string {
 
 export function AbaTransportadora({ transportadora }: { transportadora: TransportadoraLogistica }) {
   const nome = transportadora.nome_fantasia ?? transportadora.razao_social;
-  const ehBraspress = (transportadora.razao_social || "").toUpperCase().includes("BRASPRESS");
+  const nomeUpper = (transportadora.razao_social || "").toUpperCase() + " " + (transportadora.nome_fantasia || "").toUpperCase();
+  const ehBraspress = nomeUpper.includes("BRASPRESS");
+  const ehCorreios = nomeUpper.includes("CORREIOS") || nomeUpper.includes("EMPRESA BRASILEIRA DE CORREIOS");
+  const ehFrenet = nomeUpper.includes("FRENET");
+  const carrierB2C: "Correios" | "Frenet" | null = ehCorreios ? "Correios" : ehFrenet ? "Frenet" : null;
   const [abrirRastreio, setAbrirRastreio] = useState(false);
   const [abrirBraspress, setAbrirBraspress] = useState(false);
 
@@ -58,11 +63,15 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
           <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
         </TabsList>
         <TabsContent value="fretes" className="mt-4">
-          <FretesEntregas
-            transportadoraId={transportadora.id}
-            transportadoraNome={nome}
-            hideImport={ehBraspress}
-          />
+          {carrierB2C ? (
+            <FretesEntregasB2C carrier={carrierB2C} />
+          ) : (
+            <FretesEntregas
+              transportadoraId={transportadora.id}
+              transportadoraNome={nome}
+              hideImport={ehBraspress}
+            />
+          )}
         </TabsContent>
         <TabsContent value="tabela" className="mt-4 space-y-4">
           <GestaoTabelasPreco transportadoraId={transportadora.id} />
