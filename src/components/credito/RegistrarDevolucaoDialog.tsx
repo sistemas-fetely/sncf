@@ -123,6 +123,7 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
         p_pedido_id: pedidoId,
         p_nf_devolucao: nfDevolucao.trim() || null,
         p_motivo: motivo.trim(),
+        p_gerar_haver: gerarHaver,
       });
       if (error) throw new Error(error.message);
       if (data && data.ok === false) throw new Error(data.erro ?? "Erro ao registrar devolução.");
@@ -134,6 +135,8 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
         pagos_fantasma_revertidos: { numero_titulo: string; valor: number }[];
         pagos_com_lastro_a_revisar: { numero_titulo: string; valor: number }[];
         nf_devolucao: string | null;
+        haver_gerado_id?: string | null;
+        haver_valor?: number | null;
       };
     },
     onSuccess: (data) => {
@@ -147,6 +150,9 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
       if (data.pagos_com_lastro_a_revisar.length > 0) {
         partes.push(`${data.pagos_com_lastro_a_revisar.length} pago(s) com lastro a revisar`);
       }
+      if (data.haver_gerado_id) {
+        partes.push(`Haver de ${formatBRL(data.haver_valor ?? 0)} gerado para o cliente.`);
+      }
       toast.success("Devolução registrada", { description: partes.join(" · ") });
 
       if (data.boletos_baixa_solicitada > 0) {
@@ -154,7 +160,7 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
           duration: 10000,
         });
       }
-      if (data.pagos_com_lastro_a_revisar.length > 0) {
+      if (data.pagos_com_lastro_a_revisar.length > 0 && !data.haver_gerado_id) {
         toast.warning(
           `Títulos pagos com lastro (${data.pagos_com_lastro_a_revisar
             .map((p) => p.numero_titulo)
