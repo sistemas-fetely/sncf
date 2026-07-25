@@ -63,11 +63,15 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
           <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
         </TabsList>
         <TabsContent value="fretes" className="mt-4">
-          <FretesEntregas
-            transportadoraId={transportadora.id}
-            transportadoraNome={nome}
-            hideImport={ehBraspress}
-          />
+          {carrierB2C ? (
+            <FretesEntregasB2C carrier={carrierB2C} />
+          ) : (
+            <FretesEntregas
+              transportadoraId={transportadora.id}
+              transportadoraNome={nome}
+              hideImport={ehBraspress}
+            />
+          )}
         </TabsContent>
         <TabsContent value="tabela" className="mt-4 space-y-4">
           <GestaoTabelasPreco transportadoraId={transportadora.id} />
