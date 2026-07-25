@@ -566,7 +566,9 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                       const ehB2c = r.canalB2c;
                       const extras = extrasPorId.get(r.id);
                       const pctCob = pctCobradoPorId(r.id);
-                      const pctCusto = !ehB2c && extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null;
+                      const pctCusto = ehB2c
+                        ? pctCustoBasePorId(r.id)
+                        : (extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null);
                       const peso = !ehB2c ? n(extras?.peso) : null;
                       const medio = r.fretes > 0 ? r.total / r.fretes : 0;
                       return (
