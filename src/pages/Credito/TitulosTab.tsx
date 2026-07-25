@@ -333,6 +333,10 @@ export default function TitulosTab() {
   const [reemitindo, setReemitindo] = useState<TituloCobranca | null>(null);
   const [cancelandoReemissao, setCancelandoReemissao] = useState<TituloCobranca | null>(null);
   const [prorrogando, setProrrogando] = useState<TituloCobranca | null>(null);
+  const [cancelandoPedido, setCancelandoPedido] = useState<TituloCobranca | null>(null);
+  const [devolvendo, setDevolvendo] = useState<TituloCobranca | null>(null);
+  const [baixandoPerda, setBaixandoPerda] = useState<TituloCobranca | null>(null);
+  const [renegociando, setRenegociando] = useState<TituloCobranca | null>(null);
 
   const kpis = useMemo(() => calcularKpis(titulos), [titulos]);
   const mesAtual = new Date().toISOString().slice(0, 7);
