@@ -171,6 +171,15 @@ export function AjustarDescontoDialog({
               rows={2}
             />
           </div>
+
+          {condicaoAtual && (
+            <ImpactoEdicaoBanner
+              pedidoId={pedidoId}
+              novaCondicao={condicaoAtual}
+              novoValorLiquido={novoLiquido}
+              enabled={valorNum > 0 && !liquidoNegativo}
+            />
+          )}
         </div>
 
         <DialogFooter>
