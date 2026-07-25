@@ -36,6 +36,10 @@ import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog";
 import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
+import { CancelarPedidoDialog } from "@/components/credito/CancelarPedidoDialog";
+import { RegistrarDevolucaoDialog } from "@/components/credito/RegistrarDevolucaoDialog";
+import { BaixarPorPerdaDialog } from "@/components/credito/BaixarPorPerdaDialog";
+import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
