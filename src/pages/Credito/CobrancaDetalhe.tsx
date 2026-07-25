@@ -35,10 +35,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useParametros } from "@/hooks/useParametros";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
-import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
+// AlterarFormaPagamentoDialog aposentado — fluxo /pgXX substituído por reverter_para_cobranca.
+import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
 import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDescontoDialog";
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
+import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
