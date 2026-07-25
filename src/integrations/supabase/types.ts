@@ -5135,13 +5135,6 @@ export type Database = {
             foreignKeyName: "documentos_venda_ref_shopify_id_fkey"
             columns: ["ref_shopify_id"]
             isOneToOne: true
-            referencedRelation: "vw_frete_b2c"
-            referencedColumns: ["shopify_id"]
-          },
-          {
-            foreignKeyName: "documentos_venda_ref_shopify_id_fkey"
-            columns: ["ref_shopify_id"]
-            isOneToOne: true
             referencedRelation: "vw_gestao_b2c"
             referencedColumns: ["shopify_id"]
           },
@@ -15701,13 +15694,6 @@ export type Database = {
             foreignKeyName: "shopify_itens_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_frete_b2c"
-            referencedColumns: ["shopify_id"]
-          },
-          {
-            foreignKeyName: "shopify_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_b2c"
             referencedColumns: ["shopify_id"]
           },
@@ -21638,33 +21624,6 @@ export type Database = {
           total_pago: number | null
           total_saldo: number | null
           total_saving: number | null
-        }
-        Relationships: []
-      }
-      vw_frete_b2c: {
-        Row: {
-          carrier: string | null
-          cep_destino: string | null
-          codigo_servico: string | null
-          custo_frete: number | null
-          custo_transportadora: number | null
-          data_postagem: string | null
-          descricao_servico: string | null
-          etiqueta: string | null
-          financial_status: string | null
-          fulfillment_status: string | null
-          lancamento_id: string | null
-          municipio_destino: string | null
-          order_name: string | null
-          origem_dado: string | null
-          shipping_city: string | null
-          shipping_province: string | null
-          shipping_zip: string | null
-          shopify_id: string | null
-          situacao_frete: string | null
-          tem_pedido: boolean | null
-          uf_destino: string | null
-          valor_declarado: number | null
         }
         Relationships: []
       }
