@@ -378,12 +378,13 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           </div>
         </CardContent>
       </Card>
-      <AlterarFormaPagamentoDialog
+      <ReverterParaCobrancaDialog
         open={alterarPagtoOpen}
         onClose={() => setAlterarPagtoOpen(false)}
         pedidoId={pedido.id}
         idExterno={pedido.id_externo}
-        temTitulosComEmailEnviado={(titulosQ.data ?? []).some((t: any) => t.email_cobranca_enviado_em != null)}
+        estagio="cobranca"
+        motivoAlterarPagamento
       />
     </div>
   );
