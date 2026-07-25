@@ -118,7 +118,7 @@ export function BaixasPendentesAlert({
         <Alert className={cn("border-purple-300 bg-purple-50 dark:bg-purple-950/30 dark:border-purple-900")}>
           <Info className="h-4 w-4 text-purple-700 dark:text-purple-300" />
           <AlertTitle className="text-purple-900 dark:text-purple-100">
-            {nGer} {nGer === 1 ? "remessa de baixa gerada" : "remessas de baixa geradas"} aguardando envio no SafraNet
+            {nGer} {nGer === 1 ? "boleto" : "boletos"} em remessa de baixa aguardando envio no SafraNet
             <span className="ml-2 font-normal text-purple-800/80 dark:text-purple-200/80">
               ({formatBRL(totalRemessaGerada)} total)
             </span>

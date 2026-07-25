@@ -381,6 +381,7 @@ export interface RemessaSafra {
   retorno_processado_em: string | null;
   enviada_em: string | null;
   enviada_por: string | null;
+  conteudo: string | null;
 }
 
 export interface ValidacaoRemessa {

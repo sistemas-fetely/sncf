@@ -329,6 +329,7 @@ serve(async (req) => {
           status:         "gerada",
           arquivo_nome:   arquivoNome,
           tipo:           "baixa",
+          conteudo:       arquivoConteudo,
         })
         .select("id")
         .single();
@@ -446,6 +447,7 @@ serve(async (req) => {
           status:         "gerada",
           arquivo_nome:   arquivoNome,
           tipo:           "prorrogacao",
+          conteudo:       arquivoConteudo,
         })
         .select("id")
         .single();
@@ -566,6 +568,7 @@ serve(async (req) => {
         status:         "gerada",
         arquivo_nome:   arquivoNome,
         tipo:           "entrada",
+        conteudo:       arquivoConteudo,
       })
       .select("id").single();
     if (remessaErr || !remessa) throw new Error(`Erro ao gravar remessa: ${remessaErr?.message}`);
