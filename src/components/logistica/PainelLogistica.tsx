@@ -247,6 +247,20 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
     return base > 0 ? (receita / base) * 100 : null;
   }
 
+  // % custo/base por id — B2C: soma custo_frete e base_nf de pnlRows por nome
+  function pctCustoBasePorId(id: string): number | null {
+    const nome = nomePorId.get(id);
+    if (!nome) return null;
+    let custo = 0, base = 0;
+    for (const r of pnlRows) {
+      if (matchesTransp(r.transportadora, nome)) {
+        custo += n(r.custo_frete);
+        base += n(r.base_nf);
+      }
+    }
+    return base > 0 ? (custo / base) * 100 : null;
+  }
+
   // Custo por UF (top 12) — de fato_frete
   const custoPorUf = useMemo(() => {
     const map = new Map<string, { custo: number; fretes: number }>();
@@ -508,7 +522,9 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
           const ehB2c = r.canalB2c;
           const extras = extrasPorId.get(r.id);
           const pctCob = pctCobradoPorId(r.id);
-          const pctCusto = !ehB2c && extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null;
+          const pctCusto = ehB2c
+            ? pctCustoBasePorId(r.id)
+            : (extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null);
           const peso = !ehB2c ? n(extras?.peso) : null;
           const medio = r.fretes > 0 ? r.total / r.fretes : 0;
           return (
@@ -519,7 +535,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                   <StatCardMini label="Frete total" value={BRL.format(r.total)} icon={DollarSign} tone="info" hint={`${NUM.format(r.fretes)} envios`} />
                   <StatCardMini label="Frete médio" value={BRL.format(medio)} icon={DollarSign} tone="default" />
                   <StatCardMini label="% cobrado/NF" value={pctCob != null ? `${pctCob.toFixed(2)}%` : "—"} icon={Percent} tone="info" hint={ehB2c ? "n/a no B2C" : "frete cobrado ÷ NF"} />
-                  <StatCardMini label="% custo/NF" value={pctCusto != null ? `${pctCusto.toFixed(2)}%` : "—"} icon={Percent} tone="default" hint={ehB2c ? "n/a no B2C" : "Σ frete ÷ Σ valor_nf"} />
+                  <StatCardMini label="% custo/NF" value={pctCusto != null ? `${pctCusto.toFixed(2)}%` : "—"} icon={Percent} tone="default" hint={ehB2c ? "B2C: Σ custo_frete ÷ Σ base_nf (valor do pedido Shopify, não NF fiscal)" : "Σ frete ÷ Σ valor_nf"} />
                   <StatCardMini label="Peso taxado" value={peso != null ? `${NUM.format(Math.round(peso))} kg` : "—"} icon={Package} tone="default" hint={ehB2c ? "n/a no B2C" : undefined} />
                 </div>
               </CardContent>
@@ -541,7 +557,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                       <TableHead className="text-right">Frete total</TableHead>
                       <TableHead className="text-right">Frete médio</TableHead>
                       <TableHead className="text-right" title="frete cobrado ÷ NF, só c/ frete">% cobrado/NF</TableHead>
-                      <TableHead className="text-right" title="Σ frete_total ÷ Σ valor_nf">% custo/NF</TableHead>
+                      <TableHead className="text-right" title="B2B: Σ frete_total ÷ Σ valor_nf · B2C: Σ custo_frete ÷ Σ base_nf (valor do pedido Shopify, não NF fiscal)">% custo/NF</TableHead>
                       <TableHead className="text-right">Peso taxado</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -550,7 +566,9 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                       const ehB2c = r.canalB2c;
                       const extras = extrasPorId.get(r.id);
                       const pctCob = pctCobradoPorId(r.id);
-                      const pctCusto = !ehB2c && extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null;
+                      const pctCusto = ehB2c
+                        ? pctCustoBasePorId(r.id)
+                        : (extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null);
                       const peso = !ehB2c ? n(extras?.peso) : null;
                       const medio = r.fretes > 0 ? r.total / r.fretes : 0;
                       return (
