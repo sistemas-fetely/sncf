@@ -21,7 +21,11 @@ function fmtCnpj(cnpj: string | null): string {
 
 export function AbaTransportadora({ transportadora }: { transportadora: TransportadoraLogistica }) {
   const nome = transportadora.nome_fantasia ?? transportadora.razao_social;
-  const ehBraspress = (transportadora.razao_social || "").toUpperCase().includes("BRASPRESS");
+  const nomeUpper = (transportadora.razao_social || "").toUpperCase() + " " + (transportadora.nome_fantasia || "").toUpperCase();
+  const ehBraspress = nomeUpper.includes("BRASPRESS");
+  const ehCorreios = nomeUpper.includes("CORREIOS") || nomeUpper.includes("EMPRESA BRASILEIRA DE CORREIOS");
+  const ehFrenet = nomeUpper.includes("FRENET");
+  const carrierB2C: "Correios" | "Frenet" | null = ehCorreios ? "Correios" : ehFrenet ? "Frenet" : null;
   const [abrirRastreio, setAbrirRastreio] = useState(false);
   const [abrirBraspress, setAbrirBraspress] = useState(false);
 
