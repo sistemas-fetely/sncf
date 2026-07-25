@@ -447,6 +447,7 @@ serve(async (req) => {
           status:         "gerada",
           arquivo_nome:   arquivoNome,
           tipo:           "prorrogacao",
+          conteudo:       arquivoConteudo,
         })
         .select("id")
         .single();
