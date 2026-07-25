@@ -11868,6 +11868,7 @@ export type Database = {
           desconto_celebra_valor: number
           desconto_pct: number | null
           endereco_entrega: Json | null
+          entrada_liberacao_pendente: boolean
           entregue_em: string | null
           entregue_metodo: string | null
           estagio: string
@@ -11947,6 +11948,7 @@ export type Database = {
           desconto_celebra_valor?: number
           desconto_pct?: number | null
           endereco_entrega?: Json | null
+          entrada_liberacao_pendente?: boolean
           entregue_em?: string | null
           entregue_metodo?: string | null
           estagio?: string
@@ -12026,6 +12028,7 @@ export type Database = {
           desconto_celebra_valor?: number
           desconto_pct?: number | null
           endereco_entrega?: Json | null
+          entrada_liberacao_pendente?: boolean
           entregue_em?: string | null
           entregue_metodo?: string | null
           estagio?: string
@@ -25049,6 +25052,10 @@ export type Database = {
       iniciar_compra_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       lancar_ofx_como_movimentacao: {
         Args: { p_ofx_id: string }
+        Returns: Json
+      }
+      liberar_entrada_manual: {
+        Args: { p_motivo: string; p_pedido_id: string }
         Returns: Json
       }
       limpar_atencao_pedido: {
