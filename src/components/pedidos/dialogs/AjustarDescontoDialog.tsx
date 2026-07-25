@@ -29,7 +29,7 @@ interface Props {
 type Tipo = "pct" | "valor";
 
 export function AjustarDescontoDialog({
-  open, onClose, pedidoId, idExterno, valorBruto, bonusPixValor,
+  open, onClose, pedidoId, idExterno, valorBruto, bonusPixValor, condicaoAtual,
 }: Props) {
   const qc = useQueryClient();
   const [tipo, setTipo] = useState<Tipo>("pct");
