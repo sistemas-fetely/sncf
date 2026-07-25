@@ -557,7 +557,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                       <TableHead className="text-right">Frete total</TableHead>
                       <TableHead className="text-right">Frete médio</TableHead>
                       <TableHead className="text-right" title="frete cobrado ÷ NF, só c/ frete">% cobrado/NF</TableHead>
-                      <TableHead className="text-right" title="Σ frete_total ÷ Σ valor_nf">% custo/NF</TableHead>
+                      <TableHead className="text-right" title="B2B: Σ frete_total ÷ Σ valor_nf · B2C: Σ custo_frete ÷ Σ base_nf (valor do pedido Shopify, não NF fiscal)">% custo/NF</TableHead>
                       <TableHead className="text-right">Peso taxado</TableHead>
                     </TableRow>
                   </TableHeader>
