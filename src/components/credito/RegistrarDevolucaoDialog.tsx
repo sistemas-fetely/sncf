@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -49,6 +50,7 @@ interface PreviewOk {
   titulos_a_devolver: number;
   boletos_a_baixar: number;
   havers_a_revisar: number;
+  havers_valor_total?: number;
   fantasmas_a_reverter: number;
   itens: PreviewItem[];
 }
@@ -99,6 +101,7 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
   const qc = useQueryClient();
   const [motivo, setMotivo] = useState("");
   const [nfDevolucao, setNfDevolucao] = useState("");
+  const [gerarHaver, setGerarHaver] = useState(false);
 
   const preview = useQuery({
     queryKey: ["preview-devolucao", pedidoId],
@@ -121,6 +124,7 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
         p_pedido_id: pedidoId,
         p_nf_devolucao: nfDevolucao.trim() || null,
         p_motivo: motivo.trim(),
+        p_gerar_haver: gerarHaver,
       });
       if (error) throw new Error(error.message);
       if (data && data.ok === false) throw new Error(data.erro ?? "Erro ao registrar devolução.");
@@ -132,6 +136,8 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
         pagos_fantasma_revertidos: { numero_titulo: string; valor: number }[];
         pagos_com_lastro_a_revisar: { numero_titulo: string; valor: number }[];
         nf_devolucao: string | null;
+        haver_gerado_id?: string | null;
+        haver_valor?: number | null;
       };
     },
     onSuccess: (data) => {
@@ -145,6 +151,9 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
       if (data.pagos_com_lastro_a_revisar.length > 0) {
         partes.push(`${data.pagos_com_lastro_a_revisar.length} pago(s) com lastro a revisar`);
       }
+      if (data.haver_gerado_id) {
+        partes.push(`Haver de ${formatBRL(data.haver_valor ?? 0)} gerado para o cliente.`);
+      }
       toast.success("Devolução registrada", { description: partes.join(" · ") });
 
       if (data.boletos_baixa_solicitada > 0) {
@@ -152,7 +161,7 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
           duration: 10000,
         });
       }
-      if (data.pagos_com_lastro_a_revisar.length > 0) {
+      if (data.pagos_com_lastro_a_revisar.length > 0 && !data.haver_gerado_id) {
         toast.warning(
           `Títulos pagos com lastro (${data.pagos_com_lastro_a_revisar
             .map((p) => p.numero_titulo)
@@ -293,6 +302,19 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
                   placeholder="número da NF de retorno — pode preencher depois"
                 />
               </div>
+              {previewOk.havers_a_revisar > 0 && (
+                <div className="flex items-start gap-2 p-3 rounded-md border bg-amber-50 border-amber-200">
+                  <Checkbox
+                    id="gerar-haver"
+                    checked={gerarHaver}
+                    onCheckedChange={(v) => setGerarHaver(v === true)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="gerar-haver" className="text-xs text-amber-900 font-normal cursor-pointer leading-relaxed">
+                    Gerar haver de <strong>{formatBRL(previewOk.havers_valor_total ?? 0)}</strong> — valor já pago e recebido (com lastro bancário) volta como crédito do cliente.
+                  </Label>
+                </div>
+              )}
             </div>
           </>
         )}

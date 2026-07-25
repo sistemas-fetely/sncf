@@ -4820,6 +4820,42 @@ export type Database = {
         }
         Relationships: []
       }
+      custo_aterrissagem: {
+        Row: {
+          atualizado_em: string
+          codigo_nf: string | null
+          custo_aterrissagem: number
+          fonte: string
+          id: string
+          ipi_aliq: number | null
+          ncm: string | null
+          sku: string
+          valor_unit: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          codigo_nf?: string | null
+          custo_aterrissagem: number
+          fonte?: string
+          id?: string
+          ipi_aliq?: number | null
+          ncm?: string | null
+          sku: string
+          valor_unit?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          codigo_nf?: string | null
+          custo_aterrissagem?: number
+          fonte?: string
+          id?: string
+          ipi_aliq?: number | null
+          ncm?: string | null
+          sku?: string
+          valor_unit?: number | null
+        }
+        Relationships: []
+      }
       custo_pessoas_mensal: {
         Row: {
           ano_mes: string
@@ -22348,14 +22384,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -23291,6 +23327,7 @@ export type Database = {
           abaixo_piso_b2c: boolean | null
           colecao: string | null
           custo: number | null
+          custo_real: boolean | null
           grupo: string | null
           nome_comercial: string | null
           preco_b2b: number | null
@@ -25447,6 +25484,7 @@ export type Database = {
       }
       registrar_devolucao_pedido: {
         Args: {
+          p_gerar_haver?: boolean
           p_motivo?: string
           p_nf_devolucao?: string
           p_pedido_id: string
