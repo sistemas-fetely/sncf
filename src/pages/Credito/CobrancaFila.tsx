@@ -706,11 +706,12 @@ function RemessasSafraTab() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={baixandoId === r.id}
-                        onClick={() => baixarNovamente(r.id, r.arquivo_nome)}
+                        disabled={!r.conteudo}
+                        title={!r.conteudo ? "Arquivo não disponível (remessa anterior ao histórico)" : undefined}
+                        onClick={() => baixarNovamente(r.conteudo, r.arquivo_nome)}
                       >
                         <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                        {baixandoId === r.id ? "Baixando..." : "Baixar"}
+                        Baixar arquivo
                       </Button>
                     </div>
                   </TableCell>
