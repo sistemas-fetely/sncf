@@ -22123,6 +22123,23 @@ export type Database = {
           },
         ]
       }
+      vw_logistica_rastreio: {
+        Row: {
+          canal: string | null
+          data_entrega: string | null
+          devolucao: boolean | null
+          documento_ref: string | null
+          entregue: boolean | null
+          fonte: string | null
+          fonte_id: string | null
+          municipio_destino: string | null
+          previsao_entrega: string | null
+          status_texto: string | null
+          transportadora_id: string | null
+          uf_destino: string | null
+        }
+        Relationships: []
+      }
       vw_motor_fila_por_cnpj: {
         Row: {
           fornecedor: string | null
@@ -22461,14 +22478,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -24910,6 +24927,7 @@ export type Database = {
         }
         Returns: string
       }
+      fn_uf_por_cep: { Args: { p_cep: string }; Returns: string }
       fn_wns_consolidar: { Args: never; Returns: Json }
       fn_wns_limpar_zumbis: { Args: { p_chaves: Json }; Returns: number }
       fn_wns_truncar_linhas: { Args: never; Returns: number }
@@ -25305,6 +25323,10 @@ export type Database = {
           motivos: string[]
           nivel: string
         }[]
+      }
+      reabrir_analise_pedido: {
+        Args: { p_motivo?: string; p_pedido_id: string }
+        Returns: Json
       }
       reabrir_nf_pj: {
         Args: { _motivo: string; _nota_id: string }
