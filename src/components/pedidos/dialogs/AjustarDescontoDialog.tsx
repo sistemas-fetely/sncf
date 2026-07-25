@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format-currency";
+import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 
 interface Props {
   open: boolean;
@@ -22,12 +23,13 @@ interface Props {
   idExterno?: string | null;
   valorBruto: number;
   bonusPixValor?: number | null;
+  condicaoAtual?: string | null;
 }
 
 type Tipo = "pct" | "valor";
 
 export function AjustarDescontoDialog({
-  open, onClose, pedidoId, idExterno, valorBruto, bonusPixValor,
+  open, onClose, pedidoId, idExterno, valorBruto, bonusPixValor, condicaoAtual,
 }: Props) {
   const qc = useQueryClient();
   const [tipo, setTipo] = useState<Tipo>("pct");
@@ -169,6 +171,15 @@ export function AjustarDescontoDialog({
               rows={2}
             />
           </div>
+
+          {condicaoAtual && (
+            <ImpactoEdicaoBanner
+              pedidoId={pedidoId}
+              novaCondicao={condicaoAtual}
+              novoValorLiquido={novoLiquido}
+              enabled={valorNum > 0 && !liquidoNegativo}
+            />
+          )}
         </div>
 
         <DialogFooter>
