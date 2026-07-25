@@ -10,6 +10,7 @@ import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
 import { ImportarRastreioDialog } from "./ImportarRastreioDialog";
 import { ImportarBraspressDialog } from "./ImportarBraspressDialog";
 import { OcorrenciasDepara } from "./OcorrenciasDepara";
+import { PainelLogistica } from "./PainelLogistica";
 import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 
 function fmtCnpj(cnpj: string | null): string {
@@ -56,15 +57,19 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
         </div>
       </div>
 
-      <Tabs defaultValue="fretes" className="w-full">
+      <Tabs defaultValue="visao" className="w-full">
         <TabsList>
+          <TabsTrigger value="visao">Visão Geral</TabsTrigger>
           <TabsTrigger value="fretes">Fretes &amp; entregas</TabsTrigger>
           <TabsTrigger value="tabela">Tabela de preço</TabsTrigger>
           <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
         </TabsList>
+        <TabsContent value="visao" className="mt-4">
+          <PainelLogistica escopo={{ tipo: "transportadora", transportadoraId: transportadora.id, transportadoraNome: nome }} />
+        </TabsContent>
         <TabsContent value="fretes" className="mt-4">
           {carrierB2C ? (
-            <FretesEntregasB2C carrier={carrierB2C} />
+            <FretesEntregasB2C transportadoraId={transportadora.id} transportadoraNome={nome} />
           ) : (
             <FretesEntregas
               transportadoraId={transportadora.id}
