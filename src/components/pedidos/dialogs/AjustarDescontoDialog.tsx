@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format-currency";
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
+import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 
 interface Props {
   open: boolean;
