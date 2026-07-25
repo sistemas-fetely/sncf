@@ -862,7 +862,7 @@ export default function CobrancaFila() {
   const { data: pedidos = [] } = useCobrancaFila();
   const { data: titulosCobranca = [] } = useTitulosCobranca();
   const { data: baixasPendentes } = useBaixasPendentes();
-  const [tabAtiva, setTabAtiva] = React.useState("fila");
+  const [tabAtiva, setTabAtiva] = useState("fila");
 
   const totalPedidos = pedidos.length;
   const totalTitulosAbertos = titulosCobranca.filter(
