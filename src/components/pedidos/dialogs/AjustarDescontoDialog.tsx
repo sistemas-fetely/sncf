@@ -173,12 +173,21 @@ export function AjustarDescontoDialog({
           </div>
 
           {condicaoAtual && (
-            <ImpactoEdicaoBanner
-              pedidoId={pedidoId}
-              novaCondicao={condicaoAtual}
-              novoValorLiquido={novoLiquido}
-              enabled={valorNum > 0 && !liquidoNegativo}
-            />
+            <>
+              <ImpactoEdicaoBanner
+                pedidoId={pedidoId}
+                novaCondicao={condicaoAtual}
+                novoValorLiquido={novoLiquido}
+                enabled={valorNum > 0 && !liquidoNegativo}
+              />
+              <ReabrirAnaliseAction
+                pedidoId={pedidoId}
+                novaCondicao={condicaoAtual}
+                novoValorLiquido={novoLiquido}
+                enabled={valorNum > 0 && !liquidoNegativo}
+                onSuccess={handleClose}
+              />
+            </>
           )}
         </div>
 

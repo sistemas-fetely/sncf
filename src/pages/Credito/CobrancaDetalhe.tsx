@@ -869,8 +869,15 @@ export default function CobrancaDetalhe() {
             pedidoId={pedidoQ.data?.id}
             novaCondicao={proposta.condicao_original}
             novoValorLiquido={totalEditado}
-            className="mb-4"
+            className="mb-2"
           />
+          <div className="mb-4">
+            <ReabrirAnaliseAction
+              pedidoId={pedidoQ.data?.id}
+              novaCondicao={proposta.condicao_original}
+              novoValorLiquido={totalEditado}
+            />
+          </div>
           {/* Faixa de controles: total a cobrar + parcelas iguais */}
           <div className="flex flex-wrap items-end gap-4 mb-4 p-3 rounded-md border bg-muted/30">
             <div className="space-y-1">

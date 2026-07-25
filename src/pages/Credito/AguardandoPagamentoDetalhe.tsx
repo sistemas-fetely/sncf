@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
 import type { TituloEntradaPedido } from "@/types/credito";
-import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
+// AlterarFormaPagamentoDialog aposentado — fluxo /pgXX substituído por reverter_para_cobranca.
 import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
 
 function usePedidoAguardando(pedidoId: string | undefined) {
@@ -303,12 +303,13 @@ export default function AguardandoPagamentoDetalhe() {
         </CardContent>
       </Card>
 
-      <AlterarFormaPagamentoDialog
+      <ReverterParaCobrancaDialog
         open={alterarPagtoOpen}
         onClose={() => setAlterarPagtoOpen(false)}
         pedidoId={pedido.id}
         idExterno={pedido.id_externo}
-        temTitulosComEmailEnviado={false}
+        estagio="aguardando_pagamento"
+        motivoAlterarPagamento
       />
 
       <ReverterParaCobrancaDialog

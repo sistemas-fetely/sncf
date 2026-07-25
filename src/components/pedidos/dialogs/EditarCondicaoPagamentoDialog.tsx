@@ -383,6 +383,12 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
             novaCondicao={condicao}
             enabled={!!condicao && !!regraId}
           />
+          <ReabrirAnaliseAction
+            pedidoId={pedidoId}
+            novaCondicao={condicao}
+            enabled={!!condicao && !!regraId}
+            onSuccess={handleClose}
+          />
         </div>
 
         <DialogFooter>
