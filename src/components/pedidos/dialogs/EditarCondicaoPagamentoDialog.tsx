@@ -377,6 +377,12 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
               <AlertDescription>{erroRpc}</AlertDescription>
             </Alert>
           )}
+
+          <ImpactoEdicaoBanner
+            pedidoId={pedidoId}
+            novaCondicao={condicao}
+            enabled={!!condicao && !!regraId}
+          />
         </div>
 
         <DialogFooter>

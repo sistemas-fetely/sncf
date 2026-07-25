@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format-currency";
+import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 
 interface Props {
   open: boolean;
@@ -22,6 +23,7 @@ interface Props {
   idExterno?: string | null;
   valorBruto: number;
   bonusPixValor?: number | null;
+  condicaoAtual?: string | null;
 }
 
 type Tipo = "pct" | "valor";
