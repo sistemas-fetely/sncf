@@ -15,6 +15,7 @@ export interface LogisticaPnlRow {
   ctes: number | null;
   receita_sem_custo: boolean | null;
   base_nf_com_frete: number | null;
+  canal: "b2b" | "b2c" | null;
 }
 
 export function useLogisticaPnl() {
