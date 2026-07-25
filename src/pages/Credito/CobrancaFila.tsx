@@ -529,19 +529,21 @@ function RemessasSafraTab() {
   const { toast } = useToast();
   const { data: remessas = [], isLoading } = useRemessasSafra();
 
-  async function baixarNovamente(remessaId: string, arquivoNome: string) {
-    setBaixandoId(remessaId);
-    try {
-      const { data, error } = await supabase.functions.invoke("baixar-remessa-safra", {
-        body: { remessa_id: remessaId },
+  function baixarNovamente(conteudo: string | null, arquivoNome: string) {
+    if (!conteudo) {
+      toast({
+        title: "Arquivo não disponível",
+        description: "Remessa anterior ao histórico de conteúdo persistido.",
+        variant: "destructive",
       });
-      if (error) throw error;
-      if (!data?.ok) throw new Error(data?.erro || "Falha ao gerar arquivo");
-      const blob = new Blob([data.arquivo_conteudo], { type: "text/plain;charset=utf-8" });
+      return;
+    }
+    try {
+      const blob = new Blob([conteudo], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = data.arquivo_nome || arquivoNome;
+      a.download = arquivoNome;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -553,8 +555,6 @@ function RemessasSafraTab() {
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
-    } finally {
-      setBaixandoId(null);
     }
   }
 
