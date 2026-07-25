@@ -247,6 +247,20 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
     return base > 0 ? (receita / base) * 100 : null;
   }
 
+  // % custo/base por id — B2C: soma custo_frete e base_nf de pnlRows por nome
+  function pctCustoBasePorId(id: string): number | null {
+    const nome = nomePorId.get(id);
+    if (!nome) return null;
+    let custo = 0, base = 0;
+    for (const r of pnlRows) {
+      if (matchesTransp(r.transportadora, nome)) {
+        custo += n(r.custo_frete);
+        base += n(r.base_nf);
+      }
+    }
+    return base > 0 ? (custo / base) * 100 : null;
+  }
+
   // Custo por UF (top 12) — de fato_frete
   const custoPorUf = useMemo(() => {
     const map = new Map<string, { custo: number; fretes: number }>();
