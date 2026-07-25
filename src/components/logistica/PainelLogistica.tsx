@@ -349,79 +349,15 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
   }
 
   // ============================================================
-  // VERSÃO ENXUTA (transportadora)
-  // ============================================================
-  if (isTransp) {
-    const ehB2c = canalDominante === "b2c";
-    const freteTotal = fatoRows.reduce((a, r) => a + n(r.custo_frete), 0);
-    const prazoMedio = escopoTranspId ? prazoMedioPorId.get(escopoTranspId) ?? null : null;
-
-    return (
-      <div className="space-y-6">
-        <div className={cn("grid gap-3", ehB2c ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-6")}>
-          <StatCardMini label="Frete total" value={BRL.format(freteTotal)} icon={DollarSign} tone="info" hint={`${NUM.format(fatoRows.length)} envios`} />
-          <StatCardMini label="Fretes" value={NUM.format(fatoRows.length)} icon={Truck} tone="default" />
-          <StatCardMini label="Entregues" value={NUM.format(opsKpis.entregues)} icon={Package} tone="success" hint={`de ${NUM.format(opsKpis.total)} rastreados`} />
-          <StatCardMini
-            label="Devolução %"
-            value={`${opsKpis.devPct.toFixed(1)}%`}
-            icon={RotateCcw}
-            tone={opsKpis.devPct <= 2 ? "success" : opsKpis.devPct <= 5 ? "warning" : "destructive"}
-            hint={`${NUM.format(opsKpis.devolucoes)} devoluções`}
-          />
-          {!ehB2c ? (
-            <>
-              <StatCardMini
-                label="On-time %"
-                value={opsKpis.comDatas > 0 ? `${opsKpis.onTimePct.toFixed(1)}%` : "—"}
-                icon={CheckCircle2}
-                tone={opsKpis.onTimePct >= 90 ? "success" : opsKpis.onTimePct >= 75 ? "warning" : "destructive"}
-                hint={`${NUM.format(opsKpis.comDatas)} avaliados`}
-              />
-              <StatCardMini
-                label="Prazo médio"
-                value={prazoMedio != null ? `${prazoMedio.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias` : "—"}
-                icon={Clock}
-                tone="info"
-                hint="da emissão à entrega"
-              />
-            </>
-          ) : null}
-        </div>
-
-        <Card className="card-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <MapPin className="h-4 w-4 text-primary" />
-              <div className="text-sm font-medium">Custo por UF — top 12</div>
-            </div>
-            {custoPorUf.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-8 text-center">Sem dados.</div>
-            ) : (
-              <div style={{ width: "100%", height: 280 }}>
-                <ResponsiveContainer>
-                  <BarChart data={custoPorUf} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="uf" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$ ${Math.round(Number(v) / 1000)}k`} width={80} />
-                    <Tooltip formatter={(v: number) => BRL.format(Number(v))} />
-                    <Bar dataKey="custo" name="Custo (R$)" fill="hsl(var(--primary))" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // VERSÃO COMPLETA (canal)
+  // RENDER — mesmos blocos para canal e transportadora
+  // (blocos comparativos entre transportadoras são ocultados no modo transp)
   // ============================================================
   const margemNeg = totais.margem < 0;
-  const canalB2cGlobal = canal === "b2c";
-  const canalLabel = canal === "b2b" ? "B2B" : canal === "b2c" ? "B2C" : "Total";
+  const ehB2cEscopo = isTransp ? canalDominante === "b2c" : canal === "b2c";
+  const canalB2cGlobal = ehB2cEscopo;
+  const canalLabel = isTransp
+    ? (escopoTranspNome || nomePorId.get(escopoTranspId ?? "") || "Transportadora")
+    : canal === "b2b" ? "B2B" : canal === "b2c" ? "B2C" : "Total";
 
   return (
     <div className="space-y-8">
@@ -506,6 +442,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
           </CardContent>
         </Card>
 
+        {!isTransp ? (
         <Card className="card-shadow">
           <CardContent className="p-0">
             <div className="px-4 py-3 border-b">
@@ -556,57 +493,90 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             </div>
           </CardContent>
         </Card>
+        ) : null}
 
-        {/* Detalhe operacional por transportadora */}
-        <Card className="card-shadow">
-          <CardContent className="p-0">
-            <div className="px-4 py-3 border-b">
-              <div className="text-sm font-medium">Detalhe operacional por transportadora</div>
-              <div className="text-xs text-muted-foreground">Fonte: CTes (B2B) + postagens (B2C)</div>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Transportadora</TableHead>
-                    <TableHead className="text-right">Fretes</TableHead>
-                    <TableHead className="text-right">Frete total</TableHead>
-                    <TableHead className="text-right">Frete médio</TableHead>
-                    <TableHead className="text-right" title="frete cobrado ÷ NF, só c/ frete">% cobrado/NF</TableHead>
-                    <TableHead className="text-right" title="Σ frete_total ÷ Σ valor_nf">% custo/NF</TableHead>
-                    <TableHead className="text-right">Peso taxado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {detalhePorTransp.map((r) => {
-                    const ehB2c = r.canalB2c;
-                    const extras = extrasPorId.get(r.id);
-                    const pctCob = pctCobradoPorId(r.id);
-                    const pctCusto = !ehB2c && extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null;
-                    const peso = !ehB2c ? n(extras?.peso) : null;
-                    const medio = r.fretes > 0 ? r.total / r.fretes : 0;
-                    return (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-medium">{r.nome}</TableCell>
-                        <TableCell className="text-right tabular-nums">{NUM.format(r.fretes)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{BRL.format(r.total)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{BRL.format(medio)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{pctCob != null ? `${pctCob.toFixed(2)}%` : <span className="text-muted-foreground">—</span>}</TableCell>
-                        <TableCell className="text-right tabular-nums">{pctCusto != null ? `${pctCusto.toFixed(2)}%` : <span className="text-muted-foreground">—</span>}</TableCell>
-                        <TableCell className="text-right tabular-nums">{peso != null ? `${NUM.format(Math.round(peso))} kg` : <span className="text-muted-foreground">—</span>}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {detalhePorTransp.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">Sem fretes.</TableCell></TableRow>
-                  ) : null}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Detalhe financeiro do carrier / Detalhe operacional por transportadora */}
+        {isTransp ? (() => {
+          const r = detalhePorTransp[0];
+          if (!r) {
+            return (
+              <Card className="card-shadow">
+                <CardContent className="p-6 text-sm text-muted-foreground text-center">Sem fretes.</CardContent>
+              </Card>
+            );
+          }
+          const ehB2c = r.canalB2c;
+          const extras = extrasPorId.get(r.id);
+          const pctCob = pctCobradoPorId(r.id);
+          const pctCusto = !ehB2c && extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null;
+          const peso = !ehB2c ? n(extras?.peso) : null;
+          const medio = r.fretes > 0 ? r.total / r.fretes : 0;
+          return (
+            <Card className="card-shadow">
+              <CardContent className="p-4">
+                <div className="text-sm font-medium mb-3">Detalhe financeiro — {r.nome}</div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <StatCardMini label="Frete total" value={BRL.format(r.total)} icon={DollarSign} tone="info" hint={`${NUM.format(r.fretes)} envios`} />
+                  <StatCardMini label="Frete médio" value={BRL.format(medio)} icon={DollarSign} tone="default" />
+                  <StatCardMini label="% cobrado/NF" value={pctCob != null ? `${pctCob.toFixed(2)}%` : "—"} icon={Percent} tone="info" hint={ehB2c ? "n/a no B2C" : "frete cobrado ÷ NF"} />
+                  <StatCardMini label="% custo/NF" value={pctCusto != null ? `${pctCusto.toFixed(2)}%` : "—"} icon={Percent} tone="default" hint={ehB2c ? "n/a no B2C" : "Σ frete ÷ Σ valor_nf"} />
+                  <StatCardMini label="Peso taxado" value={peso != null ? `${NUM.format(Math.round(peso))} kg` : "—"} icon={Package} tone="default" hint={ehB2c ? "n/a no B2C" : undefined} />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })() : (
+          <Card className="card-shadow">
+            <CardContent className="p-0">
+              <div className="px-4 py-3 border-b">
+                <div className="text-sm font-medium">Detalhe operacional por transportadora</div>
+                <div className="text-xs text-muted-foreground">Fonte: CTes (B2B) + postagens (B2C)</div>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Transportadora</TableHead>
+                      <TableHead className="text-right">Fretes</TableHead>
+                      <TableHead className="text-right">Frete total</TableHead>
+                      <TableHead className="text-right">Frete médio</TableHead>
+                      <TableHead className="text-right" title="frete cobrado ÷ NF, só c/ frete">% cobrado/NF</TableHead>
+                      <TableHead className="text-right" title="Σ frete_total ÷ Σ valor_nf">% custo/NF</TableHead>
+                      <TableHead className="text-right">Peso taxado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detalhePorTransp.map((r) => {
+                      const ehB2c = r.canalB2c;
+                      const extras = extrasPorId.get(r.id);
+                      const pctCob = pctCobradoPorId(r.id);
+                      const pctCusto = !ehB2c && extras && extras.nf > 0 ? (extras.frete / extras.nf) * 100 : null;
+                      const peso = !ehB2c ? n(extras?.peso) : null;
+                      const medio = r.fretes > 0 ? r.total / r.fretes : 0;
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-medium">{r.nome}</TableCell>
+                          <TableCell className="text-right tabular-nums">{NUM.format(r.fretes)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{BRL.format(r.total)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{BRL.format(medio)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{pctCob != null ? `${pctCob.toFixed(2)}%` : <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-right tabular-nums">{pctCusto != null ? `${pctCusto.toFixed(2)}%` : <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-right tabular-nums">{peso != null ? `${NUM.format(Math.round(peso))} kg` : <span className="text-muted-foreground">—</span>}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {detalhePorTransp.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">Sem fretes.</TableCell></TableRow>
+                    ) : null}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Participação */}
+        {!isTransp ? (
         <Card className="card-shadow">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -636,6 +606,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             )}
           </CardContent>
         </Card>
+        ) : null}
 
         {/* Custo × volume por UF */}
         <Card className="card-shadow">
@@ -732,6 +703,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
           />
         </div>
 
+        {!isTransp ? (
         <Card className="card-shadow">
           <CardContent className="p-0">
             <div className="px-4 py-3 border-b">
@@ -789,7 +761,9 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             </div>
           </CardContent>
         </Card>
+        ) : null}
 
+        {!isTransp ? (
         <Card className="card-shadow">
           <CardContent className="p-4">
             <div className="text-sm font-medium mb-3">Mix por transportadora — nº de rastreios</div>
@@ -810,6 +784,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             )}
           </CardContent>
         </Card>
+        ) : null}
       </section>
     </div>
   );
