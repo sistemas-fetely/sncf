@@ -23,6 +23,7 @@ import {
   GitCompare,
   PieChart,
   Receipt,
+  Percent,
 } from "lucide-react";
 
 import {
@@ -59,6 +60,7 @@ export function FinancasContextSidebar() {
               <FinancasSidebarItem to="/administrativo/caixa-banco" icon={PieChart} label="Gerencial" end />
               <FinancasSidebarItem to="/administrativo/analise-despesas" icon={BarChart3} label="Análise de Despesas" />
               <FinancasSidebarItem to="/administrativo/fluxo-caixa" icon={LineChart} label="Fluxo de Caixa" />
+              <FinancasSidebarItem to="/administrativo/painel-margem" icon={Percent} label="Painel de Margem" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
