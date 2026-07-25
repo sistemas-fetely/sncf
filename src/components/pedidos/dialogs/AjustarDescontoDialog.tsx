@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format-currency";
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
+import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 
 interface Props {
   open: boolean;
@@ -173,12 +174,21 @@ export function AjustarDescontoDialog({
           </div>
 
           {condicaoAtual && (
-            <ImpactoEdicaoBanner
-              pedidoId={pedidoId}
-              novaCondicao={condicaoAtual}
-              novoValorLiquido={novoLiquido}
-              enabled={valorNum > 0 && !liquidoNegativo}
-            />
+            <>
+              <ImpactoEdicaoBanner
+                pedidoId={pedidoId}
+                novaCondicao={condicaoAtual}
+                novoValorLiquido={novoLiquido}
+                enabled={valorNum > 0 && !liquidoNegativo}
+              />
+              <ReabrirAnaliseAction
+                pedidoId={pedidoId}
+                novaCondicao={condicaoAtual}
+                novoValorLiquido={novoLiquido}
+                enabled={valorNum > 0 && !liquidoNegativo}
+                onSuccess={handleClose}
+              />
+            </>
           )}
         </div>
 

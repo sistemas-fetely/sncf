@@ -35,10 +35,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useParametros } from "@/hooks/useParametros";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
-import { AlterarFormaPagamentoDialog } from "@/components/pedidos/dialogs/AlterarFormaPagamentoDialog";
+// AlterarFormaPagamentoDialog aposentado — fluxo /pgXX substituído por reverter_para_cobranca.
+import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
 import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDescontoDialog";
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
+import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
@@ -376,12 +378,13 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           </div>
         </CardContent>
       </Card>
-      <AlterarFormaPagamentoDialog
+      <ReverterParaCobrancaDialog
         open={alterarPagtoOpen}
         onClose={() => setAlterarPagtoOpen(false)}
         pedidoId={pedido.id}
         idExterno={pedido.id_externo}
-        temTitulosComEmailEnviado={(titulosQ.data ?? []).some((t: any) => t.email_cobranca_enviado_em != null)}
+        estagio="cobranca"
+        motivoAlterarPagamento
       />
     </div>
   );
@@ -866,8 +869,15 @@ export default function CobrancaDetalhe() {
             pedidoId={pedidoQ.data?.id}
             novaCondicao={proposta.condicao_original}
             novoValorLiquido={totalEditado}
-            className="mb-4"
+            className="mb-2"
           />
+          <div className="mb-4">
+            <ReabrirAnaliseAction
+              pedidoId={pedidoQ.data?.id}
+              novaCondicao={proposta.condicao_original}
+              novoValorLiquido={totalEditado}
+            />
+          </div>
           {/* Faixa de controles: total a cobrar + parcelas iguais */}
           <div className="flex flex-wrap items-end gap-4 mb-4 p-3 rounded-md border bg-muted/30">
             <div className="space-y-1">

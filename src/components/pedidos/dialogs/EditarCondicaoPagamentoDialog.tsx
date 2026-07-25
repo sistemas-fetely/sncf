@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAtualizarCondicaoPagamento } from "@/hooks/credito/useAtualizarCondicaoPagamento";
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
+import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -382,6 +383,12 @@ export function EditarCondicaoPagamentoDialog({ open, onClose, pedidoId, idExter
             pedidoId={pedidoId}
             novaCondicao={condicao}
             enabled={!!condicao && !!regraId}
+          />
+          <ReabrirAnaliseAction
+            pedidoId={pedidoId}
+            novaCondicao={condicao}
+            enabled={!!condicao && !!regraId}
+            onSuccess={handleClose}
           />
         </div>
 

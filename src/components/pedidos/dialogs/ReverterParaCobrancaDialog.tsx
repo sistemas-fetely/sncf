@@ -13,16 +13,19 @@ interface Props {
   onClose: () => void;
   pedidoId: string;
   idExterno: string;
-  estagio: "aguardando_pagamento" | "pre_separacao";
+  estagio: "aguardando_pagamento" | "pre_separacao" | "cobranca" | string;
+  /** Se true, ajusta o texto para "alterar pagamento" (títulos cancelados + reeditar) */
+  motivoAlterarPagamento?: boolean;
 }
 
-const estagioLabel: Record<"aguardando_pagamento" | "pre_separacao", string> = {
+const estagioLabel: Record<string, string> = {
   aguardando_pagamento: "Aguardando Pagamento",
   pre_separacao: "Pré-Separação",
+  cobranca: "Cobrança",
 };
 
 export function ReverterParaCobrancaDialog({
-  open, onClose, pedidoId, idExterno, estagio,
+  open, onClose, pedidoId, idExterno, estagio, motivoAlterarPagamento,
 }: Props) {
   const [erroRpc, setErroRpc] = useState<string | null>(null);
   const reverter = useReverterParaCobranca();
@@ -46,11 +49,22 @@ export function ReverterParaCobrancaDialog({
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Voltar para cobrança</DialogTitle>
+          <DialogTitle>
+            {motivoAlterarPagamento ? "Alterar pagamento" : "Voltar para cobrança"}
+          </DialogTitle>
           <DialogDescription>
-            Reverte o pedido <strong>{idExterno}</strong> de{" "}
-            {estagioLabel[estagio] ?? estagio} para{" "}
-            Cobrança.
+            {motivoAlterarPagamento ? (
+              <>
+                Para alterar o pagamento do pedido <strong>{idExterno}</strong>, os
+                títulos atuais serão cancelados e o pedido volta para <strong>Cobrança</strong>{" "}
+                para você reeditar o pagamento. A análise de crédito é mantida.
+              </>
+            ) : (
+              <>
+                Reverte o pedido <strong>{idExterno}</strong> de{" "}
+                {estagioLabel[estagio] ?? estagio} para Cobrança.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -58,11 +72,11 @@ export function ReverterParaCobrancaDialog({
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="space-y-2">
+              <p>Todos os títulos abertos deste pedido serão cancelados.</p>
               <p>
-                Todos os títulos abertos deste pedido serão cancelados.
-              </p>
-              <p>
-                Após reverter, a cobrança precisará ser rematerializada do zero na tela de Cobrança.
+                {motivoAlterarPagamento
+                  ? "Depois, edite a condição de pagamento e materialize novamente na tela de Cobrança."
+                  : "Após reverter, a cobrança precisará ser rematerializada do zero na tela de Cobrança."}
               </p>
             </AlertDescription>
           </Alert>
