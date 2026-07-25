@@ -22135,6 +22135,7 @@ export type Database = {
           municipio_destino: string | null
           previsao_entrega: string | null
           status_texto: string | null
+          transportadora: string | null
           transportadora_id: string | null
           uf_destino: string | null
         }
@@ -22385,14 +22386,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
