@@ -36,6 +36,7 @@ import {
   MailCheck,
 } from "lucide-react";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
+import { BaixasPendentesAlert } from "@/components/credito/BaixasPendentesAlert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type TitulosBoleto = {
@@ -285,6 +286,7 @@ export default function BancoSafra() {
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: `Remessa de baixa gerada: ${data.qtd_titulos} boleto(s)` });
+      await qc.invalidateQueries({ queryKey: ["baixas-pendentes"] });
       refetchBoletos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -393,6 +395,9 @@ export default function BancoSafra() {
           Operação de boletos — conta 422
         </p>
       </div>
+
+      <BaixasPendentesAlert onGerarBaixa={handleGerarBaixa} gerandoBaixa={gerandoBaixa} />
+
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card px-4 py-2">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm divide-x divide-border">

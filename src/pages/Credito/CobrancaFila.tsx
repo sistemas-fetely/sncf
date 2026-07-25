@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCobrancaFila } from "@/hooks/credito/useCobrancaFila";
+import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useTitulosBoleto } from "@/hooks/credito/useTitulosBoleto";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import BancoSafra from "@/pages/administrativo/BancoSafra";
@@ -860,11 +861,14 @@ function PedidosCobrancaTab() {
 export default function CobrancaFila() {
   const { data: pedidos = [] } = useCobrancaFila();
   const { data: titulosCobranca = [] } = useTitulosCobranca();
+  const { data: baixasPendentes } = useBaixasPendentes();
+  const [tabAtiva, setTabAtiva] = useState("fila");
 
   const totalPedidos = pedidos.length;
   const totalTitulosAbertos = titulosCobranca.filter(
     (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
   ).length;
+  const totalBaixasPend = baixasPendentes?.countTotal ?? 0;
 
   const tabTriggerCls =
     "rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent";
@@ -881,9 +885,22 @@ export default function CobrancaFila() {
         ]}
         title="Cobrança"
         subtitle="Gestão de títulos, remessas bancárias e cobrança"
+        actions={
+          totalBaixasPend > 0 ? (
+            <button
+              type="button"
+              onClick={() => setTabAtiva("banco")}
+              className="inline-flex items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-900 hover:bg-orange-100 dark:bg-orange-950/40 dark:border-orange-900 dark:text-orange-100 dark:hover:bg-orange-950/60"
+              title="Baixas pendentes — abrir aba Banco"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {totalBaixasPend} {totalBaixasPend === 1 ? "baixa pendente" : "baixas pendentes"}
+            </button>
+          ) : null
+        }
       />
 
-      <Tabs defaultValue="fila" className="space-y-4">
+      <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-4">
         <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-6">
           {[
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
