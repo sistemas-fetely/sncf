@@ -285,6 +285,7 @@ export default function BancoSafra() {
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: `Remessa de baixa gerada: ${data.qtd_titulos} boleto(s)` });
+      await qc.invalidateQueries({ queryKey: ["baixas-pendentes"] });
       refetchBoletos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
