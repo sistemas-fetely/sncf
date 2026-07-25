@@ -906,16 +906,85 @@ export default function TitulosTab() {
 
 
               <SheetFooter className="mt-6 flex-col gap-2 sm:flex-col">
-                {detalhe.status_gestao !== "pago" && detalhe.status_gestao !== "cancelado" && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setBaixando(detalhe);
-                    }}
-                  >
-                    Baixa manual
-                  </Button>
-                )}
+                {(() => {
+                  const estagio = detalhe.pedido_estagio ?? "";
+                  const posNF = estagio === "faturado" || estagio === "em_transporte" || estagio === "entregue";
+                  const preNF = !!estagio && !posNF;
+                  const isTerminal = detalhe.status_gestao === "pago"
+                    || detalhe.status_gestao === "pago_com_atraso"
+                    || detalhe.status_gestao === "pago_judicial"
+                    || detalhe.status_gestao === "cancelado";
+                  const podeRenegociar = !isTerminal;
+                  const podePerda = !isTerminal;
+
+                  return (
+                    <>
+                      {/* Encerramento por PEDIDO — Pré-NF: Cancelar (afeta pedido inteiro) */}
+                      {preNF && !isTerminal && (
+                        <Button
+                          variant="outline"
+                          className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                          onClick={() => setCancelandoPedido(detalhe)}
+                        >
+                          Cancelar pedido (afeta pedido inteiro)
+                        </Button>
+                      )}
+
+                      {/* Encerramento por PEDIDO — Pós-NF: Registrar devolução */}
+                      {posNF && (
+                        <Button
+                          variant="outline"
+                          className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                          onClick={() => setDevolvendo(detalhe)}
+                        >
+                          Registrar devolução (afeta pedido inteiro)
+                        </Button>
+                      )}
+
+                      {/* Encerramento por TÍTULO — Pós-NF: Baixar por perda */}
+                      {posNF && (() => {
+                        const btn = (
+                          <Button
+                            variant="outline"
+                            className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                            disabled={!podePerda}
+                            onClick={() => podePerda && setBaixandoPerda(detalhe)}
+                          >
+                            Baixar por perda (só este título)
+                          </Button>
+                        );
+                        if (podePerda) return btn;
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
+                              <TooltipContent>Só títulos em aberto.</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
+
+                      {/* Renegociar — Pós-NF */}
+                      {posNF && podeRenegociar && (
+                        <Button variant="outline" onClick={() => setRenegociando(detalhe)}>
+                          Renegociar
+                        </Button>
+                      )}
+
+                      {/* Baixa manual — em qualquer estágio (registro de pagamento por fora) */}
+                      {detalhe.status_gestao !== "pago" && detalhe.status_gestao !== "cancelado" && (
+                        <div className="flex flex-col gap-1">
+                          <Button variant="outline" onClick={() => setBaixando(detalhe)}>
+                            Baixa manual — cliente pagou por fora
+                          </Button>
+                          <p className="text-[10px] text-muted-foreground px-1">
+                            Registra pagamento real recebido fora do fluxo bancário. Não é encerramento.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                 {detalhe.tipo_pagamento === "boleto" && (() => {
                   const isVencido = detalhe.boleto_status === "vencido";
                   const isRejeitado = detalhe.boleto_status === "rejeitado";
