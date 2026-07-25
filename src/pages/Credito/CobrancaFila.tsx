@@ -522,7 +522,7 @@ function TitulosBoletoTab() {
 
 function RemessasSafraTab() {
   const [importarOpen, setImportarOpen] = useState(false);
-  const [baixandoId, setBaixandoId] = useState<string | null>(null);
+  const [_baixandoIdUnused] = useState<string | null>(null); void _baixandoIdUnused;
   const [marcarEnviadaTarget, setMarcarEnviadaTarget] = useState<{ id: string; arquivo_nome: string } | null>(null);
   const [marcandoEnviada, setMarcandoEnviada] = useState(false);
   const qc = useQueryClient();
