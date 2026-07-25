@@ -703,6 +703,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
           />
         </div>
 
+        {!isTransp ? (
         <Card className="card-shadow">
           <CardContent className="p-0">
             <div className="px-4 py-3 border-b">
@@ -760,7 +761,9 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             </div>
           </CardContent>
         </Card>
+        ) : null}
 
+        {!isTransp ? (
         <Card className="card-shadow">
           <CardContent className="p-4">
             <div className="text-sm font-medium mb-3">Mix por transportadora — nº de rastreios</div>
@@ -781,6 +784,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             )}
           </CardContent>
         </Card>
+        ) : null}
       </section>
     </div>
   );
