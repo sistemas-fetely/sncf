@@ -94,7 +94,11 @@ serve(async (req) => {
       .upsert(linhas, { onConflict: "sku" });
     if (upErr) throw new Error(`Falha no upsert da cache: ${upErr.message}`);
 
-    return json(200, { dry_run: false, upserted: linhas.length, ...cobertura });
+    // Reconcilia o espelho produtos: desativa linhas cujo bling_id sumiu do Bling
+    const { data: reconciliados, error: recErr } = await supabase.rpc("reconciliar_produtos_espelho");
+    if (recErr) throw new Error(`Falha na reconciliação do espelho: ${recErr.message}`);
+
+    return json(200, { dry_run: false, upserted: linhas.length, produtos_reconciliados: reconciliados, ...cobertura });
   } catch (e) {
     return json(500, { error: (e as Error).message });
   }

@@ -11868,7 +11868,6 @@ export type Database = {
           desconto_celebra_valor: number
           desconto_pct: number | null
           endereco_entrega: Json | null
-          entrada_liberacao_pendente: boolean
           entregue_em: string | null
           entregue_metodo: string | null
           estagio: string
@@ -11948,7 +11947,6 @@ export type Database = {
           desconto_celebra_valor?: number
           desconto_pct?: number | null
           endereco_entrega?: Json | null
-          entrada_liberacao_pendente?: boolean
           entregue_em?: string | null
           entregue_metodo?: string | null
           estagio?: string
@@ -12028,7 +12026,6 @@ export type Database = {
           desconto_celebra_valor?: number
           desconto_pct?: number | null
           endereco_entrega?: Json | null
-          entrada_liberacao_pendente?: boolean
           entregue_em?: string | null
           entregue_metodo?: string | null
           estagio?: string
@@ -24125,6 +24122,10 @@ export type Database = {
         }
         Returns: Json
       }
+      baixar_titulo_por_perda: {
+        Args: { p_motivo: string; p_titulo_id: string }
+        Returns: Json
+      }
       buscar_docs_pagamento: {
         Args: { p_cpr_id: string }
         Returns: {
@@ -25054,10 +25055,6 @@ export type Database = {
         Args: { p_ofx_id: string }
         Returns: Json
       }
-      liberar_entrada_manual: {
-        Args: { p_motivo: string; p_pedido_id: string }
-        Returns: Json
-      }
       limpar_atencao_pedido: {
         Args: { p_motivo_remocao?: string; p_pedido_id: string }
         Returns: Json
@@ -25273,6 +25270,7 @@ export type Database = {
           total_processados: number
         }[]
       }
+      preview_devolucao_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       preview_template_cargo: {
         Args: {
           _area_perfil_codigo: string
@@ -25378,6 +25376,7 @@ export type Database = {
         }
         Returns: Json
       }
+      reconciliar_produtos_espelho: { Args: never; Returns: number }
       registrar_acao_regua: {
         Args: {
           p_canal_efetivo?: string
