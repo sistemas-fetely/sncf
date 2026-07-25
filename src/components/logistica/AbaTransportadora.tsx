@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Building2, Upload, Truck } from "lucide-react";
 import { FretesEntregas } from "./FretesEntregas";
+import { FretesEntregasB2C } from "./FretesEntregasB2C";
 import { TabelaPreco } from "./TabelaPreco";
 import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
 import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
