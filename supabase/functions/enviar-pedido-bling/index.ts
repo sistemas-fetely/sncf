@@ -490,38 +490,10 @@ serve(async (req) => {
 
       blingProdId = await acharPorCodigo();
 
-      if (!blingProdId) {
-        // Não existe no Bling: cria como produto simples (consistente com o catálogo plano).
-        try {
-          const created = await client.post("/produtos", {
-            nome,
-            codigo: skuTrim,
-            tipo: "P",
-            formato: "S",
-            unidade: "UN",
-            preco: parseFloat(Number(it.valor_unitario).toFixed(2)),
-            situacao: "A",
-          });
-          const d = created?.data;
-          blingProdId = d?.id ?? (typeof d === "number" ? d : null) ?? created?.id ?? null;
-          if (!blingProdId) {
-            console.error(`[produto-sync] POST /produtos ok mas sem id: sku=${skuTrim} resp=${JSON.stringify(created).slice(0, 500)}`);
-          }
-        } catch (e) {
-          const errMsg = (e as Error).message || "";
-          // "já cadastrado" (code 4): o código existe mas a busca não trouxe (ex.: tab no código).
-          // Re-busca por código exato, em vez de caçar produto pai (que num catálogo plano resolve errado).
-          if (errMsg.includes("já foi cadastrado") || errMsg.includes('"code":4')) {
-            blingProdId = await acharPorCodigo();
-            if (!blingProdId) {
-              console.error(`[produto-sync] "já cadastrado" mas não localizei por código: sku=${skuTrim} err=${errMsg.slice(0, 300)}`);
-            }
-          } else {
-            const errClean = errMsg.replace(/[\n\r]/g, " ").slice(0, 800);
-            console.error(`[produto-sync] POST /produtos falhou: sku=${skuTrim} err=${errClean}`);
-          }
-        }
-      }
+      // NÃO cria produto no Bling. O "cria-se-não-acha" gerava lixo/duplicata no catálogo.
+      // Se não achou pelo código (acharPorCodigo acima), deixa não-resolvido → o guardrail
+      // FAIL-LOUD abaixo bloqueia o envio e lista o SKU pra correção manual. A cache completa
+      // (sincronizar-cache-bling, cron diário) cobre os ativos; produto novo entra em até 24h.
 
       if (blingProdId) {
         cacheMap[it.sku] = blingProdId;
