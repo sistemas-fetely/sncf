@@ -349,79 +349,15 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
   }
 
   // ============================================================
-  // VERSÃO ENXUTA (transportadora)
-  // ============================================================
-  if (isTransp) {
-    const ehB2c = canalDominante === "b2c";
-    const freteTotal = fatoRows.reduce((a, r) => a + n(r.custo_frete), 0);
-    const prazoMedio = escopoTranspId ? prazoMedioPorId.get(escopoTranspId) ?? null : null;
-
-    return (
-      <div className="space-y-6">
-        <div className={cn("grid gap-3", ehB2c ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-6")}>
-          <StatCardMini label="Frete total" value={BRL.format(freteTotal)} icon={DollarSign} tone="info" hint={`${NUM.format(fatoRows.length)} envios`} />
-          <StatCardMini label="Fretes" value={NUM.format(fatoRows.length)} icon={Truck} tone="default" />
-          <StatCardMini label="Entregues" value={NUM.format(opsKpis.entregues)} icon={Package} tone="success" hint={`de ${NUM.format(opsKpis.total)} rastreados`} />
-          <StatCardMini
-            label="Devolução %"
-            value={`${opsKpis.devPct.toFixed(1)}%`}
-            icon={RotateCcw}
-            tone={opsKpis.devPct <= 2 ? "success" : opsKpis.devPct <= 5 ? "warning" : "destructive"}
-            hint={`${NUM.format(opsKpis.devolucoes)} devoluções`}
-          />
-          {!ehB2c ? (
-            <>
-              <StatCardMini
-                label="On-time %"
-                value={opsKpis.comDatas > 0 ? `${opsKpis.onTimePct.toFixed(1)}%` : "—"}
-                icon={CheckCircle2}
-                tone={opsKpis.onTimePct >= 90 ? "success" : opsKpis.onTimePct >= 75 ? "warning" : "destructive"}
-                hint={`${NUM.format(opsKpis.comDatas)} avaliados`}
-              />
-              <StatCardMini
-                label="Prazo médio"
-                value={prazoMedio != null ? `${prazoMedio.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias` : "—"}
-                icon={Clock}
-                tone="info"
-                hint="da emissão à entrega"
-              />
-            </>
-          ) : null}
-        </div>
-
-        <Card className="card-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <MapPin className="h-4 w-4 text-primary" />
-              <div className="text-sm font-medium">Custo por UF — top 12</div>
-            </div>
-            {custoPorUf.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-8 text-center">Sem dados.</div>
-            ) : (
-              <div style={{ width: "100%", height: 280 }}>
-                <ResponsiveContainer>
-                  <BarChart data={custoPorUf} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="uf" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$ ${Math.round(Number(v) / 1000)}k`} width={80} />
-                    <Tooltip formatter={(v: number) => BRL.format(Number(v))} />
-                    <Bar dataKey="custo" name="Custo (R$)" fill="hsl(var(--primary))" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // VERSÃO COMPLETA (canal)
+  // RENDER — mesmos blocos para canal e transportadora
+  // (blocos comparativos entre transportadoras são ocultados no modo transp)
   // ============================================================
   const margemNeg = totais.margem < 0;
-  const canalB2cGlobal = canal === "b2c";
-  const canalLabel = canal === "b2b" ? "B2B" : canal === "b2c" ? "B2C" : "Total";
+  const ehB2cEscopo = isTransp ? canalDominante === "b2c" : canal === "b2c";
+  const canalB2cGlobal = ehB2cEscopo;
+  const canalLabel = isTransp
+    ? (escopoTranspNome || nomePorId.get(escopoTranspId ?? "") || "Transportadora")
+    : canal === "b2b" ? "B2B" : canal === "b2c" ? "B2C" : "Total";
 
   return (
     <div className="space-y-8">
