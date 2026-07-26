@@ -280,15 +280,26 @@ serve(async (req) => {
         );
       }
 
+      // ERRO POR ITEM (26/07): título sem nosso_numero_seq é PULADO, não bloqueia a
+      // remessa dos demais. Um item ruim travava a baixa de todos — boleto seguia
+      // vivo no Safra contra cliente que já pagou.
       // deno-lint-ignore no-explicit-any
-      const semNN = (titulos as any[]).filter((t: any) => !t.nosso_numero_seq);
-      if (semNN.length > 0) {
+      const aptos = (titulos as any[]).filter((t: any) => t.nosso_numero_seq);
+      // deno-lint-ignore no-explicit-any
+      const pulados = (titulos as any[])
+        .filter((t: any) => !t.nosso_numero_seq)
+        .map((t: any) => ({
+          titulo_id: t.id,
+          numero_titulo: t.numero_titulo,
+          motivo: "Sem nosso_numero_seq — nunca foi registrado no banco",
+        }));
+
+      if (aptos.length === 0) {
         return new Response(
           JSON.stringify({
             ok: false,
-            erro: "Títulos sem nosso_numero_seq — não foram registrados pelo sistema",
-            // deno-lint-ignore no-explicit-any
-            titulos: semNN.map((t: any) => t.numero_titulo),
+            erro: "Nenhum título apto para baixa: todos sem nosso_numero_seq",
+            pulados,
           }),
           { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -301,7 +312,7 @@ serve(async (req) => {
       let valorTotal = 0;
 
       // deno-lint-ignore no-explicit-any
-      for (const t of titulos as any[]) {
+      for (const t of aptos as any[]) {
         linhas.push(gerarDetalhe(
           { ...t, parceiro: t.conta?.parceiro },
           String(t.nosso_numero_seq),
@@ -312,8 +323,7 @@ serve(async (req) => {
         nroReg++;
       }
 
-      // deno-lint-ignore no-explicit-any
-      linhas.push(gerarTrailer(nroSeq, (titulos as any[]).length, valorTotal, nroReg));
+      linhas.push(gerarTrailer(nroSeq, aptos.length, valorTotal, nroReg));
       const arquivoConteudo = linhas.join("\r\n") + "\r\n";
       const seqFormatado   = String(nroSeq).padStart(3, "0");
       const arquivoNome    = `SAFRAB${seqFormatado}.txt`;
@@ -323,8 +333,7 @@ serve(async (req) => {
         .insert({
           nro_sequencial: nroSeq,
           gerado_por:     callerId,
-          // deno-lint-ignore no-explicit-any
-          qtd_titulos:    (titulos as any[]).length,
+          qtd_titulos:    aptos.length,
           valor_total:    valorTotal,
           status:         "gerada",
           arquivo_nome:   arquivoNome,
@@ -336,7 +345,7 @@ serve(async (req) => {
       if (remessaErr || !remessa) throw new Error(`Erro ao gravar remessa de baixa: ${remessaErr?.message}`);
 
       // deno-lint-ignore no-explicit-any
-      for (const t of titulos as any[]) {
+      for (const t of aptos as any[]) {
         const { error: updErr } = await sb
           .from("titulo_a_receber")
           .update({ boleto_status: "baixa_remessa_gerada" })
@@ -352,9 +361,10 @@ serve(async (req) => {
           // deno-lint-ignore no-explicit-any
           remessa_id:      (remessa as any).id,
           nro_sequencial:  nroSeq,
-          // deno-lint-ignore no-explicit-any
-          qtd_titulos:     (titulos as any[]).length,
+          qtd_titulos:     aptos.length,
           valor_total:     valorTotal,
+          pulados,
+          qtd_pulados:     pulados.length,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -393,15 +403,25 @@ serve(async (req) => {
         );
       }
 
+      // ERRO POR ITEM (26/07): título sem nosso_numero_seq é PULADO, não bloqueia a
+      // remessa dos demais. Um item ruim travava a prorrogação de todos.
       // deno-lint-ignore no-explicit-any
-      const semNN = (titulos as any[]).filter((t: any) => !t.nosso_numero_seq);
-      if (semNN.length > 0) {
+      const aptos = (titulos as any[]).filter((t: any) => t.nosso_numero_seq);
+      // deno-lint-ignore no-explicit-any
+      const pulados = (titulos as any[])
+        .filter((t: any) => !t.nosso_numero_seq)
+        .map((t: any) => ({
+          titulo_id: t.id,
+          numero_titulo: t.numero_titulo,
+          motivo: "Sem nosso_numero_seq — não foi registrado pelo banco",
+        }));
+
+      if (aptos.length === 0) {
         return new Response(
           JSON.stringify({
             ok: false,
-            erro: "Títulos sem nosso_numero_seq — não foram registrados pelo banco",
-            // deno-lint-ignore no-explicit-any
-            titulos: semNN.map((t: any) => t.numero_titulo),
+            erro: "Nenhum título apto para prorrogação: todos sem nosso_numero_seq",
+            pulados,
           }),
           { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -414,7 +434,7 @@ serve(async (req) => {
       let valorTotal = 0;
 
       // deno-lint-ignore no-explicit-any
-      for (const t of titulos as any[]) {
+      for (const t of aptos as any[]) {
         const tComNovaData = {
           ...t,
           data_vencimento_atual: t.prorrogacao_nova_data,
@@ -430,8 +450,7 @@ serve(async (req) => {
         nroReg++;
       }
 
-      // deno-lint-ignore no-explicit-any
-      linhas.push(gerarTrailer(nroSeq, (titulos as any[]).length, valorTotal, nroReg));
+      linhas.push(gerarTrailer(nroSeq, aptos.length, valorTotal, nroReg));
       const arquivoConteudo = linhas.join("\r\n") + "\r\n";
       const seqFormatado    = String(nroSeq).padStart(3, "0");
       const arquivoNome     = `FETELY_PRORROG_SAFRA_${seqFormatado}.txt`;
@@ -441,8 +460,7 @@ serve(async (req) => {
         .insert({
           nro_sequencial: nroSeq,
           gerado_por:     callerId,
-          // deno-lint-ignore no-explicit-any
-          qtd_titulos:    (titulos as any[]).length,
+          qtd_titulos:    aptos.length,
           valor_total:    valorTotal,
           status:         "gerada",
           arquivo_nome:   arquivoNome,
@@ -454,7 +472,7 @@ serve(async (req) => {
       if (remessaErr || !remessa) throw new Error(`Erro ao gravar remessa de prorrogação: ${remessaErr?.message}`);
 
       // deno-lint-ignore no-explicit-any
-      for (const t of titulos as any[]) {
+      for (const t of aptos as any[]) {
         const { error: updErr } = await sb
           .from("titulo_a_receber")
           .update({ prorrogacao_solicitada_em: new Date().toISOString() } as any)
@@ -470,9 +488,10 @@ serve(async (req) => {
           // deno-lint-ignore no-explicit-any
           remessa_id:       (remessa as any).id,
           nro_sequencial:   nroSeq,
-          // deno-lint-ignore no-explicit-any
-          qtd_titulos:      (titulos as any[]).length,
+          qtd_titulos:      aptos.length,
           valor_total:      valorTotal,
+          pulados,
+          qtd_pulados:      pulados.length,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
