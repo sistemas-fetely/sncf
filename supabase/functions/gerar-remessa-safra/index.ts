@@ -312,7 +312,7 @@ serve(async (req) => {
       let valorTotal = 0;
 
       // deno-lint-ignore no-explicit-any
-      for (const t of titulos as any[]) {
+      for (const t of aptos as any[]) {
         linhas.push(gerarDetalhe(
           { ...t, parceiro: t.conta?.parceiro },
           String(t.nosso_numero_seq),
@@ -323,8 +323,7 @@ serve(async (req) => {
         nroReg++;
       }
 
-      // deno-lint-ignore no-explicit-any
-      linhas.push(gerarTrailer(nroSeq, (titulos as any[]).length, valorTotal, nroReg));
+      linhas.push(gerarTrailer(nroSeq, aptos.length, valorTotal, nroReg));
       const arquivoConteudo = linhas.join("\r\n") + "\r\n";
       const seqFormatado   = String(nroSeq).padStart(3, "0");
       const arquivoNome    = `SAFRAB${seqFormatado}.txt`;
@@ -334,8 +333,7 @@ serve(async (req) => {
         .insert({
           nro_sequencial: nroSeq,
           gerado_por:     callerId,
-          // deno-lint-ignore no-explicit-any
-          qtd_titulos:    (titulos as any[]).length,
+          qtd_titulos:    aptos.length,
           valor_total:    valorTotal,
           status:         "gerada",
           arquivo_nome:   arquivoNome,
@@ -347,7 +345,7 @@ serve(async (req) => {
       if (remessaErr || !remessa) throw new Error(`Erro ao gravar remessa de baixa: ${remessaErr?.message}`);
 
       // deno-lint-ignore no-explicit-any
-      for (const t of titulos as any[]) {
+      for (const t of aptos as any[]) {
         const { error: updErr } = await sb
           .from("titulo_a_receber")
           .update({ boleto_status: "baixa_remessa_gerada" })
@@ -363,9 +361,10 @@ serve(async (req) => {
           // deno-lint-ignore no-explicit-any
           remessa_id:      (remessa as any).id,
           nro_sequencial:  nroSeq,
-          // deno-lint-ignore no-explicit-any
-          qtd_titulos:     (titulos as any[]).length,
+          qtd_titulos:     aptos.length,
           valor_total:     valorTotal,
+          pulados,
+          qtd_pulados:     pulados.length,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
