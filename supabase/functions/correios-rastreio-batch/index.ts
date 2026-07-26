@@ -14,9 +14,8 @@ Deno.serve(async (req) => {
 
   try {
     const { data: pendentes, error } = await supabase
-      .from("pedido_rastreamento")
-      .select("codigo_rastreio")
-      .or("entregue.is.false,entregue.is.null");
+      .from("vw_rastreio_correios_pendente")
+      .select("codigo_rastreio");
 
     if (error) throw error;
 
