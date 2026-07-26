@@ -17658,6 +17658,7 @@ export type Database = {
         Row: {
           analise_credito_id: string | null
           autorizacao_cartao: string | null
+          baixa_remessa_id: string | null
           banco_recebimento_id: string | null
           boleto_codigo_rejeicao: string | null
           boleto_enviado_em: string | null
@@ -17720,6 +17721,7 @@ export type Database = {
         Insert: {
           analise_credito_id?: string | null
           autorizacao_cartao?: string | null
+          baixa_remessa_id?: string | null
           banco_recebimento_id?: string | null
           boleto_codigo_rejeicao?: string | null
           boleto_enviado_em?: string | null
@@ -17782,6 +17784,7 @@ export type Database = {
         Update: {
           analise_credito_id?: string | null
           autorizacao_cartao?: string | null
+          baixa_remessa_id?: string | null
           banco_recebimento_id?: string | null
           boleto_codigo_rejeicao?: string | null
           boleto_enviado_em?: string | null
@@ -17855,6 +17858,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_fila"
             referencedColumns: ["analise_credito_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_baixa_remessa_id_fkey"
+            columns: ["baixa_remessa_id"]
+            isOneToOne: false
+            referencedRelation: "remessas_safra"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_banco_recebimento_id_fkey"

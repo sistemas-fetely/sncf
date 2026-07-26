@@ -869,7 +869,9 @@ export default function CobrancaFila() {
   const totalTitulosAbertos = titulosCobranca.filter(
     (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
   ).length;
-  const totalBaixasPend = baixasPendentes?.countTotal ?? 0;
+  // Badge conta só o que exige AÇÃO NOSSA: aguardando gerar + aguardando envio.
+  // Bloco "enviada aguardando retorno" fica fora — a bola está com o banco.
+  const totalBaixasPend = baixasPendentes?.countAcoesNossas ?? 0;
 
   const tabTriggerCls =
     "rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent";
