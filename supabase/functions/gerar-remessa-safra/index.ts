@@ -480,7 +480,12 @@ serve(async (req) => {
       for (const t of aptos as any[]) {
         const { error: updErr } = await sb
           .from("titulo_a_receber")
-          .update({ prorrogacao_solicitada_em: new Date().toISOString() } as any)
+          .update({
+            prorrogacao_solicitada_em: new Date().toISOString(),
+            // Fecha o rastro: mesmo campo da remessa de baixa, referenciando a
+            // remessa de instrução (prorrogação). NÃO tocar remessa_safra_id.
+            baixa_remessa_id: (remessa as any).id,
+          } as any)
           .eq("id", t.id);
         if (updErr) throw new Error(`Erro ao marcar prorrogação enviada no título ${t.id}: ${updErr.message}`);
       }
