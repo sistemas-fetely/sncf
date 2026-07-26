@@ -152,6 +152,41 @@ export function BaixasPendentesAlert({
   const allSelected = countSolicitada > 0 && nSelecionados === countSolicitada;
   const someSelected = nSelecionados > 0 && !allSelected;
 
+  // Agrupa boletos do Bloco 2 por remessa para permitir download por arquivo.
+  type GrupoRemessa = {
+    remessa_id: string | null;
+    arquivo_nome: string | null;
+    conteudo: string | null;
+    gerado_em: string | null;
+    total: number;
+    itens: BaixaPendenteItem[];
+  };
+  const gruposGerada: GrupoRemessa[] = (() => {
+    const map = new Map<string, GrupoRemessa>();
+    for (const it of remessaGeradaAguardandoEnvio) {
+      const key = it.remessa_id ?? `__sem__${it.id}`;
+      const g = map.get(key);
+      if (g) {
+        g.itens.push(it);
+        g.total += Number(it.valor ?? 0);
+      } else {
+        map.set(key, {
+          remessa_id: it.remessa_id,
+          arquivo_nome: it.remessa_arquivo_nome,
+          conteudo: it.remessa_conteudo,
+          gerado_em: it.remessa_gerado_em,
+          total: Number(it.valor ?? 0),
+          itens: [it],
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      const ta = a.gerado_em ? new Date(a.gerado_em).getTime() : 0;
+      const tb = b.gerado_em ? new Date(b.gerado_em).getTime() : 0;
+      return tb - ta;
+    });
+  })();
+
   return (
     <div className="space-y-3">
       {/* 🟠 BLOCO 1 — AGUARDANDO GERAR */}
