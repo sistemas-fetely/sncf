@@ -33,6 +33,8 @@ type Row = {
     gerado_em: string | null;
     enviada_em: string | null;
     retorno_processado_em: string | null;
+    arquivo_nome: string | null;
+    conteudo: string | null;
   } | null;
 };
 
