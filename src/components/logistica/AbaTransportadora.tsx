@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Building2, Upload, Truck } from "lucide-react";
 import { FretesEntregas } from "./FretesEntregas";
 import { FretesEntregasB2C } from "./FretesEntregasB2C";
+import { FaturasConciliacao } from "./FaturasConciliacao";
 import { TabelaPreco } from "./TabelaPreco";
 import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
 import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
