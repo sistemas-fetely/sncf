@@ -113,6 +113,79 @@ export function FaturasConciliacao({
   const { data: faturas = [], isLoading: loadingFat } = useFaturas(transportadoraId);
   const { data: linhas = [], isLoading: loadingLinhas } = useLinhasConciliacao(transportadoraId);
   const [expandida, setExpandida] = useState<string | null>(null);
+  const [importando, setImportando] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const qc = useQueryClient();
+
+  const handleFile = async (file: File) => {
+    setImportando(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("transportadora_id", transportadoraId);
+
+      const { data, error } = await supabase.functions.invoke("parse-fatura-frete-pdf", {
+        body: fd,
+      });
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = data as any;
+      if (res?.error) throw new Error(res.error);
+
+      const numero =
+        res?.result?.numero_fatura ??
+        res?.payload?.numero_fatura ??
+        "importada";
+      const qtd =
+        res?.result?.lancamentos_inseridos ??
+        res?.result?.qtd_lancamentos ??
+        res?.payload?.lancamentos?.length ??
+        0;
+      toast.success(`Fatura ${numero} · ${qtd} linha${qtd === 1 ? "" : "s"}`);
+
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["faturas-frete", transportadoraId] }),
+        qc.invalidateQueries({
+          queryKey: ["vw-conciliacao-faturas-frete", transportadoraId],
+        }),
+      ]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`Falha ao importar fatura: ${msg}`);
+    } finally {
+      setImportando(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const ImportButton = (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleFile(f);
+        }}
+      />
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={importando}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        {importando ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Upload className="h-4 w-4 mr-2" />
+        )}
+        Importar fatura (PDF)
+      </Button>
+    </>
+  );
+
 
   const linhasPorFatura = useMemo(() => {
     const m = new Map<string, Linha[]>();
