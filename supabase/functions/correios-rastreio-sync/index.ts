@@ -69,6 +69,7 @@ async function rastrearEGravar(token: string, codigo: string) {
   let eventos: any[] = [];
   let servico: string | null = null;
   let data_ultima: string | null = null;
+  let previsao_entrega: string | null = null;
 
   try {
     const url = `${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T`;
@@ -94,6 +95,10 @@ async function rastrearEGravar(token: string, codigo: string) {
       status_atual = ultimo?.descricao ?? obj?.mensagem ?? "(sem eventos)";
       data_ultima = ultimo?.dtHrCriado ?? null;
       entregue = ehEntregue(eventos);
+      const dtPrev: string | undefined = obj?.dtPrevista;
+      if (typeof dtPrev === "string" && dtPrev.length >= 10) {
+        previsao_entrega = dtPrev.slice(0, 10);
+      }
     }
   } catch (e) {
     status_atual = `[exceção] ${String(e).slice(0, 200)}`;
