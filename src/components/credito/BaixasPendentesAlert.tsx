@@ -3,11 +3,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { AlertTriangle, ArrowUpFromLine, ChevronDown, Clock, Info, Loader2, UploadCloud } from "lucide-react";
+import { AlertTriangle, ArrowUpFromLine, ChevronDown, Clock, Download, Info, Loader2, UploadCloud } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import type { BaixaPendenteItem } from "@/hooks/credito/useBaixasPendentes";
+import { baixarArquivoRemessa } from "@/lib/financeiro/baixarArquivoRemessa";
+import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function daysSince(iso: string | null): number | null {
   if (!iso) return null;
