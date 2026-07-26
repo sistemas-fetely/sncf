@@ -22186,36 +22186,7 @@ export type Database = {
           prazo_medio_dias: number | null
           transportadora_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "transp_rastreio_nf_transportadora_id_fkey"
-            columns: ["transportadora_id"]
-            isOneToOne: false
-            referencedRelation: "parceiros_comerciais"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transp_rastreio_nf_transportadora_id_fkey"
-            columns: ["transportadora_id"]
-            isOneToOne: false
-            referencedRelation: "v_credito_resumo_financeiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "transp_rastreio_nf_transportadora_id_fkey"
-            columns: ["transportadora_id"]
-            isOneToOne: false
-            referencedRelation: "vw_logistica_agregado"
-            referencedColumns: ["transportadora_id"]
-          },
-          {
-            foreignKeyName: "transp_rastreio_nf_transportadora_id_fkey"
-            columns: ["transportadora_id"]
-            isOneToOne: false
-            referencedRelation: "vw_recebivel_por_conta"
-            referencedColumns: ["conta_id"]
-          },
-        ]
+        Relationships: []
       }
       vw_logistica_rastreio: {
         Row: {
@@ -22480,14 +22451,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -22573,14 +22544,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]

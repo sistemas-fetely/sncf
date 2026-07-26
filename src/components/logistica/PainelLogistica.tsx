@@ -295,16 +295,14 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
     return { total, entregues, devolucoes, devPct, comDatas: comDatas.length, onTimePct, gapMedio };
   }, [rastreioRows]);
 
-  // Prazo médio (só B2B)
+  // Prazo médio (B2B + B2C — a view já inclui Correios/Frenet)
   const prazoEntrega = useMemo(() => {
     let rows = prazoAll;
     if (escopoTranspId) rows = rows.filter((r) => r.transportadora_id === escopoTranspId);
-    else if (canal === "b2c") return { entregas: 0, media: null as number | null };
-    // Se canal=b2b, prazoAll é B2B por natureza (só CTe/NF); em 'total' também vale
     let entregas = 0, diasTotal = 0;
     for (const r of rows) { entregas += n(r.entregas); diasTotal += n(r.dias_total); }
     return { entregas, media: entregas > 0 ? diasTotal / entregas : null };
-  }, [prazoAll, escopoTranspId, canal]);
+  }, [prazoAll, escopoTranspId]);
 
   // KPIs por transportadora (agregado sobre rastreio)
   const opsPorTransp = useMemo(() => {
@@ -707,10 +705,10 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
           <StatCardMini label="Total rastreado" value={NUM.format(opsKpis.total)} icon={Truck} tone="info" />
           <StatCardMini
             label="Prazo médio de entrega"
-            value={canalB2cGlobal ? "—" : (prazoEntrega.media == null ? "—" : `${prazoEntrega.media.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`)}
+            value={prazoEntrega.media == null ? "—" : `${prazoEntrega.media.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`}
             icon={Clock}
-            tone={canalB2cGlobal ? "default" : "info"}
-            hint={canalB2cGlobal ? "n/a no B2C" : `da emissão à entrega · ${NUM.format(prazoEntrega.entregas)} entregas`}
+            tone="info"
+            hint={`da emissão à entrega · ${NUM.format(prazoEntrega.entregas)} entregas`}
           />
           <StatCardMini
             label="Gap vs prometido"
@@ -763,7 +761,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {ehB2c ? <span className="text-muted-foreground">—</span> : lead != null ? lead.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : <span className="text-muted-foreground">—</span>}
+                          {lead != null ? lead.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {r.devPct.toFixed(1)}%<span className="text-muted-foreground text-[11px] ml-1">({NUM.format(r.devolucoes)})</span>
