@@ -7,6 +7,7 @@ export interface LogisticaPrazoEntregaRow {
   entregas: number | null;
   dias_total: number | null;
   prazo_medio_dias: number | null;
+  canal: "b2b" | "b2c" | null;
 }
 
 export function useLogisticaPrazoEntrega() {
@@ -16,7 +17,7 @@ export function useLogisticaPrazoEntrega() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_logistica_prazo_entrega")
-        .select("transportadora_id, entregas, dias_total, prazo_medio_dias");
+        .select("transportadora_id, entregas, dias_total, prazo_medio_dias, canal");
       if (error) throw new Error(humanizeError(error.message));
       return (data ?? []) as LogisticaPrazoEntregaRow[];
     },
