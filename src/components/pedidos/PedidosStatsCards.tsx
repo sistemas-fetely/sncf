@@ -19,7 +19,7 @@ export function PedidosStatsCards() {
 
   const rows = data || [];
   const ativos = rows
-    .filter((r) => !["entregue", "cancelado"].includes(r.estagio))
+    .filter((r) => !["entregue", "cancelado", "recuperacao_venda"].includes(r.estagio))
     .reduce((acc, r) => acc + r.qtd, 0);
   const slaEstourado = rows.reduce((acc, r) => acc + r.qtd_sla_estourado, 0);
   const faturados = rows
