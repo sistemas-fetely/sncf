@@ -3130,6 +3130,44 @@ export type Database = {
           },
         ]
       }
+      condicoes_pagamento_apelidos: {
+        Row: {
+          apelido: string
+          ativo: boolean
+          condicao_slug: string
+          created_at: string
+          descricao: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          apelido: string
+          ativo?: boolean
+          condicao_slug: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          apelido?: string
+          ativo?: boolean
+          condicao_slug?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condicoes_pagamento_apelidos_condicao_slug_fkey"
+            columns: ["condicao_slug"]
+            isOneToOne: false
+            referencedRelation: "condicoes_pagamento"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       config_financeiro_externo: {
         Row: {
           ativo: boolean | null
@@ -3199,6 +3237,39 @@ export type Database = {
           tipo?: string
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      contagem_estoque: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          data_contagem: string
+          fonte: string
+          id: string
+          qtd_contada: number
+          referencia: string | null
+          sku: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          data_contagem?: string
+          fonte?: string
+          id?: string
+          qtd_contada: number
+          referencia?: string | null
+          sku: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          data_contagem?: string
+          fonte?: string
+          id?: string
+          qtd_contada?: number
+          referencia?: string | null
+          sku?: string
         }
         Relationships: []
       }
@@ -8557,6 +8628,45 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+        }
+        Relationships: []
+      }
+      movimentacao_estoque: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          data_mov: string
+          id: string
+          obs: string | null
+          origem: string
+          quantidade: number
+          referencia: string | null
+          sku: string
+          tipo: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          data_mov?: string
+          id?: string
+          obs?: string | null
+          origem: string
+          quantidade: number
+          referencia?: string | null
+          sku: string
+          tipo: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          data_mov?: string
+          id?: string
+          obs?: string | null
+          origem?: string
+          quantidade?: number
+          referencia?: string | null
+          sku?: string
+          tipo?: string
         }
         Relationships: []
       }
@@ -21626,6 +21736,38 @@ export type Database = {
           },
         ]
       }
+      vw_estoque: {
+        Row: {
+          ativo: boolean | null
+          estoque_base: number | null
+          estoque_contabil: number | null
+          estoque_minimo: number | null
+          estoque_real: number | null
+          estoque_virtual: number | null
+          nome_comercial: string | null
+          reservado: number | null
+          saude_divergencia: number | null
+          sku: string | null
+          status_venda: string | null
+          tem_razao: boolean | null
+        }
+        Relationships: []
+      }
+      vw_estoque_contabil: {
+        Row: {
+          estoque_contabil: number | null
+          sku: string | null
+        }
+        Relationships: []
+      }
+      vw_estoque_real: {
+        Row: {
+          data_contagem: string | null
+          estoque_real: number | null
+          sku: string | null
+        }
+        Relationships: []
+      }
       vw_exposicao_por_grupo: {
         Row: {
           grupo_ativo: boolean | null
@@ -24956,6 +25098,7 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: undefined
       }
+      fn_norm_texto: { Args: { p_texto: string }; Returns: string }
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }
         Returns: string
@@ -24983,6 +25126,7 @@ export type Database = {
       }
       fn_regras_aplicar: { Args: never; Returns: Json }
       fn_regua_materializar: { Args: never; Returns: Json }
+      fn_resolver_condicao: { Args: { p_condicao: string }; Returns: string }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       fn_transicionar_entregues: { Args: never; Returns: Json }
       fn_transicionar_expedidos: { Args: never; Returns: Json }
