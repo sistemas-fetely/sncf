@@ -25281,6 +25281,10 @@ export type Database = {
         }[]
       }
       ignorar_lancamento: { Args: { p_lancamento_id: string }; Returns: Json }
+      ingerir_termo_conferencia: {
+        Args: { p_rows: Json; p_termo: string }
+        Returns: Json
+      }
       iniciar_compra_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       lancar_ofx_como_movimentacao: {
         Args: { p_ofx_id: string }
