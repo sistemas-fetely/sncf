@@ -690,10 +690,10 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <StatCardMini
             label="On-time %"
-            value={canalB2cGlobal ? "—" : (opsKpis.comDatas > 0 ? `${opsKpis.onTimePct.toFixed(1)}%` : "—")}
+            value={opsKpis.comDatas > 0 ? `${opsKpis.onTimePct.toFixed(1)}%` : "—"}
             icon={CheckCircle2}
-            tone={canalB2cGlobal ? "default" : opsKpis.onTimePct >= 90 ? "success" : opsKpis.onTimePct >= 75 ? "warning" : "destructive"}
-            hint={canalB2cGlobal ? "n/a no B2C" : `${NUM.format(opsKpis.comDatas)} rastreios avaliados`}
+            tone={opsKpis.comDatas === 0 ? "default" : opsKpis.onTimePct >= 90 ? "success" : opsKpis.onTimePct >= 75 ? "warning" : "destructive"}
+            hint={`${NUM.format(opsKpis.comDatas)} rastreios avaliados`}
           />
           <StatCardMini
             label="Taxa de devolução"
@@ -713,11 +713,12 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
           />
           <StatCardMini
             label="Gap vs prometido"
-            value={canalB2cGlobal ? "—" : (opsKpis.gapMedio == null ? "—" : `${opsKpis.gapMedio > 0 ? "+" : ""}${opsKpis.gapMedio.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`)}
+            value={opsKpis.gapMedio == null ? "—" : `${opsKpis.gapMedio > 0 ? "+" : ""}${opsKpis.gapMedio.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`}
             icon={CalendarClock}
-            tone={canalB2cGlobal ? "default" : opsKpis.gapMedio == null ? "default" : opsKpis.gapMedio <= 0 ? "success" : "destructive"}
-            hint={canalB2cGlobal ? "n/a no B2C" : "realizado − prometido · negativo = adiantado"}
+            tone={opsKpis.gapMedio == null ? "default" : opsKpis.gapMedio <= 0 ? "success" : "destructive"}
+            hint="realizado − prometido · negativo = adiantado"
           />
+
         </div>
 
         {!isTransp ? (
