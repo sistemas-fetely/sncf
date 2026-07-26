@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { BaixasPendentesAlert } from "@/components/credito/BaixasPendentesAlert";
+import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type TitulosBoleto = {
@@ -167,6 +168,10 @@ function BotaoEmailBoleto({ boleto }: { boleto: any }) {
 export default function BancoSafra() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { data: baixasPendentesData } = useBaixasPendentes();
+  const countSolicitada = baixasPendentesData?.countSolicitada ?? 0;
+
+
 
   const { data: boletos = [], isLoading: loadingBoletos, refetch: refetchBoletos } = useQuery<TitulosBoleto[]>({
     queryKey: ["boletos-safra"],
@@ -271,11 +276,11 @@ export default function BancoSafra() {
     }
   };
 
-  const handleGerarBaixa = async () => {
+  const handleGerarBaixa = async (tituloIds: string[] = []) => {
     setGerandoBaixa(true);
     try {
       const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
-        body: { tipo: "baixa" },
+        body: { tipo: "baixa", titulo_ids: tituloIds },
       });
       if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de baixa");
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
@@ -287,6 +292,7 @@ export default function BancoSafra() {
       URL.revokeObjectURL(url);
       toast({ title: `Remessa de baixa gerada: ${data.qtd_titulos} boleto(s)` });
       await qc.invalidateQueries({ queryKey: ["baixas-pendentes"] });
+      await qc.invalidateQueries({ queryKey: ["remessas-safra"] });
       refetchBoletos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -295,6 +301,7 @@ export default function BancoSafra() {
       setGerandoBaixa(false);
     }
   };
+
 
   const handleGerarProrrogacao = async () => {
     setGerandoProrrogacao(true);
@@ -419,8 +426,9 @@ export default function BancoSafra() {
           </div>
           <div className="pl-5">
             <span className="text-muted-foreground text-xs mr-1.5">Baixas pendentes</span>
-            <span className="font-semibold text-purple-700">{boletosKpis.baixaPendente}</span>
+            <span className="font-semibold text-purple-700">{countSolicitada}</span>
           </div>
+
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -453,20 +461,28 @@ export default function BancoSafra() {
             Prorrogação
             {boletosKpis.prorrogacaoPendente > 0 && ` (${boletosKpis.prorrogacaoPendente})`}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGerarBaixa}
-            disabled={boletosKpis.baixaPendente === 0 || gerandoBaixa}
-            className="gap-2"
-          >
-            {gerandoBaixa ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowUpFromLine className="h-4 w-4" />
-            )}
-            Baixa
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleGerarBaixa([])}
+                  disabled={countSolicitada === 0 || gerandoBaixa}
+                  className="gap-2"
+                >
+                  {gerandoBaixa ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowUpFromLine className="h-4 w-4" />
+                  )}
+                  Baixa (todos)
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Gera remessa de baixa para TODOS os títulos aguardando ({countSolicitada}). Para selecionar cliente/título, use o banner acima.</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
         </div>
       </div>
 

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertTriangle, ArrowUpFromLine, ChevronDown, Clock, Info, Loader2, UploadCloud } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
@@ -14,6 +15,7 @@ function daysSince(iso: string | null): number | null {
   if (Number.isNaN(t)) return null;
   return Math.floor((Date.now() - t) / 86400000);
 }
+
 
 function ListaBaixas({ itens, mostrarIdade }: { itens: BaixaPendenteItem[]; mostrarIdade?: "gerado" | "enviado" }) {
   return (
@@ -60,13 +62,15 @@ export function BaixasPendentesAlert({
   onGerarBaixa,
   gerandoBaixa,
 }: {
-  onGerarBaixa: () => void;
+  onGerarBaixa: (tituloIds: string[]) => void;
   gerandoBaixa: boolean;
 }) {
   const { data, isLoading, error, refetch } = useBaixasPendentes();
-  const [openSolicitada, setOpenSolicitada] = useState(false);
+  const [openSolicitada, setOpenSolicitada] = useState(true);
   const [openGerada, setOpenGerada] = useState(false);
   const [openEnviada, setOpenEnviada] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+
 
   if (isLoading) return null;
 
@@ -117,6 +121,33 @@ export function BaixasPendentesAlert({
   const geradaAtrasada = countRemessaGeradaAguardandoEnvio > 0 && maxDiasGerada > 2;
   const enviadaAtrasada = countRemessaEnviadaAguardandoRetorno > 0 && maxDiasEnviada > 5;
 
+  // Selecionados default = todos. Sincroniza quando a lista muda (ex.: refetch).
+  const idsSolicitados = useMemo(() => baixaSolicitada.map((i) => i.id).join("|"), [baixaSolicitada]);
+  useEffect(() => {
+    setSelecionados(new Set(baixaSolicitada.map((i) => i.id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsSolicitados]);
+
+  const toggleOne = (id: string, on: boolean) => {
+    setSelecionados((prev) => {
+      const n = new Set(prev);
+      if (on) n.add(id);
+      else n.delete(id);
+      return n;
+    });
+  };
+  const toggleAll = (on: boolean) => {
+    setSelecionados(on ? new Set(baixaSolicitada.map((i) => i.id)) : new Set());
+  };
+
+  const nSelecionados = selecionados.size;
+  const totalSelecionado = baixaSolicitada.reduce(
+    (s, i) => (selecionados.has(i.id) ? s + Number(i.valor ?? 0) : s),
+    0,
+  );
+  const allSelected = countSolicitada > 0 && nSelecionados === countSolicitada;
+  const someSelected = nSelecionados > 0 && !allSelected;
+
   return (
     <div className="space-y-3">
       {/* 🟠 BLOCO 1 — AGUARDANDO GERAR */}
@@ -132,17 +163,17 @@ export function BaixasPendentesAlert({
                 </span>
               </AlertTitle>
               <AlertDescription className="text-orange-800 dark:text-orange-200 mt-1">
-                Gere a remessa de baixa para que esses títulos não fiquem vivos no SafraNet.
+                {nSelecionados} de {countSolicitada} selecionado{nSelecionados === 1 ? "" : "s"} · {formatBRL(totalSelecionado)}
               </AlertDescription>
             </div>
             <Button
               size="sm"
-              onClick={onGerarBaixa}
-              disabled={gerandoBaixa}
+              onClick={() => onGerarBaixa(Array.from(selecionados))}
+              disabled={gerandoBaixa || nSelecionados === 0}
               className="gap-2 shrink-0 bg-orange-700 hover:bg-orange-800 text-white"
             >
               {gerandoBaixa ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpFromLine className="h-4 w-4" />}
-              Gerar Remessa de Baixa
+              Gerar Remessa de Baixa ({nSelecionados})
             </Button>
           </div>
           <Collapsible open={openSolicitada} onOpenChange={setOpenSolicitada}>
@@ -153,11 +184,50 @@ export function BaixasPendentesAlert({
               </button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <ListaBaixas itens={baixaSolicitada} />
+              <div className="mt-3 rounded-md border bg-background/60 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/50">
+                    <tr className="text-left">
+                      <th className="px-3 py-2 w-8">
+                        <Checkbox
+                          checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                          onCheckedChange={(v) => toggleAll(v === true)}
+                          aria-label="Selecionar todos"
+                        />
+                      </th>
+                      <th className="px-3 py-2 font-medium">Título</th>
+                      <th className="px-3 py-2 font-medium">Cliente</th>
+                      <th className="px-3 py-2 font-medium">Nosso número</th>
+                      <th className="px-3 py-2 font-medium text-right">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {baixaSolicitada.map((i) => {
+                      const checked = selecionados.has(i.id);
+                      return (
+                        <tr key={i.id} className="border-t">
+                          <td className="px-3 py-1.5">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => toggleOne(i.id, v === true)}
+                              aria-label={`Selecionar ${i.numero_titulo ?? i.id}`}
+                            />
+                          </td>
+                          <td className="px-3 py-1.5 font-mono">{i.numero_titulo ?? "—"}</td>
+                          <td className="px-3 py-1.5">{i.cliente}</td>
+                          <td className="px-3 py-1.5 font-mono">{i.nosso_numero_seq ?? "—"}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">{formatBRL(i.valor)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </CollapsibleContent>
           </Collapsible>
         </Alert>
       )}
+
 
       {/* 🟣 BLOCO 2 — GERADA, AGUARDANDO ENVIO */}
       {countRemessaGeradaAguardandoEnvio > 0 && (
