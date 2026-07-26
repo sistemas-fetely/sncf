@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { BaixasPendentesAlert } from "@/components/credito/BaixasPendentesAlert";
+import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type TitulosBoleto = {
