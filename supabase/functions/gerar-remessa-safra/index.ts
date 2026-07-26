@@ -348,7 +348,12 @@ serve(async (req) => {
       for (const t of aptos as any[]) {
         const { error: updErr } = await sb
           .from("titulo_a_receber")
-          .update({ boleto_status: "baixa_remessa_gerada" })
+          .update({
+            boleto_status: "baixa_remessa_gerada",
+            // Fecha o rastro: aponta o título para a remessa de baixa que o carregou.
+            // NÃO tocar remessa_safra_id (essa guarda a remessa de ENTRADA do boleto).
+            baixa_remessa_id: (remessa as any).id,
+          } as any)
           .eq("id", t.id);
         if (updErr) throw new Error(`Erro ao atualizar título ${t.id}: ${updErr.message}`);
       }
