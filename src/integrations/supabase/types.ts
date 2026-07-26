@@ -5133,6 +5133,230 @@ export type Database = {
           },
         ]
       }
+      despesas: {
+        Row: {
+          centro_custo_id: string | null
+          classificada_em: string | null
+          classificada_por: string | null
+          created_at: string
+          criado_por: string | null
+          data_competencia: string
+          data_pagamento: string | null
+          descricao: string | null
+          documento_id: string | null
+          fatura_lancamento_id: string | null
+          fornecedor_cnpj: string | null
+          fornecedor_nome: string | null
+          id: string
+          movimentacao_bancaria_id: string | null
+          natureza_investimento_id: string | null
+          origem_porta: string
+          plano_contas_id: string | null
+          status_caixa: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          centro_custo_id?: string | null
+          classificada_em?: string | null
+          classificada_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_competencia: string
+          data_pagamento?: string | null
+          descricao?: string | null
+          documento_id?: string | null
+          fatura_lancamento_id?: string | null
+          fornecedor_cnpj?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          movimentacao_bancaria_id?: string | null
+          natureza_investimento_id?: string | null
+          origem_porta: string
+          plano_contas_id?: string | null
+          status_caixa?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          centro_custo_id?: string | null
+          classificada_em?: string | null
+          classificada_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_competencia?: string
+          data_pagamento?: string | null
+          descricao?: string | null
+          documento_id?: string | null
+          fatura_lancamento_id?: string | null
+          fornecedor_cnpj?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          movimentacao_bancaria_id?: string | null
+          natureza_investimento_id?: string | null
+          origem_porta?: string
+          plano_contas_id?: string | null
+          status_caixa?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "despesas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_stage_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "despesas_fatura_lancamento_id_fkey"
+            columns: ["fatura_lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "fatura_cartao_lancamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_cartao_sugestoes"
+            referencedColumns: ["ofx_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["credito_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["debito_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2c_pedido"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_natureza_investimento_id_fkey"
+            columns: ["natureza_investimento_id"]
+            isOneToOne: false
+            referencedRelation: "naturezas_investimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_venda: {
         Row: {
           atualizado_em: string
@@ -6212,6 +6436,89 @@ export type Database = {
           },
         ]
       }
+      fatura_frete_lancamentos: {
+        Row: {
+          created_at: string
+          data: string | null
+          destinatario: string | null
+          doc_ref: string | null
+          fatura_id: string
+          frete_vinculado_id: string | null
+          id: string
+          linha_original: string | null
+          nf_numero: string | null
+          peso: number | null
+          status: string
+          tipo: string
+          updated_at: string
+          valor_frete: number | null
+          valor_nf: number | null
+        }
+        Insert: {
+          created_at?: string
+          data?: string | null
+          destinatario?: string | null
+          doc_ref?: string | null
+          fatura_id: string
+          frete_vinculado_id?: string | null
+          id?: string
+          linha_original?: string | null
+          nf_numero?: string | null
+          peso?: number | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor_frete?: number | null
+          valor_nf?: number | null
+        }
+        Update: {
+          created_at?: string
+          data?: string | null
+          destinatario?: string | null
+          doc_ref?: string | null
+          fatura_id?: string
+          frete_vinculado_id?: string | null
+          id?: string
+          linha_original?: string | null
+          nf_numero?: string | null
+          peso?: number | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor_frete?: number | null
+          valor_nf?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fatura_frete_lancamentos_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas_frete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "transp_fretes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_faturas_frete"
+            referencedColumns: ["frete_sugerido_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transp_fretes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faturas_cartao: {
         Row: {
           cartao_id: string | null
@@ -6365,6 +6672,95 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["cpr_id"]
+          },
+        ]
+      }
+      faturas_frete: {
+        Row: {
+          boleto_stage_id: string | null
+          canal: string
+          conta_pagar_id: string | null
+          created_at: string
+          criado_por: string | null
+          data_emissao: string | null
+          data_vencimento: string | null
+          fonte_importacao: string | null
+          id: string
+          numero_fatura: string
+          observacao: string | null
+          pdf_storage_path: string | null
+          status: string
+          transportadora_id: string | null
+          updated_at: string
+          valor_total: number | null
+          valor_total_calculado: number | null
+        }
+        Insert: {
+          boleto_stage_id?: string | null
+          canal?: string
+          conta_pagar_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          fonte_importacao?: string | null
+          id?: string
+          numero_fatura: string
+          observacao?: string | null
+          pdf_storage_path?: string | null
+          status?: string
+          transportadora_id?: string | null
+          updated_at?: string
+          valor_total?: number | null
+          valor_total_calculado?: number | null
+        }
+        Update: {
+          boleto_stage_id?: string | null
+          canal?: string
+          conta_pagar_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          fonte_importacao?: string | null
+          id?: string
+          numero_fatura?: string
+          observacao?: string | null
+          pdf_storage_path?: string | null
+          status?: string
+          transportadora_id?: string | null
+          updated_at?: string
+          valor_total?: number | null
+          valor_total_calculado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
           },
         ]
       }
@@ -9140,6 +9536,33 @@ export type Database = {
           tipo?: string
           titulo?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      naturezas_investimento: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
         }
         Relationships: []
       }
@@ -13253,6 +13676,7 @@ export type Database = {
           created_at: string | null
           id: string
           natureza: string | null
+          natureza_investimento_default_id: string | null
           nivel: number
           nome: string
           origem: string | null
@@ -13268,6 +13692,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           natureza?: string | null
+          natureza_investimento_default_id?: string | null
           nivel?: number
           nome: string
           origem?: string | null
@@ -13283,6 +13708,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           natureza?: string | null
+          natureza_investimento_default_id?: string | null
           nivel?: number
           nome?: string
           origem?: string | null
@@ -13311,6 +13737,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "plano_contas_natureza_investimento_default_id_fkey"
+            columns: ["natureza_investimento_default_id"]
+            isOneToOne: false
+            referencedRelation: "naturezas_investimento"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "plano_contas_parent_id_fkey"
@@ -21344,6 +21777,86 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_conciliacao_faturas_frete: {
+        Row: {
+          canal: string | null
+          cte_numero: string | null
+          data_vencimento: string | null
+          destinatario: string | null
+          diferenca: number | null
+          doc_ref: string | null
+          fatura_id: string | null
+          frete_sugerido_id: string | null
+          frete_vinculado_id: string | null
+          lancamento_id: string | null
+          minuta: string | null
+          nf_numero: string | null
+          numero_fatura: string | null
+          status_conciliacao: string | null
+          tipo: string | null
+          transportadora_id: string | null
+          valor_frete: number | null
+          valor_lancado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fatura_frete_lancamentos_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas_frete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "transp_fretes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_faturas_frete"
+            referencedColumns: ["frete_sugerido_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transp_fretes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       vw_conciliacao_furos: {
         Row: {
           banco: string | null
@@ -22607,14 +23120,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
