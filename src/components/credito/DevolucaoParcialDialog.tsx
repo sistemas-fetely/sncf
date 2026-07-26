@@ -45,17 +45,18 @@ export function DevolucaoParcialDialog({
     queryKey: ["total-pedido-devolucao-parcial", pedidoId],
     enabled: open,
     staleTime: 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async (): Promise<number> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("titulos_a_receber")
         .select("valor_bruto, status")
         .eq("pedido_id", pedidoId);
       if (error) throw new Error(error.message);
-      const total = (data ?? [])
-        .filter((t: { status: string | null }) =>
+      const rows = (data ?? []) as Array<{ status: string | null; valor_bruto: number | null }>;
+      return rows
+        .filter((t) =>
           t.status !== "cancelado" && t.status !== "devolvido" && t.status !== "cancelado_recuperacao")
-        .reduce((s: number, t: { valor_bruto: number | null }) => s + Number(t.valor_bruto ?? 0), 0);
-      return total;
+        .reduce((s, t) => s + Number(t.valor_bruto ?? 0), 0);
     },
   });
 
