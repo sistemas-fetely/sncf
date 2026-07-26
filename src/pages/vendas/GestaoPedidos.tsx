@@ -145,7 +145,7 @@ function AbaB2B() {
         .from("vw_gestao_pedidos")
         .select("*");
       if (error) throw error;
-      return (data ?? []) as Row[];
+      return ((data ?? []) as Row[]).filter((r) => r.estagio !== "recuperacao_venda");
     },
   });
 
