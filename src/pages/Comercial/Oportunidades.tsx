@@ -96,10 +96,14 @@ export default function Oportunidades() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <CasaPageHeader
-        icon={Sparkles}
+        breadcrumb={[
+          { label: "Comercial" },
+          { label: "Oportunidades" },
+        ]}
         title="Oportunidades"
         subtitle="Pedidos cujo portão de pagamento venceu sem pagamento e foram devolvidos ao Comercial. O link segue ativo — retome o contato com o cliente para converter."
       />
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <KpiCard label="Oportunidades" value={String(kpis.qtd)} />
