@@ -62,7 +62,7 @@ const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   rejeitado: { label: "Rejeitado", cls: "bg-red-100 text-red-800" },
   vencido: { label: "Vencido", cls: "bg-orange-100 text-orange-800" },
   baixa_solicitada: { label: "Baixa pendente", cls: "bg-orange-200 text-orange-900" },
-  baixa_remessa_gerada: { label: "Baixa enviada", cls: "bg-purple-100 text-purple-800" },
+  baixa_remessa_gerada: { label: "Baixa em remessa", cls: "bg-purple-100 text-purple-800" },
 };
 
 function BotaoBaixarBoletoPdf({ boleto }: { boleto: any }) {
