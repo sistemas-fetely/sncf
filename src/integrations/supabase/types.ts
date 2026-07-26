@@ -22690,14 +22690,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -24188,6 +24188,29 @@ export type Database = {
           valor_base: number | null
           valor_transporte: number | null
           vinculo_id: string | null
+        }
+        Relationships: []
+      }
+      vw_xpm_cad_item: {
+        Row: {
+          altura_cm: number | null
+          camada: number | null
+          categoria: string | null
+          cod_nf: string | null
+          codigo_barras: string | null
+          codigo_material: string | null
+          descricao: string | null
+          descricao_embalagem: string | null
+          descricao_reduzida: string | null
+          largura_cm: number | null
+          lastro: number | null
+          ncm: string | null
+          nf: string | null
+          numero_pedido: string | null
+          pedido_ref: string | null
+          peso_liquido: number | null
+          qtd_item_sku: number | null
+          unid_med: string | null
         }
         Relationships: []
       }
