@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertTriangle, ArrowUpFromLine, ChevronDown, Clock, Info, Loader2, UploadCloud } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
@@ -14,6 +15,7 @@ function daysSince(iso: string | null): number | null {
   if (Number.isNaN(t)) return null;
   return Math.floor((Date.now() - t) / 86400000);
 }
+
 
 function ListaBaixas({ itens, mostrarIdade }: { itens: BaixaPendenteItem[]; mostrarIdade?: "gerado" | "enviado" }) {
   return (
