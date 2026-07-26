@@ -315,6 +315,8 @@ const App = () => (
                 <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
+                <Route path="/comercial/oportunidades" element={<Oportunidades />} />
+
                 <Route path="/canal-cpo" element={<CanalCPO />} />
                 <Route path="/vendas/rastreamento" element={<RastreamentoCorreios />} />
                 <Route path="/vendas/faturas-correios" element={<FaturasCorreios />} />
