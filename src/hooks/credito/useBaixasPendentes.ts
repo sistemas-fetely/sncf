@@ -14,6 +14,8 @@ export type BaixaPendenteItem = {
   remessa_gerado_em: string | null;
   remessa_enviada_em: string | null;
   remessa_retorno_processado_em: string | null;
+  remessa_arquivo_nome: string | null;
+  remessa_conteudo: string | null;
 };
 
 type Row = {
