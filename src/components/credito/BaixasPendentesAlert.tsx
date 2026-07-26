@@ -274,7 +274,7 @@ export function BaixasPendentesAlert({
             )}
           >
             <UploadCloud className="h-3.5 w-3.5" />
-            Baixe o arquivo e marque como enviada na sub-aba "Remessas Safra".
+            Baixe o arquivo abaixo, suba no SafraNet e marque como enviada na sub-aba "Remessas Safra".
             {geradaAtrasada && (
               <span className="ml-1 inline-flex items-center gap-1 font-medium">
                 <Clock className="h-3.5 w-3.5" />
@@ -282,24 +282,95 @@ export function BaixasPendentesAlert({
               </span>
             )}
           </AlertDescription>
-          <Collapsible open={openGerada} onOpenChange={setOpenGerada}>
-            <CollapsibleTrigger asChild>
-              <button
-                className={cn(
-                  "mt-2 inline-flex items-center gap-1 text-xs hover:underline",
-                  geradaAtrasada
-                    ? "text-amber-900 dark:text-amber-100"
-                    : "text-purple-900 dark:text-purple-100",
-                )}
-              >
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", openGerada && "rotate-180")} />
-                {openGerada ? "Esconder detalhes" : "Ver detalhes"}
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <ListaBaixas itens={remessaGeradaAguardandoEnvio} mostrarIdade="gerado" />
-            </CollapsibleContent>
-          </Collapsible>
+
+          {/* Grupos por remessa, com botão de download por remessa */}
+          <div className="mt-3 space-y-2">
+            {gruposGerada.map((g) => {
+              const idade = daysSince(g.gerado_em);
+              const semConteudo = !g.conteudo;
+              const btn = (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 shrink-0"
+                  disabled={semConteudo}
+                  onClick={() => {
+                    try {
+                      baixarArquivoRemessa(g.conteudo, g.arquivo_nome ?? `remessa-${g.remessa_id ?? "sem-id"}.rem`);
+                      toast({ title: "Arquivo baixado", description: g.arquivo_nome ?? "remessa" });
+                    } catch (e) {
+                      toast({
+                        title: "Erro ao baixar remessa",
+                        description: e instanceof Error ? e.message : String(e),
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Baixar arquivo
+                </Button>
+              );
+              return (
+                <div key={g.remessa_id ?? `sem-${g.itens[0].id}`} className="rounded-md border bg-background/60 overflow-hidden">
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-muted/40 text-xs">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="font-mono">{g.arquivo_nome ?? "— sem arquivo —"}</span>
+                      <span className="text-muted-foreground">
+                        {g.itens.length} boleto{g.itens.length === 1 ? "" : "s"}
+                      </span>
+                      <span className="text-muted-foreground tabular-nums">{formatBRL(g.total)}</span>
+                      {idade != null && (
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <Clock className="h-3 w-3" /> gerada há {idade}d
+                        </span>
+                      )}
+                    </div>
+                    {semConteudo ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
+                          <TooltipContent>Arquivo não disponível — remessa anterior ao histórico</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      btn
+                    )}
+                  </div>
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <button className="w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted/30 inline-flex items-center gap-1">
+                        <ChevronDown className="h-3.5 w-3.5" />
+                        Ver boletos
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/30">
+                          <tr className="text-left">
+                            <th className="px-3 py-1.5 font-medium">Título</th>
+                            <th className="px-3 py-1.5 font-medium">Cliente</th>
+                            <th className="px-3 py-1.5 font-medium">Nosso número</th>
+                            <th className="px-3 py-1.5 font-medium text-right">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {g.itens.map((i) => (
+                            <tr key={i.id} className="border-t">
+                              <td className="px-3 py-1.5 font-mono">{i.numero_titulo ?? "—"}</td>
+                              <td className="px-3 py-1.5">{i.cliente}</td>
+                              <td className="px-3 py-1.5 font-mono">{i.nosso_numero_seq ?? "—"}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">{formatBRL(i.valor)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+              );
+            })}
+          </div>
         </Alert>
       )}
 
