@@ -567,10 +567,30 @@ serve(async (req) => {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: "Valor inválido na alteração 51" });
               continue;
             }
-            await sb.from("titulo_a_receber")
+            // FAIL-LOUD: valor_atual é coluna GERADA (valor_bruto - valor_desconto + juros + multa + correcao).
+            // Aplicamos o novo valor via valor_desconto, preservando valor_bruto (rastro fiscal).
+            const base =
+              Number(t.valor_bruto ?? 0) +
+              Number(t.valor_juros ?? 0) +
+              Number(t.valor_multa ?? 0) +
+              Number(t.valor_correcao ?? 0);
+            if (novoValor > base + 0.005) {
+              erros.push({
+                linha: linha.numeroLinha,
+                nosso_numero: linha.nossoNumero,
+                erro: `Alteração 51: novo valor (R$ ${novoValor.toFixed(2)}) maior que o valor base do título (R$ ${base.toFixed(2)}) — não representável como desconto`,
+              });
+              continue;
+            }
+            const novoDesconto = Number((base - novoValor).toFixed(2));
+            const { error: upErr51 } = await sb.from("titulo_a_receber")
               // deno-lint-ignore no-explicit-any
-              .update({ valor_atual: novoValor } as any)
+              .update({ valor_desconto: novoDesconto } as any)
               .eq("id", t.id);
+            if (upErr51) {
+              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `alteração 51 update: ${upErr51.message}` });
+              continue;
+            }
             alertas.push(`Valor alterado para ${novoValor.toFixed(2)} — título ${linha.nossoNumero}.`);
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             contadores.alteracoes++;
