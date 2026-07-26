@@ -690,10 +690,10 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <StatCardMini
             label="On-time %"
-            value={canalB2cGlobal ? "—" : (opsKpis.comDatas > 0 ? `${opsKpis.onTimePct.toFixed(1)}%` : "—")}
+            value={opsKpis.comDatas > 0 ? `${opsKpis.onTimePct.toFixed(1)}%` : "—"}
             icon={CheckCircle2}
-            tone={canalB2cGlobal ? "default" : opsKpis.onTimePct >= 90 ? "success" : opsKpis.onTimePct >= 75 ? "warning" : "destructive"}
-            hint={canalB2cGlobal ? "n/a no B2C" : `${NUM.format(opsKpis.comDatas)} rastreios avaliados`}
+            tone={opsKpis.comDatas === 0 ? "default" : opsKpis.onTimePct >= 90 ? "success" : opsKpis.onTimePct >= 75 ? "warning" : "destructive"}
+            hint={`${NUM.format(opsKpis.comDatas)} rastreios avaliados`}
           />
           <StatCardMini
             label="Taxa de devolução"
@@ -713,11 +713,12 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
           />
           <StatCardMini
             label="Gap vs prometido"
-            value={canalB2cGlobal ? "—" : (opsKpis.gapMedio == null ? "—" : `${opsKpis.gapMedio > 0 ? "+" : ""}${opsKpis.gapMedio.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`)}
+            value={opsKpis.gapMedio == null ? "—" : `${opsKpis.gapMedio > 0 ? "+" : ""}${opsKpis.gapMedio.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`}
             icon={CalendarClock}
-            tone={canalB2cGlobal ? "default" : opsKpis.gapMedio == null ? "default" : opsKpis.gapMedio <= 0 ? "success" : "destructive"}
-            hint={canalB2cGlobal ? "n/a no B2C" : "realizado − prometido · negativo = adiantado"}
+            tone={opsKpis.gapMedio == null ? "default" : opsKpis.gapMedio <= 0 ? "success" : "destructive"}
+            hint="realizado − prometido · negativo = adiantado"
           />
+
         </div>
 
         {!isTransp ? (
@@ -741,21 +742,20 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                 </TableHeader>
                 <TableBody>
                   {opsPorTransp.map((r) => {
-                    const ehB2c = r.canalB2c;
                     const lead = r.id ? prazoMedioPorId.get(r.id) ?? null : null;
                     return (
                       <TableRow key={r.id ?? r.nome}>
                         <TableCell className="font-medium">{r.nome}</TableCell>
                         <TableCell className="text-right tabular-nums">{NUM.format(r.total)}</TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {ehB2c ? <span className="text-muted-foreground">—</span> : r.onTimePct != null ? (
+                          {r.onTimePct != null ? (
                             <span className={cn(r.onTimePct >= 90 ? "text-success" : r.onTimePct >= 75 ? "text-amber-700 dark:text-amber-300" : "text-destructive")}>
                               {r.onTimePct.toFixed(1)}%
                             </span>
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {ehB2c ? <span className="text-muted-foreground">—</span> : r.gapMedio != null ? (
+                          {r.gapMedio != null ? (
                             <span className={cn(r.gapMedio > 0 ? "text-destructive" : "text-success")}>
                               {r.gapMedio > 0 ? "+" : ""}{r.gapMedio.toFixed(1)}
                             </span>
