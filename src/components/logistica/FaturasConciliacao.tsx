@@ -313,5 +313,3 @@ function KpiCard({ label, value, tone }: { label: string; value: string; tone?: 
   );
 }
 
-// Reuse Button import to satisfy tree-shaking hint — no-op reference removed.
-void Button;
