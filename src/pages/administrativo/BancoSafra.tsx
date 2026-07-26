@@ -168,6 +168,10 @@ function BotaoEmailBoleto({ boleto }: { boleto: any }) {
 export default function BancoSafra() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { data: baixasPendentesData } = useBaixasPendentes();
+  const countSolicitada = baixasPendentesData?.countSolicitada ?? 0;
+
+
 
   const { data: boletos = [], isLoading: loadingBoletos, refetch: refetchBoletos } = useQuery<TitulosBoleto[]>({
     queryKey: ["boletos-safra"],
