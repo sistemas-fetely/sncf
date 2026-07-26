@@ -299,10 +299,11 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
   const prazoEntrega = useMemo(() => {
     let rows = prazoAll;
     if (escopoTranspId) rows = rows.filter((r) => r.transportadora_id === escopoTranspId);
+    else if (canal === "b2b" || canal === "b2c") rows = rows.filter((r) => r.canal === canal);
     let entregas = 0, diasTotal = 0;
     for (const r of rows) { entregas += n(r.entregas); diasTotal += n(r.dias_total); }
     return { entregas, media: entregas > 0 ? diasTotal / entregas : null };
-  }, [prazoAll, escopoTranspId]);
+  }, [prazoAll, escopoTranspId, canal]);
 
   // KPIs por transportadora (agregado sobre rastreio)
   const opsPorTransp = useMemo(() => {
