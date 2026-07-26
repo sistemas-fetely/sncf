@@ -53,13 +53,19 @@ export async function rastrearCodigoSRO(
     }
 
     const dados = JSON.parse(bodyText);
-    const eventos: any[] = dados?.objetos?.[0]?.eventos ?? [];
+    const objeto = dados?.objetos?.[0];
+    const eventos: any[] = objeto?.eventos ?? [];
     const ultimo = eventos[0];
     const descricao: string | undefined = ultimo?.descricao;
     const entregue = eventos.some((e) =>
       e?.codigo === "BDE" || (typeof e?.descricao === "string" && /entregue/i.test(e.descricao))
     );
     const status = descricao ?? "Sem eventos";
+    const dtPrevistaRaw: string | undefined = objeto?.dtPrevista;
+    const previsaoEntrega =
+      typeof dtPrevistaRaw === "string" && dtPrevistaRaw.length >= 10
+        ? dtPrevistaRaw.slice(0, 10)
+        : null;
 
     const nowIso = new Date().toISOString();
     const update: Record<string, unknown> = {
@@ -69,6 +75,7 @@ export async function rastrearCodigoSRO(
       atualizado_em: nowIso,
     };
     if (eventos.length > 0) update.eventos = eventos;
+    if (previsaoEntrega) update.previsao_entrega = previsaoEntrega;
 
     const { error: upErr } = await supabase
       .from("pedido_rastreamento")
