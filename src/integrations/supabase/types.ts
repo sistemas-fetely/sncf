@@ -7760,6 +7760,36 @@ export type Database = {
           },
         ]
       }
+      importacao_conferencia_fisica: {
+        Row: {
+          conferido_em: string
+          conferido_por: string | null
+          id: string
+          observacao: string | null
+          qtd_fisica: number
+          rocabella_ref: string
+          sku: string
+        }
+        Insert: {
+          conferido_em?: string
+          conferido_por?: string | null
+          id?: string
+          observacao?: string | null
+          qtd_fisica: number
+          rocabella_ref: string
+          sku: string
+        }
+        Update: {
+          conferido_em?: string
+          conferido_por?: string | null
+          id?: string
+          observacao?: string | null
+          qtd_fisica?: number
+          rocabella_ref?: string
+          sku?: string
+        }
+        Relationships: []
+      }
       importacao_fabrica: {
         Row: {
           ativo: boolean
@@ -7878,6 +7908,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      importacao_nf_linha: {
+        Row: {
+          codigo_nf: string
+          criado_em: string
+          id: string
+          ipi_aliq: number | null
+          ncm: string | null
+          nf_numero: string
+          processo: string | null
+          quantidade: number
+          rocabella_ref: string | null
+          valor_total: number | null
+          valor_unit: number
+        }
+        Insert: {
+          codigo_nf: string
+          criado_em?: string
+          id?: string
+          ipi_aliq?: number | null
+          ncm?: string | null
+          nf_numero: string
+          processo?: string | null
+          quantidade: number
+          rocabella_ref?: string | null
+          valor_total?: number | null
+          valor_unit: number
+        }
+        Update: {
+          codigo_nf?: string
+          criado_em?: string
+          id?: string
+          ipi_aliq?: number | null
+          ncm?: string | null
+          nf_numero?: string
+          processo?: string | null
+          quantidade?: number
+          rocabella_ref?: string | null
+          valor_total?: number | null
+          valor_unit?: number
+        }
+        Relationships: []
       }
       importacao_pedido: {
         Row: {
@@ -21853,6 +21925,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_importacao_conferencia: {
+        Row: {
+          codigo_nf: string | null
+          divergencia: number | null
+          qtd_nf: number | null
+          qtd_pedido: number | null
+          rocabella_ref: string | null
+          skus: number | null
+          status: string | null
+        }
+        Relationships: []
+      }
+      vw_importacao_conferencia_sku: {
+        Row: {
+          codigo_nf: string | null
+          divergencia_fisica: number | null
+          nome_comercial: string | null
+          qtd_fisica: number | null
+          qtd_pedido: number | null
+          rocabella_ref: string | null
+          sku: string | null
+        }
+        Relationships: []
+      }
       vw_lancamentos_caixa_banco: {
         Row: {
           cartao_id: string | null
@@ -22384,14 +22480,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -22477,14 +22573,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -22984,6 +23080,7 @@ export type Database = {
           bling_id_canonico: string | null
           bling_ids_total: number | null
           bling_preco_canonico: number | null
+          em_shopify: boolean | null
           em_wns: boolean | null
           needs_review: boolean | null
           nome_comercial: string | null
@@ -25481,6 +25578,16 @@ export type Database = {
       registrar_correcao_regra: {
         Args: { p_regra_id: string }
         Returns: undefined
+      }
+      registrar_devolucao_parcial: {
+        Args: {
+          p_desfecho?: string
+          p_motivo?: string
+          p_nf_devolucao?: string
+          p_pedido_id: string
+          p_valor: number
+        }
+        Returns: Json
       }
       registrar_devolucao_pedido: {
         Args: {

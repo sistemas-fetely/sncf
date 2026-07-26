@@ -38,6 +38,7 @@ import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog"
 import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
 import { CancelarPedidoDialog } from "@/components/credito/CancelarPedidoDialog";
 import { RegistrarDevolucaoDialog } from "@/components/credito/RegistrarDevolucaoDialog";
+import { DevolucaoParcialDialog } from "@/components/credito/DevolucaoParcialDialog";
 import { BaixarPorPerdaDialog } from "@/components/credito/BaixarPorPerdaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -335,6 +336,7 @@ export default function TitulosTab() {
   const [prorrogando, setProrrogando] = useState<TituloCobranca | null>(null);
   const [cancelandoPedido, setCancelandoPedido] = useState<TituloCobranca | null>(null);
   const [devolvendo, setDevolvendo] = useState<TituloCobranca | null>(null);
+  const [devolvendoParcial, setDevolvendoParcial] = useState<TituloCobranca | null>(null);
   const [baixandoPerda, setBaixandoPerda] = useState<TituloCobranca | null>(null);
   const [renegociando, setRenegociando] = useState<TituloCobranca | null>(null);
 
@@ -930,14 +932,25 @@ export default function TitulosTab() {
                         </Button>
                       )}
 
-                      {/* Encerramento por PEDIDO — Pós-NF: Registrar devolução */}
+                      {/* Encerramento por PEDIDO — Pós-NF: Registrar devolução TOTAL */}
                       {posNF && (
                         <Button
                           variant="outline"
                           className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
                           onClick={() => setDevolvendo(detalhe)}
                         >
-                          Registrar devolução (afeta pedido inteiro)
+                          Registrar devolução total (pedido inteiro)
+                        </Button>
+                      )}
+
+                      {/* Devolução PARCIAL — Pós-NF: gera haver, não encerra */}
+                      {posNF && (
+                        <Button
+                          variant="outline"
+                          className="border-amber-300 text-amber-800 hover:bg-amber-50 hover:text-amber-900"
+                          onClick={() => setDevolvendoParcial(detalhe)}
+                        >
+                          Devolução parcial (parte do valor)
                         </Button>
                       )}
 
@@ -1125,6 +1138,20 @@ export default function TitulosTab() {
           }}
         />
       )}
+
+      {devolvendoParcial && (
+        <DevolucaoParcialDialog
+          pedidoId={devolvendoParcial.pedido_id}
+          pedidoIdExterno={devolvendoParcial.pedido_id_externo}
+          parceiroId={devolvendoParcial.parceiro_id}
+          open={!!devolvendoParcial}
+          onClose={() => {
+            setDevolvendoParcial(null);
+            setDetalhe(null);
+          }}
+        />
+      )}
+
 
       {baixandoPerda && (
         <BaixarPorPerdaDialog
