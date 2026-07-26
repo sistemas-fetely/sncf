@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL } from "@/lib/format-currency";
+import { baixarArquivoRemessa } from "@/lib/financeiro/baixarArquivoRemessa";
 import { supabase } from "@/integrations/supabase/client";
 import type { TituloBoletoPendente, ValidacaoRemessa, BoletoStatus, ResultadoRetorno } from "@/types/credito";
 
