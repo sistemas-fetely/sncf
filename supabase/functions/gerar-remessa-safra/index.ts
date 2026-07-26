@@ -257,7 +257,11 @@ serve(async (req) => {
       const nroSeq = await proximoSequencial(sb);
       const hoje   = new Date().toISOString().slice(0, 10);
 
-      const { data: titulos, error: tErr } = await sb
+      // Aceita seleção opcional por título (mesmo padrão da branch entrada).
+      // O filtro de status continua obrigatório — nunca baixar título que não pediu baixa.
+      const tituloIds: string[] = Array.isArray(body.titulo_ids) ? body.titulo_ids.filter(Boolean) : [];
+
+      let q = sb
         .from("titulo_a_receber")
         .select(`
           id, numero_titulo, numero_parcela, total_parcelas,
@@ -270,12 +274,14 @@ serve(async (req) => {
           )
         `)
         .eq("boleto_status", "baixa_solicitada");
+      if (tituloIds.length > 0) q = q.in("id", tituloIds);
+      const { data: titulos, error: tErr } = await q;
 
       if (tErr) throw new Error(`Erro ao buscar títulos para baixa: ${tErr.message}`);
 
       if (!titulos || titulos.length === 0) {
         return new Response(
-          JSON.stringify({ ok: false, erro: "Nenhum título com baixa solicitada" }),
+          JSON.stringify({ ok: false, erro: tituloIds.length > 0 ? "Nenhum título elegível para baixa na seleção" : "Nenhum título com baixa solicitada" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
