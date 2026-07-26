@@ -62,6 +62,7 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
         <TabsList>
           <TabsTrigger value="visao">Visão Geral</TabsTrigger>
           <TabsTrigger value="fretes">Fretes &amp; entregas</TabsTrigger>
+          <TabsTrigger value="faturas">Faturas</TabsTrigger>
           <TabsTrigger value="tabela">Tabela de preço</TabsTrigger>
           <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
         </TabsList>
@@ -78,6 +79,9 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
               hideImport={ehBraspress}
             />
           )}
+        </TabsContent>
+        <TabsContent value="faturas" className="mt-4">
+          <FaturasConciliacao transportadoraId={transportadora.id} transportadoraNome={nome} />
         </TabsContent>
         <TabsContent value="tabela" className="mt-4 space-y-4">
           <GestaoTabelasPreco transportadoraId={transportadora.id} />
