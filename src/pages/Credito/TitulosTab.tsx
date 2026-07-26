@@ -1139,6 +1139,20 @@ export default function TitulosTab() {
         />
       )}
 
+      {devolvendoParcial && (
+        <DevolucaoParcialDialog
+          pedidoId={devolvendoParcial.pedido_id}
+          pedidoIdExterno={devolvendoParcial.pedido_id_externo}
+          parceiroId={devolvendoParcial.parceiro_id}
+          open={!!devolvendoParcial}
+          onClose={() => {
+            setDevolvendoParcial(null);
+            setDetalhe(null);
+          }}
+        />
+      )}
+
+
       {baixandoPerda && (
         <BaixarPorPerdaDialog
           tituloId={baixandoPerda.id}
