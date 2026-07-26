@@ -62,13 +62,15 @@ export function BaixasPendentesAlert({
   onGerarBaixa,
   gerandoBaixa,
 }: {
-  onGerarBaixa: () => void;
+  onGerarBaixa: (tituloIds: string[]) => void;
   gerandoBaixa: boolean;
 }) {
   const { data, isLoading, error, refetch } = useBaixasPendentes();
-  const [openSolicitada, setOpenSolicitada] = useState(false);
+  const [openSolicitada, setOpenSolicitada] = useState(true);
   const [openGerada, setOpenGerada] = useState(false);
   const [openEnviada, setOpenEnviada] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+
 
   if (isLoading) return null;
 
