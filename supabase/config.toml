@@ -35,6 +35,11 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
     verify_jwt = true
     [functions.parse-fatura-cartao-pdf.runtime]
       wall_clock_limit_sec = 400
+  [functions.parse-fatura-frete-pdf]
+    verify_jwt = true
+    [functions.parse-fatura-frete-pdf.runtime]
+      wall_clock_limit_sec = 400
+
   [functions.consultar-cnpj]
     verify_jwt = true
   [functions.parse-bureau-pdf]

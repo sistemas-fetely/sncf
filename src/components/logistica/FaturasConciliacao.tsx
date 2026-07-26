@@ -1,12 +1,15 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, FileText, Loader2 } from "lucide-react";
+import { ChevronDown, FileText, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+
 
 type Fatura = {
   id: string;
@@ -110,6 +113,79 @@ export function FaturasConciliacao({
   const { data: faturas = [], isLoading: loadingFat } = useFaturas(transportadoraId);
   const { data: linhas = [], isLoading: loadingLinhas } = useLinhasConciliacao(transportadoraId);
   const [expandida, setExpandida] = useState<string | null>(null);
+  const [importando, setImportando] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const qc = useQueryClient();
+
+  const handleFile = async (file: File) => {
+    setImportando(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("transportadora_id", transportadoraId);
+
+      const { data, error } = await supabase.functions.invoke("parse-fatura-frete-pdf", {
+        body: fd,
+      });
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = data as any;
+      if (res?.error) throw new Error(res.error);
+
+      const numero =
+        res?.result?.numero_fatura ??
+        res?.payload?.numero_fatura ??
+        "importada";
+      const qtd =
+        res?.result?.lancamentos_inseridos ??
+        res?.result?.qtd_lancamentos ??
+        res?.payload?.lancamentos?.length ??
+        0;
+      toast.success(`Fatura ${numero} · ${qtd} linha${qtd === 1 ? "" : "s"}`);
+
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["faturas-frete", transportadoraId] }),
+        qc.invalidateQueries({
+          queryKey: ["vw-conciliacao-faturas-frete", transportadoraId],
+        }),
+      ]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`Falha ao importar fatura: ${msg}`);
+    } finally {
+      setImportando(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const ImportButton = (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleFile(f);
+        }}
+      />
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={importando}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        {importando ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Upload className="h-4 w-4 mr-2" />
+        )}
+        Importar fatura (PDF)
+      </Button>
+    </>
+  );
+
 
   const linhasPorFatura = useMemo(() => {
     const m = new Map<string, Linha[]>();
@@ -160,12 +236,16 @@ export function FaturasConciliacao({
         <div className="text-xs text-muted-foreground">
           Faturas de frete desta transportadora aparecerão aqui após importação.
         </div>
+        <div className="mt-4 flex justify-center">{ImportButton}</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-end">{ImportButton}</div>
+
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KpiCard label="Faturas" value={String(kpis.qtdFaturas)} />
         <KpiCard label="Valor total" value={formatBRL(kpis.valorTotal)} />
