@@ -162,6 +162,7 @@ const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
+const RecebimentoXpm = lazy(() => import("@/pages/acervo/RecebimentoXpm"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
@@ -325,6 +326,7 @@ const App = () => (
               <Route element={<AcervoLayout />}>
                 <Route path="/processos" element={<Processos />} />
                 <Route path="/documentacao" element={<DocumentacaoGeral />} />
+                <Route path="/acervo/estoque/recebimento-xpm" element={<RecebimentoXpm />} />
               </Route>
 
               {/* Acervo — detalhes e editores (sem tab bar) */}
