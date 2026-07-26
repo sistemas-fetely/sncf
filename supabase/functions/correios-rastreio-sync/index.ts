@@ -114,6 +114,7 @@ async function rastrearEGravar(token: string, codigo: string) {
     eventos,
     atualizado_em: new Date().toISOString(),
   };
+  if (previsao_entrega) registro.previsao_entrega = previsao_entrega;
 
   const { error } = await supabase
     .from("pedido_rastreamento")
