@@ -295,16 +295,14 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
     return { total, entregues, devolucoes, devPct, comDatas: comDatas.length, onTimePct, gapMedio };
   }, [rastreioRows]);
 
-  // Prazo médio (só B2B)
+  // Prazo médio (B2B + B2C — a view já inclui Correios/Frenet)
   const prazoEntrega = useMemo(() => {
     let rows = prazoAll;
     if (escopoTranspId) rows = rows.filter((r) => r.transportadora_id === escopoTranspId);
-    else if (canal === "b2c") return { entregas: 0, media: null as number | null };
-    // Se canal=b2b, prazoAll é B2B por natureza (só CTe/NF); em 'total' também vale
     let entregas = 0, diasTotal = 0;
     for (const r of rows) { entregas += n(r.entregas); diasTotal += n(r.dias_total); }
     return { entregas, media: entregas > 0 ? diasTotal / entregas : null };
-  }, [prazoAll, escopoTranspId, canal]);
+  }, [prazoAll, escopoTranspId]);
 
   // KPIs por transportadora (agregado sobre rastreio)
   const opsPorTransp = useMemo(() => {
