@@ -705,10 +705,10 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
           <StatCardMini label="Total rastreado" value={NUM.format(opsKpis.total)} icon={Truck} tone="info" />
           <StatCardMini
             label="Prazo médio de entrega"
-            value={canalB2cGlobal ? "—" : (prazoEntrega.media == null ? "—" : `${prazoEntrega.media.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`)}
+            value={prazoEntrega.media == null ? "—" : `${prazoEntrega.media.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dias`}
             icon={Clock}
-            tone={canalB2cGlobal ? "default" : "info"}
-            hint={canalB2cGlobal ? "n/a no B2C" : `da emissão à entrega · ${NUM.format(prazoEntrega.entregas)} entregas`}
+            tone="info"
+            hint={`da emissão à entrega · ${NUM.format(prazoEntrega.entregas)} entregas`}
           />
           <StatCardMini
             label="Gap vs prometido"
