@@ -69,6 +69,7 @@ export function BaixasPendentesAlert({
   gerandoBaixa: boolean;
 }) {
   const { data, isLoading, error, refetch } = useBaixasPendentes();
+  const { toast } = useToast();
   const [openSolicitada, setOpenSolicitada] = useState(true);
   const [openGerada, setOpenGerada] = useState(false);
   const [openEnviada, setOpenEnviada] = useState(false);
