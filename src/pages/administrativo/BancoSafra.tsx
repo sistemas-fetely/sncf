@@ -426,8 +426,9 @@ export default function BancoSafra() {
           </div>
           <div className="pl-5">
             <span className="text-muted-foreground text-xs mr-1.5">Baixas pendentes</span>
-            <span className="font-semibold text-purple-700">{boletosKpis.baixaPendente}</span>
+            <span className="font-semibold text-purple-700">{countSolicitada}</span>
           </div>
+
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
