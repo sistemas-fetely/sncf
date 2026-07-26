@@ -280,15 +280,26 @@ serve(async (req) => {
         );
       }
 
+      // ERRO POR ITEM (26/07): título sem nosso_numero_seq é PULADO, não bloqueia a
+      // remessa dos demais. Um item ruim travava a baixa de todos — boleto seguia
+      // vivo no Safra contra cliente que já pagou.
       // deno-lint-ignore no-explicit-any
-      const semNN = (titulos as any[]).filter((t: any) => !t.nosso_numero_seq);
-      if (semNN.length > 0) {
+      const aptos = (titulos as any[]).filter((t: any) => t.nosso_numero_seq);
+      // deno-lint-ignore no-explicit-any
+      const pulados = (titulos as any[])
+        .filter((t: any) => !t.nosso_numero_seq)
+        .map((t: any) => ({
+          titulo_id: t.id,
+          numero_titulo: t.numero_titulo,
+          motivo: "Sem nosso_numero_seq — nunca foi registrado no banco",
+        }));
+
+      if (aptos.length === 0) {
         return new Response(
           JSON.stringify({
             ok: false,
-            erro: "Títulos sem nosso_numero_seq — não foram registrados pelo sistema",
-            // deno-lint-ignore no-explicit-any
-            titulos: semNN.map((t: any) => t.numero_titulo),
+            erro: "Nenhum título apto para baixa: todos sem nosso_numero_seq",
+            pulados,
           }),
           { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
