@@ -271,11 +271,11 @@ export default function BancoSafra() {
     }
   };
 
-  const handleGerarBaixa = async () => {
+  const handleGerarBaixa = async (tituloIds: string[] = []) => {
     setGerandoBaixa(true);
     try {
       const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
-        body: { tipo: "baixa" },
+        body: { tipo: "baixa", titulo_ids: tituloIds },
       });
       if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de baixa");
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
@@ -287,6 +287,7 @@ export default function BancoSafra() {
       URL.revokeObjectURL(url);
       toast({ title: `Remessa de baixa gerada: ${data.qtd_titulos} boleto(s)` });
       await qc.invalidateQueries({ queryKey: ["baixas-pendentes"] });
+      await qc.invalidateQueries({ queryKey: ["remessas-safra"] });
       refetchBoletos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -295,6 +296,7 @@ export default function BancoSafra() {
       setGerandoBaixa(false);
     }
   };
+
 
   const handleGerarProrrogacao = async () => {
     setGerandoProrrogacao(true);
