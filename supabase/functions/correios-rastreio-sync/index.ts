@@ -100,7 +100,7 @@ async function rastrearEGravar(token: string, codigo: string) {
     console.log(`SRO ${c} exceção: ${e}`);
   }
 
-  const registro = {
+  const registro: Record<string, unknown> = {
     codigo_rastreio: c,
     servico,
     status_atual,
