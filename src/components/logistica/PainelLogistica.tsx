@@ -742,21 +742,20 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                 </TableHeader>
                 <TableBody>
                   {opsPorTransp.map((r) => {
-                    const ehB2c = r.canalB2c;
                     const lead = r.id ? prazoMedioPorId.get(r.id) ?? null : null;
                     return (
                       <TableRow key={r.id ?? r.nome}>
                         <TableCell className="font-medium">{r.nome}</TableCell>
                         <TableCell className="text-right tabular-nums">{NUM.format(r.total)}</TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {ehB2c ? <span className="text-muted-foreground">—</span> : r.onTimePct != null ? (
+                          {r.onTimePct != null ? (
                             <span className={cn(r.onTimePct >= 90 ? "text-success" : r.onTimePct >= 75 ? "text-amber-700 dark:text-amber-300" : "text-destructive")}>
                               {r.onTimePct.toFixed(1)}%
                             </span>
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {ehB2c ? <span className="text-muted-foreground">—</span> : r.gapMedio != null ? (
+                          {r.gapMedio != null ? (
                             <span className={cn(r.gapMedio > 0 ? "text-destructive" : "text-success")}>
                               {r.gapMedio > 0 ? "+" : ""}{r.gapMedio.toFixed(1)}
                             </span>
