@@ -1,4 +1,4 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users, TableProperties, Sparkles } from "lucide-react";
+import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users, TableProperties, Sparkles, PackageOpen } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -74,6 +74,7 @@ export function VendasSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <FinancasSidebarItem to="/vendas/gestao-pedidos" icon={TableProperties} label="Gestão de Pedidos" />
+              <FinancasSidebarItem to="/vendas/triagem-estoque" icon={PackageOpen} label="Triagem de Estoque" />
               <FinancasSidebarItem to="/pedidos" icon={ShoppingCart} label="Pedidos B2B" end />
               <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Pedidos B2C" end />
               <FinancasSidebarItem to="/recebimento/cobranca" icon={Receipt} label="Cobrança" />

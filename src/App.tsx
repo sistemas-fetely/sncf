@@ -170,6 +170,7 @@ const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
 const GestaoPedidos = lazy(() => import("@/pages/vendas/GestaoPedidos"));
+const TriagemEstoque = lazy(() => import("@/pages/vendas/TriagemEstoque"));
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
 const ShopifyCheckouts = lazy(() => import("@/pages/vendas/shopify/ShopifyCheckouts"));
 const ShopifyProdutos = lazy(() => import("@/pages/vendas/shopify/ShopifyProdutos"));
@@ -304,6 +305,7 @@ const App = () => (
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
                 <Route path="/vendas/gestao-pedidos" element={<GestaoPedidos />} />
+                <Route path="/vendas/triagem-estoque" element={<TriagemEstoque />} />
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
                 <Route path="/vendas/shopify/checkouts" element={<ShopifyCheckouts />} />
                 <Route path="/vendas/shopify/produtos" element={<ShopifyProdutos />} />
