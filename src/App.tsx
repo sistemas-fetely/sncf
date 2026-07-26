@@ -162,6 +162,8 @@ const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
+const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
+
 const RecebimentoXpm = lazy(() => import("@/pages/acervo/RecebimentoXpm"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
