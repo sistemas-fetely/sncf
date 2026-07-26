@@ -65,7 +65,7 @@ export function useBaixasPendentes() {
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(
-          "id, numero_titulo, valor_atual, valor_bruto, nosso_numero_seq, boleto_status, baixa_remessa_id, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), remessa:remessas_safra!titulo_a_receber_baixa_remessa_id_fkey(id, status, gerado_em, enviada_em, retorno_processado_em)",
+          "id, numero_titulo, valor_atual, valor_bruto, nosso_numero_seq, boleto_status, baixa_remessa_id, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), remessa:remessas_safra!titulo_a_receber_baixa_remessa_id_fkey(id, status, gerado_em, enviada_em, retorno_processado_em, arquivo_nome, conteudo)",
         )
         .in("boleto_status", ["baixa_solicitada", "baixa_remessa_gerada"]);
       // FAIL-LOUD: nunca engolir erro de query
@@ -88,6 +88,8 @@ export function useBaixasPendentes() {
           remessa_gerado_em: r.remessa?.gerado_em ?? null,
           remessa_enviada_em: r.remessa?.enviada_em ?? null,
           remessa_retorno_processado_em: r.remessa?.retorno_processado_em ?? null,
+          remessa_arquivo_nome: r.remessa?.arquivo_nome ?? null,
+          remessa_conteudo: r.remessa?.conteudo ?? null,
         };
 
         if (r.boleto_status === "baixa_solicitada") {
