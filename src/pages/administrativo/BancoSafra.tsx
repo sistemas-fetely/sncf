@@ -461,25 +461,27 @@ export default function BancoSafra() {
             Prorrogação
             {boletosKpis.prorrogacaoPendente > 0 && ` (${boletosKpis.prorrogacaoPendente})`}
           </Button>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleGerarBaixa([])}
-                disabled={countSolicitada === 0 || gerandoBaixa}
-                className="gap-2"
-              >
-                {gerandoBaixa ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowUpFromLine className="h-4 w-4" />
-                )}
-                Baixa (todos)
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Gera remessa de baixa para TODOS os títulos aguardando ({countSolicitada}). Para selecionar cliente/título, use o banner acima.</TooltipContent>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleGerarBaixa([])}
+                  disabled={countSolicitada === 0 || gerandoBaixa}
+                  className="gap-2"
+                >
+                  {gerandoBaixa ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowUpFromLine className="h-4 w-4" />
+                  )}
+                  Baixa (todos)
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Gera remessa de baixa para TODOS os títulos aguardando ({countSolicitada}). Para selecionar cliente/título, use o banner acima.</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
         </div>
       </div>
