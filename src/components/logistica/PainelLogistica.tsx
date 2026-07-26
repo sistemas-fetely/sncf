@@ -761,7 +761,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {ehB2c ? <span className="text-muted-foreground">—</span> : lead != null ? lead.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : <span className="text-muted-foreground">—</span>}
+                          {lead != null ? lead.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {r.devPct.toFixed(1)}%<span className="text-muted-foreground text-[11px] ml-1">({NUM.format(r.devolucoes)})</span>
