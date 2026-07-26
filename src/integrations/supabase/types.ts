@@ -23213,14 +23213,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -25007,6 +25007,10 @@ export type Database = {
           p_plano_contas_id: string
           p_user_id?: string
         }
+        Returns: Json
+      }
+      classificar_despesa: {
+        Args: { p_cnpj?: string; p_descricao: string; p_valor?: number }
         Returns: Json
       }
       clonar_pedido_cancelado: { Args: { p_pedido_id: string }; Returns: Json }
