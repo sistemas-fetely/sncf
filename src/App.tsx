@@ -325,6 +325,7 @@ const App = () => (
               <Route element={<AcervoLayout />}>
                 <Route path="/processos" element={<Processos />} />
                 <Route path="/documentacao" element={<DocumentacaoGeral />} />
+                <Route path="/acervo/estoque/recebimento-xpm" element={<RecebimentoXpm />} />
               </Route>
 
               {/* Acervo — detalhes e editores (sem tab bar) */}
