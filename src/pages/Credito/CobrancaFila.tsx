@@ -530,24 +530,8 @@ function RemessasSafraTab() {
   const { data: remessas = [], isLoading } = useRemessasSafra();
 
   function baixarNovamente(conteudo: string | null, arquivoNome: string) {
-    if (!conteudo) {
-      toast({
-        title: "Arquivo não disponível",
-        description: "Remessa anterior ao histórico de conteúdo persistido.",
-        variant: "destructive",
-      });
-      return;
-    }
     try {
-      const blob = new Blob([conteudo], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = arquivoNome;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      baixarArquivoRemessa(conteudo, arquivoNome);
       toast({ title: "Arquivo baixado", description: arquivoNome });
     } catch (e) {
       toast({
