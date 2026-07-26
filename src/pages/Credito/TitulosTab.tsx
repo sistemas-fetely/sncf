@@ -336,6 +336,7 @@ export default function TitulosTab() {
   const [prorrogando, setProrrogando] = useState<TituloCobranca | null>(null);
   const [cancelandoPedido, setCancelandoPedido] = useState<TituloCobranca | null>(null);
   const [devolvendo, setDevolvendo] = useState<TituloCobranca | null>(null);
+  const [devolvendoParcial, setDevolvendoParcial] = useState<TituloCobranca | null>(null);
   const [baixandoPerda, setBaixandoPerda] = useState<TituloCobranca | null>(null);
   const [renegociando, setRenegociando] = useState<TituloCobranca | null>(null);
 
@@ -931,14 +932,25 @@ export default function TitulosTab() {
                         </Button>
                       )}
 
-                      {/* Encerramento por PEDIDO — Pós-NF: Registrar devolução */}
+                      {/* Encerramento por PEDIDO — Pós-NF: Registrar devolução TOTAL */}
                       {posNF && (
                         <Button
                           variant="outline"
                           className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
                           onClick={() => setDevolvendo(detalhe)}
                         >
-                          Registrar devolução (afeta pedido inteiro)
+                          Registrar devolução total (pedido inteiro)
+                        </Button>
+                      )}
+
+                      {/* Devolução PARCIAL — Pós-NF: gera haver, não encerra */}
+                      {posNF && (
+                        <Button
+                          variant="outline"
+                          className="border-amber-300 text-amber-800 hover:bg-amber-50 hover:text-amber-900"
+                          onClick={() => setDevolvendoParcial(detalhe)}
+                        >
+                          Devolução parcial (parte do valor)
                         </Button>
                       )}
 
