@@ -236,12 +236,16 @@ export function FaturasConciliacao({
         <div className="text-xs text-muted-foreground">
           Faturas de frete desta transportadora aparecerão aqui após importação.
         </div>
+        <div className="mt-4 flex justify-center">{ImportButton}</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-end">{ImportButton}</div>
+
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KpiCard label="Faturas" value={String(kpis.qtdFaturas)} />
         <KpiCard label="Valor total" value={formatBRL(kpis.valorTotal)} />
