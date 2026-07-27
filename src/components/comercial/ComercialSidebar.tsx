@@ -1,5 +1,4 @@
 import { Boxes, Sparkles } from "lucide-react";
-// Boxes usado no item "Estoque Virtual" abaixo
 import {
   Sidebar,
   SidebarContent,
