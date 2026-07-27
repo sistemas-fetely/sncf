@@ -24443,14 +24443,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -24644,14 +24644,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -24918,26 +24918,40 @@ export type Database = {
       }
       vw_pedido_entrega: {
         Row: {
+          cte_numero: string | null
+          custo_frete_real: number | null
           data_entrega: string | null
           data_entrega_prevista: string | null
+          data_entrega_transportadora: string | null
           dias_vs_previsto: number | null
+          entrega_ocorrencia_classe: string | null
+          entrega_ocorrencia_codigo: string | null
+          entrega_ocorrencia_problema: boolean | null
+          entrega_ocorrencia_texto: string | null
           entregue_em: string | null
           entregue_metodo: string | null
           estagio: string | null
           estimativa_frete_valor: number | null
           eventos_rastreio: number | null
+          frete_qtd_ctes: number | null
           frete_responsavel: string | null
           frete_tipo: string | null
           id_externo: string | null
+          margem_frete: number | null
           nf_data: string | null
           nf_numero: string | null
+          pct_frete_nf: number | null
           pedido_id: string | null
+          peso_real: number | null
+          peso_taxado: number | null
+          prazo_transportadora: string | null
           transportadora_cnpj: string | null
           transportadora_id: string | null
           transportadora_nome: string | null
           transportadora_razao: string | null
           transporte_origem: string | null
           valor_frete: number | null
+          volumes: number | null
         }
         Relationships: [
           {
