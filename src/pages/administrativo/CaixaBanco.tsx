@@ -315,35 +315,78 @@ export default function CaixaBanco() {
 
   /** KPIs do período todo — independentes do agrupamento escolhido. */
   const kpis = useMemo(() => {
-    const somaDe = (codigos: string[]) =>
-      linhas
-        .filter((l) => l.natureza_codigo && codigos.includes(l.natureza_codigo))
-        .reduce((s, l) => s + Number(l.valor || 0), 0);
-
     const total = linhas.reduce((s, l) => s + Number(l.valor || 0), 0);
     const n = linhas.length;
     const completas = linhas.filter(
       (l) => l.plano_contas_id && l.centro_custo_id && l.natureza_investimento_id,
     ).length;
-
     return {
       total,
       n,
-      operacional: somaDe(CODIGOS_OPERACIONAL),
-      capex: somaDe(CODIGOS_CAPEX),
-      estruturante: somaDe(CODIGOS_ESTRUTURANTE),
       completas,
       pctCompletas: n > 0 ? Math.round((completas / n) * 100) : 100,
     };
   }, [linhas]);
 
+  /**
+   * Grupos de DRE montados a partir de naturezas_investimento.grupo_dre.
+   * Ordem do grupo = MIN(ordem) das naturezas que o compoem; subtitulo =
+   * nomes das naturezas na ordem da dimensao. Nada fixo no codigo.
+   */
+  const gruposDre = useMemo<GrupoDre[]>(() => {
+    const porGrupo = new Map<string, GrupoDre>();
+    const ordenadas = [...naturezas].sort(
+      (a, b) => (a.ordem ?? 999) - (b.ordem ?? 999),
+    );
+    for (const ni of ordenadas) {
+      const chave = ni.grupo_dre;
+      if (!chave) continue;
+      let g = porGrupo.get(chave);
+      if (!g) {
+        g = {
+          chave,
+          label: labelGrupoDre(chave),
+          membros: [],
+          codigos: [],
+          ordem: ni.ordem ?? 999,
+          valor: 0,
+        };
+        porGrupo.set(chave, g);
+      }
+      g.membros.push(ni.nome);
+      g.codigos.push(ni.codigo);
+    }
+    for (const l of linhas) {
+      if (!l.natureza_codigo) continue;
+      for (const g of porGrupo.values()) {
+        if (g.codigos.includes(l.natureza_codigo)) {
+          g.valor += Number(l.valor || 0);
+          break;
+        }
+      }
+    }
+    return Array.from(porGrupo.values()).sort((a, b) => a.ordem - b.ordem);
+  }, [naturezas, linhas]);
+
   const mesCorrente = competenciaAtualISO();
   const totalCorrente = totaisMes.get(mesCorrente) || 0;
-  const totalAnterior = totaisMes.get(mesAnteriorISO(mesCorrente)) || 0;
-  const variacao =
-    totalAnterior > 0 && totalCorrente > 0
-      ? ((totalCorrente - totalAnterior) / totalAnterior) * 100
-      : null;
+
+  /**
+   * O mes corrente NAO recebe comparacao percentual. data_competencia e
+   * competencia, nao caixa: NF com competencia deste mes ainda vai chegar
+   * depois que o mes acabar. Comparar com mes anterior fechado seria falsa
+   * precisao. Em vez de %, mostramos o sinal de formacao: quantas linhas do
+   * mes ainda esperam documento ou classificacao.
+   */
+  const formacaoMes = useMemo(() => {
+    const doMes = linhas.filter(
+      (l) => l.data_competencia && competenciaKey(l.data_competencia) === mesCorrente,
+    );
+    const pendentes = doMes.filter(
+      (l) => l.estagio === "sem_documento" || l.estagio === "a_classificar",
+    );
+    return { n: doMes.length, pendentes: pendentes.length };
+  }, [linhas, mesCorrente]);
 
   // Drill-down
   const drillItens = useMemo<DespesaV2[]>(() => {
