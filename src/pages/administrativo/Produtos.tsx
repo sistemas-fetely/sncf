@@ -132,6 +132,12 @@ function formatPct(n: number | null | undefined) {
   return `${Number(n).toFixed(1)}%`;
 }
 
+// Views guardam margem como razão decimal (0.2633 = 26,33%). Multiplica antes de exibir.
+function formatPctRatio(n: number | null | undefined) {
+  if (n == null) return "—";
+  return `${(Number(n) * 100).toFixed(1)}%`;
+}
+
 function formatDateBRShort(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -496,13 +502,13 @@ export default function Produtos() {
                         "text-right tabular-nums",
                         p.abaixo_piso_b2b && "text-red-600 dark:text-red-400 font-medium",
                       )}>
-                        {formatPct(p.resultado_pct_b2b)}
+                        {formatPctRatio(p.resultado_pct_b2b)}
                       </TableCell>
                       <TableCell className={cn(
                         "text-right tabular-nums",
                         p.abaixo_piso_b2c && "text-red-600 dark:text-red-400 font-medium",
                       )}>
-                        {formatPct(p.resultado_pct_b2c)}
+                        {formatPctRatio(p.resultado_pct_b2c)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         <div className="flex items-center justify-end gap-1.5">
@@ -973,13 +979,13 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                 </Field>
                 <Field label="Margem B2B">
                   <span className={cn(row?.abaixo_piso_b2b && "text-red-600 dark:text-red-400 font-medium")}>
-                    {formatPct(row?.resultado_pct_b2b)}
+                    {formatPctRatio(row?.resultado_pct_b2b)}
                     {row?.abaixo_piso_b2b && <span className="text-xs ml-1">(abaixo do piso)</span>}
                   </span>
                 </Field>
                 <Field label="Margem B2C">
                   <span className={cn(row?.abaixo_piso_b2c && "text-red-600 dark:text-red-400 font-medium")}>
-                    {formatPct(row?.resultado_pct_b2c)}
+                    {formatPctRatio(row?.resultado_pct_b2c)}
                     {row?.abaixo_piso_b2c && <span className="text-xs ml-1">(abaixo do piso)</span>}
                   </span>
                 </Field>
