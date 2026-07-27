@@ -1,4 +1,5 @@
 import { Boxes, Sparkles } from "lucide-react";
+// Boxes usado no item "Estoque Virtual" abaixo
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +27,7 @@ export function ComercialSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <FinancasSidebarItem to="/comercial/oportunidades" icon={Sparkles} label="Oportunidades" />
+              <FinancasSidebarItem to="/comercial/estoque-virtual" icon={Boxes} label="Estoque Virtual" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
