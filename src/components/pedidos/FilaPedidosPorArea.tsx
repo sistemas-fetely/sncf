@@ -154,6 +154,13 @@ export function FilaPedidosPorArea({
     if (formaPgtoFilter !== "todas") {
       base = base.filter((p) => (p.forma_solicitada || "").toLowerCase() === formaPgtoFilter);
     }
+    if (situacaoFilter !== "todas") {
+      base = base.filter((p) => {
+        const s = p.pagamento_status;
+        if (situacaoFilter === "em_dia") return s === "em_dia" || s === "parcial_em_dia";
+        return s === situacaoFilter;
+      });
+    }
     if (ordenacao !== "prioridade_ia") return base;
     return [...base].sort((a, b) => {
       const sa = scoreMap.get(a.id)?.score ?? -1;
