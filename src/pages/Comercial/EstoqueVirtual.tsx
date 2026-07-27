@@ -30,6 +30,9 @@ interface EstoqueSku {
   estoque_minimo: number;
   saude_divergencia: number | null;
   status_venda: "disponivel" | "baixo" | "indisponivel";
+  contagem_em: string | null;
+  dias_desde_contagem: number | null;
+  movimento_desde_contagem: number | null;
 }
 
 type Col =
@@ -37,6 +40,7 @@ type Col =
   | "nome"
   | "contabil"
   | "real"
+  | "idade"
   | "saude"
   | "reservado"
   | "virtual"
@@ -128,7 +132,7 @@ export default function EstoqueVirtual() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_estoque")
-        .select("sku,nome_comercial,ativo,estoque_contabil,estoque_real,tem_razao,estoque_base,reservado,estoque_virtual,estoque_minimo,saude_divergencia,status_venda")
+        .select("sku,nome_comercial,ativo,estoque_contabil,estoque_real,tem_razao,estoque_base,reservado,estoque_virtual,estoque_minimo,saude_divergencia,status_venda,contagem_em,dias_desde_contagem,movimento_desde_contagem")
         .limit(5000);
       if (error) throw error;
       return (data ?? []) as EstoqueSku[];
@@ -185,6 +189,7 @@ export default function EstoqueVirtual() {
       nome: (p) => p.nome_comercial ?? "",
       contabil: (p) => (p.estoque_contabil == null ? Number.NEGATIVE_INFINITY : Number(p.estoque_contabil)),
       real: (p) => (p.estoque_real == null ? Number.NEGATIVE_INFINITY : Number(p.estoque_real)),
+      idade: (p) => (p.dias_desde_contagem == null ? Number.NEGATIVE_INFINITY : Number(p.dias_desde_contagem)),
       saude: (p) => (p.saude_divergencia == null ? Number.NEGATIVE_INFINITY : Number(p.saude_divergencia)),
       reservado: (p) => Number(p.reservado ?? 0),
       virtual: (p) => Number(p.estoque_virtual ?? 0),
@@ -308,6 +313,9 @@ export default function EstoqueVirtual() {
                 <SortableTableHead column="real" sort={sort} onSort={setSort} align="right" className="w-[100px]">
                   Contado
                 </SortableTableHead>
+                <SortableTableHead column="idade" sort={sort} onSort={setSort} align="right" className="w-[90px]">
+                  Idade
+                </SortableTableHead>
                 <SortableTableHead column="saude" sort={sort} onSort={setSort} align="right" className="w-[100px]">
                   Saúde
                 </SortableTableHead>
@@ -325,13 +333,13 @@ export default function EstoqueVirtual() {
             <TableBody>
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                     Carregando…
                   </TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                     Nenhum produto encontrado.
                   </TableCell>
                 </TableRow>
@@ -382,19 +390,62 @@ export default function EstoqueVirtual() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
+                        {p.dias_desde_contagem == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : p.contagem_em == null ? (
+                          <span className="text-muted-foreground text-xs">
+                            {p.dias_desde_contagem === 0 ? "hoje" : `${p.dias_desde_contagem}d`}
+                          </span>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {p.dias_desde_contagem === 0 ? (
+                                <span className="text-muted-foreground text-xs cursor-help">hoje</span>
+                              ) : (
+                                <span className={cn(
+                                  "text-xs cursor-help",
+                                  (p.dias_desde_contagem > 30 || Number(p.movimento_desde_contagem ?? 0) > 0)
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-muted-foreground",
+                                )}>
+                                  {p.dias_desde_contagem}d
+                                </span>
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              Contagem de {new Date(p.contagem_em).toLocaleDateString("pt-BR")}.{" "}
+                              {Number(p.movimento_desde_contagem ?? 0) > 0
+                                ? `${formatNum(p.movimento_desde_contagem)} unidade(s) movimentada(s) desde então.`
+                                : "Nenhuma movimentação desde então."}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
                         {saude == null ? (
                           <span className="text-muted-foreground">—</span>
-                        ) : saude === 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">✓</span>
                         ) : (
-                          <span className={cn(
-                            "font-medium",
-                            Math.abs(saude) > 5
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-amber-600 dark:text-amber-400",
-                          )}>
-                            {formatSigned(saude)}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {saude === 0 ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 cursor-help">✓</span>
+                              ) : (
+                                <span className={cn(
+                                  "font-medium cursor-help",
+                                  Math.abs(saude) > 5
+                                    ? "text-red-600 dark:text-red-400"
+                                    : "text-amber-600 dark:text-amber-400",
+                                )}>
+                                  {formatSigned(saude)}
+                                </span>
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {saude === 0
+                                ? "Contagem confere com o razão na data em que foi feita."
+                                : `Divergência física real: a recontagem discordou do razão em ${formatNum(Math.abs(saude))} unidade(s).`}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatNum(p.reservado)}</TableCell>
