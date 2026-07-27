@@ -74,6 +74,20 @@ interface Props {
 export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtivo }: Props) {
   const { data, isLoading } = usePedidosPipeline();
 
+  const { data: pagamentoVencido } = useQuery({
+    queryKey: ["pedidos-pagamento-vencido-count"],
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { count, error } = await (supabase as any)
+        .from("v_pedidos_fila")
+        .select("id", { count: "exact", head: true })
+        .eq("pagamento_status", "vencido");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   const estagios = useMemo(() => {
     const map = new Map<EstagioPedido, { qtd: number; sla: number }>();
     PIPELINE_PRINCIPAL.forEach((e) => map.set(e, { qtd: 0, sla: 0 }));
