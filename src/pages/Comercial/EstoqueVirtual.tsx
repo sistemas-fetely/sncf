@@ -390,19 +390,62 @@ export default function EstoqueVirtual() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
+                        {p.dias_desde_contagem == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : p.contagem_em == null ? (
+                          <span className="text-muted-foreground text-xs">
+                            {p.dias_desde_contagem === 0 ? "hoje" : `${p.dias_desde_contagem}d`}
+                          </span>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {p.dias_desde_contagem === 0 ? (
+                                <span className="text-muted-foreground text-xs cursor-help">hoje</span>
+                              ) : (
+                                <span className={cn(
+                                  "text-xs cursor-help",
+                                  (p.dias_desde_contagem > 30 || Number(p.movimento_desde_contagem ?? 0) > 0)
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-muted-foreground",
+                                )}>
+                                  {p.dias_desde_contagem}d
+                                </span>
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              Contagem de {new Date(p.contagem_em).toLocaleDateString("pt-BR")}.{" "}
+                              {Number(p.movimento_desde_contagem ?? 0) > 0
+                                ? `${formatNum(p.movimento_desde_contagem)} unidade(s) movimentada(s) desde então.`
+                                : "Nenhuma movimentação desde então."}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
                         {saude == null ? (
                           <span className="text-muted-foreground">—</span>
-                        ) : saude === 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">✓</span>
                         ) : (
-                          <span className={cn(
-                            "font-medium",
-                            Math.abs(saude) > 5
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-amber-600 dark:text-amber-400",
-                          )}>
-                            {formatSigned(saude)}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {saude === 0 ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 cursor-help">✓</span>
+                              ) : (
+                                <span className={cn(
+                                  "font-medium cursor-help",
+                                  Math.abs(saude) > 5
+                                    ? "text-red-600 dark:text-red-400"
+                                    : "text-amber-600 dark:text-amber-400",
+                                )}>
+                                  {formatSigned(saude)}
+                                </span>
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {saude === 0
+                                ? "Contagem confere com o razão na data em que foi feita."
+                                : `Divergência física real: a recontagem discordou do razão em ${formatNum(Math.abs(saude))} unidade(s).`}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatNum(p.reservado)}</TableCell>
