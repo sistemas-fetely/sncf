@@ -48,13 +48,13 @@ export function pctClass(pct: number | null | undefined) {
 }
 
 export function CardFrete({ frete }: { frete: FreteRow }) {
-  const st = statusBadge(frete.classe);
+  const st = statusBadge(frete.classe, frete.ocorrencia_texto);
   const pct = frete.pct_frete_nf == null ? null : Number(frete.pct_frete_nf);
   return (
     <div className="rounded-lg border bg-card p-3 space-y-2 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="font-medium text-sm leading-tight">{frete.destinatario ?? "—"}</div>
-        <Badge variant="outline" className={cn("text-[10px] font-medium border", st.cls)}>
+        <Badge variant="outline" title={st.title} className={cn("text-[10px] font-medium border", st.cls)}>
           {st.label}
         </Badge>
       </div>
