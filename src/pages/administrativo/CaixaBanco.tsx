@@ -202,7 +202,7 @@ export default function CaixaBanco() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("naturezas_investimento")
-        .select("codigo, nome, ordem, ativo")
+        .select("codigo, nome, ordem, ativo, grupo_dre")
         .eq("ativo", true)
         .order("ordem", { ascending: true });
       if (error) throw error;
