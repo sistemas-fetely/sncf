@@ -191,7 +191,7 @@ function BotaoMigrarComercial({ pedido }: { pedido: any }) {
         <Sparkles className="h-4 w-4" />
         Migrar para Oportunidade Comercial
       </Button>
-      <MigrarParaComercialDialog
+      <MigrarOportunidadeDialog
         open={open}
         onOpenChange={setOpen}
         pedidoId={pedido.id}
