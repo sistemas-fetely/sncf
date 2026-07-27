@@ -24446,14 +24446,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -27286,6 +27286,14 @@ export type Database = {
           saldo_conservador: number
           saldo_otimista: number
         }[]
+      }
+      fn_frete_comparativo: {
+        Args: {
+          p_cep_override?: string
+          p_pedido_id: string
+          p_peso_override?: number
+        }
+        Returns: Json
       }
       fn_frete_estimado: {
         Args: {
