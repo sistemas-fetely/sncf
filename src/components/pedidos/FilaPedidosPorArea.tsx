@@ -80,6 +80,7 @@ export function FilaPedidosPorArea({
   const [estagioFilter, setEstagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
   const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
   const [formaPgtoFilter, setFormaPgtoFilter] = useState<string>("todas");
+  const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("cronologico");
   const [pagina, setPagina] = useState(1);
   const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
