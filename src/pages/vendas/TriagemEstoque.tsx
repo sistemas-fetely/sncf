@@ -152,8 +152,9 @@ export default function TriagemEstoque() {
           <p className="text-sm text-muted-foreground mb-3">
             Remessas cujo pedido pai tem parcela vencida. O sistema{" "}
             <span className="font-medium text-foreground">sugere</span> migrar para
-            Oportunidade Comercial, mas a decisão é do operador — use o botão em cada
-            linha.
+            Oportunidade Comercial, mas quem decide é o operador. Migrar{" "}
+            <span className="font-medium text-foreground">tira o pedido desta lista</span>{" "}
+            e o move para a fila do Comercial até alguém retomar.
           </p>
           <Card>
             <CardContent className="p-0">
