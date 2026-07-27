@@ -22,10 +22,24 @@ export interface PedidoEntrega {
   nf_numero: string | null;
   nf_data: string | null;
   eventos_rastreio: unknown;
+  // Novas colunas vindas de transp_fretes (fatura real)
+  custo_frete_real: number | null;
+  margem_frete: number | null;
+  cte_numero: string | null;
+  frete_qtd_ctes: number | null;
+  volumes: number | null;
+  peso_real: number | null;
+  peso_taxado: number | null;
+  pct_frete_nf: number | null;
+  prazo_transportadora: string | null;
+  entrega_ocorrencia_texto: string | null;
+  entrega_ocorrencia_classe: string | null;
+  entrega_ocorrencia_problema: boolean | null;
+  data_entrega_transportadora: string | null;
 }
 
 export function usePedidoEntrega(pedidoId: string | undefined, estagio: string | undefined) {
-  const enabled = !!pedidoId && (estagio === "entregue" || estagio === "em_transporte");
+  const enabled = !!pedidoId && estagio === "entregue";
   return useQuery({
     queryKey: ["pedido-entrega", pedidoId],
     enabled,
