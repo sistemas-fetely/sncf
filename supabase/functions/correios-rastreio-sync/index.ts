@@ -54,18 +54,9 @@ async function getToken(): Promise<string> {
   return json.token;
 }
 
-function ehEntregue(eventos: any[]): boolean {
-  return eventos.some((e) => {
-    const tipo = String(e?.tipo ?? "").toUpperCase();
-    const desc = String(e?.descricao ?? "").toLowerCase();
-    return tipo.startsWith("BD") || desc.includes("entregue");
-  });
-}
-
 async function rastrearEGravar(token: string, codigo: string) {
   const c = codigo.trim().toUpperCase();
   let status_atual = "";
-  let entregue = false;
   let eventos: any[] = [];
   let servico: string | null = null;
   let data_ultima: string | null = null;
@@ -94,7 +85,6 @@ async function rastrearEGravar(token: string, codigo: string) {
       servico = obj?.tipoPostal?.categoria ?? obj?.tipoPostal?.descricao ?? null;
       status_atual = ultimo?.descricao ?? obj?.mensagem ?? "(sem eventos)";
       data_ultima = ultimo?.dtHrCriado ?? null;
-      entregue = ehEntregue(eventos);
       const dtPrev: string | undefined = obj?.dtPrevista;
       if (typeof dtPrev === "string" && dtPrev.length >= 10) {
         previsao_entrega = dtPrev.slice(0, 10);
@@ -110,21 +100,22 @@ async function rastrearEGravar(token: string, codigo: string) {
     servico,
     status_atual,
     data_ultima_atualizacao: data_ultima,
-    entregue,
     eventos,
     atualizado_em: new Date().toISOString(),
   };
   if (previsao_entrega) registro.previsao_entrega = previsao_entrega;
 
-  const { error } = await supabase
+  const { data: gravado, error } = await supabase
     .from("pedido_rastreamento")
-    .upsert(registro, { onConflict: "codigo_rastreio" });
+    .upsert(registro, { onConflict: "codigo_rastreio" })
+    .select("entregue")
+    .maybeSingle();
   if (error) {
     console.log(`UPSERT erro ${c}: ${error.message}`);
     return { codigo: c, status: `[erro gravação] ${error.message}` };
   }
 
-  return { codigo: c, status: status_atual, entregue };
+  return { codigo: c, status: status_atual, entregue: gravado?.entregue ?? null };
 }
 
 Deno.serve(async (req) => {
