@@ -132,6 +132,12 @@ function formatPct(n: number | null | undefined) {
   return `${Number(n).toFixed(1)}%`;
 }
 
+// Views guardam margem como razão decimal (0.2633 = 26,33%). Multiplica antes de exibir.
+function formatPctRatio(n: number | null | undefined) {
+  if (n == null) return "—";
+  return `${(Number(n) * 100).toFixed(1)}%`;
+}
+
 function formatDateBRShort(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
