@@ -286,6 +286,18 @@ export function FilaPedidosPorArea({
               ))}
           </SelectContent>
         </Select>
+        <Select value={situacaoFilter} onValueChange={setSituacaoFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="Situação" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Situação: Todas</SelectItem>
+            <SelectItem value="pago">Pago</SelectItem>
+            <SelectItem value="em_dia">Em dia</SelectItem>
+            <SelectItem value="vencido">Vencido</SelectItem>
+            <SelectItem value="sem_cobranca">Sem cobrança</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={marcacaoFilter} onValueChange={setMarcacaoFilter}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Marcação" />
