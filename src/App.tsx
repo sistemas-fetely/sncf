@@ -164,6 +164,7 @@ const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
 
 const RecebimentoXpm = lazy(() => import("@/pages/acervo/RecebimentoXpm"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
+const ComercialLayout = lazy(() => import("@/layouts/ComercialLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
@@ -315,10 +316,14 @@ const App = () => (
                 <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
                 <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
-                <Route path="/comercial/oportunidades" element={<Oportunidades />} />
 
                 <Route path="/canal-cpo" element={<CanalCPO />} />
               </Route>
+
+              <Route element={<ComercialLayout />}>
+                <Route path="/comercial/oportunidades" element={<Oportunidades />} />
+              </Route>
+
 
               {/* ═══════════════════════════════════════════════
                   App Acervo — índices com tab bar (Processos | Documentação)
