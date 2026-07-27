@@ -173,42 +173,44 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    let codigos: string[] = Array.isArray(body?.codigos) ? body.codigos : [];
+    const codigosInput: string[] = Array.isArray(body?.codigos) ? body.codigos : [];
+    const modoManual = codigosInput.length > 0;
+    let codigos: string[] = codigosInput;
 
-    if (codigos.length === 0) {
-      // Busca códigos a atualizar (excluindo os da Frenet)
+    if (!modoManual) {
+      // Lote padrão: todos os não-entregues (Frenet incluída — a transportadora real são os Correios)
       const { data: todos } = await supabase
         .from("pedido_rastreamento")
         .select("codigo_rastreio")
         .eq("entregue", false);
 
-      const { data: frenet } = await supabase
-        .from("correios_lancamentos")
-        .select("etiqueta")
-        .eq("empresa_frete", "frenet");
-
-      const etiquetasFrenet = new Set((frenet ?? []).map((f: any) => f.etiqueta));
-
-      codigos = (todos ?? [])
-        .map((r: any) => r.codigo_rastreio)
-        .filter((c: string) => !etiquetasFrenet.has(c));
+      codigos = (todos ?? []).map((r: any) => r.codigo_rastreio);
     }
 
     if (codigos.length === 0) {
-      return new Response(JSON.stringify({ atualizados: [], msg: "Nada a rastrear." }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ processados: 0, atualizados: 0, sem_eventos: 0, erros: 0, resultados: [], msg: "Nada a rastrear." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const token = await getToken();
-    const atualizados = [];
+    const resultados: RastreioOutcome[] = [];
+    let atualizados = 0;
+    let sem_eventos = 0;
+    let erros = 0;
     for (const cod of codigos) {
-      atualizados.push(await rastrearEGravar(token, cod));
+      const r = await rastrearEGravar(token, cod);
+      resultados.push(r);
+      if (r.resultado === "atualizado") atualizados++;
+      else if (r.resultado === "sem_eventos") sem_eventos++;
+      else erros++;
     }
 
-    return new Response(JSON.stringify({ atualizados }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ processados: codigos.length, atualizados, sem_eventos, erros, resultados }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     return new Response(JSON.stringify({ erro: String(e) }), {
       status: 500,
