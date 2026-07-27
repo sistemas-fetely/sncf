@@ -150,8 +150,10 @@ export default function TriagemEstoque() {
 
         <TabsContent value="negociar" className="mt-4">
           <p className="text-sm text-muted-foreground mb-3">
-            Pedido pai com parcela vencida em aberto. Decidir antes de liberar a remessa —
-            o cliente já pagou parte, use isso no contato.
+            Remessas cujo pedido pai tem parcela vencida. O sistema{" "}
+            <span className="font-medium text-foreground">sugere</span> migrar para
+            Oportunidade Comercial, mas a decisão é do operador — use o botão em cada
+            linha.
           </p>
           <Card>
             <CardContent className="p-0">
