@@ -69,12 +69,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Auth: mesmo x-cron-secret usado em shopify-pagamento-sync
-    const provided = req.headers.get("x-cron-secret");
-    const expected = await getSecret(supabase, "SYNC_CRON_SECRET");
-    if (!expected || provided !== expected) {
-      return json(401, { error: "unauthorized" });
-    }
+    // Auth: confia no verify_jwt padrão (chamada autenticada da UI).
 
     // Body — sem body ou dry_run ausente = dry_run true (safe default)
     let dryRun = true;
