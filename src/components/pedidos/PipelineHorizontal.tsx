@@ -121,10 +121,20 @@ export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtiv
 
   return (
     <div className="space-y-2">
-      {totalSla > 0 && (
-        <div className="flex items-center gap-1.5 text-xs text-destructive">
-          <AlertTriangle className="h-3.5 w-3.5" />
-          {totalSla} com SLA estourado
+      {(totalSla > 0 || (pagamentoVencido ?? 0) > 0) && (
+        <div className="flex items-center gap-4 text-xs">
+          {totalSla > 0 && (
+            <div className="flex items-center gap-1.5 text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {totalSla} com SLA estourado
+            </div>
+          )}
+          {(pagamentoVencido ?? 0) > 0 && (
+            <div className="flex items-center gap-1.5 text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {pagamentoVencido} com pagamento vencido
+            </div>
+          )}
         </div>
       )}
       <div className="flex gap-2">
