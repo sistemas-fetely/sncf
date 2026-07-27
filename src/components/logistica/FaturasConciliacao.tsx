@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, FileText, Loader2, Upload } from "lucide-react";
+import { ChevronDown, FileText, Loader2, Upload, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { useLancamentos } from "@/hooks/useLancamentos";
 
 
 type Fatura = {
@@ -106,10 +107,19 @@ function BadgeStatus({ status }: { status: string | null }) {
 
 export function FaturasConciliacao({
   transportadoraId,
+  carrierB2C,
 }: {
   transportadoraId: string;
   transportadoraNome?: string;
+  carrierB2C?: "Correios" | "Frenet" | null;
 }) {
+  if (carrierB2C) {
+    return <FaturasB2C carrier={carrierB2C} />;
+  }
+  return <FaturasB2B transportadoraId={transportadoraId} />;
+}
+
+function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
   const { data: faturas = [], isLoading: loadingFat } = useFaturas(transportadoraId);
   const { data: linhas = [], isLoading: loadingLinhas } = useLinhasConciliacao(transportadoraId);
   const [expandida, setExpandida] = useState<string | null>(null);
@@ -392,4 +402,193 @@ function KpiCard({ label, value, tone }: { label: string; value: string; tone?: 
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// B2C (Correios / Frenet) — postagens de correios_lancamentos
+// ─────────────────────────────────────────────────────────────
+
+type FaturaArquivo = {
+  fatura_id: number;
+  data_fechamento: string | null;
+  vencimento: string | null;
+  valor_total: number;
+};
+
+function useFaturaArquivoUltima() {
+  return useQuery({
+    queryKey: ["correios-fatura-arquivo-ultima"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("correios_faturas_arquivos")
+        .select("fatura_id, data_fechamento, vencimento, valor_total")
+        .order("vencimento", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        fatura_id: Number(data.fatura_id),
+        data_fechamento: data.data_fechamento as string | null,
+        vencimento: data.vencimento as string | null,
+        valor_total: Number(data.valor_total ?? 0),
+      } as FaturaArquivo;
+    },
+  });
+}
+
+function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
+  const { lista, loading, erro, listar, sincronizar } = useLancamentos();
+  const { data: faturaArq } = useFaturaArquivoUltima();
+  const qc = useQueryClient();
+  const empresa = carrier === "Frenet" ? "frenet" : "correios";
+
+  useEffect(() => {
+    listar();
+  }, [listar]);
+
+  const postagens = useMemo(
+    () => lista.filter((l) => l.empresa_frete === empresa),
+    [lista, empresa],
+  );
+
+  const totalPostado = useMemo(
+    () => postagens.reduce((s, l) => s + (l.valor_servico ?? 0), 0),
+    [postagens],
+  );
+
+  async function onSync() {
+    const res = await sincronizar();
+    if (res?.ok) {
+      toast.success(
+        `Sincronizado · ${res.lancamentos ?? 0} lançamentos · total ${formatBRL(res.somaValorServico ?? 0)}`,
+      );
+      qc.invalidateQueries({ queryKey: ["correios-fatura-arquivo-ultima"] });
+    } else if (res) {
+      toast.warning("Retorno inesperado da sincronização.");
+    }
+  }
+
+  const declarado = carrier === "Correios" ? faturaArq?.valor_total ?? null : null;
+  const diferenca = declarado != null ? declarado - totalPostado : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-xs text-muted-foreground">
+          Postagens B2C · {carrier}
+        </div>
+        <Button size="sm" variant="outline" onClick={onSync} disabled={loading}>
+          {loading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          Sincronizar Prévia
+        </Button>
+      </div>
+
+      {erro && (
+        <div className="rounded-md border border-red-200 bg-red-50 text-red-800 text-xs p-2 dark:bg-red-950/40 dark:text-red-200 dark:border-red-900">
+          Erro: {erro}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard label="Postagens" value={String(postagens.length)} />
+        <KpiCard label="Total em postagens" value={formatBRL(totalPostado)} />
+        {carrier === "Correios" && (
+          <>
+            <KpiCard
+              label={`Fatura declarada${faturaArq?.vencimento ? ` · venc. ${formatDateBR(faturaArq.vencimento)}` : ""}`}
+              value={declarado == null ? "—" : formatBRL(declarado)}
+            />
+            <KpiCard
+              label="Diferença (declarado − postado)"
+              value={diferenca == null ? "—" : formatBRL(diferenca)}
+              tone={
+                diferenca == null
+                  ? undefined
+                  : Math.abs(diferenca) < 0.01
+                    ? "ok"
+                    : "warn"
+              }
+            />
+          </>
+        )}
+      </div>
+
+      <div className="rounded-lg border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[900px]">
+            <thead className="bg-muted/50">
+              <tr className="text-left">
+                <th className="px-3 py-2 font-medium">Data</th>
+                <th className="px-3 py-2 font-medium">Etiqueta</th>
+                <th className="px-3 py-2 font-medium">Serviço</th>
+                <th className="px-3 py-2 font-medium">Cliente / Destino</th>
+                <th className="px-3 py-2 font-medium text-right">Valor</th>
+                <th className="px-3 py-2 font-medium">Rastreio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {postagens.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                    Nenhuma postagem. Clique em "Sincronizar Prévia".
+                  </td>
+                </tr>
+              )}
+              {postagens.map((l) => (
+                <tr key={l.id} className="border-t">
+                  <td className="px-3 py-1.5">{formatDateBR(l.data_postagem)}</td>
+                  <td className="px-3 py-1.5 font-mono">{l.etiqueta}</td>
+                  <td className="px-3 py-1.5">
+                    {(l.descricao_servico ?? l.codigo_servico ?? "—")
+                      .replace(" CONTRATO AG", "")
+                      .replace(" FRENET", "")}
+                  </td>
+                  <td className="px-3 py-1.5">
+                    {l.nome_cliente ? (
+                      <>
+                        <div className="truncate max-w-[240px]" title={l.nome_cliente}>
+                          {l.nome_cliente}
+                        </div>
+                        {l.municipio_destino && (
+                          <div className="text-[10px] text-muted-foreground">
+                            {l.municipio_destino}/{l.uf_destino ?? ""}
+                          </div>
+                        )}
+                      </>
+                    ) : l.municipio_destino ? (
+                      `${l.municipio_destino}/${l.uf_destino ?? ""}`
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">
+                    {l.valor_servico == null ? "—" : formatBRL(l.valor_servico)}
+                  </td>
+                  <td className="px-3 py-1.5">
+                    {l.rastreio_status ? (
+                      l.rastreio_entregue ? (
+                        <Badge variant="outline" className="border-emerald-300 text-emerald-700 dark:text-emerald-300">
+                          entregue
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">{l.rastreio_status}</span>
+                      )
+                    ) : (
+                      <span className="text-muted-foreground/60">não rastreado</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 

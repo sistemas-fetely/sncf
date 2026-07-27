@@ -47,8 +47,6 @@ const SemPermissao = lazy(() => import("@/pages/SemPermissao"));
 const AguardandoAprovacao = lazy(() => import("@/pages/AguardandoAprovacao"));
 const GerenciarUsuarios = lazy(() => import("@/pages/GerenciarUsuarios"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
-const RastreamentoCorreios = lazy(() => import("@/pages/RastreamentoCorreios"));
-const FaturasCorreios = lazy(() => import("@/pages/FaturasCorreios"));
 const Parametros = lazy(() => import("@/pages/Parametros"));
 const ContratosPJ = lazy(() => import("@/pages/ContratosPJ"));
 const ContratoPJDetalhe = lazy(() => import("@/pages/ContratoPJDetalhe"));
@@ -320,8 +318,6 @@ const App = () => (
                 <Route path="/comercial/oportunidades" element={<Oportunidades />} />
 
                 <Route path="/canal-cpo" element={<CanalCPO />} />
-                <Route path="/vendas/rastreamento" element={<RastreamentoCorreios />} />
-                <Route path="/vendas/faturas-correios" element={<FaturasCorreios />} />
               </Route>
 
               {/* ═══════════════════════════════════════════════
@@ -681,7 +677,7 @@ const App = () => (
 
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
-              <Route path="/rastreamento" element={<Navigate to="/vendas/rastreamento" replace />} />
+              <Route path="/rastreamento" element={<Navigate to="/logistica" replace />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
