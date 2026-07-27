@@ -1199,6 +1199,10 @@ export default function PedidoDetalhe() {
                 </CardContent>
               </Card>
             )}
+
+            {(estagio === "entregue" || estagio === "em_transporte") && id && (
+              <CardEntrega pedidoId={id} estagio={estagio} />
+            )}
           </div>
 
           {/* ============ FAIXA 2: Detalhes · Observações ============ */}
