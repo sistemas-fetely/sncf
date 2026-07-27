@@ -15432,6 +15432,42 @@ export type Database = {
         }
         Relationships: []
       }
+      rastreio_status_dim: {
+        Row: {
+          ativo: boolean
+          classe: string
+          codigo_evento: string | null
+          created_at: string
+          fonte: string
+          id: string
+          rotulo: string | null
+          texto_origem: string | null
+          tipo_evento: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          classe: string
+          codigo_evento?: string | null
+          created_at?: string
+          fonte?: string
+          id?: string
+          rotulo?: string | null
+          texto_origem?: string | null
+          tipo_evento?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          classe?: string
+          codigo_evento?: string | null
+          created_at?: string
+          fonte?: string
+          id?: string
+          rotulo?: string | null
+          texto_origem?: string | null
+          tipo_evento?: string | null
+        }
+        Relationships: []
+      }
       reembolso_categorias: {
         Row: {
           ativo: boolean
@@ -23916,6 +23952,7 @@ export type Database = {
       vw_logistica_rastreio: {
         Row: {
           canal: string | null
+          classe_rastreio: string | null
           data_entrega: string | null
           devolucao: boolean | null
           documento_ref: string | null
@@ -26897,11 +26934,16 @@ export type Database = {
         }
         Returns: string
       }
+      fn_classificar_rastreio: {
+        Args: { p_eventos: Json; p_status_atual: string }
+        Returns: string
+      }
       fn_criar_analise_desde_pedido: {
         Args: { p_pedido_id: string }
         Returns: string
       }
       fn_cron_rolling_contratos: { Args: never; Returns: number }
+      fn_data_entrega_rastreio: { Args: { p_eventos: Json }; Returns: string }
       fn_dias_uteis_entre: {
         Args: { p_ate: string; p_de: string }
         Returns: number
