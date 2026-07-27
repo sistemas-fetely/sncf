@@ -134,7 +134,20 @@ export interface PedidoFilaItem {
   atencao_motivo?: string | null;
   atencao_por?: string | null;
   atencao_em?: string | null;
+  pagamento_status?: PagamentoStatus | null;
+  pagamento_ref?: 'proprio' | 'pai' | 'nenhum' | null;
+  valor_pago?: number | null;
+  valor_aberto?: number | null;
+  valor_vencido?: number | null;
+  dias_atraso_max?: number | null;
 }
+
+export type PagamentoStatus =
+  | 'pago'
+  | 'parcial_em_dia'
+  | 'em_dia'
+  | 'vencido'
+  | 'sem_cobranca';
 
 export interface PipelineItem {
   estagio: EstagioPedido;
