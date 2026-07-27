@@ -313,6 +313,9 @@ export default function EstoqueVirtual() {
                 <SortableTableHead column="real" sort={sort} onSort={setSort} align="right" className="w-[100px]">
                   Contado
                 </SortableTableHead>
+                <SortableTableHead column="idade" sort={sort} onSort={setSort} align="right" className="w-[90px]">
+                  Idade
+                </SortableTableHead>
                 <SortableTableHead column="saude" sort={sort} onSort={setSort} align="right" className="w-[100px]">
                   Saúde
                 </SortableTableHead>
