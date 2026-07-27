@@ -15,23 +15,31 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
-  Copy, ExternalLink, Mail, Phone, Search, Sparkles, Loader2,
+  Copy, ExternalLink, Mail, Phone, Search, Sparkles, Loader2, Undo2,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
+import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 
-type OrigemOportunidade = "portao_vencido" | "estoque_inadimplente";
+type OrigemOportunidade = "portao_vencido" | "estoque_inadimplente" | "manual";
 
 interface OportunidadeRow {
   pedido_id: string;
   id_externo: string | null;
+  origem: OrigemOportunidade;
+  motivo: string | null;
+  retomavel_para: string | null;
+  migrado_em: string | null;
+  dias_na_fila: number | null;
   data_pedido: string | null;
   dias_desde_pedido: number | null;
-  valor_liquido: number | null;
+  valor_em_jogo: number | null;
   vendedor: string | null;
   condicao_solicitada: string | null;
   forma_solicitada: string | null;
   observacao_cliente: string | null;
+  pai_id: string | null;
+  pai_id_externo: string | null;
   parceiro_id: string | null;
   cliente: string | null;
   cnpj: string | null;
@@ -44,16 +52,10 @@ interface OportunidadeRow {
   dias_portao_vencido: number | null;
   link_pagamento: string | null;
   status_portao: string | null;
-  parcelas_restantes: number | null;
-  origem: OrigemOportunidade;
-  motivo: string | null;
-  valor_em_jogo: number | null;
-  dias_referencia: number | null;
-  valor_vencido: number | null;
   valor_pago: number | null;
-  pai_id: string | null;
-  pai_id_externo: string | null;
-  estagio: string | null;
+  valor_vencido: number | null;
+  dias_atraso_max: number | null;
+  dias_referencia: number | null;
 }
 
 function corDiasVencido(dias: number | null | undefined) {
@@ -62,6 +64,18 @@ function corDiasVencido(dias: number | null | undefined) {
   if (d <= 45) return "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
   return "bg-destructive/15 text-destructive font-semibold";
 }
+
+const ORIGEM_LABEL: Record<OrigemOportunidade, string> = {
+  portao_vencido: "Portão vencido",
+  estoque_inadimplente: "Aguardando estoque",
+  manual: "Manual",
+};
+
+const ORIGEM_CLASSES: Record<OrigemOportunidade, string> = {
+  portao_vencido: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
+  estoque_inadimplente: "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300",
+  manual: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+};
 
 async function copiar(link: string) {
   try {
@@ -77,10 +91,12 @@ type FiltroOrigem = "todas" | OrigemOportunidade;
 export default function Oportunidades() {
   const [busca, setBusca] = useState("");
   const [origem, setOrigem] = useState<FiltroOrigem>("todas");
+  const [retomando, setRetomando] = useState<OportunidadeRow | null>(null);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["oportunidades-comercial"],
     queryFn: async (): Promise<OportunidadeRow[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_oportunidades_comercial")
         .select("*")
@@ -91,10 +107,11 @@ export default function Oportunidades() {
   });
 
   const contagens = useMemo(() => {
-    const c = { todas: data.length, portao_vencido: 0, estoque_inadimplente: 0 };
+    const c = { todas: data.length, portao_vencido: 0, estoque_inadimplente: 0, manual: 0 };
     for (const r of data) {
       if (r.origem === "portao_vencido") c.portao_vencido++;
       else if (r.origem === "estoque_inadimplente") c.estoque_inadimplente++;
+      else if (r.origem === "manual") c.manual++;
     }
     return c;
   }, [data]);
@@ -129,7 +146,7 @@ export default function Oportunidades() {
         <CasaPageHeader
           breadcrumb={[{ label: "Comercial" }, { label: "Oportunidades" }]}
           title="Oportunidades"
-          subtitle="Fila única de oportunidades devolvidas ao Comercial: pedidos com portão de pagamento vencido OU remessas aguardando estoque cujo pedido pai tem parcela vencida. Retome o contato com o cliente para converter."
+          subtitle="Fila única do Comercial: pedidos migrados manualmente, portão vencido ou remessas cujo pai tem parcela vencida. Retome quando o cliente estiver pronto."
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -158,6 +175,9 @@ export default function Oportunidades() {
               onClick={() => setOrigem("estoque_inadimplente")}
             >
               Aguardando estoque ({contagens.estoque_inadimplente})
+            </FiltroBtn>
+            <FiltroBtn ativo={origem === "manual"} onClick={() => setOrigem("manual")}>
+              Manual ({contagens.manual})
             </FiltroBtn>
           </div>
           <div className="relative w-full md:w-96 md:ml-auto">
@@ -199,6 +219,7 @@ export default function Oportunidades() {
                       <TableHead className="text-right">Vencido</TableHead>
                       <TableHead className="text-right">Já pagou</TableHead>
                       <TableHead>Pai</TableHead>
+                      <TableHead className="text-right">Na fila</TableHead>
                       <TableHead className="text-right">Dias</TableHead>
                       <TableHead>Vendedor</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
@@ -222,14 +243,10 @@ export default function Oportunidades() {
                                 variant="outline"
                                 className={cn(
                                   "border-0 rounded px-2 py-0.5 whitespace-nowrap",
-                                  r.origem === "portao_vencido"
-                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                                    : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300",
+                                  ORIGEM_CLASSES[r.origem],
                                 )}
                               >
-                                {r.origem === "portao_vencido"
-                                  ? "Portão vencido"
-                                  : "Estoque + inadimplência"}
+                                {ORIGEM_LABEL[r.origem]}
                               </Badge>
                             </TooltipTrigger>
                             {r.motivo && (
@@ -277,6 +294,11 @@ export default function Oportunidades() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
+                          <Badge variant="outline" className="rounded px-2 py-0.5">
+                            {r.dias_na_fila ?? 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
                           <Badge
                             variant="outline"
                             className={cn(
@@ -290,6 +312,15 @@ export default function Oportunidades() {
                         <TableCell className="text-xs">{r.vendedor || "—"}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="h-7 gap-1.5"
+                              onClick={() => setRetomando(r)}
+                            >
+                              <Undo2 className="h-3.5 w-3.5" />
+                              Retomar
+                            </Button>
                             {r.link_pagamento && (
                               <Button
                                 size="icon"
@@ -344,6 +375,18 @@ export default function Oportunidades() {
             )}
           </CardContent>
         </Card>
+
+        {retomando && (
+          <RetomarOportunidadeDialog
+            open={!!retomando}
+            onOpenChange={(v) => !v && setRetomando(null)}
+            pedidoId={retomando.pedido_id}
+            idExterno={retomando.id_externo}
+            cliente={retomando.cliente}
+            retomavelPara={retomando.retomavel_para}
+            invalidateKeys={[["oportunidades-comercial"]]}
+          />
+        )}
       </div>
     </TooltipProvider>
   );

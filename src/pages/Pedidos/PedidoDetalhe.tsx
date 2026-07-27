@@ -44,6 +44,8 @@ import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialo
 import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
 import { RemessasSection } from "@/components/pedidos/RemessasSection";
 import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
+import { MigrarParaComercialDialog } from "@/components/comercial/MigrarParaComercialDialog";
+import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
@@ -161,6 +163,69 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
         />
       )}
     </div>
+  );
+}
+
+const ESTAGIOS_BLOQUEIAM_MIGRAR = new Set([
+  "em_separacao",
+  "pre_faturamento",
+  "faturado",
+  "em_transporte",
+  "entregue",
+  "cancelado",
+  "recuperacao_venda",
+]);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BotaoMigrarComercial({ pedido }: { pedido: any }) {
+  const [open, setOpen] = useState(false);
+  if (ESTAGIOS_BLOQUEIAM_MIGRAR.has(pedido.estagio)) return null;
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full gap-1.5"
+        onClick={() => setOpen(true)}
+      >
+        <Sparkles className="h-4 w-4" />
+        Migrar para Oportunidade Comercial
+      </Button>
+      <MigrarParaComercialDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedidoId={pedido.id}
+        idExterno={pedido.id_externo}
+        cliente={pedido.parceiro_nome || pedido.cliente}
+        origem="manual"
+      />
+    </>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BotaoRetomarOportunidade({ pedido }: { pedido: any }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button
+        variant="default"
+        size="sm"
+        className="w-full gap-1.5"
+        onClick={() => setOpen(true)}
+      >
+        <RotateCcw className="h-4 w-4" />
+        Retomar da Oportunidade Comercial
+      </Button>
+      <RetomarOportunidadeDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedidoId={pedido.id}
+        idExterno={pedido.id_externo}
+        cliente={pedido.parceiro_nome || pedido.cliente}
+        retomavelPara={pedido.retomavel_para}
+      />
+    </>
   );
 }
 
@@ -1682,6 +1747,12 @@ export default function PedidoDetalhe() {
                     Pausar / Avisar
                   </Button>
                 </AtencaoPedidoDialog>
+              )}
+              {estagio === "recuperacao_venda" && (
+                <BotaoRetomarOportunidade pedido={pedido} />
+              )}
+              {!estagioFinal && (
+                <BotaoMigrarComercial pedido={pedido} />
               )}
               {!estagioFinal && (
                 <div className="pt-3 mt-1 border-t border-border/40">

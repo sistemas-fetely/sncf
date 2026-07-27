@@ -14,9 +14,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ExternalLink, Mail, Phone, PackageOpen, Loader2, AlertCircle,
+  ExternalLink, Mail, Phone, PackageOpen, Loader2, AlertCircle, Sparkles,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { MigrarParaComercialDialog } from "@/components/comercial/MigrarParaComercialDialog";
 import { cn } from "@/lib/utils";
 
 interface TriagemRow {
@@ -120,7 +121,7 @@ export default function TriagemEstoque() {
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="negociar" className="gap-2">
-            Negociar
+            Sugestões para o Comercial
             <Badge variant="secondary" className="ml-1">
               {negociar.length} · {formatBRL(somaNegociar)}
             </Badge>
@@ -149,8 +150,10 @@ export default function TriagemEstoque() {
 
         <TabsContent value="negociar" className="mt-4">
           <p className="text-sm text-muted-foreground mb-3">
-            Pedido pai com parcela vencida em aberto. Decidir antes de liberar a remessa —
-            o cliente já pagou parte, use isso no contato.
+            Remessas cujo pedido pai tem parcela vencida. O sistema{" "}
+            <span className="font-medium text-foreground">sugere</span> migrar para
+            Oportunidade Comercial, mas a decisão é do operador — use o botão em cada
+            linha.
           </p>
           <Card>
             <CardContent className="p-0">
@@ -331,7 +334,7 @@ function TabelaNegociar({ rows }: { rows: TriagemRow[] }) {
                 </Badge>
               </TableCell>
               <TableCell>
-                <AcoesLinha r={r} mostrarPai />
+                <AcoesLinha r={r} mostrarPai comMigrar />
               </TableCell>
             </TableRow>
           ))}
@@ -341,9 +344,38 @@ function TabelaNegociar({ rows }: { rows: TriagemRow[] }) {
   );
 }
 
-function AcoesLinha({ r, mostrarPai }: { r: TriagemRow; mostrarPai?: boolean }) {
+function AcoesLinha({
+  r,
+  mostrarPai,
+  comMigrar,
+}: {
+  r: TriagemRow;
+  mostrarPai?: boolean;
+  comMigrar?: boolean;
+}) {
+  const [migrarOpen, setMigrarOpen] = useState(false);
+  const dias = Number(r.dias_atraso_max ?? 0);
+  const contexto = [
+    r.valor_vencido ? `${formatBRL(r.valor_vencido)} vencido` : null,
+    dias > 0 ? `${dias} dia(s) de atraso` : null,
+    r.valor_pago ? `${formatBRL(r.valor_pago)} já pago` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <div className="flex items-center justify-end gap-1">
+      {comMigrar && (
+        <Button
+          size="sm"
+          variant="default"
+          className="h-7 gap-1.5"
+          onClick={() => setMigrarOpen(true)}
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Migrar para Comercial
+        </Button>
+      )}
       {r.telefone && (
         <Button size="icon" variant="ghost" title={`Ligar: ${r.telefone}`} asChild>
           <a href={`tel:${r.telefone}`}>
@@ -370,6 +402,19 @@ function AcoesLinha({ r, mostrarPai }: { r: TriagemRow; mostrarPai?: boolean }) 
           <ExternalLink className="h-4 w-4" />
         </Link>
       </Button>
+
+      {comMigrar && (
+        <MigrarParaComercialDialog
+          open={migrarOpen}
+          onOpenChange={setMigrarOpen}
+          pedidoId={r.pedido_id}
+          idExterno={r.id_externo}
+          cliente={r.cliente}
+          origem="estoque_inadimplente"
+          contexto={contexto || null}
+          invalidateKeys={[["triagem-estoque"]]}
+        />
+      )}
     </div>
   );
 }
