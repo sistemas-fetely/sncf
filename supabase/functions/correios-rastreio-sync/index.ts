@@ -54,13 +54,20 @@ async function getToken(): Promise<string> {
   return json.token;
 }
 
-async function rastrearEGravar(token: string, codigo: string) {
+type RastreioOutcome =
+  | { codigo: string; resultado: "atualizado"; status: string; entregue: boolean | null }
+  | { codigo: string; resultado: "sem_eventos" }
+  | { codigo: string; resultado: "erro"; status: string };
+
+async function rastrearEGravar(token: string, codigo: string): Promise<RastreioOutcome> {
   const c = codigo.trim().toUpperCase();
-  let status_atual = "";
   let eventos: any[] = [];
   let servico: string | null = null;
+  let status_atual = "";
   let data_ultima: string | null = null;
   let previsao_entrega: string | null = null;
+  let temEventos = false;
+  let erroFetch: string | null = null;
 
   try {
     const url = `${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T`;
@@ -76,23 +83,36 @@ async function rastrearEGravar(token: string, codigo: string) {
     console.log(`SRO ${c} status=${resp.status} body=${bodyText.slice(0, 600)}`);
 
     if (!resp.ok) {
-      status_atual = `[erro SRO ${resp.status}] ${bodyText.slice(0, 200)}`;
+      erroFetch = `[erro SRO ${resp.status}] ${bodyText.slice(0, 200)}`;
     } else {
       const json = JSON.parse(bodyText);
       const obj = json?.objetos?.[0] ?? {};
-      eventos = obj.eventos ?? [];
-      const ultimo = eventos[0] ?? null;
-      servico = obj?.tipoPostal?.categoria ?? obj?.tipoPostal?.descricao ?? null;
-      status_atual = ultimo?.descricao ?? obj?.mensagem ?? "(sem eventos)";
-      data_ultima = ultimo?.dtHrCriado ?? null;
-      const dtPrev: string | undefined = obj?.dtPrevista;
-      if (typeof dtPrev === "string" && dtPrev.length >= 10) {
-        previsao_entrega = dtPrev.slice(0, 10);
+      const evs = Array.isArray(obj?.eventos) ? obj.eventos : [];
+      if (evs.length > 0) {
+        temEventos = true;
+        eventos = evs;
+        const ultimo = evs[0];
+        servico = obj?.tipoPostal?.categoria ?? obj?.tipoPostal?.descricao ?? null;
+        status_atual = ultimo?.descricao ?? "(sem descrição)";
+        data_ultima = ultimo?.dtHrCriado ?? null;
+        const dtPrev: string | undefined = obj?.dtPrevista;
+        if (typeof dtPrev === "string" && dtPrev.length >= 10) {
+          previsao_entrega = dtPrev.slice(0, 10);
+        }
       }
     }
   } catch (e) {
-    status_atual = `[exceção] ${String(e).slice(0, 200)}`;
+    erroFetch = `[exceção] ${String(e).slice(0, 200)}`;
     console.log(`SRO ${c} exceção: ${e}`);
+  }
+
+  if (erroFetch) {
+    return { codigo: c, resultado: "erro", status: erroFetch };
+  }
+
+  if (!temEventos) {
+    console.log(`[sem eventos] ${c}`);
+    return { codigo: c, resultado: "sem_eventos" };
   }
 
   const registro: Record<string, unknown> = {
@@ -112,10 +132,10 @@ async function rastrearEGravar(token: string, codigo: string) {
     .maybeSingle();
   if (error) {
     console.log(`UPSERT erro ${c}: ${error.message}`);
-    return { codigo: c, status: `[erro gravação] ${error.message}` };
+    return { codigo: c, resultado: "erro", status: `[erro gravação] ${error.message}` };
   }
 
-  return { codigo: c, status: status_atual, entregue: gravado?.entregue ?? null };
+  return { codigo: c, resultado: "atualizado", status: status_atual, entregue: gravado?.entregue ?? null };
 }
 
 Deno.serve(async (req) => {
