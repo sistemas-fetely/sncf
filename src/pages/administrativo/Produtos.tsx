@@ -749,9 +749,9 @@ interface SncfProdutoDetalhe {
   colecao: string | null;
   grupo: string | null;
   cor_nome: string | null;
-  tamanho: string | null;
+  tamanho_numero: string | null;
   material: string | null;
-  embalagem: string | null;
+  tipo_embalagem: string | null;
   peso_g: number | null;
   multiplos: number | null;
   altura_cm: number | null;
@@ -759,8 +759,8 @@ interface SncfProdutoDetalhe {
   profundidade_cm: number | null;
   ncm: string | null;
   cest: string | null;
-  origem_fiscal: string | null;
-  origem_produto: string | null;
+  origem_fisc: string | null;
+  origem_prod: string | null;
 }
 
 interface MovimentacaoRow {
@@ -801,7 +801,7 @@ function PainelSku({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("sncf_produtos")
-        .select("sku,ean,nome_comercial,nome_completo,marca,linha,colecao,grupo,cor_nome,tamanho,material,embalagem,peso_g,multiplos,altura_cm,largura_cm,profundidade_cm,ncm,cest,origem_fiscal,origem_produto")
+        .select("sku,ean,nome_comercial,nome_completo,marca,linha,colecao,grupo,cor_nome,tamanho,material,embalagem,peso_g,multiplos,altura_cm,largura_cm,profundidade_cm,ncm,cest,origem_fisc,origem_prod")
         .eq("sku", sku!)
         .maybeSingle();
       if (error) throw error;
@@ -911,9 +911,9 @@ Solicitado por: SNCF · Cockpit de Produto · ${new Date().toLocaleDateString("p
                   <Field label="Coleção" value={det?.colecao} />
                   <Field label="Grupo" value={det?.grupo} />
                   <Field label="Cor" value={det?.cor_nome} />
-                  <Field label="Tamanho" value={det?.tamanho} />
+                  <Field label="Tamanho" value={det?.tamanho_numero} />
                   <Field label="Material" value={det?.material} />
-                  <Field label="Embalagem" value={det?.embalagem} />
+                  <Field label="Embalagem" value={det?.tipo_embalagem} />
                   <Field label="Peso (g)" value={det?.peso_g == null ? null : formatNum(det.peso_g)} />
                   <Field label="Múltiplos" value={det?.multiplos == null ? null : formatNum(det.multiplos)} />
                   <Field
@@ -933,8 +933,8 @@ Solicitado por: SNCF · Cockpit de Produto · ${new Date().toLocaleDateString("p
                 <Grid2>
                   <Field label="NCM" value={det?.ncm} mono />
                   <Field label="CEST" value={det?.cest} mono />
-                  <Field label="Origem fiscal" value={det?.origem_fiscal} />
-                  <Field label="Origem produto" value={det?.origem_produto} />
+                  <Field label="Origem fiscal" value={det?.origem_fisc} />
+                  <Field label="Origem produto" value={det?.origem_prod} />
                 </Grid2>
               </Secao>
 
