@@ -40,6 +40,7 @@ type Col =
   | "nome"
   | "contabil"
   | "real"
+  | "idade"
   | "saude"
   | "reservado"
   | "virtual"
