@@ -82,7 +82,8 @@ export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtiv
       const { count, error } = await (supabase as any)
         .from("v_pedidos_fila")
         .select("id", { count: "exact", head: true })
-        .eq("pagamento_status", "vencido");
+        .eq("pagamento_status", "vencido")
+        .neq("estagio", "cancelado");
       if (error) throw error;
       return count ?? 0;
     },
