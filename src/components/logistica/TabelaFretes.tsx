@@ -47,7 +47,7 @@ export function TabelaFretes({ fretes }: { fretes: FreteRow[] }) {
         </TableHeader>
         <TableBody>
           {fretes.map((f) => {
-            const st = statusBadge(f.classe);
+            const st = statusBadge(f.classe, f.ocorrencia_texto);
             const pct = f.pct_frete_nf == null ? null : Number(f.pct_frete_nf);
             const aberto = expandido.has(f.id);
             return (
@@ -57,7 +57,7 @@ export function TabelaFretes({ fretes }: { fretes: FreteRow[] }) {
                     {aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={cn("text-[10px] border", st.cls)}>{st.label}</Badge>
+                    <Badge variant="outline" title={st.title} className={cn("text-[10px] border", st.cls)}>{st.label}</Badge>
                   </TableCell>
                   <TableCell className="max-w-[220px] truncate">{f.destinatario ?? "—"}</TableCell>
                   <TableCell>{f.destinatario_cidade ?? "—"}{f.destinatario_uf ? ` / ${f.destinatario_uf}` : ""}</TableCell>

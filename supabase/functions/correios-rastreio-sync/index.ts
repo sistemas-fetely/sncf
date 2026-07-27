@@ -123,6 +123,34 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Auth: aceita x-cron-secret (cron) OU usuário autenticado (disparo manual)
+  const cronSecret = req.headers.get("x-cron-secret");
+  let autorizado = false;
+  if (cronSecret) {
+    const { data: expected } = await supabase.rpc("get_vault_secret", {
+      p_name: "SYNC_CRON_SECRET",
+    });
+    if (expected && cronSecret === String(expected)) autorizado = true;
+  }
+  if (!autorizado) {
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data } = await userClient.auth.getUser();
+      if (data?.user) autorizado = true;
+    }
+  }
+  if (!autorizado) {
+    return new Response(JSON.stringify({ erro: "Não autorizado" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     let codigos: string[] = Array.isArray(body?.codigos) ? body.codigos : [];
