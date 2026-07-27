@@ -64,3 +64,7 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
     verify_jwt = false
   [functions.sincronizar-cache-bling]
     verify_jwt = false
+  [functions.correios-frete]
+    verify_jwt = true
+  [functions.correios-rastreio]
+    verify_jwt = true

@@ -182,7 +182,6 @@ const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 
 const CanalCPO = lazy(() => import("@/pages/CanalCPO"));
 const TesteFrete = lazy(() => import("@/pages/TesteFrete"));
-const TesteRastreio = lazy(() => import("@/pages/TesteRastreio"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -255,8 +254,6 @@ const App = () => (
               <Route path="/vagas/:id/candidatura" element={<PortalCandidatura />} />
               <Route path="/vagas/:id/teste" element={<EntregaTeste />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
-              <Route path="/teste-frete" element={<TesteFrete />} />
-              <Route path="/teste-rastreio" element={<TesteRastreio />} />
             </Route>
 
             {/* Bling OAuth callback — público (recebe redirect externo), fora da Casa */}
@@ -375,6 +372,7 @@ const App = () => (
                 <Route index element={<TIDashboard />} />
                 <Route path="ativos" element={<TIAtivos />} />
                 <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
+                <Route path="diagnosticos/teste-frete" element={<TesteFrete />} />
                 {/* Redirects legados — documentação migrou pra SNCF */}
                 <Route path="documentacao" element={<Navigate to="/documentacao" replace />} />
                 <Route path="documentacao/novo" element={<Navigate to="/documentacao/novo" replace />} />
@@ -683,6 +681,8 @@ const App = () => (
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
               <Route path="/rastreamento" element={<Navigate to="/logistica" replace />} />
+              <Route path="/teste-frete" element={<Navigate to="/ti/diagnosticos/teste-frete" replace />} />
+              <Route path="/teste-rastreio" element={<Navigate to="/ti/diagnosticos/teste-frete" replace />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
