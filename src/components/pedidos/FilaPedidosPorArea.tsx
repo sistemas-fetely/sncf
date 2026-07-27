@@ -385,10 +385,7 @@ export function FilaPedidosPorArea({
                     <p className="text-[11px] text-muted-foreground font-mono">{p.parceiro_cnpj}</p>
                   </TableCell>
                   <TableCell>
-                    <p className="font-semibold">{fmtBRL.format(p.valor_liquido)}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {p.condicao_solicitada} · {p.forma_solicitada}
-                    </p>
+                    <ValorComPagamento p={p} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
