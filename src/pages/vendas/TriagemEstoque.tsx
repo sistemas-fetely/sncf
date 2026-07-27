@@ -14,9 +14,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ExternalLink, Mail, Phone, PackageOpen, Loader2, AlertCircle,
+  ExternalLink, Mail, Phone, PackageOpen, Loader2, AlertCircle, Sparkles,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { MigrarParaComercialDialog } from "@/components/comercial/MigrarParaComercialDialog";
 import { cn } from "@/lib/utils";
 
 interface TriagemRow {
