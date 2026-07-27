@@ -405,15 +405,16 @@ function AcoesLinha({
       </Button>
 
       {comMigrar && (
-        <MigrarParaComercialDialog
+        <MigrarOportunidadeDialog
           open={migrarOpen}
           onOpenChange={setMigrarOpen}
           pedidoId={r.pedido_id}
           idExterno={r.id_externo}
           cliente={r.cliente}
           origem="estoque_inadimplente"
-          contexto={contexto || null}
-          invalidateKeys={[["triagem-estoque"]]}
+          valorVencido={r.valor_vencido}
+          diasAtraso={r.dias_atraso_max}
+          invalidateKeys={[["triagem-estoque"], ["oportunidades-comercial"]]}
         />
       )}
     </div>
