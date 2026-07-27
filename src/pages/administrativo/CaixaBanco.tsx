@@ -142,11 +142,6 @@ function competenciaAtualISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-function mesAnteriorISO(iso: string): string {
-  const [y, m] = iso.split("-").map(Number);
-  const d = new Date(y, m - 2, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
 
 function labelMesCurto(iso: string): string {
   const [y, m] = iso.split("-");
