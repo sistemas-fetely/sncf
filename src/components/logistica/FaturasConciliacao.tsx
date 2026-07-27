@@ -107,10 +107,19 @@ function BadgeStatus({ status }: { status: string | null }) {
 
 export function FaturasConciliacao({
   transportadoraId,
+  carrierB2C,
 }: {
   transportadoraId: string;
   transportadoraNome?: string;
+  carrierB2C?: "Correios" | "Frenet" | null;
 }) {
+  if (carrierB2C) {
+    return <FaturasB2C carrier={carrierB2C} />;
+  }
+  return <FaturasB2B transportadoraId={transportadoraId} />;
+}
+
+function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
   const { data: faturas = [], isLoading: loadingFat } = useFaturas(transportadoraId);
   const { data: linhas = [], isLoading: loadingLinhas } = useLinhasConciliacao(transportadoraId);
   const [expandida, setExpandida] = useState<string | null>(null);
