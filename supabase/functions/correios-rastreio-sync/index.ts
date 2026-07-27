@@ -54,13 +54,20 @@ async function getToken(): Promise<string> {
   return json.token;
 }
 
-async function rastrearEGravar(token: string, codigo: string) {
+type RastreioOutcome =
+  | { codigo: string; resultado: "atualizado"; status: string; entregue: boolean | null }
+  | { codigo: string; resultado: "sem_eventos" }
+  | { codigo: string; resultado: "erro"; status: string };
+
+async function rastrearEGravar(token: string, codigo: string): Promise<RastreioOutcome> {
   const c = codigo.trim().toUpperCase();
-  let status_atual = "";
   let eventos: any[] = [];
   let servico: string | null = null;
+  let status_atual = "";
   let data_ultima: string | null = null;
   let previsao_entrega: string | null = null;
+  let temEventos = false;
+  let erroFetch: string | null = null;
 
   try {
     const url = `${BASE_URL}/srorastro/v1/objetos/${c}?resultado=T`;
@@ -76,23 +83,36 @@ async function rastrearEGravar(token: string, codigo: string) {
     console.log(`SRO ${c} status=${resp.status} body=${bodyText.slice(0, 600)}`);
 
     if (!resp.ok) {
-      status_atual = `[erro SRO ${resp.status}] ${bodyText.slice(0, 200)}`;
+      erroFetch = `[erro SRO ${resp.status}] ${bodyText.slice(0, 200)}`;
     } else {
       const json = JSON.parse(bodyText);
       const obj = json?.objetos?.[0] ?? {};
-      eventos = obj.eventos ?? [];
-      const ultimo = eventos[0] ?? null;
-      servico = obj?.tipoPostal?.categoria ?? obj?.tipoPostal?.descricao ?? null;
-      status_atual = ultimo?.descricao ?? obj?.mensagem ?? "(sem eventos)";
-      data_ultima = ultimo?.dtHrCriado ?? null;
-      const dtPrev: string | undefined = obj?.dtPrevista;
-      if (typeof dtPrev === "string" && dtPrev.length >= 10) {
-        previsao_entrega = dtPrev.slice(0, 10);
+      const evs = Array.isArray(obj?.eventos) ? obj.eventos : [];
+      if (evs.length > 0) {
+        temEventos = true;
+        eventos = evs;
+        const ultimo = evs[0];
+        servico = obj?.tipoPostal?.categoria ?? obj?.tipoPostal?.descricao ?? null;
+        status_atual = ultimo?.descricao ?? "(sem descrição)";
+        data_ultima = ultimo?.dtHrCriado ?? null;
+        const dtPrev: string | undefined = obj?.dtPrevista;
+        if (typeof dtPrev === "string" && dtPrev.length >= 10) {
+          previsao_entrega = dtPrev.slice(0, 10);
+        }
       }
     }
   } catch (e) {
-    status_atual = `[exceção] ${String(e).slice(0, 200)}`;
+    erroFetch = `[exceção] ${String(e).slice(0, 200)}`;
     console.log(`SRO ${c} exceção: ${e}`);
+  }
+
+  if (erroFetch) {
+    return { codigo: c, resultado: "erro", status: erroFetch };
+  }
+
+  if (!temEventos) {
+    console.log(`[sem eventos] ${c}`);
+    return { codigo: c, resultado: "sem_eventos" };
   }
 
   const registro: Record<string, unknown> = {
@@ -112,10 +132,10 @@ async function rastrearEGravar(token: string, codigo: string) {
     .maybeSingle();
   if (error) {
     console.log(`UPSERT erro ${c}: ${error.message}`);
-    return { codigo: c, status: `[erro gravação] ${error.message}` };
+    return { codigo: c, resultado: "erro", status: `[erro gravação] ${error.message}` };
   }
 
-  return { codigo: c, status: status_atual, entregue: gravado?.entregue ?? null };
+  return { codigo: c, resultado: "atualizado", status: status_atual, entregue: gravado?.entregue ?? null };
 }
 
 Deno.serve(async (req) => {
@@ -153,42 +173,44 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    let codigos: string[] = Array.isArray(body?.codigos) ? body.codigos : [];
+    const codigosInput: string[] = Array.isArray(body?.codigos) ? body.codigos : [];
+    const modoManual = codigosInput.length > 0;
+    let codigos: string[] = codigosInput;
 
-    if (codigos.length === 0) {
-      // Busca códigos a atualizar (excluindo os da Frenet)
+    if (!modoManual) {
+      // Lote padrão: todos os não-entregues (Frenet incluída — a transportadora real são os Correios)
       const { data: todos } = await supabase
         .from("pedido_rastreamento")
         .select("codigo_rastreio")
         .eq("entregue", false);
 
-      const { data: frenet } = await supabase
-        .from("correios_lancamentos")
-        .select("etiqueta")
-        .eq("empresa_frete", "frenet");
-
-      const etiquetasFrenet = new Set((frenet ?? []).map((f: any) => f.etiqueta));
-
-      codigos = (todos ?? [])
-        .map((r: any) => r.codigo_rastreio)
-        .filter((c: string) => !etiquetasFrenet.has(c));
+      codigos = (todos ?? []).map((r: any) => r.codigo_rastreio);
     }
 
     if (codigos.length === 0) {
-      return new Response(JSON.stringify({ atualizados: [], msg: "Nada a rastrear." }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ processados: 0, atualizados: 0, sem_eventos: 0, erros: 0, resultados: [], msg: "Nada a rastrear." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const token = await getToken();
-    const atualizados = [];
+    const resultados: RastreioOutcome[] = [];
+    let atualizados = 0;
+    let sem_eventos = 0;
+    let erros = 0;
     for (const cod of codigos) {
-      atualizados.push(await rastrearEGravar(token, cod));
+      const r = await rastrearEGravar(token, cod);
+      resultados.push(r);
+      if (r.resultado === "atualizado") atualizados++;
+      else if (r.resultado === "sem_eventos") sem_eventos++;
+      else erros++;
     }
 
-    return new Response(JSON.stringify({ atualizados }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ processados: codigos.length, atualizados, sem_eventos, erros, resultados }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     return new Response(JSON.stringify({ erro: String(e) }), {
       status: 500,

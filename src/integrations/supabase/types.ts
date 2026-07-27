@@ -3891,6 +3891,7 @@ export type Database = {
           deleted_at: string | null
           deleted_por: string | null
           descricao: string
+          despesa_id: string | null
           docs_status: string | null
           editado_em: string | null
           editado_por: string | null
@@ -3983,6 +3984,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_por?: string | null
           descricao: string
+          despesa_id?: string | null
           docs_status?: string | null
           editado_em?: string | null
           editado_por?: string | null
@@ -4075,6 +4077,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_por?: string | null
           descricao?: string
+          despesa_id?: string | null
           docs_status?: string | null
           editado_em?: string | null
           editado_por?: string | null
@@ -4194,6 +4197,20 @@ export type Database = {
             columns: ["compromisso_recorrente_id"]
             isOneToOne: false
             referencedRelation: "compromissos_recorrentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_despesa_id_fkey"
+            columns: ["despesa_id"]
+            isOneToOne: false
+            referencedRelation: "despesas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_despesa_id_fkey"
+            columns: ["despesa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_v2"
             referencedColumns: ["id"]
           },
           {
@@ -7471,6 +7488,72 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      frete_canal_contratacao: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          eh_agregador: boolean
+          id: string
+          rotulo: string
+          transportadora_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          eh_agregador?: boolean
+          id?: string
+          rotulo: string
+          transportadora_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          eh_agregador?: boolean
+          id?: string
+          rotulo?: string
+          transportadora_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "frete_canal_contratacao_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "frete_canal_contratacao_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "frete_canal_contratacao_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "frete_canal_contratacao_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "frete_canal_contratacao_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
       }
       ged_areas: {
         Row: {
@@ -23631,6 +23714,7 @@ export type Database = {
       vw_fato_frete: {
         Row: {
           canal: string | null
+          canal_contratacao: string | null
           custo_frete: number | null
           data_evento: string | null
           documento_ref: string | null
@@ -24238,6 +24322,7 @@ export type Database = {
       vw_logistica_rastreio: {
         Row: {
           canal: string | null
+          canal_contratacao: string | null
           classe_rastreio: string | null
           data_entrega: string | null
           devolucao: boolean | null
@@ -24707,14 +24792,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -25399,6 +25484,21 @@ export type Database = {
           origem_prod: string | null
           preco_atacado: number | null
           sku: string | null
+        }
+        Relationships: []
+      }
+      vw_produto_venda_periodo: {
+        Row: {
+          clientes: number | null
+          dias_observados: number | null
+          dias_sem_vender: number | null
+          pedidos: number | null
+          primeira_venda: string | null
+          receita: number | null
+          sku: string | null
+          ultima_venda: string | null
+          un_por_dia: number | null
+          un_vendidas: number | null
         }
         Relationships: []
       }
