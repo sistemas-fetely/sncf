@@ -344,9 +344,38 @@ function TabelaNegociar({ rows }: { rows: TriagemRow[] }) {
   );
 }
 
-function AcoesLinha({ r, mostrarPai }: { r: TriagemRow; mostrarPai?: boolean }) {
+function AcoesLinha({
+  r,
+  mostrarPai,
+  comMigrar,
+}: {
+  r: TriagemRow;
+  mostrarPai?: boolean;
+  comMigrar?: boolean;
+}) {
+  const [migrarOpen, setMigrarOpen] = useState(false);
+  const dias = Number(r.dias_atraso_max ?? 0);
+  const contexto = [
+    r.valor_vencido ? `${formatBRL(r.valor_vencido)} vencido` : null,
+    dias > 0 ? `${dias} dia(s) de atraso` : null,
+    r.valor_pago ? `${formatBRL(r.valor_pago)} já pago` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <div className="flex items-center justify-end gap-1">
+      {comMigrar && (
+        <Button
+          size="sm"
+          variant="default"
+          className="h-7 gap-1.5"
+          onClick={() => setMigrarOpen(true)}
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Migrar para Comercial
+        </Button>
+      )}
       {r.telefone && (
         <Button size="icon" variant="ghost" title={`Ligar: ${r.telefone}`} asChild>
           <a href={`tel:${r.telefone}`}>
@@ -373,6 +402,19 @@ function AcoesLinha({ r, mostrarPai }: { r: TriagemRow; mostrarPai?: boolean }) 
           <ExternalLink className="h-4 w-4" />
         </Link>
       </Button>
+
+      {comMigrar && (
+        <MigrarParaComercialDialog
+          open={migrarOpen}
+          onOpenChange={setMigrarOpen}
+          pedidoId={r.pedido_id}
+          idExterno={r.id_externo}
+          cliente={r.cliente}
+          origem="estoque_inadimplente"
+          contexto={contexto || null}
+          invalidateKeys={[["triagem-estoque"]]}
+        />
+      )}
     </div>
   );
 }
