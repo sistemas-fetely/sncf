@@ -182,7 +182,6 @@ const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 
 const CanalCPO = lazy(() => import("@/pages/CanalCPO"));
 const TesteFrete = lazy(() => import("@/pages/TesteFrete"));
-const TesteRastreio = lazy(() => import("@/pages/TesteRastreio"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
