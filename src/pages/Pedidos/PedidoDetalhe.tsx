@@ -223,7 +223,7 @@ function BotaoRetomarOportunidade({ pedido }: { pedido: any }) {
         pedidoId={pedido.id}
         idExterno={pedido.id_externo}
         cliente={pedido.parceiro_nome || pedido.cliente}
-        retomavelPara={pedido.retomavel_para}
+        retomavelPara={pedido.oportunidade_origem_estagio ?? pedido.retomavel_para}
       />
     </>
   );
