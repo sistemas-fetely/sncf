@@ -578,3 +578,94 @@ export function FilaPedidosPorArea({
     </div>
   );
 }
+
+function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
+  const status = p.pagamento_status;
+  const ref = p.pagamento_ref;
+  const refNota = ref === "pai" ? " · informação do pedido pai" : "";
+  const valorPago = Number(p.valor_pago || 0);
+  const valorVencido = Number(p.valor_vencido || 0);
+  const diasAtraso = Number(p.dias_atraso_max || 0);
+
+  const valorLine = <p className="font-semibold">{fmtBRL.format(p.valor_liquido)}</p>;
+  const condLine = (
+    <p className="text-[11px] text-muted-foreground">
+      {p.condicao_solicitada} · {p.forma_solicitada}
+    </p>
+  );
+
+  if (status === "vencido") {
+    return (
+      <>
+        {valorLine}
+        {condLine}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-block mt-1">
+                <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
+                  Vencido {diasAtraso}d
+                </Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">
+                {fmtBRL.format(valorVencido)} vencido{refNota}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </>
+    );
+  }
+
+  if (status === "pago") {
+    return (
+      <>
+        {valorLine}
+        {condLine}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-block mt-1">
+                <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-0 text-[10px] py-0 px-1.5">
+                  Pago
+                </Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Pagamento quitado{refNota}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </>
+    );
+  }
+
+  if (status === "parcial_em_dia") {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              {valorLine}
+              {condLine}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">
+              {fmtBRL.format(valorPago)} já pago · nada vencido{refNota}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <>
+      {valorLine}
+      {condLine}
+    </>
+  );
+}
