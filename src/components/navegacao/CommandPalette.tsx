@@ -16,7 +16,7 @@ import { useRecentes } from "@/hooks/useRecentes";
 import { useFavoritos } from "@/hooks/useFavoritos";
 import { supabase } from "@/integrations/supabase/client";
 
-type Pilar = "sncf" | "people" | "ti" | "admin" | "financas" | "marca" | "credito" | "sops";
+type Pilar = "sncf" | "people" | "ti" | "admin" | "financas" | "marca" | "credito" | "sops" | "comercial";
 
 interface PageItem {
   rota: string;
@@ -38,7 +38,7 @@ const ALL_PAGES: PageItem[] = [
   
   { rota: "/compras", titulo: "Compras", pilar: "sncf", icon: Receipt, tags: ["compras", "pedidos"] },
   { rota: "/credito", titulo: "Análise de Crédito", pilar: "credito", icon: CreditCard, tags: ["crédito", "análise", "limite"] },
-  { rota: "/comercial/estoque-virtual", titulo: "Estoque Virtual", pilar: "sops", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },
+  { rota: "/comercial/estoque-virtual", titulo: "Estoque Virtual", pilar: "comercial", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },
 
   // SOPs
   { rota: "/pedidos", titulo: "Pedidos", pilar: "sops", icon: ShoppingCart, tags: ["pedidos", "vendas", "ordens"] },
@@ -101,6 +101,7 @@ const PILAR_COLORS: Record<string, string> = {
   marca: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
   credito: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20",
   sops: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+  comercial: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
 };
 
 const PILAR_LABELS: Record<string, string> = {
@@ -112,6 +113,7 @@ const PILAR_LABELS: Record<string, string> = {
   marca: "Marca",
   credito: "Crédito",
   sops: "SOPs",
+  comercial: "Comercial",
 };
 
 interface AnaliseRow {

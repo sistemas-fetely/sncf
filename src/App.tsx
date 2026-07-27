@@ -312,13 +312,13 @@ const App = () => (
                 <Route path="/logistica" element={<Logistica />} />
                 <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
-                <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
 
                 <Route path="/canal-cpo" element={<CanalCPO />} />
               </Route>
 
               <Route element={<ComercialLayout />}>
                 <Route path="/comercial/oportunidades" element={<Oportunidades />} />
+                <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
               </Route>
 
 
