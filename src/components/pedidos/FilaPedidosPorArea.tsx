@@ -168,7 +168,7 @@ export function FilaPedidosPorArea({
       if (sb !== sa) return sb - sa;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, ordenacao, scoreMap, marcacaoFilter, formaPgtoFilter]);
+  }, [data, ordenacao, scoreMap, marcacaoFilter, formaPgtoFilter, situacaoFilter]);
 
   const formasPgtoDisponiveis = useMemo(() => {
     const set = new Set<string>();
