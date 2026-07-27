@@ -19,10 +19,9 @@ import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   ArrowUpRight,
+  Hourglass,
   Layers,
   PieChart,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
