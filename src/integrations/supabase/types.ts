@@ -22261,6 +22261,7 @@ export type Database = {
           categoria_ka: string | null
           condicao_solicitada: string | null
           data_pedido: string | null
+          dias_atraso_max: number | null
           estagio: string | null
           faturado_em: string | null
           forma_solicitada: string | null
@@ -22270,6 +22271,8 @@ export type Database = {
           marcacao: string | null
           nivel_programa: string | null
           origem: string | null
+          pagamento_ref: string | null
+          pagamento_status: string | null
           parceiro_cnpj: string | null
           parceiro_id: string | null
           parceiro_razao: string | null
@@ -22280,8 +22283,11 @@ export type Database = {
           recebido_via: string | null
           sla_estourado: boolean | null
           tipo_pagamento: string | null
+          valor_aberto: number | null
           valor_bruto: number | null
           valor_liquido: number | null
+          valor_pago: number | null
+          valor_vencido: number | null
           vendedor: string | null
         }
         Relationships: [
@@ -24220,14 +24226,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
