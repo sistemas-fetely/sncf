@@ -79,13 +79,20 @@ export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtiv
     staleTime: 30 * 1000,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { count, error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("v_pedidos_fila")
-        .select("id", { count: "exact", head: true })
+        .select("estagio")
         .eq("pagamento_status", "vencido")
         .neq("estagio", "cancelado");
       if (error) throw error;
-      return count ?? 0;
+      const rows = (data ?? []) as Array<{ estagio: string }>;
+      let ativos = 0;
+      let entregues = 0;
+      for (const r of rows) {
+        if (r.estagio === "entregue") entregues += 1;
+        else ativos += 1;
+      }
+      return { ativos, entregues };
     },
   });
 
