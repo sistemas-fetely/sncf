@@ -1,19 +1,45 @@
-Investigação apenas, sem alterações.
+Investigação read-only. Sem alterações a aplicar.
 
-## Consumo de `vw_produtos_estoque_virtual` (antiga)
-- `src/pages/Comercial/EstoqueVirtual.tsx:104` → `queryKey: ["vw_produtos_estoque_virtual"],`
-- `src/pages/Comercial/EstoqueVirtual.tsx:107` → `.from("vw_produtos_estoque_virtual")`
-- `src/integrations/supabase/types.ts:24988` → definição de tipo auto-gerada (não é consumo)
+## 1. Pastas `bling` em `supabase/functions/`
+- `enviar-pedido-bling`
+- `sincronizar-cache-bling`
+- `sync-bling-financeiro`
+- `sync-contato-bling`
 
-## Consumo de `vw_estoque` (nova)
-Nenhum consumo em páginas/hooks/componentes. Só aparece em `src/integrations/supabase/types.ts` como tipos auto-gerados:
-- linha 23267: `vw_estoque`
-- linha 23284: `vw_estoque_contabil`
-- linha 23291: `vw_estoque_por_local`
-- linha 23301: `vw_estoque_real`
-- linha 23309: `vw_estoque_shopify_sync`
+## 2. Criação/atualização de produtos no Bling
+**Não existe.** Nenhuma edge function faz `POST`/`PUT`/`PATCH` para `/produtos` do Bling. Os únicos writes ao Bling são `POST /pedidos/vendas` (enviar-pedido-bling:654) e `POST /contatos` (sync-contato-bling:154).
 
-## Conclusão
-Só `src/pages/Comercial/EstoqueVirtual.tsx` usa a view antiga. Nenhuma tela/hook consome `vw_estoque` ainda.
+Em `enviar-pedido-bling/index.ts` a lógica de "cria-se-não-acha" **foi removida**. Hoje só resolve por GET no código; se não achar, o guardrail bloqueia com HTTP 409. Trecho (linhas 475-527):
 
-Sem plano de mudança — aguardando instruções.
+```ts
+const acharPorCodigo = async (): Promise<number | null> => {
+  try {
+    const r = await client.get(`/produtos?codigo=${encodeURIComponent(skuTrim)}&limite=100`);
+    const m = (r?.data || []).find((p: any) => String(p.codigo || "").trim() === skuTrim);
+    if (m?.id) return m.id;
+  } catch (_) {}
+  try {
+    const r = await client.get(`/produtos?criterio=2&q=${encodeURIComponent(skuTrim)}&limite=100`);
+    const m = (r?.data || []).find((p: any) => String(p.codigo || "").trim() === skuTrim);
+    if (m?.id) return m.id;
+  } catch (_) {}
+  return null;
+};
+
+blingProdId = await acharPorCodigo();
+
+// NÃO cria produto no Bling. O "cria-se-não-acha" gerava lixo/duplicata no catálogo.
+// Se não achou pelo código, deixa não-resolvido → o guardrail FAIL-LOUD abaixo
+// bloqueia o envio e lista o SKU pra correção manual.
+
+// Guardrail:
+if (itensSemProdutoBling.length > 0) {
+  return err(
+    `${itensSemProdutoBling.length} produto(s) não encontrado(s) nem criado(s) no Bling — ` +
+    `verifique os logs do Bling e cadastre manualmente antes de reenviar: ${nomes}`,
+    409,
+  );
+}
+```
+
+`sincronizar-cache-bling` e `sync-bling-financeiro/sync-produtos.ts` só fazem `GET /produtos` para popular caches/espelho locais.
