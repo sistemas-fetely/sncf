@@ -189,6 +189,7 @@ export default function EstoqueVirtual() {
       nome: (p) => p.nome_comercial ?? "",
       contabil: (p) => (p.estoque_contabil == null ? Number.NEGATIVE_INFINITY : Number(p.estoque_contabil)),
       real: (p) => (p.estoque_real == null ? Number.NEGATIVE_INFINITY : Number(p.estoque_real)),
+      idade: (p) => (p.dias_desde_contagem == null ? Number.NEGATIVE_INFINITY : Number(p.dias_desde_contagem)),
       saude: (p) => (p.saude_divergencia == null ? Number.NEGATIVE_INFINITY : Number(p.saude_divergencia)),
       reservado: (p) => Number(p.reservado ?? 0),
       virtual: (p) => Number(p.estoque_virtual ?? 0),
