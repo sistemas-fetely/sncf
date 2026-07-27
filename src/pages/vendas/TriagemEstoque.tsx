@@ -355,14 +355,6 @@ function AcoesLinha({
   comMigrar?: boolean;
 }) {
   const [migrarOpen, setMigrarOpen] = useState(false);
-  const dias = Number(r.dias_atraso_max ?? 0);
-  const contexto = [
-    r.valor_vencido ? `${formatBRL(r.valor_vencido)} vencido` : null,
-    dias > 0 ? `${dias} dia(s) de atraso` : null,
-    r.valor_pago ? `${formatBRL(r.valor_pago)} já pago` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
 
   return (
     <div className="flex items-center justify-end gap-1">
