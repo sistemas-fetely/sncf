@@ -71,6 +71,17 @@ type NaturezaDim = {
   nome: string;
   ordem: number | null;
   ativo: boolean | null;
+  grupo_dre: string | null;
+};
+
+/** Grupo de DRE agregado a partir da dimensao — nao ha lista fixa no codigo. */
+type GrupoDre = {
+  chave: string;
+  label: string;
+  membros: string[];
+  codigos: string[];
+  ordem: number;
+  valor: number;
 };
 
 type Agrupamento = "natureza" | "plano" | "centro";
