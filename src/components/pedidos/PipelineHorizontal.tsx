@@ -79,13 +79,20 @@ export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtiv
     staleTime: 30 * 1000,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { count, error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("v_pedidos_fila")
-        .select("id", { count: "exact", head: true })
+        .select("estagio")
         .eq("pagamento_status", "vencido")
         .neq("estagio", "cancelado");
       if (error) throw error;
-      return count ?? 0;
+      const rows = (data ?? []) as Array<{ estagio: string }>;
+      let ativos = 0;
+      let entregues = 0;
+      for (const r of rows) {
+        if (r.estagio === "entregue") entregues += 1;
+        else ativos += 1;
+      }
+      return { ativos, entregues };
     },
   });
 
@@ -122,18 +129,24 @@ export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtiv
 
   return (
     <div className="space-y-2">
-      {(totalSla > 0 || (pagamentoVencido ?? 0) > 0) && (
-        <div className="flex items-center gap-4 text-xs">
+      {(totalSla > 0 || (pagamentoVencido?.ativos ?? 0) > 0 || (pagamentoVencido?.entregues ?? 0) > 0) && (
+        <div className="flex items-center gap-4 text-xs flex-wrap">
           {totalSla > 0 && (
             <div className="flex items-center gap-1.5 text-destructive">
               <AlertTriangle className="h-3.5 w-3.5" />
               {totalSla} com SLA estourado
             </div>
           )}
-          {(pagamentoVencido ?? 0) > 0 && (
+          {(pagamentoVencido?.ativos ?? 0) > 0 && (
             <div className="flex items-center gap-1.5 text-destructive">
               <AlertTriangle className="h-3.5 w-3.5" />
-              {pagamentoVencido} com pagamento vencido
+              {pagamentoVencido!.ativos} com pagamento vencido
+            </div>
+          )}
+          {(pagamentoVencido?.entregues ?? 0) > 0 && (
+            <div className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-0.5 text-destructive font-semibold ring-1 ring-destructive/30">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {pagamentoVencido!.entregues} entregues sem pagamento
             </div>
           )}
         </div>

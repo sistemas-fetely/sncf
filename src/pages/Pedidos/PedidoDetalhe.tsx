@@ -29,6 +29,7 @@ import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
 import { PedidoTarefasTab } from "@/components/pedidos/PedidoTarefasTab";
 import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
 import { EstagioBadge, FormatoIdade } from "@/components/pedidos/BadgesPedido";
+import { CardEntrega } from "@/components/pedidos/CardEntrega";
 import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
 import { BadgesContextuais } from "@/components/credito/BadgesContextuais";
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
@@ -1198,6 +1199,10 @@ export default function PedidoDetalhe() {
                   </Button>
                 </CardContent>
               </Card>
+            )}
+
+            {(estagio === "entregue" || estagio === "em_transporte") && id && (
+              <CardEntrega pedidoId={id} estagio={estagio} />
             )}
           </div>
 
