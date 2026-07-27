@@ -6764,6 +6764,13 @@ export type Database = {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
             columns: ["frete_vinculado_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_contradicao_entrega"
+            referencedColumns: ["frete_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
             referencedRelation: "vw_transp_fretes"
             referencedColumns: ["id"]
           },
@@ -19512,6 +19519,9 @@ export type Database = {
           nf_numeros: string[] | null
           ocorrencia_codigo: string | null
           ocorrencia_data: string | null
+          ocorrencia_ruido_data: string | null
+          ocorrencia_ruido_detectada_em: string | null
+          ocorrencia_ruido_texto: string | null
           ocorrencia_texto: string | null
           outros_valores: number | null
           pct_frete_nf: number | null
@@ -19567,6 +19577,9 @@ export type Database = {
           nf_numeros?: string[] | null
           ocorrencia_codigo?: string | null
           ocorrencia_data?: string | null
+          ocorrencia_ruido_data?: string | null
+          ocorrencia_ruido_detectada_em?: string | null
+          ocorrencia_ruido_texto?: string | null
           ocorrencia_texto?: string | null
           outros_valores?: number | null
           pct_frete_nf?: number | null
@@ -19622,6 +19635,9 @@ export type Database = {
           nf_numeros?: string[] | null
           ocorrencia_codigo?: string | null
           ocorrencia_data?: string | null
+          ocorrencia_ruido_data?: string | null
+          ocorrencia_ruido_detectada_em?: string | null
+          ocorrencia_ruido_texto?: string | null
           ocorrencia_texto?: string | null
           outros_valores?: number | null
           pct_frete_nf?: number | null
@@ -22867,6 +22883,13 @@ export type Database = {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
             columns: ["frete_vinculado_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_contradicao_entrega"
+            referencedColumns: ["frete_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
             referencedRelation: "vw_transp_fretes"
             referencedColumns: ["id"]
           },
@@ -24044,6 +24067,28 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_logistica_contradicao_entrega: {
+        Row: {
+          cte_numero: string | null
+          dias_desde_entrega: number | null
+          entrega_rastreio: string | null
+          frete_id: string | null
+          frete_total: number | null
+          minuta: string | null
+          nf_numero: string | null
+          nf_numeros: string[] | null
+          ocorrencia_classe: string | null
+          ocorrencia_codigo: string | null
+          ocorrencia_data: string | null
+          ocorrencia_terminal: boolean | null
+          ocorrencia_texto: string | null
+          prazo_entrega: string | null
+          status_rastreio: string | null
+          tipo_contradicao: string | null
+          transportadora: string | null
+        }
+        Relationships: []
+      }
       vw_logistica_custo_transportadora: {
         Row: {
           frete_medio: number | null
@@ -24137,6 +24182,21 @@ export type Database = {
             referencedColumns: ["conta_id"]
           },
         ]
+      }
+      vw_logistica_entrega_reconciliada: {
+        Row: {
+          data_entrega: string | null
+          entregue: boolean | null
+          fonte_entrega: string | null
+          fontes_divergem: boolean | null
+          nf_numero: string | null
+          ocorrencia_codigo: string | null
+          ocorrencia_texto: string | null
+          status_rastreio: string | null
+          tem_devolucao: boolean | null
+          transportadora_id: string | null
+        }
+        Relationships: []
       }
       vw_logistica_frete_mensal: {
         Row: {
@@ -24446,14 +24506,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
