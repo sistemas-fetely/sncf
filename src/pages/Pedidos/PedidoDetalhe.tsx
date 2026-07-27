@@ -44,7 +44,7 @@ import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialo
 import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
 import { RemessasSection } from "@/components/pedidos/RemessasSection";
 import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
-import { MigrarParaComercialDialog } from "@/components/comercial/MigrarParaComercialDialog";
+import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunidadeDialog";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
@@ -191,7 +191,7 @@ function BotaoMigrarComercial({ pedido }: { pedido: any }) {
         <Sparkles className="h-4 w-4" />
         Migrar para Oportunidade Comercial
       </Button>
-      <MigrarParaComercialDialog
+      <MigrarOportunidadeDialog
         open={open}
         onOpenChange={setOpen}
         pedidoId={pedido.id}
@@ -223,7 +223,7 @@ function BotaoRetomarOportunidade({ pedido }: { pedido: any }) {
         pedidoId={pedido.id}
         idExterno={pedido.id_externo}
         cliente={pedido.parceiro_nome || pedido.cliente}
-        retomavelPara={pedido.retomavel_para}
+        retomavelPara={pedido.oportunidade_origem_estagio ?? pedido.retomavel_para}
       />
     </>
   );

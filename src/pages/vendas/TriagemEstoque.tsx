@@ -17,7 +17,7 @@ import {
   ExternalLink, Mail, Phone, PackageOpen, Loader2, AlertCircle, Sparkles,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import { MigrarParaComercialDialog } from "@/components/comercial/MigrarParaComercialDialog";
+import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunidadeDialog";
 import { cn } from "@/lib/utils";
 
 interface TriagemRow {
@@ -152,8 +152,9 @@ export default function TriagemEstoque() {
           <p className="text-sm text-muted-foreground mb-3">
             Remessas cujo pedido pai tem parcela vencida. O sistema{" "}
             <span className="font-medium text-foreground">sugere</span> migrar para
-            Oportunidade Comercial, mas a decisão é do operador — use o botão em cada
-            linha.
+            Oportunidade Comercial, mas quem decide é o operador. Migrar{" "}
+            <span className="font-medium text-foreground">tira o pedido desta lista</span>{" "}
+            e o move para a fila do Comercial até alguém retomar.
           </p>
           <Card>
             <CardContent className="p-0">
@@ -354,14 +355,6 @@ function AcoesLinha({
   comMigrar?: boolean;
 }) {
   const [migrarOpen, setMigrarOpen] = useState(false);
-  const dias = Number(r.dias_atraso_max ?? 0);
-  const contexto = [
-    r.valor_vencido ? `${formatBRL(r.valor_vencido)} vencido` : null,
-    dias > 0 ? `${dias} dia(s) de atraso` : null,
-    r.valor_pago ? `${formatBRL(r.valor_pago)} já pago` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
 
   return (
     <div className="flex items-center justify-end gap-1">
@@ -404,15 +397,16 @@ function AcoesLinha({
       </Button>
 
       {comMigrar && (
-        <MigrarParaComercialDialog
+        <MigrarOportunidadeDialog
           open={migrarOpen}
           onOpenChange={setMigrarOpen}
           pedidoId={r.pedido_id}
           idExterno={r.id_externo}
           cliente={r.cliente}
           origem="estoque_inadimplente"
-          contexto={contexto || null}
-          invalidateKeys={[["triagem-estoque"]]}
+          valorVencido={r.valor_vencido}
+          diasAtraso={r.dias_atraso_max}
+          invalidateKeys={[["triagem-estoque"], ["oportunidades-comercial"]]}
         />
       )}
     </div>
