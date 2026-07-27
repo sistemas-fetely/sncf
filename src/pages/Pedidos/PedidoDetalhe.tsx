@@ -1216,6 +1216,22 @@ export default function PedidoDetalhe() {
                   >
                     {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
                   </Button>
+
+                  <CompararTransportadorasDialog
+                    open={compararOpen}
+                    onOpenChange={setCompararOpen}
+                    isLoading={freteComparativo.isFetching}
+                    data={freteComparativo.data}
+                    valorAtual={parseFloat(valorFrete) || 0}
+                    onEscolher={(opcao) => {
+                      if (opcao.transportadora_id) setTransportadoraId(opcao.transportadora_id);
+                      if (opcao.valor_estimado != null) setValorFrete(String(opcao.valor_estimado));
+                      setCompararOpen(false);
+                      toast.success(
+                        `${opcao.transportadora_nome} selecionada — ${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}. Confirme em Salvar.`,
+                      );
+                    }}
+                  />
                 </CardContent>
               </Card>
             )}
