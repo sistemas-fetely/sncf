@@ -11419,6 +11419,159 @@ export type Database = {
           },
         ]
       }
+      pagamento_alocacao: {
+        Row: {
+          conta_pagar_receber_id: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          movimentacao_bancaria_id: string
+          origem: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          conta_pagar_receber_id: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          movimentacao_bancaria_id: string
+          origem?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          conta_pagar_receber_id?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          movimentacao_bancaria_id?: string
+          origem?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_cpr_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_cartao_sugestoes"
+            referencedColumns: ["ofx_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["credito_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["debito_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2c_pedido"
+            referencedColumns: ["movimentacao_id"]
+          },
+        ]
+      }
       pagamentos_pj: {
         Row: {
           competencia: string
@@ -24792,14 +24945,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -25438,6 +25591,71 @@ export type Database = {
           },
         ]
       }
+      vw_produto_carteira_resumo: {
+        Row: {
+          abaixo_do_piso: number | null
+          capital_fragil: number | null
+          capital_lastreado: number | null
+          capital_sem_venda: number | null
+          cobertura_abaixo_30d: number | null
+          curva_a: number | null
+          curva_b: number | null
+          curva_c: number | null
+          custo_ausente: number | null
+          custo_interino: number | null
+          custo_real: number | null
+          estoque_com_razao: number | null
+          estoque_saldo_bling: number | null
+          janela_fim: string | null
+          janela_inicio: string | null
+          pct_cancelado: number | null
+          preco_divergente_bling: number | null
+          receita_cancelada: number | null
+          receita_periodo: number | null
+          sem_venda: number | null
+          skus_ativos: number | null
+        }
+        Relationships: []
+      }
+      vw_produto_cockpit: {
+        Row: {
+          abaixo_piso_b2b: boolean | null
+          abaixo_piso_b2c: boolean | null
+          capital_parado: number | null
+          clientes: number | null
+          cobertura_dias: number | null
+          colecao: string | null
+          cor_nome: string | null
+          curva: string | null
+          custo: number | null
+          custo_status: string | null
+          dias_desde_contagem: number | null
+          dias_sem_vender: number | null
+          estoque_base: number | null
+          estoque_virtual: number | null
+          grupo: string | null
+          linha: string | null
+          nome_comercial: string | null
+          pedidos: number | null
+          preco_b2b: number | null
+          preco_b2c: number | null
+          preco_divergente_bling: boolean | null
+          preco_no_bling: number | null
+          receita: number | null
+          receita_cancelada: number | null
+          reservado: number | null
+          resultado_pct_b2b: number | null
+          resultado_pct_b2c: number | null
+          sku: string | null
+          status_venda: string | null
+          tem_razao: boolean | null
+          ultima_venda: string | null
+          un_canceladas: number | null
+          un_por_dia: number | null
+          un_vendidas: number | null
+        }
+        Relationships: []
+      }
       vw_produto_crosswalk: {
         Row: {
           ativo: boolean | null
@@ -25495,8 +25713,10 @@ export type Database = {
           pedidos: number | null
           primeira_venda: string | null
           receita: number | null
+          receita_cancelada: number | null
           sku: string | null
           ultima_venda: string | null
+          un_canceladas: number | null
           un_por_dia: number | null
           un_vendidas: number | null
         }
