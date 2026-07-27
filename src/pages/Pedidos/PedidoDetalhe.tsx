@@ -54,7 +54,9 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale } from "lucide-react";
+import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
+import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
@@ -612,6 +614,8 @@ export default function PedidoDetalhe() {
   const camposEnvioPedidoIdRef = useRef<string | null>(null);
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
+  const freteComparativo = useFreteComparativo(id);
+  const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
