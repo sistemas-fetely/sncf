@@ -17,7 +17,7 @@ import {
   ExternalLink, Mail, Phone, PackageOpen, Loader2, AlertCircle, Sparkles,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import { MigrarParaComercialDialog } from "@/components/comercial/MigrarParaComercialDialog";
+import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunidadeDialog";
 import { cn } from "@/lib/utils";
 
 interface TriagemRow {
