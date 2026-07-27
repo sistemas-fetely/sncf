@@ -12,18 +12,31 @@ function fmtDataCurta(iso: string | null): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
-export function statusBadge(classe: string | null | undefined) {
+export function statusBadge(
+  classe: string | null | undefined,
+  ocorrenciaTexto?: string | null,
+) {
   switch (classe) {
     case "entregue":
-      return { label: "Entregue", cls: "bg-success/15 text-success border-success/30" };
+      return { label: "Entregue", cls: "bg-success/15 text-success border-success/30", title: undefined as string | undefined };
     case "em_transito":
-      return { label: "Em trânsito", cls: "bg-info/15 text-info border-info/30" };
+      return { label: "Em trânsito", cls: "bg-info/15 text-info border-info/30", title: undefined };
     case "coletado":
-      return { label: "Coletado", cls: "bg-muted text-muted-foreground border-border" };
+      return { label: "Coletado", cls: "bg-muted text-muted-foreground border-border", title: undefined };
     case "atencao":
-      return { label: "Atenção", cls: "bg-destructive/15 text-destructive border-destructive/30" };
-    default:
-      return { label: classe ?? "—", cls: "bg-muted text-muted-foreground border-border" };
+      return { label: "Atenção", cls: "bg-destructive/15 text-destructive border-destructive/30", title: undefined };
+    default: {
+      const txt = (ocorrenciaTexto ?? "").trim();
+      if (txt) {
+        const label = txt.length > 28 ? txt.slice(0, 27) + "…" : txt;
+        return {
+          label,
+          cls: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+          title: txt,
+        };
+      }
+      return { label: classe ?? "—", cls: "bg-muted text-muted-foreground border-border", title: undefined };
+    }
   }
 }
 
