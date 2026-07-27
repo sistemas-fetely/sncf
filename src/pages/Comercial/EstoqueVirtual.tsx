@@ -30,6 +30,9 @@ interface EstoqueSku {
   estoque_minimo: number;
   saude_divergencia: number | null;
   status_venda: "disponivel" | "baixo" | "indisponivel";
+  contagem_em: string | null;
+  dias_desde_contagem: number | null;
+  movimento_desde_contagem: number | null;
 }
 
 type Col =
