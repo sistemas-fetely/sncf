@@ -19,10 +19,9 @@ import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   ArrowUpRight,
+  Hourglass,
   Layers,
   PieChart,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,6 +71,17 @@ type NaturezaDim = {
   nome: string;
   ordem: number | null;
   ativo: boolean | null;
+  grupo_dre: string | null;
+};
+
+/** Grupo de DRE agregado a partir da dimensao — nao ha lista fixa no codigo. */
+type GrupoDre = {
+  chave: string;
+  label: string;
+  membros: string[];
+  codigos: string[];
+  ordem: number;
+  valor: number;
 };
 
 type Agrupamento = "natureza" | "plano" | "centro";
@@ -80,13 +90,20 @@ const A_CLASSIFICAR = "__a_classificar__";
 const SEM_CLASSIFICACAO = "__sem__";
 
 /**
- * Agregados de DRE gerencial. Semântica de negócio que ainda não existe como
- * coluna na dimensão — quando `naturezas_investimento` ganhar um `grupo_dre`,
- * estes três arrays saem daqui e passam a ser lidos da tabela.
+ * Rotulo de exibicao dos grupos de DRE. Isto e COSMETICO: o agrupamento em si
+ * vem de naturezas_investimento.grupo_dre, e a ordem de MIN(ordem) do grupo.
+ * Grupo novo cadastrado no banco gera card sozinho, com o codigo capitalizado
+ * como rotulo — sem quebrar nada e sem exigir deploy.
  */
-const CODIGOS_OPERACIONAL = ["opex", "cmv", "variavel_venda"];
-const CODIGOS_CAPEX = ["capex_imobilizado", "capex_intangivel"];
-const CODIGOS_ESTRUTURANTE = ["estruturante"];
+const GRUPO_DRE_LABEL: Record<string, string> = {
+  operacional: "Resultado Operacional",
+  capex: "CAPEX",
+  estruturante: "Estruturante",
+};
+
+function labelGrupoDre(chave: string): string {
+  return GRUPO_DRE_LABEL[chave] ?? chave.charAt(0).toUpperCase() + chave.slice(1);
+}
 
 const ORIGEM_LABEL: Record<string, string> = {
   nf: "NF",
@@ -125,11 +142,6 @@ function competenciaAtualISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-function mesAnteriorISO(iso: string): string {
-  const [y, m] = iso.split("-").map(Number);
-  const d = new Date(y, m - 2, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
 
 function labelMesCurto(iso: string): string {
   const [y, m] = iso.split("-");
@@ -190,7 +202,7 @@ export default function CaixaBanco() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("naturezas_investimento")
-        .select("codigo, nome, ordem, ativo")
+        .select("codigo, nome, ordem, ativo, grupo_dre")
         .eq("ativo", true)
         .order("ordem", { ascending: true });
       if (error) throw error;
@@ -303,35 +315,78 @@ export default function CaixaBanco() {
 
   /** KPIs do período todo — independentes do agrupamento escolhido. */
   const kpis = useMemo(() => {
-    const somaDe = (codigos: string[]) =>
-      linhas
-        .filter((l) => l.natureza_codigo && codigos.includes(l.natureza_codigo))
-        .reduce((s, l) => s + Number(l.valor || 0), 0);
-
     const total = linhas.reduce((s, l) => s + Number(l.valor || 0), 0);
     const n = linhas.length;
     const completas = linhas.filter(
       (l) => l.plano_contas_id && l.centro_custo_id && l.natureza_investimento_id,
     ).length;
-
     return {
       total,
       n,
-      operacional: somaDe(CODIGOS_OPERACIONAL),
-      capex: somaDe(CODIGOS_CAPEX),
-      estruturante: somaDe(CODIGOS_ESTRUTURANTE),
       completas,
       pctCompletas: n > 0 ? Math.round((completas / n) * 100) : 100,
     };
   }, [linhas]);
 
+  /**
+   * Grupos de DRE montados a partir de naturezas_investimento.grupo_dre.
+   * Ordem do grupo = MIN(ordem) das naturezas que o compoem; subtitulo =
+   * nomes das naturezas na ordem da dimensao. Nada fixo no codigo.
+   */
+  const gruposDre = useMemo<GrupoDre[]>(() => {
+    const porGrupo = new Map<string, GrupoDre>();
+    const ordenadas = [...naturezas].sort(
+      (a, b) => (a.ordem ?? 999) - (b.ordem ?? 999),
+    );
+    for (const ni of ordenadas) {
+      const chave = ni.grupo_dre;
+      if (!chave) continue;
+      let g = porGrupo.get(chave);
+      if (!g) {
+        g = {
+          chave,
+          label: labelGrupoDre(chave),
+          membros: [],
+          codigos: [],
+          ordem: ni.ordem ?? 999,
+          valor: 0,
+        };
+        porGrupo.set(chave, g);
+      }
+      g.membros.push(ni.nome);
+      g.codigos.push(ni.codigo);
+    }
+    for (const l of linhas) {
+      if (!l.natureza_codigo) continue;
+      for (const g of porGrupo.values()) {
+        if (g.codigos.includes(l.natureza_codigo)) {
+          g.valor += Number(l.valor || 0);
+          break;
+        }
+      }
+    }
+    return Array.from(porGrupo.values()).sort((a, b) => a.ordem - b.ordem);
+  }, [naturezas, linhas]);
+
   const mesCorrente = competenciaAtualISO();
   const totalCorrente = totaisMes.get(mesCorrente) || 0;
-  const totalAnterior = totaisMes.get(mesAnteriorISO(mesCorrente)) || 0;
-  const variacao =
-    totalAnterior > 0 && totalCorrente > 0
-      ? ((totalCorrente - totalAnterior) / totalAnterior) * 100
-      : null;
+
+  /**
+   * O mes corrente NAO recebe comparacao percentual. data_competencia e
+   * competencia, nao caixa: NF com competencia deste mes ainda vai chegar
+   * depois que o mes acabar. Comparar com mes anterior fechado seria falsa
+   * precisao. Em vez de %, mostramos o sinal de formacao: quantas linhas do
+   * mes ainda esperam documento ou classificacao.
+   */
+  const formacaoMes = useMemo(() => {
+    const doMes = linhas.filter(
+      (l) => l.data_competencia && competenciaKey(l.data_competencia) === mesCorrente,
+    );
+    const pendentes = doMes.filter(
+      (l) => l.estagio === "sem_documento" || l.estagio === "a_classificar",
+    );
+    return { n: doMes.length, pendentes: pendentes.length };
+  }, [linhas, mesCorrente]);
 
   // Drill-down
   const drillItens = useMemo<DespesaV2[]>(() => {
@@ -432,65 +487,37 @@ export default function CaixaBanco() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            {gruposDre.map((g) => (
+              <Card key={g.chave}>
+                <CardContent className="p-4">
+                  <div className="text-xs text-muted-foreground">{g.label}</div>
+                  <div className="text-2xl font-bold font-mono mt-1">
+                    {formatBRL(g.valor)}
+                  </div>
+                  <div
+                    className="text-[11px] text-muted-foreground mt-0.5 truncate"
+                    title={g.membros.join(" + ")}
+                  >
+                    {g.membros.join(" + ")}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            <Card className="border-dashed">
               <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">Resultado Operacional</div>
-                <div className="text-2xl font-bold font-mono mt-1">
-                  {formatBRL(kpis.operacional)}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  OPEX + CMV + Variável
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">CAPEX</div>
-                <div className="text-2xl font-bold font-mono mt-1">
-                  {formatBRL(kpis.capex)}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Imobilizado + Intangível
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">Estruturante</div>
-                <div className="text-2xl font-bold font-mono mt-1">
-                  {formatBRL(kpis.estruturante)}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Projeto</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
                   {labelMesLongo(mesCorrente)}
+                  <Hourglass className="h-3 w-3" />
                 </div>
                 <div className="text-2xl font-bold font-mono mt-1">
                   {formatBRL(totalCorrente)}
                 </div>
-                {variacao !== null ? (
-                  <div
-                    className={cn(
-                      "text-[11px] mt-0.5 flex items-center gap-1",
-                      variacao > 0 ? "text-red-600" : "text-emerald-600",
-                    )}
-                  >
-                    {variacao > 0 ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3" />
-                    )}
-                    {variacao > 0 ? "+" : ""}
-                    {variacao.toFixed(1)}% vs mês anterior
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    mês corrente
-                  </div>
-                )}
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  competência em formação
+                  {formacaoMes.pendentes > 0 && (
+                    <> · {formacaoMes.pendentes} de {formacaoMes.n} sem documento ou classificação</>
+                  )}
+                </div>
               </CardContent>
             </Card>
             <Card className={cn(kpis.pctCompletas < 100 && "border-amber-300 bg-amber-50/50")}>
