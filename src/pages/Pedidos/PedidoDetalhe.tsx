@@ -1169,6 +1169,21 @@ export default function PedidoDetalhe() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="col-span-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-full"
+                        onClick={() => {
+                          setCompararOpen(true);
+                          freteComparativo.refetch();
+                        }}
+                      >
+                        <Scale className="h-3.5 w-3.5 mr-1.5" />
+                        Comparar transportadoras
+                      </Button>
+                    </div>
                     <div>
                       <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor frete (R$)</label>
                       <input type="number" step="0.01" min="0" value={valorFrete} onChange={(e) => setValorFrete(e.target.value)} placeholder="0,00" className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring" />
