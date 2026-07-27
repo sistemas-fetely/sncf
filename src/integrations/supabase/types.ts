@@ -9910,6 +9910,7 @@ export type Database = {
           ativo: boolean
           codigo: string
           created_at: string
+          grupo_dre: string
           id: string
           nome: string
           ordem: number
@@ -9918,6 +9919,7 @@ export type Database = {
           ativo?: boolean
           codigo: string
           created_at?: string
+          grupo_dre: string
           id?: string
           nome: string
           ordem?: number
@@ -9926,6 +9928,7 @@ export type Database = {
           ativo?: boolean
           codigo?: string
           created_at?: string
+          grupo_dre?: string
           id?: string
           nome?: string
           ordem?: number
@@ -24443,14 +24446,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
