@@ -749,9 +749,9 @@ interface SncfProdutoDetalhe {
   colecao: string | null;
   grupo: string | null;
   cor_nome: string | null;
-  tamanho: string | null;
+  tamanho_numero: string | null;
   material: string | null;
-  embalagem: string | null;
+  tipo_embalagem: string | null;
   peso_g: number | null;
   multiplos: number | null;
   altura_cm: number | null;
@@ -759,8 +759,8 @@ interface SncfProdutoDetalhe {
   profundidade_cm: number | null;
   ncm: string | null;
   cest: string | null;
-  origem_fiscal: string | null;
-  origem_produto: string | null;
+  origem_fisc: string | null;
+  origem_prod: string | null;
 }
 
 interface MovimentacaoRow {
