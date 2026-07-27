@@ -1685,6 +1685,12 @@ export default function PedidoDetalhe() {
                   </Button>
                 </AtencaoPedidoDialog>
               )}
+              {estagio === "recuperacao_venda" && (
+                <BotaoRetomarOportunidade pedido={pedido} />
+              )}
+              {!estagioFinal && (
+                <BotaoMigrarComercial pedido={pedido} />
+              )}
               {!estagioFinal && (
                 <div className="pt-3 mt-1 border-t border-border/40">
                   <CancelarPedidoDialog
