@@ -19,11 +19,10 @@ import {
 import { SortableTableHead, type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
 import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  RefreshCw, Search, AlertTriangle, XCircle, Copy, Info,
+  RefreshCw, Search, AlertTriangle, XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
-import { toast } from "sonner";
 
 // ─────────────────────────────────────────────────────────────
 // Tipos
