@@ -105,12 +105,11 @@ export const CASA_APPS: CasaApp[] = [
   {
     id: "comercial",
     label: "Comercial",
-    defaultRoute: "/comercial/estoque-virtual",
-    routeMatchers: ["/comercial"],
+    defaultRoute: "/comercial/oportunidades",
+    routeMatchers: ["/comercial/oportunidades"],
     icon: Boxes,
     permModule: null,
     tela_slug: "tela.comercial",
-    hiddenFromTopNav: true,
   },
   {
     id: "acervo",
