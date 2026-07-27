@@ -487,65 +487,37 @@ export default function CaixaBanco() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            {gruposDre.map((g) => (
+              <Card key={g.chave}>
+                <CardContent className="p-4">
+                  <div className="text-xs text-muted-foreground">{g.label}</div>
+                  <div className="text-2xl font-bold font-mono mt-1">
+                    {formatBRL(g.valor)}
+                  </div>
+                  <div
+                    className="text-[11px] text-muted-foreground mt-0.5 truncate"
+                    title={g.membros.join(" + ")}
+                  >
+                    {g.membros.join(" + ")}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            <Card className="border-dashed">
               <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">Resultado Operacional</div>
-                <div className="text-2xl font-bold font-mono mt-1">
-                  {formatBRL(kpis.operacional)}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  OPEX + CMV + Variável
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">CAPEX</div>
-                <div className="text-2xl font-bold font-mono mt-1">
-                  {formatBRL(kpis.capex)}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Imobilizado + Intangível
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">Estruturante</div>
-                <div className="text-2xl font-bold font-mono mt-1">
-                  {formatBRL(kpis.estruturante)}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Projeto</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
                   {labelMesLongo(mesCorrente)}
+                  <Hourglass className="h-3 w-3" />
                 </div>
                 <div className="text-2xl font-bold font-mono mt-1">
                   {formatBRL(totalCorrente)}
                 </div>
-                {variacao !== null ? (
-                  <div
-                    className={cn(
-                      "text-[11px] mt-0.5 flex items-center gap-1",
-                      variacao > 0 ? "text-red-600" : "text-emerald-600",
-                    )}
-                  >
-                    {variacao > 0 ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3" />
-                    )}
-                    {variacao > 0 ? "+" : ""}
-                    {variacao.toFixed(1)}% vs mês anterior
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    mês corrente
-                  </div>
-                )}
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  competência em formação
+                  {formacaoMes.pendentes > 0 && (
+                    <> · {formacaoMes.pendentes} de {formacaoMes.n} sem documento ou classificação</>
+                  )}
+                </div>
               </CardContent>
             </Card>
             <Card className={cn(kpis.pctCompletas < 100 && "border-amber-300 bg-amber-50/50")}>
