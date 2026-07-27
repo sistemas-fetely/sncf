@@ -738,8 +738,85 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
 }
 
 // ─────────────────────────────────────────────────────────────
-// Painel do SKU (placeholder — detalhe vem no próximo prompt)
+// Painel do SKU (Nível 3)
 // ─────────────────────────────────────────────────────────────
+
+const ESTAGIOS_NAO_RESERVAM = new Set([
+  "cancelado", "entregue", "em_transporte", "recuperacao_venda",
+]);
+
+interface SncfProdutoDetalhe {
+  sku: string;
+  ean: string | null;
+  nome_comercial: string | null;
+  nome_completo: string | null;
+  marca: string | null;
+  linha: string | null;
+  colecao: string | null;
+  grupo: string | null;
+  tipo: string | null;
+  cor_nome: string | null;
+  tamanho_numero: string | null;
+  material: string | null;
+  tipo_embalagem: string | null;
+  peso_g: number | null;
+  multiplos: number | null;
+  altura_cm: number | null;
+  largura_cm: number | null;
+  profundidade_cm: number | null;
+  ncm: string | null;
+  cest: string | null;
+  origem_fisc: string | null;
+  origem_prod: string | null;
+}
+
+interface MovRow {
+  data_mov: string | null;
+  tipo: string | null;
+  quantidade: number | null;
+  origem: string | null;
+  referencia: string | null;
+  obs: string | null;
+}
+
+interface ReservaRow {
+  quantidade: number | null;
+  pedidos: {
+    id_externo: string | null;
+    estagio: string | null;
+    parceiro_id: string | null;
+    parceiros_comerciais: {
+      nome_fantasia: string | null;
+      razao_social: string | null;
+    } | null;
+  } | null;
+}
+
+function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-6">
+      <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
+        {titulo}
+      </h3>
+      <div className="h-px bg-border mb-3" />
+      {children}
+    </section>
+  );
+}
+
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={className}>
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-sm mt-0.5">{children}</div>
+    </div>
+  );
+}
+
+function ou(v: string | number | null | undefined) {
+  if (v === null || v === undefined || v === "") return <span className="text-muted-foreground">—</span>;
+  return v;
+}
 
 function PainelSku({
   sku, rowCache, onClose,
@@ -751,6 +828,75 @@ function PainelSku({
 }) {
   const open = sku != null;
   const row = sku ? rowCache.find((r) => r.sku === sku) ?? null : null;
+
+  const { data: cadastro, isLoading: loadingCad } = useQuery({
+    queryKey: ["cockpit-sku-cadastro", sku],
+    enabled: !!sku,
+    queryFn: async (): Promise<SncfProdutoDetalhe | null> => {
+      const { data, error } = await supabase
+        .from("sncf_produtos")
+        .select("*")
+        .eq("sku", sku!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as SncfProdutoDetalhe) ?? null;
+    },
+  });
+
+  const { data: movs, isLoading: loadingMov } = useQuery({
+    queryKey: ["cockpit-sku-mov", sku],
+    enabled: !!sku,
+    queryFn: async (): Promise<MovRow[]> => {
+      const { data, error } = await supabase
+        .from("movimentacao_estoque")
+        .select("data_mov,tipo,quantidade,origem,referencia,obs")
+        .eq("sku", sku!)
+        .order("data_mov", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data as MovRow[]) ?? [];
+    },
+  });
+
+  const { data: reservas, isLoading: loadingRes } = useQuery({
+    queryKey: ["cockpit-sku-reservas", sku],
+    enabled: !!sku,
+    queryFn: async (): Promise<ReservaRow[]> => {
+      const { data, error } = await supabase
+        .from("pedido_itens")
+        .select("quantidade, pedidos!inner(id_externo, estagio, parceiro_id, parceiros_comerciais(nome_fantasia, razao_social))")
+        .eq("sku", sku!)
+        .limit(50);
+      if (error) throw error;
+      const rows = (data as unknown as ReservaRow[]) ?? [];
+      return rows
+        .filter((r) => r.pedidos && !ESTAGIOS_NAO_RESERVAM.has(r.pedidos.estagio ?? ""))
+        .slice(0, 20);
+    },
+  });
+
+  function copiarSolicitacao() {
+    if (!sku) return;
+    const hoje = new Date().toLocaleDateString("pt-BR");
+    const texto = `Correção de cadastro — FOP
+SKU: ${sku}
+Produto: ${row?.nome_comercial ?? ""}
+Campo a corrigir: 
+Valor atual: 
+Valor correto: 
+Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
+    navigator.clipboard.writeText(texto).then(
+      () => toast.success("Solicitação copiada"),
+      () => toast.error("Não foi possível copiar"),
+    );
+  }
+
+  const dimensoes = cadastro
+    ? [cadastro.altura_cm, cadastro.largura_cm, cadastro.profundidade_cm].some((v) => v != null)
+      ? `${cadastro.altura_cm ?? "—"} × ${cadastro.largura_cm ?? "—"} × ${cadastro.profundidade_cm ?? "—"} cm`
+      : null
+    : null;
+
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
@@ -760,12 +906,211 @@ function PainelSku({
               <SheetTitle className="font-mono text-sm">{sku}</SheetTitle>
               <SheetDescription>{row?.nome_comercial ?? ""}</SheetDescription>
             </SheetHeader>
-            <div className="mt-8 rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-              Painel de detalhe em breve.
-            </div>
+
+            {/* 1. Cadastro (FOP) */}
+            <Secao titulo="Cadastro (FOP)">
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 mb-3 flex items-start justify-between gap-3">
+                <span>Cadastro e preço são do FOP. Correções devem ser feitas lá e refletem aqui automaticamente.</span>
+                <Button size="sm" variant="outline" onClick={copiarSolicitacao} className="shrink-0 h-7 gap-1.5">
+                  <Copy className="h-3 w-3" />
+                  Copiar solicitação de correção
+                </Button>
+              </div>
+              {loadingCad ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <Field label="SKU"><span className="font-mono">{cadastro?.sku ?? sku}</span></Field>
+                  <Field label="EAN">{ou(cadastro?.ean)}</Field>
+                  <Field label="Nome completo" className="col-span-2">{ou(cadastro?.nome_completo)}</Field>
+                  <Field label="Marca">{ou(cadastro?.marca)}</Field>
+                  <Field label="Linha">{ou(cadastro?.linha)}</Field>
+                  <Field label="Coleção">{ou(cadastro?.colecao)}</Field>
+                  <Field label="Grupo">{ou(cadastro?.grupo)}</Field>
+                  <Field label="Tipo">{ou(cadastro?.tipo)}</Field>
+                  <Field label="Cor">{ou(cadastro?.cor_nome)}</Field>
+                  <Field label="Tamanho">{ou(cadastro?.tamanho_numero)}</Field>
+                  <Field label="Material">{ou(cadastro?.material)}</Field>
+                  <Field label="Embalagem">{ou(cadastro?.tipo_embalagem)}</Field>
+                  <Field label="Peso">{cadastro?.peso_g != null ? `${cadastro.peso_g} g` : ou(null)}</Field>
+                  <Field label="Múltiplos">{ou(cadastro?.multiplos)}</Field>
+                  <Field label="Dimensões (A × L × P)" className="col-span-2">{ou(dimensoes)}</Field>
+                </div>
+              )}
+            </Secao>
+
+            {/* 2. Fiscal */}
+            <Secao titulo="Fiscal">
+              {loadingCad ? (
+                <Skeleton className="h-16" />
+              ) : (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <Field label="NCM">{ou(cadastro?.ncm)}</Field>
+                  <Field label="CEST">{ou(cadastro?.cest)}</Field>
+                  <Field label="Origem fiscal">{ou(cadastro?.origem_fisc)}</Field>
+                  <Field label="Origem produto">{ou(cadastro?.origem_prod)}</Field>
+                </div>
+              )}
+            </Secao>
+
+            {/* 3. Comercial */}
+            <Secao titulo="Comercial">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <Field label="Preço B2B">{row?.preco_b2b != null ? formatBRL(row.preco_b2b) : ou(null)}</Field>
+                <Field label="Preço B2C">{row?.preco_b2c != null ? formatBRL(row.preco_b2c) : ou(null)}</Field>
+                <Field label="Custo">
+                  <span className="inline-flex items-center gap-2">
+                    {row?.custo != null ? formatBRL(row.custo) : ou(null)}
+                    {row?.custo_status === "interino" && (
+                      <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">int.</Badge>
+                    )}
+                    {row?.custo_status === "ausente" && (
+                      <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20">s/ custo</Badge>
+                    )}
+                  </span>
+                </Field>
+                <Field label="Margem B2B">
+                  <span className={cn(row?.abaixo_piso_b2b && "text-red-600 dark:text-red-400 font-medium")}>
+                    {formatPct(row?.resultado_pct_b2b)}
+                    {row?.abaixo_piso_b2b && <span className="text-xs ml-1">(abaixo do piso)</span>}
+                  </span>
+                </Field>
+                <Field label="Margem B2C">
+                  <span className={cn(row?.abaixo_piso_b2c && "text-red-600 dark:text-red-400 font-medium")}>
+                    {formatPct(row?.resultado_pct_b2c)}
+                    {row?.abaixo_piso_b2c && <span className="text-xs ml-1">(abaixo do piso)</span>}
+                  </span>
+                </Field>
+              </div>
+              {row?.preco_divergente_bling && (
+                <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                  Preço divergente: FOP {row.preco_b2c != null ? formatBRL(row.preco_b2c) : "—"} · Bling {row.preco_no_bling != null ? formatBRL(row.preco_no_bling) : "—"}. A correção é no FOP.
+                </div>
+              )}
+            </Secao>
+
+            {/* 4. Venda */}
+            <Secao titulo="Venda">
+              {!row?.un_vendidas ? (
+                <p className="text-sm text-muted-foreground">Este SKU nunca vendeu.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <Field label="Un. vendidas">{formatNum(row.un_vendidas)}</Field>
+                  <Field label="Receita">{formatBRL(row.receita ?? 0)}</Field>
+                  <Field label="Pedidos">{formatNum(row.pedidos)}</Field>
+                  <Field label="Clientes">{formatNum(row.clientes)}</Field>
+                  <Field label="Última venda">{formatDateBR(row.ultima_venda)}</Field>
+                  <Field label="Dias sem vender">{row.dias_sem_vender != null ? `${row.dias_sem_vender} dias` : ou(null)}</Field>
+                  <Field label="Un / dia">{row.un_por_dia != null ? formatNum(row.un_por_dia, 2) : ou(null)}</Field>
+                  <Field label="Un. canceladas">{formatNum(row.un_canceladas)}</Field>
+                  <Field label="Receita cancelada" className="col-span-2">{formatBRL(row.receita_cancelada ?? 0)}</Field>
+                </div>
+              )}
+            </Secao>
+
+            {/* 5. Estoque */}
+            <Secao titulo="Estoque">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <Field label="Base">{formatNum(row?.estoque_base)}</Field>
+                <Field label="Reservado">{formatNum(row?.reservado)}</Field>
+                <Field label="Virtual">
+                  <span className={cn((row?.estoque_virtual ?? 0) < 0 && "text-red-600 dark:text-red-400 font-medium")}>
+                    {formatNum(row?.estoque_virtual)}
+                  </span>
+                </Field>
+                <Field label="Fonte">
+                  {row?.tem_razao ? (
+                    <span className="text-emerald-700 dark:text-emerald-400">Razão SNCF</span>
+                  ) : (
+                    <span className="text-amber-700 dark:text-amber-400">Saldo Bling — não lastreado</span>
+                  )}
+                </Field>
+                <Field label="Status">{ou(row?.status_venda)}</Field>
+                <Field label="Dias desde contagem">{row?.dias_desde_contagem != null ? `${row.dias_desde_contagem}d` : ou(null)}</Field>
+                <Field label="Cobertura">{row?.cobertura_dias != null ? `${row.cobertura_dias}d` : ou(null)}</Field>
+                <Field label="Capital parado">{row?.capital_parado != null ? formatBRL(row.capital_parado) : ou(null)}</Field>
+              </div>
+            </Secao>
+
+            {/* 6. Movimentação no razão */}
+            <Secao titulo="Movimentação no razão">
+              {loadingMov ? (
+                <Skeleton className="h-24" />
+              ) : !movs || movs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem movimentação no razão — SKU ainda não onboardado por contagem.</p>
+              ) : (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="h-8 text-xs">Data</TableHead>
+                        <TableHead className="h-8 text-xs">Tipo</TableHead>
+                        <TableHead className="h-8 text-xs text-right">Qtd</TableHead>
+                        <TableHead className="h-8 text-xs">Origem</TableHead>
+                        <TableHead className="h-8 text-xs">Ref.</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {movs.map((m, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-xs py-1.5">{formatDateBRShort(m.data_mov)}</TableCell>
+                          <TableCell className="text-xs py-1.5">{m.tipo ?? "—"}</TableCell>
+                          <TableCell className={cn("text-xs py-1.5 text-right tabular-nums", (m.quantidade ?? 0) < 0 && "text-red-600 dark:text-red-400")}>
+                            {formatNum(m.quantidade)}
+                          </TableCell>
+                          <TableCell className="text-xs py-1.5">{m.origem ?? "—"}</TableCell>
+                          <TableCell className="text-xs py-1.5 max-w-[140px] truncate" title={m.referencia ?? ""}>{m.referencia ?? "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </Secao>
+
+            {/* 7. Pedidos reservando */}
+            <Secao titulo="Pedidos reservando">
+              {loadingRes ? (
+                <Skeleton className="h-24" />
+              ) : !reservas || reservas.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum pedido reservando este SKU.</p>
+              ) : (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="h-8 text-xs">Pedido</TableHead>
+                        <TableHead className="h-8 text-xs">Cliente</TableHead>
+                        <TableHead className="h-8 text-xs text-right">Qtd</TableHead>
+                        <TableHead className="h-8 text-xs">Estágio</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reservas.map((r, i) => {
+                        const cli = r.pedidos?.parceiros_comerciais;
+                        const cliente = cli?.nome_fantasia ?? cli?.razao_social ?? "—";
+                        return (
+                          <TableRow key={i}>
+                            <TableCell className="text-xs py-1.5 font-mono">{r.pedidos?.id_externo ?? "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5 max-w-[180px] truncate" title={cliente}>{cliente}</TableCell>
+                            <TableCell className="text-xs py-1.5 text-right tabular-nums">{formatNum(r.quantidade)}</TableCell>
+                            <TableCell className="text-xs py-1.5">{r.pedidos?.estagio ?? "—"}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </Secao>
+
+            <div className="h-8" />
           </>
         )}
       </SheetContent>
     </Sheet>
   );
 }
+
