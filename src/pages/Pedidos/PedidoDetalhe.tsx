@@ -44,6 +44,8 @@ import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialo
 import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
 import { RemessasSection } from "@/components/pedidos/RemessasSection";
 import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
+import { MigrarParaComercialDialog } from "@/components/comercial/MigrarParaComercialDialog";
+import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
