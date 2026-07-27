@@ -681,6 +681,8 @@ const App = () => (
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
               <Route path="/rastreamento" element={<Navigate to="/logistica" replace />} />
+              <Route path="/teste-frete" element={<Navigate to="/ti/diagnosticos/teste-frete" replace />} />
+              <Route path="/teste-rastreio" element={<Navigate to="/ti/diagnosticos/teste-frete" replace />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
