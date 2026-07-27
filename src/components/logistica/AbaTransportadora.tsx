@@ -81,7 +81,11 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
           )}
         </TabsContent>
         <TabsContent value="faturas" className="mt-4">
-          <FaturasConciliacao transportadoraId={transportadora.id} transportadoraNome={nome} />
+          <FaturasConciliacao
+            transportadoraId={transportadora.id}
+            transportadoraNome={nome}
+            carrierB2C={carrierB2C}
+          />
         </TabsContent>
         <TabsContent value="tabela" className="mt-4 space-y-4">
           <GestaoTabelasPreco transportadoraId={transportadora.id} />
