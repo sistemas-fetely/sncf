@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Sparkles, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
@@ -79,6 +80,7 @@ export function FilaPedidosPorArea({
   const [estagioFilter, setEstagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
   const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
   const [formaPgtoFilter, setFormaPgtoFilter] = useState<string>("todas");
+  const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("cronologico");
   const [pagina, setPagina] = useState(1);
   const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
@@ -104,7 +106,7 @@ export function FilaPedidosPorArea({
 
   useEffect(() => {
     setPagina(1);
-  }, [busca, estagioFilter, marcacaoFilter, formaPgtoFilter, ordenacao, estagios, area]);
+  }, [busca, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, ordenacao, estagios, area]);
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
 
@@ -152,6 +154,13 @@ export function FilaPedidosPorArea({
     if (formaPgtoFilter !== "todas") {
       base = base.filter((p) => (p.forma_solicitada || "").toLowerCase() === formaPgtoFilter);
     }
+    if (situacaoFilter !== "todas") {
+      base = base.filter((p) => {
+        const s = p.pagamento_status;
+        if (situacaoFilter === "em_dia") return s === "em_dia" || s === "parcial_em_dia";
+        return s === situacaoFilter;
+      });
+    }
     if (ordenacao !== "prioridade_ia") return base;
     return [...base].sort((a, b) => {
       const sa = scoreMap.get(a.id)?.score ?? -1;
@@ -159,7 +168,7 @@ export function FilaPedidosPorArea({
       if (sb !== sa) return sb - sa;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, ordenacao, scoreMap, marcacaoFilter, formaPgtoFilter]);
+  }, [data, ordenacao, scoreMap, marcacaoFilter, formaPgtoFilter, situacaoFilter]);
 
   const formasPgtoDisponiveis = useMemo(() => {
     const set = new Set<string>();
@@ -277,6 +286,18 @@ export function FilaPedidosPorArea({
               ))}
           </SelectContent>
         </Select>
+        <Select value={situacaoFilter} onValueChange={setSituacaoFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="Situação" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Situação: Todas</SelectItem>
+            <SelectItem value="pago">Pago</SelectItem>
+            <SelectItem value="em_dia">Em dia</SelectItem>
+            <SelectItem value="vencido">Vencido</SelectItem>
+            <SelectItem value="sem_cobranca">Sem cobrança</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={marcacaoFilter} onValueChange={setMarcacaoFilter}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Marcação" />
@@ -364,10 +385,7 @@ export function FilaPedidosPorArea({
                     <p className="text-[11px] text-muted-foreground font-mono">{p.parceiro_cnpj}</p>
                   </TableCell>
                   <TableCell>
-                    <p className="font-semibold">{fmtBRL.format(p.valor_liquido)}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {p.condicao_solicitada} · {p.forma_solicitada}
-                    </p>
+                    <ValorComPagamento p={p} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -558,5 +576,96 @@ export function FilaPedidosPorArea({
         )}
       </div>
     </div>
+  );
+}
+
+function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
+  const status = p.pagamento_status;
+  const ref = p.pagamento_ref;
+  const refNota = ref === "pai" ? " · informação do pedido pai" : "";
+  const valorPago = Number(p.valor_pago || 0);
+  const valorVencido = Number(p.valor_vencido || 0);
+  const diasAtraso = Number(p.dias_atraso_max || 0);
+
+  const valorLine = <p className="font-semibold">{fmtBRL.format(p.valor_liquido)}</p>;
+  const condLine = (
+    <p className="text-[11px] text-muted-foreground">
+      {p.condicao_solicitada} · {p.forma_solicitada}
+    </p>
+  );
+
+  if (status === "vencido") {
+    return (
+      <>
+        {valorLine}
+        {condLine}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-block mt-1">
+                <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
+                  Vencido {diasAtraso}d
+                </Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">
+                {fmtBRL.format(valorVencido)} vencido{refNota}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </>
+    );
+  }
+
+  if (status === "pago") {
+    return (
+      <>
+        {valorLine}
+        {condLine}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-block mt-1">
+                <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-0 text-[10px] py-0 px-1.5">
+                  Pago
+                </Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Pagamento quitado{refNota}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </>
+    );
+  }
+
+  if (status === "parcial_em_dia") {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              {valorLine}
+              {condLine}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">
+              {fmtBRL.format(valorPago)} já pago · nada vencido{refNota}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <>
+      {valorLine}
+      {condLine}
+    </>
   );
 }

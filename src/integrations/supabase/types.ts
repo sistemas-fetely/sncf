@@ -948,6 +948,42 @@ export type Database = {
         }
         Relationships: []
       }
+      baixa_estoque_pendente: {
+        Row: {
+          criado_em: string
+          id: string
+          motivo: string
+          nf_chave: string
+          nf_data: string | null
+          nf_numero: string | null
+          quantidade: number
+          resolvido_em: string | null
+          sku: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          motivo: string
+          nf_chave: string
+          nf_data?: string | null
+          nf_numero?: string | null
+          quantidade: number
+          resolvido_em?: string | null
+          sku: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          motivo?: string
+          nf_chave?: string
+          nf_data?: string | null
+          nf_numero?: string | null
+          quantidade?: number
+          resolvido_em?: string | null
+          sku?: string
+        }
+        Relationships: []
+      }
       banco_recebimento: {
         Row: {
           ativo: boolean
@@ -1188,6 +1224,24 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
         ]
+      }
+      bling_item_nao_vendavel: {
+        Row: {
+          codigo: string
+          criado_em: string
+          motivo: string
+        }
+        Insert: {
+          codigo: string
+          criado_em?: string
+          motivo: string
+        }
+        Update: {
+          codigo?: string
+          criado_em?: string
+          motivo?: string
+        }
+        Relationships: []
       }
       bling_produtos_cache: {
         Row: {
@@ -22521,6 +22575,18 @@ export type Database = {
           },
         ]
       }
+      vw_baixa_estoque_pendente: {
+        Row: {
+          motivo: string | null
+          nome_comercial: string | null
+          notas: number | null
+          primeira_nf: string | null
+          sku: string | null
+          ultima_nf: string | null
+          unidades_nao_lancadas: number | null
+        }
+        Relationships: []
+      }
       vw_beneficios_consolidado: {
         Row: {
           beneficio: string | null
@@ -23327,6 +23393,18 @@ export type Database = {
         Row: {
           estoque_contabil: number | null
           sku: string | null
+        }
+        Relationships: []
+      }
+      vw_estoque_onboarding_progresso: {
+        Row: {
+          com_razao: number | null
+          pct_onboardado: number | null
+          seguro_desligar_bling: boolean | null
+          sem_razao: number | null
+          skus_ativos: number | null
+          skus_com_baixa_perdida: number | null
+          unidades_nao_lancadas: number | null
         }
         Relationships: []
       }
@@ -24420,14 +24498,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -24998,6 +25076,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_produto_divergencia_bling: {
+        Row: {
+          acao: string | null
+          bling_id: string | null
+          codigo: string | null
+          divergencia: string | null
+          nome: string | null
+          saldo_bling: number | null
+          tem_saldo: boolean | null
+        }
+        Relationships: []
+      }
       vw_produto_fiscal: {
         Row: {
           ativo: boolean | null
@@ -25037,19 +25127,6 @@ export type Database = {
           rank_sug: number | null
           sku: string | null
           sugerido_manter: boolean | null
-        }
-        Relationships: []
-      }
-      vw_produtos_estoque_virtual: {
-        Row: {
-          ativo: boolean | null
-          codigo: string | null
-          estoque_minimo: number | null
-          estoque_real: number | null
-          estoque_virtual: number | null
-          nome: string | null
-          reservado: number | null
-          status_venda: string | null
         }
         Relationships: []
       }
