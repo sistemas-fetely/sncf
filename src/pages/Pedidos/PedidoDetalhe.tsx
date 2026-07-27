@@ -1201,7 +1201,7 @@ export default function PedidoDetalhe() {
               </Card>
             )}
 
-            {(estagio === "entregue" || estagio === "em_transporte") && id && (
+            {estagio === "entregue" && id && (
               <CardEntrega pedidoId={id} estagio={estagio} />
             )}
           </div>
