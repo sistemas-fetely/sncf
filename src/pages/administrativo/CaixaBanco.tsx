@@ -90,13 +90,20 @@ const A_CLASSIFICAR = "__a_classificar__";
 const SEM_CLASSIFICACAO = "__sem__";
 
 /**
- * Agregados de DRE gerencial. Semântica de negócio que ainda não existe como
- * coluna na dimensão — quando `naturezas_investimento` ganhar um `grupo_dre`,
- * estes três arrays saem daqui e passam a ser lidos da tabela.
+ * Rotulo de exibicao dos grupos de DRE. Isto e COSMETICO: o agrupamento em si
+ * vem de naturezas_investimento.grupo_dre, e a ordem de MIN(ordem) do grupo.
+ * Grupo novo cadastrado no banco gera card sozinho, com o codigo capitalizado
+ * como rotulo — sem quebrar nada e sem exigir deploy.
  */
-const CODIGOS_OPERACIONAL = ["opex", "cmv", "variavel_venda"];
-const CODIGOS_CAPEX = ["capex_imobilizado", "capex_intangivel"];
-const CODIGOS_ESTRUTURANTE = ["estruturante"];
+const GRUPO_DRE_LABEL: Record<string, string> = {
+  operacional: "Resultado Operacional",
+  capex: "CAPEX",
+  estruturante: "Estruturante",
+};
+
+function labelGrupoDre(chave: string): string {
+  return GRUPO_DRE_LABEL[chave] ?? chave.charAt(0).toUpperCase() + chave.slice(1);
+}
 
 const ORIGEM_LABEL: Record<string, string> = {
   nf: "NF",
