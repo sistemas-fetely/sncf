@@ -8,9 +8,10 @@
  * A ordem das camadas NÃO é hardcode: vem de `naturezas_investimento.ordem`
  * (doutrina DIMENSÃO-VIA-TABELA). Cadastrar camada nova não exige mexer aqui.
  *
- * Nota: o conteúdo antes era delegado a <MovimentacoesGerencial />; ele e o
- * hook `useMovimentacoesGerencial` ficaram órfãos e devem ser retirados em
- * frente própria (nenhuma outra tela os consome).
+ * Nota: o conteúdo antes era delegado a <MovimentacoesGerencial />. Esse
+ * componente e o hook `useMovimentacoesGerencial` foram REMOVIDOS em 27/07/2026.
+ * A view vw_movimentacoes_gerencial permanece no banco de propósito:
+ * vw_analise_despesas depende dela e alimenta AnaliseDespesas.tsx.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
