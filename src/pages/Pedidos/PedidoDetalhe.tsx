@@ -54,7 +54,9 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale } from "lucide-react";
+import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
+import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
@@ -612,6 +614,8 @@ export default function PedidoDetalhe() {
   const camposEnvioPedidoIdRef = useRef<string | null>(null);
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
+  const freteComparativo = useFreteComparativo(id);
+  const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
@@ -1165,6 +1169,21 @@ export default function PedidoDetalhe() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="col-span-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-full"
+                        onClick={() => {
+                          setCompararOpen(true);
+                          freteComparativo.refetch();
+                        }}
+                      >
+                        <Scale className="h-3.5 w-3.5 mr-1.5" />
+                        Comparar transportadoras
+                      </Button>
+                    </div>
                     <div>
                       <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor frete (R$)</label>
                       <input type="number" step="0.01" min="0" value={valorFrete} onChange={(e) => setValorFrete(e.target.value)} placeholder="0,00" className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring" />
@@ -1197,6 +1216,23 @@ export default function PedidoDetalhe() {
                   >
                     {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
                   </Button>
+
+                  <CompararTransportadorasDialog
+                    open={compararOpen}
+                    onOpenChange={setCompararOpen}
+                    isLoading={freteComparativo.isFetching}
+                    data={freteComparativo.data}
+                    valorAtual={parseFloat(valorFrete) || 0}
+                    onEscolher={(opcao) => {
+                      if (opcao.transportadora_id) setTransportadoraId(opcao.transportadora_id);
+                      if (opcao.valor_estimado != null) setValorFrete(String(opcao.valor_estimado));
+                      setCompararOpen(false);
+                      toast({
+                        title: `${opcao.transportadora_nome} selecionada`,
+                        description: `${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · Confirme em Salvar.`,
+                      });
+                    }}
+                  />
                 </CardContent>
               </Card>
             )}
