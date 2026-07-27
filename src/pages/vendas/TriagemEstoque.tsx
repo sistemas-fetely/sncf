@@ -334,7 +334,7 @@ function TabelaNegociar({ rows }: { rows: TriagemRow[] }) {
                 </Badge>
               </TableCell>
               <TableCell>
-                <AcoesLinha r={r} mostrarPai />
+                <AcoesLinha r={r} mostrarPai comMigrar />
               </TableCell>
             </TableRow>
           ))}
