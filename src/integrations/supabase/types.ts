@@ -23306,6 +23306,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_estoque_shopify_retido: {
+        Row: {
+          diff_estimado: number | null
+          location_id: string | null
+          motivo_retencao: string | null
+          nome_comercial: string | null
+          shopify_atual: number | null
+          sku: string | null
+          sncf_virtual_estimado: number | null
+        }
+        Relationships: []
+      }
       vw_estoque_shopify_sync: {
         Row: {
           diff: number | null
@@ -24171,14 +24183,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -24365,14 +24377,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -25307,6 +25319,7 @@ export type Database = {
           colecao: string | null
           custo: number | null
           custo_real: boolean | null
+          custo_status: string | null
           grupo: string | null
           nome_comercial: string | null
           preco_b2b: number | null
@@ -25315,6 +25328,7 @@ export type Database = {
           resultado_b2c: number | null
           resultado_pct_b2b: number | null
           resultado_pct_b2c: number | null
+          sem_preco: boolean | null
           sku: string | null
         }
         Relationships: []
