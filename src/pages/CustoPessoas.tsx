@@ -245,10 +245,10 @@ export default function CustoPessoas() {
                     <TableHead>Pessoa</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Centro de Custo</TableHead>
-                    <TableHead className="text-right">Base</TableHead>
-                    <TableHead className="text-right">Benefícios</TableHead>
-                    <TableHead className="text-right">Extras</TableHead>
-                    <TableHead className="text-right">Custo Total</TableHead>
+                    <TableHead className="text-right">Remuneração (sem encargos)</TableHead>
+                    <TableHead className="text-right">Encargos (caixa do mês)</TableHead>
+                    <TableHead className="text-right">Provisões (13º, férias, rescisão)</TableHead>
+                    <TableHead className="text-right">Custo total (empresa)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -259,17 +259,17 @@ export default function CustoPessoas() {
                         <Badge variant={r.tipo_vinculo === "CLT" ? "default" : "secondary"}>{r.tipo_vinculo}</Badge>
                       </TableCell>
                       <TableCell>{r.centro_custo_nome || "—"}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.valor_base) + num(r.valor_transporte))}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.total_beneficios))}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.total_extras_recorrentes))}</TableCell>
-                      <TableCell className="text-right font-bold">{fmtBRL(num(r.custo_recorrente_mensal))}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(num(r.custo_recorrente_mensal))}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(num(r.encargo_direto_mensal))}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(num(r.provisao_mensal))}</TableCell>
+                      <TableCell className="text-right font-bold">{fmtBRL(num(r.custo_total_empresa))}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow className="bg-muted/60 font-semibold">
                     <TableCell colSpan={3}>Total</TableCell>
-                    <TableCell className="text-right">{fmtBRL(totaisRodape.base)}</TableCell>
-                    <TableCell className="text-right">{fmtBRL(totaisRodape.beneficios)}</TableCell>
-                    <TableCell className="text-right">{fmtBRL(totaisRodape.extras)}</TableCell>
+                    <TableCell className="text-right">{fmtBRL(totaisRodape.remuneracao)}</TableCell>
+                    <TableCell className="text-right">{fmtBRL(totaisRodape.encargos)}</TableCell>
+                    <TableCell className="text-right">{fmtBRL(totaisRodape.provisoes)}</TableCell>
                     <TableCell className="text-right">{fmtBRL(totaisRodape.total)}</TableCell>
                   </TableRow>
                 </TableBody>
