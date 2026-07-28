@@ -17031,6 +17031,54 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_catalogo_stage: {
+        Row: {
+          atualizado_shopify: string | null
+          criado_shopify: string | null
+          handle: string
+          n_variantes: number | null
+          product_type: string | null
+          pull_em: string
+          pull_lote: string
+          shopify_id: string
+          status: string | null
+          tags: string[] | null
+          title: string | null
+          variants: Json
+          vendor: string | null
+        }
+        Insert: {
+          atualizado_shopify?: string | null
+          criado_shopify?: string | null
+          handle: string
+          n_variantes?: number | null
+          product_type?: string | null
+          pull_em?: string
+          pull_lote: string
+          shopify_id: string
+          status?: string | null
+          tags?: string[] | null
+          title?: string | null
+          variants?: Json
+          vendor?: string | null
+        }
+        Update: {
+          atualizado_shopify?: string | null
+          criado_shopify?: string | null
+          handle?: string
+          n_variantes?: number | null
+          product_type?: string | null
+          pull_em?: string
+          pull_lote?: string
+          shopify_id?: string
+          status?: string | null
+          tags?: string[] | null
+          title?: string | null
+          variants?: Json
+          vendor?: string | null
+        }
+        Relationships: []
+      }
       shopify_checkouts: {
         Row: {
           abandoned_checkout_url: string | null
