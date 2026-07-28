@@ -90,9 +90,10 @@ export function VendasSidebar() {
 
         <SidebarGroup className="pb-3">
           <SidebarGroupContent>
-            <FinancasSidebarSection title="Logística" defaultOpen>
+            <FinancasSidebarSection title="Operador Logístico" defaultOpen>
               <FinancasSidebarItem to="/logistica" icon={Truck} label="Logística" />
               <FinancasSidebarItem to="/vendas/wns-xpm" icon={Truck} label="WNS / XPM" activeClassName="bg-green-50 text-green-700 font-medium [&_svg]:text-green-700 border-l-green-600" />
+              <FinancasSidebarItem to="/vendas/xpm" icon={Package} label="XPM" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>

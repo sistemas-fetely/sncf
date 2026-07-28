@@ -162,7 +162,7 @@ const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
 
-const RecebimentoXpm = lazy(() => import("@/pages/acervo/RecebimentoXpm"));
+const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
 const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
 const ConciliacaoCadastro = lazy(() => import("@/pages/acervo/ConciliacaoCadastro"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
@@ -301,6 +301,7 @@ const App = () => (
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
                 <Route path="/vendas/produtos" element={<Produtos />} />
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
+                <Route path="/vendas/xpm" element={<XpmIndex />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
                 <Route path="/vendas/gestao-pedidos" element={<GestaoPedidos />} />
                 <Route path="/vendas/triagem-estoque" element={<TriagemEstoque />} />
@@ -332,7 +333,7 @@ const App = () => (
               <Route element={<AcervoLayout />}>
                 <Route path="/processos" element={<Processos />} />
                 <Route path="/documentacao" element={<DocumentacaoGeral />} />
-                <Route path="/acervo/estoque/recebimento-xpm" element={<RecebimentoXpm />} />
+                <Route path="/acervo/estoque/recebimento-xpm" element={<Navigate to="/vendas/xpm" replace />} />
                 <Route path="/acervo/estoque/saude" element={<SaudeEstoque />} />
                 <Route path="/acervo/produtos/conciliacao" element={<ConciliacaoCadastro />} />
               </Route>
