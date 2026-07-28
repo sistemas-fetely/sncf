@@ -47,6 +47,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import RegistrarPagamentoDialog from "./RegistrarPagamentoDialog";
 import StatusProgressBar from "./StatusProgressBar";
 import TimelineHistorico from "./TimelineHistorico";
+import PagamentosAlocacaoSection from "./PagamentosAlocacaoSection";
 import EnviarPagamentoDialog from "./EnviarPagamentoDialog";
 import DocumentosCP from "./DocumentosCP";
 
