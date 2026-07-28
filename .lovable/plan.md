@@ -1,81 +1,31 @@
+# Investigação read-only — autenticação Shopify Admin API
 
-Investigação apenas — nenhuma correção proposta. Inventário completo abaixo.
+Você pediu investigação, não alteração. Nada será modificado. Segue o resumo dos achados; o detalhamento com trechos de código já foi entregue na mensagem do chat.
 
-## Arquivos que referenciam `status_caixa` ou `estagio` de `vw_despesas_v2`
+## Padrão de autenticação atual (reutilizável no pull de catálogo)
 
-Ignorei `src/integrations/supabase/types.ts` (auto-gerado) e a migration baseline (definição da view). Ficam 3 arquivos de aplicação:
+Ambas as edge functions (`sincronizar-estoque-shopify`, `shopify-pagamento-sync`) usam exatamente o mesmo caminho:
 
-### 1. `src/pages/administrativo/Despesas.tsx`
-Fonte: `vw_despesas_v2` (linhas 147, 151).
+1. **Segredos no vault Postgres**, lidos via RPC `get_vault_secret(p_name)`:
+   - `SHOPIFY_CLIENT_ID`
+   - `SHOPIFY_CLIENT_SECRET`
+   - `SHOPIFY_STORE_DOMAIN` (opcional; se ausente, fallback para `["mmiavm-ui.myshopify.com", "fetely-3.myshopify.com"]`)
 
-- **Tipagem**
-  - L56: `status_caixa: string | null;`
-  - L60: `estagio: string | null;`
+2. **Troca OAuth `client_credentials`** contra `https://{domain}/admin/oauth/access_token`. **Não** há `shpat_...` armazenado — o access token é minted a cada invocação.
 
-- **Mapa de rótulo/cor hardcoded (`ESTAGIO_META`)** — L82–L98 (declaração em L82, uso em L128):
-  - L84: `completa` → label `"completa"`
-  - L87: `aguardando_pagamento` → label `"aguardando_pagamento"`
-  - L91: `sem_documento` → label `"sem_documento"`
-  - L95: `a_classificar` → label `"a_classificar"`
+3. **GraphQL Admin API versão `2026-04`** em `https://{domain}/admin/api/2026-04/graphql.json`, header `X-Shopify-Access-Token`.
 
-- **Opções de filtro do Select de estágio** — L102–L105:
-  - L102 `completa` / L103 `aguardando_pagamento` / L104 `sem_documento` / L105 `a_classificar`
+4. `shopify-pagamento-sync` acrescenta guard `x-cron-secret` (compara com `SYNC_CRON_SECRET` do vault).
 
-- **Filtro por estágio** — L143 (state), L224 (`r.estagio !== estagio`), L397 (Select).
+## O que NÃO existe hoje (você terá que criar se o pull de catálogo precisar)
 
-- **KPIs / comparações com literais**
-  - L244: `r.status_caixa === "pago"` (contagem "pagas")
-  - L245: `r.estagio === "a_classificar"` (contagem "a classificar")
+- **Paginação por cursor** (`pageInfo.endCursor` / `hasNextPage` no GraphQL, ou `page_info` do REST). Nenhuma das duas funções lê listas grandes.
+- **Rate limit / retry**. Nenhum backoff, nenhuma leitura de `extensions.cost.throttleStatus`, nenhum tratamento de HTTP 429.
 
-- **Renderização de badge** — L126–L129, L491 (`<BadgeEstagio estagio={r.estagio} />`).
+## Próximo passo sugerido
 
-- **Observação:** nenhuma comparação com literal `'a_pagar'` neste arquivo (o KPI de pagas usa `status_caixa === "pago"` apenas).
+Quando quiser avançar para o pull de catálogo, me diga:
+- REST Admin (`/products.json` com `Link` header + `page_info`) ou GraphQL (`products(first, after)` com `pageInfo`)?
+- Escopo: catálogo completo, delta por `updated_at`, ou por conjunto de SKUs?
 
-### 2. `src/pages/administrativo/CaixaBanco.tsx`
-Fonte: `vw_despesas_v2` (linhas 181, 185; `.select` inclui `status_caixa, estagio` em L190).
-
-- **Tipagem**
-  - L65: `status_caixa: string | null;`
-  - L66: `estagio: string | null;`
-
-- **Mapa de rótulo/cor hardcoded (`ESTAGIO_META`)** — L116–L132 (uso em L164):
-  - L118: `completa` → label `"completa"`
-  - L121: `aguardando_pagamento`
-  - L125: `sem_documento`
-  - L129: `a_classificar`
-  - Constante auxiliar `A_CLASSIFICAR = "__a_classificar__"` em L89 (sentinel de filtro).
-
-- **Comparações com literais de `estagio`**
-  - L386: `l.estagio === "sem_documento" || l.estagio === "a_classificar"` (agrupamento/filtro).
-
-- **Renderização de badge** — L162–L165, L714 (`<BadgeEstagio estagio={l.estagio} />`).
-
-- **Observação:** nenhuma comparação com `status_caixa === "pago"` nem `"a_pagar"` neste arquivo — o campo é lido/selecionado, mas não filtrado por literal.
-
-### 3. `src/pages/administrativo/CaixaBanco/utils.ts`
-Não usa a view — trata `status_caixa` de outra origem (lançamentos de caixa, domínio interno `"em_aberto" | "pago" | "conciliado"`), NÃO o `status_caixa` de `vw_despesas_v2`.
-
-- L17: tipo local `status_caixa: "em_aberto" | "pago" | "conciliado";`
-- L52: `l.status_caixa === "conciliado"`
-- L53: `l.status_caixa === "pago"`
-
-Registrado por completude, mas é homônimo — semântica distinta da view.
-
-## Respostas diretas às perguntas
-
-1. **`status_caixa` comparado com `'pago'` / `'a_pagar'`:**
-   - `'pago'`: apenas em `Despesas.tsx:244` (KPI "pagas"). Em `CaixaBanco/utils.ts:53` também, porém em domínio diferente (não é a view).
-   - `'a_pagar'`: nenhuma ocorrência no repositório.
-
-2. **`estagio` comparado com literais:**
-   - `'a_classificar'`: `Despesas.tsx:245`, `CaixaBanco.tsx:386`.
-   - `'sem_documento'`: `CaixaBanco.tsx:386`.
-   - `'aguardando_pagamento'`: nenhuma comparação `===`; aparece apenas como chave em `ESTAGIO_META` (Despesas L87, CaixaBanco L121) e como valor de filtro (Despesas L103).
-   - `'completa'`: nenhuma comparação `===`; aparece apenas como chave em `ESTAGIO_META` (Despesas L84, CaixaBanco L118) e valor de filtro (Despesas L102).
-
-3. **Mapas de rótulo/cor hardcoded:**
-   - `ESTAGIO_META` em `src/pages/administrativo/Despesas.tsx:82` (usado L128).
-   - `ESTAGIO_META` em `src/pages/administrativo/CaixaBanco.tsx:116` (usado L164).
-   - Os dois mapas são independentes (duplicados), cobrindo as mesmas 4 chaves: `completa`, `aguardando_pagamento`, `sem_documento`, `a_classificar`. Não há mapa hardcoded para valores de `status_caixa`.
-
-Nada a alterar — aguardando instrução.
+Aí eu volto com um plano concreto de implementação reusando `getSecret` + `exchangeToken` + `gql`.
