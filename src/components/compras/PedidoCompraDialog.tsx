@@ -497,7 +497,41 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           </div>
         </Card>
       </div>
-      <ItensList items={itens} onChange={setItens} readOnly={readOnly} showItemStatus={mode === "ver"} />
+      <ItensList
+        items={itens}
+        onChange={setItens}
+        readOnly={readOnly}
+        showItemStatus={mode === "ver"}
+        headerActions={
+          podeEditar ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  try {
+                    gerarTemplateItens();
+                  } catch (e) {
+                    const msg = e instanceof Error ? e.message : "Erro ao gerar template";
+                    toast.error(msg);
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-1" /> Baixar template
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImportarDialogOpen(true)}
+              >
+                <Upload className="h-4 w-4 mr-1" /> Importar planilha
+              </Button>
+            </>
+          ) : null
+        }
+      />
       <AnexosList
         pedidoId={pedidoIdLocal}
         anexos={anexos}
@@ -589,6 +623,22 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           onCancelado={() => onOpenChange(false)}
         />
       )}
+      <ImportarItensDialog
+        open={importarDialogOpen}
+        onOpenChange={setImportarDialogOpen}
+        itensAtuais={itens}
+        onImportar={(novos, modo) => {
+          if (modo === "substituir") {
+            // marca todos os existentes com id para delete, descarta os create pendentes
+            const removidos: ItemEdit[] = itens
+              .filter((i) => i.id && i._action !== "delete")
+              .map((i) => ({ ...i, _action: "delete" as const }));
+            setItens([...removidos, ...novos]);
+          } else {
+            setItens([...itens, ...novos]);
+          }
+        }}
+      />
     </Dialog>
   );
 }
