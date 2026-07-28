@@ -361,9 +361,56 @@ function AcoesLinha({
   comMigrar?: boolean;
 }) {
   const [migrarOpen, setMigrarOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const qc = useQueryClient();
+
+  const enviar = useMutation({
+    mutationFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("transicionar_pedido", {
+        p_pedido_id: r.pedido_id,
+        p_para_estagio: "em_separacao",
+        p_proxima_acao: "Separar e expedir",
+        p_motivo: "Estoque reposto — liberado na Triagem",
+        p_automatico: false,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Pedido enviado para separação", {
+        description: r.id_externo ? `Remessa ${r.id_externo}` : undefined,
+      });
+      qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
+    },
+    onError: (e: unknown) => {
+      toast.error("Erro ao enviar para separação", { description: formatError(e) });
+    },
+  });
+
+  const precisaConfirmar = comMigrar; // grupo "negociar"
+
+  function handleEnviarClick() {
+    if (precisaConfirmar) setConfirmOpen(true);
+    else enviar.mutate();
+  }
 
   return (
     <div className="flex items-center justify-end gap-1">
+      <Button
+        size="sm"
+        variant={comMigrar ? "outline" : "default"}
+        className="h-7 gap-1.5"
+        disabled={enviar.isPending}
+        onClick={handleEnviarClick}
+      >
+        {enviar.isPending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Send className="h-3.5 w-3.5" />
+        )}
+        Enviar para separação
+      </Button>
       {comMigrar && (
         <Button
           size="sm"
@@ -414,6 +461,61 @@ function AcoesLinha({
           diasAtraso={r.dias_atraso_max}
           invalidateKeys={[["triagem-estoque"], ["oportunidades-comercial"]]}
         />
+      )}
+
+      {precisaConfirmar && (
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Enviar mesmo com parcela vencida?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2 text-sm">
+                  {r.situacao && (
+                    <p className="font-medium text-foreground">{r.situacao}</p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <div className="text-muted-foreground">Vencido no pai</div>
+                      <div className="font-semibold text-foreground">
+                        {formatBRL(r.valor_vencido ?? 0)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Dias de atraso</div>
+                      <div className="font-semibold text-foreground">
+                        {r.dias_atraso_max ?? 0}
+                      </div>
+                    </div>
+                  </div>
+                  <p>
+                    A primeira parcela do pai <strong>já foi paga</strong> — foi ela que
+                    liberou a produção desta remessa. A cobrança das parcelas seguintes é
+                    responsabilidade do <strong>CPR</strong>, não da expedição.
+                  </p>
+                  <p className="text-muted-foreground">
+                    Ao confirmar, a remessa vai para <strong>Em separação</strong> e sai
+                    desta lista.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={enviar.isPending}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={enviar.isPending}
+                onClick={(e) => {
+                  e.preventDefault();
+                  enviar.mutate(undefined, {
+                    onSuccess: () => setConfirmOpen(false),
+                  });
+                }}
+              >
+                {enviar.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Enviar mesmo assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );
