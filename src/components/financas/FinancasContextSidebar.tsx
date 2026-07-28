@@ -24,6 +24,8 @@ import {
   PieChart,
   Receipt,
   Percent,
+  ShoppingCart,
+  PackageOpen,
 } from "lucide-react";
 
 import {
@@ -75,6 +77,17 @@ export function FinancasContextSidebar() {
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* COMPRAS */}
+        <SidebarGroup className="border-t border-gold/10 py-3">
+          <SidebarGroupContent>
+            <FinancasSidebarSection title="Compras" variant="primary">
+              <FinancasSidebarItem to="/compras" icon={ShoppingCart} label="Meus Pedidos" end />
+              <FinancasSidebarItem to="/compras/a-comprar" icon={PackageOpen} label="Fila do Comprador" />
+            </FinancasSidebarSection>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
 
         {/* RECEITAS */}
         <SidebarGroup className="border-t border-gold/10 py-3">

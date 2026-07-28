@@ -5891,6 +5891,48 @@ export type Database = {
         }
         Relationships: []
       }
+      encargos_parametros: {
+        Row: {
+          ativo: boolean
+          componente: string
+          created_at: string
+          id: string
+          natureza: string
+          observacoes: string | null
+          percentual: number
+          tipo_vinculo: string
+          updated_at: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          ativo?: boolean
+          componente: string
+          created_at?: string
+          id?: string
+          natureza: string
+          observacoes?: string | null
+          percentual: number
+          tipo_vinculo: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          ativo?: boolean
+          componente?: string
+          created_at?: string
+          id?: string
+          natureza?: string
+          observacoes?: string | null
+          percentual?: number
+          tipo_vinculo?: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: []
+      }
       entrevistas_candidato: {
         Row: {
           candidato_id: string
@@ -6047,6 +6089,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          integra_base_encargo: boolean
           natureza_padrao: string
           nome: string
           updated_at: string
@@ -6057,6 +6100,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          integra_base_encargo?: boolean
           natureza_padrao?: string
           nome: string
           updated_at?: string
@@ -6067,6 +6111,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          integra_base_encargo?: boolean
           natureza_padrao?: string
           nome?: string
           updated_at?: string
@@ -25697,14 +25742,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25906,14 +25951,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -27811,7 +27856,11 @@ export type Database = {
       }
       vw_vinculo_custo_total: {
         Row: {
+          base_encargo: number | null
           custo_recorrente_mensal: number | null
+          custo_total_empresa: number | null
+          encargo_direto_mensal: number | null
+          provisao_mensal: number | null
           total_beneficios: number | null
           total_extras_recorrentes: number | null
           valor_base: number | null
