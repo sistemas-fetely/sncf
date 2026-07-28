@@ -66,6 +66,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   gestor_rh: "Gestor RH",
   gestor_direto: "Gestor Direto",
   recrutador: "Recrutador",
+  comprador: "Comprador",
 };
 
 const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
