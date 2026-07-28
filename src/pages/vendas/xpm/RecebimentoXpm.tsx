@@ -180,8 +180,8 @@ export default function RecebimentoXpm() {
                 </SelectTrigger>
                 <SelectContent>
                   {(pedidosQ.data ?? []).map((p) => (
-                    <SelectItem key={p.rocabella_ref} value={p.rocabella_ref}>
-                      {p.numero_pedido} · {p.rocabella_ref}
+                    <SelectItem key={p.pedido_ref} value={p.pedido_ref}>
+                      {p.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
