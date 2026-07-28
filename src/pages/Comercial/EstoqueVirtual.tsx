@@ -330,8 +330,9 @@ export default function EstoqueVirtual() {
           </FilterSelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todas as condições</SelectItem>
-            <SelectItem value="com_bloqueio">Só com bloqueio</SelectItem>
-            <SelectItem value="so_sadio">Só sadio</SelectItem>
+            <SelectItem value="com_bloqueio">Com bloqueio</SelectItem>
+            <SelectItem value="sadio_confirmado">Sadio confirmado</SelectItem>
+            <SelectItem value="desconhecido">Condição desconhecida</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground ml-auto">
