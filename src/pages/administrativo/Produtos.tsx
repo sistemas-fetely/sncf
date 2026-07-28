@@ -1045,8 +1045,19 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                   <Field label="Última venda">{formatDateBR(row.ultima_venda)}</Field>
                   <Field label="Dias sem vender">{row.dias_sem_vender != null ? `${row.dias_sem_vender} dias` : ou(null)}</Field>
                   <Field label="Un / dia">{row.un_por_dia != null ? formatNum(row.un_por_dia, 2) : ou(null)}</Field>
-                  <Field label="Un. canceladas">{formatNum(row.un_canceladas)}</Field>
-                  <Field label="Receita cancelada" className="col-span-2">{formatBRL(row.receita_cancelada ?? 0)}</Field>
+                  <Field label="Venda perdida" className="col-span-2">
+                    <span className={cn(Number(row.un_perdidas ?? 0) > 0 && "text-red-600 dark:text-red-400 font-medium")}>
+                      {formatNum(row.un_perdidas)} un · {formatBRL(row.receita_perdida ?? 0)}
+                    </span>
+                  </Field>
+                  <Field label="Reprocessado" className="col-span-2">
+                    <span className="text-muted-foreground">{formatBRL(row.receita_reprocessada ?? 0)}</span>
+                  </Field>
+                  {Number(row.reservado_aguardando_produto ?? 0) > 0 && (
+                    <Field label="Aguardando produto" className="col-span-2">
+                      <span className="text-sky-600 dark:text-sky-400">{formatNum(row.reservado_aguardando_produto)} un</span>
+                    </Field>
+                  )}
                 </div>
               )}
             </Secao>
