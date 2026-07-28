@@ -647,7 +647,14 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
       });
       if (error) throw error;
       const destLabel = rotuloDestinoLiberacao(data?.destino);
-      toast({ title: `Enviado para ${destLabel}` });
+      const acao = data?.acao_na_cobranca as "materializar_cobranca" | "gerar_portao" | null | undefined;
+      let description: string | undefined;
+      if (acao === "materializar_cobranca") {
+        description = "Próximo passo: materializar a cobrança na tela de Cobrança";
+      } else if (acao === "gerar_portao") {
+        description = "Próximo passo: gerar o portão de entrada na aba Primeiro Pagamento";
+      }
+      toast({ title: `Enviado para ${destLabel}`, description });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedido-destino-estoque", pedidoId] });
       qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
