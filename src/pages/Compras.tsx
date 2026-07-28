@@ -82,6 +82,7 @@ export default function Compras() {
   const { data: pedidos = [], isLoading } = useMeusPedidosCompra();
   const enviar = useEnviarPedidoCompra();
   const excluir = useExcluirPedidoCompra();
+  const confirmarRecebimento = useConfirmarRecebimentoPedido();
   const { roles } = useAuth();
   const isCompradorV1 = roles.includes("super_admin");
 
@@ -94,6 +95,8 @@ export default function Compras() {
 
   const [confirmarEnvio, setConfirmarEnvio] = useState<PedidoCompraFull | null>(null);
   const [confirmarDescartar, setConfirmarDescartar] = useState<PedidoCompraFull | null>(null);
+  const [confirmarReceb, setConfirmarReceb] = useState<PedidoCompraFull | null>(null);
+  const [observacaoReceb, setObservacaoReceb] = useState("");
 
   const stats = useMemo(() => {
     const inicioMes = startOfMonth(new Date());
