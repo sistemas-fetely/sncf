@@ -198,11 +198,11 @@ export default function PagamentosAlocacaoSection({
       </div>
 
       <ul className="divide-y rounded-md border">
-        {data.map((r) => {
+        {data.map((r, idx) => {
           const origemLabel = r.mov_contraparte?.trim() || r.mov_descricao?.trim() || "—";
           return (
             <li
-              key={r.alocacao_id ?? Math.random().toString(36)}
+              key={r.alocacao_id ?? `aloc-${idx}`}
               className="flex items-start gap-3 p-3"
             >
               <div className="flex-1 min-w-0">
