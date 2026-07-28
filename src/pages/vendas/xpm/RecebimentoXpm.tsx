@@ -39,6 +39,14 @@ export default function RecebimentoXpm() {
   const [ingerindo, setIngerindo] = useState(false);
   const [resultado, setResultado] = useState<IngestResult | null>(null);
 
+  const qc = useQueryClient();
+  const [pesosFile, setPesosFile] = useState<File | null>(null);
+  const [baixandoModelo, setBaixandoModelo] = useState(false);
+  const [conferindo, setConferindo] = useState(false);
+  const [gravandoPesos, setGravandoPesos] = useState(false);
+  const [previa, setPrevia] = useState<PesosResult | null>(null);
+  const [permitirSobrescrita, setPermitirSobrescrita] = useState(false);
+
   type PedidoOpt = {
     numero_pedido: string;
     pedido_ref: string;
