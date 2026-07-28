@@ -74,7 +74,6 @@ export function VendasSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <FinancasSidebarItem to="/vendas/gestao-pedidos" icon={TableProperties} label="Gestão de Pedidos" />
-              <FinancasSidebarItem to="/vendas/triagem-estoque" icon={PackageOpen} label="Triagem de Estoque" />
               <FinancasSidebarItem to="/pedidos" icon={ShoppingCart} label="Pedidos B2B" end />
               <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Pedidos B2C" end />
               <FinancasSidebarItem to="/recebimento/cobranca" icon={Receipt} label="Cobrança" />
@@ -92,6 +91,7 @@ export function VendasSidebar() {
             <FinancasSidebarSection title="Produto" defaultOpen>
               <FinancasSidebarItem to="/vendas/produto" icon={Package} label="Produto" end />
               <FinancasSidebarItem to="/vendas/produto/estoque" icon={Boxes} label="Estoque" />
+              <FinancasSidebarItem to="/vendas/triagem-estoque" icon={PackageOpen} label="Triagem de Estoque" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
