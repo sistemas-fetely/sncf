@@ -165,7 +165,7 @@ export default function TriagemEstoque() {
 
         <TabsContent value="enviar" className="mt-4">
           <p className="text-sm text-muted-foreground mb-3">
-            Pagamento do pedido pai em dia, sem parcela vencida. Liberado para expedição.
+            Sem parcela vencida no pai. O destino de cada linha aparece no próprio botão: parte vai direto para Pré-Separação, parte precisa passar por Cobrança antes porque a remessa ainda não tem recebível próprio.
           </p>
           <Card>
             <CardContent className="p-0">
