@@ -25324,14 +25324,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -28100,7 +28100,10 @@ export type Database = {
           dia: string
           entradas_conservador_dia: number
           entradas_dia: number
+          entradas_vencido_dia: number
           saidas_dia: number
+          saidas_previstas_dia: number
+          saidas_vencido_dia: number
           saldo_conservador: number
           saldo_otimista: number
         }[]
