@@ -50,6 +50,10 @@ interface CockpitRow {
   un_por_dia: number | null;
   un_canceladas: number | null;
   receita_cancelada: number | null;
+  un_perdidas: number | null;
+  receita_perdida: number | null;
+  receita_reprocessada: number | null;
+  reservado_aguardando_produto: number | null;
   custo: number | null;
   custo_status: CustoStatus | null;
   preco_b2b: number | null;
