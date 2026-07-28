@@ -558,7 +558,6 @@ function AcoesLinha({
                     Quando a primeira parcela do pai já foi paga, a cobrança das parcelas seguintes é
                     responsabilidade do <strong>CPR</strong>, não da expedição.
                   </p>
-                  </p>
                   {Number(destino?.falta_recebivel ?? 0) > 0 && (
                     <p className="text-amber-700 dark:text-amber-400">
                       Esta remessa ainda <strong>não tem recebível</strong> ({formatBRL(Number(destino?.falta_recebivel))}).
