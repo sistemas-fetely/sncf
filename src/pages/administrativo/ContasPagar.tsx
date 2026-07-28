@@ -1,4 +1,5 @@
 import { useMemo, useState, type ComponentProps } from "react";
+import { getStatusCprMeta, STATUS_CPR_VALIDOS } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,21 +79,7 @@ type Conta = {
   fornecedor_cliente?: string | null;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  aberto: "Aberto",
-  aprovado: "Aprovado",
-  enviado_para_pagamento: "Enviado para Pagamento",
-  realizada: "Realizada",
-  cancelado: "Cancelado",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  aberto: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-  aprovado: "bg-purple-100 text-purple-800 hover:bg-purple-100",
-  enviado_para_pagamento: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
-  realizada: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
-  cancelado: "bg-red-100 text-red-800 hover:bg-red-100",
-};
+// Status de CPR: mapa canônico em `@/lib/financeiro/status-cpr`.
 
 const diasAteVencer = (d: string | null) => {
   if (!d) return 999;
@@ -509,11 +496,11 @@ export default function ContasPagar() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os status</SelectItem>
-            <SelectItem value="aberto">Aberto</SelectItem>
-            <SelectItem value="aprovado">Aprovado</SelectItem>
-            <SelectItem value="enviado_para_pagamento">Enviado para Pagamento</SelectItem>
-            <SelectItem value="realizada">Realizada</SelectItem>
-            <SelectItem value="cancelado">Cancelada</SelectItem>
+            {STATUS_CPR_VALIDOS.map((s) => (
+              <SelectItem key={s} value={s}>
+                {getStatusCprMeta(s).label}
+              </SelectItem>
+            ))}
             <SelectItem value="pendencia_nf">Pendência NF</SelectItem>
           </SelectContent>
         </Select>
@@ -669,9 +656,10 @@ export default function ContasPagar() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1 items-start">
-                          <Badge className={STATUS_STYLES[c.status] || "bg-muted"}>
-                            {STATUS_LABELS[c.status] || c.status}
-                          </Badge>
+                          {(() => {
+                            const meta = getStatusCprMeta(c.status);
+                            return <Badge className={meta.className}>{meta.label}</Badge>;
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell

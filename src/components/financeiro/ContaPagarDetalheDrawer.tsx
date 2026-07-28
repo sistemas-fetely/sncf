@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getStatusCprMeta } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,27 +107,7 @@ type Conta = {
   pago_em_conta_id?: string | null;
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  rascunho: "Rascunho",
-  aberto: "Aberto",
-  atrasado: "Atrasado",
-  aprovado: "Aprovado",
-  agendado: "Enviado",
-  enviado_para_pagamento: "Enviado para Pagamento",
-  cancelado: "Cancelado",
-  conciliado: "Conciliado",
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  rascunho: "bg-muted text-muted-foreground",
-  aberto: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-  atrasado: "bg-red-100 text-red-800 hover:bg-red-100",
-  aprovado: "bg-purple-100 text-purple-800 hover:bg-purple-100",
-  agendado: "bg-amber-100 text-amber-800 hover:bg-amber-100",
-  enviado_para_pagamento: "bg-green-100 text-green-800 hover:bg-green-100",
-  cancelado: "bg-gray-100 text-gray-700 hover:bg-gray-100",
-  conciliado: "bg-teal-100 text-teal-800 hover:bg-teal-100",
-};
+// Status de CPR: mapa canônico em `@/lib/financeiro/status-cpr`.
 
 interface Props {
   contaId: string | null;
@@ -408,9 +389,10 @@ export default function ContaPagarDetalheDrawer({
                     )}
                   </SheetDescription>
                 </div>
-                <Badge className={STATUS_STYLE[conta.status] || "bg-muted"}>
-                  {STATUS_LABEL[conta.status] || conta.status}
-                </Badge>
+                {(() => {
+                  const meta = getStatusCprMeta(conta.status);
+                  return <Badge className={meta.className}>{meta.label}</Badge>;
+                })()}
                 {!modoEdit && conta.status !== "cancelado" && (
                   <Button
                     size="sm"
