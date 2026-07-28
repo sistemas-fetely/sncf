@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { differenceInCalendarDays, format, parseISO, startOfDay, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 import {
   ShoppingCart,
   Plus,
@@ -14,6 +15,8 @@ import {
   Send,
   Trash2,
   AlertTriangle,
+  PackageCheck,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -43,6 +46,8 @@ import {
 import { useMeusPedidosCompra } from "@/hooks/compras/useMeusPedidosCompra";
 import { useEnviarPedidoCompra } from "@/hooks/compras/useEnviarPedidoCompra";
 import { useExcluirPedidoCompra } from "@/hooks/compras/useExcluirPedidoCompra";
+import { useConfirmarRecebimentoPedido } from "@/hooks/compras/useConfirmarRecebimentoPedido";
+import { Textarea } from "@/components/ui/textarea";
 import { PedidoStatusBadge } from "@/components/compras/PedidoStatusBadge";
 import { PedidoCompraDialog } from "@/components/compras/PedidoCompraDialog";
 import type { PedidoCompraFull, PedidoCompraStatus } from "@/lib/compras/types";
@@ -77,6 +82,7 @@ export default function Compras() {
   const { data: pedidos = [], isLoading } = useMeusPedidosCompra();
   const enviar = useEnviarPedidoCompra();
   const excluir = useExcluirPedidoCompra();
+  const confirmarRecebimento = useConfirmarRecebimentoPedido();
   const { roles } = useAuth();
   const isCompradorV1 = roles.includes("super_admin");
 
@@ -89,6 +95,8 @@ export default function Compras() {
 
   const [confirmarEnvio, setConfirmarEnvio] = useState<PedidoCompraFull | null>(null);
   const [confirmarDescartar, setConfirmarDescartar] = useState<PedidoCompraFull | null>(null);
+  const [confirmarReceb, setConfirmarReceb] = useState<PedidoCompraFull | null>(null);
+  const [observacaoReceb, setObservacaoReceb] = useState("");
 
   const stats = useMemo(() => {
     const inicioMes = startOfMonth(new Date());
@@ -292,7 +300,10 @@ export default function Compras() {
                               size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
                               title="Enviar para comprador"
-                              onClick={() => setConfirmarEnvio(p)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmarEnvio(p);
+                              }}
                             >
                               <Send className="h-4 w-4" />
                             </Button>
@@ -301,11 +312,28 @@ export default function Compras() {
                               size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-destructive"
                               title="Descartar"
-                              onClick={() => setConfirmarDescartar(p)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmarDescartar(p);
+                              }}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
+                        ) : p.status === "comprado" ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
+                            title="Confirmar recebimento"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setObservacaoReceb("");
+                              setConfirmarReceb(p);
+                            }}
+                          >
+                            <PackageCheck className="h-4 w-4" />
+                          </Button>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
@@ -373,6 +401,68 @@ export default function Compras() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Descartar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmarReceb}
+        onOpenChange={(o) => {
+          if (!o) {
+            setConfirmarReceb(null);
+            setObservacaoReceb("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar recebimento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você confirma que os itens deste pedido chegaram? Isso encerra o pedido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Observação (opcional)</label>
+            <Textarea
+              value={observacaoReceb}
+              onChange={(e) => setObservacaoReceb(e.target.value)}
+              placeholder="Algo a registrar sobre o recebimento?"
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={confirmarRecebimento.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmarRecebimento.isPending}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!confirmarReceb) return;
+                const obs = observacaoReceb.trim();
+                try {
+                  const res = await confirmarRecebimento.mutateAsync({
+                    pedido_id: confirmarReceb.id,
+                    observacao: obs.length > 0 ? obs : null,
+                  });
+                  if (res.dias_atraso > 0) {
+                    toast.warning(
+                      `Recebimento confirmado com ${res.dias_atraso} dia(s) de atraso — ${res.itens_recebidos} item(ns)`,
+                    );
+                  } else {
+                    toast.success(`Recebimento confirmado — ${res.itens_recebidos} item(ns)`);
+                  }
+                  setConfirmarReceb(null);
+                  setObservacaoReceb("");
+                } catch (err) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  toast.error(msg);
+                }
+              }}
+            >
+              {confirmarRecebimento.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Confirmar recebimento
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

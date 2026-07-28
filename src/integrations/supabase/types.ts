@@ -3461,6 +3461,7 @@ export type Database = {
       contagem_estoque: {
         Row: {
           centro_id: string
+          condicao: string
           criado_em: string
           criado_por: string | null
           data_contagem: string
@@ -3472,6 +3473,7 @@ export type Database = {
         }
         Insert: {
           centro_id?: string
+          condicao?: string
           criado_em?: string
           criado_por?: string | null
           data_contagem?: string
@@ -3483,6 +3485,7 @@ export type Database = {
         }
         Update: {
           centro_id?: string
+          condicao?: string
           criado_em?: string
           criado_por?: string | null
           data_contagem?: string
@@ -3499,6 +3502,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centro_distribuicao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contagem_estoque_condicao_fkey"
+            columns: ["condicao"]
+            isOneToOne: false
+            referencedRelation: "estoque_condicao"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -5940,6 +5950,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      estoque_condicao: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          ordem: number
+          rotulo: string
+          vendavel: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          ordem?: number
+          rotulo: string
+          vendavel: boolean
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          ordem?: number
+          rotulo?: string
+          vendavel?: boolean
+        }
+        Relationships: []
       }
       evento_titulo: {
         Row: {
@@ -8918,20 +8955,6 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_estoque"
-            referencedColumns: ["sku"]
-          },
-          {
-            foreignKeyName: "importacao_linha_sku_fkey"
-            columns: ["sku"]
-            isOneToOne: false
-            referencedRelation: "vw_produto_cockpit"
-            referencedColumns: ["sku"]
-          },
-          {
-            foreignKeyName: "importacao_linha_sku_fkey"
-            columns: ["sku"]
-            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -9619,6 +9642,7 @@ export type Database = {
       movimentacao_estoque: {
         Row: {
           centro_id: string
+          condicao: string
           criado_em: string
           criado_por: string | null
           data_mov: string
@@ -9632,6 +9656,7 @@ export type Database = {
         }
         Insert: {
           centro_id?: string
+          condicao?: string
           criado_em?: string
           criado_por?: string | null
           data_mov?: string
@@ -9645,6 +9670,7 @@ export type Database = {
         }
         Update: {
           centro_id?: string
+          condicao?: string
           criado_em?: string
           criado_por?: string | null
           data_mov?: string
@@ -9663,6 +9689,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "centro_distribuicao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_condicao_fkey"
+            columns: ["condicao"]
+            isOneToOne: false
+            referencedRelation: "estoque_condicao"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -22378,20 +22411,6 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_estoque"
-            referencedColumns: ["sku"]
-          },
-          {
-            foreignKeyName: "xpm_termo_linha_sku_fkey"
-            columns: ["sku"]
-            isOneToOne: false
-            referencedRelation: "vw_produto_cockpit"
-            referencedColumns: ["sku"]
-          },
-          {
-            foreignKeyName: "xpm_termo_linha_sku_fkey"
-            columns: ["sku"]
-            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -24483,43 +24502,12 @@ export type Database = {
           },
         ]
       }
-      vw_estoque: {
-        Row: {
-          ativo: boolean | null
-          contagem_em: string | null
-          dias_desde_contagem: number | null
-          estoque_base: number | null
-          estoque_contabil: number | null
-          estoque_minimo: number | null
-          estoque_real: number | null
-          estoque_virtual: number | null
-          movimento_desde_contagem: number | null
-          nome_comercial: string | null
-          reservado: number | null
-          reservado_aguardando_produto: number | null
-          saude_divergencia: number | null
-          sku: string | null
-          status_venda: string | null
-          tem_razao: boolean | null
-        }
-        Relationships: []
-      }
       vw_estoque_contabil: {
         Row: {
+          estoque_bloqueado: number | null
           estoque_contabil: number | null
+          estoque_sadio: number | null
           sku: string | null
-        }
-        Relationships: []
-      }
-      vw_estoque_onboarding_progresso: {
-        Row: {
-          com_razao: number | null
-          pct_onboardado: number | null
-          seguro_desligar_bling: boolean | null
-          sem_razao: number | null
-          skus_ativos: number | null
-          skus_com_baixa_perdida: number | null
-          unidades_nao_lancadas: number | null
         }
         Relationships: []
       }
@@ -24535,32 +24523,11 @@ export type Database = {
       }
       vw_estoque_real: {
         Row: {
+          contado_bloqueado: number | null
+          contado_total: number | null
           data_contagem: string | null
           estoque_real: number | null
           sku: string | null
-        }
-        Relationships: []
-      }
-      vw_estoque_shopify_retido: {
-        Row: {
-          diff_estimado: number | null
-          location_id: string | null
-          motivo_retencao: string | null
-          nome_comercial: string | null
-          shopify_atual: number | null
-          sku: string | null
-          sncf_virtual_estimado: number | null
-        }
-        Relationships: []
-      }
-      vw_estoque_shopify_sync: {
-        Row: {
-          diff: number | null
-          inventory_item_id: string | null
-          location_id: string | null
-          shopify_atual: number | null
-          sku: string | null
-          sncf_virtual: number | null
         }
         Relationships: []
       }
@@ -24899,20 +24866,6 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
-            referencedColumns: ["sku"]
-          },
-          {
-            foreignKeyName: "importacao_linha_sku_fkey"
-            columns: ["sku"]
-            isOneToOne: false
-            referencedRelation: "vw_estoque"
-            referencedColumns: ["sku"]
-          },
-          {
-            foreignKeyName: "importacao_linha_sku_fkey"
-            columns: ["sku"]
-            isOneToOne: false
-            referencedRelation: "vw_produto_cockpit"
             referencedColumns: ["sku"]
           },
           {
@@ -26446,80 +26399,6 @@ export type Database = {
           },
         ]
       }
-      vw_produto_carteira_resumo: {
-        Row: {
-          abaixo_do_piso: number | null
-          capital_fragil: number | null
-          capital_lastreado: number | null
-          capital_sem_venda: number | null
-          cobertura_abaixo_30d: number | null
-          curva_a: number | null
-          curva_b: number | null
-          curva_c: number | null
-          custo_ausente: number | null
-          custo_interino: number | null
-          custo_real: number | null
-          estoque_com_razao: number | null
-          estoque_saldo_bling: number | null
-          janela_fim: string | null
-          janela_inicio: string | null
-          pct_cancelado: number | null
-          pct_perda_real: number | null
-          preco_divergente_bling: number | null
-          receita_cancelada: number | null
-          receita_perdida: number | null
-          receita_periodo: number | null
-          receita_reprocessada: number | null
-          sem_venda: number | null
-          skus_ativos: number | null
-          skus_pre_venda: number | null
-          un_aguardando_produto: number | null
-        }
-        Relationships: []
-      }
-      vw_produto_cockpit: {
-        Row: {
-          abaixo_piso_b2b: boolean | null
-          abaixo_piso_b2c: boolean | null
-          capital_parado: number | null
-          clientes: number | null
-          cobertura_dias: number | null
-          colecao: string | null
-          cor_nome: string | null
-          curva: string | null
-          custo: number | null
-          custo_status: string | null
-          dias_desde_contagem: number | null
-          dias_sem_vender: number | null
-          estoque_base: number | null
-          estoque_virtual: number | null
-          grupo: string | null
-          linha: string | null
-          nome_comercial: string | null
-          pedidos: number | null
-          preco_b2b: number | null
-          preco_b2c: number | null
-          preco_divergente_bling: boolean | null
-          preco_no_bling: number | null
-          receita: number | null
-          receita_cancelada: number | null
-          receita_perdida: number | null
-          receita_reprocessada: number | null
-          reservado: number | null
-          reservado_aguardando_produto: number | null
-          resultado_pct_b2b: number | null
-          resultado_pct_b2c: number | null
-          sku: string | null
-          status_venda: string | null
-          tem_razao: boolean | null
-          ultima_venda: string | null
-          un_canceladas: number | null
-          un_perdidas: number | null
-          un_por_dia: number | null
-          un_vendidas: number | null
-        }
-        Relationships: []
-      }
       vw_produto_crosswalk: {
         Row: {
           ativo: boolean | null
@@ -27718,20 +27597,6 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
-            referencedColumns: ["sku"]
-          },
-          {
-            foreignKeyName: "importacao_linha_sku_fkey"
-            columns: ["codigo_material"]
-            isOneToOne: false
-            referencedRelation: "vw_estoque"
-            referencedColumns: ["sku"]
-          },
-          {
-            foreignKeyName: "importacao_linha_sku_fkey"
-            columns: ["codigo_material"]
-            isOneToOne: false
-            referencedRelation: "vw_produto_cockpit"
             referencedColumns: ["sku"]
           },
           {
