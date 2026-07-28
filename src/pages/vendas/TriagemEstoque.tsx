@@ -25,6 +25,14 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunidadeDialog";
 import { cn } from "@/lib/utils";
+import { rotuloDestinoLiberacao } from "@/lib/pedidoLiberacaoEstoque";
+
+interface DestinoRow {
+  pedido_id: string;
+  destino: string | null;
+  rotulo: string | null;
+  porque: string | null;
+}
 
 interface TriagemRow {
   pedido_id: string;
@@ -73,6 +81,25 @@ export default function TriagemEstoque() {
       return (data ?? []) as TriagemRow[];
     },
   });
+
+  // Rótulo/destino do botão vêm do banco — a tela não decide.
+  const { data: destinos = [] } = useQuery({
+    queryKey: ["triagem-estoque-destinos"],
+    queryFn: async (): Promise<DestinoRow[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_destino_estoque")
+        .select("pedido_id, destino, rotulo, porque");
+      if (error) throw error;
+      return (data ?? []) as DestinoRow[];
+    },
+  });
+
+  const destinoPorPedido = useMemo(() => {
+    const m = new Map<string, DestinoRow>();
+    for (const d of destinos) m.set(d.pedido_id, d);
+    return m;
+  }, [destinos]);
 
   const enviar = useMemo(
     () =>
@@ -148,7 +175,7 @@ export default function TriagemEstoque() {
                   hint="Assim que o produto chegar e o pai estiver em dia, aparece aqui."
                 />
               ) : (
-                <TabelaEnviar rows={enviar} />
+                <TabelaEnviar rows={enviar} destinos={destinoPorPedido} />
               )}
             </CardContent>
           </Card>
@@ -171,7 +198,7 @@ export default function TriagemEstoque() {
                   hint="Aparecem aqui as remessas cujo pai tem parcela vencida em aberto."
                 />
               ) : (
-                <TabelaNegociar rows={negociar} />
+                <TabelaNegociar rows={negociar} destinos={destinoPorPedido} />
               )}
             </CardContent>
           </Card>
@@ -181,7 +208,7 @@ export default function TriagemEstoque() {
   );
 }
 
-function TabelaEnviar({ rows }: { rows: TriagemRow[] }) {
+function TabelaEnviar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<string, DestinoRow> }) {
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -263,7 +290,7 @@ function TabelaEnviar({ rows }: { rows: TriagemRow[] }) {
               </TableCell>
               <TableCell className="text-xs">{r.vendedor || "—"}</TableCell>
               <TableCell>
-                <AcoesLinha r={r} />
+                <AcoesLinha r={r} destino={destinos.get(r.pedido_id)} />
               </TableCell>
             </TableRow>
           ))}
@@ -273,7 +300,7 @@ function TabelaEnviar({ rows }: { rows: TriagemRow[] }) {
   );
 }
 
-function TabelaNegociar({ rows }: { rows: TriagemRow[] }) {
+function TabelaNegociar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<string, DestinoRow> }) {
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -340,7 +367,7 @@ function TabelaNegociar({ rows }: { rows: TriagemRow[] }) {
                 </Badge>
               </TableCell>
               <TableCell>
-                <AcoesLinha r={r} mostrarPai comMigrar />
+                <AcoesLinha r={r} destino={destinos.get(r.pedido_id)} mostrarPai comMigrar />
               </TableCell>
             </TableRow>
           ))}
@@ -352,10 +379,12 @@ function TabelaNegociar({ rows }: { rows: TriagemRow[] }) {
 
 function AcoesLinha({
   r,
+  destino,
   mostrarPai,
   comMigrar,
 }: {
   r: TriagemRow;
+  destino?: DestinoRow;
   mostrarPai?: boolean;
   comMigrar?: boolean;
 }) {
@@ -366,28 +395,31 @@ function AcoesLinha({
   const enviar = useMutation({
     mutationFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc("transicionar_pedido", {
+      const { data, error } = await (supabase as any).rpc("liberar_pedido_estoque", {
         p_pedido_id: r.pedido_id,
-        p_para_estagio: "em_separacao",
-        p_proxima_acao: "Separar e expedir",
-        p_motivo: "Estoque reposto — liberado na Triagem",
-        p_automatico: false,
+        p_motivo: "Produto chegou — liberado na Triagem",
       });
       if (error) throw error;
-      return data;
+      return data as { ok?: boolean; pedido_id?: string; destino?: string | null; porque?: string | null } | null;
     },
-    onSuccess: () => {
-      toast.success("Pedido enviado para separação", {
+    onSuccess: (data) => {
+      const dest = rotuloDestinoLiberacao(data?.destino);
+      toast.success(`Enviado para ${dest}`, {
         description: r.id_externo ? `Remessa ${r.id_externo}` : undefined,
       });
       qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
+      qc.invalidateQueries({ queryKey: ["triagem-estoque-destinos"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
     },
     onError: (e: unknown) => {
-      toast.error("Erro ao enviar para separação", { description: formatError(e) });
+      toast.error("Erro ao liberar remessa", { description: formatError(e) });
     },
   });
 
   const precisaConfirmar = comMigrar; // grupo "negociar"
+  const rotuloBotao = destino?.rotulo || "Enviar para próxima fase";
+  const tooltipBotao = destino?.porque || undefined;
 
   function handleEnviarClick() {
     if (precisaConfirmar) setConfirmOpen(true);
@@ -402,13 +434,14 @@ function AcoesLinha({
         className="h-7 gap-1.5"
         disabled={enviar.isPending}
         onClick={handleEnviarClick}
+        title={tooltipBotao}
       >
         {enviar.isPending ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
           <Send className="h-3.5 w-3.5" />
         )}
-        Enviar para separação
+        {rotuloBotao}
       </Button>
       {comMigrar && (
         <Button
@@ -492,7 +525,7 @@ function AcoesLinha({
                     responsabilidade do <strong>CPR</strong>, não da expedição.
                   </p>
                   <p className="text-muted-foreground">
-                    Ao confirmar, a remessa vai para <strong>Em separação</strong> e sai
+                    Ao confirmar, a remessa vai para <strong>{rotuloDestinoLiberacao(destino?.destino)}</strong> e sai
                     desta lista.
                   </p>
                 </div>

@@ -81,12 +81,26 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
       // Dimensão de natureza de operação — traz a flag `gera_titulo_receber`
       // que decide se a operação gera cobrança (título a receber). Não hardcode
       // códigos aqui; o front lê a flag da dimensão.
+      // Em remessa filha, a identidade fiscal/financeira mora no pai. O split
+      // cria a filha como `venda` mesmo quando o pai é transferência interna,
+      // então precisamos resolver a natureza pelo pedido de referência (pai
+      // quando existir, senão o próprio pedido). Mesma lógica que o banco usa.
       let natureza: PedidoDetalhe["natureza"] = null;
-      if (pedido.natureza_operacao_id) {
+      const refPedidoId = pedido.split_de_pedido_id ?? pedido.id;
+      let naturezaId: string | null = pedido.natureza_operacao_id ?? null;
+      if (refPedidoId !== pedido.id) {
+        const { data: pai } = await sb
+          .from("pedidos")
+          .select("natureza_operacao_id")
+          .eq("id", refPedidoId)
+          .maybeSingle();
+        naturezaId = pai?.natureza_operacao_id ?? null;
+      }
+      if (naturezaId) {
         const { data: nat } = await sb
           .from("naturezas_operacao")
           .select("codigo, nome, gera_titulo_receber")
-          .eq("id", pedido.natureza_operacao_id)
+          .eq("id", naturezaId)
           .maybeSingle();
         if (nat) {
           natureza = {
