@@ -78,21 +78,7 @@ type Conta = {
   fornecedor_cliente?: string | null;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  aberto: "Aberto",
-  aprovado: "Aprovado",
-  enviado_para_pagamento: "Enviado para Pagamento",
-  realizada: "Realizada",
-  cancelado: "Cancelado",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  aberto: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-  aprovado: "bg-purple-100 text-purple-800 hover:bg-purple-100",
-  enviado_para_pagamento: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
-  realizada: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
-  cancelado: "bg-red-100 text-red-800 hover:bg-red-100",
-};
+// Status de CPR: mapa canônico em `@/lib/financeiro/status-cpr`.
 
 const diasAteVencer = (d: string | null) => {
   if (!d) return 999;
