@@ -160,6 +160,20 @@ export default function Compras() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              try {
+                gerarTemplateItens();
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : "Falha ao gerar o template";
+                toast.error(msg);
+              }
+            }}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Baixar template
+          </Button>
           <Button onClick={abrirCriar} style={{ backgroundColor: "#1A4A3A", color: "white" }}>
             <Plus className="h-4 w-4 mr-1" />
             Novo Pedido
