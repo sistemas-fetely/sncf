@@ -1771,7 +1771,10 @@ export default function PedidoDetalhe() {
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
               )}
               {!estagioFinal && (
-                <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} />
+                <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} geraTituloReceber={geraTituloReceber} />
+              )}
+              {!estagioFinal && estagio === "aguardando_estoque" && (
+                <EnviarParaSeparacaoAcao pedidoId={pedido.id} />
               )}
               {estagio !== "cancelado" && estagio !== "em_analise_credito" && (
                 <ComunicacaoPedidoPanel
@@ -1779,9 +1782,16 @@ export default function PedidoDetalhe() {
                   parceiro_id={pedido.parceiro_id}
                   estagio={estagio}
                   exige_portao={!!(pedido as any).exige_portao}
+                  gera_titulo_receber={geraTituloReceber}
                 />
               )}
-              <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
+              {geraTituloReceber ? (
+                <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
+              ) : (
+                <p className="text-xs text-muted-foreground italic px-1">
+                  Natureza de operação sem cobrança{natureza?.nome ? ` · ${natureza.nome}` : ""}.
+                </p>
+              )}
               {!estagioFinal && !(pedido as any).atencao_nivel && (
                 <AtencaoPedidoDialog pedidoId={pedido.id}>
                   <Button variant="outline" size="sm" className="w-full gap-2">
