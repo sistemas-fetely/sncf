@@ -96,6 +96,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
     if (mode === "criar") {
       setDescricaoGeral("");
       setJustificativa("");
+      setSolicitanteExterno("");
       setCentroCustoId("");
       setLinhaInvId("");
       setParceiroId("");
@@ -120,6 +121,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
     } else if (pedido) {
       setDescricaoGeral(pedido.descricao_geral || "");
       setJustificativa(pedido.justificativa || "");
+      setSolicitanteExterno(pedido.solicitante_externo || "");
       setCentroCustoId(pedido.centro_custo_id || "");
       setLinhaInvId(pedido.linha_investimento_id || "");
       setParceiroId(pedido.parceiro_preferencial_id || "");
