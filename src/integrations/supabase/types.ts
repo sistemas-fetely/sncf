@@ -1457,6 +1457,13 @@ export type Database = {
             foreignKeyName: "boleto_stage_contas_pagar_receber_id_fkey"
             columns: ["contas_pagar_receber_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "boleto_stage_contas_pagar_receber_id_fkey"
+            columns: ["contas_pagar_receber_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -3113,6 +3120,13 @@ export type Database = {
             foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
             columns: ["nf_origem_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
+            columns: ["nf_origem_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -3635,6 +3649,13 @@ export type Database = {
             foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -3724,6 +3745,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_historico_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "contas_pagar_historico_conta_id_fkey"
@@ -3845,6 +3873,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_itens_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "contas_pagar_itens_conta_pagar_id_fkey"
@@ -6583,6 +6618,13 @@ export type Database = {
             foreignKeyName: "fatura_cartao_lancamentos_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "fatura_cartao_lancamentos_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -6655,6 +6697,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatura_cartao_lancamentos_nf_vinculada_id_fkey"
+            columns: ["nf_vinculada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "fatura_cartao_lancamentos_nf_vinculada_id_fkey"
@@ -6950,6 +6999,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faturas_cartao_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "faturas_cartao_conta_pagar_id_fkey"
@@ -9339,6 +9395,13 @@ export type Database = {
             foreignKeyName: "itau_pagamentos_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -10690,6 +10753,13 @@ export type Database = {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -11592,6 +11662,13 @@ export type Database = {
             foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
             columns: ["conta_pagar_receber_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
+            columns: ["conta_pagar_receber_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -12333,6 +12410,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pasta_contrato_parcelas_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "pasta_contrato_parcelas_conta_pagar_id_fkey"
@@ -14064,6 +14148,7 @@ export type Database = {
           centro_custo_id: string | null
           comprador_id: string | null
           created_at: string
+          data_necessidade: string | null
           departamento_id: string | null
           descricao_geral: string | null
           enviado_em: string | null
@@ -14073,6 +14158,8 @@ export type Database = {
           justificativa: string | null
           linha_investimento_id: string | null
           parceiro_preferencial_id: string | null
+          recebido_em: string | null
+          recebido_por: string | null
           solicitante_id: string
           status: Database["public"]["Enums"]["pedido_compra_status_enum"]
           sub_estado:
@@ -14081,6 +14168,9 @@ export type Database = {
           tipo: string
           unidade_id: string | null
           updated_at: string
+          urgencia_justificativa: string | null
+          urgente: boolean
+          valor_estimado_total: number | null
         }
         Insert: {
           cancelado_em?: string | null
@@ -14089,6 +14179,7 @@ export type Database = {
           centro_custo_id?: string | null
           comprador_id?: string | null
           created_at?: string
+          data_necessidade?: string | null
           departamento_id?: string | null
           descricao_geral?: string | null
           enviado_em?: string | null
@@ -14098,6 +14189,8 @@ export type Database = {
           justificativa?: string | null
           linha_investimento_id?: string | null
           parceiro_preferencial_id?: string | null
+          recebido_em?: string | null
+          recebido_por?: string | null
           solicitante_id: string
           status?: Database["public"]["Enums"]["pedido_compra_status_enum"]
           sub_estado?:
@@ -14106,6 +14199,9 @@ export type Database = {
           tipo?: string
           unidade_id?: string | null
           updated_at?: string
+          urgencia_justificativa?: string | null
+          urgente?: boolean
+          valor_estimado_total?: number | null
         }
         Update: {
           cancelado_em?: string | null
@@ -14114,6 +14210,7 @@ export type Database = {
           centro_custo_id?: string | null
           comprador_id?: string | null
           created_at?: string
+          data_necessidade?: string | null
           departamento_id?: string | null
           descricao_geral?: string | null
           enviado_em?: string | null
@@ -14123,6 +14220,8 @@ export type Database = {
           justificativa?: string | null
           linha_investimento_id?: string | null
           parceiro_preferencial_id?: string | null
+          recebido_em?: string | null
+          recebido_por?: string | null
           solicitante_id?: string
           status?: Database["public"]["Enums"]["pedido_compra_status_enum"]
           sub_estado?:
@@ -14131,6 +14230,9 @@ export type Database = {
           tipo?: string
           unidade_id?: string | null
           updated_at?: string
+          urgencia_justificativa?: string | null
+          urgente?: boolean
+          valor_estimado_total?: number | null
         }
         Relationships: [
           {
@@ -16231,6 +16333,13 @@ export type Database = {
             foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -16954,6 +17063,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remessas_contador_itens_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "remessas_contador_itens_conta_id_fkey"
@@ -19683,6 +19799,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_conta_id_fkey"
             columns: ["conta_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -22152,6 +22275,130 @@ export type Database = {
         }
         Relationships: []
       }
+      xpm_termo_linha: {
+        Row: {
+          aritmetica_ok: boolean | null
+          criado_em: string
+          descricao: string | null
+          id: string
+          lote: string | null
+          nf_numero: string | null
+          qtd_declarada: number
+          qtd_excesso: number
+          qtd_falta: number
+          qtd_nao_conforme: number
+          qtd_recebida: number
+          rnc: string | null
+          sem_cobertura_fiscal: boolean | null
+          sku: string
+          tarefa_id: string | null
+          termo: string
+          validade_serie: string | null
+        }
+        Insert: {
+          aritmetica_ok?: boolean | null
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          lote?: string | null
+          nf_numero?: string | null
+          qtd_declarada?: number
+          qtd_excesso?: number
+          qtd_falta?: number
+          qtd_nao_conforme?: number
+          qtd_recebida?: number
+          rnc?: string | null
+          sem_cobertura_fiscal?: boolean | null
+          sku: string
+          tarefa_id?: string | null
+          termo: string
+          validade_serie?: string | null
+        }
+        Update: {
+          aritmetica_ok?: boolean | null
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          lote?: string | null
+          nf_numero?: string | null
+          qtd_declarada?: number
+          qtd_excesso?: number
+          qtd_falta?: number
+          qtd_nao_conforme?: number
+          qtd_recebida?: number
+          rnc?: string | null
+          sem_cobertura_fiscal?: boolean | null
+          sku?: string
+          tarefa_id?: string | null
+          termo?: string
+          validade_serie?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_tarefas_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "sncf_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_emissao_nf_pendentes"
+            referencedColumns: ["tarefa_id"]
+          },
+        ]
+      }
     }
     Views: {
       contas_pagar: {
@@ -23223,6 +23470,13 @@ export type Database = {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -23771,6 +24025,71 @@ export type Database = {
           },
         ]
       }
+      vw_cpr_cobertura: {
+        Row: {
+          cpr_id: string | null
+          data_vencimento: string | null
+          despesa_id: string | null
+          parceiro_id: string | null
+          saldo: number | null
+          situacao_pagamento: string | null
+          status: string | null
+          tipo: string | null
+          valor: number | null
+          valor_alocado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_receber_despesa_id_fkey"
+            columns: ["despesa_id"]
+            isOneToOne: false
+            referencedRelation: "despesas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_despesa_id_fkey"
+            columns: ["despesa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       vw_custo_pessoas: {
         Row: {
           cargo: string | null
@@ -23836,6 +24155,7 @@ export type Database = {
         Row: {
           cpr_descricao: string | null
           cpr_id: string | null
+          cpr_saldo: number | null
           cpr_status: string | null
           cpr_valor: number | null
           data_pagamento: string | null
@@ -23847,6 +24167,7 @@ export type Database = {
           parceiro_nome: string | null
           rk: number | null
           score: number | null
+          situacao_pagamento: string | null
           valor_abs: number | null
         }
         Relationships: []
@@ -25146,6 +25467,13 @@ export type Database = {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -25200,14 +25528,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -26039,6 +26367,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_conta_id_fkey"
             columns: ["conta_id"]
             isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
@@ -26349,6 +26684,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "titulo_a_receber_conta_id_fkey"
@@ -26793,6 +27135,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "titulo_a_receber_conta_id_fkey"
@@ -27768,6 +28117,10 @@ export type Database = {
         Returns: Json
       }
       confirmar_pre_aprovacao: { Args: { p_analise_id: string }; Returns: Json }
+      confirmar_recebimento_pedido: {
+        Args: { p_observacao?: string; p_pedido_id: string }
+        Returns: Json
+      }
       contar_boletos_pendentes_mesmo_parceiro: {
         Args: { p_boleto_stage_id_referencia: string }
         Returns: Json
@@ -28236,6 +28589,7 @@ export type Database = {
         Args: { p_ate: string; p_de: string }
         Returns: number
       }
+      fn_eh_comprador: { Args: { p_user_id: string }; Returns: boolean }
       fn_fluxo_caixa_projetado: {
         Args: { p_horizonte?: number; p_saldo_inicial?: number }
         Returns: {
@@ -29343,6 +29697,7 @@ export type Database = {
         | "gestao_direta"
         | "estagiario"
         | "diretoria_executiva"
+        | "comprador"
       compra_anexo_tipo_enum:
         | "nf"
         | "recibo"
@@ -29374,12 +29729,17 @@ export type Database = {
         | "proposta"
         | "imagem_referencia"
         | "outro"
-      pedido_compra_item_status_enum: "pendente" | "comprado" | "cancelado"
+      pedido_compra_item_status_enum:
+        | "pendente"
+        | "comprado"
+        | "recebido"
+        | "cancelado"
       pedido_compra_status_enum:
         | "rascunho"
         | "aberto"
         | "em_compra"
         | "comprado"
+        | "recebido"
         | "cancelado"
       pedido_compra_sub_estado_enum: "em_compra" | "aguardando_orcamento"
     }
@@ -29527,6 +29887,7 @@ export const Constants = {
         "gestao_direta",
         "estagiario",
         "diretoria_executiva",
+        "comprador",
       ],
       compra_anexo_tipo_enum: [
         "nf",
@@ -29563,12 +29924,18 @@ export const Constants = {
         "imagem_referencia",
         "outro",
       ],
-      pedido_compra_item_status_enum: ["pendente", "comprado", "cancelado"],
+      pedido_compra_item_status_enum: [
+        "pendente",
+        "comprado",
+        "recebido",
+        "cancelado",
+      ],
       pedido_compra_status_enum: [
         "rascunho",
         "aberto",
         "em_compra",
         "comprado",
+        "recebido",
         "cancelado",
       ],
       pedido_compra_sub_estado_enum: ["em_compra", "aguardando_orcamento"],
