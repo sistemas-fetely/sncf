@@ -11,6 +11,7 @@ export interface AtualizarPedidoInput {
     parceiro_preferencial_id?: string | null;
     descricao_geral?: string | null;
     justificativa?: string | null;
+    solicitante_externo?: string | null;
   };
   itens: ItemEdit[];
   anexos_a_remover?: { id: string; storage_path: string }[];

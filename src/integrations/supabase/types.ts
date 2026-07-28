@@ -5228,8 +5228,11 @@ export type Database = {
           centro_custo_id: string | null
           centro_custo_nome: string | null
           custo_total: number
+          custo_total_empresa: number | null
+          encargo_direto: number | null
           headcount: number
           id: string
+          provisao: number | null
         }
         Insert: {
           ano_mes: string
@@ -5237,8 +5240,11 @@ export type Database = {
           centro_custo_id?: string | null
           centro_custo_nome?: string | null
           custo_total: number
+          custo_total_empresa?: number | null
+          encargo_direto?: number | null
           headcount: number
           id?: string
+          provisao?: number | null
         }
         Update: {
           ano_mes?: string
@@ -5246,8 +5252,11 @@ export type Database = {
           centro_custo_id?: string | null
           centro_custo_nome?: string | null
           custo_total?: number
+          custo_total_empresa?: number | null
+          encargo_direto?: number | null
           headcount?: number
           id?: string
+          provisao?: number | null
         }
         Relationships: [
           {
@@ -6089,6 +6098,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          impacta_custo: boolean
           integra_base_encargo: boolean
           natureza_padrao: string
           nome: string
@@ -6100,6 +6110,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          impacta_custo?: boolean
           integra_base_encargo?: boolean
           natureza_padrao?: string
           nome: string
@@ -6111,6 +6122,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          impacta_custo?: boolean
           integra_base_encargo?: boolean
           natureza_padrao?: string
           nome?: string
@@ -14303,6 +14315,7 @@ export type Database = {
           parceiro_preferencial_id: string | null
           recebido_em: string | null
           recebido_por: string | null
+          solicitante_externo: string | null
           solicitante_id: string
           status: Database["public"]["Enums"]["pedido_compra_status_enum"]
           sub_estado:
@@ -14334,6 +14347,7 @@ export type Database = {
           parceiro_preferencial_id?: string | null
           recebido_em?: string | null
           recebido_por?: string | null
+          solicitante_externo?: string | null
           solicitante_id: string
           status?: Database["public"]["Enums"]["pedido_compra_status_enum"]
           sub_estado?:
@@ -14365,6 +14379,7 @@ export type Database = {
           parceiro_preferencial_id?: string | null
           recebido_em?: string | null
           recebido_por?: string | null
+          solicitante_externo?: string | null
           solicitante_id?: string
           status?: Database["public"]["Enums"]["pedido_compra_status_enum"]
           sub_estado?:
@@ -24274,13 +24289,17 @@ export type Database = {
       }
       vw_custo_pessoas: {
         Row: {
+          base_encargo: number | null
           cargo: string | null
           centro_custo_id: string | null
           centro_custo_nome: string | null
           custo_recorrente_mensal: number | null
+          custo_total_empresa: number | null
           departamento: string | null
+          encargo_direto_mensal: number | null
           nome: string | null
           pessoa_id: string | null
+          provisao_mensal: number | null
           tipo_vinculo: string | null
           total_beneficios: number | null
           total_extras_recorrentes: number | null
@@ -25742,14 +25761,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25951,14 +25970,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -28475,6 +28494,7 @@ export type Database = {
           p_justificativa: string
           p_linha_investimento_id: string
           p_parceiro_preferencial_id: string
+          p_solicitante_externo?: string
           p_urgencia_justificativa?: string
           p_urgente?: boolean
         }
@@ -28951,6 +28971,10 @@ export type Database = {
         Args: { p_cpr_id: string }
         Returns: undefined
       }
+      fn_reescalar_condicao_aprovada: {
+        Args: { p_condicao: Json; p_valor_alvo: number }
+        Returns: Json
+      }
       fn_regras_aplicar: { Args: never; Returns: Json }
       fn_regua_materializar: { Args: never; Returns: Json }
       fn_resolver_condicao: { Args: { p_condicao: string }; Returns: string }
@@ -29024,10 +29048,15 @@ export type Database = {
       get_folha_competencia: {
         Args: { p_competencia: string }
         Returns: {
+          adiantamentos: number
+          base_encargo: number
+          custo_total_empresa: number
           departamento: string
+          encargo_direto: number
           extras_pontuais: number
           extras_recorrentes: number
           pessoa: string
+          provisao: number
           tipo_vinculo: string
           total_beneficios: number
           total_mes: number

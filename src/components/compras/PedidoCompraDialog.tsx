@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Info, Ban, CalendarIcon, AlertTriangle } from "lucide-react";
+import { Loader2, Info, Ban, CalendarIcon, AlertTriangle, Download, Upload } from "lucide-react";
 import { format, parseISO, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,8 @@ import { ItensList } from "./ItensList";
 import { AnexosList } from "./AnexosList";
 import { TimelinePedido } from "./TimelinePedido";
 import { CancelarPedidoDialog } from "./CancelarPedidoDialog";
+import { ImportarItensDialog } from "./ImportarItensDialog";
+import { gerarTemplateItens } from "@/lib/compras/templateItens";
 import { useDepartamentoUnidadeUsuario } from "@/hooks/compras/useDepartamentoUnidadeUsuario";
 import { useCriarPedidoCompra } from "@/hooks/compras/useCriarPedidoCompra";
 import { useEnviarPedidoCompra } from "@/hooks/compras/useEnviarPedidoCompra";
@@ -64,6 +67,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
 
   const [descricaoGeral, setDescricaoGeral] = useState("");
   const [justificativa, setJustificativa] = useState("");
+  const [solicitanteExterno, setSolicitanteExterno] = useState("");
   const [centroCustoId, setCentroCustoId] = useState<string>("");
   const [linhaInvId, setLinhaInvId] = useState<string>("");
   const [parceiroId, setParceiroId] = useState<string>("");
@@ -77,6 +81,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
   const [pedidoIdLocal, setPedidoIdLocal] = useState<string | undefined>(pedido?.id);
   const [submitting, setSubmitting] = useState(false);
   const [cancelarDialogOpen, setCancelarDialogOpen] = useState(false);
+  const [importarDialogOpen, setImportarDialogOpen] = useState(false);
   const { user } = useAuth();
   const podeCancelar =
     mode === "ver" &&
@@ -91,6 +96,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
     if (mode === "criar") {
       setDescricaoGeral("");
       setJustificativa("");
+      setSolicitanteExterno("");
       setCentroCustoId("");
       setLinhaInvId("");
       setParceiroId("");
@@ -115,6 +121,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
     } else if (pedido) {
       setDescricaoGeral(pedido.descricao_geral || "");
       setJustificativa(pedido.justificativa || "");
+      setSolicitanteExterno(pedido.solicitante_externo || "");
       setCentroCustoId(pedido.centro_custo_id || "");
       setLinhaInvId(pedido.linha_investimento_id || "");
       setParceiroId(pedido.parceiro_preferencial_id || "");
@@ -248,8 +255,9 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       centro_custo_id: centroCustoId || null,
       linha_investimento_id: linhaInvId || null,
       parceiro_preferencial_id: parceiroId || null,
+      solicitante_externo: solicitanteExterno.trim() || null,
     }),
-    [descricaoGeral, justificativa, centroCustoId, linhaInvId, parceiroId],
+    [descricaoGeral, justificativa, centroCustoId, linhaInvId, parceiroId, solicitanteExterno],
   );
 
   const handleSalvar = async (enviar_apos: boolean) => {
@@ -328,6 +336,18 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             disabled={!podeEditar}
             rows={3}
           />
+        </div>
+        <div>
+          <Label>Solicitado por (opcional)</Label>
+          <Input
+            value={solicitanteExterno}
+            onChange={(e) => setSolicitanteExterno(e.target.value)}
+            placeholder="Nome de quem pediu, se não foi você"
+            disabled={!podeEditar}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Use quando estiver lançando o pedido de outra pessoa.
+          </p>
         </div>
 
         {/* Prazo e urgência */}
@@ -477,7 +497,41 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           </div>
         </Card>
       </div>
-      <ItensList items={itens} onChange={setItens} readOnly={readOnly} showItemStatus={mode === "ver"} />
+      <ItensList
+        items={itens}
+        onChange={setItens}
+        readOnly={readOnly}
+        showItemStatus={mode === "ver"}
+        headerActions={
+          podeEditar ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  try {
+                    gerarTemplateItens();
+                  } catch (e) {
+                    const msg = e instanceof Error ? e.message : "Erro ao gerar template";
+                    toast.error(msg);
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-1" /> Baixar template
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImportarDialogOpen(true)}
+              >
+                <Upload className="h-4 w-4 mr-1" /> Importar planilha
+              </Button>
+            </>
+          ) : null
+        }
+      />
       <AnexosList
         pedidoId={pedidoIdLocal}
         anexos={anexos}
@@ -569,6 +623,22 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           onCancelado={() => onOpenChange(false)}
         />
       )}
+      <ImportarItensDialog
+        open={importarDialogOpen}
+        onOpenChange={setImportarDialogOpen}
+        itensAtuais={itens}
+        onImportar={(novos, modo) => {
+          if (modo === "substituir") {
+            // marca todos os existentes com id para delete, descarta os create pendentes
+            const removidos: ItemEdit[] = itens
+              .filter((i) => i.id && i._action !== "delete")
+              .map((i) => ({ ...i, _action: "delete" as const }));
+            setItens([...removidos, ...novos]);
+          } else {
+            setItens([...itens, ...novos]);
+          }
+        }}
+      />
     </Dialog>
   );
 }
