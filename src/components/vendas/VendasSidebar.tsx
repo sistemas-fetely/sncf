@@ -92,8 +92,7 @@ export function VendasSidebar() {
             <FinancasSidebarSection title="Produto" defaultOpen>
               <FinancasSidebarItem to="/vendas/produto" icon={Package} label="Produto" end />
               <FinancasSidebarItem to="/vendas/produto/estoque" icon={Boxes} label="Estoque" />
-
-            </SidebarMenu>
+            </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
 
