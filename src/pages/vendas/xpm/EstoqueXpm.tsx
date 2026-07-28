@@ -46,6 +46,7 @@ type IngestResult = {
   skus_fora_do_catalogo: number;
   total_normal: number;
   total_danificado: number;
+  validado_contra_rodape?: boolean;
 };
 
 const STATUS_META: Record<
