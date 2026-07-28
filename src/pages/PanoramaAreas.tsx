@@ -114,7 +114,7 @@ export default function PanoramaAreas() {
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success"><Wallet className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{fmtBRL(totCusto)}</p><p className="text-xs text-muted-foreground">Custo mensal total</p></div>
+          <div><p className="text-2xl font-bold">{fmtBRL(totCusto)}</p><p className="text-xs text-muted-foreground">Custo total (empresa)</p><p className="text-[10px] text-muted-foreground mt-0.5">Remuneração (sem encargos): {fmtBRL(totRemuneracao)} · Encargos: {fmtBRL(totEncargo)}</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10 text-info"><Building2 className="h-5 w-5" /></div>
