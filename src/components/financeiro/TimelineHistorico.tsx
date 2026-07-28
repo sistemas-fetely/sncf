@@ -2,23 +2,12 @@ import { useHistoricoConta } from "@/hooks/useContaWorkflow";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Circle } from "lucide-react";
+import { getStatusCprMeta } from "@/lib/financeiro/status-cpr";
 
 interface Props {
   contaId: string;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  rascunho: "Rascunho",
-  aberto: "Aberto",
-  atrasado: "Atrasado",
-  aprovado: "Aprovado",
-  agendado: "Enviado",
-  enviado_para_pagamento: "Enviado para Pagamento",
-  aguardando_pagamento: "Enviado para Pagamento",
-  pago: "Pago",
-  cancelado: "Cancelado",
-  conciliado: "Conciliado",
-};
 
 export default function TimelineHistorico({ contaId }: Props) {
   const { data: historico, isLoading } = useHistoricoConta(contaId);
