@@ -11742,6 +11742,7 @@ export type Database = {
       pagamento_alocacao: {
         Row: {
           conta_pagar_receber_id: string
+          cpr_status_anterior: string | null
           created_at: string
           criado_por: string | null
           id: string
@@ -11752,6 +11753,7 @@ export type Database = {
         }
         Insert: {
           conta_pagar_receber_id: string
+          cpr_status_anterior?: string | null
           created_at?: string
           criado_por?: string | null
           id?: string
@@ -11762,6 +11764,7 @@ export type Database = {
         }
         Update: {
           conta_pagar_receber_id?: string
+          cpr_status_anterior?: string | null
           created_at?: string
           criado_por?: string | null
           id?: string
@@ -21795,7 +21798,6 @@ export type Database = {
           unidade_id: string | null
           updated_at: string
           valor_base: number | null
-          valor_beneficios_extras: number | null
           valor_transporte: number | null
         }
         Insert: {
@@ -21843,7 +21845,6 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           valor_base?: number | null
-          valor_beneficios_extras?: number | null
           valor_transporte?: number | null
         }
         Update: {
@@ -21891,7 +21892,6 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           valor_base?: number | null
-          valor_beneficios_extras?: number | null
           valor_transporte?: number | null
         }
         Relationships: [
@@ -24565,6 +24565,8 @@ export type Database = {
           centro_custo: string | null
           centro_custo_id: string | null
           custo_beneficios_extras: number | null
+          custo_encargo: number | null
+          custo_total_empresa: number | null
           custo_transporte: number | null
           custo_valor_base: number | null
           ocupados: number | null
