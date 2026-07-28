@@ -188,7 +188,8 @@ export default function EstoqueXpm() {
     try {
       const buf = await file.arrayBuffer();
       const html = new TextDecoder("iso-8859-1").decode(buf);
-      const { rows: parsed, totalDeclarado } = parseArquivoXpm(html);
+      const { rows: parsed, totalDeclarado, totalNormalDeclarado, totalDanificadoDeclarado } =
+        parseArquivoXpm(html);
 
       if (parsed.length === 0) {
         throw new Error("Nenhuma linha reconhecida no arquivo — confira se é o export de estoque da XPM.");
@@ -199,6 +200,8 @@ export default function EstoqueXpm() {
         p_arquivo: file.name,
         p_rows: parsed,
         p_total_declarado: totalDeclarado,
+        p_total_normal: totalNormalDeclarado,
+        p_total_danificado: totalDanificadoDeclarado,
       });
       if (error) throw error;
 
