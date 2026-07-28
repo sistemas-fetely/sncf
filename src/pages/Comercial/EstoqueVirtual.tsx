@@ -24,6 +24,9 @@ interface EstoqueSku {
   ativo: boolean;
   tem_razao: boolean;
   estoque_base: number;
+  estoque_sadio: number;
+  estoque_bloqueado: number;
+  estoque_contabil: number | null;
   reservado: number;
   estoque_virtual: number;
   estoque_minimo: number;
@@ -34,6 +37,8 @@ interface EstoqueSku {
 type Col =
   | "sku"
   | "nome"
+  | "sadio"
+  | "bloqueado"
   | "aguardando"
   | "reservado"
   | "virtual"
@@ -77,6 +82,13 @@ function formatNum(n: number | null | undefined) {
   return new Intl.NumberFormat("pt-BR").format(v);
 }
 
+function adaptiveValueClass(text: string): string {
+  const len = text.length;
+  if (len <= 9) return "text-2xl";
+  if (len <= 13) return "text-xl";
+  return "text-lg";
+}
+
 
 function formatHora(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -92,6 +104,7 @@ export default function EstoqueVirtual() {
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   const [fonteFiltro, setFonteFiltro] = useState<string>("todas");
+  const [condicaoFiltro, setCondicaoFiltro] = useState<string>("todos");
   const [sort, setSort] = useState<SortState<Col> | null>({
     column: "virtual",
     direction: "asc",
@@ -122,7 +135,7 @@ export default function EstoqueVirtual() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_estoque")
-        .select("sku,nome_comercial,ativo,tem_razao,estoque_base,reservado,estoque_virtual,estoque_minimo,status_venda,reservado_aguardando_produto")
+        .select("sku,nome_comercial,ativo,tem_razao,estoque_base,estoque_sadio,estoque_bloqueado,estoque_contabil,reservado,estoque_virtual,estoque_minimo,status_venda,reservado_aguardando_produto")
         .limit(5000);
       if (error) throw error;
       return (data ?? []) as EstoqueSku[];
@@ -154,6 +167,8 @@ export default function EstoqueVirtual() {
     let preVenda = 0;
     let unAguardando = 0;
     let indisponivel = 0;
+    let bloqueadoUn = 0;
+    let bloqueadoSkus = 0;
     for (const p of lista) {
       if (p.tem_razao) comRazao++;
       else semRazao++;
@@ -162,8 +177,13 @@ export default function EstoqueVirtual() {
         unAguardando += Number(p.reservado_aguardando_produto ?? 0);
       }
       if (p.status_venda === "indisponivel") indisponivel++;
+      const bloq = Number(p.estoque_bloqueado ?? 0);
+      if (bloq > 0) {
+        bloqueadoUn += bloq;
+        bloqueadoSkus++;
+      }
     }
-    return { comRazao, semRazao, preVenda, unAguardando, indisponivel };
+    return { comRazao, semRazao, preVenda, unAguardando, indisponivel, bloqueadoUn, bloqueadoSkus };
   }, [lista]);
 
   const filtrados = useMemo(() => {
@@ -172,6 +192,9 @@ export default function EstoqueVirtual() {
       if (statusFiltro !== "todos" && p.status_venda !== statusFiltro) return false;
       if (fonteFiltro === "razao" && !p.tem_razao) return false;
       if (fonteFiltro === "bling" && p.tem_razao) return false;
+      const bloq = Number(p.estoque_bloqueado ?? 0);
+      if (condicaoFiltro === "com_bloqueio" && !(bloq > 0)) return false;
+      if (condicaoFiltro === "so_sadio" && bloq > 0) return false;
       if (!q) return true;
       return (
         p.sku?.toLowerCase().includes(q) ||
@@ -181,12 +204,14 @@ export default function EstoqueVirtual() {
     return ordenarPor<EstoqueSku, Col>(base, sort, {
       sku: (p) => p.sku,
       nome: (p) => p.nome_comercial ?? "",
+      sadio: (p) => Number(p.estoque_sadio ?? 0),
+      bloqueado: (p) => Number(p.estoque_bloqueado ?? 0),
       aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
       reservado: (p) => Number(p.reservado ?? 0),
       virtual: (p) => Number(p.estoque_virtual ?? 0),
       status: (p) => p.status_venda,
     });
-  }, [lista, busca, statusFiltro, fonteFiltro, sort]);
+  }, [lista, busca, statusFiltro, fonteFiltro, condicaoFiltro, sort]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -203,6 +228,8 @@ export default function EstoqueVirtual() {
     syncQuery.refetch();
   }
 
+  const bloqueadoDisplay = `${formatNum(resumo.bloqueadoUn)} un`;
+
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
       <CasaPageHeader
@@ -211,10 +238,10 @@ export default function EstoqueVirtual() {
           { label: "SOPs" },
           { label: "Produto" },
           { label: "Estoque" },
-          { label: "Virtual" },
+          { label: "Geral" },
         ]}
-        title="Estoque Virtual"
-        subtitle={`Saldo Bling sincronizado em: ${formatHora(syncQuery.data)}`}
+        title="Estoque Geral"
+        subtitle={`Sadio, bloqueado e comprometido. Saldo Bling sincronizado em: ${formatHora(syncQuery.data)}`}
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -234,24 +261,33 @@ export default function EstoqueVirtual() {
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4 text-sm">
         <StatPill
           label="Com razão SNCF"
-          value={resumo.comRazao}
+          value={formatNum(resumo.comRazao)}
           dotClass="bg-emerald-500"
         />
         <StatPill
           label="No saldo Bling"
-          value={resumo.semRazao}
+          value={formatNum(resumo.semRazao)}
           dotClass="bg-amber-500"
         />
         <StatPill
+          label="Bloqueado"
+          value={bloqueadoDisplay}
+          dotClass="bg-red-500"
+          valueClassName="text-red-600 dark:text-red-400"
+          sublabel={`${formatNum(resumo.bloqueadoSkus)} SKUs`}
+        />
+        <StatPill
           label="Pré-venda"
-          value={resumo.preVenda}
+          value={formatNum(resumo.preVenda)}
           dotClass="bg-blue-500"
+          valueClassName="text-blue-600 dark:text-blue-400"
           sublabel={`${formatNum(resumo.unAguardando)} un aguardando`}
         />
         <StatPill
           label="Indisponível"
-          value={resumo.indisponivel}
+          value={formatNum(resumo.indisponivel)}
           dotClass="bg-red-500"
+          valueClassName="text-red-600 dark:text-red-400"
         />
       </div>
 
@@ -287,6 +323,16 @@ export default function EstoqueVirtual() {
             <SelectItem value="bling">Saldo Bling</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={condicaoFiltro} onValueChange={(v) => { setCondicaoFiltro(v); setPagina(1); }}>
+          <FilterSelectTrigger active={condicaoFiltro !== "todos"} className="w-[200px]">
+            <SelectValue />
+          </FilterSelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as condições</SelectItem>
+            <SelectItem value="com_bloqueio">Só com bloqueio</SelectItem>
+            <SelectItem value="so_sadio">Só sadio</SelectItem>
+          </SelectContent>
+        </Select>
         <span className="text-xs text-muted-foreground ml-auto">
           {filtrados.length} {filtrados.length === 1 ? "produto" : "produtos"}
         </span>
@@ -304,11 +350,17 @@ export default function EstoqueVirtual() {
                   Produto
                 </SortableTableHead>
                 <TableHead className="w-[130px]">Fonte</TableHead>
-                <SortableTableHead column="aguardando" sort={sort} onSort={setSort} align="right" className="w-[150px]">
-                  Aguardando produto
+                <SortableTableHead column="sadio" sort={sort} onSort={setSort} align="right" className="w-[100px]">
+                  Sadio
+                </SortableTableHead>
+                <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[110px]">
+                  Bloqueado
                 </SortableTableHead>
                 <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[100px]">
                   Reservado
+                </SortableTableHead>
+                <SortableTableHead column="aguardando" sort={sort} onSort={setSort} align="right" className="w-[150px]">
+                  Aguardando produto
                 </SortableTableHead>
                 <SortableTableHead column="virtual" sort={sort} onSort={setSort} align="right" className="w-[100px]">
                   Virtual
@@ -321,19 +373,21 @@ export default function EstoqueVirtual() {
             <TableBody>
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     Carregando…
                   </TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     Nenhum produto encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((p) => {
                   const virtual = Number(p.estoque_virtual ?? 0);
+                  const sadio = Number(p.estoque_sadio ?? 0);
+                  const bloqueado = Number(p.estoque_bloqueado ?? 0);
                   const aguardando = Number(p.reservado_aguardando_produto ?? 0);
                   const statusBadge = (
                     <Badge variant="outline" className={cn("font-normal", STATUS_CLASS[p.status_venda])}>
@@ -368,6 +422,24 @@ export default function EstoqueVirtual() {
                           </Tooltip>
                         )}
                       </TableCell>
+                      <TableCell className="text-right tabular-nums">{formatNum(sadio)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {bloqueado === 0 ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="font-medium text-red-600 dark:text-red-400 cursor-help">
+                                {formatNum(bloqueado)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {formatNum(bloqueado)} unidades fora do vendável — não conforme, avariado ou em quarentena. Não podem ser reservadas nem vendidas.
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{formatNum(p.reservado)}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {aguardando === 0 ? (
                           <span className="text-muted-foreground">—</span>
@@ -384,12 +456,18 @@ export default function EstoqueVirtual() {
                           </Tooltip>
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNum(p.reservado)}</TableCell>
                       <TableCell className={cn(
                         "text-right tabular-nums font-medium",
                         virtual < 0 && "text-red-600 dark:text-red-400",
                       )}>
-                        {formatNum(virtual)}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help">{formatNum(virtual)}</span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            Sadio menos reservado. Estoque bloqueado não entra.
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         {p.status_venda === "pre_venda" ? (
@@ -520,20 +598,22 @@ function StatPill({
   value,
   dotClass,
   sublabel,
+  valueClassName,
 }: {
   label: string;
-  value: number;
+  value: string;
   dotClass: string;
   sublabel?: string;
+  valueClassName?: string;
 }) {
   return (
     <div className="flex items-center gap-2">
       <span className={cn("h-2 w-2 rounded-full", dotClass)} aria-hidden />
       <div className="flex flex-col leading-tight">
-        <div className="flex items-center gap-2">
+        <div className="flex items-baseline gap-2">
           <span className="text-xs text-muted-foreground">{label}</span>
-          <span className="text-sm font-semibold tabular-nums">
-            {new Intl.NumberFormat("pt-BR").format(value)}
+          <span className={cn("font-semibold tabular-nums", adaptiveValueClass(value), valueClassName)}>
+            {value}
           </span>
         </div>
         {sublabel && (
