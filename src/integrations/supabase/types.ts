@@ -25409,14 +25409,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -27747,7 +27747,12 @@ export type Database = {
         Returns: Json
       }
       confirmar_match_despesa: {
-        Args: { p_cpr_id: string; p_mov_id: string; p_user_id?: string }
+        Args: {
+          p_cpr_id: string
+          p_mov_id: string
+          p_user_id?: string
+          p_valor?: number
+        }
         Returns: Json
       }
       confirmar_par_transferencia: {
