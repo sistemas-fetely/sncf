@@ -4035,7 +4035,7 @@ export type Database = {
           reembolsa_vinculo_id?: string | null
           sla_aprovacao_dias?: number | null
           sla_pagamento_dias?: number | null
-          status?: string
+          status: string
           tags?: Json
           tarefa_id?: string | null
           tem_sugestao_nf?: boolean
@@ -5384,7 +5384,6 @@ export type Database = {
           natureza_investimento_id: string | null
           origem_porta: string
           plano_contas_id: string | null
-          status_caixa: string
           updated_at: string
           valor: number
         }
@@ -5406,7 +5405,6 @@ export type Database = {
           natureza_investimento_id?: string | null
           origem_porta: string
           plano_contas_id?: string | null
-          status_caixa?: string
           updated_at?: string
           valor: number
         }
@@ -5428,7 +5426,6 @@ export type Database = {
           natureza_investimento_id?: string | null
           origem_porta?: string
           plano_contas_id?: string | null
-          status_caixa?: string
           updated_at?: string
           valor?: number
         }
@@ -23585,9 +23582,11 @@ export type Database = {
           plano_codigo: string | null
           plano_contas_id: string | null
           plano_nome: string | null
+          saldo_a_pagar: number | null
           status_caixa: string | null
           updated_at: string | null
           valor: number | null
+          valor_alocado: number | null
         }
         Relationships: [
           {

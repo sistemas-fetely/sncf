@@ -45,6 +45,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
+import { getEstagioMeta } from "@/lib/despesas/estagios";
 
 type DespesaV2 = {
   id: string;
@@ -64,6 +65,8 @@ type DespesaV2 = {
   natureza_nome: string | null;
   status_caixa: string | null;
   estagio: string | null;
+  valor_alocado: number | null;
+  saldo_a_pagar: number | null;
 };
 
 type NaturezaDim = {
@@ -113,24 +116,7 @@ const ORIGEM_LABEL: Record<string, string> = {
   manual: "Manual",
 };
 
-const ESTAGIO_META: Record<string, { label: string; className: string }> = {
-  completa: {
-    label: "completa",
-    className: "bg-emerald-600 hover:bg-emerald-600 text-white border-transparent",
-  },
-  aguardando_pagamento: {
-    label: "aguarda pgto",
-    className: "bg-blue-50 text-blue-700 border-blue-400",
-  },
-  sem_documento: {
-    label: "sem documento",
-    className: "bg-amber-100 text-amber-800 border-amber-400",
-  },
-  a_classificar: {
-    label: "a classificar",
-    className: "bg-transparent text-red-600 border-red-400",
-  },
-};
+// ESTAGIO_META vive em @/lib/despesas/estagios — fonte única.
 
 /** Competência normalizada para o 1º dia do mês (chave da coluna da matriz). */
 function competenciaKey(iso: string): string {
@@ -161,8 +147,7 @@ function labelMesLongo(iso: string): string {
 
 function BadgeEstagio({ estagio }: { estagio: string | null }) {
   if (!estagio) return <span className="text-muted-foreground">—</span>;
-  const meta = ESTAGIO_META[estagio];
-  if (!meta) return <Badge variant="outline" className="text-[10px]">{estagio}</Badge>;
+  const meta = getEstagioMeta(estagio);
   return (
     <Badge variant="outline" className={cn("text-[10px] whitespace-nowrap", meta.className)}>
       {meta.label}
@@ -187,7 +172,7 @@ export default function CaixaBanco() {
           "id, origem_porta, data_competencia, valor, descricao, fornecedor_nome, " +
             "plano_contas_id, plano_codigo, plano_nome, centro_custo_id, centro_codigo, " +
             "centro_nome, natureza_investimento_id, natureza_codigo, natureza_nome, " +
-            "status_caixa, estagio",
+            "status_caixa, estagio, valor_alocado, saldo_a_pagar",
         )
         .order("data_competencia", { ascending: true });
       if (error) throw error;
@@ -496,9 +481,9 @@ export default function CaixaBanco() {
                   </div>
                   <div
                     className="text-[11px] text-muted-foreground mt-0.5 truncate"
-                    title={g.membros.join(" + ")}
+                    title={g.membros.join(", ")}
                   >
-                    {g.membros.join(" + ")}
+                    {g.membros.join(", ")}
                   </div>
                 </CardContent>
               </Card>
