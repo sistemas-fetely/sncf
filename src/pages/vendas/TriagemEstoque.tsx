@@ -198,7 +198,7 @@ export default function TriagemEstoque() {
                   hint="Aparecem aqui as remessas cujo pai tem parcela vencida em aberto."
                 />
               ) : (
-                <TabelaNegociar rows={negociar} />
+                <TabelaNegociar rows={negociar} destinos={destinoPorPedido} />
               )}
             </CardContent>
           </Card>
