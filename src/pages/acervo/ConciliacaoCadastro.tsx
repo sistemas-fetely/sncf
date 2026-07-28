@@ -735,11 +735,14 @@ function ResumoCard({
   contexto: string;
   tone?: "emerald" | "amber" | "red";
 }) {
+  const len = String(value ?? "").length;
+  const sizeClass = len >= 14 ? "text-lg" : len >= 10 ? "text-xl" : "text-2xl";
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="rounded-lg border bg-card p-4 min-w-0">
       <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
       <div className={cn(
-        "text-2xl font-semibold tabular-nums leading-none mb-2",
+        sizeClass,
+        "font-semibold tabular-nums leading-none mb-2",
         tone === "emerald" && "text-emerald-600 dark:text-emerald-400",
         tone === "amber" && "text-amber-600 dark:text-amber-400",
         tone === "red" && "text-red-600 dark:text-red-400",
