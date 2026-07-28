@@ -81,6 +81,11 @@ interface CarteiraResumo {
   receita_periodo: number | null;
   receita_cancelada: number | null;
   pct_cancelado: number | null;
+  receita_perdida: number | null;
+  receita_reprocessada: number | null;
+  pct_perda_real: number | null;
+  skus_pre_venda: number | null;
+  un_aguardando_produto: number | null;
   curva_a: number | null;
   curva_b: number | null;
   curva_c: number | null;
