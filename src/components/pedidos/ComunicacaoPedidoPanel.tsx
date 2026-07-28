@@ -27,6 +27,8 @@ interface Props {
   parceiro_id: string;
   estagio: string;
   exige_portao?: boolean;
+  /** Se falso, a natureza de operação não gera título — cobrança e histórico ficam ocultos. */
+  gera_titulo_receber?: boolean;
 }
 
 const TIPO_LABEL: Record<TipoEmail, { btn: string; title: string; desc: string }> = {
@@ -48,7 +50,7 @@ function fmtDateTime(iso: string): string {
   }
 }
 
-export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_portao }: Props) {
+export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_portao, gera_titulo_receber = true }: Props) {
   const qc = useQueryClient();
 
   // ── Queries ──
@@ -301,40 +303,42 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Comunicação</p>
       </div>
       <div className="space-y-2">
-        {renderBotao("cobranca", mostrarCobranca)}
+        {gera_titulo_receber && renderBotao("cobranca", mostrarCobranca)}
         {renderBotao("portao_boleto", mostrarPortaoBoleto)}
         {renderBotao("boleto", mostrarBoleto)}
         {renderBotao("nf", mostrarNf)}
         {renderBotao("nf_boletos", mostrarNfBoletos)}
       </div>
 
-      <Collapsible>
-        <CollapsibleTrigger asChild>
-          <button className="flex items-center justify-between w-full px-2 py-1.5 mt-1 rounded-md text-xs text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-dashed border-border/50">
-            <span className="flex items-center gap-1.5">
-              <i className="ti ti-history" style={{fontSize: "13px"}} aria-hidden="true"></i>
-              Histórico de envios{historico.length > 0 ? ` (${historico.length})` : ""}
-            </span>
-            <ChevronDown className="h-3 w-3" />
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pt-2 space-y-1.5">
-          {historico.length === 0 ? (
-            <p className="text-xs text-muted-foreground pl-2">Nenhum envio registrado ainda.</p>
-          ) : (
-            historico.map((l) => (
-              <div key={l.id} className="text-xs text-muted-foreground border-l-2 border-border pl-2">
-                <div className="flex items-center gap-1.5 font-medium text-foreground">
-                  <i className="ti ti-mail" style={{fontSize: "12px"}} aria-hidden="true"></i>
-                  {TIPO_LABEL[l.tipo_email as TipoEmail]?.btn ?? l.tipo_email}
+      {gera_titulo_receber && (
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center justify-between w-full px-2 py-1.5 mt-1 rounded-md text-xs text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-dashed border-border/50">
+              <span className="flex items-center gap-1.5">
+                <i className="ti ti-history" style={{fontSize: "13px"}} aria-hidden="true"></i>
+                Histórico de envios{historico.length > 0 ? ` (${historico.length})` : ""}
+              </span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2 space-y-1.5">
+            {historico.length === 0 ? (
+              <p className="text-xs text-muted-foreground pl-2">Nenhum envio registrado ainda.</p>
+            ) : (
+              historico.map((l) => (
+                <div key={l.id} className="text-xs text-muted-foreground border-l-2 border-border pl-2">
+                  <div className="flex items-center gap-1.5 font-medium text-foreground">
+                    <i className="ti ti-mail" style={{fontSize: "12px"}} aria-hidden="true"></i>
+                    {TIPO_LABEL[l.tipo_email as TipoEmail]?.btn ?? l.tipo_email}
+                  </div>
+                  <div className="truncate">{l.destinatario !== "—" ? l.destinatario : "envio anterior"}</div>
+                  <div className="opacity-70">{fmtDateTime(l.enviado_em)}</div>
                 </div>
-                <div className="truncate">{l.destinatario !== "—" ? l.destinatario : "envio anterior"}</div>
-                <div className="opacity-70">{fmtDateTime(l.enviado_em)}</div>
-              </div>
-            ))
-          )}
-        </CollapsibleContent>
-      </Collapsible>
+              ))
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) fecharDialog(); else setDialogOpen(true); }}>
         <DialogContent>
