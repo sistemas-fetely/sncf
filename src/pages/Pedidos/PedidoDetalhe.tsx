@@ -616,28 +616,40 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
     },
   });
 
+  const { data: destino } = useQuery({
+    queryKey: ["pedido-destino-estoque", pedidoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_destino_estoque")
+        .select("destino, rotulo, porque")
+        .eq("pedido_id", pedidoId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { destino: string | null; rotulo: string | null; porque: string | null } | null;
+    },
+  });
+
   const [enviando, setEnviando] = useState(false);
 
   const executar = async () => {
     setEnviando(true);
     try {
-      const { error } = await (supabase as any).rpc("transicionar_pedido", {
+      const { data, error } = await (supabase as any).rpc("liberar_pedido_estoque", {
         p_pedido_id: pedidoId,
-        p_para_estagio: "em_separacao",
-        p_proxima_acao: "Separar e expedir",
-        p_motivo: "Estoque reposto — liberado na ficha do pedido",
-        p_automatico: false,
+        p_motivo: "Produto chegou — liberado na ficha do pedido",
       });
       if (error) throw error;
-      toast({ title: "Enviado para separação" });
+      const destLabel = rotuloDestinoLiberacao(data?.destino);
+      toast({ title: `Enviado para ${destLabel}` });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["pedido-destino-estoque", pedidoId] });
       qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
       qc.invalidateQueries({ queryKey: ["triagem-pedido", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      toast({ title: "Erro ao enviar para separação", description: msg, variant: "destructive" });
+      toast({ title: "Erro ao liberar remessa", description: msg, variant: "destructive" });
     } finally {
       setEnviando(false);
       setConfirmOpen(false);
@@ -646,6 +658,8 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
 
   const grupo = triagem?.grupo;
   const precisaConfirmar = grupo === "negociar";
+  const rotuloBotao = destino?.rotulo || "Enviar para próxima fase";
+  const tooltipBotao = destino?.porque || undefined;
 
   const handleClick = () => {
     if (precisaConfirmar) setConfirmOpen(true);
@@ -663,9 +677,10 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
         className="w-full gap-1.5"
         onClick={handleClick}
         disabled={isLoading || enviando}
+        title={tooltipBotao}
       >
         {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
-        Enviar para separação
+        {rotuloBotao}
       </Button>
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
@@ -684,7 +699,7 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
                 </p>
                 <p>
                   Esta remessa <strong>pode ser enviada normalmente</strong> — o aviso existe para dar visibilidade
-                  antes da decisão, não para travar.
+                  antes da decisão, não para travar. Destino: <strong>{rotuloDestinoLiberacao(destino?.destino)}</strong>.
                 </p>
               </div>
             </AlertDialogDescription>
