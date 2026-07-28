@@ -405,6 +405,68 @@ export default function Compras() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmarReceb}
+        onOpenChange={(o) => {
+          if (!o) {
+            setConfirmarReceb(null);
+            setObservacaoReceb("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar recebimento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você confirma que os itens deste pedido chegaram? Isso encerra o pedido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Observação (opcional)</label>
+            <Textarea
+              value={observacaoReceb}
+              onChange={(e) => setObservacaoReceb(e.target.value)}
+              placeholder="Algo a registrar sobre o recebimento?"
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={confirmarRecebimento.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmarRecebimento.isPending}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!confirmarReceb) return;
+                const obs = observacaoReceb.trim();
+                try {
+                  const res = await confirmarRecebimento.mutateAsync({
+                    pedido_id: confirmarReceb.id,
+                    observacao: obs.length > 0 ? obs : null,
+                  });
+                  if (res.dias_atraso > 0) {
+                    toast.warning(
+                      `Recebimento confirmado com ${res.dias_atraso} dia(s) de atraso — ${res.itens_recebidos} item(ns)`,
+                    );
+                  } else {
+                    toast.success(`Recebimento confirmado — ${res.itens_recebidos} item(ns)`);
+                  }
+                  setConfirmarReceb(null);
+                  setObservacaoReceb("");
+                } catch (err) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  toast.error(msg);
+                }
+              }}
+            >
+              {confirmarRecebimento.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Confirmar recebimento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
