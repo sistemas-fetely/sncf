@@ -32,6 +32,10 @@ interface CustoLinha {
   total_beneficios: number | null;
   total_extras_recorrentes: number | null;
   custo_recorrente_mensal: number | null;
+  base_encargo: number | null;
+  encargo_direto_mensal: number | null;
+  provisao_mensal: number | null;
+  custo_total_empresa: number | null;
 }
 
 const fmtBRL = (v: number) =>
@@ -60,24 +64,30 @@ export default function CustoPessoas() {
 
   const linhas = useMemo(() => {
     const arr = [...(data || [])];
-    arr.sort((a, b) => num(b.custo_recorrente_mensal) - num(a.custo_recorrente_mensal));
+    arr.sort((a, b) => num(b.custo_total_empresa) - num(a.custo_total_empresa));
     return arr;
   }, [data]);
 
   const kpis = useMemo(() => {
-    const total = linhas.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0);
+    const remuneracao = linhas.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0);
+    const encargos = linhas.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
+    const provisoes = linhas.reduce((s, r) => s + num(r.provisao_mensal), 0);
+    const totalEmpresa = linhas.reduce((s, r) => s + num(r.custo_total_empresa), 0);
     const headcount = linhas.length;
-    const media = headcount > 0 ? total / headcount : 0;
+    const media = headcount > 0 ? totalEmpresa / headcount : 0;
     const clt = linhas.filter((r) => r.tipo_vinculo === "CLT");
     const pj = linhas.filter((r) => r.tipo_vinculo === "PJ");
     return {
-      total,
+      remuneracao,
+      encargos,
+      provisoes,
+      totalEmpresa,
       headcount,
       media,
       cltCount: clt.length,
-      cltCusto: clt.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0),
+      cltCusto: clt.reduce((s, r) => s + num(r.custo_total_empresa), 0),
       pjCount: pj.length,
-      pjCusto: pj.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0),
+      pjCusto: pj.reduce((s, r) => s + num(r.custo_total_empresa), 0),
     };
   }, [linhas]);
 
@@ -85,7 +95,7 @@ export default function CustoPessoas() {
     const map = new Map<string, number>();
     for (const r of linhas) {
       const cc = r.centro_custo_nome || "Sem centro de custo";
-      map.set(cc, (map.get(cc) || 0) + num(r.custo_recorrente_mensal));
+      map.set(cc, (map.get(cc) || 0) + num(r.custo_total_empresa));
     }
     return Array.from(map.entries())
       .map(([area, custo]) => ({ area, custo }))
@@ -93,26 +103,29 @@ export default function CustoPessoas() {
   }, [linhas]);
 
   const composicao = useMemo(() => {
-    const base = linhas.reduce((s, r) => s + num(r.valor_base) + num(r.valor_transporte), 0);
-    const beneficios = linhas.reduce((s, r) => s + num(r.total_beneficios), 0);
-    const extras = linhas.reduce((s, r) => s + num(r.total_extras_recorrentes), 0);
-    const total = base + beneficios + extras;
+    const remuneracao = linhas.reduce(
+      (s, r) => s + num(r.valor_base) + num(r.valor_transporte) + num(r.total_beneficios) + num(r.total_extras_recorrentes),
+      0,
+    );
+    const encargos = linhas.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
+    const provisoes = linhas.reduce((s, r) => s + num(r.provisao_mensal), 0);
+    const total = remuneracao + encargos + provisoes;
     return [
-      { name: "Salário base", value: base, pct: total ? (base / total) * 100 : 0 },
-      { name: "Benefícios", value: beneficios, pct: total ? (beneficios / total) * 100 : 0 },
-      { name: "Extras recorrentes", value: extras, pct: total ? (extras / total) * 100 : 0 },
+      { name: "Remuneração (sem encargos)", value: remuneracao, pct: total ? (remuneracao / total) * 100 : 0 },
+      { name: "Encargos (caixa do mês)", value: encargos, pct: total ? (encargos / total) * 100 : 0 },
+      { name: "Provisões (13º, férias, rescisão)", value: provisoes, pct: total ? (provisoes / total) * 100 : 0 },
     ];
   }, [linhas]);
 
   const totaisRodape = useMemo(() => {
     return linhas.reduce(
       (acc, r) => ({
-        base: acc.base + num(r.valor_base) + num(r.valor_transporte),
-        beneficios: acc.beneficios + num(r.total_beneficios),
-        extras: acc.extras + num(r.total_extras_recorrentes),
-        total: acc.total + num(r.custo_recorrente_mensal),
+        remuneracao: acc.remuneracao + num(r.custo_recorrente_mensal),
+        encargos: acc.encargos + num(r.encargo_direto_mensal),
+        provisoes: acc.provisoes + num(r.provisao_mensal),
+        total: acc.total + num(r.custo_total_empresa),
       }),
-      { base: 0, beneficios: 0, extras: 0, total: 0 },
+      { remuneracao: 0, encargos: 0, provisoes: 0, total: 0 },
     );
   }, [linhas]);
 
@@ -139,11 +152,19 @@ export default function CustoPessoas() {
       ) : (
         <>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
+            <Card className="card-shadow border-primary/40"><CardContent className="p-4 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Wallet className="h-5 w-5" /></div>
               <div className="min-w-0">
-                <p className="text-2xl font-bold truncate">{fmtBRL(kpis.total)}</p>
-                <p className="text-xs text-muted-foreground">Custo Mensal Total</p>
+                <p className="text-2xl font-bold truncate">{fmtBRL(kpis.totalEmpresa)}</p>
+                <p className="text-xs text-muted-foreground">Custo total (empresa)</p>
+              </div>
+            </CardContent></Card>
+            <Card className="card-shadow"><CardContent className="p-4">
+              <p className="text-xl font-bold truncate">{fmtBRL(kpis.remuneracao)}</p>
+              <p className="text-xs text-muted-foreground">Remuneração (sem encargos)</p>
+              <div className="mt-2 flex flex-col gap-0.5 text-xs">
+                <span><span className="text-muted-foreground">Encargos (caixa do mês):</span> <span className="font-medium">{fmtBRL(kpis.encargos)}</span></span>
+                <span><span className="text-muted-foreground">Provisões (13º, férias, rescisão):</span> <span className="font-medium">{fmtBRL(kpis.provisoes)}</span></span>
               </div>
             </CardContent></Card>
             <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
@@ -151,13 +172,7 @@ export default function CustoPessoas() {
               <div>
                 <p className="text-2xl font-bold">{kpis.headcount}</p>
                 <p className="text-xs text-muted-foreground">Headcount</p>
-              </div>
-            </CardContent></Card>
-            <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><TrendingUp className="h-5 w-5" /></div>
-              <div className="min-w-0">
-                <p className="text-2xl font-bold truncate">{fmtBRL(kpis.media)}</p>
-                <p className="text-xs text-muted-foreground">Custo Médio / Pessoa</p>
+                <p className="text-xs text-muted-foreground mt-1 truncate">Média: {fmtBRL(kpis.media)}</p>
               </div>
             </CardContent></Card>
             <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
@@ -165,7 +180,7 @@ export default function CustoPessoas() {
               <div className="min-w-0">
                 <p className="text-xs"><span className="font-semibold">CLT:</span> {kpis.cltCount} · {fmtBRL(kpis.cltCusto)}</p>
                 <p className="text-xs"><span className="font-semibold">PJ:</span> {kpis.pjCount} · {fmtBRL(kpis.pjCusto)}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">CLT vs PJ</p>
+                <p className="text-xs text-muted-foreground mt-0.5">CLT vs PJ (custo total)</p>
               </div>
             </CardContent></Card>
           </div>
@@ -230,10 +245,10 @@ export default function CustoPessoas() {
                     <TableHead>Pessoa</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Centro de Custo</TableHead>
-                    <TableHead className="text-right">Base</TableHead>
-                    <TableHead className="text-right">Benefícios</TableHead>
-                    <TableHead className="text-right">Extras</TableHead>
-                    <TableHead className="text-right">Custo Total</TableHead>
+                    <TableHead className="text-right">Remuneração (sem encargos)</TableHead>
+                    <TableHead className="text-right">Encargos (caixa do mês)</TableHead>
+                    <TableHead className="text-right">Provisões (13º, férias, rescisão)</TableHead>
+                    <TableHead className="text-right">Custo total (empresa)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -244,17 +259,17 @@ export default function CustoPessoas() {
                         <Badge variant={r.tipo_vinculo === "CLT" ? "default" : "secondary"}>{r.tipo_vinculo}</Badge>
                       </TableCell>
                       <TableCell>{r.centro_custo_nome || "—"}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.valor_base) + num(r.valor_transporte))}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.total_beneficios))}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.total_extras_recorrentes))}</TableCell>
-                      <TableCell className="text-right font-bold">{fmtBRL(num(r.custo_recorrente_mensal))}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(num(r.custo_recorrente_mensal))}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(num(r.encargo_direto_mensal))}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(num(r.provisao_mensal))}</TableCell>
+                      <TableCell className="text-right font-bold">{fmtBRL(num(r.custo_total_empresa))}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow className="bg-muted/60 font-semibold">
                     <TableCell colSpan={3}>Total</TableCell>
-                    <TableCell className="text-right">{fmtBRL(totaisRodape.base)}</TableCell>
-                    <TableCell className="text-right">{fmtBRL(totaisRodape.beneficios)}</TableCell>
-                    <TableCell className="text-right">{fmtBRL(totaisRodape.extras)}</TableCell>
+                    <TableCell className="text-right">{fmtBRL(totaisRodape.remuneracao)}</TableCell>
+                    <TableCell className="text-right">{fmtBRL(totaisRodape.encargos)}</TableCell>
+                    <TableCell className="text-right">{fmtBRL(totaisRodape.provisoes)}</TableCell>
                     <TableCell className="text-right">{fmtBRL(totaisRodape.total)}</TableCell>
                   </TableRow>
                 </TableBody>

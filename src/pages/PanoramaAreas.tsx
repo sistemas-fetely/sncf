@@ -27,6 +27,8 @@ interface DimensionamentoArea {
   custo_valor_base: number;
   custo_transporte: number;
   custo_beneficios_extras: number;
+  custo_encargo: number | null;
+  custo_total_empresa: number | null;
 }
 
 const fmtBRL = (v: number) =>
@@ -34,8 +36,11 @@ const fmtBRL = (v: number) =>
 
 const num = (v: any) => Number(v || 0);
 
-function custoTotal(r: DimensionamentoArea) {
+function remuneracao(r: DimensionamentoArea) {
   return num(r.custo_valor_base) + num(r.custo_transporte) + num(r.custo_beneficios_extras);
+}
+function custoTotal(r: DimensionamentoArea) {
+  return num(r.custo_total_empresa) || remuneracao(r);
 }
 
 export default function PanoramaAreas() {
@@ -64,6 +69,8 @@ export default function PanoramaAreas() {
     custo_valor_base: num(r.custo_valor_base),
     custo_transporte: num(r.custo_transporte),
     custo_beneficios_extras: num(r.custo_beneficios_extras),
+    custo_encargo: num(r.custo_encargo),
+    custo_total_empresa: num(r.custo_total_empresa),
   }));
 
   const sorted = [...rows].sort((a, b) => custoTotal(b) - custoTotal(a));
@@ -72,7 +79,8 @@ export default function PanoramaAreas() {
   const totCLT = rows.reduce((s, r) => s + r.ocupados_clt, 0);
   const totPJ = rows.reduce((s, r) => s + r.ocupados_pj, 0);
   const totVagas = rows.reduce((s, r) => s + r.vagas_abertas, 0);
-  const totBase = rows.reduce((s, r) => s + r.custo_valor_base, 0);
+  const totRemuneracao = rows.reduce((s, r) => s + remuneracao(r), 0);
+  const totEncargo = rows.reduce((s, r) => s + num(r.custo_encargo), 0);
   const totCusto = rows.reduce((s, r) => s + custoTotal(r), 0);
 
   const chartData = sorted.map((r) => ({
@@ -106,7 +114,7 @@ export default function PanoramaAreas() {
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success"><Wallet className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{fmtBRL(totCusto)}</p><p className="text-xs text-muted-foreground">Custo mensal total</p></div>
+          <div><p className="text-2xl font-bold">{fmtBRL(totCusto)}</p><p className="text-xs text-muted-foreground">Custo total (empresa)</p><p className="text-[10px] text-muted-foreground mt-0.5">Remuneração (sem encargos): {fmtBRL(totRemuneracao)} · Encargos: {fmtBRL(totEncargo)}</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10 text-info"><Building2 className="h-5 w-5" /></div>
@@ -161,15 +169,16 @@ export default function PanoramaAreas() {
                   <TableHead className="font-semibold text-right">CLT</TableHead>
                   <TableHead className="font-semibold text-right">PJ</TableHead>
                   <TableHead className="font-semibold text-right">Vagas Abertas</TableHead>
-                  <TableHead className="font-semibold text-right">Custo Base</TableHead>
-                  <TableHead className="font-semibold text-right">Custo Total</TableHead>
+                  <TableHead className="font-semibold text-right">Remuneração (sem encargos)</TableHead>
+                  <TableHead className="font-semibold text-right">Encargos (caixa do mês)</TableHead>
+                  <TableHead className="font-semibold text-right">Custo total (empresa)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : sorted.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum centro de custo com dados ainda.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum centro de custo com dados ainda.</TableCell></TableRow>
                 ) : (
                   <>
                     {sorted.map((r) => (
@@ -185,7 +194,8 @@ export default function PanoramaAreas() {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right text-sm">{fmtBRL(r.custo_valor_base)}</TableCell>
+                        <TableCell className="text-right text-sm">{fmtBRL(remuneracao(r))}</TableCell>
+                        <TableCell className="text-right text-sm">{fmtBRL(num(r.custo_encargo))}</TableCell>
                         <TableCell className="text-right text-sm font-semibold">{fmtBRL(custoTotal(r))}</TableCell>
                       </TableRow>
                     ))}
@@ -195,7 +205,8 @@ export default function PanoramaAreas() {
                       <TableCell className="text-right">{totCLT}</TableCell>
                       <TableCell className="text-right">{totPJ}</TableCell>
                       <TableCell className="text-right">{totVagas}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(totBase)}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(totRemuneracao)}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(totEncargo)}</TableCell>
                       <TableCell className="text-right">{fmtBRL(totCusto)}</TableCell>
                     </TableRow>
                   </>
