@@ -22275,6 +22275,39 @@ export type Database = {
         }
         Relationships: []
       }
+      xpm_estoque_snapshot: {
+        Row: {
+          arquivo: string | null
+          criado_em: string
+          data_snapshot: string
+          id: string
+          qtd_danificado: number
+          qtd_normal: number
+          qtd_truncado: number
+          sku: string
+        }
+        Insert: {
+          arquivo?: string | null
+          criado_em?: string
+          data_snapshot: string
+          id?: string
+          qtd_danificado?: number
+          qtd_normal?: number
+          qtd_truncado?: number
+          sku: string
+        }
+        Update: {
+          arquivo?: string | null
+          criado_em?: string
+          data_snapshot?: string
+          id?: string
+          qtd_danificado?: number
+          qtd_normal?: number
+          qtd_truncado?: number
+          sku?: string
+        }
+        Relationships: []
+      }
       xpm_termo_linha: {
         Row: {
           aritmetica_ok: boolean | null
@@ -25528,14 +25561,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25737,14 +25770,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -27719,6 +27752,24 @@ export type Database = {
             referencedColumns: ["sku"]
           },
         ]
+      }
+      vw_xpm_estoque_conciliacao: {
+        Row: {
+          colecao: string | null
+          data_snapshot: string | null
+          diferenca: number | null
+          existe_no_catalogo: boolean | null
+          grupo: string | null
+          linha: string | null
+          nome_comercial: string | null
+          saldo_ledger_sncf: number | null
+          sku: string | null
+          status_conciliacao: string | null
+          xpm_danificado: number | null
+          xpm_normal: number | null
+          xpm_truncado: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {
