@@ -331,20 +331,25 @@ export default function EstoqueVirtual() {
             <TableBody>
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     Carregando…
                   </TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     Nenhum produto encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((p) => {
                   const virtual = Number(p.estoque_virtual ?? 0);
-                  const saude = p.saude_divergencia;
+                  const aguardando = Number(p.reservado_aguardando_produto ?? 0);
+                  const statusBadge = (
+                    <Badge variant="outline" className={cn("font-normal", STATUS_CLASS[p.status_venda])}>
+                      {STATUS_LABEL[p.status_venda] ?? p.status_venda}
+                    </Badge>
+                  );
                   return (
                     <TableRow key={p.sku}>
                       <TableCell className="font-mono text-xs">{p.sku}</TableCell>
@@ -374,74 +379,17 @@ export default function EstoqueVirtual() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {p.estoque_contabil == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          formatNum(p.estoque_contabil)
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {p.estoque_real == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          formatNum(p.estoque_real)
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {p.dias_desde_contagem == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : p.contagem_em == null ? (
-                          <span className="text-muted-foreground text-xs">
-                            {p.dias_desde_contagem === 0 ? "hoje" : `${p.dias_desde_contagem}d`}
-                          </span>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              {p.dias_desde_contagem === 0 ? (
-                                <span className="text-muted-foreground text-xs cursor-help">hoje</span>
-                              ) : (
-                                <span className={cn(
-                                  "text-xs cursor-help",
-                                  (p.dias_desde_contagem > 30 || Number(p.movimento_desde_contagem ?? 0) > 0)
-                                    ? "text-amber-600 dark:text-amber-400"
-                                    : "text-muted-foreground",
-                                )}>
-                                  {p.dias_desde_contagem}d
-                                </span>
-                              )}
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              Contagem de {new Date(p.contagem_em).toLocaleDateString("pt-BR")}.{" "}
-                              {Number(p.movimento_desde_contagem ?? 0) > 0
-                                ? `${formatNum(p.movimento_desde_contagem)} unidade(s) movimentada(s) desde então.`
-                                : "Nenhuma movimentação desde então."}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {saude == null ? (
+                        {aguardando === 0 ? (
                           <span className="text-muted-foreground">—</span>
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              {saude === 0 ? (
-                                <span className="text-emerald-600 dark:text-emerald-400 cursor-help">✓</span>
-                              ) : (
-                                <span className={cn(
-                                  "font-medium cursor-help",
-                                  Math.abs(saude) > 5
-                                    ? "text-red-600 dark:text-red-400"
-                                    : "text-amber-600 dark:text-amber-400",
-                                )}>
-                                  {formatSigned(saude)}
-                                </span>
-                              )}
+                              <span className="font-medium text-amber-600 dark:text-amber-400 cursor-help">
+                                {formatNum(aguardando)}
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              {saude === 0
-                                ? "Contagem confere com o razão na data em que foi feita."
-                                : `Divergência física real: a recontagem discordou do razão em ${formatNum(Math.abs(saude))} unidade(s).`}
+                              {formatNum(aguardando)} unidades vendidas aguardando o produto chegar. Acompanhe em Triagem de Estoque.
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -454,9 +402,18 @@ export default function EstoqueVirtual() {
                         {formatNum(virtual)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn("font-normal", STATUS_CLASS[p.status_venda])}>
-                          {STATUS_LABEL[p.status_venda] ?? p.status_venda}
-                        </Badge>
+                        {p.status_venda === "pre_venda" ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">{statusBadge}</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              Vendido e ainda não recebido. Não é ruptura — é carteira aguardando mercadoria.
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          statusBadge
+                        )}
                       </TableCell>
                     </TableRow>
                   );
