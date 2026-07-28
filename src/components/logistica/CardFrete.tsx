@@ -1,4 +1,4 @@
-import { MapPin, DollarSign } from "lucide-react";
+import { MapPin, DollarSign, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { FreteRow } from "@/hooks/logistica/useFretesTransportadora";
