@@ -121,7 +121,6 @@ export const CASA_APPS: CasaApp[] = [
       "/fala-fetely",
       "/sncf",
       "/tarefas",
-      "/compras",
       "/meus-dados",
       "/meus-acessos",
       "/minhas-notas",
