@@ -32,6 +32,10 @@ interface CustoLinha {
   total_beneficios: number | null;
   total_extras_recorrentes: number | null;
   custo_recorrente_mensal: number | null;
+  base_encargo: number | null;
+  encargo_direto_mensal: number | null;
+  provisao_mensal: number | null;
+  custo_total_empresa: number | null;
 }
 
 const fmtBRL = (v: number) =>
