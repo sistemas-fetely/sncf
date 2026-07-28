@@ -59,6 +59,8 @@ type DespesaV2 = {
   documento_id: string | null;
   fatura_lancamento_id: string | null;
   estagio: string | null;
+  valor_alocado: number | null;
+  saldo_a_pagar: number | null;
   created_at: string | null;
 };
 
@@ -79,29 +81,12 @@ const ORIGEM_LABEL: Record<string, string> = {
   manual: "Manual",
 };
 
-/** Estágio do ciclo de vida — rótulo e tom do badge. */
-const ESTAGIO_META: Record<string, { label: string; className: string }> = {
-  completa: {
-    label: "completa",
-    className: "bg-emerald-600 hover:bg-emerald-600 text-white border-transparent",
-  },
-  aguardando_pagamento: {
-    label: "aguarda pgto",
-    className: "bg-blue-50 text-blue-700 border-blue-400",
-  },
-  sem_documento: {
-    label: "sem documento",
-    className: "bg-amber-100 text-amber-800 border-amber-400",
-  },
-  a_classificar: {
-    label: "a classificar",
-    className: "bg-transparent text-red-600 border-red-400",
-  },
-};
-
+/** Filtros de estágio (não inclui `indefinido` — é sentinela de erro). */
 const ESTAGIO_FILTROS: { value: string; label: string }[] = [
   { value: "completa", label: "Completa" },
   { value: "aguardando_pagamento", label: "Aguarda pagamento" },
+  { value: "parcialmente_pago", label: "Parcialmente pago" },
+  { value: "em_conta_corrente", label: "Em conta corrente" },
   { value: "sem_documento", label: "Sem documento" },
   { value: "a_classificar", label: "A classificar" },
 ];
@@ -126,8 +111,7 @@ function BadgeOrigem({ origem }: { origem: string | null }) {
 
 function BadgeEstagio({ estagio }: { estagio: string | null }) {
   if (!estagio) return <span className="text-muted-foreground">—</span>;
-  const meta = ESTAGIO_META[estagio];
-  if (!meta) return <Badge variant="outline">{estagio}</Badge>;
+  const meta = getEstagioMeta(estagio);
   return (
     <Badge variant="outline" className={cn("whitespace-nowrap", meta.className)}>
       {meta.label}
@@ -486,7 +470,12 @@ export default function Despesas() {
                   </TableCell>
                   <TableCell className="text-sm">{r.centro_codigo ?? "—"}</TableCell>
                   <TableCell className="text-right font-mono text-sm whitespace-nowrap">
-                    {formatBRL(Number(r.valor || 0))}
+                    <div>{formatBRL(Number(r.valor || 0))}</div>
+                    {r.estagio === "parcialmente_pago" && r.saldo_a_pagar != null && (
+                      <div className="text-[11px] text-muted-foreground font-normal">
+                        saldo {formatBRL(Number(r.saldo_a_pagar))}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <BadgeEstagio estagio={r.estagio} />

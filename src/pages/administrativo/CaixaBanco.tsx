@@ -64,6 +64,8 @@ type DespesaV2 = {
   natureza_nome: string | null;
   status_caixa: string | null;
   estagio: string | null;
+  valor_alocado: number | null;
+  saldo_a_pagar: number | null;
 };
 
 type NaturezaDim = {
@@ -113,24 +115,7 @@ const ORIGEM_LABEL: Record<string, string> = {
   manual: "Manual",
 };
 
-const ESTAGIO_META: Record<string, { label: string; className: string }> = {
-  completa: {
-    label: "completa",
-    className: "bg-emerald-600 hover:bg-emerald-600 text-white border-transparent",
-  },
-  aguardando_pagamento: {
-    label: "aguarda pgto",
-    className: "bg-blue-50 text-blue-700 border-blue-400",
-  },
-  sem_documento: {
-    label: "sem documento",
-    className: "bg-amber-100 text-amber-800 border-amber-400",
-  },
-  a_classificar: {
-    label: "a classificar",
-    className: "bg-transparent text-red-600 border-red-400",
-  },
-};
+// ESTAGIO_META vive em @/lib/despesas/estagios — fonte única.
 
 /** Competência normalizada para o 1º dia do mês (chave da coluna da matriz). */
 function competenciaKey(iso: string): string {
@@ -161,8 +146,7 @@ function labelMesLongo(iso: string): string {
 
 function BadgeEstagio({ estagio }: { estagio: string | null }) {
   if (!estagio) return <span className="text-muted-foreground">—</span>;
-  const meta = ESTAGIO_META[estagio];
-  if (!meta) return <Badge variant="outline" className="text-[10px]">{estagio}</Badge>;
+  const meta = getEstagioMeta(estagio);
   return (
     <Badge variant="outline" className={cn("text-[10px] whitespace-nowrap", meta.className)}>
       {meta.label}
