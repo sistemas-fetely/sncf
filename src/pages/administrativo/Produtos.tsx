@@ -575,13 +575,23 @@ export default function Produtos() {
                               </TooltipContent>
                             </Tooltip>
                           )}
-                          {Number(p.un_canceladas ?? 0) > 0 && (
+                          {Number(p.un_perdidas ?? 0) > 0 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <XCircle className="h-4 w-4 text-muted-foreground" />
+                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                               </TooltipTrigger>
                               <TooltipContent className="text-xs">
-                                {formatNum(p.un_canceladas)} un canceladas · {formatBRL(p.receita_cancelada)}
+                                {formatNum(p.un_perdidas)} un de venda perdida · {formatBRL(p.receita_perdida)}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {Number(p.un_canceladas ?? 0) > 0 && Number(p.un_perdidas ?? 0) === 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent className="text-xs max-w-[240px]">
+                                Cancelamento por reprocessamento — a venda migrou para outro pedido, não foi perdida.
                               </TooltipContent>
                             </Tooltip>
                           )}
