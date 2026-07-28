@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle2, Scale } from "lucide-react";
 import { SincronizacaoEstoqueShopify } from "@/components/acervo/SincronizacaoEstoqueShopify";
 
 type IngestResult = {
@@ -16,6 +17,18 @@ type IngestResult = {
   contagens?: number;
   movimentos?: number;
   tarefas?: number;
+};
+
+type AmostraLinha = { sku: string; de: number | null; para: number | null; classe: string };
+type PesosResult = {
+  confirmado: boolean;
+  gravados: number;
+  preenche: number;
+  sobrescreve: number;
+  igual: number;
+  peso_invalido: number;
+  sku_desconhecido: number;
+  amostra: AmostraLinha[];
 };
 
 export default function RecebimentoXpm() {
