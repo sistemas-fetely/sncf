@@ -662,6 +662,31 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     );
   }
 
+  if (status === "sem_cobranca") {
+    return (
+      <>
+        {valorLine}
+        {condLine}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-block mt-1">
+                <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 border-0 text-[10px] py-0 px-1.5">
+                  Sem cobrança
+                </Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">
+                Pedido sem título a receber próprio · falta faturar: {fmtBRL.format(p.valor_liquido)}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </>
+    );
+  }
+
   return (
     <>
       {valorLine}
@@ -669,3 +694,4 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     </>
   );
 }
+
