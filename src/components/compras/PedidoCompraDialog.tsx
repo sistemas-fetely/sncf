@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Info, Ban, CalendarIcon, AlertTriangle } from "lucide-react";
+import { Loader2, Info, Ban, CalendarIcon, AlertTriangle, Download, Upload } from "lucide-react";
 import { format, parseISO, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,8 @@ import { ItensList } from "./ItensList";
 import { AnexosList } from "./AnexosList";
 import { TimelinePedido } from "./TimelinePedido";
 import { CancelarPedidoDialog } from "./CancelarPedidoDialog";
+import { ImportarItensDialog } from "./ImportarItensDialog";
+import { gerarTemplateItens } from "@/lib/compras/templateItens";
 import { useDepartamentoUnidadeUsuario } from "@/hooks/compras/useDepartamentoUnidadeUsuario";
 import { useCriarPedidoCompra } from "@/hooks/compras/useCriarPedidoCompra";
 import { useEnviarPedidoCompra } from "@/hooks/compras/useEnviarPedidoCompra";
@@ -64,6 +67,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
 
   const [descricaoGeral, setDescricaoGeral] = useState("");
   const [justificativa, setJustificativa] = useState("");
+  const [solicitanteExterno, setSolicitanteExterno] = useState("");
   const [centroCustoId, setCentroCustoId] = useState<string>("");
   const [linhaInvId, setLinhaInvId] = useState<string>("");
   const [parceiroId, setParceiroId] = useState<string>("");
@@ -77,6 +81,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
   const [pedidoIdLocal, setPedidoIdLocal] = useState<string | undefined>(pedido?.id);
   const [submitting, setSubmitting] = useState(false);
   const [cancelarDialogOpen, setCancelarDialogOpen] = useState(false);
+  const [importarDialogOpen, setImportarDialogOpen] = useState(false);
   const { user } = useAuth();
   const podeCancelar =
     mode === "ver" &&
