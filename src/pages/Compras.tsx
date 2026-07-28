@@ -207,6 +207,7 @@ export default function Compras() {
             <TabsTrigger value="aberto">Aberto</TabsTrigger>
             <TabsTrigger value="em_compra">Em compra</TabsTrigger>
             <TabsTrigger value="comprado">Comprado</TabsTrigger>
+            <TabsTrigger value="recebido">Recebido</TabsTrigger>
             <TabsTrigger value="cancelado">Cancelado</TabsTrigger>
           </TabsList>
         </Tabs>
