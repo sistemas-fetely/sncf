@@ -69,7 +69,7 @@ export const CASA_APPS: CasaApp[] = [
     id: "financas",
     label: "Finanças",
     defaultRoute: "/administrativo",
-    routeMatchers: ["/administrativo"],
+    routeMatchers: ["/administrativo", "/compras"],
     icon: Wallet,
     permModule: null,
     tela_slug: "tela.financeiro",
