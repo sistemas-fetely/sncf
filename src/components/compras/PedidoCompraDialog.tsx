@@ -255,8 +255,9 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       centro_custo_id: centroCustoId || null,
       linha_investimento_id: linhaInvId || null,
       parceiro_preferencial_id: parceiroId || null,
+      solicitante_externo: solicitanteExterno.trim() || null,
     }),
-    [descricaoGeral, justificativa, centroCustoId, linhaInvId, parceiroId],
+    [descricaoGeral, justificativa, centroCustoId, linhaInvId, parceiroId, solicitanteExterno],
   );
 
   const handleSalvar = async (enviar_apos: boolean) => {
