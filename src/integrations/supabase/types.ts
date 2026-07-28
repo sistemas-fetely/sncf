@@ -23434,19 +23434,24 @@ export type Database = {
       }
       vw_conciliacao_resumo: {
         Row: {
+          barcode_ausente_no_shopify: number | null
           bling_sem_matriz: number | null
           catalogo_produtos_reais: number | null
+          catalogo_variantes_reais: number | null
           dif_barcode_shopify: number | null
           dif_ean_bling: number | null
           dif_marca_bling: number | null
           dif_ncm_bling: number | null
           dif_preco_bling: number | null
           dif_preco_shopify: number | null
+          ean_ausente_no_bling: number | null
           espelho_faltando: number | null
           espelho_fantasmas: number | null
           inativo_ativo_no_destino: number | null
+          marca_ausente_no_bling: number | null
           matriz_ativos: number | null
           nao_encontrado_shopify: number | null
+          ncm_ausente_no_bling: number | null
           no_bling: number | null
           no_shopify: number | null
           presente_nos_tres: number | null
@@ -23460,6 +23465,7 @@ export type Database = {
       vw_conciliacao_sku: {
         Row: {
           ativo_shopify: boolean | null
+          barcode_ausente_no_shopify: boolean | null
           barcode_shopify: string | null
           bling_gtin: string | null
           bling_marca: string | null
@@ -23472,16 +23478,19 @@ export type Database = {
           dif_ncm_bling: boolean | null
           dif_preco_bling: boolean | null
           dif_preco_shopify: boolean | null
+          ean_ausente_no_bling: boolean | null
           grupo: string | null
           handle: string | null
           inventory_items: number | null
           linha: string | null
+          marca_ausente_no_bling: boolean | null
           matriz_ativo: boolean | null
           matriz_ean: string | null
           matriz_marca: string | null
           matriz_ncm: string | null
           matriz_preco: number | null
           na_matriz: boolean | null
+          ncm_ausente_no_bling: boolean | null
           no_bling: boolean | null
           no_shopify: boolean | null
           nome: string | null
@@ -25315,14 +25324,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]

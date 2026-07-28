@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { FileText, BookOpen, Package, HeartPulse } from "lucide-react";
+import { FileText, BookOpen, Package, HeartPulse, GitCompare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ACERVO_COLOR = "#1A4A3A";
@@ -9,6 +9,7 @@ const TABS = [
   { to: "/documentacao", label: "Documentação", icon: BookOpen },
   { to: "/acervo/estoque/recebimento-xpm", label: "Recebimento XPM", icon: Package },
   { to: "/acervo/estoque/saude", label: "Saúde do Estoque", icon: HeartPulse },
+  { to: "/acervo/produtos/conciliacao", label: "Conciliação", icon: GitCompare },
 ];
 
 export default function AcervoLayout() {
