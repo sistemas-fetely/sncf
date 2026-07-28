@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { ehComprador } from "@/lib/compras/permissoes";
 import type {
   EventoPedidoRow,
   ComentarioPedidoRow,
@@ -9,7 +10,7 @@ import type {
 
 export function useTimelinePedido(pedidoId: string | undefined) {
   const { user, roles } = useAuth();
-  const isSuperAdmin = roles?.includes("super_admin") ?? false;
+  const podeComprar = ehComprador(roles ?? []);
 
   return useQuery({
     queryKey: ["compras", "timeline-pedido", pedidoId],
@@ -100,7 +101,7 @@ export function useTimelinePedido(pedidoId: string | undefined) {
           editado_em: c.editado_em,
           excluido_em: c.excluido_em,
           pode_editar: ehAutor && dentroJanela && naoExcluido,
-          pode_excluir: (ehAutor && naoExcluido) || isSuperAdmin,
+          pode_excluir: (ehAutor && naoExcluido) || podeComprar,
         });
       }
 

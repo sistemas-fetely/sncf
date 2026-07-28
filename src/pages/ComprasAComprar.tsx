@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { ehComprador } from "@/lib/compras/permissoes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,13 +49,12 @@ const fmtBRL = (v: number) =>
 const fmtDate = (d?: string | null) =>
   d ? format(parseISO(d), "dd MMM yyyy", { locale: ptBR }) : "—";
 
-const ROLES_COMPRADOR = ["super_admin"];
-const ROLES_LEITURA = ["super_admin", "admin_rh", "financeiro"];
+const ROLES_LEITURA_EXTRA = ["admin_rh", "financeiro"];
 
 export default function ComprasAComprar() {
   const { user, roles } = useAuth();
-  const podeAgir = roles.some((r) => ROLES_COMPRADOR.includes(r));
-  const podeVer = roles.some((r) => ROLES_LEITURA.includes(r));
+  const podeAgir = ehComprador(roles);
+  const podeVer = podeAgir || roles.some((r) => ROLES_LEITURA_EXTRA.includes(r));
 
   const [tab, setTab] = useState<ComprarTab>("aguardando");
   const [busca, setBusca] = useState("");
