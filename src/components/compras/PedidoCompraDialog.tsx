@@ -329,6 +329,91 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             rows={3}
           />
         </div>
+
+        {/* Prazo e urgência */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Label>Precisa até *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!podeEditar}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dataNecessidade && "text-muted-foreground",
+                    erroCampo.data && "border-destructive",
+                  )}
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  {dataNecessidade
+                    ? format(dataNecessidade, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                    : "Selecione a data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dataNecessidade}
+                  onSelect={(d) => {
+                    setDataNecessidade(d);
+                    setErroCampo((e) => ({ ...e, data: undefined }));
+                  }}
+                  disabled={(d) => startOfDay(d) < hoje}
+                  initialFocus
+                  locale={ptBR}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+            {erroCampo.data ? (
+              <p className="text-xs text-destructive mt-1">{erroCampo.data}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Base do prazo e do indicador de atraso.
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              Pedido urgente
+              <Switch
+                checked={urgente}
+                onCheckedChange={(v) => {
+                  setUrgente(v);
+                  if (!v) setErroCampo((e) => ({ ...e, urgencia: undefined }));
+                }}
+                disabled={!podeEditar}
+              />
+              {urgente && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
+                  <AlertTriangle className="h-3 w-3" /> Urgente
+                </span>
+              )}
+            </Label>
+            {urgente && (
+              <div>
+                <Textarea
+                  value={urgenciaJustificativa}
+                  onChange={(e) => {
+                    setUrgenciaJustificativa(e.target.value);
+                    if (e.target.value.trim())
+                      setErroCampo((err) => ({ ...err, urgencia: undefined }));
+                  }}
+                  placeholder="Por que este pedido não pode seguir o prazo normal?"
+                  disabled={!podeEditar}
+                  rows={2}
+                  className={cn(erroCampo.urgencia && "border-destructive")}
+                />
+                {erroCampo.urgencia && (
+                  <p className="text-xs text-destructive mt-1">{erroCampo.urgencia}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Centro de custo *</Label>
