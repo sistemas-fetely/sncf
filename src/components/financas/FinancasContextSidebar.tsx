@@ -58,7 +58,7 @@ export function FinancasContextSidebar() {
             <SidebarMenu>
               <FinancasSidebarItem to="/administrativo" icon={LayoutDashboard} label="Visão Geral" end />
               <FinancasSidebarItem to="/administrativo/caixa-banco" icon={PieChart} label="Gerencial" end />
-              <FinancasSidebarItem to="/administrativo/analise-despesas" icon={BarChart3} label="Análise de Despesas" />
+              <FinancasSidebarItem to="/administrativo/analise-despesas" icon={BarChart3} label="Análise de Despesas · NF" />
               <FinancasSidebarItem to="/administrativo/fluxo-caixa" icon={LineChart} label="Fluxo de Caixa" />
               <FinancasSidebarItem to="/administrativo/painel-margem" icon={Percent} label="Painel de Margem" />
             </SidebarMenu>

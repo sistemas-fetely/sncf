@@ -507,8 +507,8 @@ export default function AnaliseDespesas() {
           <BarChart3 className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Análise de Despesas</h1>
-          <p className="text-sm text-muted-foreground">Visão por competência — valor total no mês de emissão da NF</p>
+          <h1 className="text-2xl font-bold tracking-tight">Análise de Despesas · Notas Fiscais</h1>
+          <p className="text-sm text-muted-foreground">Cobre apenas despesas com NF (porta fiscal), por competência de emissão. A visão consolidada de todas as origens está no Gerencial.</p>
         </div>
         <Button variant="outline" size="sm" onClick={exportarMes} disabled={!mesSel || !linhasMes.length}>
           <Download className="h-3.5 w-3.5 mr-2" />
