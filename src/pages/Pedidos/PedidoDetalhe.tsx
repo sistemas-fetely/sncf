@@ -705,7 +705,8 @@ export default function PedidoDetalhe() {
   if (isLoading) return <div className="p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
 
-  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, idade_minutos, sla_estourado } = data;
+  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, idade_minutos, sla_estourado } = data;
+  const geraTituloReceber = natureza?.gera_titulo_receber ?? true;
   const estagio = pedido.estagio as EstagioPedido;
   const estagioFinal = isEstagioFinal(estagio);
 
