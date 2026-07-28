@@ -278,7 +278,7 @@ export default function SaudeEstoque() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "Acervo" },
+          { label: "Produto" },
           { label: "Estoque" },
           { label: "Saúde" },
         ]}

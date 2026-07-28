@@ -287,7 +287,7 @@ export default function Produtos() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "Administrativo" },
+          { label: "Produto" },
           { label: "Produtos" },
         ]}
         title="Produtos"

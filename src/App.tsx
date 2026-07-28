@@ -167,6 +167,7 @@ const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
 const ConciliacaoCadastro = lazy(() => import("@/pages/acervo/ConciliacaoCadastro"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ComercialLayout = lazy(() => import("@/layouts/ComercialLayout"));
+const ProdutoLayout = lazy(() => import("@/layouts/ProdutoLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
@@ -299,7 +300,7 @@ const App = () => (
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
-                <Route path="/vendas/produtos" element={<Produtos />} />
+                <Route path="/vendas/produtos" element={<Navigate to="/produto" replace />} />
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
@@ -321,8 +322,19 @@ const App = () => (
 
               <Route element={<ComercialLayout />}>
                 <Route path="/comercial/oportunidades" element={<Oportunidades />} />
-                <Route path="/comercial/estoque-virtual" element={<EstoqueVirtual />} />
+                <Route path="/comercial/estoque-virtual" element={<Navigate to="/produto/estoque/virtual" replace />} />
               </Route>
+
+              {/* ═══════════════════════════════════════════════
+                  App Produto — sidebar com grupo "Estoque"
+                  ═══════════════════════════════════════════════ */}
+              <Route element={<ProdutoLayout />}>
+                <Route path="/produto" element={<Produtos />} />
+                <Route path="/produto/estoque/virtual" element={<EstoqueVirtual />} />
+                <Route path="/produto/estoque/saude" element={<SaudeEstoque />} />
+                <Route path="/produto/estoque/conciliacao" element={<ConciliacaoCadastro />} />
+              </Route>
+
 
 
               {/* ═══════════════════════════════════════════════
@@ -334,8 +346,8 @@ const App = () => (
                 <Route path="/processos" element={<Processos />} />
                 <Route path="/documentacao" element={<DocumentacaoGeral />} />
                 <Route path="/acervo/estoque/recebimento-xpm" element={<Navigate to="/vendas/xpm" replace />} />
-                <Route path="/acervo/estoque/saude" element={<SaudeEstoque />} />
-                <Route path="/acervo/produtos/conciliacao" element={<ConciliacaoCadastro />} />
+                <Route path="/acervo/estoque/saude" element={<Navigate to="/produto/estoque/saude" replace />} />
+                <Route path="/acervo/produtos/conciliacao" element={<Navigate to="/produto/estoque/conciliacao" replace />} />
               </Route>
 
               {/* Acervo — detalhes e editores (sem tab bar) */}
@@ -637,7 +649,7 @@ const App = () => (
                     Redirects logo abaixo mantêm compatibilidade com URLs antigas. */}
                 {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
                 <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-                <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
+                <Route path="produtos" element={<Navigate to="/produto" replace />} />
                 <Route path="contratos" element={<Navigate to="/administrativo-fetely/contratos" replace />} />
                 <Route path="imoveis" element={<Navigate to="/administrativo-fetely/imoveis" replace />} />
                 <Route path="seguros" element={<Navigate to="/administrativo-fetely/seguros" replace />} />
@@ -656,7 +668,7 @@ const App = () => (
                 <Route path="ged" element={<AdminGED />} />
                 {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
                 <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-                <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
+                <Route path="produtos" element={<Navigate to="/produto" replace />} />
                 {/* parceiros movido para SOPsLayout */}
                 <Route path="importar" element={<ImportarDados />} />
                 <Route path="nfs-stage" element={<NFsStage />} />

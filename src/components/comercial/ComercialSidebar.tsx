@@ -26,7 +26,6 @@ export function ComercialSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <FinancasSidebarItem to="/comercial/oportunidades" icon={Sparkles} label="Oportunidades" />
-              <FinancasSidebarItem to="/comercial/estoque-virtual" icon={Boxes} label="Estoque Virtual" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

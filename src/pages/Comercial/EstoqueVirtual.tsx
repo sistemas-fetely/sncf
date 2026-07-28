@@ -208,15 +208,16 @@ export default function EstoqueVirtual() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "Comercial" },
-          { label: "Estoque Virtual" },
+          { label: "Produto" },
+          { label: "Estoque" },
+          { label: "Virtual" },
         ]}
         title="Estoque Virtual"
         subtitle={`Saldo Bling sincronizado em: ${formatHora(syncQuery.data)}`}
         actions={
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm" className="gap-2">
-              <Link to="/acervo/estoque/saude">
+              <Link to="/produto/estoque/saude">
                 <HeartPulse className="h-4 w-4" />
                 Saúde do Estoque
               </Link>
