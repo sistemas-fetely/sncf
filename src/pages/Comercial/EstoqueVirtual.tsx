@@ -388,7 +388,7 @@ export default function EstoqueVirtual() {
               ) : (
                 pageItems.map((p) => {
                   const virtual = Number(p.estoque_virtual ?? 0);
-                  const sadio = Number(p.estoque_sadio ?? 0);
+                  const sadio = Number(p.estoque_base ?? 0);
                   const bloqueado = Number(p.estoque_bloqueado ?? 0);
                   const aguardando = Number(p.reservado_aguardando_produto ?? 0);
                   const statusBadge = (
