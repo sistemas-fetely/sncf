@@ -474,6 +474,11 @@ function AcoesLinha({
         )}
         {rotuloBotao}
       </Button>
+      {Number(destino?.falta_recebivel ?? 0) > 0 && (
+        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+          falta recebível: {formatBRL(Number(destino?.falta_recebivel))}
+        </span>
+      )}
       {comMigrar && (
         <Button
           size="sm"
