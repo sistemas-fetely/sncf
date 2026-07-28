@@ -64,24 +64,30 @@ export default function CustoPessoas() {
 
   const linhas = useMemo(() => {
     const arr = [...(data || [])];
-    arr.sort((a, b) => num(b.custo_recorrente_mensal) - num(a.custo_recorrente_mensal));
+    arr.sort((a, b) => num(b.custo_total_empresa) - num(a.custo_total_empresa));
     return arr;
   }, [data]);
 
   const kpis = useMemo(() => {
-    const total = linhas.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0);
+    const remuneracao = linhas.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0);
+    const encargos = linhas.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
+    const provisoes = linhas.reduce((s, r) => s + num(r.provisao_mensal), 0);
+    const totalEmpresa = linhas.reduce((s, r) => s + num(r.custo_total_empresa), 0);
     const headcount = linhas.length;
-    const media = headcount > 0 ? total / headcount : 0;
+    const media = headcount > 0 ? totalEmpresa / headcount : 0;
     const clt = linhas.filter((r) => r.tipo_vinculo === "CLT");
     const pj = linhas.filter((r) => r.tipo_vinculo === "PJ");
     return {
-      total,
+      remuneracao,
+      encargos,
+      provisoes,
+      totalEmpresa,
       headcount,
       media,
       cltCount: clt.length,
-      cltCusto: clt.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0),
+      cltCusto: clt.reduce((s, r) => s + num(r.custo_total_empresa), 0),
       pjCount: pj.length,
-      pjCusto: pj.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0),
+      pjCusto: pj.reduce((s, r) => s + num(r.custo_total_empresa), 0),
     };
   }, [linhas]);
 
@@ -89,7 +95,7 @@ export default function CustoPessoas() {
     const map = new Map<string, number>();
     for (const r of linhas) {
       const cc = r.centro_custo_nome || "Sem centro de custo";
-      map.set(cc, (map.get(cc) || 0) + num(r.custo_recorrente_mensal));
+      map.set(cc, (map.get(cc) || 0) + num(r.custo_total_empresa));
     }
     return Array.from(map.entries())
       .map(([area, custo]) => ({ area, custo }))
@@ -97,26 +103,29 @@ export default function CustoPessoas() {
   }, [linhas]);
 
   const composicao = useMemo(() => {
-    const base = linhas.reduce((s, r) => s + num(r.valor_base) + num(r.valor_transporte), 0);
-    const beneficios = linhas.reduce((s, r) => s + num(r.total_beneficios), 0);
-    const extras = linhas.reduce((s, r) => s + num(r.total_extras_recorrentes), 0);
-    const total = base + beneficios + extras;
+    const remuneracao = linhas.reduce(
+      (s, r) => s + num(r.valor_base) + num(r.valor_transporte) + num(r.total_beneficios) + num(r.total_extras_recorrentes),
+      0,
+    );
+    const encargos = linhas.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
+    const provisoes = linhas.reduce((s, r) => s + num(r.provisao_mensal), 0);
+    const total = remuneracao + encargos + provisoes;
     return [
-      { name: "Salário base", value: base, pct: total ? (base / total) * 100 : 0 },
-      { name: "Benefícios", value: beneficios, pct: total ? (beneficios / total) * 100 : 0 },
-      { name: "Extras recorrentes", value: extras, pct: total ? (extras / total) * 100 : 0 },
+      { name: "Remuneração (sem encargos)", value: remuneracao, pct: total ? (remuneracao / total) * 100 : 0 },
+      { name: "Encargos (caixa do mês)", value: encargos, pct: total ? (encargos / total) * 100 : 0 },
+      { name: "Provisões (13º, férias, rescisão)", value: provisoes, pct: total ? (provisoes / total) * 100 : 0 },
     ];
   }, [linhas]);
 
   const totaisRodape = useMemo(() => {
     return linhas.reduce(
       (acc, r) => ({
-        base: acc.base + num(r.valor_base) + num(r.valor_transporte),
-        beneficios: acc.beneficios + num(r.total_beneficios),
-        extras: acc.extras + num(r.total_extras_recorrentes),
-        total: acc.total + num(r.custo_recorrente_mensal),
+        remuneracao: acc.remuneracao + num(r.custo_recorrente_mensal),
+        encargos: acc.encargos + num(r.encargo_direto_mensal),
+        provisoes: acc.provisoes + num(r.provisao_mensal),
+        total: acc.total + num(r.custo_total_empresa),
       }),
-      { base: 0, beneficios: 0, extras: 0, total: 0 },
+      { remuneracao: 0, encargos: 0, provisoes: 0, total: 0 },
     );
   }, [linhas]);
 
