@@ -244,7 +244,8 @@ export default function Produtos() {
       if (estoqueFiltro === "bling" && p.tem_razao) return false;
       if (margemFiltro === "abaixo" && !(p.abaixo_piso_b2b || p.abaixo_piso_b2c)) return false;
       if (alertaFiltro === "divergente" && !p.preco_divergente_bling) return false;
-      if (alertaFiltro === "cancelamento" && !(Number(p.un_canceladas ?? 0) > 0)) return false;
+      if (alertaFiltro === "perdida" && !(Number(p.un_perdidas ?? 0) > 0)) return false;
+      if (alertaFiltro === "reprocessamento" && !(Number(p.un_canceladas ?? 0) > 0 && Number(p.un_perdidas ?? 0) === 0)) return false;
       if (!q) return true;
       return (
         p.sku?.toLowerCase().includes(q) ||
