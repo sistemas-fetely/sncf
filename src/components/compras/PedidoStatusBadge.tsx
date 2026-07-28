@@ -6,6 +6,7 @@ const config: Record<PedidoCompraStatus, { label: string; className: string }> =
   aberto: { label: "Aberto", className: "bg-info/10 text-info border-0" },
   em_compra: { label: "Em compra", className: "bg-warning/10 text-warning border-0" },
   comprado: { label: "Comprado", className: "bg-success/10 text-success border-0" },
+  recebido: { label: "Recebido", className: "bg-success/10 text-success border-0" },
   cancelado: { label: "Cancelado", className: "bg-destructive/10 text-destructive border-0" },
 };
 
