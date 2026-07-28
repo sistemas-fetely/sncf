@@ -290,7 +290,7 @@ export default function PagamentosAlocacaoSection({
           </div>
 
           {alvo?.pode_reverter_status === false && (
-            <div className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning-foreground flex items-start gap-2">
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-warning" />
               <span>
                 Esta alocação é da carga inicial e não guarda o estado anterior do
