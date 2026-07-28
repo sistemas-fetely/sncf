@@ -77,6 +77,10 @@ type Conta = {
   parceiros_comerciais?: { razao_social: string | null } | null;
   formas_pagamento?: { codigo: string | null; nome: string | null; cobra_email: boolean | null; pula_aprovacao: boolean | null } | null;
   fornecedor_cliente?: string | null;
+  valor_alocado?: number | null;
+  saldo?: number | null;
+  situacao_pagamento?: "nao_pago" | "parcial" | "pago" | "cancelado" | null;
+  qtd_pagamentos?: number | null;
 };
 
 // Status de CPR: mapa canônico em `@/lib/financeiro/status-cpr`.
@@ -331,6 +335,8 @@ export default function ContasPagar() {
     }
     if (statusFilter === "pendencia_nf") {
       lista = lista.filter((c) => temPendenciaNF(c.id));
+    } else if (statusFilter === "parcialmente_pago") {
+      lista = lista.filter((c) => c.situacao_pagamento === "parcial");
     } else if (statusFilter && statusFilter !== "todos") {
       lista = lista.filter((c) => c.status === statusFilter);
     }
@@ -502,6 +508,7 @@ export default function ContasPagar() {
               </SelectItem>
             ))}
             <SelectItem value="pendencia_nf">Pendência NF</SelectItem>
+            <SelectItem value="parcialmente_pago">Parcialmente pagos</SelectItem>
           </SelectContent>
         </Select>
         {solicitantesOptions.length > 0 && (
@@ -652,7 +659,14 @@ export default function ContasPagar() {
                         )}
                       </TableCell>
                       <TableCell className="text-right font-medium font-mono whitespace-nowrap">
-                        {formatBRL(c.valor)}
+                        <div className="flex flex-col items-end">
+                          <span>{formatBRL(c.valor)}</span>
+                          {c.situacao_pagamento === "parcial" && (
+                            <span className="text-[10px] text-muted-foreground font-normal">
+                              restam {formatBRL(Number(c.saldo || 0))} · {c.qtd_pagamentos || 0} pagamento{(c.qtd_pagamentos || 0) === 1 ? "" : "s"}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1 items-start">
@@ -660,6 +674,14 @@ export default function ContasPagar() {
                             const meta = getStatusCprMeta(c.status);
                             return <Badge className={meta.className}>{meta.label}</Badge>;
                           })()}
+                          {c.situacao_pagamento === "parcial" && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] border-blue-400 text-blue-700 dark:text-blue-400"
+                            >
+                              Parcialmente pago
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell

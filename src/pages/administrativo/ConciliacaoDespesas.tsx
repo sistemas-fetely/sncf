@@ -15,7 +15,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Search, MailQuestion, Clock, Tags, CreditCard,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  GitCompare, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Search, MailQuestion, Clock, Tags, CreditCard, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -65,9 +70,21 @@ type SugNF = {
 type SugCPR = {
   mov_id: string;
   cpr_valor: number | null;
+  cpr_saldo: number | null;
+  situacao_pagamento: "nao_pago" | "parcial" | "pago" | "cancelado" | null;
   data_vencimento: string | null;
   data_pagamento: string | null;
   parceiro_nome: string | null;
+};
+
+type RpcMatchResult = {
+  ok: boolean;
+  erro?: string;
+  valor_alocado?: number;
+  titulo_quitado?: boolean;
+  saldo_titulo?: number;
+  movimentacao_esgotada?: boolean;
+  disponivel_movimentacao?: number;
 };
 
 export default function ConciliacaoDespesas() {
@@ -89,6 +106,10 @@ export default function ConciliacaoDespesas() {
   const [confirmarLoteRunning, setConfirmarLoteRunning] = useState(false);
   const [abaterAlvo, setAbaterAlvo] = useState<Furo | null>(null);
   const [abaterRunning, setAbaterRunning] = useState(false);
+  const [valorDialogFuro, setValorDialogFuro] = useState<Furo | null>(null);
+  const [valorDialogInput, setValorDialogInput] = useState("");
+  const [valorDialogErro, setValorDialogErro] = useState<string | null>(null);
+  const [valorDialogRunning, setValorDialogRunning] = useState(false);
 
   async function executarAbater() {
     if (!abaterAlvo) return;
@@ -139,7 +160,7 @@ export default function ConciliacaoDespesas() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("vw_despesas_match_sugestoes")
-        .select("mov_id, cpr_valor, data_vencimento, data_pagamento, parceiro_nome");
+        .select("mov_id, cpr_valor, cpr_saldo, situacao_pagamento, data_vencimento, data_pagamento, parceiro_nome");
       if (error) throw error;
       return (data || []) as SugCPR[];
     },
@@ -200,6 +221,7 @@ export default function ConciliacaoDespesas() {
     qc.invalidateQueries({ queryKey: ["conciliacao-sug-nf"] });
     qc.invalidateQueries({ queryKey: ["conciliacao-sug-cpr"] });
     qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
+    qc.invalidateQueries({ queryKey: ["contas-pagar"] });
   }
 
   function getValorDoc(f: Furo): number | null {
@@ -209,9 +231,32 @@ export default function ConciliacaoDespesas() {
     }
     if (f.fonte_sugestao === "cpr") {
       const c = cprMap.get(f.id);
+      // Para títulos parcialmente pagos, o "valor do doc" que importa é o SALDO restante.
+      if (c?.situacao_pagamento === "parcial" && c.cpr_saldo != null) return Number(c.cpr_saldo);
       return c?.cpr_valor != null ? Number(c.cpr_valor) : null;
     }
     return null;
+  }
+
+  function toastMatchResult(res: RpcMatchResult) {
+    const alocado = Number(res.valor_alocado || 0);
+    const saldo = Number(res.saldo_titulo || 0);
+    const disp = Number(res.disponivel_movimentacao || 0);
+    if (res.titulo_quitado) {
+      const suffix =
+        res.movimentacao_esgotada === false
+          ? ` — movimentação ainda tem ${formatBRL(disp)} livre`
+          : "";
+      toast.success(`Título quitado — alocado ${formatBRL(alocado)}${suffix}`);
+    } else {
+      const suffix =
+        res.movimentacao_esgotada === false
+          ? ` · movimentação ainda tem ${formatBRL(disp)} livre`
+          : "";
+      toast.warning(
+        `Alocação parcial: ${formatBRL(alocado)} alocados, faltam ${formatBRL(saldo)} no título${suffix}`,
+      );
+    }
   }
 
   function getDataDoc(f: Furo): string | null {
@@ -228,6 +273,7 @@ export default function ConciliacaoDespesas() {
   async function confirmarSelecionadas() {
     setConfirmarLoteRunning(true);
     let ok = 0;
+    let parciais = 0;
     let falhas = 0;
     let primeiraFalha: string | null = null;
     try {
@@ -251,8 +297,9 @@ export default function ConciliacaoDespesas() {
               p_user_id,
             });
             if (error) throw error;
-            const res = data as { ok?: boolean; erro?: string } | null;
+            const res = data as RpcMatchResult | null;
             if (res && res.ok === false) throw new Error(res.erro || "Operação recusada");
+            if (res && res.titulo_quitado === false) parciais++;
           } else {
             throw new Error("Sugestão inválida");
           }
@@ -264,7 +311,8 @@ export default function ConciliacaoDespesas() {
         }
       }
       if (falhas === 0) {
-        toast.success(`${ok} confirmadas`);
+        const suffix = parciais > 0 ? ` (${parciais} título${parciais === 1 ? "" : "s"} com saldo restante)` : "";
+        toast.success(`${ok} confirmadas${suffix}`);
       } else {
         toast.error(`${ok} confirmadas, ${falhas} falharam`, {
           description: primeiraFalha || undefined,
@@ -297,23 +345,95 @@ export default function ConciliacaoDespesas() {
           toast.success("Débito conciliado com NF");
         }
       } else if (f.fonte_sugestao === "cpr" && f.sugestao_cpr_id) {
-        const { error } = await sb.rpc("confirmar_match_despesa", {
+        const { data, error } = await sb.rpc("confirmar_match_despesa", {
           p_mov_id: f.id,
           p_cpr_id: f.sugestao_cpr_id,
           p_user_id,
         });
         if (error) throw error;
-        toast.success("Débito vinculado ao CPR");
+        const res = data as RpcMatchResult | null;
+        if (res && res.ok === false) throw new Error(res.erro || "Operação recusada");
+        if (res) toastMatchResult(res);
+        else toast.success("Débito vinculado ao CPR");
       } else {
         throw new Error("Sugestão inválida");
       }
       invalidar();
+      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
     } catch (e) {
       toast.error("Falha: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setProcessando(null);
     }
   }
+
+  function abrirValorDialog(f: Furo) {
+    const c = cprMap.get(f.id);
+    const disponivel = Number(f.valor || 0);
+    const saldoTitulo = c?.situacao_pagamento === "parcial" && c.cpr_saldo != null
+      ? Number(c.cpr_saldo)
+      : Number(c?.cpr_valor || 0);
+    const preset = Math.min(disponivel, saldoTitulo || disponivel);
+    setValorDialogFuro(f);
+    setValorDialogInput(preset > 0 ? preset.toFixed(2) : "");
+    setValorDialogErro(null);
+  }
+
+  async function confirmarComValor() {
+    if (!valorDialogFuro) return;
+    const f = valorDialogFuro;
+    const c = cprMap.get(f.id);
+    const disponivel = Number(f.valor || 0);
+    const saldoTitulo = c?.situacao_pagamento === "parcial" && c.cpr_saldo != null
+      ? Number(c.cpr_saldo)
+      : Number(c?.cpr_valor || 0);
+    const valor = Number((valorDialogInput || "").replace(",", "."));
+    if (!Number.isFinite(valor) || valor <= 0) {
+      setValorDialogErro("Informe um valor maior que zero");
+      return;
+    }
+    if (valor - disponivel > 0.005) {
+      setValorDialogErro(`Valor acima do disponível na movimentação (${formatBRL(disponivel)})`);
+      return;
+    }
+    if (saldoTitulo > 0 && valor - saldoTitulo > 0.005) {
+      setValorDialogErro(`Valor acima do saldo do título (${formatBRL(saldoTitulo)})`);
+      return;
+    }
+    if (!f.sugestao_cpr_id) {
+      setValorDialogErro("Título vinculado ausente");
+      return;
+    }
+    setValorDialogRunning(true);
+    try {
+      const p_user_id = await getUserId();
+      const { data, error } = await sb.rpc("confirmar_match_despesa", {
+        p_mov_id: f.id,
+        p_cpr_id: f.sugestao_cpr_id,
+        p_user_id,
+        p_valor: valor,
+      });
+      if (error) throw error;
+      const res = data as RpcMatchResult | null;
+      if (res && res.ok === false) {
+        setValorDialogErro(res.erro || "Operação recusada");
+        return;
+      }
+      if (res) toastMatchResult(res);
+      else toast.success("Débito vinculado ao CPR");
+      invalidar();
+      setValorDialogFuro(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setValorDialogErro(msg);
+      toast.error("Falha: " + msg);
+    } finally {
+      setValorDialogRunning(false);
+    }
+  }
+
+
+
 
   async function processarLote() {
     setLoteRunning(true);
@@ -563,6 +683,14 @@ export default function ConciliacaoDespesas() {
                                   <Badge variant="outline" className="text-[10px] uppercase">
                                     {f.fonte_sugestao}
                                   </Badge>
+                                  {f.fonte_sugestao === "cpr" && cprMap.get(f.id)?.situacao_pagamento === "parcial" && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] border-blue-400 text-blue-700 dark:text-blue-400"
+                                    >
+                                      Título parcialmente pago
+                                    </Badge>
+                                  )}
                                   {seguro && (
                                     <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-600 gap-1">
                                       <ShieldCheck className="h-3 w-3" /> seguro
@@ -571,18 +699,37 @@ export default function ConciliacaoDespesas() {
                                 </div>
                               </TableCell>
                               <TableCell className="align-top">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={processando === f.id}
-                                  onClick={() => confirmarUm(f)}
-                                  className="gap-1"
-                                >
-                                  {processando === f.id
-                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    : <CheckCircle2 className="h-3.5 w-3.5" />}
-                                  Confirmar
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={processando === f.id}
+                                    onClick={() => confirmarUm(f)}
+                                    className="gap-1"
+                                  >
+                                    {processando === f.id
+                                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                      : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                    Confirmar
+                                  </Button>
+                                  {f.fonte_sugestao === "cpr" && f.sugestao_cpr_id && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 px-2"
+                                            onClick={() => abrirValorDialog(f)}
+                                          >
+                                            <SlidersHorizontal className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Confirmar com valor definido</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -796,6 +943,77 @@ export default function ConciliacaoDespesas() {
         furo={furoAtivo}
         onDone={invalidar}
       />
+
+      <Dialog
+        open={!!valorDialogFuro}
+        onOpenChange={(v) => {
+          if (!v && !valorDialogRunning) {
+            setValorDialogFuro(null);
+            setValorDialogErro(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar com valor definido</DialogTitle>
+            <DialogDescription>
+              Aloque um valor específico deste débito ao título sugerido. Você pode usar isso para pagamentos parciais.
+            </DialogDescription>
+          </DialogHeader>
+          {valorDialogFuro && (() => {
+            const c = cprMap.get(valorDialogFuro.id);
+            const disponivel = Number(valorDialogFuro.valor || 0);
+            const saldoTitulo = c?.situacao_pagamento === "parcial" && c.cpr_saldo != null
+              ? Number(c.cpr_saldo)
+              : Number(c?.cpr_valor || 0);
+            return (
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded border p-2">
+                    <div className="text-[10px] uppercase text-muted-foreground">Disponível na movimentação</div>
+                    <div className="font-mono font-semibold">{formatBRL(disponivel)}</div>
+                  </div>
+                  <div className="rounded border p-2">
+                    <div className="text-[10px] uppercase text-muted-foreground">Saldo do título</div>
+                    <div className="font-mono font-semibold">{formatBRL(saldoTitulo)}</div>
+                    {c?.situacao_pagamento === "parcial" && (
+                      <div className="text-[10px] text-blue-700 dark:text-blue-400">parcialmente pago</div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="valor-alocar">Valor a alocar</Label>
+                  <Input
+                    id="valor-alocar"
+                    inputMode="decimal"
+                    value={valorDialogInput}
+                    onChange={(e) => { setValorDialogInput(e.target.value); setValorDialogErro(null); }}
+                    disabled={valorDialogRunning}
+                  />
+                </div>
+                {valorDialogErro && (
+                  <div className="text-xs text-destructive">{valorDialogErro}</div>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setValorDialogFuro(null); setValorDialogErro(null); }}
+              disabled={valorDialogRunning}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={confirmarComValor} disabled={valorDialogRunning}>
+              {valorDialogRunning && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
 
 
       <AlertDialog open={loteOpen} onOpenChange={(v) => !loteRunning && setLoteOpen(v)}>
