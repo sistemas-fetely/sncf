@@ -2654,6 +2654,33 @@ export type Database = {
           },
         ]
       }
+      compra_modalidade: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          exige_dados_importacao: boolean
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          exige_dados_importacao?: boolean
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          exige_dados_importacao?: boolean
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       compras_registradas: {
         Row: {
           comprador_id: string
@@ -9103,16 +9130,19 @@ export type Database = {
           caixas_inner: number | null
           caixas_master: number | null
           cbm_total: number | null
+          centro_id: string | null
           criado_em: string
           eta: string | null
           etd: string | null
           fabrica_id: number | null
           fornecedor_id: string | null
           id: number
+          modalidade: string
           numero_pedido: string
           observacao: string | null
           pedido_agregado: string | null
           qtd_kits: number | null
+          referencia_fornecedor: string | null
           rocabella_ref: string | null
           status_id: number | null
           total_conteineres: number | null
@@ -9123,16 +9153,19 @@ export type Database = {
           caixas_inner?: number | null
           caixas_master?: number | null
           cbm_total?: number | null
+          centro_id?: string | null
           criado_em?: string
           eta?: string | null
           etd?: string | null
           fabrica_id?: number | null
           fornecedor_id?: string | null
           id?: never
+          modalidade?: string
           numero_pedido: string
           observacao?: string | null
           pedido_agregado?: string | null
           qtd_kits?: number | null
+          referencia_fornecedor?: string | null
           rocabella_ref?: string | null
           status_id?: number | null
           total_conteineres?: number | null
@@ -9143,22 +9176,32 @@ export type Database = {
           caixas_inner?: number | null
           caixas_master?: number | null
           cbm_total?: number | null
+          centro_id?: string | null
           criado_em?: string
           eta?: string | null
           etd?: string | null
           fabrica_id?: number | null
           fornecedor_id?: string | null
           id?: never
+          modalidade?: string
           numero_pedido?: string
           observacao?: string | null
           pedido_agregado?: string | null
           qtd_kits?: number | null
+          referencia_fornecedor?: string | null
           rocabella_ref?: string | null
           status_id?: number | null
           total_conteineres?: number | null
           valor_fob_total?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "importacao_pedido_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "importacao_pedido_fabrica_id_fkey"
             columns: ["fabrica_id"]
@@ -9200,6 +9243,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_modalidade_fkey"
+            columns: ["modalidade"]
+            isOneToOne: false
+            referencedRelation: "compra_modalidade"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "importacao_pedido_status_id_fkey"
@@ -28587,6 +28637,10 @@ export type Database = {
         Returns: Json
       }
       desconciliar_movimentacao: { Args: { p_mov_id: string }; Returns: Json }
+      desfazer_alocacao: {
+        Args: { p_alocacao_id: string; p_motivo?: string; p_user_id?: string }
+        Returns: Json
+      }
       desfazer_conciliacao_ofx: { Args: { p_ofx_id: string }; Returns: Json }
       desfazer_remessa: { Args: { p_remessa_id: string }; Returns: Json }
       despausar_regua_titulo: { Args: { p_titulo_id: string }; Returns: Json }
