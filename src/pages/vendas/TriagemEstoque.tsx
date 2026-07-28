@@ -525,7 +525,7 @@ function AcoesLinha({
                     responsabilidade do <strong>CPR</strong>, não da expedição.
                   </p>
                   <p className="text-muted-foreground">
-                    Ao confirmar, a remessa vai para <strong>Em separação</strong> e sai
+                    Ao confirmar, a remessa vai para <strong>{rotuloDestinoLiberacao(destino?.destino)}</strong> e sai
                     desta lista.
                   </p>
                 </div>
