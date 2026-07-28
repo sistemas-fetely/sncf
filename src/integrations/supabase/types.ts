@@ -8948,6 +8948,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_contradicao_fase"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
@@ -9114,6 +9121,7 @@ export type Database = {
           codigo: string
           criado_em: string
           descricao: string | null
+          exige_nf: boolean
           id: number
           ordem: number | null
         }
@@ -9122,6 +9130,7 @@ export type Database = {
           codigo: string
           criado_em?: string
           descricao?: string | null
+          exige_nf?: boolean
           id?: never
           ordem?: number | null
         }
@@ -9130,6 +9139,7 @@ export type Database = {
           codigo?: string
           criado_em?: string
           descricao?: string | null
+          exige_nf?: boolean
           id?: never
           ordem?: number | null
         }
@@ -24997,6 +25007,29 @@ export type Database = {
           },
         ]
       }
+      vw_importacao_contradicao_fase: {
+        Row: {
+          contradicao: string | null
+          exige_nf: boolean | null
+          fase_fiscal_com_nf: boolean | null
+          id: number | null
+          invoice_flag: string | null
+          linhas: number | null
+          linhas_com_nf: number | null
+          numero_pedido: string | null
+          status_codigo: string | null
+          status_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_pedido_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_lancamentos_caixa_banco: {
         Row: {
           cartao_id: string | null
@@ -25624,14 +25657,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25833,14 +25866,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
