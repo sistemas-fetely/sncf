@@ -379,10 +379,12 @@ function TabelaNegociar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<
 
 function AcoesLinha({
   r,
+  destino,
   mostrarPai,
   comMigrar,
 }: {
   r: TriagemRow;
+  destino?: DestinoRow;
   mostrarPai?: boolean;
   comMigrar?: boolean;
 }) {
@@ -393,28 +395,31 @@ function AcoesLinha({
   const enviar = useMutation({
     mutationFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc("transicionar_pedido", {
+      const { data, error } = await (supabase as any).rpc("liberar_pedido_estoque", {
         p_pedido_id: r.pedido_id,
-        p_para_estagio: "em_separacao",
-        p_proxima_acao: "Separar e expedir",
-        p_motivo: "Estoque reposto — liberado na Triagem",
-        p_automatico: false,
+        p_motivo: "Produto chegou — liberado na Triagem",
       });
       if (error) throw error;
-      return data;
+      return data as { ok?: boolean; pedido_id?: string; destino?: string | null; porque?: string | null } | null;
     },
-    onSuccess: () => {
-      toast.success("Pedido enviado para separação", {
+    onSuccess: (data) => {
+      const dest = rotuloDestinoLiberacao(data?.destino);
+      toast.success(`Enviado para ${dest}`, {
         description: r.id_externo ? `Remessa ${r.id_externo}` : undefined,
       });
       qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
+      qc.invalidateQueries({ queryKey: ["triagem-estoque-destinos"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
     },
     onError: (e: unknown) => {
-      toast.error("Erro ao enviar para separação", { description: formatError(e) });
+      toast.error("Erro ao liberar remessa", { description: formatError(e) });
     },
   });
 
   const precisaConfirmar = comMigrar; // grupo "negociar"
+  const rotuloBotao = destino?.rotulo || "Enviar para próxima fase";
+  const tooltipBotao = destino?.porque || undefined;
 
   function handleEnviarClick() {
     if (precisaConfirmar) setConfirmOpen(true);
@@ -429,13 +434,14 @@ function AcoesLinha({
         className="h-7 gap-1.5"
         disabled={enviar.isPending}
         onClick={handleEnviarClick}
+        title={tooltipBotao}
       >
         {enviar.isPending ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
           <Send className="h-3.5 w-3.5" />
         )}
-        Enviar para separação
+        {rotuloBotao}
       </Button>
       {comMigrar && (
         <Button
