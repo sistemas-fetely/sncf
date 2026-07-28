@@ -13,6 +13,7 @@ export interface CriarPedidoInput {
   data_necessidade?: string | null;
   urgente?: boolean;
   urgencia_justificativa?: string | null;
+  solicitante_externo?: string | null;
 }
 
 export function useCriarPedidoCompra() {
@@ -29,6 +30,7 @@ export function useCriarPedidoCompra() {
         p_data_necessidade: input.data_necessidade ?? undefined,
         p_urgente: input.urgente ?? false,
         p_urgencia_justificativa: input.urgencia_justificativa ?? undefined,
+        p_solicitante_externo: input.solicitante_externo ?? null,
       });
       if (error) throw error;
       return data as { pedido_id: string; status: string; itens_criados: number };
