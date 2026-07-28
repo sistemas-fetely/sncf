@@ -50,6 +50,10 @@ interface CockpitRow {
   un_por_dia: number | null;
   un_canceladas: number | null;
   receita_cancelada: number | null;
+  un_perdidas: number | null;
+  receita_perdida: number | null;
+  receita_reprocessada: number | null;
+  reservado_aguardando_produto: number | null;
   custo: number | null;
   custo_status: CustoStatus | null;
   preco_b2b: number | null;
@@ -77,6 +81,11 @@ interface CarteiraResumo {
   receita_periodo: number | null;
   receita_cancelada: number | null;
   pct_cancelado: number | null;
+  receita_perdida: number | null;
+  receita_reprocessada: number | null;
+  pct_perda_real: number | null;
+  skus_pre_venda: number | null;
+  un_aguardando_produto: number | null;
   curva_a: number | null;
   curva_b: number | null;
   curva_c: number | null;
@@ -235,7 +244,8 @@ export default function Produtos() {
       if (estoqueFiltro === "bling" && p.tem_razao) return false;
       if (margemFiltro === "abaixo" && !(p.abaixo_piso_b2b || p.abaixo_piso_b2c)) return false;
       if (alertaFiltro === "divergente" && !p.preco_divergente_bling) return false;
-      if (alertaFiltro === "cancelamento" && !(Number(p.un_canceladas ?? 0) > 0)) return false;
+      if (alertaFiltro === "perdida" && !(Number(p.un_perdidas ?? 0) > 0)) return false;
+      if (alertaFiltro === "reprocessamento" && !(Number(p.un_canceladas ?? 0) > 0 && Number(p.un_perdidas ?? 0) === 0)) return false;
       if (!q) return true;
       return (
         p.sku?.toLowerCase().includes(q) ||
@@ -409,7 +419,8 @@ export default function Produtos() {
           <SelectContent>
             <SelectItem value="todos">Todos alertas</SelectItem>
             <SelectItem value="divergente">Preço divergente</SelectItem>
-            <SelectItem value="cancelamento">Com cancelamento</SelectItem>
+            <SelectItem value="perdida">Com venda perdida</SelectItem>
+            <SelectItem value="reprocessamento">Com reprocessamento</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground ml-auto">
@@ -564,13 +575,23 @@ export default function Produtos() {
                               </TooltipContent>
                             </Tooltip>
                           )}
-                          {Number(p.un_canceladas ?? 0) > 0 && (
+                          {Number(p.un_perdidas ?? 0) > 0 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <XCircle className="h-4 w-4 text-muted-foreground" />
+                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                               </TooltipTrigger>
                               <TooltipContent className="text-xs">
-                                {formatNum(p.un_canceladas)} un canceladas · {formatBRL(p.receita_cancelada)}
+                                {formatNum(p.un_perdidas)} un de venda perdida · {formatBRL(p.receita_perdida)}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {Number(p.un_canceladas ?? 0) > 0 && Number(p.un_perdidas ?? 0) === 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent className="text-xs max-w-[240px]">
+                                Cancelamento por reprocessamento — a venda migrou para outro pedido, não foi perdida.
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -686,8 +707,8 @@ function FaixaBloco({
 function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | undefined; isLoading: boolean }) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 mb-4">
+        {Array.from({ length: 7 }).map((_, i) => (
           <div key={i} className="rounded-md border bg-card px-4 py-3 h-[92px] animate-pulse" />
         ))}
       </div>
@@ -697,20 +718,28 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
   const capitalTotal = Number(resumo.capital_lastreado ?? 0) + Number(resumo.capital_fragil ?? 0);
   const semVenda = Number(resumo.sem_venda ?? 0);
   const capSemVenda = Number(resumo.capital_sem_venda ?? 0);
-  const cancelado = Number(resumo.receita_cancelada ?? 0);
+  const perdida = Number(resumo.receita_perdida ?? 0);
+  const reprocessada = Number(resumo.receita_reprocessada ?? 0);
+  const preVenda = Number(resumo.skus_pre_venda ?? 0);
+  const aguardandoProduto = Number(resumo.un_aguardando_produto ?? 0);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 mb-4">
       <FaixaBloco
         label="Receita do período"
         valor={formatBRL(resumo.receita_periodo ?? 0)}
         contexto={<>{formatDateBRShort(resumo.janela_inicio)} a {formatDateBRShort(resumo.janela_fim)}</>}
       />
       <FaixaBloco
-        label="Cancelado"
-        valorClass="text-amber-600 dark:text-amber-400"
-        valor={formatBRL(cancelado)}
-        contexto={<>{formatPct(resumo.pct_cancelado)} do valor pedido</>}
+        label="Venda perdida"
+        valorClass="text-red-600 dark:text-red-400"
+        valor={formatBRL(perdida)}
+        contexto={
+          <div className="space-y-0.5">
+            <div>{formatPct(resumo.pct_perda_real)} do valor pedido</div>
+            <div className="text-[11px] text-muted-foreground">+ {formatBRL(reprocessada)} reprocessado (mesma venda, outro pedido)</div>
+          </div>
+        }
       />
       <FaixaBloco
         label="Concentração"
@@ -738,6 +767,12 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
         valorClass={capSemVenda > 0 ? "text-red-600 dark:text-red-400" : undefined}
         valor={formatBRL(capSemVenda)}
         contexto="preso em SKU que nunca vendeu"
+      />
+      <FaixaBloco
+        label="Pré-venda"
+        valorClass={preVenda > 0 ? "text-sky-600 dark:text-sky-400" : undefined}
+        valor={<>{formatNum(preVenda)} <span className="text-base text-muted-foreground">SKUs</span></>}
+        contexto={<>{formatNum(aguardandoProduto)} un vendidas aguardando mercadoria</>}
       />
     </div>
   );
@@ -1010,8 +1045,19 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                   <Field label="Última venda">{formatDateBR(row.ultima_venda)}</Field>
                   <Field label="Dias sem vender">{row.dias_sem_vender != null ? `${row.dias_sem_vender} dias` : ou(null)}</Field>
                   <Field label="Un / dia">{row.un_por_dia != null ? formatNum(row.un_por_dia, 2) : ou(null)}</Field>
-                  <Field label="Un. canceladas">{formatNum(row.un_canceladas)}</Field>
-                  <Field label="Receita cancelada" className="col-span-2">{formatBRL(row.receita_cancelada ?? 0)}</Field>
+                  <Field label="Venda perdida" className="col-span-2">
+                    <span className={cn(Number(row.un_perdidas ?? 0) > 0 && "text-red-600 dark:text-red-400 font-medium")}>
+                      {formatNum(row.un_perdidas)} un · {formatBRL(row.receita_perdida ?? 0)}
+                    </span>
+                  </Field>
+                  <Field label="Reprocessado" className="col-span-2">
+                    <span className="text-muted-foreground">{formatBRL(row.receita_reprocessada ?? 0)}</span>
+                  </Field>
+                  {Number(row.reservado_aguardando_produto ?? 0) > 0 && (
+                    <Field label="Aguardando produto" className="col-span-2">
+                      <span className="text-sky-600 dark:text-sky-400">{formatNum(row.reservado_aguardando_produto)} un</span>
+                    </Field>
+                  )}
                 </div>
               )}
             </Secao>
