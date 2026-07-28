@@ -389,9 +389,10 @@ export default function ContaPagarDetalheDrawer({
                     )}
                   </SheetDescription>
                 </div>
-                <Badge className={STATUS_STYLE[conta.status] || "bg-muted"}>
-                  {STATUS_LABEL[conta.status] || conta.status}
-                </Badge>
+                {(() => {
+                  const meta = getStatusCprMeta(conta.status);
+                  return <Badge className={meta.className}>{meta.label}</Badge>;
+                })()}
                 {!modoEdit && conta.status !== "cancelado" && (
                   <Button
                     size="sm"
