@@ -169,8 +169,9 @@ export default function PanoramaAreas() {
                   <TableHead className="font-semibold text-right">CLT</TableHead>
                   <TableHead className="font-semibold text-right">PJ</TableHead>
                   <TableHead className="font-semibold text-right">Vagas Abertas</TableHead>
-                  <TableHead className="font-semibold text-right">Custo Base</TableHead>
-                  <TableHead className="font-semibold text-right">Custo Total</TableHead>
+                  <TableHead className="font-semibold text-right">Remuneração (sem encargos)</TableHead>
+                  <TableHead className="font-semibold text-right">Encargos (caixa do mês)</TableHead>
+                  <TableHead className="font-semibold text-right">Custo total (empresa)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
