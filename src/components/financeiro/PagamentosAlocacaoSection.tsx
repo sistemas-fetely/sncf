@@ -198,11 +198,11 @@ export default function PagamentosAlocacaoSection({
       </div>
 
       <ul className="divide-y rounded-md border">
-        {data.map((r) => {
+        {data.map((r, idx) => {
           const origemLabel = r.mov_contraparte?.trim() || r.mov_descricao?.trim() || "—";
           return (
             <li
-              key={r.alocacao_id ?? Math.random().toString(36)}
+              key={r.alocacao_id ?? `aloc-${idx}`}
               className="flex items-start gap-3 p-3"
             >
               <div className="flex-1 min-w-0">
@@ -290,7 +290,7 @@ export default function PagamentosAlocacaoSection({
           </div>
 
           {alvo?.pode_reverter_status === false && (
-            <div className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning-foreground flex items-start gap-2">
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-warning" />
               <span>
                 Esta alocação é da carga inicial e não guarda o estado anterior do
