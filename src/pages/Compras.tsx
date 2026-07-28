@@ -51,7 +51,14 @@ const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
 const fmtDate = (d?: string | null) =>
-  d ? format(parseISO(d), "dd MMM yyyy", { locale: ptBR }) : "—";
+  d ? format(parseISO(d), "dd/MM/yyyy", { locale: ptBR }) : "—";
+
+const diasAtraso = (data_necessidade?: string | null, status?: PedidoCompraStatus) => {
+  if (!data_necessidade) return null;
+  if (status === "recebido" || status === "cancelado") return null;
+  const diff = differenceInCalendarDays(startOfDay(new Date()), parseISO(data_necessidade));
+  return diff > 0 ? diff : null;
+};
 
 const sumItens = (p: PedidoCompraFull) =>
   (p.pedidos_compra_itens || [])
