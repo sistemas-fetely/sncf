@@ -580,18 +580,27 @@ function StatPill({
   label,
   value,
   dotClass,
+  sublabel,
 }: {
   label: string;
   value: number;
   dotClass: string;
+  sublabel?: string;
 }) {
   return (
     <div className="flex items-center gap-2">
       <span className={cn("h-2 w-2 rounded-full", dotClass)} aria-hidden />
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold tabular-nums">
-        {new Intl.NumberFormat("pt-BR").format(value)}
-      </span>
+      <div className="flex flex-col leading-tight">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <span className="text-sm font-semibold tabular-nums">
+            {new Intl.NumberFormat("pt-BR").format(value)}
+          </span>
+        </div>
+        {sublabel && (
+          <span className="text-[10px] text-muted-foreground">{sublabel}</span>
+        )}
+      </div>
     </div>
   );
 }
