@@ -13,18 +13,18 @@ function fmtDataCurta(iso: string | null): string {
 }
 
 export function statusBadge(
-  classe: string | null | undefined,
+  statusOperacional: string | null | undefined,
   ocorrenciaTexto?: string | null,
 ) {
-  switch (classe) {
+  switch (statusOperacional) {
     case "entregue":
       return { label: "Entregue", cls: "bg-success/15 text-success border-success/30", title: undefined as string | undefined };
     case "em_transito":
       return { label: "Em trânsito", cls: "bg-info/15 text-info border-info/30", title: undefined };
-    case "coletado":
-      return { label: "Coletado", cls: "bg-muted text-muted-foreground border-border", title: undefined };
     case "atencao":
       return { label: "Atenção", cls: "bg-destructive/15 text-destructive border-destructive/30", title: undefined };
+    case "terminal":
+      return { label: "Terminal", cls: "bg-destructive/15 text-destructive border-destructive/30", title: undefined };
     default: {
       const txt = (ocorrenciaTexto ?? "").trim();
       if (txt) {
@@ -35,9 +35,23 @@ export function statusBadge(
           title: txt,
         };
       }
-      return { label: classe ?? "—", cls: "bg-muted text-muted-foreground border-border", title: undefined };
+      return { label: statusOperacional ?? "—", cls: "bg-muted text-muted-foreground border-border", title: undefined };
     }
   }
+}
+
+function fmtDataBR(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR");
+}
+
+export function tooltipResgate(frete: FreteRow): string | undefined {
+  if (!frete.resgatado_por_outra_fonte) return undefined;
+  const data = fmtDataBR(frete.entrega_confirmada_em);
+  const oc = (frete.ocorrencia_texto ?? "").trim() || "—";
+  return `Entrega confirmada pelo rastreio em ${data}. A transportadora ainda reporta: ${oc}`;
 }
 
 export function pctClass(pct: number | null | undefined) {
