@@ -45,6 +45,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
+import { getEstagioMeta } from "@/lib/despesas/estagios";
 
 type DespesaV2 = {
   id: string;
