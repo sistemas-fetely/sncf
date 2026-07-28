@@ -300,7 +300,10 @@ export default function Compras() {
                               size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
                               title="Enviar para comprador"
-                              onClick={() => setConfirmarEnvio(p)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmarEnvio(p);
+                              }}
                             >
                               <Send className="h-4 w-4" />
                             </Button>
@@ -309,11 +312,28 @@ export default function Compras() {
                               size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-destructive"
                               title="Descartar"
-                              onClick={() => setConfirmarDescartar(p)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmarDescartar(p);
+                              }}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
+                        ) : p.status === "comprado" ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
+                            title="Confirmar recebimento"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setObservacaoReceb("");
+                              setConfirmarReceb(p);
+                            }}
+                          >
+                            <PackageCheck className="h-4 w-4" />
+                          </Button>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
