@@ -107,7 +107,10 @@ export default function Compras() {
       aberto: pedidos.filter((p) => p.status === "aberto").length,
       em_compra: pedidos.filter((p) => p.status === "em_compra").length,
       concluidos_mes: pedidos.filter(
-        (p) => p.status === "comprado" && p.finalizado_em && parseISO(p.finalizado_em) >= inicioMes,
+        (p) =>
+          (p.status === "comprado" || p.status === "recebido") &&
+          p.finalizado_em &&
+          parseISO(p.finalizado_em) >= inicioMes,
       ).length,
     };
   }, [pedidos]);
