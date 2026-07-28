@@ -77,12 +77,6 @@ function formatNum(n: number | null | undefined) {
   return new Intl.NumberFormat("pt-BR").format(v);
 }
 
-function formatSigned(n: number) {
-  const abs = new Intl.NumberFormat("pt-BR").format(Math.abs(n));
-  if (n > 0) return `+${abs}`;
-  if (n < 0) return `−${abs}`;
-  return abs;
-}
 
 function formatHora(iso: string | null | undefined) {
   if (!iso) return "—";
