@@ -27,6 +27,8 @@ interface DimensionamentoArea {
   custo_valor_base: number;
   custo_transporte: number;
   custo_beneficios_extras: number;
+  custo_encargo: number | null;
+  custo_total_empresa: number | null;
 }
 
 const fmtBRL = (v: number) =>
@@ -34,8 +36,11 @@ const fmtBRL = (v: number) =>
 
 const num = (v: any) => Number(v || 0);
 
-function custoTotal(r: DimensionamentoArea) {
+function remuneracao(r: DimensionamentoArea) {
   return num(r.custo_valor_base) + num(r.custo_transporte) + num(r.custo_beneficios_extras);
+}
+function custoTotal(r: DimensionamentoArea) {
+  return num(r.custo_total_empresa) || remuneracao(r);
 }
 
 export default function PanoramaAreas() {
