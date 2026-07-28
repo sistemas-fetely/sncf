@@ -334,6 +334,7 @@ const App = () => (
                 <Route path="/documentacao" element={<DocumentacaoGeral />} />
                 <Route path="/acervo/estoque/recebimento-xpm" element={<RecebimentoXpm />} />
                 <Route path="/acervo/estoque/saude" element={<SaudeEstoque />} />
+                <Route path="/acervo/produtos/conciliacao" element={<ConciliacaoCadastro />} />
               </Route>
 
               {/* Acervo — detalhes e editores (sem tab bar) */}
