@@ -62,11 +62,13 @@ export function useBaixasPendentes() {
     queryKey: ["baixas-pendentes"],
     refetchOnWindowFocus: true,
     queryFn: async () => {
+      // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
+      // O resultado segue tipado à mão via `as unknown as Row[]` abaixo.
+      const SELECT_BAIXAS: string =
+        "id, numero_titulo, valor_atual, valor_bruto, nosso_numero_seq, boleto_status, baixa_remessa_id, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), remessa:remessas_safra!titulo_a_receber_baixa_remessa_id_fkey(id, status, gerado_em, enviada_em, retorno_processado_em, arquivo_nome, conteudo)";
       const { data, error } = await supabase
         .from("titulo_a_receber")
-        .select(
-          "id, numero_titulo, valor_atual, valor_bruto, nosso_numero_seq, boleto_status, baixa_remessa_id, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), remessa:remessas_safra!titulo_a_receber_baixa_remessa_id_fkey(id, status, gerado_em, enviada_em, retorno_processado_em, arquivo_nome, conteudo)",
-        )
+        .select(SELECT_BAIXAS)
         .in("boleto_status", ["baixa_solicitada", "baixa_remessa_gerada"]);
       // FAIL-LOUD: nunca engolir erro de query
       if (error) throw error;
