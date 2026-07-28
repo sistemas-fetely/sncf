@@ -46,6 +46,7 @@ type IngestResult = {
   skus_fora_do_catalogo: number;
   total_normal: number;
   total_danificado: number;
+  validado_contra_rodape?: boolean;
 };
 
 const STATUS_META: Record<
@@ -75,6 +76,8 @@ function parseNumBR(raw: string): number {
 function parseArquivoXpm(html: string): {
   rows: { sku: string; normal: number; truncado: number; danificado: number }[];
   totalDeclarado: number | null;
+  totalNormalDeclarado: number | null;
+  totalDanificadoDeclarado: number | null;
 } {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const rows: { sku: string; normal: number; truncado: number; danificado: number }[] = [];
@@ -102,12 +105,18 @@ function parseArquivoXpm(html: string): {
     }
   });
 
-  // Rodapé "TOTAL GERAL: N produtos"
+  // Rodapé — "TOTAL GERAL: N produto(s)" (aceita "produtos" também)
   const bodyText = doc.body?.textContent ?? "";
-  const m = bodyText.match(/TOTAL\s+GERAL\s*:\s*([\d.]+)\s*produtos/i);
+  const m = bodyText.match(/TOTAL\s+GERAL\s*:\s*([\d.]+)\s*produto/i);
   const totalDeclarado = m ? parseInt(m[1].replace(/\./g, ""), 10) : null;
 
-  return { rows, totalDeclarado };
+  const mNormal = bodyText.match(/TOTAL\s+NORMAL\s+GERAL\s*:\s*([\d.]+)/i);
+  const totalNormalDeclarado = mNormal ? parseInt(mNormal[1].replace(/\./g, ""), 10) : null;
+
+  const mDanif = bodyText.match(/TOTAL\s+DANIFICADO\s+GERAL\s*:\s*([\d.]+)/i);
+  const totalDanificadoDeclarado = mDanif ? parseInt(mDanif[1].replace(/\./g, ""), 10) : null;
+
+  return { rows, totalDeclarado, totalNormalDeclarado, totalDanificadoDeclarado };
 }
 
 export default function EstoqueXpm() {
@@ -179,7 +188,8 @@ export default function EstoqueXpm() {
     try {
       const buf = await file.arrayBuffer();
       const html = new TextDecoder("iso-8859-1").decode(buf);
-      const { rows: parsed, totalDeclarado } = parseArquivoXpm(html);
+      const { rows: parsed, totalDeclarado, totalNormalDeclarado, totalDanificadoDeclarado } =
+        parseArquivoXpm(html);
 
       if (parsed.length === 0) {
         throw new Error("Nenhuma linha reconhecida no arquivo — confira se é o export de estoque da XPM.");
@@ -190,6 +200,8 @@ export default function EstoqueXpm() {
         p_arquivo: file.name,
         p_rows: parsed,
         p_total_declarado: totalDeclarado,
+        p_total_normal: totalNormalDeclarado,
+        p_total_danificado: totalDanificadoDeclarado,
       });
       if (error) throw error;
 
@@ -266,6 +278,12 @@ export default function EstoqueXpm() {
                 <div className="flex items-center gap-2 text-destructive font-medium">
                   <PackageX className="h-4 w-4" />
                   {nf.format(resultado.skus_fora_do_catalogo)} SKUs no armazém não existem no cadastro SNCF
+                </div>
+              )}
+              {resultado.validado_contra_rodape === false && (
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
+                  <AlertTriangle className="h-4 w-4" />
+                  Rodapé do arquivo não reconhecido — importado sem conferência de totais
                 </div>
               )}
             </div>

@@ -28934,7 +28934,9 @@ export type Database = {
           p_arquivo: string
           p_data: string
           p_rows: Json
+          p_total_danificado?: number
           p_total_declarado?: number
+          p_total_normal?: number
         }
         Returns: Json
       }
