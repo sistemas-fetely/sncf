@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FreteRow } from "@/hooks/logistica/useFretesTransportadora";
-import { statusBadge, pctClass } from "./CardFrete";
+import { statusBadge, pctClass, tooltipResgate } from "./CardFrete";
+import { Badge as _Badge } from "@/components/ui/badge";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 function fmt(v: number | null | undefined) { return v == null ? "—" : BRL.format(Number(v)); }
