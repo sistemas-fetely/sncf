@@ -300,7 +300,7 @@ function TabelaEnviar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<st
   );
 }
 
-function TabelaNegociar({ rows }: { rows: TriagemRow[] }) {
+function TabelaNegociar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<string, DestinoRow> }) {
   return (
     <div className="overflow-x-auto">
       <Table>
