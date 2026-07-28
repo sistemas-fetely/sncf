@@ -78,6 +78,25 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         analisesAnteriores = hist || [];
       }
 
+      // Dimensão de natureza de operação — traz a flag `gera_titulo_receber`
+      // que decide se a operação gera cobrança (título a receber). Não hardcode
+      // códigos aqui; o front lê a flag da dimensão.
+      let natureza: PedidoDetalhe["natureza"] = null;
+      if (pedido.natureza_operacao_id) {
+        const { data: nat } = await sb
+          .from("naturezas_operacao")
+          .select("codigo, nome, gera_titulo_receber")
+          .eq("id", pedido.natureza_operacao_id)
+          .maybeSingle();
+        if (nat) {
+          natureza = {
+            codigo: nat.codigo ?? null,
+            nome: nat.nome ?? null,
+            gera_titulo_receber: !!nat.gera_titulo_receber,
+          };
+        }
+      }
+
       const recebidoEm = new Date(pedido.recebido_em).getTime();
       const fimEm = new Date(pedido.faturado_em || pedido.cancelado_em || Date.now()).getTime();
       const idade_minutos = Math.max(0, Math.round((fimEm - recebidoEm) / 60000));
@@ -92,6 +111,7 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         eventos: eventos || [],
         analiseCredito: analiseCredito || null,
         analisesAnteriores,
+        natureza,
         idade_minutos,
         sla_estourado,
       };
