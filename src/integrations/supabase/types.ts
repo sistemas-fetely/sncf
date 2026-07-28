@@ -23432,6 +23432,67 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_conciliacao_resumo: {
+        Row: {
+          bling_sem_matriz: number | null
+          catalogo_produtos_reais: number | null
+          dif_barcode_shopify: number | null
+          dif_ean_bling: number | null
+          dif_marca_bling: number | null
+          dif_ncm_bling: number | null
+          dif_preco_bling: number | null
+          dif_preco_shopify: number | null
+          espelho_faltando: number | null
+          espelho_fantasmas: number | null
+          inativo_ativo_no_destino: number | null
+          matriz_ativos: number | null
+          nao_encontrado_shopify: number | null
+          no_bling: number | null
+          no_shopify: number | null
+          presente_nos_tres: number | null
+          shopify_multi_inventory: number | null
+          shopify_sem_matriz: number | null
+          skus_universo: number | null
+          ultimo_pull: string | null
+        }
+        Relationships: []
+      }
+      vw_conciliacao_sku: {
+        Row: {
+          ativo_shopify: boolean | null
+          barcode_shopify: string | null
+          bling_gtin: string | null
+          bling_marca: string | null
+          bling_ncm: string | null
+          bling_preco: number | null
+          colecao: string | null
+          dif_barcode_shopify: boolean | null
+          dif_ean_bling: boolean | null
+          dif_marca_bling: boolean | null
+          dif_ncm_bling: boolean | null
+          dif_preco_bling: boolean | null
+          dif_preco_shopify: boolean | null
+          grupo: string | null
+          handle: string | null
+          inventory_items: number | null
+          linha: string | null
+          matriz_ativo: boolean | null
+          matriz_ean: string | null
+          matriz_marca: string | null
+          matriz_ncm: string | null
+          matriz_preco: number | null
+          na_matriz: boolean | null
+          no_bling: boolean | null
+          no_shopify: boolean | null
+          nome: string | null
+          preco_shopify: number | null
+          sem_inventory_item: boolean | null
+          situacao: string | null
+          sku: string | null
+          variantes_shopify: number | null
+        }
+        Relationships: []
+      }
       vw_conta_corrente_extrato: {
         Row: {
           cnpj: string | null
@@ -25045,14 +25106,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25254,14 +25315,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -26399,6 +26460,21 @@ export type Database = {
           resultado_pct_b2c: number | null
           sem_preco: boolean | null
           sku: string | null
+        }
+        Relationships: []
+      }
+      vw_shopify_espelho_saude: {
+        Row: {
+          handle: string | null
+          id_malformado: boolean | null
+          no_catalogo_real: boolean | null
+          no_espelho: boolean | null
+          problema: string | null
+          shopify_id: string | null
+          status: string | null
+          titulo: string | null
+          variantes_espelho: number | null
+          variantes_reais: number | null
         }
         Relationships: []
       }
