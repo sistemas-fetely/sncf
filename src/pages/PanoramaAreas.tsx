@@ -176,9 +176,9 @@ export default function PanoramaAreas() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : sorted.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum centro de custo com dados ainda.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum centro de custo com dados ainda.</TableCell></TableRow>
                 ) : (
                   <>
                     {sorted.map((r) => (
@@ -194,7 +194,8 @@ export default function PanoramaAreas() {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right text-sm">{fmtBRL(r.custo_valor_base)}</TableCell>
+                        <TableCell className="text-right text-sm">{fmtBRL(remuneracao(r))}</TableCell>
+                        <TableCell className="text-right text-sm">{fmtBRL(num(r.custo_encargo))}</TableCell>
                         <TableCell className="text-right text-sm font-semibold">{fmtBRL(custoTotal(r))}</TableCell>
                       </TableRow>
                     ))}
@@ -204,7 +205,8 @@ export default function PanoramaAreas() {
                       <TableCell className="text-right">{totCLT}</TableCell>
                       <TableCell className="text-right">{totPJ}</TableCell>
                       <TableCell className="text-right">{totVagas}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(totBase)}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(totRemuneracao)}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(totEncargo)}</TableCell>
                       <TableCell className="text-right">{fmtBRL(totCusto)}</TableCell>
                     </TableRow>
                   </>
