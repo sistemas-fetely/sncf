@@ -854,6 +854,7 @@ export default function ContaPagarDetalheDrawer({
             )}
 
             <Separator className="my-4" />
+            <PagamentosAlocacaoSection contaId={conta.id} enabled={!!conta.id} />
             <TimelineHistorico contaId={conta.id} />
               </>
             )}
