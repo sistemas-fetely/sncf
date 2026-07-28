@@ -253,13 +253,14 @@ export default function EstoqueVirtual() {
           dotClass="bg-amber-500"
         />
         <StatPill
-          label="Divergência de saúde"
-          value={resumo.divergentes}
-          dotClass="bg-red-500"
+          label="Pré-venda"
+          value={resumo.preVenda}
+          dotClass="bg-blue-500"
+          sublabel={`${formatNum(resumo.unAguardando)} un aguardando`}
         />
         <StatPill
-          label="Virtual negativo"
-          value={resumo.virtualNegativo}
+          label="Indisponível"
+          value={resumo.indisponivel}
           dotClass="bg-red-500"
         />
       </div>
