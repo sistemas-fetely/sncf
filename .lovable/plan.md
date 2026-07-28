@@ -1,31 +1,15 @@
-# Investigação read-only — autenticação Shopify Admin API
+# Investigação read-only — inventário de literais de status de CPR
 
-Você pediu investigação, não alteração. Nada será modificado. Segue o resumo dos achados; o detalhamento com trechos de código já foi entregue na mensagem do chat.
+Você pediu inventário, não alteração. O detalhamento (tabelas por categoria A/B/C/D/E, mapas STATUS_LABEL encontrados, divergências entre eles) foi entregue na mensagem do chat.
 
-## Padrão de autenticação atual (reutilizável no pull de catálogo)
+## Achados-chave
 
-Ambas as edge functions (`sincronizar-estoque-shopify`, `shopify-pagamento-sync`) usam exatamente o mesmo caminho:
+- **Nenhuma escrita** de `paga` / `previsto` / `agendado` em `contas_pagar_receber.status` a partir do front. A única escrita direta com um desses literais é `sync-contas-receber` (edge Bling) gravando `atrasado`; `compromissos-handler` só usa `previsto` como filtro, não como valor gravado.
+- **Leitura de `previsto`** em três pontos: `compromissos-handler` (L143, L241) e `FluxoCaixaFuturo` (L143).
+- **Leitura de `atrasado`/`agendado`** como estado de UI/legado em `ContaPagarDetalheDrawer` e `StatusProgressBar`.
+- **Três mapas STATUS_LABEL independentes e divergentes** para CPR: `ContasPagar.tsx` (L81), `ContaPagarDetalheDrawer.tsx` (L109), `TimelineHistorico.tsx` (L10). Não há mapa central.
+- Todo o conjunto do módulo Crédito (`Credito/*`, `useTitulosCobranca`, `useReguaFila`, `ContasReceber`, `PainelFinanceiroConta`) usa `status_gestao` (view derivada), não `status` cru — separei explicitamente em (D).
 
-1. **Segredos no vault Postgres**, lidos via RPC `get_vault_secret(p_name)`:
-   - `SHOPIFY_CLIENT_ID`
-   - `SHOPIFY_CLIENT_SECRET`
-   - `SHOPIFY_STORE_DOMAIN` (opcional; se ausente, fallback para `["mmiavm-ui.myshopify.com", "fetely-3.myshopify.com"]`)
+## Próximo passo
 
-2. **Troca OAuth `client_credentials`** contra `https://{domain}/admin/oauth/access_token`. **Não** há `shpat_...` armazenado — o access token é minted a cada invocação.
-
-3. **GraphQL Admin API versão `2026-04`** em `https://{domain}/admin/api/2026-04/graphql.json`, header `X-Shopify-Access-Token`.
-
-4. `shopify-pagamento-sync` acrescenta guard `x-cron-secret` (compara com `SYNC_CRON_SECRET` do vault).
-
-## O que NÃO existe hoje (você terá que criar se o pull de catálogo precisar)
-
-- **Paginação por cursor** (`pageInfo.endCursor` / `hasNextPage` no GraphQL, ou `page_info` do REST). Nenhuma das duas funções lê listas grandes.
-- **Rate limit / retry**. Nenhum backoff, nenhuma leitura de `extensions.cost.throttleStatus`, nenhum tratamento de HTTP 429.
-
-## Próximo passo sugerido
-
-Quando quiser avançar para o pull de catálogo, me diga:
-- REST Admin (`/products.json` com `Link` header + `page_info`) ou GraphQL (`products(first, after)` com `pageInfo`)?
-- Escopo: catálogo completo, delta por `updated_at`, ou por conjunto de SKUs?
-
-Aí eu volto com um plano concreto de implementação reusando `getSecret` + `exchangeToken` + `gql`.
+Quando quiser agir sobre isso, me diga o objetivo (ex.: criar mapa canônico, alinhar rótulos, cobrir gaps como `paga`/`previsto` faltando nos badges, ou eliminar literais soltos) e eu volto com plano de implementação.
