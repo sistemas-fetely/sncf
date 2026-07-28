@@ -79,8 +79,8 @@ export function PedidoDetalheComprador({
   const excluirCompra = useExcluirCompraRegistrada();
   const { getSignedUrl } = useAnexosPedidoCompra(pedido?.id);
 
-  const { hasRole } = useAuth();
-  const isSuperAdmin = hasRole("super_admin");
+  const { roles } = useAuth();
+  const podeComprar = ehComprador(roles);
 
   const [cancelarItem, setCancelarItem] = useState<PedidoCompraItemRow | null>(null);
   const [excluirCompraDialog, setExcluirCompraDialog] = useState<CompraRegistradaFull | null>(null);
@@ -138,7 +138,7 @@ export function PedidoDetalheComprador({
   const ehMeu = pedido.status === "em_compra";
   const ehAberto = pedido.status === "aberto";
   const podeCancelarPedido =
-    isSuperAdmin &&
+    podeComprar &&
     (pedido.status === "rascunho" || pedido.status === "aberto" || pedido.status === "em_compra");
 
   return (

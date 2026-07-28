@@ -86,7 +86,7 @@ export default function Compras() {
   const excluir = useExcluirPedidoCompra();
   const confirmarRecebimento = useConfirmarRecebimentoPedido();
   const { roles } = useAuth();
-  const isCompradorV1 = roles.includes("super_admin");
+  const podeComprar = ehComprador(roles);
 
   const [tab, setTab] = useState<TabValue>("todos");
   const [busca, setBusca] = useState("");
