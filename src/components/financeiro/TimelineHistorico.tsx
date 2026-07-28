@@ -23,8 +23,8 @@ export default function TimelineHistorico({ contaId }: Props) {
   return (
     <div className="space-y-3">
       {historico.map((h) => {
-        const lblAnt = h.status_anterior ? STATUS_LABEL[h.status_anterior] || h.status_anterior : null;
-        const lblNovo = STATUS_LABEL[h.status_novo] || h.status_novo;
+        const lblAnt = h.status_anterior ? getStatusCprMeta(h.status_anterior).label : null;
+        const lblNovo = getStatusCprMeta(h.status_novo).label;
         return (
           <div key={h.id} className="flex gap-3 text-xs">
             <Circle className="h-2 w-2 fill-admin text-admin mt-1.5 flex-shrink-0" />
