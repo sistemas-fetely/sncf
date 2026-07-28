@@ -134,7 +134,7 @@ export default function TriagemEstoque() {
       <CasaPageHeader
         breadcrumb={[{ label: "Vendas" }, { label: "Triagem de Estoque" }]}
         title="Triagem de Estoque"
-        subtitle="Remessas filhas que ficaram aguardando produto. O produto está chegando — decida o que fazer com cada uma. O pagamento vive no pedido pai."
+        subtitle="Remessas filhas que ficaram aguardando produto. Quando o produto chega, o destino depende do recebível: se a remessa já está faturada, vai para Pré-Separação; se ainda não tem recebível próprio, vai para Cobrança ser faturada antes de expedir."
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -165,7 +165,7 @@ export default function TriagemEstoque() {
 
         <TabsContent value="enviar" className="mt-4">
           <p className="text-sm text-muted-foreground mb-3">
-            Pagamento do pedido pai em dia, sem parcela vencida. Liberado para expedição.
+            Sem parcela vencida no pai. O destino de cada linha aparece no próprio botão: parte vai direto para Pré-Separação, parte precisa passar por Cobrança antes porque a remessa ainda não tem recebível próprio.
           </p>
           <Card>
             <CardContent className="p-0">
@@ -185,9 +185,8 @@ export default function TriagemEstoque() {
 
         <TabsContent value="negociar" className="mt-4">
           <p className="text-sm text-muted-foreground mb-3">
-            A primeira parcela do pai já foi paga; o que está vencido são parcelas seguintes, então a cobrança é do{" "}
-            <span className="font-medium text-foreground">CPR</span>, não da expedição. Estas remessas{" "}
-            <span className="font-medium text-foreground">podem ser enviadas normalmente</span> — o grupo existe para dar visibilidade antes da decisão, não para travar. Se preferir negociar antes, use{" "}
+            O pai tem parcela vencida, mas o aviso <span className="font-medium text-foreground">não trava</span> — quando a primeira parcela já foi paga, a cobrança das parcelas seguintes é do{" "}
+            <span className="font-medium text-foreground">CPR</span>, não da expedição. O destino real de cada remessa continua sendo o que o botão indica: algumas seguem para Pré-Separação, outras ainda precisam ser faturadas na Cobrança antes de expedir. Se preferir negociar antes, use{" "}
             <span className="font-medium text-foreground">Migrar para Comercial</span>, que tira a remessa desta lista e a move para a fila do Comercial até alguém retomar.
           </p>
           <Card>
@@ -556,8 +555,7 @@ function AcoesLinha({
                     </div>
                   </div>
                   <p>
-                    A primeira parcela do pai <strong>já foi paga</strong> — foi ela que
-                    liberou a produção desta remessa. A cobrança das parcelas seguintes é
+                    Quando a primeira parcela do pai já foi paga, a cobrança das parcelas seguintes é
                     responsabilidade do <strong>CPR</strong>, não da expedição.
                   </p>
                   {Number(destino?.falta_recebivel ?? 0) > 0 && (
