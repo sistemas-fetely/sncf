@@ -707,8 +707,8 @@ function FaixaBloco({
 function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | undefined; isLoading: boolean }) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 mb-4">
+        {Array.from({ length: 7 }).map((_, i) => (
           <div key={i} className="rounded-md border bg-card px-4 py-3 h-[92px] animate-pulse" />
         ))}
       </div>
@@ -718,20 +718,28 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
   const capitalTotal = Number(resumo.capital_lastreado ?? 0) + Number(resumo.capital_fragil ?? 0);
   const semVenda = Number(resumo.sem_venda ?? 0);
   const capSemVenda = Number(resumo.capital_sem_venda ?? 0);
-  const cancelado = Number(resumo.receita_cancelada ?? 0);
+  const perdida = Number(resumo.receita_perdida ?? 0);
+  const reprocessada = Number(resumo.receita_reprocessada ?? 0);
+  const preVenda = Number(resumo.skus_pre_venda ?? 0);
+  const aguardandoProduto = Number(resumo.un_aguardando_produto ?? 0);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 mb-4">
       <FaixaBloco
         label="Receita do período"
         valor={formatBRL(resumo.receita_periodo ?? 0)}
         contexto={<>{formatDateBRShort(resumo.janela_inicio)} a {formatDateBRShort(resumo.janela_fim)}</>}
       />
       <FaixaBloco
-        label="Cancelado"
-        valorClass="text-amber-600 dark:text-amber-400"
-        valor={formatBRL(cancelado)}
-        contexto={<>{formatPct(resumo.pct_cancelado)} do valor pedido</>}
+        label="Venda perdida"
+        valorClass="text-red-600 dark:text-red-400"
+        valor={formatBRL(perdida)}
+        contexto={
+          <div className="space-y-0.5">
+            <div>{formatPct(resumo.pct_perda_real)} do valor pedido</div>
+            <div className="text-[11px] text-muted-foreground">+ {formatBRL(reprocessada)} reprocessado (mesma venda, outro pedido)</div>
+          </div>
+        }
       />
       <FaixaBloco
         label="Concentração"
@@ -759,6 +767,12 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
         valorClass={capSemVenda > 0 ? "text-red-600 dark:text-red-400" : undefined}
         valor={formatBRL(capSemVenda)}
         contexto="preso em SKU que nunca vendeu"
+      />
+      <FaixaBloco
+        label="Pré-venda"
+        valorClass={preVenda > 0 ? "text-sky-600 dark:text-sky-400" : undefined}
+        valor={<>{formatNum(preVenda)} <span className="text-base text-muted-foreground">SKUs</span></>}
+        contexto={<>{formatNum(aguardandoProduto)} un vendidas aguardando mercadoria</>}
       />
     </div>
   );
