@@ -723,6 +723,12 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
                   A primeira parcela do pedido pai já foi paga. O que está vencido são parcelas seguintes,
                   e por isso a cobrança dessas parcelas é responsabilidade do CPR, não da expedição.
                 </p>
+                {Number(destino?.falta_recebivel ?? 0) > 0 && (
+                  <p className="text-amber-700 dark:text-amber-400">
+                    Esta remessa ainda <strong>não tem recebível</strong> ({fmtBRL(Number(destino?.falta_recebivel))}).
+                    Ao confirmar, ela vai para <strong>Cobrança</strong> para ser faturada — não para expedição.
+                  </p>
+                )}
                 <p>
                   Esta remessa <strong>pode ser enviada normalmente</strong> — o aviso existe para dar visibilidade
                   antes da decisão, não para travar. Destino: <strong>{rotuloDestinoLiberacao(destino?.destino)}</strong>.
