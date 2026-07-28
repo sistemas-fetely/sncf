@@ -3,7 +3,7 @@ import { Warehouse, HeartPulse, GitCompare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { to: "/vendas/produto/estoque/virtual", label: "Estoque Virtual", icon: Warehouse },
+  { to: "/vendas/produto/estoque/virtual", label: "Estoque Geral", icon: Warehouse },
   { to: "/vendas/produto/estoque/saude", label: "Saúde do Estoque", icon: HeartPulse },
   { to: "/vendas/produto/estoque/conciliacao", label: "Conciliação", icon: GitCompare },
 ];
