@@ -1,4 +1,4 @@
-import { MapPin, DollarSign } from "lucide-react";
+import { MapPin, DollarSign, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { FreteRow } from "@/hooks/logistica/useFretesTransportadora";
@@ -13,18 +13,18 @@ function fmtDataCurta(iso: string | null): string {
 }
 
 export function statusBadge(
-  classe: string | null | undefined,
+  statusOperacional: string | null | undefined,
   ocorrenciaTexto?: string | null,
 ) {
-  switch (classe) {
+  switch (statusOperacional) {
     case "entregue":
       return { label: "Entregue", cls: "bg-success/15 text-success border-success/30", title: undefined as string | undefined };
     case "em_transito":
       return { label: "Em trânsito", cls: "bg-info/15 text-info border-info/30", title: undefined };
-    case "coletado":
-      return { label: "Coletado", cls: "bg-muted text-muted-foreground border-border", title: undefined };
     case "atencao":
       return { label: "Atenção", cls: "bg-destructive/15 text-destructive border-destructive/30", title: undefined };
+    case "terminal":
+      return { label: "Terminal", cls: "bg-destructive/15 text-destructive border-destructive/30", title: undefined };
     default: {
       const txt = (ocorrenciaTexto ?? "").trim();
       if (txt) {
@@ -35,9 +35,23 @@ export function statusBadge(
           title: txt,
         };
       }
-      return { label: classe ?? "—", cls: "bg-muted text-muted-foreground border-border", title: undefined };
+      return { label: statusOperacional ?? "—", cls: "bg-muted text-muted-foreground border-border", title: undefined };
     }
   }
+}
+
+function fmtDataBR(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR");
+}
+
+export function tooltipResgate(frete: FreteRow): string | undefined {
+  if (!frete.resgatado_por_outra_fonte) return undefined;
+  const data = fmtDataBR(frete.entrega_confirmada_em);
+  const oc = (frete.ocorrencia_texto ?? "").trim() || "—";
+  return `Entrega confirmada pelo rastreio em ${data}. A transportadora ainda reporta: ${oc}`;
 }
 
 export function pctClass(pct: number | null | undefined) {
@@ -48,14 +62,16 @@ export function pctClass(pct: number | null | undefined) {
 }
 
 export function CardFrete({ frete }: { frete: FreteRow }) {
-  const st = statusBadge(frete.classe, frete.ocorrencia_texto);
+  const st = statusBadge(frete.status_operacional, frete.ocorrencia_texto);
   const pct = frete.pct_frete_nf == null ? null : Number(frete.pct_frete_nf);
+  const resgateTitle = tooltipResgate(frete);
   return (
     <div className="rounded-lg border bg-card p-3 space-y-2 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="font-medium text-sm leading-tight">{frete.destinatario ?? "—"}</div>
-        <Badge variant="outline" title={st.title} className={cn("text-[10px] font-medium border", st.cls)}>
+        <Badge variant="outline" title={resgateTitle ?? st.title} className={cn("text-[10px] font-medium border inline-flex items-center gap-1", st.cls)}>
           {st.label}
+          {frete.resgatado_por_outra_fonte && <Info className="h-3 w-3" />}
         </Badge>
       </div>
 

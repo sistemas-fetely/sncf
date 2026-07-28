@@ -3,10 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FreteRow } from "@/hooks/logistica/useFretesTransportadora";
-import { statusBadge, pctClass } from "./CardFrete";
+import { statusBadge, pctClass, tooltipResgate } from "./CardFrete";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 function fmt(v: number | null | undefined) { return v == null ? "—" : BRL.format(Number(v)); }
@@ -47,9 +47,10 @@ export function TabelaFretes({ fretes }: { fretes: FreteRow[] }) {
         </TableHeader>
         <TableBody>
           {fretes.map((f) => {
-            const st = statusBadge(f.classe, f.ocorrencia_texto);
+            const st = statusBadge(f.status_operacional, f.ocorrencia_texto);
             const pct = f.pct_frete_nf == null ? null : Number(f.pct_frete_nf);
             const aberto = expandido.has(f.id);
+            const resgateTitle = tooltipResgate(f);
             return (
               <Fragment key={f.id}>
                 <TableRow className="text-xs cursor-pointer" onClick={() => toggle(f.id)}>
@@ -57,7 +58,14 @@ export function TabelaFretes({ fretes }: { fretes: FreteRow[] }) {
                     {aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" title={st.title} className={cn("text-[10px] border", st.cls)}>{st.label}</Badge>
+                    <Badge
+                      variant="outline"
+                      title={resgateTitle ?? st.title}
+                      className={cn("text-[10px] border inline-flex items-center gap-1", st.cls)}
+                    >
+                      {st.label}
+                      {f.resgatado_por_outra_fonte && <Info className="h-3 w-3" />}
+                    </Badge>
                   </TableCell>
                   <TableCell className="max-w-[220px] truncate">{f.destinatario ?? "—"}</TableCell>
                   <TableCell>{f.destinatario_cidade ?? "—"}{f.destinatario_uf ? ` / ${f.destinatario_uf}` : ""}</TableCell>
@@ -93,6 +101,13 @@ export function TabelaFretes({ fretes }: { fretes: FreteRow[] }) {
                         <div><span className="text-muted-foreground">Emissão CT-e:</span> {fmtData(f.cte_emissao)}</div>
                         <div><span className="text-muted-foreground">Data ocorrência:</span> {fmtData(f.ocorrencia_data)}</div>
                       </div>
+                      {f.ocorrencia_ruido_texto && (
+                        <div className="text-xs px-2 pb-2 text-amber-700 dark:text-amber-400">
+                          <span className="font-medium">Evento posterior barrado:</span>{" "}
+                          {f.ocorrencia_ruido_texto}
+                          {f.ocorrencia_ruido_data && ` (${fmtData(f.ocorrencia_ruido_data)})`}
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 )}

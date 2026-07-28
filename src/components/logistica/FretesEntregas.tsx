@@ -32,9 +32,10 @@ export function FretesEntregas({ transportadoraId, transportadoraNome, hideImpor
   const kpis = useMemo(() => {
     let entregues = 0, transito = 0, atencao = 0, total = 0;
     for (const f of fretes) {
-      if (f.classe === "entregue") entregues++;
-      if (f.classe === "em_transito" || f.classe === "coletado") transito++;
-      if (f.eh_problema) atencao++;
+      const st = f.status_operacional;
+      if (st === "entregue") entregues++;
+      else if (st === "em_transito") transito++;
+      else if (st === "atencao" || st === "terminal") atencao++;
       total += Number(f.frete_total ?? 0);
     }
     return { entregues, transito, atencao, total };
@@ -54,9 +55,10 @@ export function FretesEntregas({ transportadoraId, transportadoraNome, hideImpor
   const filtrados = useMemo(() => {
     const buscaLower = busca.trim().toLowerCase();
     return fretes.filter((f) => {
-      if (filtro === "entregue" && f.classe !== "entregue") return false;
-      if (filtro === "em_transito" && f.classe !== "em_transito" && f.classe !== "coletado") return false;
-      if (filtro === "atencao" && !f.eh_problema) return false;
+      const st = f.status_operacional;
+      if (filtro === "entregue" && st !== "entregue") return false;
+      if (filtro === "em_transito" && st !== "em_transito") return false;
+      if (filtro === "atencao" && st !== "atencao" && st !== "terminal") return false;
       if (buscaLower) {
         const alvo = `${f.destinatario ?? ""} ${f.nf_numero ?? ""}`.toLowerCase();
         if (!alvo.includes(buscaLower)) return false;
