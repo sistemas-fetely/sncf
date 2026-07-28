@@ -27,6 +27,8 @@ interface Props {
   parceiro_id: string;
   estagio: string;
   exige_portao?: boolean;
+  /** Se falso, a natureza de operação não gera título — cobrança e histórico ficam ocultos. */
+  gera_titulo_receber?: boolean;
 }
 
 const TIPO_LABEL: Record<TipoEmail, { btn: string; title: string; desc: string }> = {
