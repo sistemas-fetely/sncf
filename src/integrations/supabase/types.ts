@@ -8965,6 +8965,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -22428,6 +22435,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -24957,6 +24971,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -25603,14 +25624,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25812,14 +25833,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -26483,6 +26504,86 @@ export type Database = {
             referencedColumns: ["nf_id"]
           },
         ]
+      }
+      vw_produto_carteira_resumo: {
+        Row: {
+          abaixo_do_piso: number | null
+          capital_bloqueado: number | null
+          capital_fragil: number | null
+          capital_lastreado: number | null
+          capital_sem_venda: number | null
+          cobertura_abaixo_30d: number | null
+          curva_a: number | null
+          curva_b: number | null
+          curva_c: number | null
+          custo_ausente: number | null
+          custo_interino: number | null
+          custo_real: number | null
+          estoque_com_razao: number | null
+          estoque_saldo_bling: number | null
+          janela_fim: string | null
+          janela_inicio: string | null
+          pct_cancelado: number | null
+          pct_perda_real: number | null
+          preco_divergente_bling: number | null
+          receita_cancelada: number | null
+          receita_perdida: number | null
+          receita_periodo: number | null
+          receita_reprocessada: number | null
+          sem_venda: number | null
+          skus_ativos: number | null
+          skus_com_bloqueio: number | null
+          skus_pre_venda: number | null
+          un_aguardando_produto: number | null
+          un_bloqueadas: number | null
+        }
+        Relationships: []
+      }
+      vw_produto_cockpit: {
+        Row: {
+          abaixo_piso_b2b: boolean | null
+          abaixo_piso_b2c: boolean | null
+          capital_bloqueado: number | null
+          capital_parado: number | null
+          clientes: number | null
+          cobertura_dias: number | null
+          colecao: string | null
+          cor_nome: string | null
+          curva: string | null
+          custo: number | null
+          custo_status: string | null
+          dias_desde_contagem: number | null
+          dias_sem_vender: number | null
+          estoque_base: number | null
+          estoque_bloqueado: number | null
+          estoque_sadio: number | null
+          estoque_virtual: number | null
+          grupo: string | null
+          linha: string | null
+          nome_comercial: string | null
+          pedidos: number | null
+          preco_b2b: number | null
+          preco_b2c: number | null
+          preco_divergente_bling: boolean | null
+          preco_no_bling: number | null
+          receita: number | null
+          receita_cancelada: number | null
+          receita_perdida: number | null
+          receita_reprocessada: number | null
+          reservado: number | null
+          reservado_aguardando_produto: number | null
+          resultado_pct_b2b: number | null
+          resultado_pct_b2c: number | null
+          sku: string | null
+          status_venda: string | null
+          tem_razao: boolean | null
+          ultima_venda: string | null
+          un_canceladas: number | null
+          un_perdidas: number | null
+          un_por_dia: number | null
+          un_vendidas: number | null
+        }
+        Relationships: []
       }
       vw_produto_crosswalk: {
         Row: {
@@ -27689,6 +27790,13 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
             referencedColumns: ["sku"]
           },
           {
