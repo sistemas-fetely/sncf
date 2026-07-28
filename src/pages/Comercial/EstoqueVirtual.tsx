@@ -128,7 +128,7 @@ export default function EstoqueVirtual() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_estoque")
-        .select("sku,nome_comercial,ativo,estoque_contabil,estoque_real,tem_razao,estoque_base,reservado,estoque_virtual,estoque_minimo,saude_divergencia,status_venda,contagem_em,dias_desde_contagem,movimento_desde_contagem")
+        .select("sku,nome_comercial,ativo,tem_razao,estoque_base,reservado,estoque_virtual,estoque_minimo,status_venda,reservado_aguardando_produto")
         .limit(5000);
       if (error) throw error;
       return (data ?? []) as EstoqueSku[];
