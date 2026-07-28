@@ -12869,6 +12869,39 @@ export type Database = {
           },
         ]
       }
+      pedido_motivo_cancelamento: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          criado_em: string
+          descricao: string | null
+          gera_pedido_substituto: boolean
+          ordem: number
+          perda_real: boolean
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          criado_em?: string
+          descricao?: string | null
+          gera_pedido_substituto?: boolean
+          ordem?: number
+          perda_real: boolean
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          criado_em?: string
+          descricao?: string | null
+          gera_pedido_substituto?: boolean
+          ordem?: number
+          perda_real?: boolean
+          rotulo?: string
+        }
+        Relationships: []
+      }
       pedido_portao: {
         Row: {
           created_at: string
@@ -13394,6 +13427,7 @@ export type Database = {
           bonus_pix_valor: number
           cancelado_em: string | null
           cancelado_motivo: string | null
+          cancelado_motivo_codigo: string | null
           cancelado_por: string | null
           cliente_nome_snapshot: string | null
           condicao_solicitada: string
@@ -13478,6 +13512,7 @@ export type Database = {
           bonus_pix_valor?: number
           cancelado_em?: string | null
           cancelado_motivo?: string | null
+          cancelado_motivo_codigo?: string | null
           cancelado_por?: string | null
           cliente_nome_snapshot?: string | null
           condicao_solicitada: string
@@ -13562,6 +13597,7 @@ export type Database = {
           bonus_pix_valor?: number
           cancelado_em?: string | null
           cancelado_motivo?: string | null
+          cancelado_motivo_codigo?: string | null
           cancelado_por?: string | null
           cliente_nome_snapshot?: string | null
           condicao_solicitada?: string
@@ -13629,6 +13665,13 @@ export type Database = {
           vendedor?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_cancelado_motivo_codigo_fkey"
+            columns: ["cancelado_motivo_codigo"]
+            isOneToOne: false
+            referencedRelation: "pedido_motivo_cancelamento"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "pedidos_forma_pagamento_id_fkey"
             columns: ["forma_pagamento_id"]
@@ -24822,14 +24865,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25688,11 +25731,16 @@ export type Database = {
           janela_fim: string | null
           janela_inicio: string | null
           pct_cancelado: number | null
+          pct_perda_real: number | null
           preco_divergente_bling: number | null
           receita_cancelada: number | null
+          receita_perdida: number | null
           receita_periodo: number | null
+          receita_reprocessada: number | null
           sem_venda: number | null
           skus_ativos: number | null
+          skus_pre_venda: number | null
+          un_aguardando_produto: number | null
         }
         Relationships: []
       }
@@ -25722,7 +25770,10 @@ export type Database = {
           preco_no_bling: number | null
           receita: number | null
           receita_cancelada: number | null
+          receita_perdida: number | null
+          receita_reprocessada: number | null
           reservado: number | null
+          reservado_aguardando_produto: number | null
           resultado_pct_b2b: number | null
           resultado_pct_b2c: number | null
           sku: string | null
@@ -25730,6 +25781,7 @@ export type Database = {
           tem_razao: boolean | null
           ultima_venda: string | null
           un_canceladas: number | null
+          un_perdidas: number | null
           un_por_dia: number | null
           un_vendidas: number | null
         }
@@ -25793,9 +25845,12 @@ export type Database = {
           primeira_venda: string | null
           receita: number | null
           receita_cancelada: number | null
+          receita_perdida: number | null
+          receita_reprocessada: number | null
           sku: string | null
           ultima_venda: string | null
           un_canceladas: number | null
+          un_perdidas: number | null
           un_por_dia: number | null
           un_vendidas: number | null
         }
@@ -27844,16 +27899,28 @@ export type Database = {
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       fn_transicionar_entregues: { Args: never; Returns: Json }
       fn_transicionar_expedidos: { Args: never; Returns: Json }
-      fn_transicionar_pedido: {
-        Args: {
-          p_acao: string
-          p_delta?: Json
-          p_estagio_destino: string
-          p_motivo?: string
-          p_pedido_id: string
-        }
-        Returns: string
-      }
+      fn_transicionar_pedido:
+        | {
+            Args: {
+              p_acao: string
+              p_delta?: Json
+              p_estagio_destino: string
+              p_motivo?: string
+              p_pedido_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_acao: string
+              p_delta?: Json
+              p_estagio_destino: string
+              p_motivo?: string
+              p_motivo_codigo?: string
+              p_pedido_id: string
+            }
+            Returns: string
+          }
       fn_uf_por_cep: { Args: { p_cep: string }; Returns: string }
       fn_wns_consolidar: { Args: never; Returns: Json }
       fn_wns_limpar_zumbis: { Args: { p_chaves: Json }; Returns: number }
