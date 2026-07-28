@@ -14,6 +14,8 @@ export interface PedidoDetalhe {
   analiseCredito: any | null;
   /** Histórico de análises do parceiro (alimenta badges de recepção: cliente novo, cooldown). */
   analisesAnteriores: Array<{ status_final: string | null; decidido_em: string | null }>;
+  /** Dimensão de natureza de operação — flag que decide se a operação gera título a receber. */
+  natureza: { codigo: string | null; nome: string | null; gera_titulo_receber: boolean } | null;
   idade_minutos: number;
   sla_estourado: boolean;
 }
