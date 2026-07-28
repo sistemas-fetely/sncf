@@ -194,7 +194,8 @@ export default function EstoqueVirtual() {
       if (fonteFiltro === "bling" && p.tem_razao) return false;
       const bloq = Number(p.estoque_bloqueado ?? 0);
       if (condicaoFiltro === "com_bloqueio" && !(bloq > 0)) return false;
-      if (condicaoFiltro === "so_sadio" && bloq > 0) return false;
+      if (condicaoFiltro === "sadio_confirmado" && !(p.tem_razao && bloq === 0)) return false;
+      if (condicaoFiltro === "desconhecido" && p.tem_razao) return false;
       if (!q) return true;
       return (
         p.sku?.toLowerCase().includes(q) ||
@@ -204,7 +205,7 @@ export default function EstoqueVirtual() {
     return ordenarPor<EstoqueSku, Col>(base, sort, {
       sku: (p) => p.sku,
       nome: (p) => p.nome_comercial ?? "",
-      sadio: (p) => Number(p.estoque_sadio ?? 0),
+      sadio: (p) => Number(p.estoque_base ?? 0),
       bloqueado: (p) => Number(p.estoque_bloqueado ?? 0),
       aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
       reservado: (p) => Number(p.reservado ?? 0),
