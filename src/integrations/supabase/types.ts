@@ -25561,14 +25561,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25770,14 +25770,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -28925,6 +28925,15 @@ export type Database = {
         }[]
       }
       ignorar_lancamento: { Args: { p_lancamento_id: string }; Returns: Json }
+      ingerir_estoque_xpm: {
+        Args: {
+          p_arquivo: string
+          p_data: string
+          p_rows: Json
+          p_total_declarado?: number
+        }
+        Returns: Json
+      }
       ingerir_termo_conferencia: {
         Args: { p_rows: Json; p_termo: string }
         Returns: Json
