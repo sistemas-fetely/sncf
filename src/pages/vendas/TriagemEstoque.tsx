@@ -82,6 +82,25 @@ export default function TriagemEstoque() {
     },
   });
 
+  // Rótulo/destino do botão vêm do banco — a tela não decide.
+  const { data: destinos = [] } = useQuery({
+    queryKey: ["triagem-estoque-destinos"],
+    queryFn: async (): Promise<DestinoRow[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_destino_estoque")
+        .select("pedido_id, destino, rotulo, porque");
+      if (error) throw error;
+      return (data ?? []) as DestinoRow[];
+    },
+  });
+
+  const destinoPorPedido = useMemo(() => {
+    const m = new Map<string, DestinoRow>();
+    for (const d of destinos) m.set(d.pedido_id, d);
+    return m;
+  }, [destinos]);
+
   const enviar = useMemo(
     () =>
       data
