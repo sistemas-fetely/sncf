@@ -424,10 +424,32 @@ export default function EstoqueVirtual() {
                           </Tooltip>
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNum(sadio)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help">{formatNum(sadio)}</span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            {p.tem_razao
+                              ? "Estoque sadio pelo razão do SNCF. Exclui não conforme, avariado e quarentena."
+                              : "Saldo vindo do Bling. O Bling não distingue condição, então não há garantia de que tudo esteja sadio — este SKU ainda não foi onboardado por contagem física."}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {bloqueado === 0 ? (
-                          <span className="text-muted-foreground">—</span>
+                          p.tem_razao ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="italic text-muted-foreground cursor-help">n/d</span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-xs">
+                                Sem razão no SNCF — condição do estoque desconhecida.
+                              </TooltipContent>
+                            </Tooltip>
+                          )
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
