@@ -172,7 +172,7 @@ export default function CaixaBanco() {
           "id, origem_porta, data_competencia, valor, descricao, fornecedor_nome, " +
             "plano_contas_id, plano_codigo, plano_nome, centro_custo_id, centro_codigo, " +
             "centro_nome, natureza_investimento_id, natureza_codigo, natureza_nome, " +
-            "status_caixa, estagio",
+            "status_caixa, estagio, valor_alocado, saldo_a_pagar",
         )
         .order("data_competencia", { ascending: true });
       if (error) throw error;
@@ -481,9 +481,9 @@ export default function CaixaBanco() {
                   </div>
                   <div
                     className="text-[11px] text-muted-foreground mt-0.5 truncate"
-                    title={g.membros.join(" + ")}
+                    title={g.membros.join(", ")}
                   >
-                    {g.membros.join(" + ")}
+                    {g.membros.join(", ")}
                   </div>
                 </CardContent>
               </Card>
