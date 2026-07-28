@@ -81,8 +81,17 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/administrativo-fetely/parceiros" icon={Building2} label="Parceiros" />
               
               
-              <FinancasSidebarItem to="/vendas/produtos" icon={Package} label="Produtos" />
               <FinancasSidebarItem to="/vendas/farol-pedidos" icon={Radar} label="Farol de Pedidos" />
+
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="pb-3">
+          <SidebarGroupContent>
+            <FinancasSidebarSection title="Produto" defaultOpen>
+              <FinancasSidebarItem to="/vendas/produto" icon={Package} label="Produto" end />
+              <FinancasSidebarItem to="/vendas/produto/estoque" icon={Boxes} label="Estoque" />
 
             </SidebarMenu>
           </SidebarGroupContent>
