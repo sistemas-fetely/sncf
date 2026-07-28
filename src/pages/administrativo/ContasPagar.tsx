@@ -1,4 +1,5 @@
 import { useMemo, useState, type ComponentProps } from "react";
+import { getStatusCprMeta, STATUS_CPR_VALIDOS } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
