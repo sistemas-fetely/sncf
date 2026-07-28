@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
@@ -14,34 +15,26 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SortableTableHead, type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, HeartPulse, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EstoqueSku {
   sku: string;
   nome_comercial: string | null;
   ativo: boolean;
-  estoque_contabil: number | null;
-  estoque_real: number | null;
   tem_razao: boolean;
   estoque_base: number;
   reservado: number;
   estoque_virtual: number;
   estoque_minimo: number;
-  saude_divergencia: number | null;
-  status_venda: "disponivel" | "baixo" | "indisponivel";
-  contagem_em: string | null;
-  dias_desde_contagem: number | null;
-  movimento_desde_contagem: number | null;
+  status_venda: "disponivel" | "baixo" | "indisponivel" | "pre_venda";
+  reservado_aguardando_produto: number;
 }
 
 type Col =
   | "sku"
   | "nome"
-  | "contabil"
-  | "real"
-  | "idade"
-  | "saude"
+  | "aguardando"
   | "reservado"
   | "virtual"
   | "status";
@@ -50,13 +43,16 @@ const STATUS_LABEL: Record<string, string> = {
   disponivel: "Disponível",
   baixo: "Baixo",
   indisponivel: "Indisponível",
+  pre_venda: "Pré-venda",
 };
 
 const STATUS_CLASS: Record<string, string> = {
   disponivel: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   baixo: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
   indisponivel: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
+  pre_venda: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
 };
+
 
 const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
