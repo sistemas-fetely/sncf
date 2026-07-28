@@ -283,6 +283,7 @@ export default function EstoqueVirtual() {
             <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="disponivel">Disponível</SelectItem>
             <SelectItem value="baixo">Baixo</SelectItem>
+            <SelectItem value="pre_venda">Pré-venda</SelectItem>
             <SelectItem value="indisponivel">Indisponível</SelectItem>
           </SelectContent>
         </Select>
