@@ -208,7 +208,7 @@ export default function TriagemEstoque() {
   );
 }
 
-function TabelaEnviar({ rows }: { rows: TriagemRow[] }) {
+function TabelaEnviar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<string, DestinoRow> }) {
   return (
     <div className="overflow-x-auto">
       <Table>
