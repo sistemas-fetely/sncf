@@ -176,11 +176,13 @@ export default function BancoSafra() {
   const { data: boletos = [], isLoading: loadingBoletos, refetch: refetchBoletos } = useQuery<TitulosBoleto[]>({
     queryKey: ["boletos-safra"],
     queryFn: async () => {
+      // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
+      // O resultado segue tipado à mão via `as unknown as TitulosBoleto[]` abaixo.
+      const SELECT_BOLETOS: string =
+        "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo)";
       const { data, error } = await supabase
         .from("titulo_a_receber")
-        .select(
-          "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo)",
-        )
+        .select(SELECT_BOLETOS)
         .not("boleto_status", "is", null)
         .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao)")
         .order("data_vencimento_atual", { ascending: true });
