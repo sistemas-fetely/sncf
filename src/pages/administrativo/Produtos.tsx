@@ -419,7 +419,8 @@ export default function Produtos() {
           <SelectContent>
             <SelectItem value="todos">Todos alertas</SelectItem>
             <SelectItem value="divergente">Preço divergente</SelectItem>
-            <SelectItem value="cancelamento">Com cancelamento</SelectItem>
+            <SelectItem value="perdida">Com venda perdida</SelectItem>
+            <SelectItem value="reprocessamento">Com reprocessamento</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground ml-auto">
