@@ -157,15 +157,19 @@ export default function EstoqueVirtual() {
   const resumo = useMemo(() => {
     let comRazao = 0;
     let semRazao = 0;
-    let divergentes = 0;
-    let virtualNegativo = 0;
+    let preVenda = 0;
+    let unAguardando = 0;
+    let indisponivel = 0;
     for (const p of lista) {
       if (p.tem_razao) comRazao++;
       else semRazao++;
-      if (p.saude_divergencia != null && p.saude_divergencia !== 0) divergentes++;
-      if (Number(p.estoque_virtual ?? 0) < 0) virtualNegativo++;
+      if (p.status_venda === "pre_venda") {
+        preVenda++;
+        unAguardando += Number(p.reservado_aguardando_produto ?? 0);
+      }
+      if (p.status_venda === "indisponivel") indisponivel++;
     }
-    return { comRazao, semRazao, divergentes, virtualNegativo };
+    return { comRazao, semRazao, preVenda, unAguardando, indisponivel };
   }, [lista]);
 
   const filtrados = useMemo(() => {
@@ -183,10 +187,7 @@ export default function EstoqueVirtual() {
     return ordenarPor<EstoqueSku, Col>(base, sort, {
       sku: (p) => p.sku,
       nome: (p) => p.nome_comercial ?? "",
-      contabil: (p) => (p.estoque_contabil == null ? Number.NEGATIVE_INFINITY : Number(p.estoque_contabil)),
-      real: (p) => (p.estoque_real == null ? Number.NEGATIVE_INFINITY : Number(p.estoque_real)),
-      idade: (p) => (p.dias_desde_contagem == null ? Number.NEGATIVE_INFINITY : Number(p.dias_desde_contagem)),
-      saude: (p) => (p.saude_divergencia == null ? Number.NEGATIVE_INFINITY : Number(p.saude_divergencia)),
+      aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
       reservado: (p) => Number(p.reservado ?? 0),
       virtual: (p) => Number(p.estoque_virtual ?? 0),
       status: (p) => p.status_venda,
