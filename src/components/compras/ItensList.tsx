@@ -81,9 +81,10 @@ interface Props {
   onChange: (items: ItemEdit[]) => void;
   readOnly?: boolean;
   showItemStatus?: boolean;
+  headerActions?: React.ReactNode;
 }
 
-export function ItensList({ items, onChange, readOnly, showItemStatus }: Props) {
+export function ItensList({ items, onChange, readOnly, showItemStatus, headerActions }: Props) {
   const visiveis = items.filter((i) => i._action !== "delete");
   const temCancelados = visiveis.some((i) => i.status === "cancelado");
   const totalOriginal = visiveis.reduce(
@@ -138,9 +139,12 @@ export function ItensList({ items, onChange, readOnly, showItemStatus }: Props) 
           <Badge variant="secondary">{visiveis.length} {visiveis.length === 1 ? "item" : "itens"}</Badge>
         </div>
         {!readOnly && (
-          <Button type="button" variant="outline" size="sm" onClick={addItem}>
-            <Plus className="h-4 w-4 mr-1" /> Adicionar item
-          </Button>
+          <div className="flex items-center gap-2">
+            {headerActions}
+            <Button type="button" variant="outline" size="sm" onClick={addItem}>
+              <Plus className="h-4 w-4 mr-1" /> Adicionar item
+            </Button>
+          </div>
         )}
       </div>
 
