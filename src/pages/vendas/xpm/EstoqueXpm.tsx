@@ -280,6 +280,12 @@ export default function EstoqueXpm() {
                   {nf.format(resultado.skus_fora_do_catalogo)} SKUs no armazém não existem no cadastro SNCF
                 </div>
               )}
+              {resultado.validado_contra_rodape === false && (
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
+                  <AlertTriangle className="h-4 w-4" />
+                  Rodapé do arquivo não reconhecido — importado sem conferência de totais
+                </div>
+              )}
             </div>
           )}
         </CardContent>
