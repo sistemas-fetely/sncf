@@ -28,6 +28,7 @@ interface OportunidadeRow {
   id_externo: string | null;
   origem: OrigemOportunidade;
   motivo: string | null;
+  justificativa: string | null;
   retomavel_para: string | null;
   migrado_em: string | null;
   dias_na_fila: number | null;
@@ -261,6 +262,19 @@ export default function Oportunidades() {
                           {r.cnpj && (
                             <div className="text-[11px] text-muted-foreground truncate">
                               {r.cnpj}
+                            </div>
+                          )}
+                          {r.justificativa?.trim() && (
+                            <div className="mt-1">
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                Justificativa do operador
+                              </div>
+                              <blockquote
+                                title={r.justificativa}
+                                className="text-[11px] italic text-muted-foreground border-l-2 border-border pl-2 line-clamp-2"
+                              >
+                                {r.justificativa}
+                              </blockquote>
                             </div>
                           )}
                         </TableCell>
