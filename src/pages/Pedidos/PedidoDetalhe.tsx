@@ -622,11 +622,17 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_pedido_destino_estoque")
-        .select("destino, rotulo, porque")
+        .select("destino, rotulo, porque, pago, falta_recebivel")
         .eq("pedido_id", pedidoId)
         .maybeSingle();
       if (error) throw error;
-      return data as { destino: string | null; rotulo: string | null; porque: string | null } | null;
+      return data as {
+        destino: string | null;
+        rotulo: string | null;
+        porque: string | null;
+        pago: boolean | null;
+        falta_recebivel: number | null;
+      } | null;
     },
   });
 
@@ -641,7 +647,14 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
       });
       if (error) throw error;
       const destLabel = rotuloDestinoLiberacao(data?.destino);
-      toast({ title: `Enviado para ${destLabel}` });
+      const acao = data?.acao_na_cobranca as "materializar_cobranca" | "gerar_portao" | null | undefined;
+      let description: string | undefined;
+      if (acao === "materializar_cobranca") {
+        description = "Próximo passo: materializar a cobrança na tela de Cobrança";
+      } else if (acao === "gerar_portao") {
+        description = "Próximo passo: gerar o portão de entrada na aba Primeiro Pagamento";
+      }
+      toast({ title: `Enviado para ${destLabel}`, description });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedido-destino-estoque", pedidoId] });
       qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
@@ -672,17 +685,29 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
 
   return (
     <>
-      <Button
-        size="sm"
-        variant="default"
-        className="w-full gap-1.5"
-        onClick={handleClick}
-        disabled={isLoading || enviando}
-        title={tooltipBotao}
-      >
-        {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
-        {rotuloBotao}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="default"
+          className="flex-1 gap-1.5"
+          onClick={handleClick}
+          disabled={isLoading || enviando}
+          title={tooltipBotao}
+        >
+          {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+          {rotuloBotao}
+        </Button>
+        {destino?.pago && (
+          <Badge variant="outline" className="h-6 px-1.5 text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
+            Pago
+          </Badge>
+        )}
+      </div>
+      {Number(destino?.falta_recebivel ?? 0) > 0 && (
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          falta recebível: {fmtBRL(Number(destino?.falta_recebivel))}
+        </p>
+      )}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -698,6 +723,12 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
                   A primeira parcela do pedido pai já foi paga. O que está vencido são parcelas seguintes,
                   e por isso a cobrança dessas parcelas é responsabilidade do CPR, não da expedição.
                 </p>
+                {Number(destino?.falta_recebivel ?? 0) > 0 && (
+                  <p className="text-amber-700 dark:text-amber-400">
+                    Esta remessa ainda <strong>não tem recebível</strong> ({fmtBRL(Number(destino?.falta_recebivel))}).
+                    Ao confirmar, ela vai para <strong>Cobrança</strong> para ser faturada — não para expedição.
+                  </p>
+                )}
                 <p>
                   Esta remessa <strong>pode ser enviada normalmente</strong> — o aviso existe para dar visibilidade
                   antes da decisão, não para travar. Destino: <strong>{rotuloDestinoLiberacao(destino?.destino)}</strong>.

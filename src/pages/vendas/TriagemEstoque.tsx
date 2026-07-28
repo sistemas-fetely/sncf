@@ -32,6 +32,8 @@ interface DestinoRow {
   destino: string | null;
   rotulo: string | null;
   porque: string | null;
+  pago: boolean | null;
+  falta_recebivel: number | null;
 }
 
 interface TriagemRow {
@@ -89,7 +91,7 @@ export default function TriagemEstoque() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_pedido_destino_estoque")
-        .select("pedido_id, destino, rotulo, porque");
+        .select("pedido_id, destino, rotulo, porque, pago, falta_recebivel");
       if (error) throw error;
       return (data ?? []) as DestinoRow[];
     },
@@ -229,9 +231,16 @@ function TabelaEnviar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<st
           {rows.map((r) => (
             <TableRow key={r.pedido_id}>
               <TableCell className="font-mono text-xs">
-                <Link to={`/pedidos/${r.pedido_id}`} className="hover:underline">
-                  {r.id_externo || "—"}
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link to={`/pedidos/${r.pedido_id}`} className="hover:underline">
+                    {r.id_externo || "—"}
+                  </Link>
+                  {destinos.get(r.pedido_id)?.pago && (
+                    <Badge variant="outline" className="h-4 px-1 text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
+                      Pago
+                    </Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="font-mono text-xs">
                 {r.pai_id ? (
@@ -320,9 +329,16 @@ function TabelaNegociar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<
           {rows.map((r) => (
             <TableRow key={r.pedido_id}>
               <TableCell className="font-mono text-xs">
-                <Link to={`/pedidos/${r.pedido_id}`} className="hover:underline">
-                  {r.id_externo || "—"}
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link to={`/pedidos/${r.pedido_id}`} className="hover:underline">
+                    {r.id_externo || "—"}
+                  </Link>
+                  {destinos.get(r.pedido_id)?.pago && (
+                    <Badge variant="outline" className="h-4 px-1 text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
+                      Pago
+                    </Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="font-mono text-xs">
                 {r.pai_id ? (
@@ -400,12 +416,27 @@ function AcoesLinha({
         p_motivo: "Produto chegou — liberado na Triagem",
       });
       if (error) throw error;
-      return data as { ok?: boolean; pedido_id?: string; destino?: string | null; porque?: string | null } | null;
+      return data as {
+        ok?: boolean;
+        pedido_id?: string;
+        destino?: string | null;
+        porque?: string | null;
+        pago?: boolean | null;
+        falta_recebivel?: number | null;
+        acao_na_cobranca?: "materializar_cobranca" | "gerar_portao" | null;
+      } | null;
     },
     onSuccess: (data) => {
       const dest = rotuloDestinoLiberacao(data?.destino);
+      const partes: string[] = [];
+      if (r.id_externo) partes.push(`Remessa ${r.id_externo}`);
+      if (data?.acao_na_cobranca === "materializar_cobranca") {
+        partes.push("Próximo passo: materializar a cobrança na tela de Cobrança");
+      } else if (data?.acao_na_cobranca === "gerar_portao") {
+        partes.push("Próximo passo: gerar o portão de entrada na aba Primeiro Pagamento");
+      }
       toast.success(`Enviado para ${dest}`, {
-        description: r.id_externo ? `Remessa ${r.id_externo}` : undefined,
+        description: partes.length ? partes.join(" · ") : undefined,
       });
       qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
       qc.invalidateQueries({ queryKey: ["triagem-estoque-destinos"] });
@@ -443,6 +474,11 @@ function AcoesLinha({
         )}
         {rotuloBotao}
       </Button>
+      {Number(destino?.falta_recebivel ?? 0) > 0 && (
+        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+          falta recebível: {formatBRL(Number(destino?.falta_recebivel))}
+        </span>
+      )}
       {comMigrar && (
         <Button
           size="sm"
@@ -524,6 +560,12 @@ function AcoesLinha({
                     liberou a produção desta remessa. A cobrança das parcelas seguintes é
                     responsabilidade do <strong>CPR</strong>, não da expedição.
                   </p>
+                  {Number(destino?.falta_recebivel ?? 0) > 0 && (
+                    <p className="text-amber-700 dark:text-amber-400">
+                      Esta remessa ainda <strong>não tem recebível</strong> ({formatBRL(Number(destino?.falta_recebivel))}).
+                      Ao confirmar, ela vai para <strong>Cobrança</strong> para ser faturada — não para expedição.
+                    </p>
+                  )}
                   <p className="text-muted-foreground">
                     Ao confirmar, a remessa vai para <strong>{rotuloDestinoLiberacao(destino?.destino)}</strong> e sai
                     desta lista.

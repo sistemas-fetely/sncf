@@ -9050,6 +9050,7 @@ export type Database = {
           eta: string | null
           etd: string | null
           fabrica_id: number | null
+          fornecedor_id: string | null
           id: number
           numero_pedido: string
           observacao: string | null
@@ -9069,6 +9070,7 @@ export type Database = {
           eta?: string | null
           etd?: string | null
           fabrica_id?: number | null
+          fornecedor_id?: string | null
           id?: never
           numero_pedido: string
           observacao?: string | null
@@ -9088,6 +9090,7 @@ export type Database = {
           eta?: string | null
           etd?: string | null
           fabrica_id?: number | null
+          fornecedor_id?: string | null
           id?: never
           numero_pedido?: string
           observacao?: string | null
@@ -9105,6 +9108,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "importacao_fabrica"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
           },
           {
             foreignKeyName: "importacao_pedido_status_id_fkey"
@@ -23818,6 +23856,8 @@ export type Database = {
           tem_sugestao: boolean | null
           tipo_meio: string | null
           valor: number | null
+          valor_alocado: number | null
+          valor_original: number | null
         }
         Relationships: []
       }
@@ -25657,14 +25697,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -25866,14 +25906,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -28742,6 +28782,10 @@ export type Database = {
       }
       fn_cron_rolling_contratos: { Args: never; Returns: number }
       fn_data_entrega_rastreio: { Args: { p_eventos: Json }; Returns: string }
+      fn_derivar_analise_credito: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       fn_destino_pos_estoque: { Args: { p_pedido_id: string }; Returns: Json }
       fn_dias_uteis_entre: {
         Args: { p_ate: string; p_de: string }
@@ -28861,6 +28905,10 @@ export type Database = {
       fn_regras_aplicar: { Args: never; Returns: Json }
       fn_regua_materializar: { Args: never; Returns: Json }
       fn_resolver_condicao: { Args: { p_condicao: string }; Returns: string }
+      fn_sugerir_cobranca_molde_pai: {
+        Args: { p_ancora?: string; p_pedido_id: string }
+        Returns: Json
+      }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       fn_transicionar_entregues: { Args: never; Returns: Json }
       fn_transicionar_expedidos: { Args: never; Returns: Json }
