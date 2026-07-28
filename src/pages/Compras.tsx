@@ -46,6 +46,8 @@ import {
 import { useMeusPedidosCompra } from "@/hooks/compras/useMeusPedidosCompra";
 import { useEnviarPedidoCompra } from "@/hooks/compras/useEnviarPedidoCompra";
 import { useExcluirPedidoCompra } from "@/hooks/compras/useExcluirPedidoCompra";
+import { useConfirmarRecebimentoPedido } from "@/hooks/compras/useConfirmarRecebimentoPedido";
+import { Textarea } from "@/components/ui/textarea";
 import { PedidoStatusBadge } from "@/components/compras/PedidoStatusBadge";
 import { PedidoCompraDialog } from "@/components/compras/PedidoCompraDialog";
 import type { PedidoCompraFull, PedidoCompraStatus } from "@/lib/compras/types";
