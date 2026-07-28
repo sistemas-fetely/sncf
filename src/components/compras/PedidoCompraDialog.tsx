@@ -94,6 +94,10 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       setCentroCustoId("");
       setLinhaInvId("");
       setParceiroId("");
+      setDataNecessidade(undefined);
+      setUrgente(false);
+      setUrgenciaJustificativa("");
+      setErroCampo({});
       setItens([
         {
           descricao: "",
@@ -114,6 +118,12 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       setCentroCustoId(pedido.centro_custo_id || "");
       setLinhaInvId(pedido.linha_investimento_id || "");
       setParceiroId(pedido.parceiro_preferencial_id || "");
+      setDataNecessidade(
+        pedido.data_necessidade ? parseISO(pedido.data_necessidade) : undefined,
+      );
+      setUrgente(!!pedido.urgente);
+      setUrgenciaJustificativa(pedido.urgencia_justificativa || "");
+      setErroCampo({});
       setItens(
         [...pedido.pedidos_compra_itens]
           .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
@@ -126,7 +136,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             especificacao_tecnica: i.especificacao_tecnica || "",
             ordem: i.ordem ?? 0,
             _action: "keep",
-            status: i.status as "pendente" | "comprado" | "cancelado" | undefined,
+            status: i.status as ItemEdit["status"],
             cancelamento_motivo: i.cancelamento_motivo,
           })),
       );
