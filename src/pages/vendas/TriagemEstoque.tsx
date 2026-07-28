@@ -329,9 +329,16 @@ function TabelaNegociar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<
           {rows.map((r) => (
             <TableRow key={r.pedido_id}>
               <TableCell className="font-mono text-xs">
-                <Link to={`/pedidos/${r.pedido_id}`} className="hover:underline">
-                  {r.id_externo || "—"}
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link to={`/pedidos/${r.pedido_id}`} className="hover:underline">
+                    {r.id_externo || "—"}
+                  </Link>
+                  {destinos.get(r.pedido_id)?.pago && (
+                    <Badge variant="outline" className="h-4 px-1 text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
+                      Pago
+                    </Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="font-mono text-xs">
                 {r.pai_id ? (
