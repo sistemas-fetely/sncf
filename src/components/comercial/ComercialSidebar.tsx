@@ -1,4 +1,4 @@
-import { Boxes, Sparkles } from "lucide-react";
+import { Boxes, Sparkles, Building2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +26,7 @@ export function ComercialSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <FinancasSidebarItem to="/comercial/oportunidades" icon={Sparkles} label="Oportunidades" />
+              <FinancasSidebarItem to="/administrativo-fetely/parceiros" icon={Building2} label="Parceiros" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
