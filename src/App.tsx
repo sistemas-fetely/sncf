@@ -649,7 +649,7 @@ const App = () => (
                     Redirects logo abaixo mantêm compatibilidade com URLs antigas. */}
                 {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
                 <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-                <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
+                <Route path="produtos" element={<Navigate to="/produto" replace />} />
                 <Route path="contratos" element={<Navigate to="/administrativo-fetely/contratos" replace />} />
                 <Route path="imoveis" element={<Navigate to="/administrativo-fetely/imoveis" replace />} />
                 <Route path="seguros" element={<Navigate to="/administrativo-fetely/seguros" replace />} />
@@ -668,7 +668,7 @@ const App = () => (
                 <Route path="ged" element={<AdminGED />} />
                 {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
                 <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-                <Route path="produtos" element={<Navigate to="/vendas/produtos" replace />} />
+                <Route path="produtos" element={<Navigate to="/produto" replace />} />
                 {/* parceiros movido para SOPsLayout */}
                 <Route path="importar" element={<ImportarDados />} />
                 <Route path="nfs-stage" element={<NFsStage />} />
