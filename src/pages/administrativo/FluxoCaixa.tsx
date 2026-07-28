@@ -464,7 +464,7 @@ export default function FluxoCaixa() {
                   {formatBRL(indicadores.vencidoSaidas)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Empilhado em hoje por `GREATEST(vencimento, hoje)` — é backlog, não projeção.
+                  Contas cujo vencimento já passou. Aparecem todas em hoje porque a projeção não tem para onde jogá-las no futuro — é backlog acumulado, não previsão.
                 </div>
               </CardContent>
             </Card>
