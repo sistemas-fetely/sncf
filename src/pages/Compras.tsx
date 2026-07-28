@@ -227,8 +227,8 @@ export default function Compras() {
                   <TableHead>Centro de custo</TableHead>
                   <TableHead className="text-right">Valor estimado</TableHead>
                   <TableHead className="text-center">Itens</TableHead>
+                  <TableHead>Precisa até</TableHead>
                   <TableHead>Criado em</TableHead>
-                  <TableHead>Enviado em</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
@@ -237,22 +237,44 @@ export default function Compras() {
                 {filtrados.map((p) => {
                   const podeEditar = p.status === "rascunho";
                   const desc = p.descricao_geral || "(sem descrição)";
+                  const atraso = diasAtraso(p.data_necessidade, p.status);
+                  const valorEstimadoTotal =
+                    p.valor_estimado_total != null ? Number(p.valor_estimado_total) : sumItens(p);
                   return (
                     <TableRow
                       key={p.id}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => (podeEditar ? abrirEditar(p) : abrirVer(p))}
                     >
-                      <TableCell className="max-w-[280px] truncate" title={desc}>
-                        {desc.length > 60 ? desc.slice(0, 60) + "…" : desc}
+                      <TableCell className="max-w-[280px]" title={desc}>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="truncate">
+                            {desc.length > 60 ? desc.slice(0, 60) + "…" : desc}
+                          </span>
+                          {p.urgente && (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              URGENTE
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{p.centros_custo?.nome || "—"}</TableCell>
                       <TableCell className="text-right font-medium">
-                        {fmtBRL(sumItens(p))}
+                        {fmtBRL(valorEstimadoTotal)}
                       </TableCell>
                       <TableCell className="text-center">{countItens(p)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <span>{fmtDate(p.data_necessidade)}</span>
+                          {atraso !== null && (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
+                              Atrasado {atraso}d
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{fmtDate(p.created_at)}</TableCell>
-                      <TableCell>{fmtDate(p.enviado_em)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <PedidoStatusBadge status={p.status} />
