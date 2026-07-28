@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,9 +14,15 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ExternalLink, Mail, Phone, PackageOpen, Loader2, AlertCircle, Sparkles,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ExternalLink, Mail, Phone, PackageOpen, Loader2, AlertCircle, Sparkles, Send,
 } from "lucide-react";
+import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { formatError } from "@/lib/format-error";
 import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunidadeDialog";
 import { cn } from "@/lib/utils";
 
