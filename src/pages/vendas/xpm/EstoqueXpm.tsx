@@ -76,6 +76,8 @@ function parseNumBR(raw: string): number {
 function parseArquivoXpm(html: string): {
   rows: { sku: string; normal: number; truncado: number; danificado: number }[];
   totalDeclarado: number | null;
+  totalNormalDeclarado: number | null;
+  totalDanificadoDeclarado: number | null;
 } {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const rows: { sku: string; normal: number; truncado: number; danificado: number }[] = [];
@@ -103,12 +105,18 @@ function parseArquivoXpm(html: string): {
     }
   });
 
-  // Rodapé "TOTAL GERAL: N produtos"
+  // Rodapé — "TOTAL GERAL: N produto(s)" (aceita "produtos" também)
   const bodyText = doc.body?.textContent ?? "";
-  const m = bodyText.match(/TOTAL\s+GERAL\s*:\s*([\d.]+)\s*produtos/i);
+  const m = bodyText.match(/TOTAL\s+GERAL\s*:\s*([\d.]+)\s*produto/i);
   const totalDeclarado = m ? parseInt(m[1].replace(/\./g, ""), 10) : null;
 
-  return { rows, totalDeclarado };
+  const mNormal = bodyText.match(/TOTAL\s+NORMAL\s+GERAL\s*:\s*([\d.]+)/i);
+  const totalNormalDeclarado = mNormal ? parseInt(mNormal[1].replace(/\./g, ""), 10) : null;
+
+  const mDanif = bodyText.match(/TOTAL\s+DANIFICADO\s+GERAL\s*:\s*([\d.]+)/i);
+  const totalDanificadoDeclarado = mDanif ? parseInt(mDanif[1].replace(/\./g, ""), 10) : null;
+
+  return { rows, totalDeclarado, totalNormalDeclarado, totalDanificadoDeclarado };
 }
 
 export default function EstoqueXpm() {
