@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
@@ -14,34 +15,26 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SortableTableHead, type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, HeartPulse, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EstoqueSku {
   sku: string;
   nome_comercial: string | null;
   ativo: boolean;
-  estoque_contabil: number | null;
-  estoque_real: number | null;
   tem_razao: boolean;
   estoque_base: number;
   reservado: number;
   estoque_virtual: number;
   estoque_minimo: number;
-  saude_divergencia: number | null;
-  status_venda: "disponivel" | "baixo" | "indisponivel";
-  contagem_em: string | null;
-  dias_desde_contagem: number | null;
-  movimento_desde_contagem: number | null;
+  status_venda: "disponivel" | "baixo" | "indisponivel" | "pre_venda";
+  reservado_aguardando_produto: number;
 }
 
 type Col =
   | "sku"
   | "nome"
-  | "contabil"
-  | "real"
-  | "idade"
-  | "saude"
+  | "aguardando"
   | "reservado"
   | "virtual"
   | "status";
@@ -50,13 +43,16 @@ const STATUS_LABEL: Record<string, string> = {
   disponivel: "Disponível",
   baixo: "Baixo",
   indisponivel: "Indisponível",
+  pre_venda: "Pré-venda",
 };
 
 const STATUS_CLASS: Record<string, string> = {
   disponivel: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   baixo: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
   indisponivel: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
+  pre_venda: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
 };
+
 
 const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
@@ -132,7 +128,7 @@ export default function EstoqueVirtual() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_estoque")
-        .select("sku,nome_comercial,ativo,estoque_contabil,estoque_real,tem_razao,estoque_base,reservado,estoque_virtual,estoque_minimo,saude_divergencia,status_venda,contagem_em,dias_desde_contagem,movimento_desde_contagem")
+        .select("sku,nome_comercial,ativo,tem_razao,estoque_base,reservado,estoque_virtual,estoque_minimo,status_venda,reservado_aguardando_produto")
         .limit(5000);
       if (error) throw error;
       return (data ?? []) as EstoqueSku[];
@@ -161,15 +157,19 @@ export default function EstoqueVirtual() {
   const resumo = useMemo(() => {
     let comRazao = 0;
     let semRazao = 0;
-    let divergentes = 0;
-    let virtualNegativo = 0;
+    let preVenda = 0;
+    let unAguardando = 0;
+    let indisponivel = 0;
     for (const p of lista) {
       if (p.tem_razao) comRazao++;
       else semRazao++;
-      if (p.saude_divergencia != null && p.saude_divergencia !== 0) divergentes++;
-      if (Number(p.estoque_virtual ?? 0) < 0) virtualNegativo++;
+      if (p.status_venda === "pre_venda") {
+        preVenda++;
+        unAguardando += Number(p.reservado_aguardando_produto ?? 0);
+      }
+      if (p.status_venda === "indisponivel") indisponivel++;
     }
-    return { comRazao, semRazao, divergentes, virtualNegativo };
+    return { comRazao, semRazao, preVenda, unAguardando, indisponivel };
   }, [lista]);
 
   const filtrados = useMemo(() => {
@@ -187,10 +187,7 @@ export default function EstoqueVirtual() {
     return ordenarPor<EstoqueSku, Col>(base, sort, {
       sku: (p) => p.sku,
       nome: (p) => p.nome_comercial ?? "",
-      contabil: (p) => (p.estoque_contabil == null ? Number.NEGATIVE_INFINITY : Number(p.estoque_contabil)),
-      real: (p) => (p.estoque_real == null ? Number.NEGATIVE_INFINITY : Number(p.estoque_real)),
-      idade: (p) => (p.dias_desde_contagem == null ? Number.NEGATIVE_INFINITY : Number(p.dias_desde_contagem)),
-      saude: (p) => (p.saude_divergencia == null ? Number.NEGATIVE_INFINITY : Number(p.saude_divergencia)),
+      aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
       reservado: (p) => Number(p.reservado ?? 0),
       virtual: (p) => Number(p.estoque_virtual ?? 0),
       status: (p) => p.status_venda,
@@ -223,16 +220,24 @@ export default function EstoqueVirtual() {
         title="Estoque Virtual"
         subtitle={`Saldo Bling sincronizado em: ${formatHora(syncQuery.data)}`}
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAtualizar}
-            disabled={produtosQuery.isFetching}
-            className="gap-2"
-          >
-            <RefreshCw className={cn("h-4 w-4", produtosQuery.isFetching && "animate-spin")} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className="gap-2">
+              <Link to="/acervo/estoque/saude">
+                <HeartPulse className="h-4 w-4" />
+                Saúde do Estoque
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAtualizar}
+              disabled={produtosQuery.isFetching}
+              className="gap-2"
+            >
+              <RefreshCw className={cn("h-4 w-4", produtosQuery.isFetching && "animate-spin")} />
+              Atualizar
+            </Button>
+          </div>
         }
       />
 
@@ -248,13 +253,14 @@ export default function EstoqueVirtual() {
           dotClass="bg-amber-500"
         />
         <StatPill
-          label="Divergência de saúde"
-          value={resumo.divergentes}
-          dotClass="bg-red-500"
+          label="Pré-venda"
+          value={resumo.preVenda}
+          dotClass="bg-blue-500"
+          sublabel={`${formatNum(resumo.unAguardando)} un aguardando`}
         />
         <StatPill
-          label="Virtual negativo"
-          value={resumo.virtualNegativo}
+          label="Indisponível"
+          value={resumo.indisponivel}
           dotClass="bg-red-500"
         />
       </div>
@@ -277,6 +283,7 @@ export default function EstoqueVirtual() {
             <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="disponivel">Disponível</SelectItem>
             <SelectItem value="baixo">Baixo</SelectItem>
+            <SelectItem value="pre_venda">Pré-venda</SelectItem>
             <SelectItem value="indisponivel">Indisponível</SelectItem>
           </SelectContent>
         </Select>
@@ -307,17 +314,8 @@ export default function EstoqueVirtual() {
                   Produto
                 </SortableTableHead>
                 <TableHead className="w-[130px]">Fonte</TableHead>
-                <SortableTableHead column="contabil" sort={sort} onSort={setSort} align="right" className="w-[100px]">
-                  Contábil
-                </SortableTableHead>
-                <SortableTableHead column="real" sort={sort} onSort={setSort} align="right" className="w-[100px]">
-                  Contado
-                </SortableTableHead>
-                <SortableTableHead column="idade" sort={sort} onSort={setSort} align="right" className="w-[90px]">
-                  Idade
-                </SortableTableHead>
-                <SortableTableHead column="saude" sort={sort} onSort={setSort} align="right" className="w-[100px]">
-                  Saúde
+                <SortableTableHead column="aguardando" sort={sort} onSort={setSort} align="right" className="w-[150px]">
+                  Aguardando produto
                 </SortableTableHead>
                 <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[100px]">
                   Reservado
@@ -333,20 +331,25 @@ export default function EstoqueVirtual() {
             <TableBody>
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     Carregando…
                   </TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     Nenhum produto encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((p) => {
                   const virtual = Number(p.estoque_virtual ?? 0);
-                  const saude = p.saude_divergencia;
+                  const aguardando = Number(p.reservado_aguardando_produto ?? 0);
+                  const statusBadge = (
+                    <Badge variant="outline" className={cn("font-normal", STATUS_CLASS[p.status_venda])}>
+                      {STATUS_LABEL[p.status_venda] ?? p.status_venda}
+                    </Badge>
+                  );
                   return (
                     <TableRow key={p.sku}>
                       <TableCell className="font-mono text-xs">{p.sku}</TableCell>
@@ -376,74 +379,17 @@ export default function EstoqueVirtual() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {p.estoque_contabil == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          formatNum(p.estoque_contabil)
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {p.estoque_real == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          formatNum(p.estoque_real)
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {p.dias_desde_contagem == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : p.contagem_em == null ? (
-                          <span className="text-muted-foreground text-xs">
-                            {p.dias_desde_contagem === 0 ? "hoje" : `${p.dias_desde_contagem}d`}
-                          </span>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              {p.dias_desde_contagem === 0 ? (
-                                <span className="text-muted-foreground text-xs cursor-help">hoje</span>
-                              ) : (
-                                <span className={cn(
-                                  "text-xs cursor-help",
-                                  (p.dias_desde_contagem > 30 || Number(p.movimento_desde_contagem ?? 0) > 0)
-                                    ? "text-amber-600 dark:text-amber-400"
-                                    : "text-muted-foreground",
-                                )}>
-                                  {p.dias_desde_contagem}d
-                                </span>
-                              )}
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              Contagem de {new Date(p.contagem_em).toLocaleDateString("pt-BR")}.{" "}
-                              {Number(p.movimento_desde_contagem ?? 0) > 0
-                                ? `${formatNum(p.movimento_desde_contagem)} unidade(s) movimentada(s) desde então.`
-                                : "Nenhuma movimentação desde então."}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {saude == null ? (
+                        {aguardando === 0 ? (
                           <span className="text-muted-foreground">—</span>
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              {saude === 0 ? (
-                                <span className="text-emerald-600 dark:text-emerald-400 cursor-help">✓</span>
-                              ) : (
-                                <span className={cn(
-                                  "font-medium cursor-help",
-                                  Math.abs(saude) > 5
-                                    ? "text-red-600 dark:text-red-400"
-                                    : "text-amber-600 dark:text-amber-400",
-                                )}>
-                                  {formatSigned(saude)}
-                                </span>
-                              )}
+                              <span className="font-medium text-amber-600 dark:text-amber-400 cursor-help">
+                                {formatNum(aguardando)}
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              {saude === 0
-                                ? "Contagem confere com o razão na data em que foi feita."
-                                : `Divergência física real: a recontagem discordou do razão em ${formatNum(Math.abs(saude))} unidade(s).`}
+                              {formatNum(aguardando)} unidades vendidas aguardando o produto chegar. Acompanhe em Triagem de Estoque.
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -456,9 +402,18 @@ export default function EstoqueVirtual() {
                         {formatNum(virtual)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn("font-normal", STATUS_CLASS[p.status_venda])}>
-                          {STATUS_LABEL[p.status_venda] ?? p.status_venda}
-                        </Badge>
+                        {p.status_venda === "pre_venda" ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">{statusBadge}</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              Vendido e ainda não recebido. Não é ruptura — é carteira aguardando mercadoria.
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          statusBadge
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -574,18 +529,27 @@ function StatPill({
   label,
   value,
   dotClass,
+  sublabel,
 }: {
   label: string;
   value: number;
   dotClass: string;
+  sublabel?: string;
 }) {
   return (
     <div className="flex items-center gap-2">
       <span className={cn("h-2 w-2 rounded-full", dotClass)} aria-hidden />
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold tabular-nums">
-        {new Intl.NumberFormat("pt-BR").format(value)}
-      </span>
+      <div className="flex flex-col leading-tight">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <span className="text-sm font-semibold tabular-nums">
+            {new Intl.NumberFormat("pt-BR").format(value)}
+          </span>
+        </div>
+        {sublabel && (
+          <span className="text-[10px] text-muted-foreground">{sublabel}</span>
+        )}
+      </div>
     </div>
   );
 }
