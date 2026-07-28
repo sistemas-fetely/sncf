@@ -24,6 +24,8 @@ import {
   PieChart,
   Receipt,
   Percent,
+  ShoppingCart,
+  PackageOpen,
 } from "lucide-react";
 
 import {
