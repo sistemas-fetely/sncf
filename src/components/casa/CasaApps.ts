@@ -1,4 +1,4 @@
-import { Home, Users, Wallet, Sparkles, CreditCard, HandCoins, BookOpen, Shield, Boxes, Package, LucideIcon } from "lucide-react";
+import { Home, Users, Wallet, Sparkles, CreditCard, HandCoins, BookOpen, Shield, Boxes, LucideIcon } from "lucide-react";
 
 export interface CasaApp {
   /** Identificador interno */
@@ -110,15 +110,6 @@ export const CASA_APPS: CasaApp[] = [
     icon: Boxes,
     permModule: null,
     tela_slug: "tela.comercial",
-  },
-  {
-    id: "produto",
-    label: "Produto",
-    defaultRoute: "/produto",
-    routeMatchers: ["/produto"],
-    icon: Package,
-    permModule: null,
-    tela_slug: "tela.produto",
   },
   {
     id: "acervo",
