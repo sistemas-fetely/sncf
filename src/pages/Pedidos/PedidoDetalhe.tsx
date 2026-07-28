@@ -685,17 +685,29 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
 
   return (
     <>
-      <Button
-        size="sm"
-        variant="default"
-        className="w-full gap-1.5"
-        onClick={handleClick}
-        disabled={isLoading || enviando}
-        title={tooltipBotao}
-      >
-        {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
-        {rotuloBotao}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="default"
+          className="flex-1 gap-1.5"
+          onClick={handleClick}
+          disabled={isLoading || enviando}
+          title={tooltipBotao}
+        >
+          {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+          {rotuloBotao}
+        </Button>
+        {destino?.pago && (
+          <Badge variant="outline" className="h-6 px-1.5 text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
+            Pago
+          </Badge>
+        )}
+      </div>
+      {Number(destino?.falta_recebivel ?? 0) > 0 && (
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          falta recebível: {fmtBRL(Number(destino?.falta_recebivel))}
+        </p>
+      )}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
