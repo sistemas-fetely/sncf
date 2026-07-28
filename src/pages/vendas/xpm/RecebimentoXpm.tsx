@@ -173,6 +173,88 @@ export default function RecebimentoXpm() {
     }
   }
 
+  async function callPesos(init: RequestInit) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Sessão expirada. Faça login novamente.");
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${session.access_token}`);
+    return fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pesos-produto`, {
+      ...init,
+      headers,
+    });
+  }
+
+  async function handleBaixarModeloPesos() {
+    setBaixandoModelo(true);
+    try {
+      const body: Record<string, unknown> = { acao: "modelo" };
+      if (pedidoRef) body.pedido_ref = pedidoRef;
+      const resp = await callPesos({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const ct = resp.headers.get("Content-Type") ?? "";
+      if (!resp.ok || ct.includes("application/json")) {
+        const j = await resp.json().catch(() => ({ error: "Erro ao baixar modelo" }));
+        throw new Error(j.error ?? "Erro ao baixar modelo");
+      }
+      const blob = await resp.blob();
+      const cd = resp.headers.get("Content-Disposition") ?? "";
+      const match = cd.match(/filename="?([^"]+)"?/i);
+      const filename = match?.[1] ?? `Pesos_${pedidoRef || "catalogo"}.xlsx`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Modelo baixado");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao baixar modelo");
+    } finally {
+      setBaixandoModelo(false);
+    }
+  }
+
+  async function handleImportarPesos(confirmar: boolean) {
+    if (!pesosFile) {
+      toast.error("Selecione o arquivo .xlsx com os pesos");
+      return;
+    }
+    if (confirmar) setGravandoPesos(true);
+    else setConferindo(true);
+    try {
+      const fd = new FormData();
+      fd.append("acao", "importar");
+      fd.append("file", pesosFile);
+      fd.append("confirmar", String(confirmar));
+      fd.append("permitir_sobrescrita", String(permitirSobrescrita));
+      const resp = await callPesos({ method: "POST", body: fd });
+      const json = await resp.json();
+      if (!resp.ok || json?.error) throw new Error(json?.error ?? "Erro ao processar pesos");
+      const r = json as PesosResult;
+      setPrevia(r);
+      if (confirmar) {
+        toast.success(`${r.gravados} peso(s) gravado(s)`);
+        setPesosFile(null);
+        setPermitirSobrescrita(false);
+        qc.invalidateQueries({ queryKey: ["xpm-cad-item-pedidos"] });
+      } else {
+        toast.success("Conferência concluída — revise a prévia antes de gravar");
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao processar pesos");
+    } finally {
+      setConferindo(false);
+      setGravandoPesos(false);
+    }
+  }
+
+
+
   return (
     <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 space-y-6">
       <header className="space-y-1">
