@@ -367,7 +367,7 @@ function TabelaNegociar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<
                 </Badge>
               </TableCell>
               <TableCell>
-                <AcoesLinha r={r} mostrarPai comMigrar />
+                <AcoesLinha r={r} destino={destinos.get(r.pedido_id)} mostrarPai comMigrar />
               </TableCell>
             </TableRow>
           ))}
