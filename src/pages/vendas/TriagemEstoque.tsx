@@ -185,9 +185,8 @@ export default function TriagemEstoque() {
 
         <TabsContent value="negociar" className="mt-4">
           <p className="text-sm text-muted-foreground mb-3">
-            A primeira parcela do pai já foi paga; o que está vencido são parcelas seguintes, então a cobrança é do{" "}
-            <span className="font-medium text-foreground">CPR</span>, não da expedição. Estas remessas{" "}
-            <span className="font-medium text-foreground">podem ser enviadas normalmente</span> — o grupo existe para dar visibilidade antes da decisão, não para travar. Se preferir negociar antes, use{" "}
+            O pai tem parcela vencida, mas o aviso <span className="font-medium text-foreground">não trava</span> — quando a primeira parcela já foi paga, a cobrança das parcelas seguintes é do{" "}
+            <span className="font-medium text-foreground">CPR</span>, não da expedição. O destino real de cada remessa continua sendo o que o botão indica: algumas seguem para Pré-Separação, outras ainda precisam ser faturadas na Cobrança antes de expedir. Se preferir negociar antes, use{" "}
             <span className="font-medium text-foreground">Migrar para Comercial</span>, que tira a remessa desta lista e a move para a fila do Comercial até alguém retomar.
           </p>
           <Card>
