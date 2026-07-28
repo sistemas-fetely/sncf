@@ -66,6 +66,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   gestor_rh: "Gestor RH",
   gestor_direto: "Gestor Direto",
   recrutador: "Recrutador",
+  comprador: "Comprador",
 };
 
 const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
@@ -87,6 +88,7 @@ const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   gestor_rh: "[Legado] substituído por RH",
   gestor_direto: "[Legado] substituído por Gestão Direta",
   recrutador: "[Legado] substituído por Recrutamento",
+  comprador: "Comprador — acesso ao módulo de compras.",
 };
 
 const ACTIVE_ROLES: AppRole[] = [

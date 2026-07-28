@@ -62,7 +62,8 @@ export function useBaixasPendentes() {
     queryKey: ["baixas-pendentes"],
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("titulo_a_receber")
         .select(
           "id, numero_titulo, valor_atual, valor_bruto, nosso_numero_seq, boleto_status, baixa_remessa_id, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), remessa:remessas_safra!titulo_a_receber_baixa_remessa_id_fkey(id, status, gerado_em, enviada_em, retorno_processado_em, arquivo_nome, conteudo)",
