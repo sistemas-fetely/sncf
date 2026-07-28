@@ -134,7 +134,7 @@ export default function TriagemEstoque() {
       <CasaPageHeader
         breadcrumb={[{ label: "Vendas" }, { label: "Triagem de Estoque" }]}
         title="Triagem de Estoque"
-        subtitle="Remessas filhas que ficaram aguardando produto. O produto está chegando — decida o que fazer com cada uma. O pagamento vive no pedido pai."
+        subtitle="Remessas filhas que ficaram aguardando produto. Quando o produto chega, o destino depende do recebível: se a remessa já está faturada, vai para Pré-Separação; se ainda não tem recebível próprio, vai para Cobrança ser faturada antes de expedir."
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
