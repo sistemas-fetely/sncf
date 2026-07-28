@@ -66,6 +66,10 @@ export default function FolhaMensal() {
       extras_rec: 0,
       extras_pont: 0,
       total: 0,
+      encargos: 0,
+      provisoes: 0,
+      custo_total_empresa: 0,
+      adiantamentos: 0,
     };
     for (const l of linhas) {
       acc.base += Number(l.valor_base) || 0;
@@ -74,11 +78,16 @@ export default function FolhaMensal() {
       acc.extras_rec += Number(l.extras_recorrentes) || 0;
       acc.extras_pont += Number(l.extras_pontuais) || 0;
       acc.total += Number(l.total_mes) || 0;
+      acc.encargos += Number(l.encargo_direto) || 0;
+      acc.provisoes += Number(l.provisao) || 0;
+      acc.custo_total_empresa += Number(l.custo_total_empresa) || 0;
+      acc.adiantamentos += Number(l.adiantamentos) || 0;
     }
     return acc;
   }, [linhas]);
 
   const recorrente = totais.base + totais.transporte + totais.beneficios + totais.extras_rec;
+  const custoTotalEmpresa = totais.custo_total_empresa || (totais.total + totais.encargos + totais.provisoes);
 
   return (
     <div className="space-y-6">
