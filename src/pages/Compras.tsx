@@ -17,7 +17,9 @@ import {
   AlertTriangle,
   PackageCheck,
   Loader2,
+  Download,
 } from "lucide-react";
+import { gerarTemplateItens } from "@/lib/compras/templateItens";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -105,7 +107,10 @@ export default function Compras() {
       aberto: pedidos.filter((p) => p.status === "aberto").length,
       em_compra: pedidos.filter((p) => p.status === "em_compra").length,
       concluidos_mes: pedidos.filter(
-        (p) => p.status === "comprado" && p.finalizado_em && parseISO(p.finalizado_em) >= inicioMes,
+        (p) =>
+          (p.status === "comprado" || p.status === "recebido") &&
+          p.finalizado_em &&
+          parseISO(p.finalizado_em) >= inicioMes,
       ).length,
     };
   }, [pedidos]);
@@ -155,6 +160,20 @@ export default function Compras() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              try {
+                gerarTemplateItens();
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : "Falha ao gerar o template";
+                toast.error(msg);
+              }
+            }}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Baixar template
+          </Button>
           <Button onClick={abrirCriar} style={{ backgroundColor: "#1A4A3A", color: "white" }}>
             <Plus className="h-4 w-4 mr-1" />
             Novo Pedido
@@ -188,6 +207,7 @@ export default function Compras() {
             <TabsTrigger value="aberto">Aberto</TabsTrigger>
             <TabsTrigger value="em_compra">Em compra</TabsTrigger>
             <TabsTrigger value="comprado">Comprado</TabsTrigger>
+            <TabsTrigger value="recebido">Recebido</TabsTrigger>
             <TabsTrigger value="cancelado">Cancelado</TabsTrigger>
           </TabsList>
         </Tabs>
