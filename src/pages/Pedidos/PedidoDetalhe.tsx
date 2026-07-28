@@ -622,11 +622,17 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_pedido_destino_estoque")
-        .select("destino, rotulo, porque")
+        .select("destino, rotulo, porque, pago, falta_recebivel")
         .eq("pedido_id", pedidoId)
         .maybeSingle();
       if (error) throw error;
-      return data as { destino: string | null; rotulo: string | null; porque: string | null } | null;
+      return data as {
+        destino: string | null;
+        rotulo: string | null;
+        porque: string | null;
+        pago: boolean | null;
+        falta_recebivel: number | null;
+      } | null;
     },
   });
 
