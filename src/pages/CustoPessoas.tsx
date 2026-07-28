@@ -152,11 +152,19 @@ export default function CustoPessoas() {
       ) : (
         <>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
+            <Card className="card-shadow border-primary/40"><CardContent className="p-4 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Wallet className="h-5 w-5" /></div>
               <div className="min-w-0">
-                <p className="text-2xl font-bold truncate">{fmtBRL(kpis.total)}</p>
-                <p className="text-xs text-muted-foreground">Custo Mensal Total</p>
+                <p className="text-2xl font-bold truncate">{fmtBRL(kpis.totalEmpresa)}</p>
+                <p className="text-xs text-muted-foreground">Custo total (empresa)</p>
+              </div>
+            </CardContent></Card>
+            <Card className="card-shadow"><CardContent className="p-4">
+              <p className="text-xl font-bold truncate">{fmtBRL(kpis.remuneracao)}</p>
+              <p className="text-xs text-muted-foreground">Remuneração (sem encargos)</p>
+              <div className="mt-2 flex flex-col gap-0.5 text-xs">
+                <span><span className="text-muted-foreground">Encargos (caixa do mês):</span> <span className="font-medium">{fmtBRL(kpis.encargos)}</span></span>
+                <span><span className="text-muted-foreground">Provisões (13º, férias, rescisão):</span> <span className="font-medium">{fmtBRL(kpis.provisoes)}</span></span>
               </div>
             </CardContent></Card>
             <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
@@ -164,13 +172,7 @@ export default function CustoPessoas() {
               <div>
                 <p className="text-2xl font-bold">{kpis.headcount}</p>
                 <p className="text-xs text-muted-foreground">Headcount</p>
-              </div>
-            </CardContent></Card>
-            <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><TrendingUp className="h-5 w-5" /></div>
-              <div className="min-w-0">
-                <p className="text-2xl font-bold truncate">{fmtBRL(kpis.media)}</p>
-                <p className="text-xs text-muted-foreground">Custo Médio / Pessoa</p>
+                <p className="text-xs text-muted-foreground mt-1 truncate">Média: {fmtBRL(kpis.media)}</p>
               </div>
             </CardContent></Card>
             <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
@@ -178,7 +180,7 @@ export default function CustoPessoas() {
               <div className="min-w-0">
                 <p className="text-xs"><span className="font-semibold">CLT:</span> {kpis.cltCount} · {fmtBRL(kpis.cltCusto)}</p>
                 <p className="text-xs"><span className="font-semibold">PJ:</span> {kpis.pjCount} · {fmtBRL(kpis.pjCusto)}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">CLT vs PJ</p>
+                <p className="text-xs text-muted-foreground mt-0.5">CLT vs PJ (custo total)</p>
               </div>
             </CardContent></Card>
           </div>
