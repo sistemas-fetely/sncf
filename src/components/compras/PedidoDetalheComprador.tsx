@@ -42,6 +42,7 @@ import { CancelarItemDialog } from "./CancelarItemDialog";
 import { CancelarPedidoDialog } from "./CancelarPedidoDialog";
 import { TimelinePedido } from "./TimelinePedido";
 import { useAuth } from "@/contexts/AuthContext";
+import { ehComprador } from "@/lib/compras/permissoes";
 import { useIniciarCompraPedido } from "@/hooks/compras/useIniciarCompraPedido";
 import { useExcluirCompraRegistrada } from "@/hooks/compras/useExcluirCompraRegistrada";
 import { useAnexosPedidoCompra } from "@/hooks/compras/useAnexosPedidoCompra";

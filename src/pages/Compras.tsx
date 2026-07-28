@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { gerarTemplateItens } from "@/lib/compras/templateItens";
 import { useAuth } from "@/contexts/AuthContext";
+import { ehComprador } from "@/lib/compras/permissoes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -178,7 +179,7 @@ export default function Compras() {
             <Plus className="h-4 w-4 mr-1" />
             Novo Pedido
           </Button>
-          {isCompradorV1 && (
+          {podeComprar && (
             <Link
               to="/compras/a-comprar"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
