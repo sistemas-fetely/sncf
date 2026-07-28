@@ -175,7 +175,7 @@ export default function TriagemEstoque() {
                   hint="Assim que o produto chegar e o pai estiver em dia, aparece aqui."
                 />
               ) : (
-                <TabelaEnviar rows={enviar} />
+                <TabelaEnviar rows={enviar} destinos={destinoPorPedido} />
               )}
             </CardContent>
           </Card>
