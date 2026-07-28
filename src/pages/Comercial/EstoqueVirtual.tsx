@@ -220,16 +220,24 @@ export default function EstoqueVirtual() {
         title="Estoque Virtual"
         subtitle={`Saldo Bling sincronizado em: ${formatHora(syncQuery.data)}`}
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAtualizar}
-            disabled={produtosQuery.isFetching}
-            className="gap-2"
-          >
-            <RefreshCw className={cn("h-4 w-4", produtosQuery.isFetching && "animate-spin")} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className="gap-2">
+              <Link to="/acervo/estoque/saude">
+                <HeartPulse className="h-4 w-4" />
+                Saúde do Estoque
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAtualizar}
+              disabled={produtosQuery.isFetching}
+              className="gap-2"
+            >
+              <RefreshCw className={cn("h-4 w-4", produtosQuery.isFetching && "animate-spin")} />
+              Atualizar
+            </Button>
+          </div>
         }
       />
 
