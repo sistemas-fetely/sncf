@@ -707,19 +707,22 @@ function PendenciaCard({
   tone: "amber" | "muted";
   onClick: () => void;
 }) {
+  const formatted = new Intl.NumberFormat("pt-BR").format(value);
+  const sizeClass = formatted.length >= 14 ? "text-lg" : formatted.length >= 10 ? "text-xl" : "text-2xl";
   return (
     <button
       type="button"
       onClick={onClick}
-      className="text-left rounded-lg border bg-card p-4 hover:bg-muted/40 transition-colors"
+      className="text-left rounded-lg border bg-card p-4 hover:bg-muted/40 transition-colors min-w-0"
     >
       <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
       <div className={cn(
-        "text-3xl font-semibold tabular-nums leading-none mb-2",
+        sizeClass,
+        "font-semibold tabular-nums leading-none mb-2",
         tone === "amber" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
       )}>
-        {new Intl.NumberFormat("pt-BR").format(value)}
-        {suffix && <span className="text-lg font-normal ml-1">{suffix}</span>}
+        {formatted}
+        {suffix && <span className="text-sm font-normal ml-1">{suffix}</span>}
       </div>
       <div className="text-xs text-muted-foreground">{contexto}</div>
     </button>

@@ -687,6 +687,14 @@ export default function Produtos() {
 // Faixa (Nível 1)
 // ─────────────────────────────────────────────────────────────
 
+function faixaFontClass(valor: React.ReactNode): string {
+  const s = typeof valor === "string" || typeof valor === "number" ? String(valor) : "";
+  const n = s.length;
+  if (n >= 14) return "text-lg";
+  if (n >= 10) return "text-xl";
+  return "text-2xl";
+}
+
 function FaixaBloco({
   label, valor, contexto, valorClass,
 }: {
@@ -696,9 +704,9 @@ function FaixaBloco({
   valorClass?: string;
 }) {
   return (
-    <div className="rounded-md border bg-card px-4 py-3">
+    <div className="rounded-md border bg-card px-4 py-3 min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={cn("text-2xl font-semibold tabular-nums mt-1", valorClass)}>{valor}</div>
+      <div className={cn(faixaFontClass(valor), "font-semibold tabular-nums leading-none mt-1", valorClass)}>{valor}</div>
       <div className="text-xs text-muted-foreground mt-1 leading-tight">{contexto}</div>
     </div>
   );
@@ -707,7 +715,7 @@ function FaixaBloco({
 function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | undefined; isLoading: boolean }) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-4">
         {Array.from({ length: 7 }).map((_, i) => (
           <div key={i} className="rounded-md border bg-card px-4 py-3 h-[92px] animate-pulse" />
         ))}
@@ -724,7 +732,7 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
   const aguardandoProduto = Number(resumo.un_aguardando_produto ?? 0);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 mb-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-4">
       <FaixaBloco
         label="Receita do período"
         valor={formatBRL(resumo.receita_periodo ?? 0)}
