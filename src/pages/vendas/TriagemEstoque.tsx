@@ -32,6 +32,8 @@ interface DestinoRow {
   destino: string | null;
   rotulo: string | null;
   porque: string | null;
+  pago: boolean | null;
+  falta_recebivel: number | null;
 }
 
 interface TriagemRow {
