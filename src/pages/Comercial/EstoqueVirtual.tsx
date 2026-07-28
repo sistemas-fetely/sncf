@@ -352,8 +352,8 @@ export default function EstoqueVirtual() {
                   Produto
                 </SortableTableHead>
                 <TableHead className="w-[130px]">Fonte</TableHead>
-                <SortableTableHead column="sadio" sort={sort} onSort={setSort} align="right" className="w-[100px]">
-                  Sadio
+                <SortableTableHead column="sadio" sort={sort} onSort={setSort} align="right" className="w-[110px]">
+                  Sadio / Base
                 </SortableTableHead>
                 <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[110px]">
                   Bloqueado
