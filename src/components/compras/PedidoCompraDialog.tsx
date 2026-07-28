@@ -214,10 +214,24 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
     },
   });
 
+  const hoje = startOfDay(new Date());
+  const dataNecessidadeIso = dataNecessidade
+    ? format(dataNecessidade, "yyyy-MM-dd")
+    : null;
+
   const validarParaEnvio = (): string | null => {
+    const erros: typeof erroCampo = {};
+    if (!dataNecessidade) erros.data = "Informe a data de necessidade";
+    else if (startOfDay(dataNecessidade) < hoje) erros.data = "A data não pode ser anterior a hoje";
+    if (urgente && !urgenciaJustificativa.trim())
+      erros.urgencia = "Justifique a urgência";
+    setErroCampo(erros);
+
     if (!descricaoGeral.trim()) return "Descrição geral é obrigatória";
     if (!justificativa.trim()) return "Justificativa é obrigatória";
     if (!centroCustoId) return "Centro de custo é obrigatório";
+    if (erros.data) return erros.data;
+    if (erros.urgencia) return erros.urgencia;
     const ativos = itens.filter((i) => i._action !== "delete");
     if (ativos.length === 0) return "Pedido precisa ter pelo menos 1 item";
     const invalidos = ativos.filter(
@@ -254,6 +268,9 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
         const ativos = itens.filter((i) => i._action !== "delete");
         const res = await criar.mutateAsync({
           ...cabecalho,
+          data_necessidade: dataNecessidadeIso,
+          urgente,
+          urgencia_justificativa: urgente ? urgenciaJustificativa.trim() : null,
           itens: ativos.map((i) => ({
             descricao: i.descricao,
             quantidade: i.quantidade,
