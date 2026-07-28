@@ -44,17 +44,17 @@ interface ConciliacaoSku {
   ativo_shopify: boolean | null;
   situacao: string | null;
   // Bling comparison
-  ean_matriz: string | null;
-  gtin_bling: string | null;
-  ncm_matriz: string | null;
-  ncm_bling: string | null;
-  marca_matriz: string | null;
-  marca_bling: string | null;
-  preco_matriz: number | null;
-  preco_bling: number | null;
-  dif_ean: boolean | null;
-  dif_ncm: boolean | null;
-  dif_marca: boolean | null;
+  matriz_ean: string | null;
+  bling_gtin: string | null;
+  matriz_ncm: string | null;
+  bling_ncm: string | null;
+  matriz_marca: string | null;
+  bling_marca: string | null;
+  matriz_preco: number | null;
+  bling_preco: number | null;
+  dif_ean_bling: boolean | null;
+  dif_ncm_bling: boolean | null;
+  dif_marca_bling: boolean | null;
   dif_preco_bling: boolean | null;
   ean_ausente_no_bling: boolean | null;
   ncm_ausente_no_bling: boolean | null;
@@ -274,7 +274,7 @@ export default function ConciliacaoCadastro() {
     const base = skus.filter((s) => {
       if (!s.no_bling) return false;
       if (filtro2 === "divergencia") {
-        return !!(s.dif_ean || s.dif_ncm || s.dif_marca || s.dif_preco_bling);
+        return !!(s.dif_ean_bling || s.dif_ncm_bling || s.dif_marca_bling || s.dif_preco_bling);
       }
       if (filtro2 === "nao_capturado") {
         return !!(s.ean_ausente_no_bling || s.ncm_ausente_no_bling || s.marca_ausente_no_bling);
@@ -284,14 +284,14 @@ export default function ConciliacaoCadastro() {
     return ordenarPor<ConciliacaoSku, Col2>(base, sort2, {
       sku: (p) => p.sku ?? "",
       nome: (p) => p.nome ?? "",
-      ean_m: (p) => p.ean_matriz ?? "",
-      ean_b: (p) => p.gtin_bling ?? "",
-      ncm_m: (p) => p.ncm_matriz ?? "",
-      ncm_b: (p) => p.ncm_bling ?? "",
-      marca_m: (p) => p.marca_matriz ?? "",
-      marca_b: (p) => p.marca_bling ?? "",
-      preco_m: (p) => Number(p.preco_matriz ?? -Infinity),
-      preco_b: (p) => Number(p.preco_bling ?? -Infinity),
+      ean_m: (p) => p.matriz_ean ?? "",
+      ean_b: (p) => p.bling_gtin ?? "",
+      ncm_m: (p) => p.matriz_ncm ?? "",
+      ncm_b: (p) => p.bling_ncm ?? "",
+      marca_m: (p) => p.matriz_marca ?? "",
+      marca_b: (p) => p.bling_marca ?? "",
+      preco_m: (p) => Number(p.matriz_preco ?? -Infinity),
+      preco_b: (p) => Number(p.bling_preco ?? -Infinity),
     });
   }, [skus, filtro2, sort2]);
 
@@ -310,7 +310,7 @@ export default function ConciliacaoCadastro() {
       handle: (p) => p.handle ?? "",
       variantes: (p) => Number(p.variantes_shopify ?? 0),
       invitems: (p) => Number(p.inventory_items ?? 0),
-      preco_m: (p) => Number(p.preco_matriz ?? -Infinity),
+      preco_m: (p) => Number(p.matriz_preco ?? -Infinity),
       preco_s: (p) => Number(p.preco_shopify ?? -Infinity),
       barcode: (p) => p.barcode_shopify ?? "",
       status: (p) => (p.ativo_shopify ? 1 : 0),
@@ -558,15 +558,15 @@ export default function ConciliacaoCadastro() {
                       <TableRow key={s.sku} className="text-xs">
                         <TableCell className="font-mono">{s.sku}</TableCell>
                         <TableCell className="font-medium">{s.nome ?? "—"}</TableCell>
-                        <TableCell>{s.ean_matriz ?? "—"}</TableCell>
-                        <TableCell><CampoBling matriz={s.ean_matriz} bling={s.gtin_bling} dif={s.dif_ean} ausente={s.ean_ausente_no_bling} /></TableCell>
-                        <TableCell>{s.ncm_matriz ?? "—"}</TableCell>
-                        <TableCell><CampoBling matriz={s.ncm_matriz} bling={s.ncm_bling} dif={s.dif_ncm} ausente={s.ncm_ausente_no_bling} /></TableCell>
-                        <TableCell>{s.marca_matriz ?? "—"}</TableCell>
-                        <TableCell><CampoBling matriz={s.marca_matriz} bling={s.marca_bling} dif={s.dif_marca} ausente={s.marca_ausente_no_bling} /></TableCell>
-                        <TableCell className="text-right tabular-nums">{formatMoney(s.preco_matriz)}</TableCell>
+                        <TableCell>{s.matriz_ean ?? "—"}</TableCell>
+                        <TableCell><CampoBling matriz={s.matriz_ean} bling={s.bling_gtin} dif={s.dif_ean_bling} ausente={s.ean_ausente_no_bling} /></TableCell>
+                        <TableCell>{s.matriz_ncm ?? "—"}</TableCell>
+                        <TableCell><CampoBling matriz={s.matriz_ncm} bling={s.bling_ncm} dif={s.dif_ncm_bling} ausente={s.ncm_ausente_no_bling} /></TableCell>
+                        <TableCell>{s.matriz_marca ?? "—"}</TableCell>
+                        <TableCell><CampoBling matriz={s.matriz_marca} bling={s.bling_marca} dif={s.dif_marca_bling} ausente={s.marca_ausente_no_bling} /></TableCell>
+                        <TableCell className="text-right tabular-nums">{formatMoney(s.matriz_preco)}</TableCell>
                         <TableCell className={cn("text-right tabular-nums", s.dif_preco_bling && "text-red-600 dark:text-red-400 font-medium")}>
-                          {formatMoney(s.preco_bling)}
+                          {formatMoney(s.bling_preco)}
                         </TableCell>
                       </TableRow>
                     ))
@@ -647,7 +647,7 @@ export default function ConciliacaoCadastro() {
                               </Tooltip>
                             ) : formatNum(inv)}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">{formatMoney(s.preco_matriz)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatMoney(s.matriz_preco)}</TableCell>
                           <TableCell className={cn("text-right tabular-nums", s.dif_preco_shopify && "text-red-600 dark:text-red-400 font-medium")}>
                             {formatMoney(s.preco_shopify)}
                           </TableCell>
