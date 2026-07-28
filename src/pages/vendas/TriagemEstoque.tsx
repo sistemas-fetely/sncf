@@ -555,9 +555,9 @@ function AcoesLinha({
                     </div>
                   </div>
                   <p>
-                    A primeira parcela do pai <strong>já foi paga</strong> — foi ela que
-                    liberou a produção desta remessa. A cobrança das parcelas seguintes é
+                    Quando a primeira parcela do pai já foi paga, a cobrança das parcelas seguintes é
                     responsabilidade do <strong>CPR</strong>, não da expedição.
+                  </p>
                   </p>
                   {Number(destino?.falta_recebivel ?? 0) > 0 && (
                     <p className="text-amber-700 dark:text-amber-400">
