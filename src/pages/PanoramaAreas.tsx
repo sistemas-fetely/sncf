@@ -69,6 +69,8 @@ export default function PanoramaAreas() {
     custo_valor_base: num(r.custo_valor_base),
     custo_transporte: num(r.custo_transporte),
     custo_beneficios_extras: num(r.custo_beneficios_extras),
+    custo_encargo: num(r.custo_encargo),
+    custo_total_empresa: num(r.custo_total_empresa),
   }));
 
   const sorted = [...rows].sort((a, b) => custoTotal(b) - custoTotal(a));
@@ -77,7 +79,8 @@ export default function PanoramaAreas() {
   const totCLT = rows.reduce((s, r) => s + r.ocupados_clt, 0);
   const totPJ = rows.reduce((s, r) => s + r.ocupados_pj, 0);
   const totVagas = rows.reduce((s, r) => s + r.vagas_abertas, 0);
-  const totBase = rows.reduce((s, r) => s + r.custo_valor_base, 0);
+  const totRemuneracao = rows.reduce((s, r) => s + remuneracao(r), 0);
+  const totEncargo = rows.reduce((s, r) => s + num(r.custo_encargo), 0);
   const totCusto = rows.reduce((s, r) => s + custoTotal(r), 0);
 
   const chartData = sorted.map((r) => ({
