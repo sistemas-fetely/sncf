@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getEstagioMeta } from "@/lib/despesas/estagios";
 
 type DespesaV2 = {
   id: string;
