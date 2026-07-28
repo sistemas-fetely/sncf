@@ -25,6 +25,14 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunidadeDialog";
 import { cn } from "@/lib/utils";
+import { rotuloDestinoLiberacao } from "@/lib/pedidoLiberacaoEstoque";
+
+interface DestinoRow {
+  pedido_id: string;
+  destino: string | null;
+  rotulo: string | null;
+  porque: string | null;
+}
 
 interface TriagemRow {
   pedido_id: string;
