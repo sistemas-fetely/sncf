@@ -26019,7 +26019,9 @@ export type Database = {
       vw_pedido_destino_estoque: {
         Row: {
           destino: string | null
+          falta_recebivel: number | null
           id_externo: string | null
+          pago: boolean | null
           pedido_id: string | null
           porque: string | null
           rotulo: string | null
@@ -28224,12 +28226,15 @@ export type Database = {
       }
       criar_pedido_compra: {
         Args: {
-          p_centro_custo_id?: string
-          p_descricao_geral?: string
-          p_itens?: Json
-          p_justificativa?: string
-          p_linha_investimento_id?: string
-          p_parceiro_preferencial_id?: string
+          p_centro_custo_id: string
+          p_data_necessidade?: string
+          p_descricao_geral: string
+          p_itens: Json
+          p_justificativa: string
+          p_linha_investimento_id: string
+          p_parceiro_preferencial_id: string
+          p_urgencia_justificativa?: string
+          p_urgente?: boolean
         }
         Returns: Json
       }
