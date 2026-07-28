@@ -67,6 +67,10 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
   const [centroCustoId, setCentroCustoId] = useState<string>("");
   const [linhaInvId, setLinhaInvId] = useState<string>("");
   const [parceiroId, setParceiroId] = useState<string>("");
+  const [dataNecessidade, setDataNecessidade] = useState<Date | undefined>(undefined);
+  const [urgente, setUrgente] = useState(false);
+  const [urgenciaJustificativa, setUrgenciaJustificativa] = useState("");
+  const [erroCampo, setErroCampo] = useState<{ data?: string; urgencia?: string }>({});
   const [itens, setItens] = useState<ItemEdit[]>([]);
   const [anexos, setAnexos] = useState<PedidoCompraAnexoRow[]>([]);
   const [anexosARemover, setAnexosARemover] = useState<{ id: string; storage_path: string }[]>([]);
