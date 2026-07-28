@@ -300,7 +300,14 @@ const App = () => (
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
-                <Route path="/vendas/produtos" element={<Navigate to="/produto" replace />} />
+                <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto" replace />} />
+                <Route path="/vendas/produto" element={<Produtos />} />
+                <Route element={<ProdutoEstoqueLayout />}>
+                  <Route path="/vendas/produto/estoque" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
+                  <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
+                  <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
+                  <Route path="/vendas/produto/estoque/conciliacao" element={<ConciliacaoCadastro />} />
+                </Route>
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
@@ -322,18 +329,14 @@ const App = () => (
 
               <Route element={<ComercialLayout />}>
                 <Route path="/comercial/oportunidades" element={<Oportunidades />} />
-                <Route path="/comercial/estoque-virtual" element={<Navigate to="/produto/estoque/virtual" replace />} />
+                <Route path="/comercial/estoque-virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
               </Route>
 
-              {/* ═══════════════════════════════════════════════
-                  App Produto — sidebar com grupo "Estoque"
-                  ═══════════════════════════════════════════════ */}
-              <Route element={<ProdutoLayout />}>
-                <Route path="/produto" element={<Produtos />} />
-                <Route path="/produto/estoque/virtual" element={<EstoqueVirtual />} />
-                <Route path="/produto/estoque/saude" element={<SaudeEstoque />} />
-                <Route path="/produto/estoque/conciliacao" element={<ConciliacaoCadastro />} />
-              </Route>
+              {/* Redirects legados do antigo pilar Produto (jul/2026) */}
+              <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
+              <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
+              <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
+              <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
 
 
 
