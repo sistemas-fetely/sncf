@@ -6788,6 +6788,13 @@ export type Database = {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
             columns: ["frete_vinculado_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_frete_status"
+            referencedColumns: ["frete_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
             referencedRelation: "vw_transp_fretes"
             referencedColumns: ["id"]
           },
@@ -13423,6 +13430,7 @@ export type Database = {
           observacao: string | null
           observacao_cliente: string | null
           observacao_pedido: string | null
+          oportunidade_justificativa: string | null
           oportunidade_migrado_em: string | null
           oportunidade_migrado_por: string | null
           oportunidade_motivo: string | null
@@ -13506,6 +13514,7 @@ export type Database = {
           observacao?: string | null
           observacao_cliente?: string | null
           observacao_pedido?: string | null
+          oportunidade_justificativa?: string | null
           oportunidade_migrado_em?: string | null
           oportunidade_migrado_por?: string | null
           oportunidade_motivo?: string | null
@@ -13589,6 +13598,7 @@ export type Database = {
           observacao?: string | null
           observacao_cliente?: string | null
           observacao_pedido?: string | null
+          oportunidade_justificativa?: string | null
           oportunidade_migrado_em?: string | null
           oportunidade_migrado_por?: string | null
           oportunidade_motivo?: string | null
@@ -14744,18 +14754,21 @@ export type Database = {
       }
       politica_reserva_estoque: {
         Row: {
+          aguarda_produto: boolean
           atualizado_em: string
           descricao: string | null
           estagio: string
           reserva: boolean
         }
         Insert: {
+          aguarda_produto?: boolean
           atualizado_em?: string
           descricao?: string | null
           estagio: string
           reserva?: boolean
         }
         Update: {
+          aguarda_produto?: boolean
           atualizado_em?: string
           descricao?: string | null
           estagio?: string
@@ -23126,6 +23139,13 @@ export type Database = {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
             columns: ["frete_vinculado_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_frete_status"
+            referencedColumns: ["frete_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
             referencedRelation: "vw_transp_fretes"
             referencedColumns: ["id"]
           },
@@ -23783,6 +23803,7 @@ export type Database = {
           movimento_desde_contagem: number | null
           nome_comercial: string | null
           reservado: number | null
+          reservado_aguardando_produto: number | null
           saude_divergencia: number | null
           sku: string | null
           status_venda: string | null
@@ -24444,6 +24465,63 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_logistica_frete_status: {
+        Row: {
+          cte_numero: string | null
+          entrega_confirmada_em: string | null
+          fonte_entrega: string | null
+          frete_id: string | null
+          nf_numero: string | null
+          ocorrencia_classe: string | null
+          ocorrencia_codigo: string | null
+          ocorrencia_data: string | null
+          ocorrencia_problema: boolean | null
+          ocorrencia_ruido_data: string | null
+          ocorrencia_ruido_texto: string | null
+          ocorrencia_terminal: boolean | null
+          ocorrencia_texto: string | null
+          resgatado_por_outra_fonte: boolean | null
+          status_operacional: string | null
+          transportadora_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       vw_logistica_pnl_mensal: {
         Row: {
           base_nf: number | null
@@ -24744,14 +24822,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -24772,6 +24850,7 @@ export type Database = {
           email: string | null
           forma_solicitada: string | null
           id_externo: string | null
+          justificativa: string | null
           link_pagamento: string | null
           migrado_em: string | null
           motivo: string | null
