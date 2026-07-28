@@ -23,6 +23,11 @@ interface LinhaFolha {
   extras_recorrentes: number;
   extras_pontuais: number;
   total_mes: number;
+  base_encargo?: number | null;
+  encargo_direto?: number | null;
+  provisao?: number | null;
+  custo_total_empresa?: number | null;
+  adiantamentos?: number | null;
 }
 
 const fmtBRL = (v: number) =>
