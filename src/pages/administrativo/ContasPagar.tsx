@@ -656,9 +656,10 @@ export default function ContasPagar() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1 items-start">
-                          <Badge className={STATUS_STYLES[c.status] || "bg-muted"}>
-                            {STATUS_LABELS[c.status] || c.status}
-                          </Badge>
+                          {(() => {
+                            const meta = getStatusCprMeta(c.status);
+                            return <Badge className={meta.className}>{meta.label}</Badge>;
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell
