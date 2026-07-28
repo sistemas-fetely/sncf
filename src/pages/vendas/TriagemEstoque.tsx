@@ -112,9 +112,9 @@ export default function TriagemEstoque() {
         <KpiCard label="Remessas aguardando" value={String(kpis.qtd)} />
         <KpiCard label="Valor total a enviar" value={formatBRL(kpis.valor)} />
         <KpiCard
-          label="Travado por vencimento"
+          label="Com parcela vencida no pai"
           value={formatBRL(kpis.travado)}
-          hint="soma do grupo Negociar"
+          hint="aviso, não bloqueia envio"
         />
       </div>
 
