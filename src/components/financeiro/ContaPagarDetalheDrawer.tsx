@@ -47,6 +47,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import RegistrarPagamentoDialog from "./RegistrarPagamentoDialog";
 import StatusProgressBar from "./StatusProgressBar";
 import TimelineHistorico from "./TimelineHistorico";
+import PagamentosAlocacaoSection from "./PagamentosAlocacaoSection";
 import EnviarPagamentoDialog from "./EnviarPagamentoDialog";
 import DocumentosCP from "./DocumentosCP";
 
@@ -853,6 +854,7 @@ export default function ContaPagarDetalheDrawer({
             )}
 
             <Separator className="my-4" />
+            <PagamentosAlocacaoSection contaId={conta.id} enabled={!!conta.id} />
             <TimelineHistorico contaId={conta.id} />
               </>
             )}
