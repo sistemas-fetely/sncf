@@ -127,7 +127,7 @@ export default function TriagemEstoque() {
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="negociar" className="gap-2">
-            Sugestões para o Comercial
+            Com parcela vencida
             <Badge variant="secondary" className="ml-1">
               {negociar.length} · {formatBRL(somaNegociar)}
             </Badge>
