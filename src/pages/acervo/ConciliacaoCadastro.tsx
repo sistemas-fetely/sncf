@@ -342,6 +342,7 @@ export default function ConciliacaoCadastro() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
+          { label: "SOPs" },
           { label: "Produto" },
           { label: "Estoque" },
           { label: "Conciliação" },
