@@ -545,7 +545,7 @@ function AcoesPedidoFaturado({ pedido }: { pedido: any }) {
   );
 }
 
-function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: any; estagio: EstagioPedido }) {
+function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido: any; parceiro: any; estagio: EstagioPedido; geraTituloReceber: boolean }) {
   const navigate = useNavigate();
   if (estagio === "recebido") return (
     <TriarPedidoDialog pedido_id={pedido.id} perfil_credito={parceiro?.perfil_credito} estagio_atual={estagio} forma_solicitada={pedido.forma_solicitada} triggerLabel="Encaminhar pedido" triggerVariant="default" />
@@ -554,13 +554,13 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
     <AcoesPedidoCobranca pedido={pedido} parceiro={parceiro} />
   );
   if (estagio === "aguardando_pagamento") return (
-    <AcoesAguardandoPagamento pedido={pedido} />
+    <AcoesAguardandoPagamento pedido={pedido} geraTituloReceber={geraTituloReceber} />
   );
   if (estagio === "pre_separacao" && !pedido.bling_id_destino) {
     return (
       <div className="flex flex-col gap-2 w-full">
         <AcoesPedidoPreFaturado pedido={pedido} parceiro={parceiro} />
-        <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
+        {geraTituloReceber && <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />}
       </div>
     );
   }
@@ -581,13 +581,124 @@ function AcaoPrimaria({ pedido, parceiro, estagio }: { pedido: any; parceiro: an
   return null;
 }
 
-function AcoesAguardandoPagamento({ pedido }: { pedido: any }) {
+function AcoesAguardandoPagamento({ pedido, geraTituloReceber }: { pedido: any; geraTituloReceber: boolean }) {
   return (
     <div className="flex flex-col gap-2 w-full">
       <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
-      <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />
+      {geraTituloReceber && <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />}
       <BotaoSplitPedidoInline pedido={pedido} />
     </div>
+  );
+}
+
+/**
+ * Botão "Enviar para separação" que aparece apenas em pedidos no estágio
+ * `aguardando_estoque`. Consome `vw_aguardando_estoque_triagem` para saber se
+ * o pedido tem pendência financeira no pai (grupo `negociar`) — não recalcula
+ * nada de título aqui, é dimensão pronta. No grupo `enviar` dispara direto;
+ * no grupo `negociar` abre AlertDialog explicando que a cobrança das parcelas
+ * seguintes é do CPR, mas permite avançar (aviso, não trava).
+ */
+function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
+  const qc = useQueryClient();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const { data: triagem, isLoading } = useQuery({
+    queryKey: ["triagem-pedido", pedidoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_aguardando_estoque_triagem")
+        .select("grupo, situacao, valor_vencido, dias_atraso_max")
+        .eq("pedido_id", pedidoId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { grupo: string | null; situacao: string | null; valor_vencido: number | null; dias_atraso_max: number | null } | null;
+    },
+  });
+
+  const [enviando, setEnviando] = useState(false);
+
+  const executar = async () => {
+    setEnviando(true);
+    try {
+      const { error } = await (supabase as any).rpc("transicionar_pedido", {
+        p_pedido_id: pedidoId,
+        p_para_estagio: "em_separacao",
+        p_proxima_acao: "Separar e expedir",
+        p_motivo: "Estoque reposto — liberado na ficha do pedido",
+        p_automatico: false,
+      });
+      if (error) throw error;
+      toast({ title: "Enviado para separação" });
+      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
+      qc.invalidateQueries({ queryKey: ["triagem-pedido", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erro ao enviar para separação", description: msg, variant: "destructive" });
+    } finally {
+      setEnviando(false);
+      setConfirmOpen(false);
+    }
+  };
+
+  const grupo = triagem?.grupo;
+  const precisaConfirmar = grupo === "negociar";
+
+  const handleClick = () => {
+    if (precisaConfirmar) setConfirmOpen(true);
+    else executar();
+  };
+
+  const fmtBRL = (v: number | null | undefined) =>
+    typeof v === "number" ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="default"
+        className="w-full gap-1.5"
+        onClick={handleClick}
+        disabled={isLoading || enviando}
+      >
+        {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+        Enviar para separação
+      </Button>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pedido pai tem parcela vencida</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <div className="rounded-md bg-muted/50 border p-3 space-y-1 text-xs">
+                  <div><span className="text-muted-foreground">Situação:</span> {triagem?.situacao ?? "—"}</div>
+                  <div><span className="text-muted-foreground">Valor vencido:</span> {fmtBRL(triagem?.valor_vencido)}</div>
+                  <div><span className="text-muted-foreground">Dias em atraso:</span> {triagem?.dias_atraso_max ?? "—"}</div>
+                </div>
+                <p>
+                  A primeira parcela do pedido pai já foi paga. O que está vencido são parcelas seguintes,
+                  e por isso a cobrança dessas parcelas é responsabilidade do CPR, não da expedição.
+                </p>
+                <p>
+                  Esta remessa <strong>pode ser enviada normalmente</strong> — o aviso existe para dar visibilidade
+                  antes da decisão, não para travar.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={enviando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); executar(); }} disabled={enviando}>
+              {enviando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Enviar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
