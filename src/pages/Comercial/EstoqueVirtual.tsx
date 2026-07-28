@@ -194,7 +194,8 @@ export default function EstoqueVirtual() {
       if (fonteFiltro === "bling" && p.tem_razao) return false;
       const bloq = Number(p.estoque_bloqueado ?? 0);
       if (condicaoFiltro === "com_bloqueio" && !(bloq > 0)) return false;
-      if (condicaoFiltro === "so_sadio" && bloq > 0) return false;
+      if (condicaoFiltro === "sadio_confirmado" && !(p.tem_razao && bloq === 0)) return false;
+      if (condicaoFiltro === "desconhecido" && p.tem_razao) return false;
       if (!q) return true;
       return (
         p.sku?.toLowerCase().includes(q) ||
@@ -204,7 +205,7 @@ export default function EstoqueVirtual() {
     return ordenarPor<EstoqueSku, Col>(base, sort, {
       sku: (p) => p.sku,
       nome: (p) => p.nome_comercial ?? "",
-      sadio: (p) => Number(p.estoque_sadio ?? 0),
+      sadio: (p) => Number(p.estoque_base ?? 0),
       bloqueado: (p) => Number(p.estoque_bloqueado ?? 0),
       aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
       reservado: (p) => Number(p.reservado ?? 0),
@@ -329,8 +330,9 @@ export default function EstoqueVirtual() {
           </FilterSelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todas as condições</SelectItem>
-            <SelectItem value="com_bloqueio">Só com bloqueio</SelectItem>
-            <SelectItem value="so_sadio">Só sadio</SelectItem>
+            <SelectItem value="com_bloqueio">Com bloqueio</SelectItem>
+            <SelectItem value="sadio_confirmado">Sadio confirmado</SelectItem>
+            <SelectItem value="desconhecido">Condição desconhecida</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground ml-auto">
@@ -350,8 +352,8 @@ export default function EstoqueVirtual() {
                   Produto
                 </SortableTableHead>
                 <TableHead className="w-[130px]">Fonte</TableHead>
-                <SortableTableHead column="sadio" sort={sort} onSort={setSort} align="right" className="w-[100px]">
-                  Sadio
+                <SortableTableHead column="sadio" sort={sort} onSort={setSort} align="right" className="w-[110px]">
+                  Sadio / Base
                 </SortableTableHead>
                 <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[110px]">
                   Bloqueado
@@ -386,7 +388,7 @@ export default function EstoqueVirtual() {
               ) : (
                 pageItems.map((p) => {
                   const virtual = Number(p.estoque_virtual ?? 0);
-                  const sadio = Number(p.estoque_sadio ?? 0);
+                  const sadio = Number(p.estoque_base ?? 0);
                   const bloqueado = Number(p.estoque_bloqueado ?? 0);
                   const aguardando = Number(p.reservado_aguardando_produto ?? 0);
                   const statusBadge = (
@@ -422,10 +424,32 @@ export default function EstoqueVirtual() {
                           </Tooltip>
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNum(sadio)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help">{formatNum(sadio)}</span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            {p.tem_razao
+                              ? "Estoque sadio pelo razão do SNCF. Exclui não conforme, avariado e quarentena."
+                              : "Saldo vindo do Bling. O Bling não distingue condição, então não há garantia de que tudo esteja sadio — este SKU ainda não foi onboardado por contagem física."}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {bloqueado === 0 ? (
-                          <span className="text-muted-foreground">—</span>
+                          p.tem_razao ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="italic text-muted-foreground cursor-help">n/d</span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-xs">
+                                Sem razão no SNCF — condição do estoque desconhecida.
+                              </TooltipContent>
+                            </Tooltip>
+                          )
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
