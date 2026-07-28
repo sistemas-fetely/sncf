@@ -16,7 +16,7 @@ import { useRecentes } from "@/hooks/useRecentes";
 import { useFavoritos } from "@/hooks/useFavoritos";
 import { supabase } from "@/integrations/supabase/client";
 
-type Pilar = "sncf" | "people" | "ti" | "admin" | "financas" | "marca" | "credito" | "sops" | "comercial";
+type Pilar = "sncf" | "people" | "ti" | "admin" | "financas" | "marca" | "credito" | "sops" | "comercial" | "produto";
 
 interface PageItem {
   rota: string;
@@ -38,7 +38,10 @@ const ALL_PAGES: PageItem[] = [
   
   { rota: "/compras", titulo: "Compras", pilar: "sncf", icon: Receipt, tags: ["compras", "pedidos"] },
   { rota: "/credito", titulo: "Análise de Crédito", pilar: "credito", icon: CreditCard, tags: ["crédito", "análise", "limite"] },
-  { rota: "/comercial/estoque-virtual", titulo: "Estoque Virtual", pilar: "comercial", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },
+  { rota: "/produto", titulo: "Produto", pilar: "produto", icon: LayoutGrid, tags: ["produto", "cockpit", "sku", "catálogo"] },
+  { rota: "/produto/estoque/virtual", titulo: "Estoque Virtual", pilar: "produto", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },
+  { rota: "/produto/estoque/saude", titulo: "Saúde do Estoque", pilar: "produto", icon: LayoutGrid, tags: ["saúde", "estoque", "auditoria"] },
+  { rota: "/produto/estoque/conciliacao", titulo: "Conciliação de Cadastro", pilar: "produto", icon: GitCompare, tags: ["conciliação", "cadastro", "bling", "shopify"] },
 
   // SOPs
   { rota: "/pedidos", titulo: "Pedidos", pilar: "sops", icon: ShoppingCart, tags: ["pedidos", "vendas", "ordens"] },
@@ -102,6 +105,7 @@ const PILAR_COLORS: Record<string, string> = {
   credito: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20",
   sops: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
   comercial: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  produto: "bg-lime-500/10 text-lime-700 dark:text-lime-400 border-lime-500/20",
 };
 
 const PILAR_LABELS: Record<string, string> = {
@@ -114,6 +118,7 @@ const PILAR_LABELS: Record<string, string> = {
   credito: "Crédito",
   sops: "SOPs",
   comercial: "Comercial",
+  produto: "Produto",
 };
 
 interface AnaliseRow {
