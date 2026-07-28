@@ -337,6 +337,18 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             rows={3}
           />
         </div>
+        <div>
+          <Label>Solicitado por (opcional)</Label>
+          <Input
+            value={solicitanteExterno}
+            onChange={(e) => setSolicitanteExterno(e.target.value)}
+            placeholder="Nome de quem pediu, se não foi você"
+            disabled={!podeEditar}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Use quando estiver lançando o pedido de outra pessoa.
+          </p>
+        </div>
 
         {/* Prazo e urgência */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
