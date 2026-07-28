@@ -303,7 +303,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Comunicação</p>
       </div>
       <div className="space-y-2">
-        {renderBotao("cobranca", mostrarCobranca)}
+        {gera_titulo_receber && renderBotao("cobranca", mostrarCobranca)}
         {renderBotao("portao_boleto", mostrarPortaoBoleto)}
         {renderBotao("boleto", mostrarBoleto)}
         {renderBotao("nf", mostrarNf)}
