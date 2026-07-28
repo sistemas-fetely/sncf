@@ -91,7 +91,7 @@ export default function TriagemEstoque() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_pedido_destino_estoque")
-        .select("pedido_id, destino, rotulo, porque");
+        .select("pedido_id, destino, rotulo, porque, pago, falta_recebivel");
       if (error) throw error;
       return (data ?? []) as DestinoRow[];
     },
