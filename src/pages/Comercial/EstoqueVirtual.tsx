@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
@@ -15,7 +15,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SortableTableHead, type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, HeartPulse, RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EstoqueSku {
@@ -208,6 +208,7 @@ export default function EstoqueVirtual() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
+          { label: "SOPs" },
           { label: "Produto" },
           { label: "Estoque" },
           { label: "Virtual" },
@@ -216,12 +217,6 @@ export default function EstoqueVirtual() {
         subtitle={`Saldo Bling sincronizado em: ${formatHora(syncQuery.data)}`}
         actions={
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="gap-2">
-              <Link to="/produto/estoque/saude">
-                <HeartPulse className="h-4 w-4" />
-                Saúde do Estoque
-              </Link>
-            </Button>
             <Button
               variant="outline"
               size="sm"

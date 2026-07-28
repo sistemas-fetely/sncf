@@ -287,8 +287,8 @@ export default function Produtos() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
+          { label: "SOPs" },
           { label: "Produto" },
-          { label: "Produtos" },
         ]}
         title="Produtos"
         subtitle="Cockpit analítico. Cadastro e preço são do FOP — esta tela lê e analisa, não edita."
