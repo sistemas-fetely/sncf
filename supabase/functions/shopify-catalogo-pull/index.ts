@@ -203,7 +203,6 @@ Deno.serve(async (req) => {
           criado_shopify: p?.createdAt ?? null,
           atualizado_shopify: p?.updatedAt ?? null,
           variants,
-          n_variantes: variants.length,
           pull_em: pullEm,
           pull_lote: pullLote,
         });
