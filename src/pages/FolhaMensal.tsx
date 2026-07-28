@@ -118,25 +118,49 @@ export default function FolhaMensal() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card className="card-shadow border-primary/40">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Wallet className="h-5 w-5" />
             </div>
-            <div>
-              <p className="text-2xl font-bold">{fmtBRL(totais.total)}</p>
-              <p className="text-xs text-muted-foreground">Total da Folha</p>
+            <div className="min-w-0">
+              <p className="text-2xl font-bold truncate">{fmtBRL(custoTotalEmpresa)}</p>
+              <p className="text-xs text-muted-foreground">Custo total (empresa)</p>
             </div>
           </CardContent>
         </Card>
+        <Card className="card-shadow">
+          <CardContent className="p-4">
+            <p className="text-xl font-bold truncate">{fmtBRL(totais.total)}</p>
+            <p className="text-xs text-muted-foreground">Remuneração (sem encargos)</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Confere contra contrato e NF de PJ</p>
+          </CardContent>
+        </Card>
+        <Card className="card-shadow">
+          <CardContent className="p-4">
+            <p className="text-xl font-bold truncate">{fmtBRL(totais.encargos)}</p>
+            <p className="text-xs text-muted-foreground">Encargos (caixa do mês)</p>
+            <p className="text-[11px] text-muted-foreground mt-1">INSS patronal, RAT/SAT, terceiros, FGTS</p>
+          </CardContent>
+        </Card>
+        <Card className="card-shadow">
+          <CardContent className="p-4">
+            <p className="text-xl font-bold truncate">{fmtBRL(totais.provisoes)}</p>
+            <p className="text-xs text-muted-foreground">Provisões (13º, férias, rescisão)</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Competência que vira caixa depois</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card className="card-shadow">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10 text-info">
               <TrendingUp className="h-5 w-5" />
             </div>
-            <div>
-              <p className="text-2xl font-bold">{fmtBRL(recorrente)}</p>
+            <div className="min-w-0">
+              <p className="text-lg font-bold truncate">{fmtBRL(recorrente)}</p>
               <p className="text-xs text-muted-foreground">Recorrente</p>
             </div>
           </CardContent>
@@ -146,10 +170,17 @@ export default function FolhaMensal() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning">
               <CalendarDays className="h-5 w-5" />
             </div>
-            <div>
-              <p className="text-2xl font-bold">{fmtBRL(totais.extras_pont)}</p>
+            <div className="min-w-0">
+              <p className="text-lg font-bold truncate">{fmtBRL(totais.extras_pont)}</p>
               <p className="text-xs text-muted-foreground">Pontual no mês</p>
             </div>
+          </CardContent>
+        </Card>
+        <Card className="card-shadow">
+          <CardContent className="p-4">
+            <p className="text-lg font-bold truncate">{fmtBRL(totais.adiantamentos)}</p>
+            <p className="text-xs text-muted-foreground">Adiantamentos (não é custo)</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Antecipação do próprio salário</p>
           </CardContent>
         </Card>
         <Card className="card-shadow">
@@ -158,7 +189,7 @@ export default function FolhaMensal() {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{linhas.length}</p>
+              <p className="text-lg font-bold">{linhas.length}</p>
               <p className="text-xs text-muted-foreground">Headcount</p>
             </div>
           </CardContent>
