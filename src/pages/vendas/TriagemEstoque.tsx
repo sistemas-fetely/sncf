@@ -290,7 +290,7 @@ function TabelaEnviar({ rows, destinos }: { rows: TriagemRow[]; destinos: Map<st
               </TableCell>
               <TableCell className="text-xs">{r.vendedor || "—"}</TableCell>
               <TableCell>
-                <AcoesLinha r={r} />
+                <AcoesLinha r={r} destino={destinos.get(r.pedido_id)} />
               </TableCell>
             </TableRow>
           ))}
