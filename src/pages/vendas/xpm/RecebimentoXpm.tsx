@@ -26,15 +26,42 @@ export default function RecebimentoXpm() {
   const [ingerindo, setIngerindo] = useState(false);
   const [resultado, setResultado] = useState<IngestResult | null>(null);
 
+  type PedidoOpt = {
+    numero_pedido: string;
+    pedido_ref: string;
+    fase: 1 | 2 | "mista";
+    linhas: number;
+    label: string;
+  };
+
   const pedidosQ = useQuery({
-    queryKey: ["importacao-pedidos-xpm"],
-    queryFn: async () => {
+    queryKey: ["xpm-cad-item-pedidos"],
+    queryFn: async (): Promise<PedidoOpt[]> => {
       const { data, error } = await (supabase as any)
-        .from("importacao_pedido")
-        .select("numero_pedido, rocabella_ref")
-        .order("numero_pedido", { ascending: false });
+        .from("vw_xpm_cad_item")
+        .select("numero_pedido, pedido_ref, fase");
       if (error) throw error;
-      return (data ?? []) as { numero_pedido: string; rocabella_ref: string }[];
+      const rows = (data ?? []) as { numero_pedido: string; pedido_ref: string; fase: number }[];
+      const agg = new Map<string, { numero_pedido: string; pedido_ref: string; fases: Set<number>; linhas: number }>();
+      for (const r of rows) {
+        const cur = agg.get(r.pedido_ref) ?? { numero_pedido: r.numero_pedido, pedido_ref: r.pedido_ref, fases: new Set<number>(), linhas: 0 };
+        cur.fases.add(r.fase);
+        cur.linhas += 1;
+        agg.set(r.pedido_ref, cur);
+      }
+      const opts: PedidoOpt[] = [];
+      for (const v of agg.values()) {
+        const fase: 1 | 2 | "mista" = v.fases.size > 1 ? "mista" : (v.fases.has(1) ? 1 : 2);
+        const faseTxt = fase === "mista" ? "fase mista" : fase === 1 ? "fase 1 — sem NF" : "fase 2 — com NF";
+        opts.push({
+          numero_pedido: v.numero_pedido,
+          pedido_ref: v.pedido_ref,
+          fase,
+          linhas: v.linhas,
+          label: `${v.numero_pedido} · ${v.pedido_ref} · ${faseTxt} · ${v.linhas} linhas`,
+        });
+      }
+      return opts.sort((a, b) => b.numero_pedido.localeCompare(a.numero_pedido));
     },
   });
 
@@ -153,8 +180,8 @@ export default function RecebimentoXpm() {
                 </SelectTrigger>
                 <SelectContent>
                   {(pedidosQ.data ?? []).map((p) => (
-                    <SelectItem key={p.rocabella_ref} value={p.rocabella_ref}>
-                      {p.numero_pedido} · {p.rocabella_ref}
+                    <SelectItem key={p.pedido_ref} value={p.pedido_ref}>
+                      {p.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
