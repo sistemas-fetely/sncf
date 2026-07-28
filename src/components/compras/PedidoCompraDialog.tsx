@@ -12,6 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -23,7 +26,10 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Info, Ban } from "lucide-react";
+import { Loader2, Info, Ban, CalendarIcon, AlertTriangle } from "lucide-react";
+import { format, parseISO, startOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { ItensList } from "./ItensList";
@@ -61,6 +67,10 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
   const [centroCustoId, setCentroCustoId] = useState<string>("");
   const [linhaInvId, setLinhaInvId] = useState<string>("");
   const [parceiroId, setParceiroId] = useState<string>("");
+  const [dataNecessidade, setDataNecessidade] = useState<Date | undefined>(undefined);
+  const [urgente, setUrgente] = useState(false);
+  const [urgenciaJustificativa, setUrgenciaJustificativa] = useState("");
+  const [erroCampo, setErroCampo] = useState<{ data?: string; urgencia?: string }>({});
   const [itens, setItens] = useState<ItemEdit[]>([]);
   const [anexos, setAnexos] = useState<PedidoCompraAnexoRow[]>([]);
   const [anexosARemover, setAnexosARemover] = useState<{ id: string; storage_path: string }[]>([]);
@@ -84,6 +94,10 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       setCentroCustoId("");
       setLinhaInvId("");
       setParceiroId("");
+      setDataNecessidade(undefined);
+      setUrgente(false);
+      setUrgenciaJustificativa("");
+      setErroCampo({});
       setItens([
         {
           descricao: "",
@@ -104,6 +118,12 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       setCentroCustoId(pedido.centro_custo_id || "");
       setLinhaInvId(pedido.linha_investimento_id || "");
       setParceiroId(pedido.parceiro_preferencial_id || "");
+      setDataNecessidade(
+        pedido.data_necessidade ? parseISO(pedido.data_necessidade) : undefined,
+      );
+      setUrgente(!!pedido.urgente);
+      setUrgenciaJustificativa(pedido.urgencia_justificativa || "");
+      setErroCampo({});
       setItens(
         [...pedido.pedidos_compra_itens]
           .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
@@ -116,7 +136,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             especificacao_tecnica: i.especificacao_tecnica || "",
             ordem: i.ordem ?? 0,
             _action: "keep",
-            status: i.status as "pendente" | "comprado" | "cancelado" | undefined,
+            status: i.status as ItemEdit["status"],
             cancelamento_motivo: i.cancelamento_motivo,
           })),
       );
@@ -194,10 +214,24 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
     },
   });
 
+  const hoje = startOfDay(new Date());
+  const dataNecessidadeIso = dataNecessidade
+    ? format(dataNecessidade, "yyyy-MM-dd")
+    : null;
+
   const validarParaEnvio = (): string | null => {
+    const erros: typeof erroCampo = {};
+    if (!dataNecessidade) erros.data = "Informe a data de necessidade";
+    else if (startOfDay(dataNecessidade) < hoje) erros.data = "A data não pode ser anterior a hoje";
+    if (urgente && !urgenciaJustificativa.trim())
+      erros.urgencia = "Justifique a urgência";
+    setErroCampo(erros);
+
     if (!descricaoGeral.trim()) return "Descrição geral é obrigatória";
     if (!justificativa.trim()) return "Justificativa é obrigatória";
     if (!centroCustoId) return "Centro de custo é obrigatório";
+    if (erros.data) return erros.data;
+    if (erros.urgencia) return erros.urgencia;
     const ativos = itens.filter((i) => i._action !== "delete");
     if (ativos.length === 0) return "Pedido precisa ter pelo menos 1 item";
     const invalidos = ativos.filter(
@@ -234,6 +268,9 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
         const ativos = itens.filter((i) => i._action !== "delete");
         const res = await criar.mutateAsync({
           ...cabecalho,
+          data_necessidade: dataNecessidadeIso,
+          urgente,
+          urgencia_justificativa: urgente ? urgenciaJustificativa.trim() : null,
           itens: ativos.map((i) => ({
             descricao: i.descricao,
             quantidade: i.quantidade,
@@ -292,6 +329,91 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             rows={3}
           />
         </div>
+
+        {/* Prazo e urgência */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Label>Precisa até *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!podeEditar}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dataNecessidade && "text-muted-foreground",
+                    erroCampo.data && "border-destructive",
+                  )}
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  {dataNecessidade
+                    ? format(dataNecessidade, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                    : "Selecione a data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dataNecessidade}
+                  onSelect={(d) => {
+                    setDataNecessidade(d);
+                    setErroCampo((e) => ({ ...e, data: undefined }));
+                  }}
+                  disabled={(d) => startOfDay(d) < hoje}
+                  initialFocus
+                  locale={ptBR}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+            {erroCampo.data ? (
+              <p className="text-xs text-destructive mt-1">{erroCampo.data}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Base do prazo e do indicador de atraso.
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              Pedido urgente
+              <Switch
+                checked={urgente}
+                onCheckedChange={(v) => {
+                  setUrgente(v);
+                  if (!v) setErroCampo((e) => ({ ...e, urgencia: undefined }));
+                }}
+                disabled={!podeEditar}
+              />
+              {urgente && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
+                  <AlertTriangle className="h-3 w-3" /> Urgente
+                </span>
+              )}
+            </Label>
+            {urgente && (
+              <div>
+                <Textarea
+                  value={urgenciaJustificativa}
+                  onChange={(e) => {
+                    setUrgenciaJustificativa(e.target.value);
+                    if (e.target.value.trim())
+                      setErroCampo((err) => ({ ...err, urgencia: undefined }));
+                  }}
+                  placeholder="Por que este pedido não pode seguir o prazo normal?"
+                  disabled={!podeEditar}
+                  rows={2}
+                  className={cn(erroCampo.urgencia && "border-destructive")}
+                />
+                {erroCampo.urgencia && (
+                  <p className="text-xs text-destructive mt-1">{erroCampo.urgencia}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Centro de custo *</Label>

@@ -48,7 +48,7 @@ export interface ItemEdit {
   especificacao_tecnica: string;
   ordem: number;
   _action?: "create" | "update" | "delete" | "keep";
-  status?: "pendente" | "comprado" | "cancelado";
+  status?: "pendente" | "comprado" | "recebido" | "cancelado";
   cancelamento_motivo?: string | null;
 }
 
