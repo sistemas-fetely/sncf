@@ -560,6 +560,12 @@ function AcoesLinha({
                     liberou a produção desta remessa. A cobrança das parcelas seguintes é
                     responsabilidade do <strong>CPR</strong>, não da expedição.
                   </p>
+                  {Number(destino?.falta_recebivel ?? 0) > 0 && (
+                    <p className="text-amber-700 dark:text-amber-400">
+                      Esta remessa ainda <strong>não tem recebível</strong> ({formatBRL(Number(destino?.falta_recebivel))}).
+                      Ao confirmar, ela vai para <strong>Cobrança</strong> para ser faturada — não para expedição.
+                    </p>
+                  )}
                   <p className="text-muted-foreground">
                     Ao confirmar, a remessa vai para <strong>{rotuloDestinoLiberacao(destino?.destino)}</strong> e sai
                     desta lista.
