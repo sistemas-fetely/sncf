@@ -163,6 +163,7 @@ const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
 
 const RecebimentoXpm = lazy(() => import("@/pages/acervo/RecebimentoXpm"));
+const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ComercialLayout = lazy(() => import("@/layouts/ComercialLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
