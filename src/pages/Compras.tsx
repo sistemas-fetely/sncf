@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { format, parseISO, startOfMonth } from "date-fns";
+import { differenceInCalendarDays, format, parseISO, startOfDay, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ShoppingCart,
@@ -13,6 +13,7 @@ import {
   Search,
   Send,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
