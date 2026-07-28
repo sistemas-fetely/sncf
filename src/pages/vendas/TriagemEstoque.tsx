@@ -156,11 +156,10 @@ export default function TriagemEstoque() {
 
         <TabsContent value="negociar" className="mt-4">
           <p className="text-sm text-muted-foreground mb-3">
-            Remessas cujo pedido pai tem parcela vencida. O sistema{" "}
-            <span className="font-medium text-foreground">sugere</span> migrar para
-            Oportunidade Comercial, mas quem decide é o operador. Migrar{" "}
-            <span className="font-medium text-foreground">tira o pedido desta lista</span>{" "}
-            e o move para a fila do Comercial até alguém retomar.
+            A primeira parcela do pai já foi paga; o que está vencido são parcelas seguintes, então a cobrança é do{" "}
+            <span className="font-medium text-foreground">CPR</span>, não da expedição. Estas remessas{" "}
+            <span className="font-medium text-foreground">podem ser enviadas normalmente</span> — o grupo existe para dar visibilidade antes da decisão, não para travar. Se preferir negociar antes, use{" "}
+            <span className="font-medium text-foreground">Migrar para Comercial</span>, que tira a remessa desta lista e a move para a fila do Comercial até alguém retomar.
           </p>
           <Card>
             <CardContent className="p-0">
