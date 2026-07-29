@@ -50,6 +50,7 @@ export function useAtualizarPedidoCompra() {
             urls: it.urls,
             especificacao_tecnica: it.especificacao_tecnica || null,
             ordem: it.ordem,
+            unidade_id: it.unidade_id ?? null,
           })
           .eq("id", it.id!);
         if (error) throw error;
@@ -67,6 +68,7 @@ export function useAtualizarPedidoCompra() {
             urls: it.urls,
             especificacao_tecnica: it.especificacao_tecnica || null,
             ordem: it.ordem,
+            unidade_id: it.unidade_id ?? null,
           })),
         );
         if (error) throw error;
