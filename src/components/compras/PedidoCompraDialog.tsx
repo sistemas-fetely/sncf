@@ -143,6 +143,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             urls: i.urls || [],
             especificacao_tecnica: i.especificacao_tecnica || "",
             ordem: i.ordem ?? 0,
+            unidade_id: (i as { unidade_id?: string | null }).unidade_id ?? null,
             _action: "keep",
             status: i.status as ItemEdit["status"],
             cancelamento_motivo: i.cancelamento_motivo,
