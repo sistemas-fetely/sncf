@@ -23814,6 +23814,20 @@ export type Database = {
           },
         ]
       }
+      vw_auditoria_integridade_financeira: {
+        Row: {
+          acao: string | null
+          classe: string | null
+          cliente: string | null
+          detalhe: string | null
+          estagio: string | null
+          id_externo: string | null
+          pedido_id: string | null
+          severidade: number | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_baixa_estoque_pendente: {
         Row: {
           motivo: string | null
@@ -26210,14 +26224,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
