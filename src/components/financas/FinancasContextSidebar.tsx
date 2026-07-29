@@ -65,6 +65,7 @@ export function FinancasContextSidebar() {
               <FinancasSidebarItem to="/administrativo/fluxo-caixa" icon={LineChart} label="Fluxo de Caixa" />
               <FinancasSidebarItem to="/administrativo/painel-margem" icon={Percent} label="Painel de Margem" />
               <FinancasSidebarItem to="/administrativo/integridade-financeira" icon={ShieldAlert} label="Integridade Financeira" />
+              <FinancasSidebarItem to="/administrativo/auditoria" icon={ShieldAlert} label="Auditoria" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

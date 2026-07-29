@@ -57,6 +57,7 @@ const configFinanceiroItems: MenuItem[] = [
   { title: "Recebimentos a conciliar", url: "/administrativo/recebimentos-conciliar", icon: ArrowDownToLine },
   { title: "Plano de Contas", url: "/administrativo/plano-contas", icon: ListTree },
   { title: "Conciliação", url: "/administrativo/conciliacao", icon: CheckSquare },
+  { title: "Auditoria", url: "/administrativo/auditoria", icon: ShieldCheck },
 ];
 
 // MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
