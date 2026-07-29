@@ -657,7 +657,7 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
       toast({ title: `Enviado para ${destLabel}`, description });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedido-destino-estoque", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["fila-aguardando-estoque"] });
+      qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
       qc.invalidateQueries({ queryKey: ["triagem-pedido", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
