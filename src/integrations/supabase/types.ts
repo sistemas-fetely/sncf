@@ -20530,6 +20530,36 @@ export type Database = {
           },
         ]
       }
+      titulo_a_receber_audit_delete: {
+        Row: {
+          apagado_em: string
+          apagado_por: string | null
+          id: string
+          motivo: string | null
+          numero_titulo: string | null
+          snapshot: Json
+          titulo_id: string
+        }
+        Insert: {
+          apagado_em?: string
+          apagado_por?: string | null
+          id?: string
+          motivo?: string | null
+          numero_titulo?: string | null
+          snapshot: Json
+          titulo_id: string
+        }
+        Update: {
+          apagado_em?: string
+          apagado_por?: string | null
+          id?: string
+          motivo?: string | null
+          numero_titulo?: string | null
+          snapshot?: Json
+          titulo_id?: string
+        }
+        Relationships: []
+      }
       titulo_instrumento_log: {
         Row: {
           created_at: string
@@ -26416,14 +26446,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -26730,14 +26760,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -27203,11 +27233,14 @@ export type Database = {
       }
       vw_pedido_situacao_financeira: {
         Row: {
+          cobertura_haver: string | null
           delta_pedido_titulo: number | null
           dias_atraso_max: number | null
           estagio: string | null
+          haver_saldo_parceiro: number | null
           id_externo: string | null
           nivel_prova_pior: string | null
+          parceiro_id: string | null
           pedido_id: string | null
           situacao_financeira: string | null
           situacao_rotulo: string | null
@@ -27220,7 +27253,43 @@ export type Database = {
           valor_pago_sem_prova: number | null
           valor_vencido: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
       }
       vw_pedidos_farol: {
         Row: {
@@ -29278,6 +29347,10 @@ export type Database = {
         Args: { p_observacao?: string; p_pedido_id: string }
         Returns: Json
       }
+      consolidar_split_pedido: {
+        Args: { p_id_descartar: string; p_id_manter: string }
+        Returns: Json
+      }
       contar_boletos_pendentes_mesmo_parceiro: {
         Args: { p_boleto_stage_id_referencia: string }
         Returns: Json
@@ -29412,6 +29485,20 @@ export type Database = {
           p_pedido_id: string
           p_status?: string
           p_valor_remessa?: number
+        }
+        Returns: Json
+      }
+      criar_remessa_pendente: {
+        Args: {
+          p_bonus_pix?: number
+          p_desconto_celebra?: number
+          p_estagio_destino?: string
+          p_itens: Json
+          p_motivo?: string
+          p_pai_id: string
+          p_valor_bruto: number
+          p_valor_frete?: number
+          p_valor_liquido: number
         }
         Returns: Json
       }
@@ -30372,6 +30459,15 @@ export type Database = {
         }[]
       }
       reativar_lancamento: { Args: { p_lancamento_id: string }; Returns: Json }
+      reativar_remessa_orfa: {
+        Args: {
+          p_estagio_destino?: string
+          p_motivo?: string
+          p_novo_pai_id: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       recalcular_status_fatura: {
         Args: { p_conta_pagar_id: string }
         Returns: undefined

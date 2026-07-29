@@ -79,8 +79,7 @@ const EntregaTeste = lazy(() => import("@/pages/EntregaTeste"));
 const PortalSNCF = lazy(() => import("@/pages/PortalSNCF"));
 const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
-const ComprasDeParaFornecedor = lazy(() => import("@/pages/compras/DeParaFornecedor"));
-const ComprasCadastroPedido = lazy(() => import("@/pages/compras/CadastroPedidoCompra"));
+const ComprasMercadoria = lazy(() => import("@/pages/compras/ComprasMercadoria"));
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
@@ -389,8 +388,9 @@ const App = () => (
               <Route path="/minhas-notas" element={<MinhasNotas />} />
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
-              <Route path="/compras/de-para-fornecedor" element={<ComprasDeParaFornecedor />} />
-              <Route path="/compras/cadastro-pedido" element={<ComprasCadastroPedido />} />
+              <Route path="/compras/mercadoria" element={<ComprasMercadoria />} />
+              <Route path="/compras/de-para-fornecedor" element={<Navigate to="/compras/mercadoria?aba=de-para" replace />} />
+              <Route path="/compras/cadastro-pedido" element={<Navigate to="/compras/mercadoria?aba=pedidos" replace />} />
 
               {/* ═══════════════════════════════════════════════
                   Layouts abaixo: dentro do CasaLayout → cobertos pelo RotaGate
