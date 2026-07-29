@@ -9028,6 +9028,8 @@ export type Database = {
           custo_fob_kit: number | null
           custo_fob_total: number | null
           custo_setup: number | null
+          custo_total: number | null
+          custo_unitario: number | null
           descricao_original: string | null
           ean: string | null
           grupo_produto: string | null
@@ -9055,6 +9057,8 @@ export type Database = {
           custo_fob_kit?: number | null
           custo_fob_total?: number | null
           custo_setup?: number | null
+          custo_total?: number | null
+          custo_unitario?: number | null
           descricao_original?: string | null
           ean?: string | null
           grupo_produto?: string | null
@@ -9082,6 +9086,8 @@ export type Database = {
           custo_fob_kit?: number | null
           custo_fob_total?: number | null
           custo_setup?: number | null
+          custo_total?: number | null
+          custo_unitario?: number | null
           descricao_original?: string | null
           ean?: string | null
           grupo_produto?: string | null
@@ -9215,6 +9221,7 @@ export type Database = {
           fornecedor_id: string | null
           id: number
           modalidade: string
+          moeda: string
           numero_pedido: string
           observacao: string | null
           pedido_agregado: string | null
@@ -9238,6 +9245,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: never
           modalidade?: string
+          moeda?: string
           numero_pedido: string
           observacao?: string | null
           pedido_agregado?: string | null
@@ -9261,6 +9269,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: never
           modalidade?: string
+          moeda?: string
           numero_pedido?: string
           observacao?: string | null
           pedido_agregado?: string | null
@@ -26206,14 +26215,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -26518,14 +26527,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
