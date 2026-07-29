@@ -677,6 +677,69 @@ export type Database = {
           },
         ]
       }
+      auditoria_snapshot: {
+        Row: {
+          acao: string | null
+          chave: string
+          classe: string
+          cliente: string | null
+          detalhe: string | null
+          estagio: string | null
+          fonte: string
+          gerado_em: string
+          id: string
+          id_externo: string | null
+          lote_id: string
+          nota: string | null
+          pedido_id: string | null
+          severidade: number | null
+          situacao: string
+          tratado_em: string | null
+          tratado_por: string | null
+          valor: number | null
+        }
+        Insert: {
+          acao?: string | null
+          chave: string
+          classe: string
+          cliente?: string | null
+          detalhe?: string | null
+          estagio?: string | null
+          fonte: string
+          gerado_em?: string
+          id?: string
+          id_externo?: string | null
+          lote_id: string
+          nota?: string | null
+          pedido_id?: string | null
+          severidade?: number | null
+          situacao?: string
+          tratado_em?: string | null
+          tratado_por?: string | null
+          valor?: number | null
+        }
+        Update: {
+          acao?: string | null
+          chave?: string
+          classe?: string
+          cliente?: string | null
+          detalhe?: string | null
+          estagio?: string | null
+          fonte?: string
+          gerado_em?: string
+          id?: string
+          id_externo?: string | null
+          lote_id?: string
+          nota?: string | null
+          pedido_id?: string | null
+          severidade?: number | null
+          situacao?: string
+          tratado_em?: string | null
+          tratado_por?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       backup_cpr_fantasma_20260620: {
         Row: {
           aprovado_em: string | null
@@ -23865,6 +23928,69 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_auditoria_lote_atual: {
+        Row: {
+          acao: string | null
+          chave: string | null
+          classe: string | null
+          cliente: string | null
+          detalhe: string | null
+          estagio: string | null
+          fonte: string | null
+          gerado_em: string | null
+          id: string | null
+          id_externo: string | null
+          lote_id: string | null
+          nota: string | null
+          pedido_id: string | null
+          severidade: number | null
+          situacao: string | null
+          tratado_em: string | null
+          tratado_por: string | null
+          valor: number | null
+        }
+        Insert: {
+          acao?: string | null
+          chave?: string | null
+          classe?: string | null
+          cliente?: string | null
+          detalhe?: string | null
+          estagio?: string | null
+          fonte?: string | null
+          gerado_em?: string | null
+          id?: string | null
+          id_externo?: string | null
+          lote_id?: string | null
+          nota?: string | null
+          pedido_id?: string | null
+          severidade?: number | null
+          situacao?: string | null
+          tratado_em?: string | null
+          tratado_por?: string | null
+          valor?: number | null
+        }
+        Update: {
+          acao?: string | null
+          chave?: string | null
+          classe?: string | null
+          cliente?: string | null
+          detalhe?: string | null
+          estagio?: string | null
+          fonte?: string | null
+          gerado_em?: string | null
+          id?: string | null
+          id_externo?: string | null
+          lote_id?: string | null
+          nota?: string | null
+          pedido_id?: string | null
+          severidade?: number | null
+          situacao?: string | null
+          tratado_em?: string | null
+          tratado_por?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       vw_baixa_estoque_pendente: {
         Row: {
           motivo: string | null
@@ -24494,6 +24620,100 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_dash_pedidos_cards: {
+        Row: {
+          ativos_qtd: number | null
+          ativos_valor: number | null
+          lead_time_mediana: number | null
+          lead_time_medio: number | null
+          lead_time_n: number | null
+          pct_sla_interno: number | null
+          sla_passagens: number | null
+          taxa_cancelamento: number | null
+          travados_qtd: number | null
+          travados_valor: number | null
+        }
+        Relationships: []
+      }
+      vw_dash_pedidos_concentracao: {
+        Row: {
+          cliente: string | null
+          cnpj: string | null
+          pedidos_ativos: number | null
+          valor_em_aberto: number | null
+        }
+        Relationships: []
+      }
+      vw_dash_pedidos_condicao: {
+        Row: {
+          a_vista: boolean | null
+          condicao: string | null
+          pedidos: number | null
+          regra: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
+      vw_dash_pedidos_funil: {
+        Row: {
+          estagio: string | null
+          ordem_fase: number | null
+          pedidos: number | null
+          responsavel: string | null
+          tipo_sla: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
+      vw_dash_pedidos_problemas: {
+        Row: {
+          alvo: number | null
+          cliente: string | null
+          detalhe: string | null
+          dias_fora_do_alvo: number | null
+          dias_na_fase: number | null
+          estagio: string | null
+          id_externo: string | null
+          indice_exposicao: number | null
+          ordem_fase: number | null
+          pedido_id: string | null
+          responsavel: string | null
+          tipo: string | null
+          tipo_sla: string | null
+          valor_liquido: number | null
+        }
+        Relationships: []
+      }
+      vw_dash_pedidos_sla_fase: {
+        Row: {
+          alvo: number | null
+          alvo_em_dias_uteis: boolean | null
+          alvo_mensuravel: boolean | null
+          amostra_suficiente: boolean | null
+          estagio: string | null
+          fonte_prazo: string | null
+          media: number | null
+          mediana: number | null
+          no_alvo: number | null
+          ordem_fase: number | null
+          parados_agora: number | null
+          passagens: number | null
+          pct_no_alvo: number | null
+          pior: number | null
+          responsavel: string | null
+          tipo_sla: string | null
+          valor_parado: number | null
+        }
+        Relationships: []
+      }
+      vw_dash_pedidos_ticket: {
+        Row: {
+          faixa: string | null
+          pedidos: number | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_despesas: {
         Row: {
           centro_codigo: string | null
@@ -24942,6 +25162,35 @@ export type Database = {
           tipo_controle: string | null
           total_pagar_12m: number | null
           total_receber_12m: number | null
+        }
+        Relationships: []
+      }
+      vw_fato_fase_pedido: {
+        Row: {
+          ainda_dentro: boolean | null
+          alvo_em_dias_uteis: boolean | null
+          alvo_mensuravel: boolean | null
+          amostra_suficiente: boolean | null
+          cliente: string | null
+          dentro_do_alvo: boolean | null
+          dias_contados: number | null
+          dias_corridos: number | null
+          dias_fora_do_alvo: number | null
+          dias_uteis_na_fase: number | null
+          entrou_em: string | null
+          estagio: string | null
+          estagio_atual_do_pedido: string | null
+          fonte_entrada: string | null
+          fonte_prazo: string | null
+          id_externo: string | null
+          ordem_fase: number | null
+          passagens_na_fase: number | null
+          pedido_id: string | null
+          responsavel: string | null
+          saiu_em: string | null
+          sla_dias: number | null
+          tipo_sla: string | null
+          valor_liquido: number | null
         }
         Relationships: []
       }
@@ -29353,6 +29602,7 @@ export type Database = {
         Returns: Json
       }
       gerar_proximas_parcelas_pasta: { Args: never; Returns: number }
+      gerar_snapshot_auditoria: { Args: { p_user_id?: string }; Returns: Json }
       get_convite_by_token: { Args: { _token: string }; Returns: Json }
       get_folha_competencia: {
         Args: { p_competencia: string }
@@ -30196,6 +30446,15 @@ export type Database = {
           p_para_estagio: string
           p_pedido_id: string
           p_proxima_acao?: string
+        }
+        Returns: Json
+      }
+      tratar_achado_auditoria: {
+        Args: {
+          p_achado_id: string
+          p_nota?: string
+          p_situacao: string
+          p_user_id?: string
         }
         Returns: Json
       }
