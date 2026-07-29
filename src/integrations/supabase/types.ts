@@ -14671,6 +14671,7 @@ export type Database = {
           pedido_id: string
           quantidade: number
           status: Database["public"]["Enums"]["pedido_compra_item_status_enum"]
+          unidade_id: string | null
           urls: string[] | null
           valor_estimado_unitario: number
         }
@@ -14684,6 +14685,7 @@ export type Database = {
           pedido_id: string
           quantidade: number
           status?: Database["public"]["Enums"]["pedido_compra_item_status_enum"]
+          unidade_id?: string | null
           urls?: string[] | null
           valor_estimado_unitario: number
         }
@@ -14697,6 +14699,7 @@ export type Database = {
           pedido_id?: string
           quantidade?: number
           status?: Database["public"]["Enums"]["pedido_compra_item_status_enum"]
+          unidade_id?: string | null
           urls?: string[] | null
           valor_estimado_unitario?: number
         }
@@ -14706,6 +14709,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_itens_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades_medida"
             referencedColumns: ["id"]
           },
         ]
@@ -21329,6 +21339,33 @@ export type Database = {
         }
         Relationships: []
       }
+      unidades_medida: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          sigla: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          sigla: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          sigla?: string
+        }
+        Relationships: []
+      }
       user_atribuicoes: {
         Row: {
           criado_em: string
@@ -25954,13 +25991,19 @@ export type Database = {
           origem: string | null
           pai_id: string | null
           pai_id_externo: string | null
+          pai_valor_aberto: number | null
+          pai_valor_pago: number | null
           parceiro_id: string | null
           pedido_id: string | null
           portao_id: string | null
           retomavel_para: string | null
+          situacao_financeira: string | null
+          situacao_rotulo: string | null
           status_portao: string | null
           telefone: string | null
           tipo_portao: string | null
+          titulos_qtd: number | null
+          valor_aberto: number | null
           valor_em_jogo: number | null
           valor_pago: number | null
           valor_portao: number | null
@@ -26224,14 +26267,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
