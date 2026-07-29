@@ -188,20 +188,6 @@ export default function Compras() {
               Fila do Comprador
             </Link>
           )}
-          <Link
-            to="/compras/de-para-fornecedor"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <PackageOpen className="h-4 w-4" />
-            De-para de fornecedor
-          </Link>
-          <Link
-            to="/compras/cadastro-pedido"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <FileText className="h-4 w-4" />
-            Cadastrar pedido de compra
-          </Link>
         </div>
       </div>
 
