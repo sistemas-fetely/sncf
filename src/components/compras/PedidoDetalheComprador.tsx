@@ -221,7 +221,9 @@ export function PedidoDetalheComprador({
                               {i.descricao}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right">{Number(i.quantidade)}</TableCell>
+                          <TableCell className="text-right">
+                            {Number(i.quantidade)} {unidadeSigla((i as { unidade_id?: string | null }).unidade_id)}
+                          </TableCell>
                           <TableCell className="text-right">
                             {fmtBRL(Number(i.valor_estimado_unitario))}
                           </TableCell>
