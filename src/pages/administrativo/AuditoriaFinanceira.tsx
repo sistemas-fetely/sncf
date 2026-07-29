@@ -430,15 +430,6 @@ export default function AuditoriaFinanceira() {
           onChange={(e) => setBusca(e.target.value)}
           className="max-w-sm"
         />
-        <Select value={sevFiltro} onValueChange={setSevFiltro}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Severidade" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas severidades</SelectItem>
-            <SelectItem value="1">Severidade 1</SelectItem>
-            <SelectItem value="2">Severidade 2</SelectItem>
-            <SelectItem value="3">Severidade 3</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={classeFiltro} onValueChange={setClasseFiltro}>
           <SelectTrigger className="w-[220px]"><SelectValue placeholder="Classe" /></SelectTrigger>
           <SelectContent>
