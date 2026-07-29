@@ -80,6 +80,9 @@ export function PedidoDetalheComprador({
   const iniciar = useIniciarCompraPedido();
   const excluirCompra = useExcluirCompraRegistrada();
   const { getSignedUrl } = useAnexosPedidoCompra(pedido?.id);
+  const { data: unidades = [] } = useUnidadesMedida();
+  const unidadeSigla = (uid: string | null | undefined) =>
+    unidades.find((u) => u.id === uid)?.sigla ?? "UN";
 
   const { roles } = useAuth();
   const podeComprar = ehComprador(roles);
