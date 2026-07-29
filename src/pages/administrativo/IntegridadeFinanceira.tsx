@@ -78,8 +78,8 @@ export default function IntegridadeFinanceira() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["integridade-financeira"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vw_auditoria_integridade_financeira" as any)
+      const { data, error } = await (supabase as any)
+        .from("vw_auditoria_integridade_financeira")
         .select("*");
       if (error) throw error;
       return (data ?? []) as Achado[];
