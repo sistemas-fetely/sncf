@@ -26,6 +26,7 @@ import {
   Percent,
   ShoppingCart,
   PackageOpen,
+  Boxes,
   ShieldAlert,
 } from "lucide-react";
 
