@@ -379,19 +379,19 @@ function parseCabecalhoPedido(ws: XLSX.WorkSheet | undefined): CabecalhoPedidoIm
     const val = row?.[1];
     const valStr = String(val ?? "").trim();
 
-    if (ROTULOS_PEDIDO.seu_nome.includes(rotulo)) {
+    const inList = (arr: readonly string[], s: string) => arr.includes(s);
+    if (inList(ROTULOS_PEDIDO.seu_nome, rotulo)) {
       cab.seu_nome = valStr;
       if (valStr) algumPreenchido = true;
-    } else if (ROTULOS_PEDIDO.precisa_ate.includes(rotulo)) {
-      // Preferir valor cru (Date/serial) da rawMatriz, se disponível
+    } else if (inList(ROTULOS_PEDIDO.precisa_ate, rotulo)) {
       const rawVal = rawMatriz[r]?.[1] ?? val;
       const iso = parseDataCelula(rawVal);
       cab.precisa_ate = iso;
       if (iso) algumPreenchido = true;
-    } else if (ROTULOS_PEDIDO.o_que_precisa.includes(rotulo)) {
+    } else if (inList(ROTULOS_PEDIDO.o_que_precisa, rotulo)) {
       cab.o_que_precisa = valStr;
       if (valStr) algumPreenchido = true;
-    } else if (ROTULOS_PEDIDO.por_que_precisa.includes(rotulo)) {
+    } else if (inList(ROTULOS_PEDIDO.por_que_precisa, rotulo)) {
       cab.por_que_precisa = valStr;
       if (valStr) algumPreenchido = true;
     }
