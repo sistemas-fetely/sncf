@@ -314,6 +314,7 @@ const App = () => (
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
+                <Route path="/vendas/dash-pedidos" element={<DashPedidos />} />
                 <Route path="/vendas/gestao-pedidos" element={<GestaoPedidos />} />
                 <Route path="/vendas/triagem-estoque" element={<TriagemEstoque />} />
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
