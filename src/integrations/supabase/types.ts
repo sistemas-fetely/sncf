@@ -16660,29 +16660,116 @@ export type Database = {
         }
         Relationships: []
       }
+      reembolso_apontamentos: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string | null
+          mensagem: string
+          regra_codigo: string
+          resolvido: boolean
+          resolvido_em: string | null
+          resolvido_por: string | null
+          severidade: string
+          solicitacao_id: string
+          superavel: boolean
+          valor_sugerido: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          mensagem: string
+          regra_codigo: string
+          resolvido?: boolean
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade: string
+          solicitacao_id: string
+          superavel?: boolean
+          valor_sugerido?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          mensagem?: string
+          regra_codigo?: string
+          resolvido?: boolean
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade?: string
+          solicitacao_id?: string
+          superavel?: boolean
+          valor_sugerido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reembolso_apontamentos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "reembolso_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolso_apontamentos_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "reembolso_solicitacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reembolso_categorias: {
         Row: {
           ativo: boolean
+          codigo: number
           created_at: string
+          exige_cnpj_prestador: boolean
+          exige_evento_gerador: boolean
+          exige_justificativa_central: boolean
+          exige_ok_previo_diretoria: boolean
+          exige_origem_destino: boolean
           id: string
           nome: string
+          ordem: number
+          param_teto_proprio: string | null
           plano_contas_id: string | null
+          plano_contas_por_item: boolean
           updated_at: string
         }
         Insert: {
           ativo?: boolean
+          codigo: number
           created_at?: string
+          exige_cnpj_prestador?: boolean
+          exige_evento_gerador?: boolean
+          exige_justificativa_central?: boolean
+          exige_ok_previo_diretoria?: boolean
+          exige_origem_destino?: boolean
           id?: string
           nome: string
+          ordem?: number
+          param_teto_proprio?: string | null
           plano_contas_id?: string | null
+          plano_contas_por_item?: boolean
           updated_at?: string
         }
         Update: {
           ativo?: boolean
+          codigo?: number
           created_at?: string
+          exige_cnpj_prestador?: boolean
+          exige_evento_gerador?: boolean
+          exige_justificativa_central?: boolean
+          exige_ok_previo_diretoria?: boolean
+          exige_origem_destino?: boolean
           id?: string
           nome?: string
+          ordem?: number
+          param_teto_proprio?: string | null
           plano_contas_id?: string | null
+          plano_contas_por_item?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -16695,189 +16782,676 @@ export type Database = {
           },
         ]
       }
-      reembolsos_colaborador: {
+      reembolso_ciclos: {
         Row: {
-          aprovado_em: string | null
-          aprovado_por: string | null
-          categoria_id: string
-          competencia: string
-          comprovante_url: string | null
-          cpr_id: string | null
           created_at: string
-          created_by: string | null
-          descricao: string | null
+          data_corte: string
+          data_pagamento_prevista: string | null
+          estado: string
+          fechado_em: string | null
+          fechado_por: string | null
           id: string
-          motivo_rejeicao: string | null
-          sem_comprovante: boolean
-          status: string
+          referencia: string
+          total_aprovado: number
           updated_at: string
-          valor: number
-          vinculo_id: string
         }
         Insert: {
-          aprovado_em?: string | null
-          aprovado_por?: string | null
-          categoria_id: string
-          competencia: string
-          comprovante_url?: string | null
-          cpr_id?: string | null
           created_at?: string
-          created_by?: string | null
-          descricao?: string | null
+          data_corte: string
+          data_pagamento_prevista?: string | null
+          estado?: string
+          fechado_em?: string | null
+          fechado_por?: string | null
           id?: string
-          motivo_rejeicao?: string | null
-          sem_comprovante?: boolean
-          status?: string
+          referencia: string
+          total_aprovado?: number
           updated_at?: string
-          valor: number
-          vinculo_id: string
         }
         Update: {
-          aprovado_em?: string | null
-          aprovado_por?: string | null
-          categoria_id?: string
-          competencia?: string
-          comprovante_url?: string | null
-          cpr_id?: string | null
           created_at?: string
-          created_by?: string | null
-          descricao?: string | null
+          data_corte?: string
+          data_pagamento_prevista?: string | null
+          estado?: string
+          fechado_em?: string | null
+          fechado_por?: string | null
           id?: string
-          motivo_rejeicao?: string | null
-          sem_comprovante?: boolean
-          status?: string
+          referencia?: string
+          total_aprovado?: number
           updated_at?: string
-          valor?: number
-          vinculo_id?: string
+        }
+        Relationships: []
+      }
+      reembolso_comprovantes: {
+        Row: {
+          arquivo_path: string
+          conferido: boolean
+          created_at: string
+          id: string
+          item_id: string | null
+          mime: string | null
+          nome_original: string | null
+          numero: string | null
+          ocr_cnpj: string | null
+          ocr_confianca: number | null
+          ocr_data: string | null
+          ocr_valor: number | null
+          solicitacao_id: string
+          tamanho_bytes: number | null
+          tipo_anexo: string
+        }
+        Insert: {
+          arquivo_path: string
+          conferido?: boolean
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          mime?: string | null
+          nome_original?: string | null
+          numero?: string | null
+          ocr_cnpj?: string | null
+          ocr_confianca?: number | null
+          ocr_data?: string | null
+          ocr_valor?: number | null
+          solicitacao_id: string
+          tamanho_bytes?: number | null
+          tipo_anexo?: string
+        }
+        Update: {
+          arquivo_path?: string
+          conferido?: boolean
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          mime?: string | null
+          nome_original?: string | null
+          numero?: string | null
+          ocr_cnpj?: string | null
+          ocr_confianca?: number | null
+          ocr_data?: string | null
+          ocr_valor?: number | null
+          solicitacao_id?: string
+          tamanho_bytes?: number | null
+          tipo_anexo?: string
         }
         Relationships: [
           {
-            foreignKeyName: "reembolsos_colaborador_categoria_id_fkey"
+            foreignKeyName: "reembolso_comprovantes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "reembolso_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolso_comprovantes_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "reembolso_solicitacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reembolso_itens: {
+        Row: {
+          categoria_id: string
+          cnpj_emitente: string | null
+          created_at: string
+          data_despesa: string
+          descricao: string | null
+          destino_trajeto: string | null
+          evento_gerador: string | null
+          id: string
+          km: number | null
+          motivo_glosa: string | null
+          numero_comprovante: string | null
+          origem_trajeto: string | null
+          plano_contas_id: string | null
+          seq: number
+          solicitacao_id: string
+          status_item: string
+          tipo_documento: string | null
+          updated_at: string
+          valor_aprovado: number | null
+          valor_solicitado: number
+        }
+        Insert: {
+          categoria_id: string
+          cnpj_emitente?: string | null
+          created_at?: string
+          data_despesa: string
+          descricao?: string | null
+          destino_trajeto?: string | null
+          evento_gerador?: string | null
+          id?: string
+          km?: number | null
+          motivo_glosa?: string | null
+          numero_comprovante?: string | null
+          origem_trajeto?: string | null
+          plano_contas_id?: string | null
+          seq: number
+          solicitacao_id: string
+          status_item?: string
+          tipo_documento?: string | null
+          updated_at?: string
+          valor_aprovado?: number | null
+          valor_solicitado: number
+        }
+        Update: {
+          categoria_id?: string
+          cnpj_emitente?: string | null
+          created_at?: string
+          data_despesa?: string
+          descricao?: string | null
+          destino_trajeto?: string | null
+          evento_gerador?: string | null
+          id?: string
+          km?: number | null
+          motivo_glosa?: string | null
+          numero_comprovante?: string | null
+          origem_trajeto?: string | null
+          plano_contas_id?: string | null
+          seq?: number
+          solicitacao_id?: string
+          status_item?: string
+          tipo_documento?: string | null
+          updated_at?: string
+          valor_aprovado?: number | null
+          valor_solicitado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reembolso_itens_categoria_id_fkey"
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "reembolso_categorias"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_itens_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolso_itens_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "reembolso_solicitacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reembolso_lote_itens: {
+        Row: {
+          created_at: string
+          id: string
+          lote_id: string
+          solicitacao_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lote_id: string
+          solicitacao_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lote_id?: string
+          solicitacao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reembolso_lote_itens_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "reembolso_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolso_lote_itens_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: true
+            referencedRelation: "reembolso_solicitacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reembolso_lotes: {
+        Row: {
+          chave_pix_snapshot: string | null
+          ciclo_id: string
+          comprovante_pagamento_path: string | null
+          cpr_id: string | null
+          created_at: string
+          data_pagamento: string | null
+          estado: string
+          id: string
+          updated_at: string
+          valor_total: number
+          vinculo_id: string
+        }
+        Insert: {
+          chave_pix_snapshot?: string | null
+          ciclo_id: string
+          comprovante_pagamento_path?: string | null
+          cpr_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          estado?: string
+          id?: string
+          updated_at?: string
+          valor_total: number
+          vinculo_id: string
+        }
+        Update: {
+          chave_pix_snapshot?: string | null
+          ciclo_id?: string
+          comprovante_pagamento_path?: string | null
+          cpr_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          estado?: string
+          id?: string
+          updated_at?: string
+          valor_total?: number
+          vinculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reembolso_lotes_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "reembolso_ciclos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar_receber_ativas"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "v_cpr_bola_redonda"
             referencedColumns: ["cpr_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "vw_conciliacao_furos"
             referencedColumns: ["sugestao_cpr_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "vw_cpr_cobertura"
             referencedColumns: ["cpr_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "vw_despesas_match_sugestoes"
             referencedColumns: ["cpr_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "vw_documentos_envio_estados"
             referencedColumns: ["conta_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_cpr_id_fkey"
+            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["cpr_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vinculos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
             referencedColumns: ["vinculo_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["vinculo_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_organograma"
             referencedColumns: ["vinculo_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["vinculo_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["vinculo_id"]
           },
           {
-            foreignKeyName: "reembolsos_colaborador_vinculo_id_fkey"
+            foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_vinculo_custo_total"
             referencedColumns: ["vinculo_id"]
           },
         ]
+      }
+      reembolso_parametros: {
+        Row: {
+          alterado_por: string | null
+          chave: string
+          created_at: string
+          descricao: string | null
+          id: string
+          unidade: string
+          updated_at: string
+          valor_numerico: number | null
+          valor_texto: string | null
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          alterado_por?: string | null
+          chave: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          unidade: string
+          updated_at?: string
+          valor_numerico?: number | null
+          valor_texto?: string | null
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          alterado_por?: string | null
+          chave?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          unidade?: string
+          updated_at?: string
+          valor_numerico?: number | null
+          valor_texto?: string | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: []
+      }
+      reembolso_regras_alcada: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          destaque_relatorio: boolean
+          id: string
+          observacao: string | null
+          papel_solicitante: string
+          papel_validador: string
+          papel_validador_suplente: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          destaque_relatorio?: boolean
+          id?: string
+          observacao?: string | null
+          papel_solicitante: string
+          papel_validador: string
+          papel_validador_suplente?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          destaque_relatorio?: boolean
+          id?: string
+          observacao?: string | null
+          papel_solicitante?: string
+          papel_validador?: string
+          papel_validador_suplente?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reembolso_solicitacoes: {
+        Row: {
+          aprovado_por: string | null
+          cancelado_em: string | null
+          cancelado_por: string | null
+          centro_custo_id: string | null
+          ciclo_id: string | null
+          created_at: string
+          created_by: string | null
+          data_aprovacao: string | null
+          data_recebimento: string
+          email_thread_ref: string | null
+          encaminhado_para_compras: boolean
+          estado: string
+          id: string
+          justificativa_excecao_teto: string | null
+          motivo_cancelamento: string | null
+          motivo_devolucao: string | null
+          numero: string
+          origem: string
+          pedido_compra_id: string | null
+          registrado_por: string | null
+          updated_at: string
+          validado_por: string | null
+          valor_aprovado: number | null
+          valor_solicitado: number
+          vinculo_id: string
+        }
+        Insert: {
+          aprovado_por?: string | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          centro_custo_id?: string | null
+          ciclo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_aprovacao?: string | null
+          data_recebimento?: string
+          email_thread_ref?: string | null
+          encaminhado_para_compras?: boolean
+          estado?: string
+          id?: string
+          justificativa_excecao_teto?: string | null
+          motivo_cancelamento?: string | null
+          motivo_devolucao?: string | null
+          numero: string
+          origem?: string
+          pedido_compra_id?: string | null
+          registrado_por?: string | null
+          updated_at?: string
+          validado_por?: string | null
+          valor_aprovado?: number | null
+          valor_solicitado?: number
+          vinculo_id: string
+        }
+        Update: {
+          aprovado_por?: string | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          centro_custo_id?: string | null
+          ciclo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_aprovacao?: string | null
+          data_recebimento?: string
+          email_thread_ref?: string | null
+          encaminhado_para_compras?: boolean
+          estado?: string
+          id?: string
+          justificativa_excecao_teto?: string | null
+          motivo_cancelamento?: string | null
+          motivo_devolucao?: string | null
+          numero?: string
+          origem?: string
+          pedido_compra_id?: string | null
+          registrado_por?: string | null
+          updated_at?: string
+          validado_por?: string | null
+          valor_aprovado?: number | null
+          valor_solicitado?: number
+          vinculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reembolso_solicitacoes_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "reembolso_ciclos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
+          },
+        ]
+      }
+      reembolso_termos_vedados: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          grupo: string
+          id: string
+          rotulo: string
+          termo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          grupo: string
+          id?: string
+          rotulo: string
+          termo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          grupo?: string
+          id?: string
+          rotulo?: string
+          termo?: string
+        }
+        Relationships: []
       }
       regras_automaticas_ofx: {
         Row: {
@@ -22147,6 +22721,7 @@ export type Database = {
           chave_pix: string | null
           cnpj: string | null
           conta: string | null
+          contrato_preve_reembolso: boolean
           created_at: string
           created_by: string | null
           ctps_numero: string | null
@@ -22194,6 +22769,7 @@ export type Database = {
           chave_pix?: string | null
           cnpj?: string | null
           conta?: string | null
+          contrato_preve_reembolso?: boolean
           created_at?: string
           created_by?: string | null
           ctps_numero?: string | null
@@ -22241,6 +22817,7 @@ export type Database = {
           chave_pix?: string | null
           cnpj?: string | null
           conta?: string | null
+          contrato_preve_reembolso?: boolean
           created_at?: string
           created_by?: string | null
           ctps_numero?: string | null
@@ -29047,7 +29624,6 @@ export type Database = {
         Args: { _nota_id: string; _observacao_rh?: string }
         Returns: Json
       }
-      aprovar_reembolso: { Args: { p_reembolso_id: string }; Returns: string }
       atualizar_condicao_pagamento: {
         Args: {
           p_nova_condicao: string
@@ -29573,6 +30149,10 @@ export type Database = {
       desconciliar_movimentacao: { Args: { p_mov_id: string }; Returns: Json }
       desfazer_alocacao: {
         Args: { p_alocacao_id: string; p_motivo?: string; p_user_id?: string }
+        Returns: Json
+      }
+      desfazer_baixa_titulo: {
+        Args: { p_motivo: string; p_titulo_id: string; p_user_id?: string }
         Returns: Json
       }
       desfazer_conciliacao_ofx: { Args: { p_ofx_id: string }; Returns: Json }
