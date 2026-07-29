@@ -9334,7 +9334,9 @@ export type Database = {
           caixas_master: number | null
           cbm_total: number | null
           centro_id: string | null
+          condicao_pagamento: string | null
           criado_em: string
+          data_pedido: string | null
           eta: string | null
           etd: string | null
           fabrica_id: number | null
@@ -9345,6 +9347,7 @@ export type Database = {
           numero_pedido: string
           observacao: string | null
           pedido_agregado: string | null
+          prazo_entrega_acordado: string | null
           qtd_kits: number | null
           referencia_fornecedor: string | null
           rocabella_ref: string | null
@@ -9358,7 +9361,9 @@ export type Database = {
           caixas_master?: number | null
           cbm_total?: number | null
           centro_id?: string | null
+          condicao_pagamento?: string | null
           criado_em?: string
+          data_pedido?: string | null
           eta?: string | null
           etd?: string | null
           fabrica_id?: number | null
@@ -9369,6 +9374,7 @@ export type Database = {
           numero_pedido: string
           observacao?: string | null
           pedido_agregado?: string | null
+          prazo_entrega_acordado?: string | null
           qtd_kits?: number | null
           referencia_fornecedor?: string | null
           rocabella_ref?: string | null
@@ -9382,7 +9388,9 @@ export type Database = {
           caixas_master?: number | null
           cbm_total?: number | null
           centro_id?: string | null
+          condicao_pagamento?: string | null
           criado_em?: string
+          data_pedido?: string | null
           eta?: string | null
           etd?: string | null
           fabrica_id?: number | null
@@ -9393,6 +9401,7 @@ export type Database = {
           numero_pedido?: string
           observacao?: string | null
           pedido_agregado?: string | null
+          prazo_entrega_acordado?: string | null
           qtd_kits?: number | null
           referencia_fornecedor?: string | null
           rocabella_ref?: string | null
@@ -20039,6 +20048,7 @@ export type Database = {
           movimentacao_baixa_id: string | null
           nf_devolucao: string | null
           nf_id: string | null
+          nivel_prova: string
           nosso_numero_safra: string | null
           nosso_numero_seq: string | null
           numero_parcela: number
@@ -20102,6 +20112,7 @@ export type Database = {
           movimentacao_baixa_id?: string | null
           nf_devolucao?: string | null
           nf_id?: string | null
+          nivel_prova?: string
           nosso_numero_safra?: string | null
           nosso_numero_seq?: string | null
           numero_parcela?: number
@@ -20165,6 +20176,7 @@ export type Database = {
           movimentacao_baixa_id?: string | null
           nf_devolucao?: string | null
           nf_id?: string | null
+          nivel_prova?: string
           nosso_numero_safra?: string | null
           nosso_numero_seq?: string | null
           numero_parcela?: number
@@ -26718,14 +26730,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -27195,6 +27207,7 @@ export type Database = {
           dias_atraso_max: number | null
           estagio: string | null
           id_externo: string | null
+          nivel_prova_pior: string | null
           pedido_id: string | null
           situacao_financeira: string | null
           situacao_rotulo: string | null
@@ -29366,21 +29379,26 @@ export type Database = {
           ok: boolean
         }[]
       }
-      criar_pedido_compra: {
-        Args: {
-          p_centro_custo_id: string
-          p_data_necessidade?: string
-          p_descricao_geral: string
-          p_itens: Json
-          p_justificativa: string
-          p_linha_investimento_id: string
-          p_parceiro_preferencial_id: string
-          p_solicitante_externo?: string
-          p_urgencia_justificativa?: string
-          p_urgente?: boolean
-        }
-        Returns: Json
-      }
+      criar_pedido_compra:
+        | {
+            Args: {
+              p_centro_custo_id: string
+              p_data_necessidade?: string
+              p_descricao_geral: string
+              p_itens: Json
+              p_justificativa: string
+              p_linha_investimento_id: string
+              p_parceiro_preferencial_id: string
+              p_solicitante_externo?: string
+              p_urgencia_justificativa?: string
+              p_urgente?: boolean
+            }
+            Returns: Json
+          }
+        | {
+            Args: { p_confirmar?: boolean; p_header: Json; p_linhas: Json }
+            Returns: Json
+          }
       criar_portao_provisorio: {
         Args: { p_pedido_id: string; p_titulos_editados: Json }
         Returns: Json
