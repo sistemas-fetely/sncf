@@ -163,9 +163,9 @@ export default function Compras() {
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            onClick={() => {
+            onClick={async () => {
               try {
-                gerarTemplateItens();
+                await gerarTemplateItens();
               } catch (e) {
                 const msg = e instanceof Error ? e.message : "Falha ao gerar o template";
                 toast.error(msg);
