@@ -113,6 +113,8 @@ export function FinancasContextSidebar() {
               <FinancasSidebarItem to="/administrativo/conciliacao-cartao" icon={CreditCard} label="Conciliação Cartão" />
               <FinancasSidebarItem to="/administrativo/extrato-regras" icon={Filter} label="Regras Automáticas" />
               <FinancasSidebarItem to="/administrativo/extrato-inbox" icon={Inbox} label="Inbox Extrato" />
+              <FinancasSidebarItem to="/administrativo/auditoria" icon={ShieldAlert} label="Auditoria" />
+
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
