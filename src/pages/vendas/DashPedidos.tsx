@@ -141,7 +141,7 @@ function LinhaCards() {
 
 // ─── LINHA 2: SLA por fase ─────────────────────────────────
 type SlaFaseRow = {
-  fase: string;
+  estagio: string;
   ordem_fase: number | null;
   tipo_sla: "interno" | "espera_externa" | "transito" | string;
   alvo_mensuravel: boolean | null;
@@ -227,9 +227,9 @@ function LinhaSlaFase() {
                 {internos.map((r) => {
                   const insuf = r.amostra_suficiente === false;
                   return (
-                    <TableRow key={r.fase} className={insuf ? "opacity-60" : ""}>
+                    <TableRow key={r.estagio} className={insuf ? "opacity-60" : ""}>
                       <TableCell className="font-medium">
-                        {r.fase}
+                        {r.estagio}
                         {insuf && (
                           <Badge variant="outline" className="ml-2 text-[10px]">
                             amostra insuficiente
@@ -290,8 +290,8 @@ function LinhaSlaFase() {
               </TableHeader>
               <TableBody>
                 {externos.map((r) => (
-                  <TableRow key={r.fase}>
-                    <TableCell className="font-medium">{r.fase}</TableCell>
+                  <TableRow key={r.estagio}>
+                    <TableCell className="font-medium">{r.estagio}</TableCell>
                     <TableCell>{r.responsavel ?? "—"}</TableCell>
                     <TableCell>{r.fonte_prazo ?? "—"}</TableCell>
                     <TableCell>{r.mediana != null ? NUM.format(r.mediana) : "—"}</TableCell>
@@ -312,7 +312,7 @@ function LinhaSlaFase() {
 
 // ─── LINHA 3: funil por valor ───────────────────────────────
 type FunilRow = {
-  fase: string;
+  estagio: string;
   ordem_fase: number | null;
   tipo_sla: string | null;
   pedidos: number | null;
@@ -361,9 +361,9 @@ function LinhaFunil() {
                 cor = "bg-muted-foreground/50";
               else if (r.tipo_sla === "terminal") cor = "bg-muted-foreground/20";
               return (
-                <div key={r.fase} className="space-y-1">
+                <div key={r.estagio} className="space-y-1">
                   <div className="flex items-baseline justify-between text-sm">
-                    <span className="font-medium">{r.fase}</span>
+                    <span className="font-medium">{r.estagio}</span>
                     <span>
                       {BRL.format(val)}{" "}
                       <span className="text-xs text-muted-foreground">
@@ -391,7 +391,7 @@ type ProblemaRow = {
   pedido_id: string;
   id_externo: string | null;
   cliente: string | null;
-  fase: string | null;
+  estagio: string | null;
   valor_liquido: number | null;
   dias_na_fase: number | null;
   alvo: number | null;
@@ -489,7 +489,7 @@ function LinhaProblemas() {
                             {r.id_externo ?? r.pedido_id.slice(0, 8)}
                           </TableCell>
                           <TableCell>{r.cliente ?? "—"}</TableCell>
-                          <TableCell>{r.fase ?? "—"}</TableCell>
+                          <TableCell>{r.estagio ?? "—"}</TableCell>
                           <TableCell>{BRL.format(Number(r.valor_liquido ?? 0))}</TableCell>
                           <TableCell>{r.dias_na_fase ?? "—"}</TableCell>
                           <TableCell>{r.alvo ?? "—"}</TableCell>
@@ -517,7 +517,7 @@ function LinhaProblemas() {
 }
 
 // ─── LINHA 5: negócio (ticket / condição / concentração) ────
-type TicketRow = { faixa: string; ordem: number | null; pedidos: number | null; valor: number | null };
+type TicketRow = { faixa: string; pedidos: number | null; valor: number | null };
 type CondicaoRow = {
   condicao: string;
   a_vista: boolean | null;
@@ -543,7 +543,7 @@ function BlocoTicket() {
   });
 
   const rows = useMemo(
-    () => (data ?? []).slice().sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
+    () => (data ?? []).slice().sort((a, b) => a.faixa.localeCompare(b.faixa)),
     [data]
   );
 
