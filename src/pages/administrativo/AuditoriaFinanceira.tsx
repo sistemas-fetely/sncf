@@ -35,7 +35,7 @@ import type { EstagioPedido } from "@/types/pedido";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
-  AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2,
+  AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2, CheckCircle2,
 } from "lucide-react";
 
 type Situacao = "aberto" | "em_analise" | "resolvido" | "explicado" | "reaparecido";
@@ -166,6 +166,15 @@ export default function AuditoriaFinanceira() {
     return c;
   }, [lote]);
 
+  const contadoresSev = useMemo(() => {
+    const c: Record<1 | 2 | 3, number> = { 1: 0, 2: 0, 3: 0 };
+    for (const a of lote) {
+      const s = a.severidade;
+      if (s === 1 || s === 2 || s === 3) c[s] += 1;
+    }
+    return c;
+  }, [lote]);
+
   const classesDisponiveis = useMemo(() => {
     const s = new Set<string>();
     for (const a of lote) if (a.classe) s.add(a.classe);
@@ -193,6 +202,27 @@ export default function AuditoriaFinanceira() {
       );
     });
   }, [lote, busca, sevFiltro, classeFiltro, fonteFiltro, situacaoFiltro]);
+
+  const grupos = useMemo(() => {
+    const map = new Map<string, { classe: string; severidade: number; itens: Achado[]; total: number }>();
+    for (const a of filtrados) {
+      const key = a.classe || "—";
+      const g = map.get(key) ?? {
+        classe: key,
+        severidade: a.severidade ?? 99,
+        itens: [] as Achado[],
+        total: 0,
+      };
+      g.itens.push(a);
+      g.total += Number(a.valor || 0);
+      g.severidade = Math.min(g.severidade, a.severidade ?? 99);
+      map.set(key, g);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.severidade !== b.severidade) return a.severidade - b.severidade;
+      return b.total - a.total;
+    });
+  }, [filtrados]);
 
   const mTratar = useMutation({
     mutationFn: async (args: {
@@ -330,6 +360,35 @@ export default function AuditoriaFinanceira() {
         </div>
       </div>
 
+      {/* Cards de severidade — apenas contagem (dinheiro não soma entre classes) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {([1, 2, 3] as const).map((s) => {
+          const meta = {
+            1: { label: "Risco imediato", icon: ShieldAlert, card: "border-destructive/40 bg-destructive/5", active: "ring-2 ring-destructive", icone: "text-destructive" },
+            2: { label: "Furo de faturamento", icon: AlertTriangle, card: "border-warning/40 bg-warning/5", active: "ring-2 ring-warning", icone: "text-warning" },
+            3: { label: "Rastreabilidade", icon: Info, card: "border-border bg-muted/30", active: "ring-2 ring-muted-foreground", icone: "text-muted-foreground" },
+          }[s];
+          const Icon = meta.icon;
+          const ativo = sevFiltro === String(s);
+          return (
+            <Card
+              key={s}
+              onClick={() => setSevFiltro((cur) => (cur === String(s) ? "todas" : String(s)))}
+              className={cn("cursor-pointer transition-all border", meta.card, ativo && meta.active)}
+            >
+              <CardContent className="p-5 flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Severidade {s}</div>
+                  <div className="text-base font-medium">{meta.label}</div>
+                  <div className="text-2xl font-bold tabular-nums">{contadoresSev[s]}</div>
+                </div>
+                <Icon className={cn("h-6 w-6 flex-shrink-0", meta.icone)} />
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
       {/* Contadores por situação */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {(["aberto", "em_analise", "resolvido", "explicado", "reaparecido"] as const).map((s) => {
@@ -371,15 +430,6 @@ export default function AuditoriaFinanceira() {
           onChange={(e) => setBusca(e.target.value)}
           className="max-w-sm"
         />
-        <Select value={sevFiltro} onValueChange={setSevFiltro}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Severidade" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas severidades</SelectItem>
-            <SelectItem value="1">Severidade 1</SelectItem>
-            <SelectItem value="2">Severidade 2</SelectItem>
-            <SelectItem value="3">Severidade 3</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={classeFiltro} onValueChange={setClasseFiltro}>
           <SelectTrigger className="w-[220px]"><SelectValue placeholder="Classe" /></SelectTrigger>
           <SelectContent>
@@ -412,87 +462,114 @@ export default function AuditoriaFinanceira() {
         </div>
       </div>
 
-      {/* Lista */}
+      {/* Lista agrupada por classe */}
       {isLoading ? (
         <div className="text-sm text-muted-foreground p-8 text-center">Carregando…</div>
       ) : filtrados.length === 0 ? (
-        <Card>
-          <CardContent className="p-10 text-center text-sm text-muted-foreground">
-            Nenhum achado com os filtros atuais.
+        <Card className="border-success/40 bg-success/5">
+          <CardContent className="p-10 flex flex-col items-center text-center gap-3">
+            <CheckCircle2 className="h-10 w-10 text-success" />
+            <div className="text-lg font-medium">Tudo limpo por aqui.</div>
+            <div className="text-sm text-muted-foreground max-w-md">
+              Nenhum achado casa com os filtros atuais. Ajuste os filtros ou gere um novo lote.
+            </div>
           </CardContent>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="divide-y">
-            {filtrados.map((a) => {
-              const sev = (a.severidade ?? 3) as 1 | 2 | 3;
-              const sevMeta = SEV_META[sev] ?? SEV_META[3];
-              const sitKey = (a.situacao ?? "aberto") as Situacao;
-              const sitMeta = SITUACAO_META[sitKey] ?? SITUACAO_META.aberto;
-              return (
-                <div key={a.id} className="px-5 py-4 grid grid-cols-12 gap-3 items-start">
-                  <div className="col-span-12 md:col-span-2 space-y-1">
-                    <Badge variant="outline" className={cn("flex-shrink-0", sevMeta.badge)}>
-                      Sev {sev}
-                    </Badge>
-                    <div className="text-sm font-medium truncate" title={labelClasse(a.classe)}>
-                      {labelClasse(a.classe)}
-                    </div>
-                    {a.estagio && <EstagioBadge estagio={a.estagio as EstagioPedido} />}
-                  </div>
-                  <div className="col-span-12 md:col-span-3 text-sm">
-                    <div className="truncate" title={a.cliente ?? ""}>
-                      {a.cliente || "—"}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      <span className="tabular-nums">{a.id_externo || "—"}</span>
-                      {a.pedido_id && (
-                        <button
-                          onClick={() => navigate(`/pedidos/${a.pedido_id}`)}
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
-                        >
-                          abrir <ExternalLink className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                    <div className="text-sm font-medium tabular-nums mt-1">
-                      {formatBRL(Number(a.valor || 0))}
-                    </div>
-                  </div>
-                  <div className="col-span-12 md:col-span-4 space-y-2 text-sm">
-                    <div className="text-muted-foreground">{a.detalhe || "—"}</div>
-                    {a.acao && (
-                      <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-                        <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-0.5">
-                          Ação
-                        </div>
-                        <div className="leading-snug text-foreground">{a.acao}</div>
-                      </div>
+        <div className="space-y-6">
+          {grupos.map((g) => (
+            <Card key={g.classe} className="overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-5 py-3 border-b bg-muted/40">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "flex-shrink-0",
+                      g.severidade === 1 && "border-destructive text-destructive",
+                      g.severidade === 2 && "border-warning text-warning",
+                      g.severidade === 3 && "text-muted-foreground"
                     )}
-                    {a.nota && (
-                      <div className="text-xs text-muted-foreground italic border-l-2 pl-2 border-border">
-                        Nota: {a.nota}
-                      </div>
-                    )}
-                  </div>
-                  <div className="col-span-12 md:col-span-3 flex flex-col gap-2 items-start md:items-end">
-                    <Badge variant="outline" className={cn("border", sitMeta.className)}>
-                      {sitMeta.label}
-                    </Badge>
-                    <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
-                      Tratar
-                    </Button>
-                    {a.tratado_em && (
-                      <div className="text-[10px] text-muted-foreground">
-                        Tratado em {formatDataHora(a.tratado_em)}
-                      </div>
-                    )}
-                  </div>
+                  >
+                    Sev {g.severidade}
+                  </Badge>
+                  <div className="font-semibold truncate">{labelClasse(g.classe)}</div>
+                  <span className="text-xs text-muted-foreground flex-shrink-0">
+                    {g.itens.length} {g.itens.length === 1 ? "achado" : "achados"}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        </Card>
+                <div className="text-sm font-semibold tabular-nums flex-shrink-0">
+                  {formatBRL(g.total)}
+                </div>
+              </div>
+              <div className="divide-y">
+                {g.itens.map((a) => {
+                  const sev = (a.severidade ?? 3) as 1 | 2 | 3;
+                  const sevMeta = SEV_META[sev] ?? SEV_META[3];
+                  const sitKey = (a.situacao ?? "aberto") as Situacao;
+                  const sitMeta = SITUACAO_META[sitKey] ?? SITUACAO_META.aberto;
+                  return (
+                    <div key={a.id} className="px-5 py-4 grid grid-cols-12 gap-3 items-start">
+                      <div className="col-span-12 md:col-span-2 space-y-1">
+                        <Badge variant="outline" className={cn("flex-shrink-0", sevMeta.badge)}>
+                          Sev {sev}
+                        </Badge>
+                        {a.estagio && <EstagioBadge estagio={a.estagio as EstagioPedido} />}
+                      </div>
+                      <div className="col-span-12 md:col-span-3 text-sm">
+                        <div className="truncate" title={a.cliente ?? ""}>
+                          {a.cliente || "—"}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                          <span className="tabular-nums">{a.id_externo || "—"}</span>
+                          {a.pedido_id && (
+                            <button
+                              onClick={() => navigate(`/pedidos/${a.pedido_id}`)}
+                              className="inline-flex items-center gap-1 text-primary hover:underline"
+                            >
+                              abrir <ExternalLink className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="text-sm font-medium tabular-nums mt-1">
+                          {formatBRL(Number(a.valor || 0))}
+                        </div>
+                      </div>
+                      <div className="col-span-12 md:col-span-4 space-y-2 text-sm">
+                        <div className="text-muted-foreground">{a.detalhe || "—"}</div>
+                        {a.acao && (
+                          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+                            <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-0.5">
+                              Ação
+                            </div>
+                            <div className="leading-snug text-foreground">{a.acao}</div>
+                          </div>
+                        )}
+                        {a.nota && (
+                          <div className="text-xs text-muted-foreground italic border-l-2 pl-2 border-border">
+                            Nota: {a.nota}
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-span-12 md:col-span-3 flex flex-col gap-2 items-start md:items-end">
+                        <Badge variant="outline" className={cn("border", sitMeta.className)}>
+                          {sitMeta.label}
+                        </Badge>
+                        <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
+                          Tratar
+                        </Button>
+                        {a.tratado_em && (
+                          <div className="text-[10px] text-muted-foreground">
+                            Tratado em {formatDataHora(a.tratado_em)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Dialog de tratamento */}
