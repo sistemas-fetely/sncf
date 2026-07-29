@@ -166,6 +166,15 @@ export default function AuditoriaFinanceira() {
     return c;
   }, [lote]);
 
+  const contadoresSev = useMemo(() => {
+    const c: Record<1 | 2 | 3, number> = { 1: 0, 2: 0, 3: 0 };
+    for (const a of lote) {
+      const s = a.severidade;
+      if (s === 1 || s === 2 || s === 3) c[s] += 1;
+    }
+    return c;
+  }, [lote]);
+
   const classesDisponiveis = useMemo(() => {
     const s = new Set<string>();
     for (const a of lote) if (a.classe) s.add(a.classe);
