@@ -512,9 +512,9 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
+                onClick={async () => {
                   try {
-                    gerarTemplateItens();
+                    await gerarTemplateItens();
                   } catch (e) {
                     const msg = e instanceof Error ? e.message : "Erro ao gerar template";
                     toast.error(msg);
