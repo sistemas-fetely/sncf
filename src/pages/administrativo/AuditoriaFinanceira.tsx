@@ -203,6 +203,27 @@ export default function AuditoriaFinanceira() {
     });
   }, [lote, busca, sevFiltro, classeFiltro, fonteFiltro, situacaoFiltro]);
 
+  const grupos = useMemo(() => {
+    const map = new Map<string, { classe: string; severidade: number; itens: Achado[]; total: number }>();
+    for (const a of filtrados) {
+      const key = a.classe || "—";
+      const g = map.get(key) ?? {
+        classe: key,
+        severidade: a.severidade ?? 99,
+        itens: [] as Achado[],
+        total: 0,
+      };
+      g.itens.push(a);
+      g.total += Number(a.valor || 0);
+      g.severidade = Math.min(g.severidade, a.severidade ?? 99);
+      map.set(key, g);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.severidade !== b.severidade) return a.severidade - b.severidade;
+      return b.total - a.total;
+    });
+  }, [filtrados]);
+
   const mTratar = useMutation({
     mutationFn: async (args: {
       achado_id: string;
