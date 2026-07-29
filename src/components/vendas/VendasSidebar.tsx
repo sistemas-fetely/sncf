@@ -1,4 +1,4 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users, TableProperties, PackageOpen, LayoutDashboard } from "lucide-react";
+import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users, TableProperties, PackageOpen } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -81,7 +81,6 @@ export function VendasSidebar() {
               
               
               <FinancasSidebarItem to="/vendas/farol-pedidos" icon={Radar} label="Farol de Pedidos" />
-              <FinancasSidebarItem to="/vendas/dash-pedidos" icon={LayoutDashboard} label="Dash de Pedidos" />
 
             </SidebarMenu>
           </SidebarGroupContent>
