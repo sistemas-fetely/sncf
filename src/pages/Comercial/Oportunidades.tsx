@@ -52,11 +52,13 @@ interface OportunidadeRow {
   vencimento_portao: string | null;
   dias_portao_vencido: number | null;
   link_pagamento: string | null;
-  status_portao: string | null;
   valor_pago: number | null;
   valor_vencido: number | null;
   dias_atraso_max: number | null;
   dias_referencia: number | null;
+  situacao_financeira: string | null;
+  situacao_rotulo: string | null;
+  alerta_operacional: string | null;
 }
 
 function corDiasVencido(dias: number | null | undefined) {
@@ -218,7 +220,7 @@ export default function Oportunidades() {
                       <TableHead>Cliente</TableHead>
                       <TableHead className="text-right">Valor em jogo</TableHead>
                       <TableHead className="text-right">Vencido</TableHead>
-                      <TableHead className="text-right">Já pagou</TableHead>
+                      <TableHead>Situação</TableHead>
                       <TableHead>Pai</TableHead>
                       <TableHead className="text-right">Na fila</TableHead>
                       <TableHead className="text-right">Dias</TableHead>
@@ -286,14 +288,24 @@ export default function Oportunidades() {
                             ? formatBRL(r.valor_vencido!)
                             : "—"}
                         </TableCell>
-                        <TableCell className="text-right">
-                          {Number(r.valor_pago || 0) > 0 ? (
-                            <span className="text-emerald-700 dark:text-emerald-400 font-medium">
-                              {formatBRL(r.valor_pago!)}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {r.situacao_rotulo ? (
+                              <span className="text-xs text-foreground">
+                                {r.situacao_rotulo}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                            {r.alerta_operacional && (
+                              <Badge
+                                variant="outline"
+                                className="border-0 rounded px-2 py-0.5 whitespace-nowrap bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 w-fit text-[10px]"
+                              >
+                                {r.alerta_operacional}
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs">
                           {r.pai_id ? (

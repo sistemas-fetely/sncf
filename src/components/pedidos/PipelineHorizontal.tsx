@@ -78,11 +78,13 @@ export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtiv
     queryKey: ["pedidos-pagamento-vencido-count"],
     staleTime: 30 * 1000,
     queryFn: async () => {
+      // Fonte única do estado financeiro: vw_pedido_situacao_financeira
+      // (derivada só de titulo_a_receber). Não usar pedido_portao para isto.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
-        .from("v_pedidos_fila")
+        .from("vw_pedido_situacao_financeira")
         .select("estagio")
-        .eq("pagamento_status", "vencido")
+        .eq("situacao_financeira", "vencido")
         .neq("estagio", "cancelado");
       if (error) throw error;
       const rows = (data ?? []) as Array<{ estagio: string }>;
