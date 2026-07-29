@@ -46,6 +46,7 @@ import { ehComprador } from "@/lib/compras/permissoes";
 import { useIniciarCompraPedido } from "@/hooks/compras/useIniciarCompraPedido";
 import { useExcluirCompraRegistrada } from "@/hooks/compras/useExcluirCompraRegistrada";
 import { useAnexosPedidoCompra } from "@/hooks/compras/useAnexosPedidoCompra";
+import { useUnidadesMedida } from "@/hooks/compras/useUnidadesMedida";
 import type {
   CompraRegistradaFull,
   PedidoCompraFull,
