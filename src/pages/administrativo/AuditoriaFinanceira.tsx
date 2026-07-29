@@ -35,7 +35,7 @@ import type { EstagioPedido } from "@/types/pedido";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
-  AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2,
+  AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2, CheckCircle2,
 } from "lucide-react";
 
 type Situacao = "aberto" | "em_analise" | "resolvido" | "explicado" | "reaparecido";
