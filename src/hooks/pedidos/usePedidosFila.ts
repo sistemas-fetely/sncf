@@ -39,6 +39,39 @@ export function usePedidosFila(opts: Opts = {}) {
 
       let result = (data || []) as PedidoFilaItem[];
 
+      // Merge de situação financeira (fonte única: vw_pedido_situacao_financeira,
+      // derivada apenas de titulo_a_receber). Substitui a leitura de portão como
+      // estado financeiro na UI. O portão continua sendo apenas gate de liberação.
+      if (result.length > 0) {
+        const ids = result.map((p) => p.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: sfRows, error: sfErr } = await (supabase as any)
+          .from("vw_pedido_situacao_financeira")
+          .select(
+            "pedido_id, situacao_financeira, situacao_rotulo, valor_pago, valor_aberto, valor_vencido, dias_atraso_max, delta_pedido_titulo",
+          )
+          .in("pedido_id", ids);
+        if (sfErr) throw sfErr;
+        const sfMap = new Map<string, Record<string, unknown>>();
+        (sfRows || []).forEach((r: { pedido_id: string } & Record<string, unknown>) => {
+          sfMap.set(r.pedido_id, r);
+        });
+        result = result.map((p) => {
+          const sf = sfMap.get(p.id);
+          if (!sf) return p;
+          return {
+            ...p,
+            situacao_financeira: sf.situacao_financeira as PedidoFilaItem["situacao_financeira"],
+            situacao_rotulo: sf.situacao_rotulo as string | null,
+            valor_pago: sf.valor_pago as number | null,
+            valor_aberto: sf.valor_aberto as number | null,
+            valor_vencido: sf.valor_vencido as number | null,
+            dias_atraso_max: sf.dias_atraso_max as number | null,
+            delta_pedido_titulo: sf.delta_pedido_titulo as number | null,
+          };
+        });
+      }
+
       if (opts.busca) {
         const t = opts.busca.toLowerCase();
         result = result.filter(
