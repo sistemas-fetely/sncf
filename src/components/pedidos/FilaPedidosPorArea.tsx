@@ -156,8 +156,8 @@ export function FilaPedidosPorArea({
     }
     if (situacaoFilter !== "todas") {
       base = base.filter((p) => {
-        const s = p.pagamento_status;
-        if (situacaoFilter === "em_dia") return s === "em_dia" || s === "parcial_em_dia";
+        const s = p.situacao_financeira;
+        if (situacaoFilter === "em_aberto") return s === "em_aberto" || s === "parcial_pago";
         return s === situacaoFilter;
       });
     }
@@ -330,10 +330,12 @@ export function FilaPedidosPorArea({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Situação: Todas</SelectItem>
-            <SelectItem value="pago">Pago</SelectItem>
-            <SelectItem value="em_dia">Em dia</SelectItem>
+            <SelectItem value="quitado">Quitado</SelectItem>
+            <SelectItem value="parcial_pago">Parcial pago</SelectItem>
+            <SelectItem value="em_aberto">Em aberto</SelectItem>
             <SelectItem value="vencido">Vencido</SelectItem>
-            <SelectItem value="sem_cobranca">Sem cobrança</SelectItem>
+            <SelectItem value="sem_recebivel">Sem recebível</SelectItem>
+            <SelectItem value="anulado">Anulado</SelectItem>
           </SelectContent>
         </Select>
         <Select value={marcacaoFilter} onValueChange={setMarcacaoFilter}>
@@ -654,10 +656,12 @@ export function FilaPedidosPorArea({
 }
 
 function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
-  const status = p.pagamento_status;
+  const situacao = p.situacao_financeira;
+  const rotulo = p.situacao_rotulo;
   const ref = p.pagamento_ref;
   const refNota = ref === "pai" ? " · informação do pedido pai" : "";
   const valorPago = Number(p.valor_pago || 0);
+  const valorAberto = Number(p.valor_aberto || 0);
   const valorVencido = Number(p.valor_vencido || 0);
   const diasAtraso = Number(p.dias_atraso_max || 0);
 
@@ -668,7 +672,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     </p>
   );
 
-  if (status === "vencido") {
+  if (situacao === "vencido") {
     return (
       <>
         {valorLine}
@@ -678,7 +682,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
             <TooltipTrigger asChild>
               <span className="inline-block mt-1">
                 <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
-                  Vencido {diasAtraso}d
+                  {rotulo || `Vencido ${diasAtraso}d`}
                 </Badge>
               </span>
             </TooltipTrigger>
@@ -693,7 +697,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     );
   }
 
-  if (status === "pago") {
+  if (situacao === "quitado") {
     return (
       <>
         {valorLine}
@@ -703,7 +707,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
             <TooltipTrigger asChild>
               <span className="inline-block mt-1">
                 <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-0 text-[10px] py-0 px-1.5">
-                  Pago
+                  {rotulo || "Quitado"}
                 </Badge>
               </span>
             </TooltipTrigger>
@@ -716,7 +720,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     );
   }
 
-  if (status === "parcial_em_dia") {
+  if (situacao === "parcial_pago") {
     return (
       <TooltipProvider>
         <Tooltip>
@@ -724,11 +728,16 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
             <div>
               {valorLine}
               {condLine}
+              <span className="inline-block mt-1">
+                <Badge className="bg-sky-100 text-sky-900 hover:bg-sky-100 border-0 text-[10px] py-0 px-1.5">
+                  {rotulo || "Parcial pago"}
+                </Badge>
+              </span>
             </div>
           </TooltipTrigger>
           <TooltipContent>
             <p className="text-xs">
-              {fmtBRL.format(valorPago)} já pago · nada vencido{refNota}
+              {fmtBRL.format(valorPago)} pago · {fmtBRL.format(valorAberto)} em aberto{refNota}
             </p>
           </TooltipContent>
         </Tooltip>
@@ -736,7 +745,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     );
   }
 
-  if (status === "sem_cobranca") {
+  if (situacao === "sem_recebivel") {
     return (
       <>
         {valorLine}
@@ -746,7 +755,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
             <TooltipTrigger asChild>
               <span className="inline-block mt-1">
                 <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 border-0 text-[10px] py-0 px-1.5">
-                  Sem cobrança
+                  {rotulo || "Sem recebível"}
                 </Badge>
               </span>
             </TooltipTrigger>
@@ -761,6 +770,21 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     );
   }
 
+  if (situacao === "anulado") {
+    return (
+      <>
+        {valorLine}
+        {condLine}
+        <span className="inline-block mt-1">
+          <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+            {rotulo || "Anulado"}
+          </Badge>
+        </span>
+      </>
+    );
+  }
+
+  // em_aberto ou sem linha na view: valor limpo, sem badge.
   return (
     <>
       {valorLine}
