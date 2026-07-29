@@ -112,6 +112,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           urls: [],
           especificacao_tecnica: "",
           ordem: 0,
+          unidade_id: null,
           _action: "create",
         },
       ]);
@@ -142,6 +143,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             urls: i.urls || [],
             especificacao_tecnica: i.especificacao_tecnica || "",
             ordem: i.ordem ?? 0,
+            unidade_id: (i as { unidade_id?: string | null }).unidade_id ?? null,
             _action: "keep",
             status: i.status as ItemEdit["status"],
             cancelamento_motivo: i.cancelamento_motivo,
@@ -285,6 +287,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             valor_estimado_unitario: i.valor_estimado_unitario,
             urls: i.urls,
             especificacao_tecnica: i.especificacao_tecnica || undefined,
+            unidade_id: i.unidade_id ?? null,
           })),
         });
         pid = res.pedido_id;
@@ -509,9 +512,9 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
+                onClick={async () => {
                   try {
-                    gerarTemplateItens();
+                    await gerarTemplateItens();
                   } catch (e) {
                     const msg = e instanceof Error ? e.message : "Erro ao gerar template";
                     toast.error(msg);
@@ -627,15 +630,31 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
         open={importarDialogOpen}
         onOpenChange={setImportarDialogOpen}
         itensAtuais={itens}
-        onImportar={(novos, modo) => {
+        onImportar={(novos, modo, cab) => {
           if (modo === "substituir") {
-            // marca todos os existentes com id para delete, descarta os create pendentes
             const removidos: ItemEdit[] = itens
               .filter((i) => i.id && i._action !== "delete")
               .map((i) => ({ ...i, _action: "delete" as const }));
             setItens([...removidos, ...novos]);
           } else {
             setItens([...itens, ...novos]);
+          }
+          if (cab) {
+            if (cab.seu_nome && !solicitanteExterno.trim()) {
+              setSolicitanteExterno(cab.seu_nome);
+            }
+            if (cab.o_que_precisa && !descricaoGeral.trim()) {
+              setDescricaoGeral(cab.o_que_precisa);
+            }
+            if (cab.por_que_precisa && !justificativa.trim()) {
+              setJustificativa(cab.por_que_precisa);
+            }
+            if (cab.precisa_ate && !dataNecessidade) {
+              const d = new Date(cab.precisa_ate + "T00:00:00");
+              if (!isNaN(d.getTime()) && startOfDay(d) >= hoje) {
+                setDataNecessidade(d);
+              }
+            }
           }
         }}
       />

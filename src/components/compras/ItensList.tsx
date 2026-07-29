@@ -5,10 +5,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { X, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ItemEdit } from "@/lib/compras/types";
+import { useUnidadesMedida, type UnidadeMedida } from "@/hooks/compras/useUnidadesMedida";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -85,6 +93,24 @@ interface Props {
 }
 
 export function ItensList({ items, onChange, readOnly, showItemStatus, headerActions }: Props) {
+  const { data: unidades = [] } = useUnidadesMedida();
+  const unidadeUN = unidades.find((u) => u.sigla.toUpperCase() === "UN");
+
+  // Backfill: items marcados como "create" sem unidade_id recebem UN quando unidades carregam.
+  useEffect(() => {
+    if (!unidadeUN) return;
+    let changed = false;
+    const next = items.map((i) => {
+      if ((i._action === "create" || !i._action) && !i.unidade_id) {
+        changed = true;
+        return { ...i, unidade_id: unidadeUN.id };
+      }
+      return i;
+    });
+    if (changed) onChange(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unidadeUN?.id]);
+
   const visiveis = items.filter((i) => i._action !== "delete");
   const temCancelados = visiveis.some((i) => i.status === "cancelado");
   const totalOriginal = visiveis.reduce(
@@ -114,6 +140,7 @@ export function ItensList({ items, onChange, readOnly, showItemStatus, headerAct
         urls: [],
         especificacao_tecnica: "",
         ordem: visiveis.length,
+        unidade_id: unidadeUN?.id ?? null,
         _action: "create",
       },
     ]);
@@ -164,6 +191,8 @@ export function ItensList({ items, onChange, readOnly, showItemStatus, headerAct
             readOnly={readOnly}
             canRemove={visiveis.length > 1 && !readOnly}
             showStatus={showItemStatus}
+            unidades={unidades}
+            unidadeUnId={unidadeUN?.id ?? null}
           />
         ))}
       </div>
@@ -202,6 +231,8 @@ function ItemCard({
   readOnly,
   canRemove,
   showStatus,
+  unidades,
+  unidadeUnId,
 }: {
   item: ItemEdit;
   onChange: (patch: Partial<ItemEdit>) => void;
@@ -209,6 +240,8 @@ function ItemCard({
   readOnly?: boolean;
   canRemove: boolean;
   showStatus?: boolean;
+  unidades: UnidadeMedida[];
+  unidadeUnId: string | null;
 }) {
   const [showSpec, setShowSpec] = useState(!!item.especificacao_tecnica);
   const [urlInput, setUrlInput] = useState("");
@@ -217,6 +250,9 @@ function ItemCard({
   const status = item.status;
   const statusCfg = status ? itemStatusConfig[status] : null;
   const isCancelado = status === "cancelado";
+  const unidadeSelecionada = item.unidade_id ?? unidadeUnId ?? undefined;
+  const unidadeAtual = unidades.find((u) => u.id === unidadeSelecionada);
+  const siglaExibicao = unidadeAtual?.sigla ?? "UN";
 
   const addUrl = () => {
     const v = urlInput.trim();
@@ -276,22 +312,49 @@ function ItemCard({
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-end">
           <div>
             <Label>Quantidade *</Label>
-            <Input
-              type="number"
-              min={1}
-              step="1"
-              value={item.quantidade}
-              onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
-                onChange({ quantidade: Math.max(1, isNaN(v) ? 1 : v) });
-              }}
-              disabled={readOnly}
-              aria-invalid={!(item.quantidade > 0)}
-            />
+            {readOnly ? (
+              <div className="h-10 flex items-center text-sm">
+                {Number(item.quantidade)} {siglaExibicao}
+              </div>
+            ) : (
+              <Input
+                type="number"
+                min={1}
+                step="1"
+                value={item.quantidade}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  onChange({ quantidade: Math.max(1, isNaN(v) ? 1 : v) });
+                }}
+                disabled={readOnly}
+                aria-invalid={!(item.quantidade > 0)}
+              />
+            )}
           </div>
+          {!readOnly && (
+            <div className="w-40">
+              <Label>Unidade</Label>
+              <Select
+                value={unidadeSelecionada ?? ""}
+                onValueChange={(v) => onChange({ unidade_id: v })}
+                disabled={readOnly || unidades.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="UN" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unidades.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.sigla} — {u.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div>
             <Label>Valor unitário *</Label>
             <InputMoedaBR
@@ -301,7 +364,10 @@ function ItemCard({
               ariaInvalid={!(item.valor_estimado_unitario > 0)}
             />
           </div>
-          <div className="flex flex-col justify-end pb-2">
+        </div>
+
+        <div className="flex justify-end">
+          <div className="text-right">
             <div className="text-xs text-muted-foreground">Subtotal</div>
             <div className="text-sm font-semibold">{fmtBRL(subtotal)}</div>
           </div>

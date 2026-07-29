@@ -20,13 +20,22 @@ export function useCriarPedidoCompra() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CriarPedidoInput) => {
+      const itensPayload = input.itens.map((it) => ({
+        descricao: it.descricao,
+        quantidade: it.quantidade,
+        valor_estimado_unitario: it.valor_estimado_unitario,
+        urls: it.urls,
+        especificacao_tecnica: it.especificacao_tecnica,
+        ...(it.unidade_id ? { unidade_id: it.unidade_id } : {}),
+        ...(it.unidade_sigla ? { unidade_sigla: it.unidade_sigla } : {}),
+      }));
       const { data, error } = await supabase.rpc("criar_pedido_compra", {
         p_centro_custo_id: input.centro_custo_id ?? null,
         p_linha_investimento_id: input.linha_investimento_id ?? null,
         p_parceiro_preferencial_id: input.parceiro_preferencial_id ?? null,
         p_descricao_geral: input.descricao_geral ?? null,
         p_justificativa: input.justificativa ?? null,
-        p_itens: input.itens as unknown as never,
+        p_itens: itensPayload as unknown as never,
         p_data_necessidade: input.data_necessidade ?? undefined,
         p_urgente: input.urgente ?? false,
         p_urgencia_justificativa: input.urgencia_justificativa ?? undefined,

@@ -16,7 +16,7 @@ export function useMeusPedidosCompra() {
           centros_custo:centro_custo_id (id, codigo, nome),
           linhas_investimento:linha_investimento_id (id, descricao),
           parceiros_comerciais:parceiro_preferencial_id (id, nome_fantasia, razao_social),
-          pedidos_compra_itens (id, pedido_id, descricao, quantidade, valor_estimado_unitario, urls, especificacao_tecnica, status, cancelamento_motivo, ordem, created_at),
+          pedidos_compra_itens (id, pedido_id, descricao, quantidade, valor_estimado_unitario, urls, especificacao_tecnica, status, cancelamento_motivo, ordem, unidade_id, created_at),
           pedidos_compra_anexos (id, pedido_id, tipo, nome_original, mime_type, tamanho_bytes, storage_path, uploaded_by, uploaded_at)
         `)
         .eq("solicitante_id", user!.id)

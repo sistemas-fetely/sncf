@@ -46,6 +46,7 @@ import { ehComprador } from "@/lib/compras/permissoes";
 import { useIniciarCompraPedido } from "@/hooks/compras/useIniciarCompraPedido";
 import { useExcluirCompraRegistrada } from "@/hooks/compras/useExcluirCompraRegistrada";
 import { useAnexosPedidoCompra } from "@/hooks/compras/useAnexosPedidoCompra";
+import { useUnidadesMedida } from "@/hooks/compras/useUnidadesMedida";
 import type {
   CompraRegistradaFull,
   PedidoCompraFull,
@@ -79,6 +80,9 @@ export function PedidoDetalheComprador({
   const iniciar = useIniciarCompraPedido();
   const excluirCompra = useExcluirCompraRegistrada();
   const { getSignedUrl } = useAnexosPedidoCompra(pedido?.id);
+  const { data: unidades = [] } = useUnidadesMedida();
+  const unidadeSigla = (uid: string | null | undefined) =>
+    unidades.find((u) => u.id === uid)?.sigla ?? "UN";
 
   const { roles } = useAuth();
   const podeComprar = ehComprador(roles);
@@ -217,7 +221,9 @@ export function PedidoDetalheComprador({
                               {i.descricao}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right">{Number(i.quantidade)}</TableCell>
+                          <TableCell className="text-right">
+                            {Number(i.quantidade)} {unidadeSigla((i as { unidade_id?: string | null }).unidade_id)}
+                          </TableCell>
                           <TableCell className="text-right">
                             {fmtBRL(Number(i.valor_estimado_unitario))}
                           </TableCell>

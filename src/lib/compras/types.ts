@@ -37,6 +37,8 @@ export interface NovoItem {
   valor_estimado_unitario: number;
   urls?: string[];
   especificacao_tecnica?: string;
+  unidade_id?: string | null;
+  unidade_sigla?: string | null;
 }
 
 export interface ItemEdit {
@@ -47,6 +49,7 @@ export interface ItemEdit {
   urls: string[];
   especificacao_tecnica: string;
   ordem: number;
+  unidade_id?: string | null;
   _action?: "create" | "update" | "delete" | "keep";
   status?: "pendente" | "comprado" | "recebido" | "cancelado";
   cancelamento_motivo?: string | null;
