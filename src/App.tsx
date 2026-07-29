@@ -80,6 +80,7 @@ const PortalSNCF = lazy(() => import("@/pages/PortalSNCF"));
 const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
 const ComprasDeParaFornecedor = lazy(() => import("@/pages/compras/DeParaFornecedor"));
+const ComprasCadastroPedido = lazy(() => import("@/pages/compras/CadastroPedidoCompra"));
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
