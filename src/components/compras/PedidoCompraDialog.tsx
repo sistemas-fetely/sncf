@@ -112,6 +112,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           urls: [],
           especificacao_tecnica: "",
           ordem: 0,
+          unidade_id: null,
           _action: "create",
         },
       ]);
