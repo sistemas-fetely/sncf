@@ -594,7 +594,7 @@ function AcoesAguardandoPagamento({ pedido, geraTituloReceber }: { pedido: any; 
 
 /**
  * Botão "Enviar para separação" que aparece apenas em pedidos no estágio
- * `aguardando_estoque`. Consome `vw_aguardando_estoque_triagem` para saber se
+ * `aguardando_estoque`. Consome `vw_pedido_aguardando_estoque` para saber se
  * o pedido tem pendência financeira no pai (grupo `negociar`) — não recalcula
  * nada de título aqui, é dimensão pronta. No grupo `enviar` dispara direto;
  * no grupo `negociar` abre AlertDialog explicando que a cobrança das parcelas
@@ -608,12 +608,12 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
     queryKey: ["triagem-pedido", pedidoId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_aguardando_estoque_triagem")
-        .select("grupo, situacao, valor_vencido, dias_atraso_max")
+        .from("vw_pedido_aguardando_estoque")
+        .select("grupo, situacao_pai, valor_vencido_pai, dias_atraso_pai")
         .eq("pedido_id", pedidoId)
         .maybeSingle();
       if (error) throw error;
-      return data as { grupo: string | null; situacao: string | null; valor_vencido: number | null; dias_atraso_max: number | null } | null;
+      return data as { grupo: string | null; situacao_pai: string | null; valor_vencido_pai: number | null; dias_atraso_pai: number | null } | null;
     },
   });
 
@@ -657,7 +657,7 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
       toast({ title: `Enviado para ${destLabel}`, description });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedido-destino-estoque", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["triagem-estoque"] });
+      
       qc.invalidateQueries({ queryKey: ["triagem-pedido", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
@@ -715,9 +715,9 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-sm">
                 <div className="rounded-md bg-muted/50 border p-3 space-y-1 text-xs">
-                  <div><span className="text-muted-foreground">Situação:</span> {triagem?.situacao ?? "—"}</div>
-                  <div><span className="text-muted-foreground">Valor vencido:</span> {fmtBRL(triagem?.valor_vencido)}</div>
-                  <div><span className="text-muted-foreground">Dias em atraso:</span> {triagem?.dias_atraso_max ?? "—"}</div>
+                 <div><span className="text-muted-foreground">Situação:</span> {triagem?.situacao_pai ?? "—"}</div>
+                 <div><span className="text-muted-foreground">Valor vencido:</span> {fmtBRL(triagem?.valor_vencido_pai)}</div>
+                 <div><span className="text-muted-foreground">Dias em atraso:</span> {triagem?.dias_atraso_pai ?? "—"}</div>
                 </div>
                 <p>
                   A primeira parcela do pedido pai já foi paga. O que está vencido são parcelas seguintes,
