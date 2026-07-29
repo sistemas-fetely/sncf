@@ -388,8 +388,9 @@ const App = () => (
               <Route path="/minhas-notas" element={<MinhasNotas />} />
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
-              <Route path="/compras/de-para-fornecedor" element={<ComprasDeParaFornecedor />} />
-              <Route path="/compras/cadastro-pedido" element={<ComprasCadastroPedido />} />
+              <Route path="/compras/mercadoria" element={<ComprasMercadoria />} />
+              <Route path="/compras/de-para-fornecedor" element={<Navigate to="/compras/mercadoria?aba=de-para" replace />} />
+              <Route path="/compras/cadastro-pedido" element={<Navigate to="/compras/mercadoria?aba=pedidos" replace />} />
 
               {/* ═══════════════════════════════════════════════
                   Layouts abaixo: dentro do CasaLayout → cobertos pelo RotaGate
