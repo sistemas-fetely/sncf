@@ -23804,9 +23804,12 @@ export type Database = {
           cliente: string | null
           cnpj: string | null
           data_pedido: string | null
+          devido_familia: number | null
           dias_atraso_max: number | null
           dias_esperando: number | null
           email: string | null
+          falta_familia: number | null
+          falta_linha: number | null
           grupo: string | null
           id_externo: string | null
           natureza: string | null
@@ -23815,7 +23818,12 @@ export type Database = {
           pai_id_externo: string | null
           pedido_id: string | null
           proximo_vencimento: string | null
+          recebivel_familia: number | null
+          recebivel_proprio: number | null
+          recebivel_proprio_pago: number | null
           situacao: string | null
+          situacao_codigo: string | null
+          situacao_pai: string | null
           telefone: string | null
           titulos_pai: number | null
           valor_a_enviar: number | null
