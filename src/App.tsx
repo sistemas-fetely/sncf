@@ -141,6 +141,7 @@ const ParesTransferencia = lazy(() => import("@/pages/administrativo/ParesTransf
 const ConciliacaoCartao = lazy(() => import("@/pages/administrativo/ConciliacaoCartao"));
 const ConciliacaoDespesas = lazy(() => import("@/pages/administrativo/ConciliacaoDespesas"));
 const Despesas = lazy(() => import("@/pages/administrativo/Despesas"));
+const IntegridadeFinanceira = lazy(() => import("@/pages/administrativo/IntegridadeFinanceira"));
 const PainelMargem = lazy(() => import("@/pages/administrativo/PainelMargem"));
 const AnaliseDespesas = lazy(() => import("@/pages/administrativo/AnaliseDespesas"));
 
