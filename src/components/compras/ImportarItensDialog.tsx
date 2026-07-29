@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertTriangle, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +18,9 @@ import { cn } from "@/lib/utils";
 import {
   parsearPlanilhaItens,
   type ResultadoParse,
+  type CabecalhoPedidoImportado,
 } from "@/lib/compras/templateItens";
+import { useUnidadesMedida } from "@/hooks/compras/useUnidadesMedida";
 import type { ItemEdit } from "@/lib/compras/types";
 
 const fmtBRL = (v: number) =>
@@ -29,13 +32,19 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   itensAtuais: ItemEdit[];
-  onImportar: (novosItens: ItemEdit[], modo: Modo) => void;
+  onImportar: (
+    novosItens: ItemEdit[],
+    modo: Modo,
+    cabecalho: CabecalhoPedidoImportado | null,
+  ) => void;
 }
 
 export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImportar }: Props) {
+  const { data: unidades = [] } = useUnidadesMedida();
   const [fileName, setFileName] = useState<string>("");
   const [resultado, setResultado] = useState<ResultadoParse | null>(null);
   const [modo, setModo] = useState<Modo>("adicionar");
+  const [aplicarCabecalho, setAplicarCabecalho] = useState(true);
   const [carregando, setCarregando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +52,7 @@ export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImporta
     setFileName("");
     setResultado(null);
     setModo("adicionar");
+    setAplicarCabecalho(true);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -56,13 +66,17 @@ export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImporta
     setResultado(null);
     setFileName(file.name);
     try {
-      const res = await parsearPlanilhaItens(file);
+      const res = await parsearPlanilhaItens(
+        file,
+        unidades.map((u) => ({ id: u.id, sigla: u.sigla, nome: u.nome })),
+      );
       setResultado(res);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Não foi possível ler o arquivo";
       toast.error(`Falha ao ler planilha: ${msg}`);
       setResultado({
         erroGlobal: "Arquivo corrompido ou formato não suportado. Envie um .xlsx ou .xls válido.",
+        cabecalho: null,
         validas: [],
         invalidas: [],
       });
@@ -73,6 +87,7 @@ export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImporta
 
   const validas = resultado?.validas ?? [];
   const invalidas = resultado?.invalidas ?? [];
+  const cabecalho = resultado?.cabecalho ?? null;
   const podeConfirmar = validas.length > 0 && !resultado?.erroGlobal;
 
   const confirmar = () => {
@@ -87,10 +102,11 @@ export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImporta
       valor_estimado_unitario: v.valor_estimado_unitario,
       urls: v.urls,
       especificacao_tecnica: v.especificacao_tecnica,
+      unidade_id: v.unidade_id,
       ordem: baseOrdem + idx,
       _action: "create",
     }));
-    onImportar(novos, modo);
+    onImportar(novos, modo, aplicarCabecalho ? cabecalho : null);
     toast.success(`${novos.length} ${novos.length === 1 ? "item importado" : "itens importados"}`);
     if (invalidas.length > 0) {
       toast.warning(
@@ -137,6 +153,52 @@ export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImporta
             </div>
           )}
 
+          {resultado && !resultado.erroGlobal && cabecalho && (
+            <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="aplicar-cabecalho"
+                  checked={aplicarCabecalho}
+                  onCheckedChange={(v) => setAplicarCabecalho(v === true)}
+                />
+                <label htmlFor="aplicar-cabecalho" className="font-medium cursor-pointer">
+                  Preencher os campos do pedido com estes dados
+                </label>
+              </div>
+              <div className="text-xs text-muted-foreground italic">
+                Aplicado apenas nos campos que estiverem vazios — não sobrescreve o que você já digitou.
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-xs pt-1">
+                {cabecalho.seu_nome && (
+                  <div>
+                    <span className="text-muted-foreground">Seu nome:</span>{" "}
+                    <span className="font-medium">{cabecalho.seu_nome}</span>
+                  </div>
+                )}
+                {cabecalho.precisa_ate && (
+                  <div>
+                    <span className="text-muted-foreground">Precisa até:</span>{" "}
+                    <span className="font-medium">
+                      {new Date(cabecalho.precisa_ate + "T00:00:00").toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+                )}
+                {cabecalho.o_que_precisa && (
+                  <div className="md:col-span-2">
+                    <span className="text-muted-foreground">O que precisa:</span>{" "}
+                    <span className="font-medium">{cabecalho.o_que_precisa}</span>
+                  </div>
+                )}
+                {cabecalho.por_que_precisa && (
+                  <div className="md:col-span-2">
+                    <span className="text-muted-foreground">Por que precisa:</span>{" "}
+                    <span className="font-medium">{cabecalho.por_que_precisa}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {resultado && !resultado.erroGlobal && (
             <>
               <div className="text-sm">
@@ -155,6 +217,7 @@ export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImporta
                     <tr>
                       <th className="p-2 text-left w-12">Linha</th>
                       <th className="p-2 text-left">Descrição / Problema</th>
+                      <th className="p-2 text-left w-24">Unidade</th>
                       <th className="p-2 text-right w-16">Qtd</th>
                       <th className="p-2 text-right w-24">Unit.</th>
                       <th className="p-2 text-right w-28">Subtotal</th>
@@ -165,6 +228,15 @@ export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImporta
                       <tr key={`v-${v.linhaPlanilha}`} className="border-t">
                         <td className="p-2 text-muted-foreground">{v.linhaPlanilha}</td>
                         <td className="p-2">{v.descricao}</td>
+                        <td className="p-2">
+                          {v.unidade_assumida ? (
+                            <span className="text-muted-foreground italic">
+                              {v.unidade_sigla} (assumido)
+                            </span>
+                          ) : (
+                            v.unidade_sigla
+                          )}
+                        </td>
                         <td className="p-2 text-right">{v.quantidade}</td>
                         <td className="p-2 text-right">{fmtBRL(v.valor_estimado_unitario)}</td>
                         <td className="p-2 text-right font-medium">
@@ -178,7 +250,7 @@ export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImporta
                         className="border-t bg-destructive/10"
                       >
                         <td className="p-2 text-muted-foreground">{iv.linhaPlanilha}</td>
-                        <td className="p-2 text-destructive" colSpan={4}>
+                        <td className="p-2 text-destructive" colSpan={5}>
                           {iv.erro}
                           {typeof iv.raw.descricao === "string" && iv.raw.descricao.trim() && (
                             <span className="text-muted-foreground">
@@ -190,7 +262,7 @@ export function ImportarItensDialog({ open, onOpenChange, itensAtuais, onImporta
                     ))}
                     {validas.length === 0 && invalidas.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="p-4 text-center text-muted-foreground">
+                        <td colSpan={6} className="p-4 text-center text-muted-foreground">
                           Nenhuma linha encontrada na planilha.
                         </td>
                       </tr>
