@@ -287,6 +287,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             valor_estimado_unitario: i.valor_estimado_unitario,
             urls: i.urls,
             especificacao_tecnica: i.especificacao_tecnica || undefined,
+            unidade_id: i.unidade_id ?? null,
           })),
         });
         pid = res.pedido_id;
