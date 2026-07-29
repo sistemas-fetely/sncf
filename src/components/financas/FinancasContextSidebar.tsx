@@ -86,6 +86,7 @@ export function FinancasContextSidebar() {
             <FinancasSidebarSection title="Compras" variant="primary">
               <FinancasSidebarItem to="/compras" icon={ShoppingCart} label="Meus Pedidos" end />
               <FinancasSidebarItem to="/compras/a-comprar" icon={PackageOpen} label="Fila do Comprador" />
+              <FinancasSidebarItem to="/compras/mercadoria" icon={Boxes} label="Compras de Mercadoria" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
