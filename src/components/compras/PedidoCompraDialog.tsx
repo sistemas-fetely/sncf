@@ -630,15 +630,31 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
         open={importarDialogOpen}
         onOpenChange={setImportarDialogOpen}
         itensAtuais={itens}
-        onImportar={(novos, modo) => {
+        onImportar={(novos, modo, cab) => {
           if (modo === "substituir") {
-            // marca todos os existentes com id para delete, descarta os create pendentes
             const removidos: ItemEdit[] = itens
               .filter((i) => i.id && i._action !== "delete")
               .map((i) => ({ ...i, _action: "delete" as const }));
             setItens([...removidos, ...novos]);
           } else {
             setItens([...itens, ...novos]);
+          }
+          if (cab) {
+            if (cab.seu_nome && !solicitanteExterno.trim()) {
+              setSolicitanteExterno(cab.seu_nome);
+            }
+            if (cab.o_que_precisa && !descricaoGeral.trim()) {
+              setDescricaoGeral(cab.o_que_precisa);
+            }
+            if (cab.por_que_precisa && !justificativa.trim()) {
+              setJustificativa(cab.por_que_precisa);
+            }
+            if (cab.precisa_ate && !dataNecessidade) {
+              const d = new Date(cab.precisa_ate + "T00:00:00");
+              if (!isNaN(d.getTime()) && startOfDay(d) >= hoje) {
+                setDataNecessidade(d);
+              }
+            }
           }
         }}
       />
