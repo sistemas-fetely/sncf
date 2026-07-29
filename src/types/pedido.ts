@@ -140,6 +140,11 @@ export interface PedidoFilaItem {
   valor_aberto?: number | null;
   valor_vencido?: number | null;
   dias_atraso_max?: number | null;
+  // Estado financeiro derivado só de titulo_a_receber (vw_pedido_situacao_financeira).
+  // Fonte única para tag de pagamento na UI. Não usar pedido_portao para isso.
+  situacao_financeira?: SituacaoFinanceira | null;
+  situacao_rotulo?: string | null;
+  delta_pedido_titulo?: number | null;
 }
 
 export type PagamentoStatus =
@@ -148,6 +153,14 @@ export type PagamentoStatus =
   | 'em_dia'
   | 'vencido'
   | 'sem_cobranca';
+
+export type SituacaoFinanceira =
+  | 'sem_recebivel'
+  | 'anulado'
+  | 'vencido'
+  | 'quitado'
+  | 'parcial_pago'
+  | 'em_aberto';
 
 export interface PipelineItem {
   estagio: EstagioPedido;
