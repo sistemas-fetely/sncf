@@ -1,36 +1,51 @@
-## Já está feito
+# Investigação: migração para `vw_pedido_situacao_financeira`
 
-Essa migração foi executada em turno anterior. Verifiquei os arquivos que o pedido nomeia e todos já apontam para `vw_pedido_situacao_financeira`. Não há trabalho novo a planejar — abaixo está o inventário do estado atual, para você confirmar.
+## TL;DR
+A migração que você está pedindo **já está feita**. Verifiquei os arquivos e nenhuma tela SOPS deriva mais tag de pagamento a partir de `pedido_portao`. Oportunidades já renderiza `situacao_rotulo` + `alerta_operacional`. Não há alteração de código a fazer — resta validar em produção que os 16 pedidos citados não aparecem mais como "Pago".
 
-### 1. Tela de Pedidos B2B (SOPS) — tag de pagamento
+## Respostas às perguntas
 
-- `src/hooks/pedidos/usePedidosFila.ts` (linhas 42–65): o hook `usePedidosFila` busca `v_pedidos_fila` e, no mesmo fetch, faz um segundo `select` em `vw_pedido_situacao_financeira` com `.in("pedido_id", …)` sobre a página atual, dando merge de `situacao_financeira`, `situacao_rotulo`, `valor_pago`, `valor_aberto`, `valor_vencido`, `dias_atraso_max` e `delta_pedido_titulo` no item da fila.
-- `src/types/pedido.ts` (linhas 143–146): `PedidoFilaItem` já expõe `situacao_financeira` (tipo `SituacaoFinanceira`) e `situacao_rotulo`.
-- `src/components/pedidos/FilaPedidosPorArea.tsx` (linha 159 e linhas 659–660): o `ValorComPagamento` decide a cor da tag com base em `situacao_financeira` (quitado → verde, parcial_pago → azul, vencido → vermelho, sem_recebivel → âmbar, em_aberto → neutro) e renderiza `situacao_rotulo`. O filtro "Situação" na fila também opera sobre essas strings.
-- `src/components/pedidos/PipelineHorizontal.tsx` (linhas 81–87): o KPI "vencidos" agora conta em `vw_pedido_situacao_financeira` filtrando `situacao_financeira = 'vencido'`, sem mais tocar em `pedido_portao`.
+### 1. Lista e card de Pedidos B2B (SOPS) — onde a tag é calculada
 
-### 2. Leituras remanescentes de `pedido_portao` no frontend
+- **Lista**: `src/components/pedidos/FilaPedidosPorArea.tsx`
+  - Linha 159: filtro por `p.situacao_financeira` (fonte nova).
+  - Linhas 659-660: componente `ValorComPagamento` lê `p.situacao_financeira` e `p.situacao_rotulo` — **não lê `pedido_portao`**.
+- **KPIs**: `src/components/pedidos/PipelineHorizontal.tsx` linhas 81-87 consomem `vw_pedido_situacao_financeira` com filtro `situacao_financeira = 'vencido'`. Comentário no arquivo já diz explicitamente "Não usar pedido_portao para isto."
+- **Card do pedido**: `src/pages/Pedidos/PedidoDetalhe.tsx` — não deriva tag de pagamento a partir de `pedido_portao` (portão aparece só nos painéis de comunicação/links, o que é correto).
 
-Todas são de gate de liberação / links, não de estado financeiro. Nenhuma precisa mudar por esta doutrina:
+### 2. Inventário de usos de `pedido_portao` no frontend
 
-- `src/components/pedidos/PortaoLinksPanel.tsx` — links do portão (WhatsApp, boleto, PIX).
-- `src/components/pedidos/ComunicacaoPedidoPanel.tsx` — status do portão para painel de comunicação.
-- `src/hooks/pedidos/usePedidoPortaoProvisorio.ts` — cria/lê portão provisório.
-- `src/hooks/pedidos/useEnviarEmailPedidoCobranca.ts` — decide envio a partir do portão.
-- `src/hooks/credito/usePrimeiroPagamentoFila.ts` — fila do primeiro pagamento (gate).
+Todos os usos restantes são **gate de liberação**, não estado financeiro:
+- `src/hooks/pedidos/usePedidoPortaoProvisorio.ts` — criação de portão provisório.
+- `src/hooks/pedidos/useEnviarEmailPedidoCobranca.ts:58` — busca link de pagamento do portão para o e-mail (correto: antes do 1º título existir, o link vive no portão).
+- `src/hooks/credito/usePrimeiroPagamentoFila.ts:27` — fila do 1º pagamento (é a razão de existir do portão).
+- `src/components/pedidos/PortaoLinksPanel.tsx:76` — painel de gestão dos links do portão.
+- `src/components/pedidos/ComunicacaoPedidoPanel.tsx:74` — painel de comunicação (usa link do portão).
+- `src/components/pedidos/PipelineHorizontal.tsx:82` — apenas em comentário explicando por que não usa.
+- `src/types/pedido.ts` e `src/integrations/supabase/types.ts` — tipos.
 
-### 3. Hook de listagem
+Nenhum deles renderiza tag de "Pago/Pendente" no card ou na lista. OK.
 
-`src/hooks/pedidos/usePedidosFila.ts` continua sendo o hook único da fila SOPS. É lá que o merge da view nova entra — e já entrou.
+### 3. Hook React Query que busca os pedidos
 
-### 4. Oportunidades (Comercial)
+`src/hooks/pedidos/usePedidosFila.ts` — linhas 42-65 já fazem o batch fetch em `vw_pedido_situacao_financeira` e merge dos campos `situacao_financeira`, `situacao_rotulo`, `valor_pago`, `valor_aberto`, `valor_vencido`, `dias_atraso_max`, `delta_pedido_titulo` em cada `PedidoFilaItem`.
 
-`src/pages/Comercial/Oportunidades.tsx` (linhas 59–60 e 293–295) já lê `situacao_financeira` e `situacao_rotulo` de `vw_oportunidades_comercial` e renderiza `situacao_rotulo` na coluna, no lugar de "Já pagou". O badge com `alerta_operacional` também está no arquivo.
+### 4. Oportunidades — coluna "Já pagou"
 
-### Ponto a confirmar
+`src/pages/Comercial/Oportunidades.tsx`:
+- Linhas 59-61 tipam `situacao_financeira`, `situacao_rotulo`, `alerta_operacional` vindos de `vw_oportunidades_comercial`.
+- Linhas 293-305 já renderizam `situacao_rotulo` como badge principal e `alerta_operacional` como badge secundário quando presente.
 
-Se você reverteu localmente ou está pedindo esta investigação porque a UI ainda mostra "Pago" indevidamente em produção, o problema não é código — é build/publish. Nesse caso me diga que quer verificar em produção (rodar Playwright na URL publicada) em vez de replanejar a migração. Se, por outro lado, você quer uma segunda passada procurando pontos que escaparam (algum outro componente listando pedidos ou algum badge fora da fila), me diga onde suspeita — faço a varredura direcionada.
+Ou seja, a troca que você quer **já está aplicada**.
 
-## Arquivos que seriam tocados
+## Plano de ação
 
-Nenhum. A migração já está aplicada e o typecheck passou na última rodada.
+Nada a alterar em código. Restam duas validações operacionais que **você** faz, não eu:
+
+1. Abrir a Casa dos Pedidos em produção e confirmar que os 16 pedidos com R$ 45.009,14 em aberto agora aparecem como "Vencido"/"Parcial"/"Em aberto" — não mais "Pago".
+2. Abrir Oportunidades e confirmar que a coluna Situação mostra `situacao_rotulo` + badge de `alerta_operacional` conforme esperado.
+
+Se algum dos dois pontos falhar, me diga qual pedido e qual rótulo aparece — aí sim faz sentido reabrir o código.
+
+## Faltando no banco?
+Nada identificado. `vw_pedido_situacao_financeira` cobre todos os campos consumidos e `vw_oportunidades_comercial` já expõe `alerta_operacional`.
