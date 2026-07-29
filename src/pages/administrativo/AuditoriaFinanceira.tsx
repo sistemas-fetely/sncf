@@ -360,6 +360,35 @@ export default function AuditoriaFinanceira() {
         </div>
       </div>
 
+      {/* Cards de severidade — apenas contagem (dinheiro não soma entre classes) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {([1, 2, 3] as const).map((s) => {
+          const meta = {
+            1: { label: "Risco imediato", icon: ShieldAlert, card: "border-destructive/40 bg-destructive/5", active: "ring-2 ring-destructive", icone: "text-destructive" },
+            2: { label: "Furo de faturamento", icon: AlertTriangle, card: "border-warning/40 bg-warning/5", active: "ring-2 ring-warning", icone: "text-warning" },
+            3: { label: "Rastreabilidade", icon: Info, card: "border-border bg-muted/30", active: "ring-2 ring-muted-foreground", icone: "text-muted-foreground" },
+          }[s];
+          const Icon = meta.icon;
+          const ativo = sevFiltro === String(s);
+          return (
+            <Card
+              key={s}
+              onClick={() => setSevFiltro((cur) => (cur === String(s) ? "todas" : String(s)))}
+              className={cn("cursor-pointer transition-all border", meta.card, ativo && meta.active)}
+            >
+              <CardContent className="p-5 flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Severidade {s}</div>
+                  <div className="text-base font-medium">{meta.label}</div>
+                  <div className="text-2xl font-bold tabular-nums">{contadoresSev[s]}</div>
+                </div>
+                <Icon className={cn("h-6 w-6 flex-shrink-0", meta.icone)} />
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
       {/* Contadores por situação */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {(["aberto", "em_analise", "resolvido", "explicado", "reaparecido"] as const).map((s) => {
