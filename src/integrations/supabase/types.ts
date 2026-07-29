@@ -398,20 +398,6 @@ export type Database = {
             foreignKeyName: "analises_credito_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "analises_credito_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "analises_credito_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -1271,20 +1257,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bling_envios_log_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "bling_envios_log_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "bling_envios_log_pedido_id_fkey"
@@ -5870,20 +5842,6 @@ export type Database = {
             foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
             columns: ["ref_pedido_id"]
             isOneToOne: true
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
-            columns: ["ref_pedido_id"]
-            isOneToOne: true
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
-            columns: ["ref_pedido_id"]
-            isOneToOne: true
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -8809,20 +8767,6 @@ export type Database = {
             foreignKeyName: "haver_aplicacao_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "haver_aplicacao_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "haver_aplicacao_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -8941,20 +8885,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "haver_cliente_origem_pedido_id_fkey"
-            columns: ["origem_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "haver_cliente_origem_pedido_id_fkey"
-            columns: ["origem_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "haver_cliente_origem_pedido_id_fkey"
@@ -10994,20 +10924,6 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_venda_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
-            columns: ["pedido_venda_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
-            columns: ["pedido_venda_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -11512,20 +11428,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "nfs_stage_venda_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "nfs_stage_venda_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "nfs_stage_venda_pedido_id_fkey"
@@ -13281,20 +13183,6 @@ export type Database = {
             foreignKeyName: "pedido_email_log_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedido_email_log_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_email_log_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -13449,20 +13337,6 @@ export type Database = {
             foreignKeyName: "pedido_eventos_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedido_eventos_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_eventos_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -13578,20 +13452,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "pedido_itens_pedido_id_fkey"
@@ -13754,20 +13614,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_portao_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedido_portao_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "pedido_portao_pedido_id_fkey"
@@ -13947,20 +13793,6 @@ export type Database = {
             foreignKeyName: "pedido_remessa_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedido_remessa_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_remessa_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -14078,20 +13910,6 @@ export type Database = {
             foreignKeyName: "pedido_tarefas_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedido_tarefas_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_tarefas_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -14201,20 +14019,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_transicoes_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedido_transicoes_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "pedido_transicoes_pedido_id_fkey"
@@ -14612,20 +14416,6 @@ export type Database = {
             foreignKeyName: "pedidos_pedido_origem_id_fkey"
             columns: ["pedido_origem_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedidos_pedido_origem_id_fkey"
-            columns: ["pedido_origem_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedidos_pedido_origem_id_fkey"
-            columns: ["pedido_origem_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -14705,20 +14495,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["split_de_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["split_de_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
@@ -20625,20 +20401,6 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -21025,20 +20787,6 @@ export type Database = {
             foreignKeyName: "transp_fretes_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "transp_fretes_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "transp_fretes_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -21386,20 +21134,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
@@ -24184,42 +23918,6 @@ export type Database = {
           },
         ]
       }
-      vw_aguardando_estoque_triagem: {
-        Row: {
-          boletos_nao_emitidos: number | null
-          cliente: string | null
-          cnpj: string | null
-          data_pedido: string | null
-          devido_familia: number | null
-          dias_atraso_max: number | null
-          dias_esperando: number | null
-          email: string | null
-          falta_familia: number | null
-          falta_linha: number | null
-          grupo: string | null
-          id_externo: string | null
-          natureza: string | null
-          pai_estagio: string | null
-          pai_id: string | null
-          pai_id_externo: string | null
-          pedido_id: string | null
-          proximo_vencimento: string | null
-          recebivel_familia: number | null
-          recebivel_proprio: number | null
-          recebivel_proprio_pago: number | null
-          situacao: string | null
-          situacao_codigo: string | null
-          situacao_pai: string | null
-          telefone: string | null
-          titulos_pai: number | null
-          valor_a_enviar: number | null
-          valor_aberto: number | null
-          valor_pago: number | null
-          valor_vencido: number | null
-          vendedor: string | null
-        }
-        Relationships: []
-      }
       vw_analise_despesas: {
         Row: {
           bloco: string | null
@@ -26790,20 +26488,6 @@ export type Database = {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
             columns: ["pai_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["pai_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["pai_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -27034,14 +26718,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -27177,20 +26861,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["pai_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["pai_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
@@ -27338,20 +27008,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["split_de_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
-            columns: ["split_de_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
@@ -28661,20 +28317,6 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_gestao_pedidos"
             referencedColumns: ["id"]
           },
@@ -28931,20 +28573,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pedidos_priorizados"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pai_id"]
-          },
-          {
-            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_aguardando_estoque_triagem"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"

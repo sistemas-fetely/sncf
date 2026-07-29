@@ -79,6 +79,7 @@ const EntregaTeste = lazy(() => import("@/pages/EntregaTeste"));
 const PortalSNCF = lazy(() => import("@/pages/PortalSNCF"));
 const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
+const ComprasDeParaFornecedor = lazy(() => import("@/pages/compras/DeParaFornecedor"));
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
@@ -387,6 +388,7 @@ const App = () => (
               <Route path="/minhas-notas" element={<MinhasNotas />} />
               <Route path="/compras" element={<Compras />} />
               <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
+              <Route path="/compras/de-para-fornecedor" element={<ComprasDeParaFornecedor />} />
 
               {/* ═══════════════════════════════════════════════
                   Layouts abaixo: dentro do CasaLayout → cobertos pelo RotaGate
