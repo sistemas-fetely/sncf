@@ -24667,6 +24667,7 @@ export type Database = {
       }
       vw_dash_pedidos_problemas: {
         Row: {
+          acao: string | null
           alvo: number | null
           cliente: string | null
           detalhe: string | null
@@ -24677,6 +24678,7 @@ export type Database = {
           indice_exposicao: number | null
           ordem_fase: number | null
           pedido_id: string | null
+          prioridade_grupo: number | null
           responsavel: string | null
           tipo: string | null
           tipo_sla: string | null
@@ -26204,14 +26206,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
