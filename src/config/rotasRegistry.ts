@@ -42,6 +42,7 @@ export const ROTAS: RegraRota[] = [
   { prefixo: "/administrativo/contas-receber", status: "pronta", tela_slug: "tela.fin_receber" },
   { prefixo: "/administrativo/caixa-banco", status: "pronta", tela_slug: "tela.fin_movimentacoes" },
   { prefixo: "/administrativo/plano-contas", status: "pronta", tela_slug: "tela.fin_plano_contas" },
+  { prefixo: "/administrativo/auditoria", status: "pronta", tela_slug: "tela.fin_auditoria" },
   { prefixo: "/administrativo",        status: "pronta", tela_slug: "tela.financeiro"   },
   // Admin do sistema — slug null = só super_admin via bypass
   // EXCETO /admin/cargos, que o Board pode ver com slug próprio
