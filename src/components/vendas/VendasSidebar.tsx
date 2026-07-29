@@ -1,4 +1,4 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users, TableProperties, PackageOpen } from "lucide-react";
+import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users, TableProperties } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -91,7 +91,6 @@ export function VendasSidebar() {
             <FinancasSidebarSection title="Produto" defaultOpen>
               <FinancasSidebarItem to="/vendas/produto" icon={Package} label="Produto" end />
               <FinancasSidebarItem to="/vendas/produto/estoque" icon={Boxes} label="Estoque" />
-              <FinancasSidebarItem to="/vendas/triagem-estoque" icon={PackageOpen} label="Triagem de Estoque" />
             </FinancasSidebarSection>
           </SidebarGroupContent>
         </SidebarGroup>
