@@ -438,6 +438,42 @@ export function FilaPedidosPorArea({
                           Em análise
                         </Badge>
                       )}
+                      {p.estagio === "aguardando_estoque" && (() => {
+                        const info = aguardandoEstoqueMap?.get(p.id);
+                        if (!info) return null;
+                        const cod = info.situacao_codigo;
+                        const cls =
+                          cod === "faturada_quitada"
+                            ? "bg-muted text-foreground border-0"
+                            : cod === "faturada_a_receber"
+                            ? "bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 border-0"
+                            : cod === "faturada_com_diferenca" || cod === "sem_recebivel"
+                            ? "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200 border-0"
+                            : cod === "natureza_sem_cobranca"
+                            ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 border-0"
+                            : "bg-muted text-foreground border-0";
+                        const dias = info.dias_esperando;
+                        const falta = Number(info.falta_linha ?? 0);
+                        return (
+                          <>
+                            {info.situacao_recebivel && (
+                              <Badge className={cn(cls, "text-[10px] py-0 px-1.5")}>
+                                {info.situacao_recebivel}
+                              </Badge>
+                            )}
+                            {dias != null && (
+                              <span className="text-[11px] text-muted-foreground">
+                                esperando {dias}d
+                              </span>
+                            )}
+                            {falta > 0.05 && (
+                              <span className="text-[11px] text-muted-foreground">
+                                · falta {fmtBRL.format(falta)}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                       <MarcacaoBadge marcacao={p.marcacao} />
                     </div>
                   </TableCell>
