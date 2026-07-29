@@ -7717,6 +7717,126 @@ export type Database = {
           },
         ]
       }
+      fornecedor_produto: {
+        Row: {
+          ativo: boolean
+          codigo_fornecedor: string
+          criado_em: string
+          descricao_fornecedor: string | null
+          fator_conversao: number
+          fornecedor_id: string
+          id: string
+          observacao: string | null
+          sku: string | null
+          tipo_linha: string
+          unidade_fornecedor: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_fornecedor: string
+          criado_em?: string
+          descricao_fornecedor?: string | null
+          fator_conversao?: number
+          fornecedor_id: string
+          id?: string
+          observacao?: string | null
+          sku?: string | null
+          tipo_linha?: string
+          unidade_fornecedor?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo_fornecedor?: string
+          criado_em?: string
+          descricao_fornecedor?: string | null
+          fator_conversao?: number
+          fornecedor_id?: string
+          id?: string
+          observacao?: string | null
+          sku?: string | null
+          tipo_linha?: string
+          unidade_fornecedor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+        ]
+      }
       fornecedor_regime_pagamento: {
         Row: {
           ativo: boolean
@@ -25558,6 +25678,103 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_fornecedor_produto: {
+        Row: {
+          ativo: boolean | null
+          codigo_fornecedor: string | null
+          criado_em: string | null
+          descricao_fornecedor: string | null
+          fator_conversao: number | null
+          fornecedor: string | null
+          fornecedor_id: string | null
+          grupo: string | null
+          id: string | null
+          observacao: string | null
+          produto: string | null
+          sku: string | null
+          tipo_linha: string | null
+          unidade_fornecedor: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+        ]
+      }
       vw_frentes_investimento_kpis: {
         Row: {
           ativa: boolean | null
@@ -26489,14 +26706,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -26817,14 +27034,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -26917,19 +27134,27 @@ export type Database = {
       vw_pedido_aguardando_estoque: {
         Row: {
           devido_familia: number | null
+          dias_atraso_pai: number | null
           dias_esperando: number | null
           falta_familia: number | null
           falta_linha: number | null
+          grupo: string | null
           id_externo: string | null
           pai_id: string | null
           pai_id_externo: string | null
           pedido_id: string | null
+          proximo_vencimento_pai: string | null
           recebivel_familia: number | null
           recebivel_proprio: number | null
           recebivel_proprio_pago: number | null
           situacao_codigo: string | null
+          situacao_pai: string | null
           situacao_recebivel: string | null
+          titulos_pai: number | null
+          valor_aberto_pai: number | null
+          valor_pago_pai: number | null
           valor_remessa: number | null
+          valor_vencido_pai: number | null
         }
         Relationships: [
           {
@@ -29876,6 +30101,17 @@ export type Database = {
       fn_classificar_rastreio: {
         Args: { p_eventos: Json; p_status_atual: string }
         Returns: string
+      }
+      fn_conferir_codigos_fornecedor: {
+        Args: { p_codigos: string[]; p_fornecedor_id: string }
+        Returns: {
+          codigo: string
+          descricao_fornecedor: string
+          produto: string
+          sku: string
+          status: string
+          tipo_linha: string
+        }[]
       }
       fn_criar_analise_desde_pedido: {
         Args: { p_pedido_id: string }
