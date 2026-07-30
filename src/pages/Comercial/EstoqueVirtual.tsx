@@ -351,16 +351,16 @@ export default function EstoqueVirtual() {
             <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
               <TableRow>
                 <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[110px]">SKU</SortableTableHead>
-                <SortableTableHead column="nome" sort={sort} onSort={setSort}>Produto</SortableTableHead>
-                <SortableTableHead column="vendavel" sort={sort} onSort={setSort} align="right" className="w-[100px]">Vendável</SortableTableHead>
-                <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[110px]">Não vendável</SortableTableHead>
-                <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Reservado</SortableTableHead>
-                <SortableTableHead column="aguardando" sort={sort} onSort={setSort} align="right" className="w-[130px]">Aguardando</SortableTableHead>
-                <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[105px]">Disponível</SortableTableHead>
-                <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[100px]">Show Room</SortableTableHead>
-                <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[150px]">Status</SortableTableHead>
-                <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[190px]">Chegada</SortableTableHead>
-                <SortableTableHead column="bling" sort={sort} onSort={setSort} align="right" className="w-[130px]">Ref. Bling</SortableTableHead>
+                <SortableTableHead column="nome" sort={sort} onSort={setSort} className="min-w-[180px]">Produto</SortableTableHead>
+                <SortableTableHead column="vendavel" sort={sort} onSort={setSort} align="right" className="w-[90px]">Vendável</SortableTableHead>
+                <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Não vendável</SortableTableHead>
+                <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[95px]">Reservado</SortableTableHead>
+                <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[100px]">Disponível</SortableTableHead>
+                <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[95px]">Show Room</SortableTableHead>
+                <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[145px]">Status</SortableTableHead>
+                <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[175px]">Chegada</SortableTableHead>
+                <SortableTableHead column="bling" sort={sort} onSort={setSort} align="right" className="w-[105px]">Ref. Bling</SortableTableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
