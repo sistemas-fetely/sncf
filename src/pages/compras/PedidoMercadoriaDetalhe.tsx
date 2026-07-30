@@ -133,13 +133,21 @@ interface InvoiceLinha {
 }
 
 interface ConfNf {
-  rocabella_ref: string | null;
-  sku: string | null;
-  nome_comercial: string | null;
+  importacao_pedido_id: number;
+  numero_pedido: string | null;
+  nf_id: number | null;
+  nf_numero: string | null;
+  nf_linha_id: number | null;
+  item_seq: number | null;
   codigo_nf: string | null;
+  ncm: string | null;
+  qtd_nf: number | null;
+  valor_nf: number | null;
+  sku: string | null;
+  qtd_alocada: number | null;
   qtd_pedido: number | null;
-  qtd_fisica: number | null;
-  divergencia_fisica: number | null;
+  furo: number | null;
+  situacao: string | null;
 }
 
 interface ConfInv {
@@ -167,6 +175,28 @@ const fmtDate = (d?: string | null) => {
     return d;
   }
 };
+const SITUACAO_NF: Record<
+  string,
+  { rotulo: string; badge: string; linha?: string }
+> = {
+  ok: { rotulo: "OK", badge: "border-success/40 bg-success/10 text-success" },
+  nao_alocado: {
+    rotulo: "Não alocado",
+    badge: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    linha: "bg-amber-500/5",
+  },
+  so_nf: {
+    rotulo: "Só na NF",
+    badge: "border-destructive/40 bg-destructive/10 text-destructive",
+    linha: "bg-destructive/10",
+  },
+  divergente: {
+    rotulo: "Divergente",
+    badge: "border-destructive/40 bg-destructive/10 text-destructive",
+    linha: "bg-destructive/10",
+  },
+};
+
 
 const fmtNum = (v: number | null | undefined, casas = 0) =>
   v === null || v === undefined ? "—" : Number(v).toLocaleString("pt-BR", {
@@ -312,13 +342,15 @@ export default function PedidoMercadoriaDetalhe() {
   });
 
   const confNfQ = useQuery({
-    queryKey: ["pedido-mercadoria-conferencia-nf", pedido?.rocabella_ref],
-    enabled: !!pedido?.rocabella_ref,
+    queryKey: ["pedido-mercadoria-conferencia-nf", pedidoId],
+    enabled: Number.isFinite(pedidoId),
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_importacao_conferencia_sku")
-        .select("rocabella_ref, sku, nome_comercial, codigo_nf, qtd_pedido, qtd_fisica, divergencia_fisica")
-        .eq("rocabella_ref", pedido!.rocabella_ref);
+        .from("vw_importacao_pedido_conferencia_nf")
+        .select(
+          "importacao_pedido_id, numero_pedido, nf_id, nf_numero, nf_linha_id, item_seq, codigo_nf, ncm, qtd_nf, valor_nf, sku, qtd_alocada, qtd_pedido, furo, situacao",
+        )
+        .eq("importacao_pedido_id", pedidoId);
       if (error) throw error;
       return (data ?? []) as ConfNf[];
     },
@@ -349,6 +381,13 @@ export default function PedidoMercadoriaDetalhe() {
       custo: l.reduce((s, r) => s + Number(r.custo_total ?? 0), 0),
     };
   }, [linhasQ.data]);
+
+  const naoAlocadas = useMemo(
+    () => (confNfQ.data ?? []).filter((r) => r.situacao === "nao_alocado").length,
+    [confNfQ.data],
+  );
+
+
 
   const nfLinhasPor = (nfId: number) => (nfsQ.data?.linhas ?? []).filter((l) => l.nf_id === nfId);
   const invLinhasPor = (invId: number) =>
@@ -764,15 +803,10 @@ export default function PedidoMercadoriaDetalhe() {
             <TabsContent value="conferencia" className="mt-4 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Pedido × NF (físico)</CardTitle>
+                  <CardTitle className="text-base">Pedido × NF</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {!pedido.rocabella_ref ? (
-                    <div className="text-sm text-muted-foreground">
-                      Este pedido não tem referência (rocabella_ref), que é a chave da conferência
-                      física por NF.
-                    </div>
-                  ) : confNfQ.isLoading ? (
+                  {confNfQ.isLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" /> Carregando conferência...
                     </div>
@@ -787,47 +821,83 @@ export default function PedidoMercadoriaDetalhe() {
                       A conferência aparece quando houver NF vinculada a este pedido.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>SKU</TableHead>
-                            <TableHead>Produto</TableHead>
-                            <TableHead>Código NF</TableHead>
-                            <TableHead className="text-right">Qtd pedido</TableHead>
-                            <TableHead className="text-right">Qtd física</TableHead>
-                            <TableHead className="text-right">Divergência</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {confNfQ.data!.map((r, i) => {
-                            const div = Number(r.divergencia_fisica ?? 0);
-                            return (
-                              <TableRow
-                                key={`${r.sku}-${r.codigo_nf}-${i}`}
-                                className={div !== 0 ? "bg-destructive/10" : undefined}
-                              >
-                                <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
-                                <TableCell className="max-w-[280px] truncate">
-                                  {r.nome_comercial ?? "—"}
-                                </TableCell>
-                                <TableCell className="font-mono text-xs">
-                                  {r.codigo_nf ?? "—"}
-                                </TableCell>
-                                <TableCell className="text-right">{fmtNum(r.qtd_pedido)}</TableCell>
-                                <TableCell className="text-right">{fmtNum(r.qtd_fisica)}</TableCell>
-                                <TableCell
-                                  className={
-                                    div !== 0 ? "text-right font-semibold text-destructive" : "text-right"
-                                  }
+                    <div className="space-y-3">
+                      {naoAlocadas > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                          <span>
+                            {naoAlocadas} linha(s) da NF ainda não foram distribuídas em SKU. É o
+                            estado normal enquanto o de-para do fornecedor não estiver preenchido.
+                          </span>
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to="/compras/mercadoria?aba=de-para">
+                              Preencher de-para <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>NF</TableHead>
+                              <TableHead className="text-right">Item</TableHead>
+                              <TableHead>Código</TableHead>
+                              <TableHead>NCM</TableHead>
+                              <TableHead className="text-right">Qtd NF</TableHead>
+                              <TableHead className="text-right">Valor NF</TableHead>
+                              <TableHead>SKU</TableHead>
+                              <TableHead className="text-right">Qtd alocada</TableHead>
+                              <TableHead className="text-right">Qtd pedido</TableHead>
+                              <TableHead className="text-right">Furo</TableHead>
+                              <TableHead>Situação</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {confNfQ.data!.map((r, i) => {
+                              const meta = SITUACAO_NF[r.situacao ?? ""] ?? {
+                                rotulo: r.situacao ?? "—",
+                                badge: "bg-muted text-muted-foreground",
+                                linha: undefined,
+                              };
+                              return (
+                                <TableRow
+                                  key={`${r.nf_linha_id ?? i}-${r.sku ?? "s"}-${i}`}
+                                  className={meta.linha}
                                 >
-                                  {fmtNum(r.divergencia_fisica)}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                                  <TableCell className="font-mono text-xs">
+                                    {r.nf_numero ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right">{r.item_seq ?? "—"}</TableCell>
+                                  <TableCell className="font-mono text-xs">
+                                    {r.codigo_nf ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs">{r.ncm ?? "—"}</TableCell>
+                                  <TableCell className="text-right">{fmtNum(r.qtd_nf)}</TableCell>
+                                  <TableCell className="text-right">
+                                    {r.valor_nf === null || r.valor_nf === undefined
+                                      ? "—"
+                                      : fmtMoeda(r.valor_nf, "BRL")}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.qtd_alocada)}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.qtd_pedido)}
+                                  </TableCell>
+                                  <TableCell className="text-right">{fmtNum(r.furo)}</TableCell>
+                                  <TableCell>
+                                    <Badge className={meta.badge} variant="outline">
+                                      {meta.rotulo}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   )}
                 </CardContent>
