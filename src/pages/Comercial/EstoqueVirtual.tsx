@@ -347,7 +347,7 @@ export default function EstoqueVirtual() {
 
       <div ref={tableWrapperRef} className="rounded-md border bg-card overflow-x-auto">
         <TooltipProvider delayDuration={200}>
-          <Table>
+          <Table className="[&_td]:py-2 [&_td]:px-3 [&_th]:px-3 text-[13px]">
             <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
               <TableRow>
                 <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[110px]">SKU</SortableTableHead>
