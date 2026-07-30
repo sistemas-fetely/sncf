@@ -26,6 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import LancarNfXmlTab from "@/components/compras/LancarNfXmlTab";
 import { parsearNumero, VERDE } from "@/lib/compras/lancamento-utils";
 
 interface PreviaNf {
@@ -217,6 +219,26 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
             Idempotente por número + série. Confira antes de gravar.
           </DialogDescription>
         </DialogHeader>
+
+        <Tabs defaultValue="xml">
+          <TabsList>
+            <TabsTrigger value="xml">Do XML capturado</TabsTrigger>
+            <TabsTrigger value="manual">Digitar manualmente</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="xml" className="space-y-4 pt-2">
+            <LancarNfXmlTab
+              pedidoId={pedidoId}
+              fornecedorId={fornecedorId}
+              onGravado={() => onOpenChange(false)}
+            />
+          </TabsContent>
+
+          <TabsContent value="manual" className="space-y-4 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Use só como exceção: NF em papel, ou fornecedor que não manda XML.
+            </p>
+
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="space-y-1.5">
@@ -415,7 +437,10 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
             Gravar
           </Button>
         </DialogFooter>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
 }
+
