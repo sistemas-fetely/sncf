@@ -158,7 +158,10 @@ export default function Compras() {
           </div>
           <div>
             <h1 className="text-2xl font-bold">Compras</h1>
-            <p className="text-sm text-muted-foreground">Meus Pedidos de Compra</p>
+            <p className="text-sm text-muted-foreground">
+              Insumo, material e serviço — pedido de compra interna
+            </p>
+
           </div>
         </div>
         <div className="flex items-center gap-3">

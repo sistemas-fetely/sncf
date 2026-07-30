@@ -312,40 +312,20 @@ export default function DeParaFornecedor() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div
-            className="p-2 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: "#1A4A3A" }}
-          >
-            <Link2 className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">De-para de fornecedor</h1>
-            <p className="text-sm text-muted-foreground">
-              Casamento entre o código que o fornecedor manda na nota e o nosso SKU
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/compras"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar para Compras
-          </Link>
-          <Button
-            onClick={() => abrirCriar()}
-            style={{ backgroundColor: "#1A4A3A", color: "white" }}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Novo mapeamento
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Casamento entre o código que o fornecedor manda na nota e o nosso SKU
+        </p>
+        <Button
+          onClick={() => abrirCriar()}
+          style={{ backgroundColor: "#1A4A3A", color: "white" }}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Novo mapeamento
+        </Button>
       </div>
+
 
       {/* Conferir códigos de uma nota */}
       <ConferirCodigosBloco
