@@ -223,6 +223,7 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
         <Tabs defaultValue="xml">
           <TabsList>
             <TabsTrigger value="xml">Do XML capturado</TabsTrigger>
+            <TabsTrigger value="arquivo">Subir arquivo</TabsTrigger>
             <TabsTrigger value="manual">Digitar manualmente</TabsTrigger>
           </TabsList>
 
@@ -233,6 +234,15 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
               onGravado={() => onOpenChange(false)}
             />
           </TabsContent>
+
+          <TabsContent value="arquivo" className="space-y-4 pt-2">
+            <LancarNfArquivoTab
+              pedidoId={pedidoId}
+              fornecedorId={fornecedorId}
+              onGravado={() => onOpenChange(false)}
+            />
+          </TabsContent>
+
 
           <TabsContent value="manual" className="space-y-4 pt-2">
             <p className="text-xs text-muted-foreground">
