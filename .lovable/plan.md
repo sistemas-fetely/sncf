@@ -1,51 +1,81 @@
-# Investigação: migração para `vw_pedido_situacao_financeira`
+## O que já existe no repo (levantamento)
 
-## TL;DR
-A migração que você está pedindo **já está feita**. Verifiquei os arquivos e nenhuma tela SOPS deriva mais tag de pagamento a partir de `pedido_portao`. Oportunidades já renderiza `situacao_rotulo` + `alerta_operacional`. Não há alteração de código a fazer — resta validar em produção que os 16 pedidos citados não aparecem mais como "Pago".
+**Estoque Geral (CASA > SOPS > PRODUTO > ESTOQUE > GERAL)**
+- Página: `src/pages/Comercial/EstoqueVirtual.tsx` (649 linhas), rota `/vendas/produto/estoque/virtual`
+- Container de abas: `src/layouts/ProdutoEstoqueLayout.tsx` (Estoque Geral / Saúde do Estoque / Conciliação), montado dentro de `VendasLayout` em `src/App.tsx` (linhas ~309-314)
+- Sidebar: `src/components/vendas/VendasSidebar.tsx` → item "Estoque" (`/vendas/produto/estoque`)
+- Padrão da tela: `CasaPageHeader` com breadcrumb, faixa de `StatPill`, filtros `FilterInput`/`FilterSelectTrigger`, tabela `SortableTableHead` + `ordenarPor`, paginação "auto" calculada por altura
 
-## Respostas às perguntas
+**Recebimento XPM**
+- `/acervo/estoque/recebimento-xpm` hoje só redireciona para `/vendas/xpm` (`src/App.tsx` linha 356)
+- Tela real: `src/pages/vendas/xpm/XpmIndex.tsx` (abas via `Tabs`) com `RecebimentoXpm.tsx` e `EstoqueXpm.tsx`
 
-### 1. Lista e card de Pedidos B2B (SOPS) — onde a tag é calculada
+**Convenção de dados**
+- Leitura: `useQuery` chamando `supabase.from("vw_...")` direto na página (views não tipadas usam cast `(supabase as any)`)
+- Escrita: hook dedicado em `src/hooks/<dominio>/useXxx.ts` com `useMutation` → `supabase.rpc(...)`, `if (error) throw error`, `onSuccess` invalidando queryKeys; toast via `sonner`
 
-- **Lista**: `src/components/pedidos/FilaPedidosPorArea.tsx`
-  - Linha 159: filtro por `p.situacao_financeira` (fonte nova).
-  - Linhas 659-660: componente `ValorComPagamento` lê `p.situacao_financeira` e `p.situacao_rotulo` — **não lê `pedido_portao`**.
-- **KPIs**: `src/components/pedidos/PipelineHorizontal.tsx` linhas 81-87 consomem `vw_pedido_situacao_financeira` com filtro `situacao_financeira = 'vencido'`. Comentário no arquivo já diz explicitamente "Não usar pedido_portao para isto."
-- **Card do pedido**: `src/pages/Pedidos/PedidoDetalhe.tsx` — não deriva tag de pagamento a partir de `pedido_portao` (portão aparece só nos painéis de comunicação/links, o que é correto).
+Vou seguir exatamente isso — nenhum padrão novo, nenhum SQL.
 
-### 2. Inventário de usos de `pedido_portao` no frontend
+---
 
-Todos os usos restantes são **gate de liberação**, não estado financeiro:
-- `src/hooks/pedidos/usePedidoPortaoProvisorio.ts` — criação de portão provisório.
-- `src/hooks/pedidos/useEnviarEmailPedidoCobranca.ts:58` — busca link de pagamento do portão para o e-mail (correto: antes do 1º título existir, o link vive no portão).
-- `src/hooks/credito/usePrimeiroPagamentoFila.ts:27` — fila do 1º pagamento (é a razão de existir do portão).
-- `src/components/pedidos/PortaoLinksPanel.tsx:76` — painel de gestão dos links do portão.
-- `src/components/pedidos/ComunicacaoPedidoPanel.tsx:74` — painel de comunicação (usa link do portão).
-- `src/components/pedidos/PipelineHorizontal.tsx:82` — apenas em comentário explicando por que não usa.
-- `src/types/pedido.ts` e `src/integrations/supabase/types.ts` — tipos.
+## TELA A — Conferência de retorno de devolução
 
-Nenhum deles renderiza tag de "Pago/Pendente" no card ou na lista. OK.
+Arquivos a criar:
+- `src/hooks/estoque/useDevolucoesRetornoPendente.ts` — `useQuery` sobre `vw_devolucao_retorno_pendente`, agrupando por `pedido_id` no front (a view vem por SKU)
+- `src/hooks/estoque/useEstoqueCondicoes.ts` — `useQuery` em `estoque_condicao` (`codigo`, `rotulo`, `where ativo`) para popular o select de condição
+- `src/hooks/estoque/useRegistrarRetornoDevolucao.ts` — `useMutation` chamando `registrar_retorno_devolucao(p_pedido_id, p_rows, p_doc_numero, p_obs, p_centro, p_data)`; `throw` no erro, invalida `["devolucao-retorno-pendente"]` e as queries de estoque
+- `src/pages/estoque/RetornoDevolucao.tsx` — a tela
+- `src/components/estoque/ConferirRetornoDialog.tsx` — o formulário de conferência por pedido
 
-### 3. Hook React Query que busca os pedidos
+Comportamento:
+- Lista de cards/linhas por pedido: `id_externo`, `nf`, `devolvido_em`, `motivo`, `dias_esperando` (badge de idade), soma de `qtd_pendente` e de `valor_custo_pendente`
+- Contador no topo: pedidos pendentes, unidades pendentes, valor de custo parado
+- Abrir um pedido → dialog com uma linha por SKU (`sku`, `nome_comercial`, `qtd_saiu`, `qtd_ja_retornada`, `qtd_pendente`) e, por linha, input de quantidade (limite visual = `qtd_pendente`) + select de condição vindo de `estoque_condicao`
+- Campos do cabeçalho do dialog: NF de devolução (`p_doc_numero`), observação, data (default hoje), centro (default `XPM-SC`)
+- Envia só as linhas com quantidade > 0 → retorno parcial é o caso normal
+- `await` real: erro do banco vai cru no `toast.error(error.message)`, sem tradução nem máscara
+- Sucesso: toast com `pedido/itens/unidades` do retorno e, se `aviso` vier preenchido, exibo o aviso em destaque (Alert dentro do dialog + toast), porque condição não vendável não volta ao disponível
+- Nada de localStorage/sessionStorage
 
-`src/hooks/pedidos/usePedidosFila.ts` — linhas 42-65 já fazem o batch fetch em `vw_pedido_situacao_financeira` e merge dos campos `situacao_financeira`, `situacao_rotulo`, `valor_pago`, `valor_aberto`, `valor_vencido`, `dias_atraso_max`, `delta_pedido_titulo` em cada `PedidoFilaItem`.
+**Ponto que preciso te confirmar:** você pediu "cliente" no cabeçalho do grupo, mas a lista de colunas de `vw_devolucao_retorno_pendente` não tem cliente — só `id_externo`. Vou usar `id_externo` + `nf` como identificação e **não** vou derivar cliente por join no front. Se quiser o nome do cliente, precisa vir da view.
 
-### 4. Oportunidades — coluna "Já pagou"
+**Navegação:** encaixo como 4ª aba do `ProdutoEstoqueLayout`, rota `/vendas/produto/estoque/devolucoes`, rótulo "Retorno de devolução" (ícone `Undo2`). É o mesmo contexto operacional de estoque e herda sidebar/breadcrumb existentes. Adiciono também no `CommandPalette`. Alternativa, se preferir: aba dentro de `XpmIndex`. Vou de aba em Estoque salvo indicação contrária.
 
-`src/pages/Comercial/Oportunidades.tsx`:
-- Linhas 59-61 tipam `situacao_financeira`, `situacao_rotulo`, `alerta_operacional` vindos de `vw_oportunidades_comercial`.
-- Linhas 293-305 já renderizam `situacao_rotulo` como badge principal e `alerta_operacional` como badge secundário quando presente.
+---
 
-Ou seja, a troca que você quer **já está aplicada**.
+## TELA B — Estoque Geral migrado para `vw_estoque_rede`
 
-## Plano de ação
+Arquivo alterado: `src/pages/Comercial/EstoqueVirtual.tsx` (mais um `src/lib/estoque/status-venda.ts` novo para o mapa de rótulos/cores, evitando string crua e cor hardcoded espalhada).
 
-Nada a alterar em código. Restam duas validações operacionais que **você** faz, não eu:
+1. Troca da query `vw_estoque` → `vw_estoque_rede`, com as colunas exatas que você listou. Interface `EstoqueSku` reescrita.
+2. **Sai** a tag/fonte "Saldo Bling": removo o filtro "Todas as fontes → Razão/Bling", a coluna "Fonte" e o subtítulo de sincronização do Bling (e a query `sync-cursor-bling-estoque` que só servia pra isso). Entra uma coluna discreta "Bling (referência)" mostrando `referencia_bling` e `delta_bling`, em `text-muted-foreground`, com tooltip dizendo que é referência e não afeta status.
+3. Mapa de rótulos completo: disponivel/baixo/indisponivel/pre_venda/a_chegar/sem_previsao/vendido_sem_lastro, com as cores semânticas do tema. Filtro de status passa a listar todos.
+4. `vendido_sem_lastro` como alarme: KPI destacado no topo (SKUs + unidades comprometidas), linha da tabela com marcação de destaque (borda/fundo destrutivo suave) e atalho de filtro clicando no KPI.
+5. Coluna "A chegar": mostra `pedido_importacao` e `eta_prevista` formatada; se `eta_prevista` for nula, mostra `status_importacao` com o texto "sem ETA definida" — nenhuma data inventada.
+6. Colunas de posição: `fisico`, `bloqueado` (rotulado como "Não vendável / avarias"), `reservado`, `reservado_aguardando_produto`, `disponivel`, `furo`. O `furo` de avarias não é apresentado como divergência a investigar; deixo o texto neutro e ligo o detalhe por condição via `vw_estoque_posicao` (`furo_a_investigar` nulo = mecânica normal) no drawer do item.
+7. `em_showroom` e `nao_contabil` em colunas próprias, nunca somados a `disponivel`; tooltip explicando que showroom é controle interno de SP.
+8. Contagem: `contagem_em` / `dias_desde_contagem` como indicador de frescor.
+9. Detalhe por centro: ao clicar numa linha, drawer lateral com `vw_estoque_centro` (`centro`, `centro_uf`, `centro_tipo`, `fiscal_sadio`, `fiscal_bloqueado`, `fisico_total`, `furo`, `reservado`, `disponivel`, `contagem_em`) e `vw_estoque_posicao` por condição — assim a rede consolidada continua sendo a tela principal, sem inflar a tabela.
 
-1. Abrir a Casa dos Pedidos em produção e confirmar que os 16 pedidos com R$ 45.009,14 em aberto agora aparecem como "Vencido"/"Parcial"/"Em aberto" — não mais "Pago".
-2. Abrir Oportunidades e confirmar que a coluna Situação mostra `situacao_rotulo` + badge de `alerta_operacional` conforme esperado.
+Paginação, ordenação, busca e layout permanecem como estão.
 
-Se algum dos dois pontos falhar, me diga qual pedido e qual rótulo aparece — aí sim faz sentido reabrir o código.
+---
 
-## Faltando no banco?
-Nada identificado. `vw_pedido_situacao_financeira` cobre todos os campos consumidos e `vw_oportunidades_comercial` já expõe `alerta_operacional`.
+## Arquivos tocados (resumo)
+
+Criar:
+- `src/hooks/estoque/useDevolucoesRetornoPendente.ts`
+- `src/hooks/estoque/useEstoqueCondicoes.ts`
+- `src/hooks/estoque/useRegistrarRetornoDevolucao.ts`
+- `src/pages/estoque/RetornoDevolucao.tsx`
+- `src/components/estoque/ConferirRetornoDialog.tsx`
+- `src/components/estoque/DetalheEstoqueSkuSheet.tsx`
+- `src/lib/estoque/status-venda.ts`
+
+Alterar:
+- `src/pages/Comercial/EstoqueVirtual.tsx`
+- `src/layouts/ProdutoEstoqueLayout.tsx` (nova aba)
+- `src/App.tsx` (nova rota)
+- `src/components/navegacao/CommandPalette.tsx` (entrada de busca)
+
+Nenhum SQL. Nenhuma coluna derivada além das que você listou.

@@ -1,12 +1,14 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Warehouse, HeartPulse, GitCompare } from "lucide-react";
+import { Warehouse, HeartPulse, GitCompare, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { to: "/vendas/produto/estoque/virtual", label: "Estoque Geral", icon: Warehouse },
   { to: "/vendas/produto/estoque/saude", label: "Saúde do Estoque", icon: HeartPulse },
+  { to: "/vendas/produto/estoque/devolucoes", label: "Retorno de devolução", icon: Undo2 },
   { to: "/vendas/produto/estoque/conciliacao", label: "Conciliação", icon: GitCompare },
 ];
+
 
 export default function ProdutoEstoqueLayout() {
   return (
