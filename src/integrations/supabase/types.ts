@@ -10233,6 +10233,71 @@ export type Database = {
           },
         ]
       }
+      importacao_pedido_evento: {
+        Row: {
+          campo: string | null
+          created_at: string
+          id: number
+          payload: Json | null
+          pedido_id: number
+          tipo: string
+          usuario_id: string | null
+          valor_de: string | null
+          valor_para: string | null
+        }
+        Insert: {
+          campo?: string | null
+          created_at?: string
+          id?: never
+          payload?: Json | null
+          pedido_id: number
+          tipo: string
+          usuario_id?: string | null
+          valor_de?: string | null
+          valor_para?: string | null
+        }
+        Update: {
+          campo?: string | null
+          created_at?: string
+          id?: never
+          payload?: Json | null
+          pedido_id?: number
+          tipo?: string
+          usuario_id?: string | null
+          valor_de?: string | null
+          valor_para?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_pedido_evento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_evento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_contradicao_fase"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_evento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_invoice_conferencia"
+            referencedColumns: ["importacao_pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_evento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       importacao_status: {
         Row: {
           ativo: boolean
@@ -31424,6 +31489,15 @@ export type Database = {
           p_peso_bruto_total?: number
           p_transportadora_id?: string
           p_valor_frete?: number
+        }
+        Returns: Json
+      }
+      atualizar_pedido_mercadoria: {
+        Args: {
+          p_campos: Json
+          p_confirmar?: boolean
+          p_motivo?: string
+          p_pedido_id: number
         }
         Returns: Json
       }
