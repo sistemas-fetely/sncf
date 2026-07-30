@@ -10,17 +10,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { Lock, Loader2, Plus, Trash2, AlertTriangle, CheckCircle2, Wallet, Package, Percent } from "lucide-react";
+import { Lock, Loader2, AlertTriangle, CheckCircle2, Wallet, Package, Percent } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePedidoEdicaoCampo, type CampoEdicao, type RegraEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import { formatError } from "@/lib/format-error";
+import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const num = (v: unknown) => Number(v || 0);
