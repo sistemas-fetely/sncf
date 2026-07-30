@@ -1,5 +1,7 @@
-import { Receipt, Construction } from "lucide-react";
+import { Receipt, Construction, Wrench } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function Reembolsos() {
   return (
@@ -20,9 +22,17 @@ export default function Reembolsos() {
             <p className="text-lg font-semibold">Submódulo em reconstrução</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-md">
               O fluxo de reembolsos está sendo reconstruído sobre o novo processo
-              F-POP-001. Volta em breve.
+              F-POP-001. Enquanto isso, o cadastro das pessoas precisa estar completo —
+              e-mail corporativo, chave PIX, gestor e previsão contratual — para o módulo
+              aceitar solicitações.
             </p>
           </div>
+          <Button asChild>
+            <Link to="/pessoas/reembolsos/saneamento">
+              <Wrench className="h-4 w-4" />
+              Sanear cadastro para reembolso
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>
