@@ -35,6 +35,7 @@ interface EstoqueRede {
   reservado: number | null;
   reservado_aguardando_produto: number | null;
   disponivel: number | null;
+  descoberto: number | null;
   em_showroom: number | null;
   nao_contabil: number | null;
   tem_razao: boolean;
@@ -44,13 +45,15 @@ interface EstoqueRede {
   status_venda: string;
   contagem_em: string | null;
   dias_desde_contagem: number | null;
-  pedido_importacao: string | null;
+  pedido_suprimento: string | null;
+  origem_suprimento: string | null;
   eta_prevista: string | null;
-  status_importacao: string | null;
+  eta_precisao: string | null;
+  status_suprimento: string | null;
 }
 
 const COLS =
-  "sku,nome_comercial,ativo,fiscal_vendavel,bloqueado,fisico,furo,reservado,reservado_aguardando_produto,disponivel,em_showroom,nao_contabil,tem_razao,estoque_minimo,referencia_bling,delta_bling,status_venda,contagem_em,dias_desde_contagem,pedido_importacao,eta_prevista,status_importacao";
+  "sku,nome_comercial,ativo,fiscal_vendavel,bloqueado,fisico,furo,reservado,reservado_aguardando_produto,disponivel,descoberto,em_showroom,nao_contabil,tem_razao,estoque_minimo,referencia_bling,delta_bling,status_venda,contagem_em,dias_desde_contagem,pedido_suprimento,origem_suprimento,eta_prevista,eta_precisao,status_suprimento";
 
 type Col =
   | "sku"
@@ -60,6 +63,7 @@ type Col =
   | "reservado"
   | "aguardando"
   | "disponivel"
+  | "descoberto"
   | "showroom"
   | "chegada"
   | "bling"
@@ -70,6 +74,7 @@ type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
 const ROW_HEIGHT = 53;
 const FOOTER_RESERVE = 80;
+
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
