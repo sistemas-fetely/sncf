@@ -310,7 +310,9 @@ const App = () => (
                   <Route path="/vendas/produto/estoque" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
                   <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
+                  <Route path="/vendas/produto/estoque/devolucoes" element={<RetornoDevolucao />} />
                   <Route path="/vendas/produto/estoque/conciliacao" element={<ConciliacaoCadastro />} />
+
                 </Route>
                 <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
