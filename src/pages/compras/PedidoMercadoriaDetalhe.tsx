@@ -133,13 +133,21 @@ interface InvoiceLinha {
 }
 
 interface ConfNf {
-  rocabella_ref: string | null;
-  sku: string | null;
-  nome_comercial: string | null;
+  importacao_pedido_id: number;
+  numero_pedido: string | null;
+  nf_id: number | null;
+  nf_numero: string | null;
+  nf_linha_id: number | null;
+  item_seq: number | null;
   codigo_nf: string | null;
+  ncm: string | null;
+  qtd_nf: number | null;
+  valor_nf: number | null;
+  sku: string | null;
+  qtd_alocada: number | null;
   qtd_pedido: number | null;
-  qtd_fisica: number | null;
-  divergencia_fisica: number | null;
+  furo: number | null;
+  situacao: string | null;
 }
 
 interface ConfInv {
