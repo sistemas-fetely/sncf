@@ -113,6 +113,42 @@ function formatData(iso: string | null | undefined) {
   return d.toLocaleDateString("pt-BR");
 }
 
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+function rotuloOrigem(origem: string | null | undefined) {
+  if (origem === "nacional") return "Nacional";
+  if (origem === "importacao") return "Importação";
+  return "Suprimento";
+}
+
+function temPrevisao(iso: string | null | undefined, precisao: string | null | undefined) {
+  return !!iso && precisao !== "sem_previsao";
+}
+
+/** Renderiza a ETA com a precisão que ela realmente tem — nunca mais precisa que isso. */
+function formatEta(
+  iso: string | null | undefined,
+  precisao: string | null | undefined,
+  statusSuprimento: string | null | undefined,
+) {
+  if (!temPrevisao(iso, precisao)) {
+    return `${statusSuprimento ?? "Situação não informada"} · sem previsão de data`;
+  }
+  const d = new Date(iso!.length === 10 ? `${iso}T00:00:00` : iso!);
+  if (isNaN(d.getTime())) {
+    return `${statusSuprimento ?? "Situação não informada"} · sem previsão de data`;
+  }
+  if (precisao === "mes") return `Previsão ${MESES[d.getMonth()]}/${d.getFullYear()}`;
+  if (precisao === "trimestre") {
+    return `Previsão ${Math.floor(d.getMonth() / 3) + 1}º trimestre/${d.getFullYear()}`;
+  }
+  return `Previsão ${d.toLocaleDateString("pt-BR")}`;
+}
+
+
 export default function EstoqueVirtual() {
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
