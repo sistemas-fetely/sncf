@@ -2,10 +2,24 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, AlertTriangle, CheckCircle2, Link2, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  Link2,
+  ExternalLink,
+  Pencil,
+  Download,
+  FileSpreadsheet,
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { gerarTemplatePedidoMercadoria } from "@/lib/compras/templatePedidoMercadoria";
+import ImportarLinhasMercadoriaDialog from "@/components/compras/ImportarLinhasMercadoriaDialog";
+import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
