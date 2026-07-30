@@ -215,9 +215,11 @@ export default function EstoqueVirtual() {
       reservado: (p) => Number(p.reservado ?? 0),
       aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
       disponivel: (p) => Number(p.disponivel ?? 0),
+      descoberto: (p) => Number(p.descoberto ?? 0),
       showroom: (p) => Number(p.em_showroom ?? 0),
       chegada: (p) => p.eta_prevista ?? "",
       bling: (p) => Number(p.delta_bling ?? 0),
+
       status: (p) => STATUS_VENDA_ORDEM.indexOf(p.status_venda as never),
     });
   }, [lista, busca, statusFiltro, condicaoFiltro, sort]);
