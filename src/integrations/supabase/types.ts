@@ -28611,14 +28611,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -28627,11 +28627,14 @@ export type Database = {
       }
       vw_nfs_stage_mercadoria_pendente: {
         Row: {
+          classificacao: string | null
           fornecedor: string | null
           fornecedor_cnpj: string | null
           fornecedor_id: string | null
           fornecedor_razao_social: string | null
           itens: number | null
+          itens_com_depara: number | null
+          itens_ncm_produto: number | null
           ja_lancada: boolean | null
           nf_chave_acesso: string | null
           nf_data_emissao: string | null
