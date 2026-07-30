@@ -394,7 +394,9 @@ export default function EstoqueVirtual() {
                       <TableCell className="font-medium">
                         <span className="flex items-center gap-2">
                           {alarme && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
-                          {p.nome_comercial ?? "—"}
+                          <span className="block max-w-[220px] truncate" title={p.nome_comercial ?? ""}>
+                            {p.nome_comercial ?? "—"}
+                          </span>
                         </span>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatNum(p.fiscal_vendavel)}</TableCell>
@@ -412,16 +414,26 @@ export default function EstoqueVirtual() {
                           </Tooltip>
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNum(p.reservado)}</TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {aguardando === 0 ? (
-                          <span className="text-muted-foreground">—</span>
+                        {aguardando > 0 ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">
+                                {formatNum(p.reservado)}
+                                <span className={cn("ml-1 text-xs", alarme ? "text-destructive" : "text-info")}>
+                                  ({formatNum(aguardando)})
+                                </span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {formatNum(aguardando)} unidades reservadas aguardando o produto chegar.
+                            </TooltipContent>
+                          </Tooltip>
                         ) : (
-                          <span className={cn("font-medium", alarme ? "text-destructive" : "text-info")}>
-                            {formatNum(aguardando)}
-                          </span>
+                          formatNum(p.reservado)
                         )}
                       </TableCell>
+
                       <TableCell className={cn(
                         "text-right tabular-nums font-medium",
                         disponivel < 0 && "text-destructive",
