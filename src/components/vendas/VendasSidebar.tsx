@@ -6,19 +6,14 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { FinancasSidebarItem } from "@/components/financas/FinancasSidebarItem";
 import { FinancasSidebarSection } from "@/components/financas/FinancasSidebarSection";
-import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
 export function VendasSidebar() {
-  const { pathname } = useLocation();
-
   const { data: qtdMsgsPendentes = 0 } = useQuery({
     queryKey: ["canal-msgs-pendentes-sidebar"],
     queryFn: async () => {
