@@ -119,8 +119,8 @@ export default function EstoqueVirtual() {
   const [condicaoFiltro, setCondicaoFiltro] = useState<string>("todos");
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
   const [sort, setSort] = useState<SortState<Col> | null>({
-    column: "disponivel",
-    direction: "asc",
+    column: "descoberto",
+    direction: "desc",
   });
   const [pagina, setPagina] = useState(1);
   const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
