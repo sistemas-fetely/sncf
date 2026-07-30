@@ -902,9 +902,29 @@ export default function CadastroPedidoCompra() {
           )}
         </CardContent>
       </Card>
+
+      <ImportarLinhasMercadoriaDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        temTextoAtual={textoLinhas.trim().length > 0}
+        onImportar={(texto, modo) => {
+          setTextoLinhas((cur) =>
+            modo === "substituir" || !cur.trim() ? texto : `${cur.replace(/\s*$/, "")}\n${texto}`,
+          );
+          setConferencia(null);
+        }}
+      />
+
+      <EditarPedidoMercadoriaDialog
+        open={editarId != null}
+        onOpenChange={(v) => !v && setEditarId(null)}
+        pedidoId={editarId}
+        onSaved={() => pedidosQ.refetch()}
+      />
     </div>
   );
 }
+
 
 // ============================================================================
 // Helpers
