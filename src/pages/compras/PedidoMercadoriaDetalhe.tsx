@@ -11,7 +11,9 @@ import {
   ChevronDown,
   FileText,
   Receipt,
+  Pencil,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { fmtMoeda, VERDE } from "@/lib/compras/lancamento-utils";
