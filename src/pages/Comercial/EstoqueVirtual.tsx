@@ -461,20 +461,24 @@ export default function EstoqueVirtual() {
                       </TableCell>
                       <TableCell className="text-xs">
                         {p.pedido_importacao ? (
-                          <div className="leading-tight">
-                            <div className="font-medium">{p.pedido_importacao}</div>
-                            {eta ? (
-                              <div className="text-muted-foreground">ETA {eta}</div>
-                            ) : (
-                              <div className="text-muted-foreground">
-                                {p.status_importacao ?? "—"} · sem data de ETA
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="cursor-help leading-tight max-w-[170px]">
+                                <div className="font-medium truncate">{p.pedido_importacao}</div>
+                                <div className="text-muted-foreground truncate">
+                                  {eta ? `ETA ${eta}` : (p.status_importacao ?? "sem previsão")}
+                                </div>
                               </div>
-                            )}
-                          </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {p.pedido_importacao} · {eta ? `ETA ${eta}` : `${p.status_importacao ?? "situação não informada"} · sem data de ETA`}
+                            </TooltipContent>
+                          </Tooltip>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
+
                       <TableCell className="text-right text-xs">
                         <Tooltip>
                           <TooltipTrigger asChild>
