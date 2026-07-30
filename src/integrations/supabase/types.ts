@@ -7835,6 +7835,69 @@ export type Database = {
           },
         ]
       }
+      fornecedor_estrategia_depara: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          estrategia: string
+          fornecedor_id: string
+          observacao: string | null
+          tolerancia_razao: number
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          estrategia: string
+          fornecedor_id: string
+          observacao?: string | null
+          tolerancia_razao?: number
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          estrategia?: string
+          fornecedor_id?: string
+          observacao?: string | null
+          tolerancia_razao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_estrategia_depara_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: true
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_estrategia_depara_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: true
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_estrategia_depara_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: true
+            referencedRelation: "vw_logistica_agregado"
+            referencedColumns: ["transportadora_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_estrategia_depara_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: true
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_estrategia_depara_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: true
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       fornecedor_produto: {
         Row: {
           ativo: boolean
@@ -10334,6 +10397,92 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_importacao_pedido_detalhe"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      importacao_romaneio_stage: {
+        Row: {
+          codigo_nf: string | null
+          criado_em: string
+          fob_unit: number | null
+          id: number
+          item_fabrica: string | null
+          processo: string
+          quantidade: number
+          shipping_mark: string
+          sku: string | null
+        }
+        Insert: {
+          codigo_nf?: string | null
+          criado_em?: string
+          fob_unit?: number | null
+          id?: never
+          item_fabrica?: string | null
+          processo: string
+          quantidade: number
+          shipping_mark: string
+          sku?: string | null
+        }
+        Update: {
+          codigo_nf?: string | null
+          criado_em?: string
+          fob_unit?: number | null
+          id?: never
+          item_fabrica?: string | null
+          processo?: string
+          quantidade?: number
+          shipping_mark?: string
+          sku?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
           },
         ]
       }
@@ -28715,14 +28864,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -31436,6 +31585,10 @@ export type Database = {
         Args: { p_apagar_grupo_inteiro?: boolean; p_id: string }
         Returns: Json
       }
+      aplicar_casamento_fob: {
+        Args: { p_confirmar?: boolean; p_pedido_id: number }
+        Returns: Json
+      }
       aplicar_haver_pedido: {
         Args: { p_haver_id: string; p_pedido_id: string }
         Returns: Json
@@ -32298,11 +32451,12 @@ export type Database = {
         Returns: string
       }
       fn_casar_nf_por_fob: {
-        Args: { p_pedido_id: number; p_tolerancia?: number }
+        Args: { p_pedido_id: number }
         Returns: {
           codigo_nf: string
           corte: number
           descricao: string
+          desvio_pct: number
           fob_usd: number
           item_seq: number
           nf_id: number
@@ -32311,7 +32465,7 @@ export type Database = {
           qtd_nf: number
           qtd_no_pedido: number
           razao: number
-          razao_referencia: number
+          razao_ancora: number
           situacao: string
           skus: Json
           skus_no_grupo: number
@@ -32468,6 +32622,7 @@ export type Database = {
         Returns: boolean
       }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
+      fn_pode_operar_mercadoria: { Args: never; Returns: boolean }
       fn_recalcular_tags_doc_cpr: {
         Args: { p_cpr_id: string }
         Returns: undefined
