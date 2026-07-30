@@ -423,7 +423,14 @@ const App = () => (
                 <Route path="/pessoas/folha" element={<FolhaMensal />} />
                 <Route path="/pessoas/organograma" element={<Organograma />} />
                 <Route path="/pessoas/reembolsos" element={<Reembolsos />} />
-                <Route path="/pessoas/reembolsos/saneamento" element={<ReembolsoSaneamento />} />
+                <Route
+                  path="/pessoas/reembolsos/saneamento"
+                  element={
+                    <ProtectedRoute allowedRoles={["diretoria_executiva", "coordenacao_op_fin", "super_admin"]}>
+                      <ReembolsoSaneamento />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/pessoas/novo" element={<PessoaForm />} />
                 <Route path="/pessoas/:id/editar" element={<PessoaForm />} />
                 <Route path="/colaboradores" element={

@@ -49,6 +49,11 @@ interface CentroCustoOpcao { id: string; codigo: string | null; nome: string | n
 
 type Filtro = "todos" | "pendentes" | "prontos";
 
+interface SaneamentoResultado {
+  ok?: boolean;
+  pronto_para_reembolso?: boolean;
+}
+
 interface Rascunho {
   email_corporativo: string;
   chave_pix: string;
@@ -66,42 +71,42 @@ export default function ReembolsoSaneamento() {
   const linhasQ = useQuery({
     queryKey: ["reembolso-saneamento"],
     queryFn: async (): Promise<LinhaSaneamento[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_reembolso_saneamento")
+      // Cast só do resultado: a view ainda não consta no types.ts gerado.
+      // Remover quando o types.ts for regenerado com vw_reembolso_saneamento.
+      const { data, error } = await supabase
+        .from("vw_reembolso_saneamento" as never)
         .select("*")
         .order("nome_completo");
       if (error) throw error;
-      return (data ?? []) as LinhaSaneamento[];
+      return (data ?? []) as unknown as LinhaSaneamento[];
     },
   });
 
   const pessoasQ = useQuery({
     queryKey: ["saneamento-pessoas"],
     queryFn: async (): Promise<PessoaOpcao[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("pessoas")
         .select("id,nome_completo")
         .order("nome_completo");
       if (error) throw error;
-      return (data ?? []) as PessoaOpcao[];
+      return data ?? [];
     },
   });
 
   const centrosQ = useQuery({
     queryKey: ["saneamento-centros-custo"],
     queryFn: async (): Promise<CentroCustoOpcao[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("centros_custo")
         .select("id,codigo,nome")
         .eq("ativo", true)
         .order("codigo");
       if (error) throw error;
-      return (data ?? []) as CentroCustoOpcao[];
+      return data ?? [];
     },
   });
+
 
   const linhas = linhasQ.data ?? [];
 
@@ -153,15 +158,17 @@ export default function ReembolsoSaneamento() {
         throw new Error("Nenhum campo foi alterado.");
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc("reembolso_sanear_vinculo", params);
+      // Cast só do resultado: a RPC ainda não consta no types.ts gerado.
+      // Remover quando o types.ts for regenerado com reembolso_sanear_vinculo.
+      const { data, error } = await supabase.rpc(
+        "reembolso_sanear_vinculo" as never,
+        params as never,
+      );
       if (error) throw error;
-      return data;
+      return data as unknown as SaneamentoResultado;
     },
     onSuccess: async (data) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const d = data as any;
-      const pronto = d?.pronto_para_reembolso;
+      const pronto = data?.pronto_para_reembolso;
       toast.success(
         pronto ? "Cadastro salvo — vínculo pronto para reembolso." : "Cadastro atualizado.",
       );
