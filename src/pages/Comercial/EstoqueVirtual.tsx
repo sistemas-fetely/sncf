@@ -361,7 +361,9 @@ export default function EstoqueVirtual() {
                 <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Não vendável</SortableTableHead>
                 <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[95px]">Reservado</SortableTableHead>
                 <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[100px]">Disponível</SortableTableHead>
+                <SortableTableHead column="descoberto" sort={sort} onSort={setSort} align="right" className="w-[100px]">Descoberto</SortableTableHead>
                 <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[95px]">Show Room</SortableTableHead>
+
                 <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[145px]">Status</SortableTableHead>
                 <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[175px]">Chegada</SortableTableHead>
                 <SortableTableHead column="bling" sort={sort} onSort={setSort} align="right" className="w-[105px]">Ref. Bling</SortableTableHead>
