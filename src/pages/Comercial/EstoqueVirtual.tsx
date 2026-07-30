@@ -35,6 +35,7 @@ interface EstoqueRede {
   reservado: number | null;
   reservado_aguardando_produto: number | null;
   disponivel: number | null;
+  descoberto: number | null;
   em_showroom: number | null;
   nao_contabil: number | null;
   tem_razao: boolean;
@@ -44,13 +45,15 @@ interface EstoqueRede {
   status_venda: string;
   contagem_em: string | null;
   dias_desde_contagem: number | null;
-  pedido_importacao: string | null;
+  pedido_suprimento: string | null;
+  origem_suprimento: string | null;
   eta_prevista: string | null;
-  status_importacao: string | null;
+  eta_precisao: string | null;
+  status_suprimento: string | null;
 }
 
 const COLS =
-  "sku,nome_comercial,ativo,fiscal_vendavel,bloqueado,fisico,furo,reservado,reservado_aguardando_produto,disponivel,em_showroom,nao_contabil,tem_razao,estoque_minimo,referencia_bling,delta_bling,status_venda,contagem_em,dias_desde_contagem,pedido_importacao,eta_prevista,status_importacao";
+  "sku,nome_comercial,ativo,fiscal_vendavel,bloqueado,fisico,furo,reservado,reservado_aguardando_produto,disponivel,descoberto,em_showroom,nao_contabil,tem_razao,estoque_minimo,referencia_bling,delta_bling,status_venda,contagem_em,dias_desde_contagem,pedido_suprimento,origem_suprimento,eta_prevista,eta_precisao,status_suprimento";
 
 type Col =
   | "sku"
@@ -60,6 +63,7 @@ type Col =
   | "reservado"
   | "aguardando"
   | "disponivel"
+  | "descoberto"
   | "showroom"
   | "chegada"
   | "bling"
@@ -70,6 +74,7 @@ type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
 const ROW_HEIGHT = 53;
 const FOOTER_RESERVE = 80;
+
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -101,12 +106,42 @@ function adaptiveValueClass(text: string): string {
   return "text-lg";
 }
 
-function formatData(iso: string | null | undefined) {
-  if (!iso) return null;
-  const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("pt-BR");
+const MESES = [
+
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+function rotuloOrigem(origem: string | null | undefined) {
+  if (origem === "nacional") return "Nacional";
+  if (origem === "importacao") return "Importação";
+  return "Suprimento";
 }
+
+function temPrevisao(iso: string | null | undefined, precisao: string | null | undefined) {
+  return !!iso && precisao !== "sem_previsao";
+}
+
+/** Renderiza a ETA com a precisão que ela realmente tem — nunca mais precisa que isso. */
+function formatEta(
+  iso: string | null | undefined,
+  precisao: string | null | undefined,
+  statusSuprimento: string | null | undefined,
+) {
+  if (!temPrevisao(iso, precisao)) {
+    return `${statusSuprimento ?? "Situação não informada"} · sem previsão de data`;
+  }
+  const d = new Date(iso!.length === 10 ? `${iso}T00:00:00` : iso!);
+  if (isNaN(d.getTime())) {
+    return `${statusSuprimento ?? "Situação não informada"} · sem previsão de data`;
+  }
+  if (precisao === "mes") return `Previsão ${MESES[d.getMonth()]}/${d.getFullYear()}`;
+  if (precisao === "trimestre") {
+    return `Previsão ${Math.floor(d.getMonth() / 3) + 1}º trimestre/${d.getFullYear()}`;
+  }
+  return `Previsão ${d.toLocaleDateString("pt-BR")}`;
+}
+
 
 export default function EstoqueVirtual() {
   const [busca, setBusca] = useState("");
@@ -114,8 +149,8 @@ export default function EstoqueVirtual() {
   const [condicaoFiltro, setCondicaoFiltro] = useState<string>("todos");
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
   const [sort, setSort] = useState<SortState<Col> | null>({
-    column: "disponivel",
-    direction: "asc",
+    column: "descoberto",
+    direction: "desc",
   });
   const [pagina, setPagina] = useState(1);
   const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
@@ -163,6 +198,8 @@ export default function EstoqueVirtual() {
     let bloqueadoUn = 0;
     let bloqueadoSkus = 0;
     let showroomUn = 0;
+    let descobertoUn = 0;
+    let descobertoSkus = 0;
     for (const p of lista) {
       if (p.status_venda === "vendido_sem_lastro") {
         semLastroSkus++;
@@ -181,11 +218,18 @@ export default function EstoqueVirtual() {
         bloqueadoSkus++;
       }
       showroomUn += Number(p.em_showroom ?? 0);
+      const desc = Number(p.descoberto ?? 0);
+      if (desc > 0) {
+        descobertoUn += desc;
+        descobertoSkus++;
+      }
     }
     return {
       semLastroSkus, semLastroUn, preVenda, unAguardando, aChegar,
       semPrevisao, indisponivel, bloqueadoUn, bloqueadoSkus, showroomUn,
+      descobertoUn, descobertoSkus,
     };
+
   }, [lista]);
 
   const filtrados = useMemo(() => {
@@ -210,9 +254,11 @@ export default function EstoqueVirtual() {
       reservado: (p) => Number(p.reservado ?? 0),
       aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
       disponivel: (p) => Number(p.disponivel ?? 0),
+      descoberto: (p) => Number(p.descoberto ?? 0),
       showroom: (p) => Number(p.em_showroom ?? 0),
       chegada: (p) => p.eta_prevista ?? "",
       bling: (p) => Number(p.delta_bling ?? 0),
+
       status: (p) => STATUS_VENDA_ORDEM.indexOf(p.status_venda as never),
     });
   }, [lista, busca, statusFiltro, condicaoFiltro, sort]);
@@ -262,7 +308,7 @@ export default function EstoqueVirtual() {
               {formatNum(resumo.semLastroSkus)} SKUs vendidos sem lastro
             </div>
             <div className="text-xs text-destructive/90">
-              {formatNum(resumo.semLastroUn)} unidades comprometidas com clientes e nenhum pedido de importação para cobrir. Clique para filtrar.
+              {formatNum(resumo.semLastroUn)} unidades comprometidas com clientes e nenhum pedido de suprimento — nacional ou importado — para cobrir. Clique para filtrar.
             </div>
           </div>
         </button>
@@ -277,11 +323,26 @@ export default function EstoqueVirtual() {
           sublabel={`${formatNum(resumo.semLastroUn)} un prometidas`}
         />
         <StatPill
+          label="Descoberto"
+          value={`${formatNum(resumo.descobertoUn)} un`}
+          dotClass="bg-destructive"
+          valueClassName="text-destructive"
+          sublabel={`${formatNum(resumo.descobertoSkus)} SKUs sem cobertura`}
+        />
+        <StatPill
           label="A chegar"
           value={formatNum(resumo.aChegar)}
           dotClass="bg-info"
-          sublabel={`${formatNum(resumo.semPrevisao)} sem previsão`}
+          sublabel="SKUs com pedido de suprimento"
         />
+        <StatPill
+          label="Sem previsão"
+          value={formatNum(resumo.semPrevisao)}
+          dotClass="bg-warning"
+          valueClassName="text-warning"
+          sublabel="SKUs sem pedido de suprimento"
+        />
+
         <StatPill
           label="Pré-venda"
           value={formatNum(resumo.preVenda)}
@@ -356,7 +417,9 @@ export default function EstoqueVirtual() {
                 <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Não vendável</SortableTableHead>
                 <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[95px]">Reservado</SortableTableHead>
                 <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[100px]">Disponível</SortableTableHead>
+                <SortableTableHead column="descoberto" sort={sort} onSort={setSort} align="right" className="w-[100px]">Descoberto</SortableTableHead>
                 <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[95px]">Show Room</SortableTableHead>
+
                 <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[145px]">Status</SortableTableHead>
                 <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[175px]">Chegada</SortableTableHead>
                 <SortableTableHead column="bling" sort={sort} onSort={setSort} align="right" className="w-[105px]">Ref. Bling</SortableTableHead>
@@ -366,11 +429,11 @@ export default function EstoqueVirtual() {
             <TableBody>
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
+                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
+                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((p) => {
@@ -379,8 +442,13 @@ export default function EstoqueVirtual() {
                   const aguardando = Number(p.reservado_aguardando_produto ?? 0);
                   const showroom = Number(p.em_showroom ?? 0);
                   const disponivel = Number(p.disponivel ?? 0);
+                  const descoberto = Number(p.descoberto ?? 0);
                   const delta = Number(p.delta_bling ?? 0);
-                  const eta = formatData(p.eta_prevista);
+                  const etaTexto = formatEta(p.eta_prevista, p.eta_precisao, p.status_suprimento);
+                  const temEta = temPrevisao(p.eta_prevista, p.eta_precisao);
+                  const tudoNoShowroom =
+                    showroom > 0 && Number(p.fiscal_vendavel ?? 0) === 0 && descoberto > 0;
+
                   return (
                     <TableRow
                       key={p.sku}
@@ -434,11 +502,22 @@ export default function EstoqueVirtual() {
                         )}
                       </TableCell>
 
-                      <TableCell className={cn(
-                        "text-right tabular-nums font-medium",
-                        disponivel < 0 && "text-destructive",
-                      )}>
+                      <TableCell className="text-right tabular-nums font-medium">
                         {formatNum(disponivel)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {descoberto === 0 ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help text-destructive font-medium">{formatNum(descoberto)}</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {formatNum(descoberto)} unidades já prometidas a cliente sem cobertura de estoque vendável.
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {showroom === 0 ? (
@@ -446,10 +525,14 @@ export default function EstoqueVirtual() {
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="cursor-help text-muted-foreground">{formatNum(showroom)}</span>
+                              <span className={cn("cursor-help", tudoNoShowroom ? "text-warning font-medium" : "text-muted-foreground")}>
+                                {formatNum(showroom)}
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              Posição no Show Room de SP. Controle interno — não é vendável e não entra no disponível.
+                              {tudoNoShowroom
+                                ? "Toda a mercadoria deste SKU está no Show Room de SP: vendável zerado no armazém e há unidades descobertas."
+                                : "Posição no Show Room de SP. Controle interno — não é vendável e não entra no disponível."}
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -460,24 +543,30 @@ export default function EstoqueVirtual() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs">
-                        {p.pedido_importacao ? (
+                        {p.pedido_suprimento ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="cursor-help leading-tight max-w-[170px]">
-                                <div className="font-medium truncate">{p.pedido_importacao}</div>
-                                <div className="text-muted-foreground truncate">
-                                  {eta ? `ETA ${eta}` : (p.status_importacao ?? "sem previsão")}
+                              <div className="cursor-help leading-tight max-w-[190px]">
+                                <div className="font-medium truncate">
+                                  <span className="text-muted-foreground font-normal">{rotuloOrigem(p.origem_suprimento)} · </span>
+                                  {p.pedido_suprimento}
+                                </div>
+                                <div className={cn("truncate", temEta ? "text-muted-foreground" : "text-warning")}>
+                                  {etaTexto}
                                 </div>
                               </div>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              {p.pedido_importacao} · {eta ? `ETA ${eta}` : `${p.status_importacao ?? "situação não informada"} · sem data de ETA`}
+                              {rotuloOrigem(p.origem_suprimento)} · {p.pedido_suprimento} — {temEta
+                                ? etaTexto
+                                : `${p.status_suprimento ?? "situação não informada"} · sem data de previsão`}
                             </TooltipContent>
                           </Tooltip>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
+
 
                       <TableCell className="text-right text-xs">
                         <Tooltip>
