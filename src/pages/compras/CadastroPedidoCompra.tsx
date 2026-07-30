@@ -537,12 +537,6 @@ export default function CadastroPedidoCompra() {
             <div className="text-sm text-muted-foreground">Nenhum pedido cadastrado.</div>
           ) : (
             <div className="space-y-3">
-              {linhasCountQ.isError && (
-                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive break-words">
-                  Não foi possível carregar os totais de linhas e custo.{" "}
-                  {formatError(linhasCountQ.error)}
-                </div>
-              )}
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -558,41 +552,45 @@ export default function CadastroPedidoCompra() {
                     <TableHead>ETA</TableHead>
                     <TableHead className="text-right">Linhas</TableHead>
                     <TableHead className="text-right">Custo total</TableHead>
+                    <TableHead>Fase XPM</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pedidosOrdenados.map((p) => {
-                    const forn = p.fornecedor_id ? parceirosById.get(p.fornecedor_id) : null;
-                    const centro = p.centro_id ? centrosById.get(p.centro_id) : null;
-                    const st = p.status_id ? statusById.get(p.status_id) : null;
-                    const agg = linhasCountQ.data?.get(p.id);
-                    const semTotais = linhasCountQ.isError;
-                    return (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.numero_pedido}</TableCell>
-                        <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
-                        <TableCell>{p.modalidade ?? "—"}</TableCell>
-                        <TableCell>
-                          {forn ? forn.nome_fantasia || forn.razao_social : "—"}
-                        </TableCell>
-                        <TableCell>{centro ? centro.codigo : "—"}</TableCell>
-                        <TableCell>{st ? st.codigo : "—"}</TableCell>
-                        <TableCell>{fmtDate(p.data_pedido)}</TableCell>
-                        <TableCell>{fmtDate(p.etd)}</TableCell>
-                        <TableCell>{fmtDate(p.eta)}</TableCell>
-                        <TableCell className="text-right">
-                          {semTotais ? "—" : agg?.linhas ?? 0}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {semTotais ? "—" : fmtBRL(agg?.custo ?? 0, p.moeda ?? "BRL")}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {pedidosOrdenados.map((p) => (
+                    <TableRow
+                      key={p.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/compras/mercadoria/${p.id}`)}
+                    >
+                      <TableCell className="font-medium">{p.numero_pedido}</TableCell>
+                      <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
+                      <TableCell>{p.modalidade ?? "—"}</TableCell>
+                      <TableCell>{p.fornecedor ?? "—"}</TableCell>
+                      <TableCell>{p.centro ?? "—"}</TableCell>
+                      <TableCell>{p.status ?? "—"}</TableCell>
+                      <TableCell>{fmtDate(p.data_pedido)}</TableCell>
+                      <TableCell>{fmtDate(p.etd)}</TableCell>
+                      <TableCell>{fmtDate(p.eta)}</TableCell>
+                      <TableCell className="text-right">{p.linhas ?? 0}</TableCell>
+                      <TableCell className="text-right">
+                        {fmtBRL(Number(p.custo_total ?? 0), p.moeda ?? "BRL")}
+                      </TableCell>
+                      <TableCell>
+                        {p.fase_xpm === 2 ? (
+                          <Badge variant="secondary">Fase 2 · com NF</Badge>
+                        ) : p.fase_xpm === 1 ? (
+                          <Badge variant="outline">Fase 1 · sem NF</Badge>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
               </div>
             </div>
+
           )}
 
         </CardContent>
