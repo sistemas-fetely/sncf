@@ -435,7 +435,16 @@ export default function PedidoMercadoriaDetalhe() {
               )}
               <FaseBadge fase={pedido.fase_xpm} />
               {pedido.status && <Badge variant="outline">{pedido.status}</Badge>}
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil className="h-4 w-4 mr-1" /> Editar pedido
+              </Button>
             </div>
+
             <div className="text-sm text-muted-foreground">
               {pedido.fornecedor ?? "Fornecedor não informado"}
               {pedido.fabrica ? ` · ${pedido.fabrica}` : ""}
