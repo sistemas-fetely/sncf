@@ -313,7 +313,7 @@ export default function CadastroPedidoCompra() {
       const { data, error } = await (supabase as any)
         .from("importacao_pedido")
         .select(
-          "id, numero_pedido, modalidade, moeda, data_pedido, centro_id, status_id, fornecedor_id, cbm_total, total_conteineres",
+          "id, numero_pedido, modalidade, moeda, data_pedido, centro_id, status_id, fornecedor_id, cbm_total, total_conteineres, rocabella_ref, etd, eta",
         );
       if (error) throw error;
       return (data ?? []) as Array<{
@@ -327,6 +327,9 @@ export default function CadastroPedidoCompra() {
         fornecedor_id: string | null;
         cbm_total: number | null;
         total_conteineres: number | null;
+        rocabella_ref: string | null;
+        etd: string | null;
+        eta: string | null;
       }>;
     },
   });
@@ -336,23 +339,24 @@ export default function CadastroPedidoCompra() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("importacao_linha")
-        .select("importacao_pedido_id, qtd, preco_unitario");
+        .select("importacao_pedido_id, qtd_kits, custo_total");
       if (error) throw error;
       const rows = (data ?? []) as Array<{
         importacao_pedido_id: number;
-        qtd: number | null;
-        preco_unitario: number | null;
+        qtd_kits: number | null;
+        custo_total: number | null;
       }>;
       const map = new Map<number, { linhas: number; custo: number }>();
       for (const r of rows) {
         const cur = map.get(r.importacao_pedido_id) ?? { linhas: 0, custo: 0 };
         cur.linhas += 1;
-        cur.custo += Number(r.qtd ?? 0) * Number(r.preco_unitario ?? 0);
+        cur.custo += Number(r.custo_total ?? 0);
         map.set(r.importacao_pedido_id, cur);
       }
       return map;
     },
   });
+
 
   // ---------------- Estado do formulário ----------------
   const [header, setHeader] = useState<HeaderForm>(EMPTY_HEADER);
