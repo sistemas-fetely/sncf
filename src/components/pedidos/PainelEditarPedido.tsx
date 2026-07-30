@@ -461,7 +461,20 @@ export function PainelEditarPedido({ pedidoId, pedido, itens }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <SecaoItens key={itens?.length} pedidoId={pedidoId} pedido={pedido} itens={itens} guarda={gItens} />
+          {gItens.permitido ? (
+            <EditarItensDialog
+              pedidoId={pedidoId}
+              estagioAtual={String(estagio ?? "")}
+              itensAtuais={(itens || []).map((i) => ({
+                sku: i.sku ?? null,
+                descricao: i.descricao ?? "",
+                quantidade: num(i.quantidade),
+                valor_unitario: num(i.valor_unitario),
+              }))}
+            />
+          ) : (
+            <SecaoBloqueada estagiosPermitidos={gItens.estagiosPermitidos} />
+          )}
         </CardContent>
       </Card>
 
