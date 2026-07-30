@@ -72,7 +72,7 @@ interface Parceiro {
 
 interface ResolucaoRow {
   codigo: string;
-  status: "ok" | "nao_mapeado" | "mapeado_inativo" | "qtd_invalida";
+  status: "ok" | "nao_mapeado" | "mapeado_inativo" | "qtd_invalida" | "ambiguo";
   tipo: "produto" | "servico" | "ignorar" | null;
   sku: string | null;
   produto: string | null;
