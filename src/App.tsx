@@ -395,6 +395,7 @@ const App = () => (
                 <Route path="/compras" element={<Compras />} />
                 <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
                 <Route path="/compras/mercadoria" element={<ComprasMercadoria />} />
+                <Route path="/compras/mercadoria/:id" element={<PedidoMercadoriaDetalhe />} />
               </Route>
 
               <Route path="/compras/de-para-fornecedor" element={<Navigate to="/compras/mercadoria?aba=de-para" replace />} />
