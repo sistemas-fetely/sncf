@@ -202,6 +202,16 @@ export default function Compras() {
         </div>
       </div>
 
+      <p className="-mt-3 text-xs text-muted-foreground">
+        Comprando mercadoria para revenda? Use{" "}
+        <Link to="/compras/mercadoria" className="underline underline-offset-2">
+          Compras de Mercadoria
+        </Link>
+        .
+      </p>
+
+
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard icon={FileText} label="Rascunhos" value={stats.rascunho} />
