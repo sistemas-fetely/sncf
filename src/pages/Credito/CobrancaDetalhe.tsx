@@ -413,6 +413,9 @@ export default function CobrancaDetalhe() {
 
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { regraDe: regraEdicaoCampo } = usePedidoEdicaoCampo((pedidoQ.data as any)?.estagio);
+  // Esconde o gatilho antigo quando a seção nova de pagamento está liberada para o estágio.
+  const pagamentoNoPainel = !!regraEdicaoCampo("pagamento")?.permitido;
   const [editarCondicaoOpen, setEditarCondicaoOpen] = useState(false);
   const [ajustarDescontoOpen, setAjustarDescontoOpen] = useState(false);
   const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
