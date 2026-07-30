@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -7,20 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { Lock, Loader2, Plus, Trash2, AlertTriangle, CheckCircle2, Wallet, Package, Percent } from "lucide-react";
+import { Lock, Loader2, AlertTriangle, CheckCircle2, Wallet, Package, Percent } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePedidoEdicaoCampo, type CampoEdicao, type RegraEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import { formatError } from "@/lib/format-error";
+import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const num = (v: unknown) => Number(v || 0);
@@ -319,180 +318,6 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
   );
 }
 
-/* ----------------------------------------------------------------- itens */
-
-interface ItemEdicao {
-  sku: string | null;
-  descricao: string;
-  quantidade: number;
-  valor_unitario: number;
-}
-
-function SecaoItens({ pedidoId, pedido, itens, guarda }: {
-  pedidoId: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  pedido: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  itens: any[];
-  guarda: Guarda;
-}) {
-  const qc = useQueryClient();
-  const [linhas, setLinhas] = useState<ItemEdicao[]>(() =>
-    (itens || []).map((i) => ({
-      sku: i.sku ?? null,
-      descricao: i.descricao ?? "",
-      quantidade: num(i.quantidade),
-      valor_unitario: num(i.valor_unitario),
-    })),
-  );
-  const [motivo, setMotivo] = useState("");
-
-  const totalBruto = useMemo(
-    () => linhas.reduce((acc, l) => acc + num(l.quantidade) * num(l.valor_unitario), 0),
-    [linhas],
-  );
-  const delta = totalBruto - num(pedido?.valor_bruto);
-
-  const salvar = useMutation({
-    mutationFn: async () => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (supabase as any).rpc("salvar_itens_pedido", {
-          p_pedido_id: pedidoId,
-          p_itens: linhas.map((l) => ({
-            sku: l.sku,
-            descricao: l.descricao,
-            quantidade: num(l.quantidade),
-            valor_unitario: num(l.valor_unitario),
-          })),
-        });
-        if (error) throw error;
-        return data as Record<string, number> | null;
-      } catch (e) {
-        throw new Error(formatError(e));
-      }
-    },
-    onSuccess: async (d) => {
-      const r = d || {};
-      toast.success("Itens salvos", {
-        description: [
-          `Bruto ${fmtBRL.format(num(r.novo_bruto))}`,
-          `Celebra ${fmtBRL.format(num(r.novo_celebra))}`,
-          `PIX ${fmtBRL.format(num(r.novo_pix))}`,
-          `Frete ${fmtBRL.format(num(r.novo_frete))}`,
-          `Líquido ${fmtBRL.format(num(r.novo_liquido))}`,
-          `Peso ${num(r.novo_peso)} kg`,
-          `Cubagem ${num(r.nova_cubagem)}`,
-        ].join(" · "),
-      });
-      await qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedidos"] });
-      setMotivo("");
-    },
-    onError: (e: unknown) => toast.error(formatError(e)),
-  });
-
-  if (!guarda.permitido) return <SecaoBloqueada estagiosPermitidos={guarda.estagiosPermitidos} />;
-
-  const motivoOk = !guarda.exigeMotivo || motivo.trim().length >= 3;
-  const tooltipPapel = !guarda.temPapel ? `Requer papel: ${(guarda.exigePapel || []).join(", ")}` : null;
-
-  const set = (idx: number, patch: Partial<ItemEdicao>) =>
-    setLinhas((prev) => prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
-
-  return (
-    <div className="space-y-3">
-      <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="h-8 text-xs">SKU</TableHead>
-              <TableHead className="h-8 text-xs">Descrição</TableHead>
-              <TableHead className="h-8 text-xs w-24 text-right">Qtd</TableHead>
-              <TableHead className="h-8 text-xs w-32 text-right">Vlr unit.</TableHead>
-              <TableHead className="h-8 text-xs w-32 text-right">Total</TableHead>
-              <TableHead className="h-8 w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {linhas.map((l, idx) => (
-              <TableRow key={idx}>
-                <TableCell className="py-1">
-                  <Input className="h-8" value={l.sku ?? ""} onChange={(e) => set(idx, { sku: e.target.value || null })} />
-                </TableCell>
-                <TableCell className="py-1">
-                  <Input className="h-8" value={l.descricao} onChange={(e) => set(idx, { descricao: e.target.value })} />
-                </TableCell>
-                <TableCell className="py-1">
-                  <Input
-                    className="h-8 text-right" type="number" min={0} step="1"
-                    value={l.quantidade}
-                    onChange={(e) => set(idx, { quantidade: Number(e.target.value) })}
-                  />
-                </TableCell>
-                <TableCell className="py-1">
-                  <Input
-                    className="h-8 text-right" type="number" min={0} step="0.01"
-                    value={l.valor_unitario}
-                    onChange={(e) => set(idx, { valor_unitario: Number(e.target.value) })}
-                  />
-                </TableCell>
-                <TableCell className="py-1 text-right text-sm tabular-nums">
-                  {fmtBRL.format(num(l.quantidade) * num(l.valor_unitario))}
-                </TableCell>
-                <TableCell className="py-1">
-                  <Button
-                    variant="ghost" size="icon" className="h-7 w-7"
-                    onClick={() => setLinhas((prev) => prev.filter((_, i) => i !== idx))}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {linhas.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-4">
-                  Nenhum item — o pedido precisa de ao menos 1.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <Button
-          variant="outline" size="sm"
-          onClick={() => setLinhas((prev) => [...prev, { sku: null, descricao: "", quantidade: 1, valor_unitario: 0 }])}
-        >
-          <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar linha
-        </Button>
-        <div className="text-sm flex items-center gap-3">
-          <span className="text-muted-foreground">Novo bruto</span>
-          <span className="font-semibold tabular-nums">{fmtBRL.format(totalBruto)}</span>
-          <Badge variant={delta === 0 ? "secondary" : delta > 0 ? "default" : "destructive"}>
-            {delta >= 0 ? "+" : "−"} {fmtBRL.format(Math.abs(delta))}
-          </Badge>
-        </div>
-      </div>
-
-      {guarda.exigeMotivo && <CampoMotivo value={motivo} onChange={setMotivo} />}
-
-      <div className="flex justify-end">
-        <BotaoSalvar
-          onClick={() => salvar.mutate()}
-          disabled={linhas.length === 0 || !motivoOk || !guarda.temPapel}
-          pending={salvar.isPending}
-          motivoTooltip={tooltipPapel}
-        >
-          Salvar itens
-        </BotaoSalvar>
-      </div>
-    </div>
-  );
-}
-
 /* -------------------------------------------------------------- desconto */
 
 function SecaoDesconto({ pedidoId, pedido, guarda }: {
@@ -635,7 +460,20 @@ export function PainelEditarPedido({ pedidoId, pedido, itens }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <SecaoItens key={itens?.length} pedidoId={pedidoId} pedido={pedido} itens={itens} guarda={gItens} />
+          {gItens.permitido ? (
+            <EditarItensDialog
+              pedidoId={pedidoId}
+              estagioAtual={String(estagio ?? "")}
+              itensAtuais={(itens || []).map((i) => ({
+                sku: i.sku ?? null,
+                descricao: i.descricao ?? "",
+                quantidade: num(i.quantidade),
+                valor_unitario: num(i.valor_unitario),
+              }))}
+            />
+          ) : (
+            <SecaoBloqueada estagiosPermitidos={gItens.estagiosPermitidos} />
+          )}
         </CardContent>
       </Card>
 

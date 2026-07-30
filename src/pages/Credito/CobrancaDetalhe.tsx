@@ -38,6 +38,7 @@ import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPa
 // AlterarFormaPagamentoDialog aposentado — fluxo /pgXX substituído por reverter_para_cobranca.
 import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
+import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDescontoDialog";
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
@@ -412,6 +413,9 @@ export default function CobrancaDetalhe() {
 
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { regraDe: regraEdicaoCampo } = usePedidoEdicaoCampo((pedidoQ.data as any)?.estagio);
+  // Esconde o gatilho antigo quando a seção nova de pagamento está liberada para o estágio.
+  const pagamentoNoPainel = !!regraEdicaoCampo("pagamento")?.permitido;
   const [editarCondicaoOpen, setEditarCondicaoOpen] = useState(false);
   const [ajustarDescontoOpen, setAjustarDescontoOpen] = useState(false);
   const [valorTotalCobrar, setValorTotalCobrar] = useState<number>(0);
@@ -1136,13 +1140,15 @@ export default function CobrancaDetalhe() {
                 Ajustar desconto
               </Button>
             )}
-            <Button
-              variant="ghost"
-              onClick={() => setEditarCondicaoOpen(true)}
-              disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
-            >
-              Alterar pagamento
-            </Button>
+            {!pagamentoNoPainel && (
+              <Button
+                variant="ghost"
+                onClick={() => setEditarCondicaoOpen(true)}
+                disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+              >
+                Alterar pagamento
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate("/recebimento/cobranca")}>
               Cancelar
             </Button>
