@@ -166,7 +166,7 @@ export default function EstoqueVirtual() {
     for (const p of lista) {
       if (p.status_venda === "vendido_sem_lastro") {
         semLastroSkus++;
-        semLastroUn += Number(p.reservado_aguardando_produto ?? 0) || Number(p.reservado ?? 0);
+        semLastroUn += Number(p.reservado ?? 0);
       }
       if (p.status_venda === "pre_venda") {
         preVenda++;
@@ -347,30 +347,30 @@ export default function EstoqueVirtual() {
 
       <div ref={tableWrapperRef} className="rounded-md border bg-card overflow-x-auto">
         <TooltipProvider delayDuration={200}>
-          <Table>
+          <Table className="[&_td]:py-2 [&_td]:px-3 [&_th]:px-3 text-[13px]">
             <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
               <TableRow>
                 <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[110px]">SKU</SortableTableHead>
-                <SortableTableHead column="nome" sort={sort} onSort={setSort}>Produto</SortableTableHead>
-                <SortableTableHead column="vendavel" sort={sort} onSort={setSort} align="right" className="w-[100px]">Vendável</SortableTableHead>
-                <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[110px]">Não vendável</SortableTableHead>
-                <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Reservado</SortableTableHead>
-                <SortableTableHead column="aguardando" sort={sort} onSort={setSort} align="right" className="w-[130px]">Aguardando</SortableTableHead>
-                <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[105px]">Disponível</SortableTableHead>
-                <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[100px]">Show Room</SortableTableHead>
-                <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[150px]">Status</SortableTableHead>
-                <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[190px]">Chegada</SortableTableHead>
-                <SortableTableHead column="bling" sort={sort} onSort={setSort} align="right" className="w-[130px]">Ref. Bling</SortableTableHead>
+                <SortableTableHead column="nome" sort={sort} onSort={setSort} className="min-w-[180px]">Produto</SortableTableHead>
+                <SortableTableHead column="vendavel" sort={sort} onSort={setSort} align="right" className="w-[90px]">Vendável</SortableTableHead>
+                <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Não vendável</SortableTableHead>
+                <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[95px]">Reservado</SortableTableHead>
+                <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[100px]">Disponível</SortableTableHead>
+                <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[95px]">Show Room</SortableTableHead>
+                <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[145px]">Status</SortableTableHead>
+                <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[175px]">Chegada</SortableTableHead>
+                <SortableTableHead column="bling" sort={sort} onSort={setSort} align="right" className="w-[105px]">Ref. Bling</SortableTableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
+                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
+                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((p) => {
@@ -394,7 +394,9 @@ export default function EstoqueVirtual() {
                       <TableCell className="font-medium">
                         <span className="flex items-center gap-2">
                           {alarme && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
-                          {p.nome_comercial ?? "—"}
+                          <span className="block max-w-[220px] truncate" title={p.nome_comercial ?? ""}>
+                            {p.nome_comercial ?? "—"}
+                          </span>
                         </span>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatNum(p.fiscal_vendavel)}</TableCell>
@@ -412,16 +414,26 @@ export default function EstoqueVirtual() {
                           </Tooltip>
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNum(p.reservado)}</TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {aguardando === 0 ? (
-                          <span className="text-muted-foreground">—</span>
+                        {aguardando > 0 ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">
+                                {formatNum(p.reservado)}
+                                <span className={cn("ml-1 text-xs", alarme ? "text-destructive" : "text-info")}>
+                                  ({formatNum(aguardando)})
+                                </span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {formatNum(aguardando)} unidades reservadas aguardando o produto chegar.
+                            </TooltipContent>
+                          </Tooltip>
                         ) : (
-                          <span className={cn("font-medium", alarme ? "text-destructive" : "text-info")}>
-                            {formatNum(aguardando)}
-                          </span>
+                          formatNum(p.reservado)
                         )}
                       </TableCell>
+
                       <TableCell className={cn(
                         "text-right tabular-nums font-medium",
                         disponivel < 0 && "text-destructive",
@@ -449,20 +461,24 @@ export default function EstoqueVirtual() {
                       </TableCell>
                       <TableCell className="text-xs">
                         {p.pedido_importacao ? (
-                          <div className="leading-tight">
-                            <div className="font-medium">{p.pedido_importacao}</div>
-                            {eta ? (
-                              <div className="text-muted-foreground">ETA {eta}</div>
-                            ) : (
-                              <div className="text-muted-foreground">
-                                {p.status_importacao ?? "—"} · sem data de ETA
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="cursor-help leading-tight max-w-[170px]">
+                                <div className="font-medium truncate">{p.pedido_importacao}</div>
+                                <div className="text-muted-foreground truncate">
+                                  {eta ? `ETA ${eta}` : (p.status_importacao ?? "sem previsão")}
+                                </div>
                               </div>
-                            )}
-                          </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {p.pedido_importacao} · {eta ? `ETA ${eta}` : `${p.status_importacao ?? "situação não informada"} · sem data de ETA`}
+                            </TooltipContent>
+                          </Tooltip>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
+
                       <TableCell className="text-right text-xs">
                         <Tooltip>
                           <TooltipTrigger asChild>

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
+
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -104,9 +106,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, pedido }: Props) {
       setQtds({});
       setConds({});
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error(msg);
+      toast.error(formatError(e));
     }
+
   }
 
   return (

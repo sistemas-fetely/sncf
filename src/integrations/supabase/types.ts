@@ -31148,6 +31148,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_brl: { Args: { p_valor: number }; Returns: string }
       fn_calcular_meta_entrega: {
         Args: { p_pedido_id: string }
         Returns: string
@@ -31318,6 +31319,10 @@ export type Database = {
       fn_reembolso_proximo_numero: {
         Args: { p_data_recebimento: string }
         Returns: string
+      }
+      fn_reembolso_validar: {
+        Args: { p_solicitacao_id: string }
+        Returns: number
       }
       fn_reescalar_condicao_aprovada: {
         Args: { p_condicao: Json; p_valor_alvo: number }
