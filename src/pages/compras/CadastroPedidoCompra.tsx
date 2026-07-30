@@ -349,6 +349,17 @@ export default function CadastroPedidoCompra() {
   const [textoLinhas, setTextoLinhas] = useState("");
   const [conferencia, setConferencia] = useState<ConferenciaResult | null>(null);
   const [destinoServico, setDestinoServico] = useState<Record<string, string>>({}); // codigo -> sku destino
+  const [importOpen, setImportOpen] = useState(false);
+  const [editarId, setEditarId] = useState<number | null>(null);
+
+  const baixarTemplate = async () => {
+    try {
+      await gerarTemplatePedidoMercadoria();
+    } catch (e) {
+      toast.error(`Falha ao gerar o template: ${formatError(e)}`);
+    }
+  };
+
 
   const modalidadeSel = modalidadesQ.data?.find((m) => m.codigo === header.modalidade);
   const exigeImport = modalidadeSel?.exige_dados_importacao ?? false;
