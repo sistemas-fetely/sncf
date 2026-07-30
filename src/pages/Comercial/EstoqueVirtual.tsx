@@ -15,49 +15,55 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SortableTableHead, type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search } from "lucide-react";
+import {
+  AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  classeStatusVenda, rotuloStatusVenda, STATUS_VENDA_ORDEM,
+} from "@/lib/estoque/status-venda";
+import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
 
-interface EstoqueSku {
+interface EstoqueRede {
   sku: string;
   nome_comercial: string | null;
   ativo: boolean;
+  fiscal_vendavel: number | null;
+  bloqueado: number | null;
+  fisico: number | null;
+  furo: number | null;
+  reservado: number | null;
+  reservado_aguardando_produto: number | null;
+  disponivel: number | null;
+  em_showroom: number | null;
+  nao_contabil: number | null;
   tem_razao: boolean;
-  estoque_base: number;
-  estoque_sadio: number;
-  estoque_bloqueado: number;
-  estoque_contabil: number | null;
-  reservado: number;
-  estoque_virtual: number;
-  estoque_minimo: number;
-  status_venda: "disponivel" | "baixo" | "indisponivel" | "pre_venda";
-  reservado_aguardando_produto: number;
+  estoque_minimo: number | null;
+  referencia_bling: number | null;
+  delta_bling: number | null;
+  status_venda: string;
+  contagem_em: string | null;
+  dias_desde_contagem: number | null;
+  pedido_importacao: string | null;
+  eta_prevista: string | null;
+  status_importacao: string | null;
 }
+
+const COLS =
+  "sku,nome_comercial,ativo,fiscal_vendavel,bloqueado,fisico,furo,reservado,reservado_aguardando_produto,disponivel,em_showroom,nao_contabil,tem_razao,estoque_minimo,referencia_bling,delta_bling,status_venda,contagem_em,dias_desde_contagem,pedido_importacao,eta_prevista,status_importacao";
 
 type Col =
   | "sku"
   | "nome"
-  | "sadio"
+  | "vendavel"
   | "bloqueado"
-  | "aguardando"
   | "reservado"
-  | "virtual"
+  | "aguardando"
+  | "disponivel"
+  | "showroom"
+  | "chegada"
+  | "bling"
   | "status";
-
-const STATUS_LABEL: Record<string, string> = {
-  disponivel: "Disponível",
-  baixo: "Baixo",
-  indisponivel: "Indisponível",
-  pre_venda: "Pré-venda",
-};
-
-const STATUS_CLASS: Record<string, string> = {
-  disponivel: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-  baixo: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
-  indisponivel: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
-  pre_venda: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
-};
-
 
 const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
@@ -78,8 +84,14 @@ function buildPageRange(current: number, total: number): (number | "…")[] {
 }
 
 function formatNum(n: number | null | undefined) {
+  return new Intl.NumberFormat("pt-BR").format(Number(n ?? 0));
+}
+
+function formatDelta(n: number | null | undefined) {
   const v = Number(n ?? 0);
-  return new Intl.NumberFormat("pt-BR").format(v);
+  const s = new Intl.NumberFormat("pt-BR").format(Math.abs(v));
+  if (v === 0) return "0";
+  return `${v > 0 ? "+" : "−"}${s}`;
 }
 
 function adaptiveValueClass(text: string): string {
@@ -89,24 +101,20 @@ function adaptiveValueClass(text: string): string {
   return "text-lg";
 }
 
-
-function formatHora(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleString("pt-BR", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
+function formatData(iso: string | null | undefined) {
+  if (!iso) return null;
+  const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("pt-BR");
 }
 
 export default function EstoqueVirtual() {
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
-  const [fonteFiltro, setFonteFiltro] = useState<string>("todas");
   const [condicaoFiltro, setCondicaoFiltro] = useState<string>("todos");
+  const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
   const [sort, setSort] = useState<SortState<Col> | null>({
-    column: "virtual",
+    column: "disponivel",
     direction: "asc",
   });
   const [pagina, setPagina] = useState(1);
@@ -130,109 +138,94 @@ export default function EstoqueVirtual() {
   }, []);
 
   const produtosQuery = useQuery({
-    queryKey: ["vw_estoque"],
-    queryFn: async (): Promise<EstoqueSku[]> => {
+    queryKey: ["vw_estoque_rede"],
+    queryFn: async (): Promise<EstoqueRede[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
-        .from("vw_estoque")
-        .select("sku,nome_comercial,ativo,tem_razao,estoque_base,estoque_sadio,estoque_bloqueado,estoque_contabil,reservado,estoque_virtual,estoque_minimo,status_venda,reservado_aguardando_produto")
+        .from("vw_estoque_rede")
+        .select(COLS)
         .limit(5000);
       if (error) throw error;
-      return (data ?? []) as EstoqueSku[];
-    },
-  });
-
-  const syncQuery = useQuery({
-    queryKey: ["sync-cursor-bling-estoque"],
-    queryFn: async (): Promise<string | null> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("integracoes_sync_cursor")
-        .select("updated_at")
-        .eq("sistema", "bling")
-        .in("entidade", ["produtos", "estoques"])
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) return null;
-      return data?.updated_at ?? null;
+      return (data ?? []) as EstoqueRede[];
     },
   });
 
   const lista = produtosQuery.data ?? [];
 
   const resumo = useMemo(() => {
-    let comRazao = 0;
-    let semRazao = 0;
+    let semLastroSkus = 0;
+    let semLastroUn = 0;
     let preVenda = 0;
     let unAguardando = 0;
+    let aChegar = 0;
+    let semPrevisao = 0;
     let indisponivel = 0;
     let bloqueadoUn = 0;
     let bloqueadoSkus = 0;
+    let showroomUn = 0;
     for (const p of lista) {
-      if (p.tem_razao) comRazao++;
-      else semRazao++;
+      if (p.status_venda === "vendido_sem_lastro") {
+        semLastroSkus++;
+        semLastroUn += Number(p.reservado_aguardando_produto ?? 0) || Number(p.reservado ?? 0);
+      }
       if (p.status_venda === "pre_venda") {
         preVenda++;
         unAguardando += Number(p.reservado_aguardando_produto ?? 0);
       }
+      if (p.status_venda === "a_chegar") aChegar++;
+      if (p.status_venda === "sem_previsao") semPrevisao++;
       if (p.status_venda === "indisponivel") indisponivel++;
-      const bloq = Number(p.estoque_bloqueado ?? 0);
+      const bloq = Number(p.bloqueado ?? 0);
       if (bloq > 0) {
         bloqueadoUn += bloq;
         bloqueadoSkus++;
       }
+      showroomUn += Number(p.em_showroom ?? 0);
     }
-    return { comRazao, semRazao, preVenda, unAguardando, indisponivel, bloqueadoUn, bloqueadoSkus };
+    return {
+      semLastroSkus, semLastroUn, preVenda, unAguardando, aChegar,
+      semPrevisao, indisponivel, bloqueadoUn, bloqueadoSkus, showroomUn,
+    };
   }, [lista]);
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     const base = lista.filter((p) => {
       if (statusFiltro !== "todos" && p.status_venda !== statusFiltro) return false;
-      if (fonteFiltro === "razao" && !p.tem_razao) return false;
-      if (fonteFiltro === "bling" && p.tem_razao) return false;
-      const bloq = Number(p.estoque_bloqueado ?? 0);
+      const bloq = Number(p.bloqueado ?? 0);
       if (condicaoFiltro === "com_bloqueio" && !(bloq > 0)) return false;
-      if (condicaoFiltro === "sadio_confirmado" && !(p.tem_razao && bloq === 0)) return false;
-      if (condicaoFiltro === "desconhecido" && p.tem_razao) return false;
+      if (condicaoFiltro === "com_showroom" && !(Number(p.em_showroom ?? 0) > 0)) return false;
+      if (condicaoFiltro === "com_delta_bling" && Number(p.delta_bling ?? 0) === 0) return false;
       if (!q) return true;
       return (
         p.sku?.toLowerCase().includes(q) ||
         p.nome_comercial?.toLowerCase().includes(q)
       );
     });
-    return ordenarPor<EstoqueSku, Col>(base, sort, {
+    return ordenarPor<EstoqueRede, Col>(base, sort, {
       sku: (p) => p.sku,
       nome: (p) => p.nome_comercial ?? "",
-      sadio: (p) => Number(p.estoque_base ?? 0),
-      bloqueado: (p) => Number(p.estoque_bloqueado ?? 0),
-      aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
+      vendavel: (p) => Number(p.fiscal_vendavel ?? 0),
+      bloqueado: (p) => Number(p.bloqueado ?? 0),
       reservado: (p) => Number(p.reservado ?? 0),
-      virtual: (p) => Number(p.estoque_virtual ?? 0),
-      status: (p) => p.status_venda,
+      aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
+      disponivel: (p) => Number(p.disponivel ?? 0),
+      showroom: (p) => Number(p.em_showroom ?? 0),
+      chegada: (p) => p.eta_prevista ?? "",
+      bling: (p) => Number(p.delta_bling ?? 0),
+      status: (p) => STATUS_VENDA_ORDEM.indexOf(p.status_venda as never),
     });
-  }, [lista, busca, statusFiltro, fonteFiltro, condicaoFiltro, sort]);
+  }, [lista, busca, statusFiltro, condicaoFiltro, sort]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const pageItems = filtrados.slice(
-    (paginaAtual - 1) * pageSize,
-    paginaAtual * pageSize,
-  );
+  const pageItems = filtrados.slice((paginaAtual - 1) * pageSize, paginaAtual * pageSize);
   const inicioRange = filtrados.length === 0 ? 0 : (paginaAtual - 1) * pageSize + 1;
   const fimRange = Math.min(paginaAtual * pageSize, filtrados.length);
   const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
-  function handleAtualizar() {
-    produtosQuery.refetch();
-    syncQuery.refetch();
-  }
-
-  const bloqueadoDisplay = `${formatNum(resumo.bloqueadoUn)} un`;
-
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <div className="max-w-[1500px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -242,53 +235,76 @@ export default function EstoqueVirtual() {
           { label: "Geral" },
         ]}
         title="Estoque Geral"
-        subtitle={`Sadio, bloqueado e comprometido. Saldo Bling sincronizado em: ${formatHora(syncQuery.data)}`}
+        subtitle="Rede consolidada pelo razão do SNCF (SKU × centro × condição). O Bling é apenas referência."
         actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAtualizar}
-              disabled={produtosQuery.isFetching}
-              className="gap-2"
-            >
-              <RefreshCw className={cn("h-4 w-4", produtosQuery.isFetching && "animate-spin")} />
-              Atualizar
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => produtosQuery.refetch()}
+            disabled={produtosQuery.isFetching}
+            className="gap-2"
+          >
+            <RefreshCw className={cn("h-4 w-4", produtosQuery.isFetching && "animate-spin")} />
+            Atualizar
+          </Button>
         }
       />
 
+      {resumo.semLastroSkus > 0 && (
+        <button
+          type="button"
+          onClick={() => { setStatusFiltro("vendido_sem_lastro"); setPagina(1); }}
+          className="w-full text-left mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 flex items-start gap-3 hover:bg-destructive/15 transition-colors"
+        >
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div>
+            <div className="font-semibold text-destructive">
+              {formatNum(resumo.semLastroSkus)} SKUs vendidos sem lastro
+            </div>
+            <div className="text-xs text-destructive/90">
+              {formatNum(resumo.semLastroUn)} unidades comprometidas com clientes e nenhum pedido de importação para cobrir. Clique para filtrar.
+            </div>
+          </div>
+        </button>
+      )}
+
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4 text-sm">
         <StatPill
-          label="Com razão SNCF"
-          value={formatNum(resumo.comRazao)}
-          dotClass="bg-emerald-500"
+          label="Vendido sem lastro"
+          value={formatNum(resumo.semLastroSkus)}
+          dotClass="bg-destructive"
+          valueClassName="text-destructive"
+          sublabel={`${formatNum(resumo.semLastroUn)} un prometidas`}
         />
         <StatPill
-          label="No saldo Bling"
-          value={formatNum(resumo.semRazao)}
-          dotClass="bg-amber-500"
-        />
-        <StatPill
-          label="Bloqueado"
-          value={bloqueadoDisplay}
-          dotClass="bg-red-500"
-          valueClassName="text-red-600 dark:text-red-400"
-          sublabel={`${formatNum(resumo.bloqueadoSkus)} SKUs`}
+          label="A chegar"
+          value={formatNum(resumo.aChegar)}
+          dotClass="bg-info"
+          sublabel={`${formatNum(resumo.semPrevisao)} sem previsão`}
         />
         <StatPill
           label="Pré-venda"
           value={formatNum(resumo.preVenda)}
-          dotClass="bg-blue-500"
-          valueClassName="text-blue-600 dark:text-blue-400"
+          dotClass="bg-info"
           sublabel={`${formatNum(resumo.unAguardando)} un aguardando`}
+        />
+        <StatPill
+          label="Não vendável"
+          value={`${formatNum(resumo.bloqueadoUn)} un`}
+          dotClass="bg-warning"
+          valueClassName="text-warning"
+          sublabel={`${formatNum(resumo.bloqueadoSkus)} SKUs`}
+        />
+        <StatPill
+          label="Show Room SP"
+          value={`${formatNum(resumo.showroomUn)} un`}
+          dotClass="bg-muted-foreground"
+          sublabel="fora do disponível"
         />
         <StatPill
           label="Indisponível"
           value={formatNum(resumo.indisponivel)}
-          dotClass="bg-red-500"
-          valueClassName="text-red-600 dark:text-red-400"
+          dotClass="bg-muted-foreground"
         />
       </div>
 
@@ -303,36 +319,25 @@ export default function EstoqueVirtual() {
           />
         </div>
         <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={statusFiltro !== "todos"} className="w-[200px]">
+          <FilterSelectTrigger active={statusFiltro !== "todos"} className="w-[210px]">
             <SelectValue />
           </FilterSelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os status</SelectItem>
-            <SelectItem value="disponivel">Disponível</SelectItem>
-            <SelectItem value="baixo">Baixo</SelectItem>
-            <SelectItem value="pre_venda">Pré-venda</SelectItem>
-            <SelectItem value="indisponivel">Indisponível</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={fonteFiltro} onValueChange={(v) => { setFonteFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={fonteFiltro !== "todas"} className="w-[200px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as fontes</SelectItem>
-            <SelectItem value="razao">Razão SNCF</SelectItem>
-            <SelectItem value="bling">Saldo Bling</SelectItem>
+            {STATUS_VENDA_ORDEM.map((s) => (
+              <SelectItem key={s} value={s}>{rotuloStatusVenda(s)}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={condicaoFiltro} onValueChange={(v) => { setCondicaoFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={condicaoFiltro !== "todos"} className="w-[200px]">
+          <FilterSelectTrigger active={condicaoFiltro !== "todos"} className="w-[220px]">
             <SelectValue />
           </FilterSelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todas as condições</SelectItem>
-            <SelectItem value="com_bloqueio">Com bloqueio</SelectItem>
-            <SelectItem value="sadio_confirmado">Sadio confirmado</SelectItem>
-            <SelectItem value="desconhecido">Condição desconhecida</SelectItem>
+            <SelectItem value="todos">Todas as posições</SelectItem>
+            <SelectItem value="com_bloqueio">Com não vendável</SelectItem>
+            <SelectItem value="com_showroom">Com Show Room</SelectItem>
+            <SelectItem value="com_delta_bling">Divergente do Bling</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground ml-auto">
@@ -340,125 +345,69 @@ export default function EstoqueVirtual() {
         </span>
       </div>
 
-      <div ref={tableWrapperRef} className="rounded-md border bg-card">
+      <div ref={tableWrapperRef} className="rounded-md border bg-card overflow-x-auto">
         <TooltipProvider delayDuration={200}>
           <Table>
             <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
               <TableRow>
-                <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[120px]">
-                  SKU
-                </SortableTableHead>
-                <SortableTableHead column="nome" sort={sort} onSort={setSort}>
-                  Produto
-                </SortableTableHead>
-                <TableHead className="w-[130px]">Fonte</TableHead>
-                <SortableTableHead column="sadio" sort={sort} onSort={setSort} align="right" className="w-[110px]">
-                  Sadio / Base
-                </SortableTableHead>
-                <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[110px]">
-                  Bloqueado
-                </SortableTableHead>
-                <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[100px]">
-                  Reservado
-                </SortableTableHead>
-                <SortableTableHead column="aguardando" sort={sort} onSort={setSort} align="right" className="w-[150px]">
-                  Aguardando produto
-                </SortableTableHead>
-                <SortableTableHead column="virtual" sort={sort} onSort={setSort} align="right" className="w-[100px]">
-                  Virtual
-                </SortableTableHead>
-                <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[140px]">
-                  Status
-                </SortableTableHead>
+                <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[110px]">SKU</SortableTableHead>
+                <SortableTableHead column="nome" sort={sort} onSort={setSort}>Produto</SortableTableHead>
+                <SortableTableHead column="vendavel" sort={sort} onSort={setSort} align="right" className="w-[100px]">Vendável</SortableTableHead>
+                <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[110px]">Não vendável</SortableTableHead>
+                <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Reservado</SortableTableHead>
+                <SortableTableHead column="aguardando" sort={sort} onSort={setSort} align="right" className="w-[130px]">Aguardando</SortableTableHead>
+                <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[105px]">Disponível</SortableTableHead>
+                <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[100px]">Show Room</SortableTableHead>
+                <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[150px]">Status</SortableTableHead>
+                <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[190px]">Chegada</SortableTableHead>
+                <SortableTableHead column="bling" sort={sort} onSort={setSort} align="right" className="w-[130px]">Ref. Bling</SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
-                    Carregando…
-                  </TableCell>
+                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
-                    Nenhum produto encontrado.
-                  </TableCell>
+                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((p) => {
-                  const virtual = Number(p.estoque_virtual ?? 0);
-                  const sadio = Number(p.estoque_base ?? 0);
-                  const bloqueado = Number(p.estoque_bloqueado ?? 0);
+                  const alarme = p.status_venda === "vendido_sem_lastro";
+                  const bloqueado = Number(p.bloqueado ?? 0);
                   const aguardando = Number(p.reservado_aguardando_produto ?? 0);
-                  const statusBadge = (
-                    <Badge variant="outline" className={cn("font-normal", STATUS_CLASS[p.status_venda])}>
-                      {STATUS_LABEL[p.status_venda] ?? p.status_venda}
-                    </Badge>
-                  );
+                  const showroom = Number(p.em_showroom ?? 0);
+                  const disponivel = Number(p.disponivel ?? 0);
+                  const delta = Number(p.delta_bling ?? 0);
+                  const eta = formatData(p.eta_prevista);
                   return (
-                    <TableRow key={p.sku}>
+                    <TableRow
+                      key={p.sku}
+                      className={cn(
+                        "cursor-pointer",
+                        alarme && "bg-destructive/5 hover:bg-destructive/10",
+                      )}
+                      onClick={() => setDetalhe({ sku: p.sku, nome: p.nome_comercial })}
+                    >
                       <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                      <TableCell className="font-medium">{p.nome_comercial ?? "—"}</TableCell>
-                      <TableCell>
-                        {p.tem_razao ? (
-                          <Badge
-                            variant="outline"
-                            className="font-normal bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
-                          >
-                            Razão SNCF
-                          </Badge>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                className="font-normal bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 cursor-help"
-                              >
-                                Saldo Bling
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              SKU ainda não onboardado por contagem XPM — número vem do Bling, não do razão do SNCF.
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
+                      <TableCell className="font-medium">
+                        <span className="flex items-center gap-2">
+                          {alarme && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                          {p.nome_comercial ?? "—"}
+                        </span>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="cursor-help">{formatNum(sadio)}</span>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs text-xs">
-                            {p.tem_razao
-                              ? "Estoque sadio pelo razão do SNCF. Exclui não conforme, avariado e quarentena."
-                              : "Saldo vindo do Bling. O Bling não distingue condição, então não há garantia de que tudo esteja sadio — este SKU ainda não foi onboardado por contagem física."}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{formatNum(p.fiscal_vendavel)}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {bloqueado === 0 ? (
-                          p.tem_razao ? (
-                            <span className="text-muted-foreground">—</span>
-                          ) : (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="italic text-muted-foreground cursor-help">n/d</span>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs text-xs">
-                                Sem razão no SNCF — condição do estoque desconhecida.
-                              </TooltipContent>
-                            </Tooltip>
-                          )
+                          <span className="text-muted-foreground">—</span>
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="font-medium text-red-600 dark:text-red-400 cursor-help">
-                                {formatNum(bloqueado)}
-                              </span>
+                              <span className="cursor-help text-warning font-medium">{formatNum(bloqueado)}</span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              {formatNum(bloqueado)} unidades fora do vendável — não conforme, avariado ou em quarentena. Não podem ser reservadas nem vendidas.
+                              Posição em condição não vendável (avaria, quarentena, não conforme). O furo dessas condições é esperado por desenho — não é divergência a investigar.
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -468,44 +417,72 @@ export default function EstoqueVirtual() {
                         {aguardando === 0 ? (
                           <span className="text-muted-foreground">—</span>
                         ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="font-medium text-amber-600 dark:text-amber-400 cursor-help">
-                                {formatNum(aguardando)}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              {formatNum(aguardando)} unidades vendidas aguardando o produto chegar. Acompanhe em Triagem de Estoque.
-                            </TooltipContent>
-                          </Tooltip>
+                          <span className={cn("font-medium", alarme ? "text-destructive" : "text-info")}>
+                            {formatNum(aguardando)}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className={cn(
                         "text-right tabular-nums font-medium",
-                        virtual < 0 && "text-red-600 dark:text-red-400",
+                        disponivel < 0 && "text-destructive",
                       )}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="cursor-help">{formatNum(virtual)}</span>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs text-xs">
-                            Sadio menos reservado. Estoque bloqueado não entra.
-                          </TooltipContent>
-                        </Tooltip>
+                        {formatNum(disponivel)}
                       </TableCell>
-                      <TableCell>
-                        {p.status_venda === "pre_venda" ? (
+                      <TableCell className="text-right tabular-nums">
+                        {showroom === 0 ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="cursor-help">{statusBadge}</span>
+                              <span className="cursor-help text-muted-foreground">{formatNum(showroom)}</span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              Vendido e ainda não recebido. Não é ruptura — é carteira aguardando mercadoria.
+                              Posição no Show Room de SP. Controle interno — não é vendável e não entra no disponível.
                             </TooltipContent>
                           </Tooltip>
-                        ) : (
-                          statusBadge
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn("font-normal", classeStatusVenda(p.status_venda))}>
+                          {rotuloStatusVenda(p.status_venda)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {p.pedido_importacao ? (
+                          <div className="leading-tight">
+                            <div className="font-medium">{p.pedido_importacao}</div>
+                            {eta ? (
+                              <div className="text-muted-foreground">ETA {eta}</div>
+                            ) : (
+                              <div className="text-muted-foreground">
+                                {p.status_importacao ?? "—"} · sem data de ETA
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-xs">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="cursor-help leading-tight">
+                              <div className="tabular-nums text-muted-foreground">
+                                {p.referencia_bling === null || p.referencia_bling === undefined
+                                  ? "—"
+                                  : formatNum(p.referencia_bling)}
+                              </div>
+                              {delta !== 0 && (
+                                <div className="tabular-nums text-muted-foreground">
+                                  Δ {formatDelta(delta)}
+                                </div>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            Saldo do Bling apenas como referência de conferência. Não é fonte de verdade e não influencia status nem disponibilidade.
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   );
@@ -549,24 +526,10 @@ export default function EstoqueVirtual() {
 
         {totalPaginas > 1 && (
           <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={paginaAtual <= 1}
-              onClick={() => setPagina(1)}
-              aria-label="Primeira página"
-            >
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual <= 1} onClick={() => setPagina(1)} aria-label="Primeira página">
               <ChevronsLeft className="h-4 w-4" />
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={paginaAtual <= 1}
-              onClick={() => setPagina((p) => Math.max(1, p - 1))}
-              aria-label="Página anterior"
-            >
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual <= 1} onClick={() => setPagina((p) => Math.max(1, p - 1))} aria-label="Página anterior">
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
@@ -578,10 +541,7 @@ export default function EstoqueVirtual() {
                   key={p}
                   variant={p === paginaAtual ? "default" : "outline"}
                   size="sm"
-                  className={cn(
-                    "h-8 min-w-8 px-2 tabular-nums",
-                    p === paginaAtual && "pointer-events-none",
-                  )}
+                  className={cn("h-8 min-w-8 px-2 tabular-nums", p === paginaAtual && "pointer-events-none")}
                   onClick={() => setPagina(p)}
                   aria-current={p === paginaAtual ? "page" : undefined}
                 >
@@ -590,29 +550,21 @@ export default function EstoqueVirtual() {
               ),
             )}
 
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={paginaAtual >= totalPaginas}
-              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-              aria-label="Próxima página"
-            >
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual >= totalPaginas} onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))} aria-label="Próxima página">
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={paginaAtual >= totalPaginas}
-              onClick={() => setPagina(totalPaginas)}
-              aria-label="Última página"
-            >
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual >= totalPaginas} onClick={() => setPagina(totalPaginas)} aria-label="Última página">
               <ChevronsRight className="h-4 w-4" />
             </Button>
           </div>
         )}
       </div>
+
+      <DetalheEstoqueSkuSheet
+        sku={detalhe?.sku ?? null}
+        nome={detalhe?.nome ?? null}
+        onClose={() => setDetalhe(null)}
+      />
     </div>
   );
 }
@@ -640,9 +592,7 @@ function StatPill({
             {value}
           </span>
         </div>
-        {sublabel && (
-          <span className="text-[10px] text-muted-foreground">{sublabel}</span>
-        )}
+        {sublabel && <span className="text-[10px] text-muted-foreground">{sublabel}</span>}
       </div>
     </div>
   );
