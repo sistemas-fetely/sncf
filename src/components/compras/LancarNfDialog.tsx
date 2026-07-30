@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LancarNfXmlTab from "@/components/compras/LancarNfXmlTab";
+import LancarNfArquivoTab from "@/components/compras/LancarNfArquivoTab";
+
 import { parsearNumero, VERDE } from "@/lib/compras/lancamento-utils";
 
 interface PreviaNf {
