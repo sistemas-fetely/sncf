@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2, AlertTriangle, CheckCircle2, Link2, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { formatError } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -313,7 +314,7 @@ export default function CadastroPedidoCompra() {
       const { data, error } = await (supabase as any)
         .from("importacao_pedido")
         .select(
-          "id, numero_pedido, modalidade, moeda, data_pedido, centro_id, status_id, fornecedor_id, cbm_total, total_conteineres",
+          "id, numero_pedido, modalidade, moeda, data_pedido, centro_id, status_id, fornecedor_id, cbm_total, total_conteineres, rocabella_ref, etd, eta",
         );
       if (error) throw error;
       return (data ?? []) as Array<{
@@ -327,6 +328,9 @@ export default function CadastroPedidoCompra() {
         fornecedor_id: string | null;
         cbm_total: number | null;
         total_conteineres: number | null;
+        rocabella_ref: string | null;
+        etd: string | null;
+        eta: string | null;
       }>;
     },
   });
@@ -336,23 +340,24 @@ export default function CadastroPedidoCompra() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("importacao_linha")
-        .select("importacao_pedido_id, qtd, preco_unitario");
+        .select("importacao_pedido_id, qtd_kits, custo_total");
       if (error) throw error;
       const rows = (data ?? []) as Array<{
         importacao_pedido_id: number;
-        qtd: number | null;
-        preco_unitario: number | null;
+        qtd_kits: number | null;
+        custo_total: number | null;
       }>;
       const map = new Map<number, { linhas: number; custo: number }>();
       for (const r of rows) {
         const cur = map.get(r.importacao_pedido_id) ?? { linhas: 0, custo: 0 };
         cur.linhas += 1;
-        cur.custo += Number(r.qtd ?? 0) * Number(r.preco_unitario ?? 0);
+        cur.custo += Number(r.custo_total ?? 0);
         map.set(r.importacao_pedido_id, cur);
       }
       return map;
     },
   });
+
 
   // ---------------- Estado do formulário ----------------
   const [header, setHeader] = useState<HeaderForm>(EMPTY_HEADER);
@@ -532,19 +537,41 @@ export default function CadastroPedidoCompra() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
             </div>
+          ) : pedidosQ.isError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 space-y-3">
+              <div className="text-sm font-medium text-destructive">
+                Falha ao carregar os pedidos existentes.
+              </div>
+              <div className="text-xs text-destructive/90 break-words">
+                {formatError(pedidosQ.error)}
+              </div>
+              <Button size="sm" variant="outline" onClick={() => pedidosQ.refetch()}>
+                Tentar de novo
+              </Button>
+            </div>
           ) : pedidosOrdenados.length === 0 ? (
             <div className="text-sm text-muted-foreground">Nenhum pedido cadastrado.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="space-y-3">
+              {linhasCountQ.isError && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive break-words">
+                  Não foi possível carregar os totais de linhas e custo.{" "}
+                  {formatError(linhasCountQ.error)}
+                </div>
+              )}
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Número</TableHead>
+                    <TableHead>Ref.</TableHead>
                     <TableHead>Modalidade</TableHead>
                     <TableHead>Fornecedor</TableHead>
                     <TableHead>Centro</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Data</TableHead>
+                    <TableHead>ETD</TableHead>
+                    <TableHead>ETA</TableHead>
                     <TableHead className="text-right">Linhas</TableHead>
                     <TableHead className="text-right">Custo total</TableHead>
                   </TableRow>
@@ -555,9 +582,11 @@ export default function CadastroPedidoCompra() {
                     const centro = p.centro_id ? centrosById.get(p.centro_id) : null;
                     const st = p.status_id ? statusById.get(p.status_id) : null;
                     const agg = linhasCountQ.data?.get(p.id);
+                    const semTotais = linhasCountQ.isError;
                     return (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{p.numero_pedido}</TableCell>
+                        <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
                         <TableCell>{p.modalidade ?? "—"}</TableCell>
                         <TableCell>
                           {forn ? forn.nome_fantasia || forn.razao_social : "—"}
@@ -565,17 +594,23 @@ export default function CadastroPedidoCompra() {
                         <TableCell>{centro ? centro.codigo : "—"}</TableCell>
                         <TableCell>{st ? st.codigo : "—"}</TableCell>
                         <TableCell>{fmtDate(p.data_pedido)}</TableCell>
-                        <TableCell className="text-right">{agg?.linhas ?? 0}</TableCell>
+                        <TableCell>{fmtDate(p.etd)}</TableCell>
+                        <TableCell>{fmtDate(p.eta)}</TableCell>
                         <TableCell className="text-right">
-                          {fmtBRL(agg?.custo ?? 0, p.moeda ?? "BRL")}
+                          {semTotais ? "—" : agg?.linhas ?? 0}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {semTotais ? "—" : fmtBRL(agg?.custo ?? 0, p.moeda ?? "BRL")}
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
+
         </CardContent>
       </Card>
 

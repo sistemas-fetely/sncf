@@ -18,6 +18,7 @@ import {
   PackageCheck,
   Loader2,
   Download,
+  Boxes,
 } from "lucide-react";
 import { gerarTemplateItens } from "@/lib/compras/templateItens";
 import { useAuth } from "@/contexts/AuthContext";
@@ -188,6 +189,13 @@ export default function Compras() {
               Fila do Comprador
             </Link>
           )}
+          <Link
+            to="/compras/mercadoria"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Boxes className="h-4 w-4" />
+            Compras de Mercadoria
+          </Link>
         </div>
       </div>
 
