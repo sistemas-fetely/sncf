@@ -104,9 +104,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, pedido }: Props) {
       setQtds({});
       setConds({});
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error(msg);
+      toast.error(formatError(e));
     }
+
   }
 
   return (
