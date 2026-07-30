@@ -18,6 +18,7 @@ import {
   PackageCheck,
   Loader2,
   Download,
+  Boxes,
 } from "lucide-react";
 import { gerarTemplateItens } from "@/lib/compras/templateItens";
 import { useAuth } from "@/contexts/AuthContext";
