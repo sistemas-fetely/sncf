@@ -6,19 +6,14 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { FinancasSidebarItem } from "@/components/financas/FinancasSidebarItem";
 import { FinancasSidebarSection } from "@/components/financas/FinancasSidebarSection";
-import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
 export function VendasSidebar() {
-  const { pathname } = useLocation();
-
   const { data: qtdMsgsPendentes = 0 } = useQuery({
     queryKey: ["canal-msgs-pendentes-sidebar"],
     queryFn: async () => {
@@ -57,22 +52,17 @@ export function VendasSidebar() {
         <SidebarGroup className="pb-3">
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith("/canal-cpo")}>
-                  <Link to="/canal-cpo" className="flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Central de Mensagens</span>
-                    {qtdMsgsPendentes > 0 && (
-                      <Badge
-                        className="ml-auto text-[9px] px-1.5 py-0 h-4 border-0"
-                        style={{ backgroundColor: "#185FA5", color: "white" }}
-                      >
-                        {qtdMsgsPendentes}
-                      </Badge>
-                    )}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <FinancasSidebarItem
+                to="/canal-cpo"
+                icon={MessageCircle}
+                label="Central de Mensagens"
+                badge={qtdMsgsPendentes > 0 ? (
+                  <Badge className="text-[9px] px-1.5 py-0 h-4 border-0" style={{ backgroundColor: "#185FA5", color: "white" }}>
+                    {qtdMsgsPendentes}
+                  </Badge>
+                ) : undefined}
+              />
+
               <FinancasSidebarItem to="/vendas/gestao-pedidos" icon={TableProperties} label="Gestão de Pedidos" />
               <FinancasSidebarItem to="/pedidos" icon={ShoppingCart} label="Pedidos B2B" end />
               <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Pedidos B2C" end />
