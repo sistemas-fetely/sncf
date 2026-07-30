@@ -167,6 +167,8 @@ const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
 const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
+const RetornoDevolucao = lazy(() => import("@/pages/estoque/RetornoDevolucao"));
+
 const ConciliacaoCadastro = lazy(() => import("@/pages/acervo/ConciliacaoCadastro"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ComercialLayout = lazy(() => import("@/layouts/ComercialLayout"));
