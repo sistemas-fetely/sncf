@@ -166,7 +166,7 @@ export default function EstoqueVirtual() {
     for (const p of lista) {
       if (p.status_venda === "vendido_sem_lastro") {
         semLastroSkus++;
-        semLastroUn += Number(p.reservado_aguardando_produto ?? 0) || Number(p.reservado ?? 0);
+        semLastroUn += Number(p.reservado ?? 0);
       }
       if (p.status_venda === "pre_venda") {
         preVenda++;
