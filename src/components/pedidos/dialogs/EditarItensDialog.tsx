@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isSkuDestaque } from "@/lib/pedidoDestaque";
+import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 
 interface Item {
   sku: string | null;
@@ -35,7 +36,6 @@ interface Props {
 }
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const ESTAGIOS_PERMITIDOS = ["recebido", "em_analise_credito", "cobranca", "aguardando_pagamento", "pre_separacao"];
 
 function useProdutos(busca: string) {
   return useQuery({
@@ -56,6 +56,7 @@ function useProdutos(busca: string) {
 }
 
 export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo }: Props) {
+  const { regraDe } = usePedidoEdicaoCampo(estagioAtual);
   const [open, setOpen] = useState(false);
   const [itens, setItens] = useState<Item[]>([]);
   const [busca, setBusca] = useState("");
@@ -125,7 +126,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
 
   const totalBruto = itens.reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
 
-  if (!ESTAGIOS_PERMITIDOS.includes(estagioAtual)) return null;
+  if (!regraDe("itens")?.permitido) return null;
 
   return (
     <Dialog
