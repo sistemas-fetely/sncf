@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, AlertTriangle, CheckCircle2, Link2, ExternalLink } from "lucide-react";
@@ -264,6 +264,7 @@ function FornecedorCombobox({
 
 export default function CadastroPedidoCompra() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   // ---------------- Dimensões ----------------
   const modalidadesQ = useQuery({
@@ -445,7 +446,6 @@ export default function CadastroPedidoCompra() {
     onSuccess: (data) => {
       toast.success(`Pedido ${data.numero_pedido} gravado (${data.linhas_gravadas} linha(s)).`);
       qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
-      qc.invalidateQueries({ queryKey: ["importacao-linha-agg"] });
       setHeader(EMPTY_HEADER);
       setTextoLinhas("");
       setConferencia(null);
@@ -463,23 +463,6 @@ export default function CadastroPedidoCompra() {
     header.numero_pedido.trim().length > 0 &&
     header.modalidade.length > 0 &&
     header.fornecedor_id.length > 0;
-
-  // Mapa auxiliar
-  const parceirosById = useMemo(() => {
-    const m = new Map<string, Parceiro>();
-    for (const p of parceirosQ.data ?? []) m.set(p.id, p);
-    return m;
-  }, [parceirosQ.data]);
-  const centrosById = useMemo(() => {
-    const m = new Map<string, Centro>();
-    for (const c of centrosQ.data ?? []) m.set(c.id, c);
-    return m;
-  }, [centrosQ.data]);
-  const statusById = useMemo(() => {
-    const m = new Map<number, StatusRow>();
-    for (const s of statusQ.data ?? []) m.set(s.id, s);
-    return m;
-  }, [statusQ.data]);
 
   const pedidosOrdenados = useMemo(() => {
     const lista = [...(pedidosQ.data ?? [])];
