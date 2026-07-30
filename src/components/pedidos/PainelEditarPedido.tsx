@@ -37,9 +37,20 @@ interface Props {
 
 /* ---------------------------------------------------------------- shared */
 
-function useGuarda(regra: RegraEdicaoCampo | undefined, estagiosPermitidos: string[]) {
-  const { roles } = useAuth();
-  const papeis = (roles ?? []) as string[];
+interface Guarda {
+  permitido: boolean;
+  exigeMotivo: boolean;
+  exigePapel: string[] | null;
+  temPapel: boolean;
+  rotulo: string | null;
+  estagiosPermitidos: string[];
+}
+
+function montarGuarda(
+  regra: RegraEdicaoCampo | undefined,
+  estagiosPermitidos: string[],
+  papeis: string[],
+): Guarda {
   const exigePapel = regra?.exige_papel ?? null;
   const temPapel =
     !exigePapel || exigePapel.length === 0 || exigePapel.some((p) => papeis.includes(p));
@@ -125,7 +136,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
   pedidoId: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pedido: any;
-  guarda: ReturnType<typeof useGuarda>;
+  guarda: Guarda;
 }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -323,7 +334,7 @@ function SecaoItens({ pedidoId, pedido, itens, guarda }: {
   pedido: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   itens: any[];
-  guarda: ReturnType<typeof useGuarda>;
+  guarda: Guarda;
 }) {
   const qc = useQueryClient();
   const [linhas, setLinhas] = useState<ItemEdicao[]>(() =>
@@ -488,7 +499,7 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
   pedidoId: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pedido: any;
-  guarda: ReturnType<typeof useGuarda>;
+  guarda: Guarda;
 }) {
   const qc = useQueryClient();
   const [tipo, setTipo] = useState<"pct" | "valor">("pct");
@@ -583,9 +594,10 @@ export function PainelEditarPedido({ pedidoId, pedido, itens }: Props) {
   const estagio = pedido?.estagio as string | undefined;
   const { isLoading, isError, error, regraDe, estagiosPermitidos } = usePedidoEdicaoCampo(estagio);
 
+  const { roles } = useAuth();
+  const papeis = (roles ?? []) as string[];
   const guardaDe = (campo: CampoEdicao) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useGuarda(regraDe(campo), estagiosPermitidos(campo));
+    montarGuarda(regraDe(campo), estagiosPermitidos(campo), papeis);
 
   if (isLoading) return <Skeleton className="h-64 w-full" />;
   if (isError) {
