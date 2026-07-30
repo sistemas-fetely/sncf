@@ -382,6 +382,13 @@ export default function PedidoMercadoriaDetalhe() {
     };
   }, [linhasQ.data]);
 
+  const naoAlocadas = useMemo(
+    () => (confNfQ.data ?? []).filter((r) => r.situacao === "nao_alocado").length,
+    [confNfQ.data],
+  );
+
+
+
   const nfLinhasPor = (nfId: number) => (nfsQ.data?.linhas ?? []).filter((l) => l.nf_id === nfId);
   const invLinhasPor = (invId: number) =>
     (invoicesQ.data?.linhas ?? []).filter((l) => l.invoice_id === invId);
