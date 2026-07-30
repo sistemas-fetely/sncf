@@ -980,6 +980,11 @@ export default function PedidoMercadoriaDetalhe() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* ==================== HISTÓRICO ==================== */}
+            <TabsContent value="historico" className="mt-4">
+              <HistoricoTab pedidoId={pedidoId} />
+            </TabsContent>
           </Tabs>
 
           <LancarNfDialog
@@ -995,6 +1000,13 @@ export default function PedidoMercadoriaDetalhe() {
             fornecedorId={pedido.fornecedor_id}
             moedaPadrao={pedido.moeda}
           />
+          <EditarPedidoMercadoriaDialog
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            pedidoId={pedidoId}
+            onSaved={() => pedidoQ.refetch()}
+          />
+
         </>
       )}
     </div>
