@@ -4607,6 +4607,13 @@ export type Database = {
             foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
             columns: ["reembolsa_vinculo_id"]
             isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
+            columns: ["reembolsa_vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vw_vinculo_custo_total"
             referencedColumns: ["vinculo_id"]
           },
@@ -16085,6 +16092,13 @@ export type Database = {
             foreignKeyName: "posicoes_planejadas_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vw_vinculo_custo_total"
             referencedColumns: ["vinculo_id"]
           },
@@ -17570,6 +17584,13 @@ export type Database = {
             foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vw_vinculo_custo_total"
             referencedColumns: ["vinculo_id"]
           },
@@ -17783,6 +17804,13 @@ export type Database = {
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["vinculo_id"]
           },
           {
@@ -23037,6 +23065,13 @@ export type Database = {
             foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vw_vinculo_custo_total"
             referencedColumns: ["vinculo_id"]
           },
@@ -23136,6 +23171,13 @@ export type Database = {
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_extras_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["vinculo_id"]
           },
           {
@@ -23378,6 +23420,13 @@ export type Database = {
             referencedColumns: ["pessoa_id"]
           },
           {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
             foreignKeyName: "vinculos_parceiro_comercial_id_fkey"
             columns: ["parceiro_comercial_id"]
             isOneToOne: false
@@ -23452,6 +23501,13 @@ export type Database = {
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["pessoa_id"]
           },
           {
@@ -25235,6 +25291,13 @@ export type Database = {
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["vinculo_id"]
           },
           {
@@ -27681,14 +27744,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -27875,6 +27938,13 @@ export type Database = {
             columns: ["gestor_pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["pessoa_id"]
           },
         ]
@@ -29399,10 +29469,40 @@ export type Database = {
             foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vw_vinculo_custo_total"
             referencedColumns: ["vinculo_id"]
           },
         ]
+      }
+      vw_reembolso_saneamento: {
+        Row: {
+          cargo: string | null
+          centro_custo_codigo: string | null
+          centro_custo_nome: string | null
+          contrato_preve_reembolso: boolean | null
+          email_corporativo: string | null
+          falta_centro_custo: boolean | null
+          falta_email: boolean | null
+          falta_gestor: boolean | null
+          falta_pix: boolean | null
+          falta_previsao_contratual: boolean | null
+          gestor_nome: string | null
+          nome_completo: string | null
+          pessoa_id: string | null
+          pronto_para_reembolso: boolean | null
+          tem_login: boolean | null
+          tem_pix: boolean | null
+          tipo_vinculo: string | null
+          vinculo_id: string | null
+        }
+        Relationships: []
       }
       vw_reserva_skus_orfaos: {
         Row: {
@@ -30155,6 +30255,13 @@ export type Database = {
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["vinculo_id"]
           },
           {
@@ -31920,6 +32027,17 @@ export type Database = {
           p_comprovante_path?: string
           p_data_pagamento: string
           p_lote_id: string
+        }
+        Returns: Json
+      }
+      reembolso_sanear_vinculo: {
+        Args: {
+          p_centro_custo_id?: string
+          p_chave_pix?: string
+          p_contrato_preve_reembolso?: boolean
+          p_email_corporativo?: string
+          p_gestor_pessoa_id?: string
+          p_vinculo_id: string
         }
         Returns: Json
       }
