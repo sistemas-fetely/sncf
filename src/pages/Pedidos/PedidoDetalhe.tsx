@@ -38,6 +38,7 @@ import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialo
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
+import { PainelEditarPedido } from "@/components/pedidos/PainelEditarPedido";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
 import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
@@ -1436,6 +1437,7 @@ export default function PedidoDetalhe() {
                   </TabsTrigger>
                   <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
                   <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
+                  <TabsTrigger value="editar">Editar pedido</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="analise">
@@ -1572,6 +1574,9 @@ export default function PedidoDetalhe() {
                       </div>
                     </div>
                   )}
+                </TabsContent>
+                <TabsContent value="editar">
+                  <PainelEditarPedido pedidoId={pedido.id} pedido={pedido} itens={itens} />
                 </TabsContent>
               </Tabs>
               </CardContent>

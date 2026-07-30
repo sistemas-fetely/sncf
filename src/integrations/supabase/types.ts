@@ -14269,6 +14269,57 @@ export type Database = {
           },
         ]
       }
+      pedido_edicao_campo: {
+        Row: {
+          ativo: boolean
+          campo: string
+          estagio: string
+          exige_motivo: boolean
+          exige_papel: Database["public"]["Enums"]["app_role"][] | null
+          observacao: string | null
+          permitido: boolean
+          rotulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          campo: string
+          estagio: string
+          exige_motivo?: boolean
+          exige_papel?: Database["public"]["Enums"]["app_role"][] | null
+          observacao?: string | null
+          permitido?: boolean
+          rotulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          campo?: string
+          estagio?: string
+          exige_motivo?: boolean
+          exige_papel?: Database["public"]["Enums"]["app_role"][] | null
+          observacao?: string | null
+          permitido?: boolean
+          rotulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_edicao_campo_estagio_fk"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "sla_fase_pedido"
+            referencedColumns: ["estagio"]
+          },
+          {
+            foreignKeyName: "pedido_edicao_campo_estagio_fk"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "vw_dash_pedidos_funil"
+            referencedColumns: ["estagio"]
+          },
+        ]
+      }
       pedido_email_log: {
         Row: {
           cc: string[] | null
@@ -31573,6 +31624,14 @@ export type Database = {
         }
         Returns: Json
       }
+      alterar_pagamento_pedido: {
+        Args: {
+          p_condicao_slug: string
+          p_motivo?: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       analisar_pedido_vs_programa: {
         Args: { p_pedido_id: string }
         Returns: Json
@@ -32513,6 +32572,10 @@ export type Database = {
         Returns: number
       }
       fn_eh_comprador: { Args: { p_user_id: string }; Returns: boolean }
+      fn_exigir_edicao_permitida: {
+        Args: { p_campo: string; p_motivo?: string; p_pedido_id: string }
+        Returns: undefined
+      }
       fn_extrair_dimensoes: { Args: { p_texto: string }; Returns: number[] }
       fn_fluxo_caixa_projetado: {
         Args: { p_horizonte?: number; p_saldo_inicial?: number }
@@ -32580,6 +32643,15 @@ export type Database = {
         Returns: Json
       }
       fn_job_entregue_por_eta: { Args: never; Returns: number }
+      fn_liquido_pedido: {
+        Args: {
+          p_bonus_pix: number
+          p_bruto: number
+          p_desconto: number
+          p_frete: number
+        }
+        Returns: number
+      }
       fn_log_evento_pedido: {
         Args: {
           p_payload?: Json
@@ -32626,6 +32698,10 @@ export type Database = {
       fn_recalcular_tags_doc_cpr: {
         Args: { p_cpr_id: string }
         Returns: undefined
+      }
+      fn_recalcular_totais_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: Json
       }
       fn_recalcular_vinculo_nf_cpr: {
         Args: { p_cpr_id: string }
