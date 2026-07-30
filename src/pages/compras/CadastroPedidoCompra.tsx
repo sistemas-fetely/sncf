@@ -569,6 +569,21 @@ export default function CadastroPedidoCompra() {
                           "—"
                         )}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Editar pedido"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditarId(p.id);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>
