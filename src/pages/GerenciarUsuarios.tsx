@@ -92,6 +92,9 @@ const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   gestor_direto: "[Legado] substituído por Gestão Direta",
   recrutador: "[Legado] substituído por Recrutamento",
   comprador: "Comprador — acesso ao módulo de compras.",
+  triagem: "Triagem operacional de pedidos.",
+  coordenacao_op_fin: "Coordenação entre operação e financeiro.",
+  auditor: "Auditoria — leitura ampla para conferência.",
 };
 
 const ACTIVE_ROLES: AppRole[] = [
