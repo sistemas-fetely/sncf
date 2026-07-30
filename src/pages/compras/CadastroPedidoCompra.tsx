@@ -70,6 +70,24 @@ interface Parceiro {
   razao_social: string | null;
 }
 
+interface PedidoListaRow {
+  id: number;
+  numero_pedido: string;
+  rocabella_ref: string | null;
+  modalidade: string | null;
+  moeda: string | null;
+  data_pedido: string | null;
+  etd: string | null;
+  eta: string | null;
+  fornecedor: string | null;
+  centro: string | null;
+  status: string | null;
+  linhas: number | null;
+  kits: number | null;
+  custo_total: number | null;
+  fase_xpm: number | null;
+}
+
 interface ResolucaoRow {
   codigo: string;
   status: "ok" | "nao_mapeado" | "mapeado_inativo" | "qtd_invalida" | "ambiguo";
