@@ -313,51 +313,16 @@ export default function CadastroPedidoCompra() {
     queryKey: ["importacao-pedido-lista"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("importacao_pedido")
+        .from("vw_importacao_pedido_detalhe")
         .select(
-          "id, numero_pedido, modalidade, moeda, data_pedido, centro_id, status_id, fornecedor_id, cbm_total, total_conteineres, rocabella_ref, etd, eta",
+          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, etd, eta, fornecedor, centro, status, linhas, kits, custo_total, fase_xpm",
         );
       if (error) throw error;
-      return (data ?? []) as Array<{
-        id: number;
-        numero_pedido: string;
-        modalidade: string | null;
-        moeda: string | null;
-        data_pedido: string | null;
-        centro_id: string | null;
-        status_id: number | null;
-        fornecedor_id: string | null;
-        cbm_total: number | null;
-        total_conteineres: number | null;
-        rocabella_ref: string | null;
-        etd: string | null;
-        eta: string | null;
-      }>;
+      return (data ?? []) as PedidoListaRow[];
     },
   });
 
-  const linhasCountQ = useQuery({
-    queryKey: ["importacao-linha-agg"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("importacao_linha")
-        .select("importacao_pedido_id, qtd_kits, custo_total");
-      if (error) throw error;
-      const rows = (data ?? []) as Array<{
-        importacao_pedido_id: number;
-        qtd_kits: number | null;
-        custo_total: number | null;
-      }>;
-      const map = new Map<number, { linhas: number; custo: number }>();
-      for (const r of rows) {
-        const cur = map.get(r.importacao_pedido_id) ?? { linhas: 0, custo: 0 };
-        cur.linhas += 1;
-        cur.custo += Number(r.custo_total ?? 0);
-        map.set(r.importacao_pedido_id, cur);
-      }
-      return map;
-    },
-  });
+
 
 
   // ---------------- Estado do formulário ----------------
