@@ -536,19 +536,41 @@ export default function CadastroPedidoCompra() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
             </div>
+          ) : pedidosQ.isError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 space-y-3">
+              <div className="text-sm font-medium text-destructive">
+                Falha ao carregar os pedidos existentes.
+              </div>
+              <div className="text-xs text-destructive/90 break-words">
+                {formatError(pedidosQ.error)}
+              </div>
+              <Button size="sm" variant="outline" onClick={() => pedidosQ.refetch()}>
+                Tentar de novo
+              </Button>
+            </div>
           ) : pedidosOrdenados.length === 0 ? (
             <div className="text-sm text-muted-foreground">Nenhum pedido cadastrado.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="space-y-3">
+              {linhasCountQ.isError && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive break-words">
+                  Não foi possível carregar os totais de linhas e custo.{" "}
+                  {formatError(linhasCountQ.error)}
+                </div>
+              )}
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Número</TableHead>
+                    <TableHead>Ref.</TableHead>
                     <TableHead>Modalidade</TableHead>
                     <TableHead>Fornecedor</TableHead>
                     <TableHead>Centro</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Data</TableHead>
+                    <TableHead>ETD</TableHead>
+                    <TableHead>ETA</TableHead>
                     <TableHead className="text-right">Linhas</TableHead>
                     <TableHead className="text-right">Custo total</TableHead>
                   </TableRow>
@@ -559,9 +581,11 @@ export default function CadastroPedidoCompra() {
                     const centro = p.centro_id ? centrosById.get(p.centro_id) : null;
                     const st = p.status_id ? statusById.get(p.status_id) : null;
                     const agg = linhasCountQ.data?.get(p.id);
+                    const semTotais = linhasCountQ.isError;
                     return (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{p.numero_pedido}</TableCell>
+                        <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
                         <TableCell>{p.modalidade ?? "—"}</TableCell>
                         <TableCell>
                           {forn ? forn.nome_fantasia || forn.razao_social : "—"}
@@ -569,17 +593,23 @@ export default function CadastroPedidoCompra() {
                         <TableCell>{centro ? centro.codigo : "—"}</TableCell>
                         <TableCell>{st ? st.codigo : "—"}</TableCell>
                         <TableCell>{fmtDate(p.data_pedido)}</TableCell>
-                        <TableCell className="text-right">{agg?.linhas ?? 0}</TableCell>
+                        <TableCell>{fmtDate(p.etd)}</TableCell>
+                        <TableCell>{fmtDate(p.eta)}</TableCell>
                         <TableCell className="text-right">
-                          {fmtBRL(agg?.custo ?? 0, p.moeda ?? "BRL")}
+                          {semTotais ? "—" : agg?.linhas ?? 0}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {semTotais ? "—" : fmtBRL(agg?.custo ?? 0, p.moeda ?? "BRL")}
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
+
         </CardContent>
       </Card>
 
