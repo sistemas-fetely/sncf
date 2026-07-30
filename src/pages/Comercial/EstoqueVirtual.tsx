@@ -384,8 +384,13 @@ export default function EstoqueVirtual() {
                   const aguardando = Number(p.reservado_aguardando_produto ?? 0);
                   const showroom = Number(p.em_showroom ?? 0);
                   const disponivel = Number(p.disponivel ?? 0);
+                  const descoberto = Number(p.descoberto ?? 0);
                   const delta = Number(p.delta_bling ?? 0);
-                  const eta = formatData(p.eta_prevista);
+                  const etaTexto = formatEta(p.eta_prevista, p.eta_precisao, p.status_suprimento);
+                  const temEta = temPrevisao(p.eta_prevista, p.eta_precisao);
+                  const tudoNoShowroom =
+                    showroom > 0 && Number(p.fiscal_vendavel ?? 0) === 0 && descoberto > 0;
+
                   return (
                     <TableRow
                       key={p.sku}
