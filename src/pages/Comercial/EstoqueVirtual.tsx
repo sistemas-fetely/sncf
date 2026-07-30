@@ -299,7 +299,7 @@ export default function EstoqueVirtual() {
               {formatNum(resumo.semLastroSkus)} SKUs vendidos sem lastro
             </div>
             <div className="text-xs text-destructive/90">
-              {formatNum(resumo.semLastroUn)} unidades comprometidas com clientes e nenhum pedido de importação para cobrir. Clique para filtrar.
+              {formatNum(resumo.semLastroUn)} unidades comprometidas com clientes e nenhum pedido de suprimento — nacional ou importado — para cobrir. Clique para filtrar.
             </div>
           </div>
         </button>
@@ -314,11 +314,26 @@ export default function EstoqueVirtual() {
           sublabel={`${formatNum(resumo.semLastroUn)} un prometidas`}
         />
         <StatPill
+          label="Descoberto"
+          value={`${formatNum(resumo.descobertoUn)} un`}
+          dotClass="bg-destructive"
+          valueClassName="text-destructive"
+          sublabel={`${formatNum(resumo.descobertoSkus)} SKUs sem cobertura`}
+        />
+        <StatPill
           label="A chegar"
           value={formatNum(resumo.aChegar)}
           dotClass="bg-info"
-          sublabel={`${formatNum(resumo.semPrevisao)} sem previsão`}
+          sublabel="SKUs com pedido de suprimento"
         />
+        <StatPill
+          label="Sem previsão"
+          value={formatNum(resumo.semPrevisao)}
+          dotClass="bg-warning"
+          valueClassName="text-warning"
+          sublabel="SKUs sem pedido de suprimento"
+        />
+
         <StatPill
           label="Pré-venda"
           value={formatNum(resumo.preVenda)}
