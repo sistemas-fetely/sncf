@@ -320,13 +320,15 @@ export default function PedidoMercadoriaDetalhe() {
   });
 
   const confNfQ = useQuery({
-    queryKey: ["pedido-mercadoria-conferencia-nf", pedido?.rocabella_ref],
-    enabled: !!pedido?.rocabella_ref,
+    queryKey: ["pedido-mercadoria-conferencia-nf", pedidoId],
+    enabled: Number.isFinite(pedidoId),
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_importacao_conferencia_sku")
-        .select("rocabella_ref, sku, nome_comercial, codigo_nf, qtd_pedido, qtd_fisica, divergencia_fisica")
-        .eq("rocabella_ref", pedido!.rocabella_ref);
+        .from("vw_importacao_pedido_conferencia_nf")
+        .select(
+          "importacao_pedido_id, numero_pedido, nf_id, nf_numero, nf_linha_id, item_seq, codigo_nf, ncm, qtd_nf, valor_nf, sku, qtd_alocada, qtd_pedido, furo, situacao",
+        )
+        .eq("importacao_pedido_id", pedidoId);
       if (error) throw error;
       return (data ?? []) as ConfNf[];
     },
