@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type CampoEdicao = "pagamento" | "itens" | "desconto";
+export type CampoEdicao = "pagamento" | "itens" | "desconto" | "split";
 
 export interface RegraEdicaoCampo {
   campo: CampoEdicao;
