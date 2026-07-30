@@ -106,14 +106,8 @@ function adaptiveValueClass(text: string): string {
   return "text-lg";
 }
 
-function formatData(iso: string | null | undefined) {
-  if (!iso) return null;
-  const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("pt-BR");
-}
-
 const MESES = [
+
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
