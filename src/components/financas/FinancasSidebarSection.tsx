@@ -1,8 +1,9 @@
-import { ReactNode, useState } from "react";
+import { Children, isValidElement, ReactNode, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SidebarMenu } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useTelasVisiveis } from "@/hooks/useTelasVisiveis";
 
 interface FinancasSidebarSectionProps {
   title: string;
@@ -18,6 +19,18 @@ export function FinancasSidebarSection({
   variant = "nested",
 }: FinancasSidebarSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
+
+  // Rotas declaradas pelos filhos — se todas estiverem ocultas, a seção some.
+  const rotasDosFilhos = Children.toArray(children)
+    .map((child) =>
+      isValidElement<{ to?: string }>(child) && typeof child.props.to === "string"
+        ? child.props.to
+        : null
+    )
+    .filter((to): to is string => !!to);
+
+  const visiveis = useTelasVisiveis(rotasDosFilhos);
+  if (rotasDosFilhos.length > 0 && visiveis.size === 0) return null;
 
   const triggerClassName =
     variant === "primary"
