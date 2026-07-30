@@ -437,6 +437,14 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/pessoas/reembolsos/ciclos"
+                  element={
+                    <ProtectedRoute allowedRoles={["diretoria_executiva", "coordenacao_op_fin", "super_admin"]}>
+                      <ReembolsoCiclos />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/pessoas/novo" element={<PessoaForm />} />
                 <Route path="/pessoas/:id/editar" element={<PessoaForm />} />
                 <Route path="/colaboradores" element={
