@@ -9491,6 +9491,7 @@ export type Database = {
           criado_em: string
           data_pedido: string | null
           eta: string | null
+          eta_precisao: string
           etd: string | null
           fabrica_id: number | null
           fornecedor_id: string | null
@@ -9499,6 +9500,7 @@ export type Database = {
           moeda: string
           numero_pedido: string
           observacao: string | null
+          origem_suprimento: string
           pedido_agregado: string | null
           prazo_entrega_acordado: string | null
           qtd_kits: number | null
@@ -9518,6 +9520,7 @@ export type Database = {
           criado_em?: string
           data_pedido?: string | null
           eta?: string | null
+          eta_precisao?: string
           etd?: string | null
           fabrica_id?: number | null
           fornecedor_id?: string | null
@@ -9526,6 +9529,7 @@ export type Database = {
           moeda?: string
           numero_pedido: string
           observacao?: string | null
+          origem_suprimento?: string
           pedido_agregado?: string | null
           prazo_entrega_acordado?: string | null
           qtd_kits?: number | null
@@ -9545,6 +9549,7 @@ export type Database = {
           criado_em?: string
           data_pedido?: string | null
           eta?: string | null
+          eta_precisao?: string
           etd?: string | null
           fabrica_id?: number | null
           fornecedor_id?: string | null
@@ -9553,6 +9558,7 @@ export type Database = {
           moeda?: string
           numero_pedido?: string
           observacao?: string | null
+          origem_suprimento?: string
           pedido_agregado?: string | null
           prazo_entrega_acordado?: string | null
           qtd_kits?: number | null
@@ -26145,6 +26151,8 @@ export type Database = {
       }
       vw_devolucao_retorno_pendente: {
         Row: {
+          cliente: string | null
+          cliente_documento: string | null
           devolvido_em: string | null
           dias_esperando: number | null
           id_externo: string | null
@@ -26364,6 +26372,7 @@ export type Database = {
           centro_uf: string | null
           centro_vende: boolean | null
           contagem_em: string | null
+          descoberto: number | null
           dias_desde_contagem: number | null
           disponivel: number | null
           fiscal_bloqueado: number | null
@@ -26459,22 +26468,27 @@ export type Database = {
           bloqueado: number | null
           contagem_em: string | null
           delta_bling: number | null
+          descoberto: number | null
           dias_desde_contagem: number | null
           disponivel: number | null
           em_showroom: number | null
           estoque_minimo: number | null
+          eta_precisao: string | null
           eta_prevista: string | null
           fiscal_vendavel: number | null
           fisico: number | null
           furo: number | null
           nao_contabil: number | null
           nome_comercial: string | null
+          origem_suprimento: string | null
           pedido_importacao: string | null
+          pedido_suprimento: string | null
           referencia_bling: number | null
           reservado: number | null
           reservado_aguardando_produto: number | null
           sku: string | null
           status_importacao: string | null
+          status_suprimento: string | null
           status_venda: string | null
           tem_razao: boolean | null
         }
@@ -27667,14 +27681,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -31312,6 +31326,11 @@ export type Database = {
         Args: { p_data_aprovacao: string }
         Returns: string
       }
+      fn_reembolso_meu_vinculo: { Args: never; Returns: string }
+      fn_reembolso_papel_solicitante: {
+        Args: { p_vinculo_id: string }
+        Returns: string
+      }
       fn_reembolso_param: {
         Args: { p_chave: string; p_data: string }
         Returns: number
@@ -31882,6 +31901,28 @@ export type Database = {
         Returns: Json
       }
       reconciliar_produtos_espelho: { Args: never; Returns: number }
+      reembolso_aprovar: {
+        Args: { p_justificativa_excecao?: string; p_solicitacao_id: string }
+        Returns: Json
+      }
+      reembolso_devolver: {
+        Args: { p_motivo: string; p_solicitacao_id: string }
+        Returns: Json
+      }
+      reembolso_fechar_ciclo: { Args: { p_referencia: string }; Returns: Json }
+      reembolso_glosar_item: {
+        Args: { p_item_id: string; p_motivo: string; p_valor_aprovado: number }
+        Returns: Json
+      }
+      reembolso_reabrir: { Args: { p_solicitacao_id: string }; Returns: Json }
+      reembolso_registrar_pagamento: {
+        Args: {
+          p_comprovante_path?: string
+          p_data_pagamento: string
+          p_lote_id: string
+        }
+        Returns: Json
+      }
       registrar_acao_regua: {
         Args: {
           p_canal_efetivo?: string
