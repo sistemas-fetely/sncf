@@ -477,22 +477,8 @@ export default function CadastroPedidoCompra() {
 
   // ============================ RENDER ============================
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <Link
-            to="/compras"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Voltar para Compras
-          </Link>
-          <h1 className="text-2xl font-semibold">Cadastro de pedido de compra</h1>
-          <p className="text-sm text-muted-foreground">
-            Registra pedidos de importação e compra nacional. Códigos vêm do fornecedor e são
-            resolvidos pelo de-para. Sempre confira antes de gravar.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+
 
       {/* ============================ LISTA ============================ */}
       <Card>
