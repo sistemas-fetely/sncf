@@ -439,11 +439,22 @@ export default function EstoqueVirtual() {
                         )}
                       </TableCell>
 
-                      <TableCell className={cn(
-                        "text-right tabular-nums font-medium",
-                        disponivel < 0 && "text-destructive",
-                      )}>
+                      <TableCell className="text-right tabular-nums font-medium">
                         {formatNum(disponivel)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {descoberto === 0 ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help text-destructive font-medium">{formatNum(descoberto)}</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {formatNum(descoberto)} unidades já prometidas a cliente sem cobertura de estoque vendável.
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {showroom === 0 ? (
@@ -451,10 +462,14 @@ export default function EstoqueVirtual() {
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="cursor-help text-muted-foreground">{formatNum(showroom)}</span>
+                              <span className={cn("cursor-help", tudoNoShowroom ? "text-warning font-medium" : "text-muted-foreground")}>
+                                {formatNum(showroom)}
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              Posição no Show Room de SP. Controle interno — não é vendável e não entra no disponível.
+                              {tudoNoShowroom
+                                ? "Toda a mercadoria deste SKU está no Show Room de SP: vendável zerado no armazém e há unidades descobertas."
+                                : "Posição no Show Room de SP. Controle interno — não é vendável e não entra no disponível."}
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -465,24 +480,30 @@ export default function EstoqueVirtual() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs">
-                        {p.pedido_importacao ? (
+                        {p.pedido_suprimento ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="cursor-help leading-tight max-w-[170px]">
-                                <div className="font-medium truncate">{p.pedido_importacao}</div>
-                                <div className="text-muted-foreground truncate">
-                                  {eta ? `ETA ${eta}` : (p.status_importacao ?? "sem previsão")}
+                              <div className="cursor-help leading-tight max-w-[190px]">
+                                <div className="font-medium truncate">
+                                  <span className="text-muted-foreground font-normal">{rotuloOrigem(p.origem_suprimento)} · </span>
+                                  {p.pedido_suprimento}
+                                </div>
+                                <div className={cn("truncate", temEta ? "text-muted-foreground" : "text-warning")}>
+                                  {etaTexto}
                                 </div>
                               </div>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              {p.pedido_importacao} · {eta ? `ETA ${eta}` : `${p.status_importacao ?? "situação não informada"} · sem data de ETA`}
+                              {rotuloOrigem(p.origem_suprimento)} · {p.pedido_suprimento} — {temEta
+                                ? etaTexto
+                                : `${p.status_suprimento ?? "situação não informada"} · sem data de previsão`}
                             </TooltipContent>
                           </Tooltip>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
+
 
                       <TableCell className="text-right text-xs">
                         <Tooltip>
