@@ -49,6 +49,11 @@ interface CentroCustoOpcao { id: string; codigo: string | null; nome: string | n
 
 type Filtro = "todos" | "pendentes" | "prontos";
 
+interface SaneamentoResultado {
+  ok?: boolean;
+  pronto_para_reembolso?: boolean;
+}
+
 interface Rascunho {
   email_corporativo: string;
   chave_pix: string;
@@ -153,15 +158,17 @@ export default function ReembolsoSaneamento() {
         throw new Error("Nenhum campo foi alterado.");
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc("reembolso_sanear_vinculo", params);
+      // Cast só do resultado: a RPC ainda não consta no types.ts gerado.
+      // Remover quando o types.ts for regenerado com reembolso_sanear_vinculo.
+      const { data, error } = await supabase.rpc(
+        "reembolso_sanear_vinculo" as never,
+        params as never,
+      );
       if (error) throw error;
-      return data;
+      return data as unknown as SaneamentoResultado;
     },
     onSuccess: async (data) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const d = data as any;
-      const pronto = d?.pronto_para_reembolso;
+      const pronto = data?.pronto_para_reembolso;
       toast.success(
         pronto ? "Cadastro salvo — vínculo pronto para reembolso." : "Cadastro atualizado.",
       );
