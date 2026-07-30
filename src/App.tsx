@@ -391,9 +391,12 @@ const App = () => (
               <Route path="/meus-dados" element={<MeusDados />} />
               <Route path="/meus-acessos" element={<MeusAcessos />} />
               <Route path="/minhas-notas" element={<MinhasNotas />} />
-              <Route path="/compras" element={<Compras />} />
-              <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
-              <Route path="/compras/mercadoria" element={<ComprasMercadoria />} />
+              <Route element={<FinancasLayout />}>
+                <Route path="/compras" element={<Compras />} />
+                <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
+                <Route path="/compras/mercadoria" element={<ComprasMercadoria />} />
+              </Route>
+
               <Route path="/compras/de-para-fornecedor" element={<Navigate to="/compras/mercadoria?aba=de-para" replace />} />
               <Route path="/compras/cadastro-pedido" element={<Navigate to="/compras/mercadoria?aba=pedidos" replace />} />
 
