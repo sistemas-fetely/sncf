@@ -250,6 +250,8 @@ export default function PedidoMercadoriaDetalhe() {
   const [invDialog, setInvDialog] = useState(false);
   const [nfAberta, setNfAberta] = useState<number | null>(null);
   const [invAberta, setInvAberta] = useState<number | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+
 
   const pedidoQ = useQuery({
     queryKey: ["pedido-mercadoria-detalhe", pedidoId],
