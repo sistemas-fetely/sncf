@@ -415,7 +415,10 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
             Gravar
           </Button>
         </DialogFooter>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
 }
+
