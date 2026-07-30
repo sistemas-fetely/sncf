@@ -146,6 +146,7 @@ const STATUS_ROTULO: Record<string, string> = {
   nao_mapeado: "Não mapeado",
   mapeado_inativo: "Mapeado inativo",
   qtd_invalida: "Quantidade inválida",
+  ambiguo: "Ambíguo — código aponta pra vários SKUs",
 };
 
 // ============================================================================
