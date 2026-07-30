@@ -7989,6 +7989,36 @@ export type Database = {
         }
         Relationships: []
       }
+      fornecedor_termo_produto: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          grupo: string | null
+          id: number
+          observacao: string | null
+          termo: string
+          tipo: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          grupo?: string | null
+          id?: never
+          observacao?: string | null
+          termo: string
+          tipo?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          grupo?: string | null
+          id?: never
+          observacao?: string | null
+          termo?: string
+          tipo?: string | null
+        }
+        Relationships: []
+      }
       frenet_carteira_extrato: {
         Row: {
           data_hora: string | null
@@ -9828,6 +9858,7 @@ export type Database = {
         Row: {
           codigo_nf: string
           criado_em: string
+          descricao: string | null
           id: string
           ipi_aliq: number | null
           item_seq: number | null
@@ -9843,6 +9874,7 @@ export type Database = {
         Insert: {
           codigo_nf: string
           criado_em?: string
+          descricao?: string | null
           id?: string
           ipi_aliq?: number | null
           item_seq?: number | null
@@ -9858,6 +9890,7 @@ export type Database = {
         Update: {
           codigo_nf?: string
           criado_em?: string
+          descricao?: string | null
           id?: string
           ipi_aliq?: number | null
           item_seq?: number | null
@@ -31726,6 +31759,16 @@ export type Database = {
         Args: { p_movimentacao_id: string; p_titulo_id: string }
         Returns: Json
       }
+      confirmar_depara_fornecedor: {
+        Args: {
+          p_codigo: string
+          p_confirmar?: boolean
+          p_descricao_fornecedor?: string
+          p_fornecedor_id: string
+          p_skus: Json
+        }
+        Returns: Json
+      }
       confirmar_itau_lote_auto: {
         Args: { p_importacao_id: string }
         Returns: Json
@@ -32281,6 +32324,7 @@ export type Database = {
         Returns: number
       }
       fn_eh_comprador: { Args: { p_user_id: string }; Returns: boolean }
+      fn_extrair_dimensoes: { Args: { p_texto: string }; Returns: number[] }
       fn_fluxo_caixa_projetado: {
         Args: { p_horizonte?: number; p_saldo_inicial?: number }
         Returns: {
@@ -32371,6 +32415,7 @@ export type Database = {
         Returns: string
       }
       fn_normalizar_ncm: { Args: { p_ncm: string }; Returns: string }
+      fn_num_safe: { Args: { p_txt: string }; Returns: number }
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }
         Returns: string
@@ -32434,9 +32479,33 @@ export type Database = {
       fn_regras_aplicar: { Args: never; Returns: Json }
       fn_regua_materializar: { Args: never; Returns: Json }
       fn_resolver_condicao: { Args: { p_condicao: string }; Returns: string }
+      fn_simular_portao: {
+        Args: { p_fonte?: string; p_rota: string; p_user_id: string }
+        Returns: string
+      }
       fn_sugerir_cobranca_molde_pai: {
         Args: { p_ancora?: string; p_pedido_id: string }
         Returns: Json
+      }
+      fn_sugerir_depara_fornecedor: {
+        Args: {
+          p_descricao: string
+          p_fornecedor_id?: string
+          p_limite?: number
+          p_ncm?: string
+        }
+        Returns: {
+          grupo: string
+          largura_cm: number
+          motivos: string
+          ncm: string
+          nome_comercial: string
+          profundidade_cm: number
+          score: number
+          sku: string
+          tamanho_numero: string
+          tipo: string
+        }[]
       }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       fn_transicionar_entregues: { Args: never; Returns: Json }
@@ -32468,6 +32537,21 @@ export type Database = {
       fn_wns_limpar_zumbis: { Args: { p_chaves: Json }; Returns: number }
       fn_wns_truncar_linhas: { Args: never; Returns: number }
       fn_wns_vincular_pedidos: { Args: never; Returns: Json }
+      fn_worklist_depara_nf: {
+        Args: { p_nf_id: number; p_sugestoes?: number }
+        Returns: {
+          codigo_nf: string
+          descricao: string
+          item_seq: number
+          ncm: string
+          nf_linha_id: string
+          quantidade: number
+          skus_ja_mapeados: number
+          sugestoes: Json
+          valor_total: number
+          valor_unit: number
+        }[]
+      }
       gerar_celebracoes_aniversario_mural: { Args: never; Returns: number }
       gerar_celebracoes_tempo_casa_mural: { Args: never; Returns: number }
       gerar_movimentacao_de_conta: {
@@ -32689,6 +32773,15 @@ export type Database = {
           fornecedor_cliente: string
           id: string
           valor: number
+        }[]
+      }
+      listar_navegacao_portao: {
+        Args: never
+        Returns: {
+          apenas_super_admin: boolean
+          rota: string
+          status: string
+          tela_slug: string
         }[]
       }
       listar_rotas_config: {
