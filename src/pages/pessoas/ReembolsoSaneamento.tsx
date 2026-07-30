@@ -260,7 +260,13 @@ export default function ReembolsoSaneamento() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {linhasQ.isLoading ? (
+              {linhasQ.isError ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12 text-destructive text-sm">
+                    {(linhasQ.error as { message?: string })?.message ?? String(linhasQ.error)}
+                  </TableCell>
+                </TableRow>
+              ) : linhasQ.isLoading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     Carregando…
