@@ -175,6 +175,28 @@ const fmtDate = (d?: string | null) => {
     return d;
   }
 };
+const SITUACAO_NF: Record<
+  string,
+  { rotulo: string; badge: string; linha?: string }
+> = {
+  ok: { rotulo: "OK", badge: "border-success/40 bg-success/10 text-success" },
+  nao_alocado: {
+    rotulo: "Não alocado",
+    badge: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    linha: "bg-amber-500/5",
+  },
+  so_nf: {
+    rotulo: "Só na NF",
+    badge: "border-destructive/40 bg-destructive/10 text-destructive",
+    linha: "bg-destructive/10",
+  },
+  divergente: {
+    rotulo: "Divergente",
+    badge: "border-destructive/40 bg-destructive/10 text-destructive",
+    linha: "bg-destructive/10",
+  },
+};
+
 
 const fmtNum = (v: number | null | undefined, casas = 0) =>
   v === null || v === undefined ? "—" : Number(v).toLocaleString("pt-BR", {
