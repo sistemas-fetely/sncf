@@ -796,6 +796,25 @@ export default function CadastroPedidoCompra() {
               por linha. Separadores aceitos: <b>TAB</b> e <b>ponto-e-vírgula</b>. Vírgula é
               tratada como decimal — não use vírgula como separador de coluna.
             </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void baixarTemplate()}
+              >
+                <Download className="h-4 w-4 mr-1" /> Baixar template
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImportOpen(true)}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-1" /> Importar planilha
+              </Button>
+            </div>
+
             <Textarea
               value={textoLinhas}
               onChange={(e) => {
