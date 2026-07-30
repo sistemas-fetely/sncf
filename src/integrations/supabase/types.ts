@@ -672,6 +672,13 @@ export type Database = {
             foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
             columns: ["nfs_stage_id"]
             isOneToOne: false
+            referencedRelation: "vw_nfs_stage_mercadoria_pendente"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
           },
@@ -5707,6 +5714,13 @@ export type Database = {
             foreignKeyName: "despesas_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
+            referencedRelation: "vw_nfs_stage_mercadoria_pendente"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
           },
@@ -8318,6 +8332,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nfs_stage_completude"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_mercadoria_pendente"
+            referencedColumns: ["nfs_stage_id"]
           },
           {
             foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
@@ -12217,6 +12238,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nfs_stage_completude"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_mercadoria_pendente"
+            referencedColumns: ["nfs_stage_id"]
           },
           {
             foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
@@ -26736,6 +26764,13 @@ export type Database = {
             foreignKeyName: "despesas_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
+            referencedRelation: "vw_nfs_stage_mercadoria_pendente"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
           },
@@ -28576,19 +28611,37 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
         ]
+      }
+      vw_nfs_stage_mercadoria_pendente: {
+        Row: {
+          fornecedor: string | null
+          fornecedor_cnpj: string | null
+          fornecedor_id: string | null
+          fornecedor_razao_social: string | null
+          itens: number | null
+          ja_lancada: boolean | null
+          nf_chave_acesso: string | null
+          nf_data_emissao: string | null
+          nf_numero: string | null
+          nf_serie: string | null
+          nfs_stage_id: string | null
+          pedidos_do_fornecedor: number | null
+          valor_no_xml: number | null
+        }
+        Relationships: []
       }
       vw_oportunidades_comercial: {
         Row: {
@@ -32236,6 +32289,11 @@ export type Database = {
         Returns: undefined
       }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
+      fn_normalizar_codigo_fornecedor: {
+        Args: { p_codigo: string }
+        Returns: string
+      }
+      fn_normalizar_ncm: { Args: { p_ncm: string }; Returns: string }
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }
         Returns: string
@@ -32475,6 +32533,14 @@ export type Database = {
         }[]
       }
       ignorar_lancamento: { Args: { p_lancamento_id: string }; Returns: Json }
+      importar_nf_de_stage: {
+        Args: {
+          p_confirmar?: boolean
+          p_pedido_ids?: number[]
+          p_stage_id: string
+        }
+        Returns: Json
+      }
       ingerir_estoque_xpm: {
         Args: {
           p_arquivo: string
