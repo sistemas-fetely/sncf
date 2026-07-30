@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/table";
 import LancarNfDialog from "@/components/compras/LancarNfDialog";
 import LancarInvoiceDialog from "@/components/compras/LancarInvoiceDialog";
+import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
+
 
 // ============================================================================
 // Types
