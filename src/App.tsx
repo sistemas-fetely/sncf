@@ -309,10 +309,10 @@ const App = () => (
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
-                <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto" replace />} />
+                
                 <Route path="/vendas/produto" element={<Produtos />} />
                 <Route element={<ProdutoEstoqueLayout />}>
-                  <Route path="/vendas/produto/estoque" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
+                  
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
                   <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
                   <Route path="/vendas/produto/estoque/devolucoes" element={<RetornoDevolucao />} />
@@ -333,7 +333,7 @@ const App = () => (
                 <Route path="/vendas/shopify/fulfillments" element={<ShopifyFulfillments />} />
                 <Route path="/vendas/shopify/estoque" element={<ShopifyEstoque />} />
                 <Route path="/logistica" element={<Logistica />} />
-                <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
+                
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
                 <Route path="/canal-cpo" element={<CanalCPO />} />
@@ -341,14 +341,9 @@ const App = () => (
 
               <Route element={<ComercialLayout />}>
                 <Route path="/comercial/oportunidades" element={<Oportunidades />} />
-                <Route path="/comercial/estoque-virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
+                
               </Route>
 
-              {/* Redirects legados do antigo pilar Produto (jul/2026) */}
-              <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
-              <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
-              <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
-              <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
 
 
 
@@ -360,9 +355,6 @@ const App = () => (
               <Route element={<AcervoLayout />}>
                 <Route path="/processos" element={<Processos />} />
                 <Route path="/documentacao" element={<DocumentacaoGeral />} />
-                <Route path="/acervo/estoque/recebimento-xpm" element={<Navigate to="/vendas/xpm" replace />} />
-                <Route path="/acervo/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
-                <Route path="/acervo/produtos/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
               </Route>
 
               {/* Acervo — detalhes e editores (sem tab bar) */}
@@ -373,8 +365,6 @@ const App = () => (
               } />
               <Route path="/processos/:id" element={<ProcessoDetalhe />} />
               <Route path="/processos/:id/editar" element={<ProcessoEditor />} />
-              <Route path="/templates" element={<Navigate to="/processos" replace />} />
-              <Route path="/templates/*" element={<Navigate to="/processos" replace />} />
               <Route path="/documentacao/novo" element={<DocumentacaoForm />} />
               <Route path="/documentacao/:slug" element={<DocumentacaoDetalhe />} />
 
@@ -385,8 +375,6 @@ const App = () => (
               <Route path="/sncf" element={<PortalSNCF />} />
               <Route path="/tarefas" element={<MinhasTarefas />} />
               <Route path="/tarefas/time" element={<TarefasDoTime />} />
-              <Route path="/gerenciar-usuarios" element={<Navigate to="/admin/usuarios" replace />} />
-              <Route path="/gerenciar-usuarios/perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
               <Route path="/fala-fetely" element={<FalaFetely />} />
               <Route path="/fala-fetely/conhecimento" element={<FalaFetelyConhecimento />} />
               <Route path="/fala-fetely/memorias" element={<MinhasMemorias />} />
@@ -400,8 +388,6 @@ const App = () => (
                 <Route path="/compras/mercadoria/:id" element={<PedidoMercadoriaDetalhe />} />
               </Route>
 
-              <Route path="/compras/de-para-fornecedor" element={<Navigate to="/compras/mercadoria?aba=de-para" replace />} />
-              <Route path="/compras/cadastro-pedido" element={<Navigate to="/compras/mercadoria?aba=pedidos" replace />} />
 
               {/* ═══════════════════════════════════════════════
                   Layouts abaixo: dentro do CasaLayout → cobertos pelo RotaGate
@@ -412,10 +398,6 @@ const App = () => (
                 <Route path="ativos" element={<TIAtivos />} />
                 <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
                 <Route path="diagnosticos/teste-frete" element={<TesteFrete />} />
-                {/* Redirects legados — documentação migrou pra SNCF */}
-                <Route path="documentacao" element={<Navigate to="/documentacao" replace />} />
-                <Route path="documentacao/novo" element={<Navigate to="/documentacao/novo" replace />} />
-                <Route path="documentacao/:slug" element={<TiDocSlugRedirect />} />
               </Route>
 
               {/* Protected routes */}
@@ -585,14 +567,6 @@ const App = () => (
                 } />
                 {/* /relatorios MIGRADO pra GestaoVistaLayout (Sprint 2 — 29/04/2026) */}
 
-                {/* Redirects legados → Admin */}
-                <Route path="/parametros" element={<Navigate to="/admin/parametros" replace />} />
-                <Route path="/configuracoes" element={<Navigate to="/admin/configuracoes" replace />} />
-                <Route path="/configurar-perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
-                <Route path="/cargos" element={<Navigate to="/admin/cargos" replace />} />
-                <Route path="/cargos/enriquecimento" element={<Navigate to="/admin/cargos/enriquecimento" replace />} />
-                <Route path="/cargos/novo" element={<Navigate to="/admin/cargos/novo" replace />} />
-                <Route path="/cargos/:id" element={<CargosIdRedirect />} />
                 </Route>
 
               {/* ═══════════════════════════════════════════════
@@ -673,10 +647,6 @@ const App = () => (
                 <Route path="auditoria" element={<AuditoriaFinanceira />} />
                 <Route path="painel-margem" element={<PainelMargem />} />
 
-                <Route path="parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
-                <Route path="importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
-                <Route path="nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
-                <Route path="documentos-pendentes" element={<Navigate to="/administrativo-fetely/documentos-pendentes" replace />} />
                 <Route path="faturas-cartao" element={<FaturasCartao />} />
                 
                 <Route path="fluxo-futuro" element={<FluxoCaixaFuturo />} />
@@ -687,13 +657,6 @@ const App = () => (
                 {/* MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
                     pedidos, produtos, contratos, imoveis, seguros, ged.
                     Redirects logo abaixo mantêm compatibilidade com URLs antigas. */}
-                {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
-                <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-                <Route path="produtos" element={<Navigate to="/vendas/produto" replace />} />
-                <Route path="contratos" element={<Navigate to="/administrativo-fetely/contratos" replace />} />
-                <Route path="imoveis" element={<Navigate to="/administrativo-fetely/imoveis" replace />} />
-                <Route path="seguros" element={<Navigate to="/administrativo-fetely/seguros" replace />} />
-                <Route path="ged" element={<Navigate to="/administrativo-fetely/ged" replace />} />
               </Route>
 
               {/* ═══════════════════════════════════════════════
@@ -706,9 +669,6 @@ const App = () => (
                 <Route path="imoveis" element={<AdminImoveis />} />
                 <Route path="seguros" element={<AdminSeguros />} />
                 <Route path="ged" element={<AdminGED />} />
-                {/* Redirect legado — URL antiga vai pra Casa dos Pedidos (App Simples) */}
-                <Route path="pedidos" element={<Navigate to="/pedidos" replace />} />
-                <Route path="produtos" element={<Navigate to="/vendas/produto" replace />} />
                 {/* parceiros movido para SOPsLayout */}
                 <Route path="importar" element={<ImportarDados />} />
                 <Route path="nfs-stage" element={<NFsStage />} />
@@ -734,6 +694,52 @@ const App = () => (
 
             </Route>
             {/* fecha wrapper CasaLayout — RotaGate cobre TI, People, Admin, Financeiro, Marca, Dashboard */}
+
+            {/* ═══════════════════════════════════════════════
+                Redirects de compatibilidade — REDIRECT-NÃO-É-TELA
+                Rota que só devolve <Navigate> não passa por portão:
+                ela não exibe nada, e o destino tem o portão dele.
+                NÃO adicionar tela real aqui.
+                ═══════════════════════════════════════════════ */}
+            <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto" replace />} />
+            <Route path="/vendas/produto/estoque" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
+            <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
+            <Route path="/comercial/estoque-virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
+            <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
+            <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
+            <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
+            <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
+            <Route path="/acervo/estoque/recebimento-xpm" element={<Navigate to="/vendas/xpm" replace />} />
+            <Route path="/acervo/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
+            <Route path="/acervo/produtos/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
+            <Route path="/templates" element={<Navigate to="/processos" replace />} />
+            <Route path="/templates/*" element={<Navigate to="/processos" replace />} />
+            <Route path="/gerenciar-usuarios" element={<Navigate to="/admin/usuarios" replace />} />
+            <Route path="/gerenciar-usuarios/perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
+            <Route path="/compras/de-para-fornecedor" element={<Navigate to="/compras/mercadoria?aba=de-para" replace />} />
+            <Route path="/compras/cadastro-pedido" element={<Navigate to="/compras/mercadoria?aba=pedidos" replace />} />
+            <Route path="/ti/documentacao" element={<Navigate to="/documentacao" replace />} />
+            <Route path="/ti/documentacao/novo" element={<Navigate to="/documentacao/novo" replace />} />
+            <Route path="/ti/documentacao/:slug" element={<TiDocSlugRedirect />} />
+            <Route path="/parametros" element={<Navigate to="/admin/parametros" replace />} />
+            <Route path="/configuracoes" element={<Navigate to="/admin/configuracoes" replace />} />
+            <Route path="/configurar-perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
+            <Route path="/cargos" element={<Navigate to="/admin/cargos" replace />} />
+            <Route path="/cargos/enriquecimento" element={<Navigate to="/admin/cargos/enriquecimento" replace />} />
+            <Route path="/cargos/novo" element={<Navigate to="/admin/cargos/novo" replace />} />
+            <Route path="/cargos/:id" element={<CargosIdRedirect />} />
+            <Route path="/administrativo/parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
+            <Route path="/administrativo/importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
+            <Route path="/administrativo/nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
+            <Route path="/administrativo/documentos-pendentes" element={<Navigate to="/administrativo-fetely/documentos-pendentes" replace />} />
+            <Route path="/administrativo/pedidos" element={<Navigate to="/pedidos" replace />} />
+            <Route path="/administrativo/produtos" element={<Navigate to="/vendas/produto" replace />} />
+            <Route path="/administrativo/contratos" element={<Navigate to="/administrativo-fetely/contratos" replace />} />
+            <Route path="/administrativo/imoveis" element={<Navigate to="/administrativo-fetely/imoveis" replace />} />
+            <Route path="/administrativo/seguros" element={<Navigate to="/administrativo-fetely/seguros" replace />} />
+            <Route path="/administrativo/ged" element={<Navigate to="/administrativo-fetely/ged" replace />} />
+            <Route path="/administrativo-fetely/pedidos" element={<Navigate to="/pedidos" replace />} />
+            <Route path="/administrativo-fetely/produtos" element={<Navigate to="/vendas/produto" replace />} />
 
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
