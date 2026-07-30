@@ -582,8 +582,16 @@ export default function CadastroPedidoCompra() {
       {/* ============================ FORMULÁRIO ============================ */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Novo pedido</CardTitle>
+          <CardTitle className="text-base">Novo pedido de mercadoria</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Para mercadoria de revenda. Insumo e serviço vão em{" "}
+            <Link to="/compras" className="underline underline-offset-2">
+              Compras
+            </Link>
+            .
+          </p>
         </CardHeader>
+
         <CardContent className="space-y-6">
           {/* Header */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
