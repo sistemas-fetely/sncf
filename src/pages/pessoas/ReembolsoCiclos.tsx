@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -266,8 +266,8 @@ function LotesDoCiclo({
         </TableHeader>
         <TableBody>
           {(lotesQ.data ?? []).map((l) => (
-            <>
-              <TableRow key={l.id}>
+            <Fragment key={l.id}>
+              <TableRow>
                 <TableCell>
                   <Button
                     size="sm"
@@ -297,13 +297,13 @@ function LotesDoCiclo({
                 </TableCell>
               </TableRow>
               {loteExpandido === l.id && (
-                <TableRow key={`${l.id}-detalhe`}>
+                <TableRow>
                   <TableCell colSpan={7} className="bg-muted/30">
                     <SolicitacoesDoLote loteId={l.id} onAbrir={onAbrirSolicitacao} />
                   </TableCell>
                 </TableRow>
               )}
-            </>
+            </Fragment>
           ))}
         </TableBody>
       </Table>
