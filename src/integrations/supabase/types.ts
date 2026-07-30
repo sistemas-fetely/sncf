@@ -31411,6 +31411,10 @@ export type Database = {
             }
             Returns: Json
           }
+      alocar_nf_linhas: {
+        Args: { p_confirmar?: boolean; p_nf_id: number }
+        Returns: Json
+      }
       alterar_desconto_pedido: {
         Args: {
           p_motivo?: string
@@ -32293,6 +32297,27 @@ export type Database = {
         Args: { p_natureza_codigo: string }
         Returns: string
       }
+      fn_casar_nf_por_fob: {
+        Args: { p_pedido_id: number; p_tolerancia?: number }
+        Returns: {
+          codigo_nf: string
+          corte: number
+          descricao: string
+          fob_usd: number
+          item_seq: number
+          nf_id: number
+          nf_linha_id: string
+          nf_numero: string
+          qtd_nf: number
+          qtd_no_pedido: number
+          razao: number
+          razao_referencia: number
+          situacao: string
+          skus: Json
+          skus_no_grupo: number
+          valor_unit_brl: number
+        }[]
+      }
       fn_casar_sinteticas_extrato: { Args: never; Returns: Json }
       fn_classificar_pagamento: {
         Args: {
@@ -32489,6 +32514,7 @@ export type Database = {
       fn_regras_aplicar: { Args: never; Returns: Json }
       fn_regua_materializar: { Args: never; Returns: Json }
       fn_resolver_condicao: { Args: { p_condicao: string }; Returns: string }
+      fn_sem_acento: { Args: { p_txt: string }; Returns: string }
       fn_simular_portao: {
         Args: { p_fonte?: string; p_rota: string; p_user_id: string }
         Returns: string
@@ -32573,6 +32599,7 @@ export type Database = {
       fn_worklist_depara_nf: {
         Args: { p_nf_id: number; p_sugestoes?: number }
         Returns: {
+          alocada: boolean
           codigo_nf: string
           descricao: string
           item_seq: number
@@ -32806,6 +32833,21 @@ export type Database = {
           fornecedor_cliente: string
           id: string
           valor: number
+        }[]
+      }
+      listar_navegacao_admin: {
+        Args: never
+        Returns: {
+          apenas_super_admin: boolean
+          chave: string
+          grupo_label: string
+          label: string
+          nivel: string
+          ordem: number
+          rota: string
+          status: string
+          superficies: string[]
+          tela_slug: string
         }[]
       }
       listar_navegacao_portao: {
@@ -33413,6 +33455,32 @@ export type Database = {
           p_valor_b: number
         }
         Returns: number
+      }
+      set_navegacao_status: {
+        Args: { p_rota: string; p_status: string }
+        Returns: {
+          apenas_super_admin: boolean
+          ativo: boolean
+          badge_fonte: string | null
+          chave: string
+          icone: string | null
+          label: string
+          nivel: string
+          ordem: number
+          pai_chave: string | null
+          rota: string | null
+          status: string
+          superficies: string[]
+          tags: string[]
+          tela_slug: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sncf_navegacao"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_rota_status: {
         Args: { p_prefixo: string; p_status: string }
