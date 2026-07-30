@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -277,9 +277,8 @@ export default function ReembolsoSaneamento() {
                   const emEdicao = editando === l.vinculo_id;
                   const pronto = !!l.pronto_para_reembolso;
                   return (
-                    <>
+                    <Fragment key={l.vinculo_id}>
                       <TableRow
-                        key={l.vinculo_id}
                         className={cn(pronto && "bg-success/5")}
                       >
                         <TableCell className="py-2">
@@ -354,7 +353,7 @@ export default function ReembolsoSaneamento() {
                       </TableRow>
 
                       {emEdicao && rascunho && (
-                        <TableRow key={`${l.vinculo_id}-edit`} className="bg-muted/40">
+                        <TableRow className="bg-muted/40">
                           <TableCell colSpan={7} className="py-4">
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                               <div className="space-y-1.5">
@@ -482,7 +481,7 @@ export default function ReembolsoSaneamento() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })
               )}
