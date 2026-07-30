@@ -1,19 +1,19 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissoesDoUsuario, TELAS_PUBLICAS, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
-import { useRotasConfig, resolverRegraRotaBanco } from "@/hooks/useRotasConfig";
+import { useNavegacaoPortao, resolverRegraNavegacao } from "@/hooks/useNavegacaoPortao";
 import { resolverRegraRota } from "@/config/rotasRegistry";
 import { useMemo } from "react";
 
 /**
- * Decide quais rotas devem aparecer no menu, usando EXATAMENTE a mesma
- * precedência do RotaGate: regra do banco vence; código é fallback.
+ * Decide quais rotas aparecem no menu, com EXATAMENTE a mesma precedência do
+ * RotaGate: sncf_navegacao manda, rotasRegistry.ts é fallback.
  * Doutrina MENU-VIA-TABELA: menu e portão leem a mesma linha.
  */
 export function useTelasVisiveis(rotas: string[]): Set<string> {
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const { data: permitidas } = usePermissoesDoUsuario();
-  const { data: rotasBanco } = useRotasConfig();
+  const { data: nav } = useNavegacaoPortao();
 
   const chave = rotas.join("|");
 
@@ -25,10 +25,16 @@ export function useTelasVisiveis(rotas: string[]): Set<string> {
         continue;
       }
 
-      const regra = resolverRegraRotaBanco(rota, rotasBanco) ?? resolverRegraRota(rota);
-      if (!regra) continue; // rota não registrada → oculta
-      if (regra.status === "em_construcao") continue; // paridade com o portão
-      const slug = regra.tela_slug ?? null;
+      const regraNav = resolverRegraNavegacao(rota, nav);
+      const regraCodigo = resolverRegraRota(rota);
+      if (!regraNav && !regraCodigo) continue; // rota não registrada → oculta
+
+      const status = regraNav ? regraNav.status : regraCodigo!.status;
+      const slug = regraNav ? regraNav.tela_slug : regraCodigo!.tela_slug;
+      const apenasSuperAdmin = regraNav ? regraNav.apenas_super_admin : regraCodigo!.tela_slug === null;
+
+      if (status === "em_construcao") continue; // paridade com o portão
+      if (apenasSuperAdmin) continue;
       if (slug && TELAS_PUBLICAS.has(slug)) {
         visiveis.add(rota);
         continue;
@@ -37,5 +43,5 @@ export function useTelasVisiveis(rotas: string[]): Set<string> {
     }
     return visiveis;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chave, isSuperAdmin, permitidas, rotasBanco]);
+  }, [chave, isSuperAdmin, permitidas, nav]);
 }
