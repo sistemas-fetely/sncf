@@ -7839,6 +7839,7 @@ export type Database = {
         Row: {
           ativo: boolean
           codigo_fornecedor: string
+          codigo_normalizado: string | null
           criado_em: string
           descricao_fornecedor: string | null
           fator_conversao: number
@@ -7853,6 +7854,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           codigo_fornecedor: string
+          codigo_normalizado?: string | null
           criado_em?: string
           descricao_fornecedor?: string | null
           fator_conversao?: number
@@ -7867,6 +7869,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           codigo_fornecedor?: string
+          codigo_normalizado?: string | null
           criado_em?: string
           descricao_fornecedor?: string | null
           fator_conversao?: number
@@ -9767,6 +9770,7 @@ export type Database = {
           id: number
           numero: string
           observacao: string | null
+          origem: string
           peso_bruto: number | null
           peso_liquido: number | null
           processo: string | null
@@ -9787,6 +9791,7 @@ export type Database = {
           id?: never
           numero: string
           observacao?: string | null
+          origem?: string
           peso_bruto?: number | null
           peso_liquido?: number | null
           processo?: string | null
@@ -9807,6 +9812,7 @@ export type Database = {
           id?: never
           numero?: string
           observacao?: string | null
+          origem?: string
           peso_bruto?: number | null
           peso_liquido?: number | null
           processo?: string | null
@@ -32014,6 +32020,10 @@ export type Database = {
         Args: { p_pedido_id: string; p_valor: boolean }
         Returns: Json
       }
+      definir_origem_nf: {
+        Args: { p_nf_id: number; p_origem: string }
+        Returns: Json
+      }
       delegacao_ativa_entre: {
         Args: { _gestor: string; _substituto: string }
         Returns: boolean
@@ -32487,26 +32497,49 @@ export type Database = {
         Args: { p_ancora?: string; p_pedido_id: string }
         Returns: Json
       }
-      fn_sugerir_depara_fornecedor: {
-        Args: {
-          p_descricao: string
-          p_fornecedor_id?: string
-          p_limite?: number
-          p_ncm?: string
-        }
-        Returns: {
-          grupo: string
-          largura_cm: number
-          motivos: string
-          ncm: string
-          nome_comercial: string
-          profundidade_cm: number
-          score: number
-          sku: string
-          tamanho_numero: string
-          tipo: string
-        }[]
-      }
+      fn_sugerir_depara_fornecedor:
+        | {
+            Args: {
+              p_descricao: string
+              p_fornecedor_id?: string
+              p_limite?: number
+              p_ncm?: string
+            }
+            Returns: {
+              grupo: string
+              largura_cm: number
+              motivos: string
+              ncm: string
+              nome_comercial: string
+              profundidade_cm: number
+              score: number
+              sku: string
+              tamanho_numero: string
+              tipo: string
+            }[]
+          }
+        | {
+            Args: {
+              p_descricao: string
+              p_fornecedor_id?: string
+              p_limite?: number
+              p_ncm?: string
+              p_pedido_ids?: number[]
+            }
+            Returns: {
+              grupo: string
+              largura_cm: number
+              motivos: string
+              ncm: string
+              no_pedido: boolean
+              nome_comercial: string
+              profundidade_cm: number
+              score: number
+              sku: string
+              tamanho_numero: string
+              tipo: string
+            }[]
+          }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       fn_transicionar_entregues: { Args: never; Returns: Json }
       fn_transicionar_expedidos: { Args: never; Returns: Json }
