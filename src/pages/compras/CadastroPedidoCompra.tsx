@@ -536,6 +536,8 @@ export default function CadastroPedidoCompra() {
                     <TableHead className="text-right">Linhas</TableHead>
                     <TableHead className="text-right">Custo total</TableHead>
                     <TableHead>Fase XPM</TableHead>
+                    <TableHead className="w-10" />
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
