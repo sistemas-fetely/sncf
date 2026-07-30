@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -559,8 +561,14 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             {mode === "ver" && "Pedido de compra"}
           </DialogTitle>
           <DialogDescription>
-            Descreva o que você precisa, justifique a aquisição e adicione itens.
+            Descreva o que você precisa, justifique a aquisição e adicione itens. Para insumo,
+            material ou serviço. Mercadoria para revenda vai em{" "}
+            <Link to="/compras/mercadoria" className="underline underline-offset-2">
+              Compras de Mercadoria
+            </Link>
+            .
           </DialogDescription>
+
         </DialogHeader>
 
         {mode === "ver" && pedido ? (

@@ -11,7 +11,9 @@ import {
   ChevronDown,
   FileText,
   Receipt,
+  Pencil,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { fmtMoeda, VERDE } from "@/lib/compras/lancamento-utils";
@@ -30,6 +32,8 @@ import {
 } from "@/components/ui/table";
 import LancarNfDialog from "@/components/compras/LancarNfDialog";
 import LancarInvoiceDialog from "@/components/compras/LancarInvoiceDialog";
+import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
+
 
 // ============================================================================
 // Types
@@ -250,6 +254,8 @@ export default function PedidoMercadoriaDetalhe() {
   const [invDialog, setInvDialog] = useState(false);
   const [nfAberta, setNfAberta] = useState<number | null>(null);
   const [invAberta, setInvAberta] = useState<number | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+
 
   const pedidoQ = useQuery({
     queryKey: ["pedido-mercadoria-detalhe", pedidoId],
@@ -435,7 +441,16 @@ export default function PedidoMercadoriaDetalhe() {
               )}
               <FaseBadge fase={pedido.fase_xpm} />
               {pedido.status && <Badge variant="outline">{pedido.status}</Badge>}
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil className="h-4 w-4 mr-1" /> Editar pedido
+              </Button>
             </div>
+
             <div className="text-sm text-muted-foreground">
               {pedido.fornecedor ?? "Fornecedor não informado"}
               {pedido.fabrica ? ` · ${pedido.fabrica}` : ""}
@@ -475,6 +490,8 @@ export default function PedidoMercadoriaDetalhe() {
               <TabsTrigger value="linhas">Linhas</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
               <TabsTrigger value="conferencia">Conferência</TabsTrigger>
+              <TabsTrigger value="historico">Histórico</TabsTrigger>
+
             </TabsList>
 
             {/* ---------------- LINHAS ---------------- */}
@@ -980,6 +997,11 @@ export default function PedidoMercadoriaDetalhe() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* ==================== HISTÓRICO ==================== */}
+            <TabsContent value="historico" className="mt-4">
+              <HistoricoTab pedidoId={pedidoId} />
+            </TabsContent>
           </Tabs>
 
           <LancarNfDialog
@@ -995,8 +1017,126 @@ export default function PedidoMercadoriaDetalhe() {
             fornecedorId={pedido.fornecedor_id}
             moedaPadrao={pedido.moeda}
           />
+          <EditarPedidoMercadoriaDialog
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            pedidoId={pedidoId}
+            onSaved={() => pedidoQ.refetch()}
+          />
+
         </>
       )}
     </div>
+  );
+}
+
+// ============================================================================
+// Aba Histórico — importacao_pedido_evento
+// ============================================================================
+
+const ROTULO_TIPO_EVENTO: Record<string, string> = {
+  criacao: "Criação",
+  alteracao: "Alteração",
+  mudanca_status: "Mudança de status",
+  nf_vinculada: "NF vinculada",
+  invoice_vinculada: "Invoice vinculada",
+  observacao: "Observação",
+};
+
+interface EventoPedido {
+  id: number;
+  tipo: string | null;
+  campo: string | null;
+  valor_de: string | null;
+  valor_para: string | null;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+}
+
+function HistoricoTab({ pedidoId }: { pedidoId: number }) {
+  const eventosQ = useQuery({
+    queryKey: ["importacao-pedido-evento", pedidoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("importacao_pedido_evento")
+        .select("id, tipo, campo, valor_de, valor_para, payload, created_at")
+        .eq("pedido_id", pedidoId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as EventoPedido[];
+    },
+  });
+
+  if (eventosQ.isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico...
+      </div>
+    );
+  }
+  if (eventosQ.isError) {
+    return (
+      <ErroBloco
+        titulo="Falha ao carregar o histórico do pedido."
+        erro={eventosQ.error}
+        onRetry={() => eventosQ.refetch()}
+      />
+    );
+  }
+  const eventos = eventosQ.data ?? [];
+  if (eventos.length === 0) {
+    return <div className="text-sm text-muted-foreground">Nenhuma alteração registrada.</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Histórico</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="whitespace-nowrap">Quando</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Campo</TableHead>
+                <TableHead>De</TableHead>
+                <TableHead>Para</TableHead>
+                <TableHead>Motivo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {eventos.map((ev) => {
+                const motivo =
+                  ev.payload && typeof ev.payload === "object"
+                    ? ((ev.payload as Record<string, unknown>).motivo as string | undefined)
+                    : undefined;
+                return (
+                  <TableRow key={ev.id}>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      {ev.created_at
+                        ? format(parseISO(ev.created_at), "dd/MM/yyyy HH:mm")
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {ROTULO_TIPO_EVENTO[ev.tipo ?? ""] ?? ev.tipo ?? "—"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{ev.campo ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{ev.valor_de ?? "—"}</TableCell>
+                    <TableCell className="font-medium">{ev.valor_para ?? "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[24rem]">
+                      {motivo || "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

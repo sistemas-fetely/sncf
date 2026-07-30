@@ -158,7 +158,10 @@ export default function Compras() {
           </div>
           <div>
             <h1 className="text-2xl font-bold">Compras</h1>
-            <p className="text-sm text-muted-foreground">Meus Pedidos de Compra</p>
+            <p className="text-sm text-muted-foreground">
+              Insumo, material e serviço — pedido de compra interna
+            </p>
+
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -198,6 +201,16 @@ export default function Compras() {
           </Link>
         </div>
       </div>
+
+      <p className="-mt-3 text-xs text-muted-foreground">
+        Comprando mercadoria para revenda? Use{" "}
+        <Link to="/compras/mercadoria" className="underline underline-offset-2">
+          Compras de Mercadoria
+        </Link>
+        .
+      </p>
+
+
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

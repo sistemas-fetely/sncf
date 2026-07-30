@@ -2,10 +2,24 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, AlertTriangle, CheckCircle2, Link2, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  Link2,
+  ExternalLink,
+  Pencil,
+  Download,
+  FileSpreadsheet,
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { gerarTemplatePedidoMercadoria } from "@/lib/compras/templatePedidoMercadoria";
+import ImportarLinhasMercadoriaDialog from "@/components/compras/ImportarLinhasMercadoriaDialog";
+import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -349,6 +363,17 @@ export default function CadastroPedidoCompra() {
   const [textoLinhas, setTextoLinhas] = useState("");
   const [conferencia, setConferencia] = useState<ConferenciaResult | null>(null);
   const [destinoServico, setDestinoServico] = useState<Record<string, string>>({}); // codigo -> sku destino
+  const [importOpen, setImportOpen] = useState(false);
+  const [editarId, setEditarId] = useState<number | null>(null);
+
+  const baixarTemplate = async () => {
+    try {
+      await gerarTemplatePedidoMercadoria();
+    } catch (e) {
+      toast.error(`Falha ao gerar o template: ${formatError(e)}`);
+    }
+  };
+
 
   const modalidadeSel = modalidadesQ.data?.find((m) => m.codigo === header.modalidade);
   const exigeImport = modalidadeSel?.exige_dados_importacao ?? false;
@@ -477,22 +502,8 @@ export default function CadastroPedidoCompra() {
 
   // ============================ RENDER ============================
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <Link
-            to="/compras"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Voltar para Compras
-          </Link>
-          <h1 className="text-2xl font-semibold">Cadastro de pedido de compra</h1>
-          <p className="text-sm text-muted-foreground">
-            Registra pedidos de importação e compra nacional. Códigos vêm do fornecedor e são
-            resolvidos pelo de-para. Sempre confira antes de gravar.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+
 
       {/* ============================ LISTA ============================ */}
       <Card>
@@ -536,6 +547,8 @@ export default function CadastroPedidoCompra() {
                     <TableHead className="text-right">Linhas</TableHead>
                     <TableHead className="text-right">Custo total</TableHead>
                     <TableHead>Fase XPM</TableHead>
+                    <TableHead className="w-10" />
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -567,6 +580,21 @@ export default function CadastroPedidoCompra() {
                           "—"
                         )}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Editar pedido"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditarId(p.id);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>
@@ -582,8 +610,16 @@ export default function CadastroPedidoCompra() {
       {/* ============================ FORMULÁRIO ============================ */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Novo pedido</CardTitle>
+          <CardTitle className="text-base">Novo pedido de mercadoria</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Para mercadoria de revenda. Insumo e serviço vão em{" "}
+            <Link to="/compras" className="underline underline-offset-2">
+              Compras
+            </Link>
+            .
+          </p>
         </CardHeader>
+
         <CardContent className="space-y-6">
           {/* Header */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -796,6 +832,25 @@ export default function CadastroPedidoCompra() {
               por linha. Separadores aceitos: <b>TAB</b> e <b>ponto-e-vírgula</b>. Vírgula é
               tratada como decimal — não use vírgula como separador de coluna.
             </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void baixarTemplate()}
+              >
+                <Download className="h-4 w-4 mr-1" /> Baixar template
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImportOpen(true)}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-1" /> Importar planilha
+              </Button>
+            </div>
+
             <Textarea
               value={textoLinhas}
               onChange={(e) => {
@@ -847,9 +902,29 @@ export default function CadastroPedidoCompra() {
           )}
         </CardContent>
       </Card>
+
+      <ImportarLinhasMercadoriaDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        temTextoAtual={textoLinhas.trim().length > 0}
+        onImportar={(texto, modo) => {
+          setTextoLinhas((cur) =>
+            modo === "substituir" || !cur.trim() ? texto : `${cur.replace(/\s*$/, "")}\n${texto}`,
+          );
+          setConferencia(null);
+        }}
+      />
+
+      <EditarPedidoMercadoriaDialog
+        open={editarId != null}
+        onOpenChange={(v) => !v && setEditarId(null)}
+        pedidoId={editarId}
+        onSaved={() => pedidosQ.refetch()}
+      />
     </div>
   );
 }
+
 
 // ============================================================================
 // Helpers
