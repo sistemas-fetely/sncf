@@ -40,6 +40,7 @@ const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
 const Organograma = lazy(() => import("@/pages/Organograma"));
 const Reembolsos = lazy(() => import("@/pages/pessoas/Reembolsos"));
 const ReembolsoSaneamento = lazy(() => import("@/pages/pessoas/ReembolsoSaneamento"));
+const ReembolsoCiclos = lazy(() => import("@/pages/pessoas/ReembolsoCiclos"));
 const Login = lazy(() => import("@/pages/Login"));
 const RecuperarSenha = lazy(() => import("@/pages/RecuperarSenha"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
