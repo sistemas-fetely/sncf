@@ -198,6 +198,8 @@ export default function EstoqueVirtual() {
     let bloqueadoUn = 0;
     let bloqueadoSkus = 0;
     let showroomUn = 0;
+    let descobertoUn = 0;
+    let descobertoSkus = 0;
     for (const p of lista) {
       if (p.status_venda === "vendido_sem_lastro") {
         semLastroSkus++;
@@ -216,11 +218,18 @@ export default function EstoqueVirtual() {
         bloqueadoSkus++;
       }
       showroomUn += Number(p.em_showroom ?? 0);
+      const desc = Number(p.descoberto ?? 0);
+      if (desc > 0) {
+        descobertoUn += desc;
+        descobertoSkus++;
+      }
     }
     return {
       semLastroSkus, semLastroUn, preVenda, unAguardando, aChegar,
       semPrevisao, indisponivel, bloqueadoUn, bloqueadoSkus, showroomUn,
+      descobertoUn, descobertoSkus,
     };
+
   }, [lista]);
 
   const filtrados = useMemo(() => {
