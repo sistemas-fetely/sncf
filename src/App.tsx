@@ -1,6 +1,4 @@
-// lazy com retry de chunk: deploy novo troca os hashes e aba antiga pede
-// arquivo que não existe mais. Ver src/lib/lazyComRetry.ts
-import { lazyComRetry as lazy } from "@/lib/lazyComRetry";
+import { lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
