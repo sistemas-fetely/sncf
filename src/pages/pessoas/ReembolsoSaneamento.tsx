@@ -66,42 +66,42 @@ export default function ReembolsoSaneamento() {
   const linhasQ = useQuery({
     queryKey: ["reembolso-saneamento"],
     queryFn: async (): Promise<LinhaSaneamento[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_reembolso_saneamento")
+      // Cast só do resultado: a view ainda não consta no types.ts gerado.
+      // Remover quando o types.ts for regenerado com vw_reembolso_saneamento.
+      const { data, error } = await supabase
+        .from("vw_reembolso_saneamento" as never)
         .select("*")
         .order("nome_completo");
       if (error) throw error;
-      return (data ?? []) as LinhaSaneamento[];
+      return (data ?? []) as unknown as LinhaSaneamento[];
     },
   });
 
   const pessoasQ = useQuery({
     queryKey: ["saneamento-pessoas"],
     queryFn: async (): Promise<PessoaOpcao[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("pessoas")
         .select("id,nome_completo")
         .order("nome_completo");
       if (error) throw error;
-      return (data ?? []) as PessoaOpcao[];
+      return data ?? [];
     },
   });
 
   const centrosQ = useQuery({
     queryKey: ["saneamento-centros-custo"],
     queryFn: async (): Promise<CentroCustoOpcao[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("centros_custo")
         .select("id,codigo,nome")
         .eq("ativo", true)
         .order("codigo");
       if (error) throw error;
-      return (data ?? []) as CentroCustoOpcao[];
+      return data ?? [];
     },
   });
+
 
   const linhas = linhasQ.data ?? [];
 
