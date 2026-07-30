@@ -81,6 +81,7 @@ const PortalSNCF = lazy(() => import("@/pages/PortalSNCF"));
 const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
 const ComprasMercadoria = lazy(() => import("@/pages/compras/ComprasMercadoria"));
+const PedidoMercadoriaDetalhe = lazy(() => import("@/pages/compras/PedidoMercadoriaDetalhe"));
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
@@ -395,6 +396,7 @@ const App = () => (
                 <Route path="/compras" element={<Compras />} />
                 <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
                 <Route path="/compras/mercadoria" element={<ComprasMercadoria />} />
+                <Route path="/compras/mercadoria/:id" element={<PedidoMercadoriaDetalhe />} />
               </Route>
 
               <Route path="/compras/de-para-fornecedor" element={<Navigate to="/compras/mercadoria?aba=de-para" replace />} />

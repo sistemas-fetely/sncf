@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, AlertTriangle, CheckCircle2, Link2, ExternalLink } from "lucide-react";
@@ -70,9 +70,27 @@ interface Parceiro {
   razao_social: string | null;
 }
 
+interface PedidoListaRow {
+  id: number;
+  numero_pedido: string;
+  rocabella_ref: string | null;
+  modalidade: string | null;
+  moeda: string | null;
+  data_pedido: string | null;
+  etd: string | null;
+  eta: string | null;
+  fornecedor: string | null;
+  centro: string | null;
+  status: string | null;
+  linhas: number | null;
+  kits: number | null;
+  custo_total: number | null;
+  fase_xpm: number | null;
+}
+
 interface ResolucaoRow {
   codigo: string;
-  status: "ok" | "nao_mapeado" | "mapeado_inativo" | "qtd_invalida";
+  status: "ok" | "nao_mapeado" | "mapeado_inativo" | "qtd_invalida" | "ambiguo";
   tipo: "produto" | "servico" | "ignorar" | null;
   sku: string | null;
   produto: string | null;
@@ -146,6 +164,7 @@ const STATUS_ROTULO: Record<string, string> = {
   nao_mapeado: "Não mapeado",
   mapeado_inativo: "Mapeado inativo",
   qtd_invalida: "Quantidade inválida",
+  ambiguo: "Ambíguo — código aponta pra vários SKUs",
 };
 
 // ============================================================================
@@ -245,6 +264,7 @@ function FornecedorCombobox({
 
 export default function CadastroPedidoCompra() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   // ---------------- Dimensões ----------------
   const modalidadesQ = useQuery({
@@ -312,51 +332,16 @@ export default function CadastroPedidoCompra() {
     queryKey: ["importacao-pedido-lista"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("importacao_pedido")
+        .from("vw_importacao_pedido_detalhe")
         .select(
-          "id, numero_pedido, modalidade, moeda, data_pedido, centro_id, status_id, fornecedor_id, cbm_total, total_conteineres, rocabella_ref, etd, eta",
+          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, etd, eta, fornecedor, centro, status, linhas, kits, custo_total, fase_xpm",
         );
       if (error) throw error;
-      return (data ?? []) as Array<{
-        id: number;
-        numero_pedido: string;
-        modalidade: string | null;
-        moeda: string | null;
-        data_pedido: string | null;
-        centro_id: string | null;
-        status_id: number | null;
-        fornecedor_id: string | null;
-        cbm_total: number | null;
-        total_conteineres: number | null;
-        rocabella_ref: string | null;
-        etd: string | null;
-        eta: string | null;
-      }>;
+      return (data ?? []) as PedidoListaRow[];
     },
   });
 
-  const linhasCountQ = useQuery({
-    queryKey: ["importacao-linha-agg"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("importacao_linha")
-        .select("importacao_pedido_id, qtd_kits, custo_total");
-      if (error) throw error;
-      const rows = (data ?? []) as Array<{
-        importacao_pedido_id: number;
-        qtd_kits: number | null;
-        custo_total: number | null;
-      }>;
-      const map = new Map<number, { linhas: number; custo: number }>();
-      for (const r of rows) {
-        const cur = map.get(r.importacao_pedido_id) ?? { linhas: 0, custo: 0 };
-        cur.linhas += 1;
-        cur.custo += Number(r.custo_total ?? 0);
-        map.set(r.importacao_pedido_id, cur);
-      }
-      return map;
-    },
-  });
+
 
 
   // ---------------- Estado do formulário ----------------
@@ -461,7 +446,6 @@ export default function CadastroPedidoCompra() {
     onSuccess: (data) => {
       toast.success(`Pedido ${data.numero_pedido} gravado (${data.linhas_gravadas} linha(s)).`);
       qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
-      qc.invalidateQueries({ queryKey: ["importacao-linha-agg"] });
       setHeader(EMPTY_HEADER);
       setTextoLinhas("");
       setConferencia(null);
@@ -479,23 +463,6 @@ export default function CadastroPedidoCompra() {
     header.numero_pedido.trim().length > 0 &&
     header.modalidade.length > 0 &&
     header.fornecedor_id.length > 0;
-
-  // Mapa auxiliar
-  const parceirosById = useMemo(() => {
-    const m = new Map<string, Parceiro>();
-    for (const p of parceirosQ.data ?? []) m.set(p.id, p);
-    return m;
-  }, [parceirosQ.data]);
-  const centrosById = useMemo(() => {
-    const m = new Map<string, Centro>();
-    for (const c of centrosQ.data ?? []) m.set(c.id, c);
-    return m;
-  }, [centrosQ.data]);
-  const statusById = useMemo(() => {
-    const m = new Map<number, StatusRow>();
-    for (const s of statusQ.data ?? []) m.set(s.id, s);
-    return m;
-  }, [statusQ.data]);
 
   const pedidosOrdenados = useMemo(() => {
     const lista = [...(pedidosQ.data ?? [])];
@@ -553,12 +520,6 @@ export default function CadastroPedidoCompra() {
             <div className="text-sm text-muted-foreground">Nenhum pedido cadastrado.</div>
           ) : (
             <div className="space-y-3">
-              {linhasCountQ.isError && (
-                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive break-words">
-                  Não foi possível carregar os totais de linhas e custo.{" "}
-                  {formatError(linhasCountQ.error)}
-                </div>
-              )}
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -574,41 +535,45 @@ export default function CadastroPedidoCompra() {
                     <TableHead>ETA</TableHead>
                     <TableHead className="text-right">Linhas</TableHead>
                     <TableHead className="text-right">Custo total</TableHead>
+                    <TableHead>Fase XPM</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pedidosOrdenados.map((p) => {
-                    const forn = p.fornecedor_id ? parceirosById.get(p.fornecedor_id) : null;
-                    const centro = p.centro_id ? centrosById.get(p.centro_id) : null;
-                    const st = p.status_id ? statusById.get(p.status_id) : null;
-                    const agg = linhasCountQ.data?.get(p.id);
-                    const semTotais = linhasCountQ.isError;
-                    return (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.numero_pedido}</TableCell>
-                        <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
-                        <TableCell>{p.modalidade ?? "—"}</TableCell>
-                        <TableCell>
-                          {forn ? forn.nome_fantasia || forn.razao_social : "—"}
-                        </TableCell>
-                        <TableCell>{centro ? centro.codigo : "—"}</TableCell>
-                        <TableCell>{st ? st.codigo : "—"}</TableCell>
-                        <TableCell>{fmtDate(p.data_pedido)}</TableCell>
-                        <TableCell>{fmtDate(p.etd)}</TableCell>
-                        <TableCell>{fmtDate(p.eta)}</TableCell>
-                        <TableCell className="text-right">
-                          {semTotais ? "—" : agg?.linhas ?? 0}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {semTotais ? "—" : fmtBRL(agg?.custo ?? 0, p.moeda ?? "BRL")}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {pedidosOrdenados.map((p) => (
+                    <TableRow
+                      key={p.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/compras/mercadoria/${p.id}`)}
+                    >
+                      <TableCell className="font-medium">{p.numero_pedido}</TableCell>
+                      <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
+                      <TableCell>{p.modalidade ?? "—"}</TableCell>
+                      <TableCell>{p.fornecedor ?? "—"}</TableCell>
+                      <TableCell>{p.centro ?? "—"}</TableCell>
+                      <TableCell>{p.status ?? "—"}</TableCell>
+                      <TableCell>{fmtDate(p.data_pedido)}</TableCell>
+                      <TableCell>{fmtDate(p.etd)}</TableCell>
+                      <TableCell>{fmtDate(p.eta)}</TableCell>
+                      <TableCell className="text-right">{p.linhas ?? 0}</TableCell>
+                      <TableCell className="text-right">
+                        {fmtBRL(Number(p.custo_total ?? 0), p.moeda ?? "BRL")}
+                      </TableCell>
+                      <TableCell>
+                        {p.fase_xpm === 2 ? (
+                          <Badge variant="secondary">Fase 2 · com NF</Badge>
+                        ) : p.fase_xpm === 1 ? (
+                          <Badge variant="outline">Fase 1 · sem NF</Badge>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
               </div>
             </div>
+
           )}
 
         </CardContent>
