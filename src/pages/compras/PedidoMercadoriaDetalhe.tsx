@@ -774,15 +774,10 @@ export default function PedidoMercadoriaDetalhe() {
             <TabsContent value="conferencia" className="mt-4 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Pedido × NF (físico)</CardTitle>
+                  <CardTitle className="text-base">Pedido × NF</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {!pedido.rocabella_ref ? (
-                    <div className="text-sm text-muted-foreground">
-                      Este pedido não tem referência (rocabella_ref), que é a chave da conferência
-                      física por NF.
-                    </div>
-                  ) : confNfQ.isLoading ? (
+                  {confNfQ.isLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" /> Carregando conferência...
                     </div>
@@ -797,47 +792,83 @@ export default function PedidoMercadoriaDetalhe() {
                       A conferência aparece quando houver NF vinculada a este pedido.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>SKU</TableHead>
-                            <TableHead>Produto</TableHead>
-                            <TableHead>Código NF</TableHead>
-                            <TableHead className="text-right">Qtd pedido</TableHead>
-                            <TableHead className="text-right">Qtd física</TableHead>
-                            <TableHead className="text-right">Divergência</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {confNfQ.data!.map((r, i) => {
-                            const div = Number(r.divergencia_fisica ?? 0);
-                            return (
-                              <TableRow
-                                key={`${r.sku}-${r.codigo_nf}-${i}`}
-                                className={div !== 0 ? "bg-destructive/10" : undefined}
-                              >
-                                <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
-                                <TableCell className="max-w-[280px] truncate">
-                                  {r.nome_comercial ?? "—"}
-                                </TableCell>
-                                <TableCell className="font-mono text-xs">
-                                  {r.codigo_nf ?? "—"}
-                                </TableCell>
-                                <TableCell className="text-right">{fmtNum(r.qtd_pedido)}</TableCell>
-                                <TableCell className="text-right">{fmtNum(r.qtd_fisica)}</TableCell>
-                                <TableCell
-                                  className={
-                                    div !== 0 ? "text-right font-semibold text-destructive" : "text-right"
-                                  }
+                    <div className="space-y-3">
+                      {naoAlocadas > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                          <span>
+                            {naoAlocadas} linha(s) da NF ainda não foram distribuídas em SKU. É o
+                            estado normal enquanto o de-para do fornecedor não estiver preenchido.
+                          </span>
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to="/compras/mercadoria?aba=de-para">
+                              Preencher de-para <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>NF</TableHead>
+                              <TableHead className="text-right">Item</TableHead>
+                              <TableHead>Código</TableHead>
+                              <TableHead>NCM</TableHead>
+                              <TableHead className="text-right">Qtd NF</TableHead>
+                              <TableHead className="text-right">Valor NF</TableHead>
+                              <TableHead>SKU</TableHead>
+                              <TableHead className="text-right">Qtd alocada</TableHead>
+                              <TableHead className="text-right">Qtd pedido</TableHead>
+                              <TableHead className="text-right">Furo</TableHead>
+                              <TableHead>Situação</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {confNfQ.data!.map((r, i) => {
+                              const meta = SITUACAO_NF[r.situacao ?? ""] ?? {
+                                rotulo: r.situacao ?? "—",
+                                badge: "bg-muted text-muted-foreground",
+                                linha: undefined,
+                              };
+                              return (
+                                <TableRow
+                                  key={`${r.nf_linha_id ?? i}-${r.sku ?? "s"}-${i}`}
+                                  className={meta.linha}
                                 >
-                                  {fmtNum(r.divergencia_fisica)}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                                  <TableCell className="font-mono text-xs">
+                                    {r.nf_numero ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right">{r.item_seq ?? "—"}</TableCell>
+                                  <TableCell className="font-mono text-xs">
+                                    {r.codigo_nf ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs">{r.ncm ?? "—"}</TableCell>
+                                  <TableCell className="text-right">{fmtNum(r.qtd_nf)}</TableCell>
+                                  <TableCell className="text-right">
+                                    {r.valor_nf === null || r.valor_nf === undefined
+                                      ? "—"
+                                      : fmtMoeda(r.valor_nf, "BRL")}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.qtd_alocada)}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.qtd_pedido)}
+                                  </TableCell>
+                                  <TableCell className="text-right">{fmtNum(r.furo)}</TableCell>
+                                  <TableCell>
+                                    <Badge className={meta.badge} variant="outline">
+                                      {meta.rotulo}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   )}
                 </CardContent>
