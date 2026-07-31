@@ -21,6 +21,7 @@ import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialo
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
 import { Button } from "@/components/ui/button";
+import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 
 import {
   EstagioBadge, FormatoIdade,
@@ -535,6 +536,14 @@ export function FilaPedidosPorArea({
                           pedido_id={p.id}
                         />
                       )}
+
+                      <BotaoSplitPedido
+                        pedido_id={p.id}
+                        id_externo={p.id_externo}
+                        valor_liquido={p.valor_liquido}
+                        estagio={p.estagio}
+                        variante="compact"
+                      />
 
                       {p.estagio === "pre_separacao" && !p.bling_id_destino && (
                         <EnviarBlingDialog

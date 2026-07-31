@@ -49,6 +49,9 @@ export function useCriarSplit() {
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      qc.invalidateQueries({ queryKey: ["pedido-itens-split", vars.pedido_id] });
+      qc.invalidateQueries({ queryKey: ["triagem-pedido", vars.pedido_id] });
+      qc.invalidateQueries({ queryKey: ["pedido-destino-estoque", vars.pedido_id] });
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error
