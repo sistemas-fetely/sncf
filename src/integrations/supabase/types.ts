@@ -29164,14 +29164,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -29513,14 +29513,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -31781,6 +31781,7 @@ export type Database = {
       }
       vw_xpm_cad_item: {
         Row: {
+          alocacao_parcial: boolean | null
           altura_cm: number | null
           altura_m: number | null
           camada: number | null
@@ -31791,6 +31792,7 @@ export type Database = {
           codigo_material: string | null
           comprimento_m: number | null
           corte_vs_pedido: number | null
+          declarado_incompleto: boolean | null
           descricao: string | null
           descricao_embalagem: string | null
           descricao_reduzida: string | null
@@ -31803,6 +31805,7 @@ export type Database = {
           nf: string | null
           numero_pedido: string | null
           pedido_ref: string | null
+          pedido_tem_nf: boolean | null
           peso_liquido: number | null
           peso_sku: number | null
           qtd_alocada: number | null
