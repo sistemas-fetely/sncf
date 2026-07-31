@@ -55,3 +55,111 @@ export function usePedidoEntrega(pedidoId: string | undefined, estagio: string |
     },
   });
 }
+
+export interface EntregaLinhaInfo {
+  entregue_em: string | null;
+  entregue_metodo: string | null;
+  transportadora_nome: string | null;
+  data_entrega_transportadora: string | null;
+  prazo_transportadora: string | null;
+  entrega_ocorrencia_texto: string | null;
+  nf_numero: string | null;
+  nf_serie: string | null;
+  nf_chave: string | null;
+  nf_pdf_url: string | null;
+  nf_data_emissao: string | null;
+}
+
+/**
+ * Versão em lote para a fila de pedidos.
+ * Junta vw_pedido_entrega (dados de entrega) com nfs_emitidas (NF real).
+ * ATENÇÃO: vw_pedido_entrega.nf_numero está quebrado — não é usado aqui.
+ */
+export function usePedidosEntregaLote(pedidoIds: string[]) {
+  const ids = [...pedidoIds].sort();
+  return useQuery({
+    queryKey: ["pedidos-fila", "entrega-lote", ids],
+    enabled: ids.length > 0,
+    staleTime: 30 * 1000,
+    queryFn: async (): Promise<Map<string, EntregaLinhaInfo>> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      const [entregaRes, nfRes] = await Promise.all([
+        sb
+          .from("vw_pedido_entrega")
+          .select(
+            "pedido_id, entregue_em, entregue_metodo, transportadora_nome, transportadora_razao, data_entrega_transportadora, prazo_transportadora, entrega_ocorrencia_texto",
+          )
+          .in("pedido_id", ids),
+        sb
+          .from("nfs_emitidas")
+          .select("pedido_venda_id, numero, serie, chave_acesso, pdf_url, data_emissao, situacao")
+          .in("pedido_venda_id", ids)
+          .in("situacao", ["emitida", "autorizada"])
+          .order("data_emissao", { ascending: false }),
+      ]);
+      if (entregaRes.error) throw entregaRes.error;
+      if (nfRes.error) throw nfRes.error;
+
+      const nfMap = new Map<
+        string,
+        { numero: string | null; serie: string | null; chave: string | null; pdf: string | null; data: string | null }
+      >();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const r of (nfRes.data || []) as any[]) {
+        if (!r.pedido_venda_id || nfMap.has(r.pedido_venda_id)) continue;
+        nfMap.set(r.pedido_venda_id, {
+          numero: r.numero ?? null,
+          serie: r.serie ?? null,
+          chave: r.chave_acesso ?? null,
+          pdf: r.pdf_url ?? null,
+          data: r.data_emissao ?? null,
+        });
+      }
+
+      const m = new Map<string, EntregaLinhaInfo>();
+      const put = (pid: string, patch: Partial<EntregaLinhaInfo>) => {
+        const base: EntregaLinhaInfo = m.get(pid) ?? {
+          entregue_em: null,
+          entregue_metodo: null,
+          transportadora_nome: null,
+          data_entrega_transportadora: null,
+          prazo_transportadora: null,
+          entrega_ocorrencia_texto: null,
+          nf_numero: null,
+          nf_serie: null,
+          nf_chave: null,
+          nf_pdf_url: null,
+          nf_data_emissao: null,
+        };
+        m.set(pid, { ...base, ...patch });
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const r of (entregaRes.data || []) as any[]) {
+        if (!r.pedido_id) continue;
+        put(r.pedido_id, {
+          entregue_em: r.entregue_em ?? null,
+          entregue_metodo: r.entregue_metodo ?? null,
+          transportadora_nome: r.transportadora_nome ?? r.transportadora_razao ?? null,
+          data_entrega_transportadora: r.data_entrega_transportadora ?? null,
+          prazo_transportadora: r.prazo_transportadora ?? null,
+          entrega_ocorrencia_texto: r.entrega_ocorrencia_texto ?? null,
+        });
+      }
+      for (const [pid, nf] of nfMap.entries()) {
+        put(pid, {
+          nf_numero: nf.numero,
+          nf_serie: nf.serie,
+          nf_chave: nf.chave,
+          nf_pdf_url: nf.pdf,
+          nf_data_emissao: nf.data,
+        });
+      }
+      // Garante entrada para todo pedido pedido (para render de lacunas)
+      for (const pid of ids) if (!m.has(pid)) put(pid, {});
+      return m;
+    },
+  });
+}
+
