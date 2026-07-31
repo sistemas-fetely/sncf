@@ -82,7 +82,7 @@ export function FilaPedidosPorArea({
   const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
   const [formaPgtoFilter, setFormaPgtoFilter] = useState<string>("todas");
   const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("cronologico");
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("risco");
   const [pagina, setPagina] = useState(1);
   const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const [autoPageSize, setAutoPageSize] = useState<number>(20);
@@ -153,9 +153,14 @@ export function FilaPedidosPorArea({
     }
     if (ordenacao !== "risco") return base;
     return [...base].sort((a, b) => {
-      const sa = riscoMap?.get(a.id)?.risco_score ?? -1;
-      const sb = riscoMap?.get(b.id)?.risco_score ?? -1;
+      const ra = riscoMap?.get(a.id);
+      const rb = riscoMap?.get(b.id);
+      const sa = ra?.risco_score ?? -1;
+      const sb = rb?.risco_score ?? -1;
       if (sb !== sa) return sb - sa;
+      const da = ra?.dias_na_fase ?? -1;
+      const db = rb?.dias_na_fase ?? -1;
+      if (db !== da) return db - da;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
   }, [data, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
@@ -734,11 +739,11 @@ function FarolRisco({
   motivos: { codigo: string; rotulo: string; pontos: number }[];
   rotuloFaixa: string | null;
 }) {
-  if (!faixa && score == null) {
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
+  // Terminal (cancelado / recuperacao_venda) vem sem faixa: nada é renderizado.
+  if (!faixa) return null;
   const bg = RISCO_COR_TOKEN[cor ?? ""] ?? "bg-muted-foreground";
-  const label = rotuloFaixa || faixa || "Risco";
+  const label = rotuloFaixa || faixa;
+  const motivosOrdenados = [...motivos].sort((a, b) => b.pontos - a.pontos);
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -756,9 +761,9 @@ function FarolRisco({
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-xs">
           <p className="text-xs font-semibold">{label}{score != null ? ` · ${score}` : ""}</p>
-          {motivos.length > 0 ? (
+          {motivosOrdenados.length > 0 ? (
             <ul className="mt-1 space-y-0.5 text-xs">
-              {motivos.map((m) => (
+              {motivosOrdenados.map((m) => (
                 <li key={m.codigo} className="flex justify-between gap-3">
                   <span className="opacity-80">{m.rotulo}</span>
                   <span className="font-mono">+{m.pontos}</span>
