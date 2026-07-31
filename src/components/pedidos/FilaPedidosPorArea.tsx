@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
+import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
+import { EntregaLinhaResumo, ESTAGIOS_COM_RESUMO_ENTREGA } from "@/components/pedidos/EntregaLinhaResumo";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -240,6 +242,22 @@ export function FilaPedidosPorArea({
     },
   });
 
+  // Resumo de saída (data de entrega, transportadora, NF) para pedidos já expedidos
+  const pedidoIdsSaida = useMemo(
+    () =>
+      (linhas || [])
+        .filter((p) => (ESTAGIOS_COM_RESUMO_ENTREGA as readonly string[]).includes(p.estagio))
+        .map((p) => p.id),
+    [linhas]
+  );
+  const {
+    data: entregaMap,
+    isError: entregaErro,
+    error: entregaErrorObj,
+  } = usePedidosEntregaLote(pedidoIdsSaida);
+
+
+
   const { data: msgPendentes } = useQuery({
     queryKey: ["canal-msgs-pendentes"],
     queryFn: async () => {
@@ -468,7 +486,16 @@ export function FilaPedidosPorArea({
                       })()}
                       <MarcacaoBadge marcacao={p.marcacao} />
                     </div>
+                    {(ESTAGIOS_COM_RESUMO_ENTREGA as readonly string[]).includes(p.estagio) &&
+                      (entregaErro ? (
+                        <p className="mt-1 text-[11px] text-destructive">
+                          Erro ao carregar entrega/NF: {(entregaErrorObj as Error)?.message || "falha desconhecida"}
+                        </p>
+                      ) : (
+                        <EntregaLinhaResumo info={entregaMap?.get(p.id)} />
+                      ))}
                   </TableCell>
+
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     <FormatoIdade minutos={p.idade_minutos} />
                   </TableCell>
