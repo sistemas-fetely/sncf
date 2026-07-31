@@ -739,11 +739,11 @@ function FarolRisco({
   motivos: { codigo: string; rotulo: string; pontos: number }[];
   rotuloFaixa: string | null;
 }) {
-  if (!faixa && score == null) {
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
+  // Terminal (cancelado / recuperacao_venda) vem sem faixa: nada é renderizado.
+  if (!faixa) return null;
   const bg = RISCO_COR_TOKEN[cor ?? ""] ?? "bg-muted-foreground";
-  const label = rotuloFaixa || faixa || "Risco";
+  const label = rotuloFaixa || faixa;
+  const motivosOrdenados = [...motivos].sort((a, b) => b.pontos - a.pontos);
 
   return (
     <TooltipProvider delayDuration={150}>
