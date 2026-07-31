@@ -73,6 +73,7 @@ export interface EntregaLinhaInfo {
   nf_chave: string | null;
   nf_pdf_url: string | null;
   nf_data_emissao: string | null;
+  nf_situacao: string | null;
   nf_id: string | null;
   nf_bling_id: string | null;
 }
@@ -103,7 +104,6 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           .from("nfs_emitidas")
           .select("id, bling_id, pedido_venda_id, numero, serie, chave_acesso, pdf_url, data_emissao, situacao")
           .in("pedido_venda_id", ids)
-          .in("situacao", ["emitida", "autorizada"])
           .order("data_emissao", { ascending: false }),
       ]);
       if (entregaRes.error) throw entregaRes.error;
@@ -119,12 +119,34 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           data: string | null;
           id: string | null;
           bling_id: string | null;
+          situacao: string | null;
         }
       >();
+      // Escolha da NF por pedido: prefere 'autorizada'; senão a mais recente
+      // por data_emissao (a query já vem ordenada desc).
+      const ts = (v: unknown) => {
+        const t = v ? Date.parse(String(v)) : NaN;
+        return Number.isNaN(t) ? -Infinity : t;
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const melhorNf = new Map<string, any>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const r of (nfRes.data || []) as any[]) {
-        if (!r.pedido_venda_id || nfMap.has(r.pedido_venda_id)) continue;
-        nfMap.set(r.pedido_venda_id, {
+        if (!r.pedido_venda_id) continue;
+        const atual = melhorNf.get(r.pedido_venda_id);
+        if (!atual) {
+          melhorNf.set(r.pedido_venda_id, r);
+          continue;
+        }
+        const autA = atual.situacao === "autorizada";
+        const autR = r.situacao === "autorizada";
+        if (autR && !autA) melhorNf.set(r.pedido_venda_id, r);
+        else if (autR === autA && ts(r.data_emissao) > ts(atual.data_emissao)) {
+          melhorNf.set(r.pedido_venda_id, r);
+        }
+      }
+      for (const [pid, r] of melhorNf.entries()) {
+        nfMap.set(pid, {
           numero: r.numero ?? null,
           serie: r.serie ?? null,
           chave: r.chave_acesso ?? null,
@@ -132,6 +154,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           data: r.data_emissao ?? null,
           id: r.id ?? null,
           bling_id: r.bling_id ?? null,
+          situacao: r.situacao ?? null,
         });
       }
 
@@ -154,6 +177,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           nf_chave: null,
           nf_pdf_url: null,
           nf_data_emissao: null,
+          nf_situacao: null,
           nf_id: null,
           nf_bling_id: null,
         };
@@ -184,6 +208,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           nf_chave: nf.chave,
           nf_pdf_url: nf.pdf,
           nf_data_emissao: nf.data,
+          nf_situacao: nf.situacao,
           nf_id: nf.id,
           nf_bling_id: nf.bling_id,
         });

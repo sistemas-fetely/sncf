@@ -165,6 +165,11 @@ export function EntregaLinhaResumo({ info }: { info: EntregaLinhaInfo | undefine
             info.nf_numero
           )}
           {info.nf_serie ? ` · série ${info.nf_serie}` : ""}
+          {info.nf_situacao && info.nf_situacao !== "autorizada" ? (
+            <span className="ml-1 text-warning">
+              · {info.nf_situacao === "pendente" ? "pendente de autorização" : info.nf_situacao}
+            </span>
+          ) : null}
         </p>
       ) : (
         <p className="text-[11px] text-warning">sem NF registrada</p>
