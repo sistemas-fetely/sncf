@@ -53,9 +53,11 @@ interface ItemForm {
   km: string;
   justificativa: string;
   plano_contas_id: string;
+  arquivo: File | null;
   rateioAberto: boolean;
   rateio: RateioLinha[];
 }
+
 
 function hoje(): string {
   return new Date().toISOString().slice(0, 10);
