@@ -12,7 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  AlertTriangle, Download, FileSpreadsheet, Loader2, Upload, ExternalLink, Info,
+  AlertTriangle, ChevronDown, Download, FileSpreadsheet, Loader2, Upload, ExternalLink, Info,
 } from "lucide-react";
 
 const VERDE = "#1A4A3A";
