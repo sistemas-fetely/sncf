@@ -43,22 +43,27 @@ function mapearDetalhe(d: any) {
   const dim = d?.dimensoes ?? {};
   const trib = d?.tributacao ?? {};
   return {
-    ncm: texto(trib.ncm ?? d?.ncm),
+    // aninhados em tributacao
+    ncm: texto(trib.ncm),
+    cest: texto(trib.cest),
+    origem_fisc: texto(trib.origem),
+    // raiz
     gtin: texto(d?.gtin),
     peso_liquido: num(d?.pesoLiquido),
     peso_bruto: num(d?.pesoBruto),
     unidade: texto(d?.unidade),
-    descricao: texto(d?.descricaoCurta ?? d?.descricao ?? d?.descricaoComplementar),
-    cest: texto(trib.cest ?? d?.cest),
-    origem_fisc: texto(trib.origem ?? d?.origem),
+    situacao_bling: texto(d?.situacao),
+    tipo_bling: texto(d?.tipo),
+    formato_bling: texto(d?.formato),
+    itens_por_caixa: num(d?.itensPorCaixa),
+    categoria: texto(d?.categoria?.id),
+    // dimensoes
     altura_cm: num(dim.altura),
     largura_cm: num(dim.largura),
     profundidade_cm: num(dim.profundidade),
-    tipo_bling: texto(d?.tipo),
-    formato_bling: texto(d?.formato),
-    situacao_bling: texto(d?.situacao),
   };
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -72,13 +77,37 @@ serve(async (req) => {
     // ---- body (opcional) ----
     let dryRun = false;
     let limite = LIMITE_DEFAULT;
+    let forcarSkus: string[] = [];
     try {
       const body = await req.json();
       dryRun = body?.dry_run === true;
       const l = Number(body?.limite);
       if (Number.isFinite(l) && l > 0) limite = Math.min(Math.floor(l), LIMITE_MAX);
+      if (Array.isArray(body?.forcar_skus)) {
+        forcarSkus = body.forcar_skus.map((s: unknown) => String(s).trim()).filter(Boolean);
+      }
     } catch (_) { /* sem body = execução real com default */ }
     if (dryRun) limite = Math.min(limite, DRY_RUN_MAX);
+
+    // ---- seleção: pendentes (detalhe_lido_em IS NULL) ou reprocessamento EXPLÍCITO ----
+    let q = supabase
+      .from("produtos")
+      .select("id, bling_id, codigo, detalhe_lido_em")
+      .not("bling_id", "is", null);
+    if (forcarSkus.length > 0) {
+      q = q.in("codigo", forcarSkus).limit(Math.max(forcarSkus.length, limite));
+    } else {
+      q = q.eq("ativo", true).is("detalhe_lido_em", null).limit(limite);
+    }
+    const { data: fila, error: filaErr } = await q;
+    if (filaErr) return json(500, { error: `Falha ao selecionar produtos: ${filaErr.message}` });
+
+    const linhas = fila ?? [];
+
+    // fila vazia = não chama o Bling nenhuma vez
+    if (linhas.length === 0) {
+      return json(200, { dry_run: dryRun, processados: 0, restantes_na_fila: 0 });
+    }
 
     // ---- credenciais ----
     const { data: cfg, error: cfgErr } = await supabase
@@ -97,17 +126,6 @@ serve(async (req) => {
       return json(401, { error: e instanceof Error ? e.message : String(e) });
     }
 
-    // ---- fila incremental: nunca lidos primeiro ----
-    const { data: fila, error: filaErr } = await supabase
-      .from("produtos")
-      .select("id, bling_id, codigo, detalhe_lido_em")
-      .eq("ativo", true)
-      .not("bling_id", "is", null)
-      .order("detalhe_lido_em", { ascending: true, nullsFirst: true })
-      .limit(limite);
-    if (filaErr) return json(500, { error: `Falha ao selecionar produtos: ${filaErr.message}` });
-
-    const linhas = fila ?? [];
 
     const erros: { bling_id: string | null; codigo: string | null; mensagem: string }[] = [];
     const previa: unknown[] = [];
