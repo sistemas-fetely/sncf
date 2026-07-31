@@ -42,6 +42,7 @@ import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDescontoDialog";
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
+import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
@@ -187,7 +188,6 @@ function CobrancaStepper({ fase }: { fase: 1 | 2 | 3 }) {
 function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [links, setLinks] = useState<Record<string, string>>({});
   const [datas, setDatas] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
@@ -222,13 +222,10 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
   useEffect(() => {
     if (titulosQ.data) {
-      const initLinks: Record<string, string> = {};
       const initDatas: Record<string, string> = {};
       titulosQ.data.forEach((t: any) => {
-        initLinks[t.id] = t.link_pagamento ?? "";
         initDatas[t.id] = t.data_vencimento_atual ?? "";
       });
-      setLinks(initLinks);
       setDatas(initDatas);
     }
   }, [titulosQ.data]);
@@ -245,12 +242,9 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     setSalvando(true);
     try {
       for (const t of titulosQ.data ?? []) {
-        const novoLink = links[t.id] ?? "";
-        const atualLink = t.link_pagamento ?? "";
         const novaData = datas[t.id] ?? "";
         const atualData = t.data_vencimento_atual ?? "";
         const changed: Record<string, any> = {};
-        if (novoLink !== atualLink) changed.link_pagamento = novoLink || null;
         if (novaData && novaData !== atualData) changed.data_vencimento_atual = novaData;
         if (Object.keys(changed).length > 0) {
           const { error } = await (supabase as any)
@@ -260,7 +254,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           if (error) throw error;
         }
       }
-      toast({ title: "Salvo!", description: "Títulos atualizados com sucesso." });
+      toast({ title: "Salvo!", description: "Vencimentos atualizados com sucesso." });
     } catch (err) {
       toast({ title: "Erro ao salvar", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -278,7 +272,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           { label: pedido.id_externo ?? "—" },
         ]}
         title={`Links de Pagamento — ${pedido.id_externo ?? ""}`}
-        subtitle="Edite o link de pagamento dos títulos em aberto."
+        subtitle="Link de pagamento único do pedido e vencimentos dos títulos em aberto."
       />
 
       <CobrancaStepper fase={fasePagamento} />
@@ -297,6 +291,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           </div>
         </CardHeader>
         <CardContent>
+          <LinkPagamentoCard pedidoId={pedido.id} className="mb-4" />
+
           {titulosQ.isLoading && <Skeleton className="h-40 w-full" />}
 
           {!titulosQ.isLoading && titulosQ.data?.length === 0 && (
@@ -312,7 +308,6 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
                     <TableHead>Valor</TableHead>
                     <TableHead>Vencimento</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead>Link de pagamento</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -336,17 +331,6 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
                   </TableCell>
                       <TableCell className="text-sm capitalize">
                         {t.tipo_pagamento ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="url"
-                          placeholder="https://..."
-                          value={links[t.id] ?? ""}
-                          onChange={(e) =>
-                            setLinks((prev) => ({ ...prev, [t.id]: e.target.value }))
-                          }
-                          className="h-8 w-80 text-xs"
-                        />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -373,7 +357,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
                 disabled={salvando || titulosQ.isLoading || titulosQ.data?.length === 0}
               >
                 {salvando && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                Salvar links
+                Salvar vencimentos
               </Button>
             </div>
           </div>
