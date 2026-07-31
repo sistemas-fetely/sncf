@@ -68,7 +68,26 @@ export interface ItemSolicitacao {
   numero_comprovante: string | null;
   status_item: string | null;
   justificativa: string | null;
+  estabelecimento: string | null;
+  projeto_evento?: string | null;
 }
+
+export type TipoAnexo = "comprovante" | "ok_previo_diretoria" | "ok_lider" | "justificativa";
+
+export interface Comprovante {
+  id: string;
+  solicitacao_id: string;
+  item_id: string | null;
+  numero: string | null;
+  arquivo_path: string;
+  nome_original: string | null;
+  mime: string | null;
+  tamanho_bytes: number | null;
+  conferido: boolean | null;
+  tipo_anexo: TipoAnexo;
+  created_at: string | null;
+}
+
 
 export interface Categoria {
   id: string;
@@ -188,7 +207,52 @@ export const CHAVES_REEMBOLSO = {
   apontamentos: (id: string) => ["reembolso-apontamentos", id] as const,
   ciclos: ["reembolso-ciclos"] as const,
   lotes: (cicloId: string) => ["reembolso-lotes", cicloId] as const,
+  comprovantes: (id: string) => ["reembolso-comprovantes", id] as const,
 };
+
+export const BUCKET_COMPROVANTES = "comprovantes-reembolso";
+export const MIMES_COMPROVANTE = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+] as const;
+export const LIMITE_COMPROVANTE_BYTES = 10 * 1024 * 1024;
+
+/** Sanitiza o nome do arquivo: minúsculas, sem acento, sem caractere especial. */
+export function sanitizarNomeArquivo(nome: string): string {
+  return nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9.]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120) || "arquivo";
+}
+
+export function caminhoComprovante(
+  solicitacaoId: string,
+  tipoAnexo: TipoAnexo,
+  nomeArquivo: string,
+): string {
+  return `solicitacoes/${solicitacaoId}/${tipoAnexo}-${Date.now()}-${sanitizarNomeArquivo(nomeArquivo)}`;
+}
+
+export function formatarTamanho(bytes: number | null | undefined): string {
+  const b = Number(bytes ?? 0);
+  if (!b) return "—";
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export const ROTULO_TIPO_ANEXO: Record<TipoAnexo, string> = {
+  comprovante: "Comprovante",
+  ok_lider: "OK do líder por escrito",
+  ok_previo_diretoria: "OK prévio da Diretoria",
+  justificativa: "Justificativa",
+};
+
 
 // ---------------------------------------------------------------------------
 // Queries
@@ -814,6 +878,161 @@ export function useRegistrarPagamento() {
     onError: erroVisivel,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Comprovantes (anexos)
+// ---------------------------------------------------------------------------
+
+export function useComprovantes(solicitacaoId: string | null) {
+  return useQuery({
+    enabled: !!solicitacaoId,
+    queryKey: CHAVES_REEMBOLSO.comprovantes(solicitacaoId ?? ""),
+    queryFn: async (): Promise<Comprovante[]> => {
+      // Cast só do resultado: ainda não consta no types.ts gerado.
+      const { data, error } = await supabase
+        .from("reembolso_comprovantes" as never)
+        .select("*")
+        .eq("solicitacao_id", solicitacaoId)
+        .order("tipo_anexo")
+        .order("numero");
+      if (error) throw error;
+      return (data ?? []) as unknown as Comprovante[];
+    },
+  });
+}
+
+export interface ResultadoAnexo {
+  ok?: boolean;
+  id?: string;
+  numero?: string;
+  tipo?: string;
+  apontamentos?: number;
+  bloqueantes?: number;
+}
+
+async function invalidarComprovantes(
+  qc: ReturnType<typeof useQueryClient>,
+  solicitacaoId: string,
+) {
+  await Promise.all([
+    qc.invalidateQueries({ queryKey: CHAVES_REEMBOLSO.comprovantes(solicitacaoId) }),
+    qc.invalidateQueries({ queryKey: CHAVES_REEMBOLSO.apontamentos(solicitacaoId) }),
+    qc.invalidateQueries({ queryKey: CHAVES_REEMBOLSO.solicitacao(solicitacaoId) }),
+    qc.invalidateQueries({ queryKey: CHAVES_REEMBOLSO.solicitacoes }),
+  ]);
+}
+
+export function useAnexarComprovante() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      solicitacaoId: string;
+      itemId: string | null;
+      tipoAnexo: TipoAnexo;
+      file: File;
+    }): Promise<ResultadoAnexo> => {
+      const path = caminhoComprovante(args.solicitacaoId, args.tipoAnexo, args.file.name);
+
+      const { error: upErr } = await supabase.storage
+        .from(BUCKET_COMPROVANTES)
+        .upload(path, args.file, { contentType: args.file.type || undefined, upsert: false });
+      if (upErr) throw upErr;
+
+      try {
+        // Cast só do resultado: ainda não consta no types.ts gerado.
+        const { data, error } = await supabase.rpc("reembolso_anexar_comprovante" as never, {
+          p: {
+            solicitacao_id: args.solicitacaoId,
+            item_id: args.itemId,
+            tipo_anexo: args.tipoAnexo,
+            arquivo_path: path,
+            nome_original: args.file.name,
+            mime: args.file.type || null,
+            tamanho_bytes: args.file.size,
+          },
+        } as never);
+        if (error) throw error;
+        return data as unknown as ResultadoAnexo;
+      } catch (err) {
+        // A RPC falhou depois do upload: não deixa arquivo órfão no bucket.
+        await supabase.storage.from(BUCKET_COMPROVANTES).remove([path]);
+        throw err;
+      }
+    },
+    onSuccess: async (_data, vars) => {
+      await invalidarComprovantes(qc, vars.solicitacaoId);
+    },
+    onError: erroVisivel,
+  });
+}
+
+export interface ResultadoRemocaoAnexo {
+  ok?: boolean;
+  removido?: boolean;
+  arquivo_path?: string | null;
+  apontamentos?: number;
+  bloqueantes?: number;
+}
+
+export function useRemoverComprovante() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      solicitacaoId: string;
+      comprovanteId: string;
+    }): Promise<ResultadoRemocaoAnexo> => {
+      // RPC primeiro, storage depois: o inverso deixaria registro órfão.
+      // Cast só do resultado: ainda não consta no types.ts gerado.
+      const { data, error } = await supabase.rpc("reembolso_remover_comprovante" as never, {
+        p_comprovante_id: args.comprovanteId,
+      } as never);
+      if (error) throw error;
+      const resultado = data as unknown as ResultadoRemocaoAnexo;
+      if (resultado?.arquivo_path) {
+        const { error: stErr } = await supabase.storage
+          .from(BUCKET_COMPROVANTES)
+          .remove([resultado.arquivo_path]);
+        if (stErr) {
+          toast.warning("Registro removido, mas o arquivo continuou no armazenamento.", {
+            description: stErr.message,
+          });
+        }
+      }
+      return resultado;
+    },
+    onSuccess: async (_data, vars) => {
+      await invalidarComprovantes(qc, vars.solicitacaoId);
+    },
+    onError: erroVisivel,
+  });
+}
+
+/** Gera a URL assinada (300s) do anexo. Gere só no momento de abrir. */
+export function useUrlAssinada() {
+  return async function urlAssinada(path: string): Promise<string> {
+    const { data, error } = await supabase.storage
+      .from(BUCKET_COMPROVANTES)
+      .createSignedUrl(path, 300);
+    if (error) throw error;
+    if (!data?.signedUrl) throw new Error("Não foi possível gerar o link do arquivo.");
+    return data.signedUrl;
+  };
+}
+
+/** Busca os itens de uma solicitação ordenados por seq (usado logo após lançar). */
+export async function buscarItensDaSolicitacao(
+  solicitacaoId: string,
+): Promise<ItemSolicitacao[]> {
+  // Cast só do resultado: ainda não consta no types.ts gerado.
+  const { data, error } = await supabase
+    .from("reembolso_itens" as never)
+    .select("*")
+    .eq("solicitacao_id", solicitacaoId)
+    .order("seq");
+  if (error) throw error;
+  return (data ?? []) as unknown as ItemSolicitacao[];
+}
+
 
 // ---------------------------------------------------------------------------
 // Utilidades de apresentação

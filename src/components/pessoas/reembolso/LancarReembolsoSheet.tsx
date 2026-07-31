@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
+import {
+  Loader2, Plus, Trash2, ChevronDown, ChevronRight, AlertTriangle, Paperclip, X,
+} from "lucide-react";
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -16,8 +18,11 @@ import {
 import { cn } from "@/lib/utils";
 import {
   useCategorias, useVinculosAtivos, useCentrosCusto, usePlanoContas,
-  useLancarSolicitacao, formatarBRL, type Categoria,
+  useLancarSolicitacao, useAnexarComprovante, buscarItensDaSolicitacao,
+  formatarBRL, formatarTamanho, MIMES_COMPROVANTE, LIMITE_COMPROVANTE_BYTES,
+  type Categoria,
 } from "@/hooks/useReembolso";
+
 
 const TIPOS_DOCUMENTO = [
   { valor: "cupom", rotulo: "Cupom fiscal" },
@@ -48,9 +53,11 @@ interface ItemForm {
   km: string;
   justificativa: string;
   plano_contas_id: string;
+  arquivo: File | null;
   rateioAberto: boolean;
   rateio: RateioLinha[];
 }
+
 
 function hoje(): string {
   return new Date().toISOString().slice(0, 10);
@@ -72,7 +79,9 @@ function novoItem(): ItemForm {
     km: "",
     justificativa: "",
     plano_contas_id: "",
+    arquivo: null,
     rateioAberto: false,
+
     rateio: [{ centro_custo_id: "", percentual: "100" }],
   };
 }
@@ -103,12 +112,15 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
   const centrosQ = useCentrosCusto();
   const planoQ = usePlanoContas();
   const lancar = useLancarSolicitacao();
+  const anexar = useAnexarComprovante();
 
   const [vinculoId, setVinculoId] = useState("");
   const [emailRemetente, setEmailRemetente] = useState("");
   const [dataRecebimento, setDataRecebimento] = useState(hoje());
   const [threadRef, setThreadRef] = useState("");
   const [itens, setItens] = useState<ItemForm[]>([novoItem()]);
+  const [progresso, setProgresso] = useState<string | null>(null);
+
 
   const vinculo = (vinculosQ.data ?? []).find((v) => v.vinculo_id === vinculoId) ?? null;
 
@@ -151,7 +163,25 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
     setDataRecebimento(hoje());
     setThreadRef("");
     setItens([novoItem()]);
+    setProgresso(null);
   }
+
+  function escolherArquivo(uid: string, file: File | null) {
+    if (!file) {
+      atualizar(uid, { arquivo: null });
+      return;
+    }
+    if (!(MIMES_COMPROVANTE as readonly string[]).includes(file.type)) {
+      toast.error("Formato não aceito. Use PDF, PNG, JPEG ou WEBP.");
+      return;
+    }
+    if (file.size > LIMITE_COMPROVANTE_BYTES) {
+      toast.error("Arquivo acima de 10 MB.");
+      return;
+    }
+    atualizar(uid, { arquivo: file });
+  }
+
 
   async function enviar() {
     if (!vinculoId) {
@@ -214,21 +244,65 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
       }),
     };
 
+    let resultado: Awaited<ReturnType<typeof lancar.mutateAsync>>;
     try {
-      const resultado = await lancar.mutateAsync(payload);
-      const pend = resultado?.apontamentos ?? 0;
-      toast.success(
-        pend > 0
-          ? `${resultado.numero} lançado. ${pend} pendência${pend === 1 ? "" : "s"} para resolver.`
-          : `${resultado.numero} lançado sem pendências.`,
-      );
-      resetar();
-      onOpenChange(false);
-      onCriado(resultado.id);
+      resultado = await lancar.mutateAsync(payload);
     } catch {
       // erro já exibido pelo hook (toast com a mensagem do banco)
+      return;
     }
+
+    const pend = resultado?.apontamentos ?? 0;
+    toast.success(
+      pend > 0
+        ? `${resultado.numero} lançado. ${pend} pendência${pend === 1 ? "" : "s"} para resolver.`
+        : `${resultado.numero} lançado sem pendências.`,
+    );
+
+    // Os anexos só podem subir agora: solicitacao_id e item_id nascem no lançamento.
+    const comArquivo = itens
+      .map((i, idx) => ({ idx, arquivo: i.arquivo }))
+      .filter((e): e is { idx: number; arquivo: File } => !!e.arquivo);
+
+    if (comArquivo.length > 0) {
+      try {
+        const itensGravados = await buscarItensDaSolicitacao(resultado.id);
+        for (const [n, entrada] of comArquivo.entries()) {
+          setProgresso(`Enviando comprovante ${n + 1} de ${comArquivo.length}…`);
+          const itemGravado = itensGravados[entrada.idx];
+          if (!itemGravado) {
+            throw new Error(`Não localizei o item ${entrada.idx + 1} da solicitação criada.`);
+          }
+          try {
+            await anexar.mutateAsync({
+              solicitacaoId: resultado.id,
+              itemId: itemGravado.id,
+              tipoAnexo: "comprovante",
+              file: entrada.arquivo,
+            });
+          } catch {
+            toast.error(
+              `Reembolso ${resultado.numero} lançado, mas o comprovante do item ${entrada.idx + 1} não subiu. Anexe pelo detalhe.`,
+            );
+            break;
+          }
+        }
+      } catch (err) {
+        toast.error(
+          `Reembolso ${resultado.numero} lançado, mas os comprovantes não subiram. Anexe pelo detalhe.`,
+          { description: (err as { message?: string })?.message },
+        );
+      } finally {
+        setProgresso(null);
+      }
+    }
+
+    const id = resultado.id;
+    resetar();
+    onOpenChange(false);
+    onCriado(id);
   }
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -475,7 +549,46 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
                           />
                         </div>
                       )}
+
+                      <div className="col-span-2 space-y-1">
+                        <Label className="text-xs flex items-center gap-1">
+                          <Paperclip className="h-3.5 w-3.5" /> Comprovante
+                        </Label>
+                        {item.arquivo ? (
+                          <div className="flex items-center justify-between rounded-md border px-3 py-2 text-xs">
+                            <span className="truncate">
+                              {item.arquivo.name}{" "}
+                              <span className="text-muted-foreground">
+                                · {formatarTamanho(item.arquivo.size)}
+                              </span>
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => escolherArquivo(item.uid, null)}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Input
+                              type="file"
+                              accept={MIMES_COMPROVANTE.join(",")}
+                              onChange={(e) =>
+                                escolherArquivo(item.uid, e.target.files?.[0] ?? null)
+                              }
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              PDF, PNG, JPEG ou WEBP, até 10 MB. Anexar não é obrigatório para
+                              lançar — dá para anexar depois pelo detalhe.
+                            </p>
+                          </>
+                        )}
+                      </div>
                     </div>
+
+
 
                     <div className="rounded-md border">
                       <button
@@ -591,10 +704,13 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
                 {itens.length} item{itens.length === 1 ? "" : "s"}
               </Badge>
             </div>
-            <Button onClick={enviar} disabled={lancar.isPending}>
-              {lancar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Lançar
+            <Button onClick={enviar} disabled={lancar.isPending || !!progresso}>
+              {(lancar.isPending || !!progresso) && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+              {progresso ?? "Lançar"}
             </Button>
+
           </div>
         </div>
       </SheetContent>
