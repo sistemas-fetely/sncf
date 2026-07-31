@@ -279,11 +279,12 @@ export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: 
             ignoradasContagem += 1;
             continue;
           }
-          // Sem marcador de fim, rótulo solto (coluna A com texto e nada mais) não é despesa.
-          if (!achouMarcador && !vazio(dataCel) === false && outras.every(vazio)) {
+          // Sem marcador de fim: coluna A com texto que não é data, sem valor, é rótulo.
+          if (!achouMarcador && !vazio(dataCel) && !parseDataPlanilha(dataCel)) {
             ignoradasContagem += 1;
             continue;
           }
+
           // Parcialmente preenchida: entra na prévia marcada com problema.
         }
 
