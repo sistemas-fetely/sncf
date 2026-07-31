@@ -4,17 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
-import {
-  useFilaPedidosPriorizada,
-  type OrdenacaoFila,
-} from "@/hooks/pedidos/useFilaPedidosPriorizada";
+import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Sparkles, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
@@ -26,13 +26,11 @@ import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 import {
   EstagioBadge, FormatoIdade,
 } from "./BadgesPedido";
-import { BadgePriorizacao } from "./BadgePriorizacao";
 import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
-import {
-  ESTAGIO_LABELS, ESTAGIO_AREA, PIPELINE_PRINCIPAL,
-  ESTAGIOS_TERMINAIS, ESTAGIOS_RECUPERAVEIS,
-} from "@/types/pedido";
-import type { AreaPedido, EstagioPedido, PedidoFilaItem, ScoreBreakdown } from "@/types/pedido";
+import type { AreaPedido, EstagioPedido, PedidoFilaItem } from "@/types/pedido";
+
+
+type OrdenacaoFila = "cronologico" | "risco";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -41,6 +39,7 @@ type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
 const ROW_HEIGHT = 80; // px aprox (linhas com 2 linhas de texto)
 const FOOTER_RESERVE = 80;
+
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -57,28 +56,29 @@ function buildPageRange(current: number, total: number): (number | "…")[] {
 interface Props {
   area: AreaPedido | "todas";
   estagioInicial?: EstagioPedido | "todos";
-  /** Múltiplos estágios — quando preenchido, esconde o Select interno */
+  /** Múltiplos estágios (vindos dos cards do pipeline) */
   estagios?: EstagioPedido[];
   apenasAtivos?: boolean;
+  /** Espelha o toggle do pipeline: traz cancelados/recuperação para a fila. */
+  incluirCancelados?: boolean;
+  /** Espelha a tarja de risco alto do pipeline. */
+  somenteRiscoAlto?: boolean;
 }
 
-/** Lista completa de estágios pra Select (pipeline + cancelado + recuperação). */
-function todosOsEstagios(): EstagioPedido[] {
-  return [
-    ...PIPELINE_PRINCIPAL,
-    ...ESTAGIOS_RECUPERAVEIS,
-    ...ESTAGIOS_TERMINAIS.filter((e) => !PIPELINE_PRINCIPAL.includes(e)),
-  ];
-}
+
+
 
 export function FilaPedidosPorArea({
   area,
   estagioInicial = "todos",
   estagios,
   apenasAtivos = true,
+  incluirCancelados = false,
+  somenteRiscoAlto = false,
 }: Props) {
   const [busca, setBusca] = useState("");
-  const [estagioFilter, setEstagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
+  const [estagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
+
   const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
   const [formaPgtoFilter, setFormaPgtoFilter] = useState<string>("todas");
   const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
@@ -111,11 +111,8 @@ export function FilaPedidosPorArea({
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
 
-  const estagiosDoSelect = useMemo(() => {
-    const completo = todosOsEstagios();
-    if (area === "todas") return completo;
-    return completo.filter((e) => ESTAGIO_AREA[e] === area);
-  }, [area]);
+
+
 
   // Quando um estágio específico é selecionado (ex: 'cancelado' ou 'entregue'),
   // desativa o filtro `apenasAtivos` que excluiria justamente esses estágios.
@@ -123,29 +120,18 @@ export function FilaPedidosPorArea({
     (usarEstagiosMultiplos && estagios && estagios.length > 0) ||
     (!usarEstagiosMultiplos && !!estagioFilter && estagioFilter !== "todos");
 
-  const { data, isLoading } = usePedidosFila({
+  const { data, isLoading, isError, error } = usePedidosFila({
     area,
     estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
     estagios: usarEstagiosMultiplos ? estagios : undefined,
     busca: busca || undefined,
     apenasAtivos: apenasAtivos && !estagioEspecificoSelecionado,
+    incluirCancelados,
   });
 
-  // Scores IA — fetch paralelo, merge por id.
-  const { data: priorizados } = useFilaPedidosPriorizada({
-    area,
-    estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
-    estagios: usarEstagiosMultiplos ? estagios : undefined,
-    ordenacao,
-  });
-
-  const scoreMap = useMemo(() => {
-    const m = new Map<string, { score: number; breakdown: ScoreBreakdown }>();
-    (priorizados || []).forEach((p) => {
-      m.set(p.id, { score: p.score_total, breakdown: p.score_breakdown });
-    });
-    return m;
-  }, [priorizados]);
+  // Farol de risco — fonte única: vw_pedido_risco + dimensão pedido_risco_faixa.
+  const { data: riscoMap } = usePedidoRisco();
+  const { data: faixas } = usePedidoRiscoFaixas();
 
   const linhas = useMemo(() => {
     let base: PedidoFilaItem[] = data || [];
@@ -162,14 +148,18 @@ export function FilaPedidosPorArea({
         return s === situacaoFilter;
       });
     }
-    if (ordenacao !== "prioridade_ia") return base;
+    if (somenteRiscoAlto) {
+      base = base.filter((p) => riscoMap?.get(p.id)?.risco_cor === "destructive");
+    }
+    if (ordenacao !== "risco") return base;
     return [...base].sort((a, b) => {
-      const sa = scoreMap.get(a.id)?.score ?? -1;
-      const sb = scoreMap.get(b.id)?.score ?? -1;
+      const sa = riscoMap?.get(a.id)?.risco_score ?? -1;
+      const sb = riscoMap?.get(b.id)?.risco_score ?? -1;
       if (sb !== sa) return sb - sa;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, ordenacao, scoreMap, marcacaoFilter, formaPgtoFilter, situacaoFilter]);
+  }, [data, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
+
 
   const formasPgtoDisponiveis = useMemo(() => {
     const set = new Set<string>();
@@ -281,6 +271,14 @@ export function FilaPedidosPorArea({
   const fimRange = Math.min(paginaAtual * pageSize, totalLinhas);
   const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
+  if (isError) {
+    return (
+      <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        Erro ao carregar a fila: {(error as Error)?.message ?? "erro desconhecido"}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-2">
@@ -293,22 +291,7 @@ export function FilaPedidosPorArea({
             className="pl-10"
           />
         </div>
-        {!usarEstagiosMultiplos && (
-          <Select
-            value={estagioFilter}
-            onValueChange={(v) => setEstagioFilter(v as EstagioPedido | "todos")}
-          >
-            <SelectTrigger className="w-full sm:w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os estágios</SelectItem>
-              {estagiosDoSelect.map((e) => (
-                <SelectItem key={e} value={e}>{ESTAGIO_LABELS[e]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+
         <Select value={formaPgtoFilter} onValueChange={setFormaPgtoFilter}>
           <SelectTrigger className="w-full sm:w-44">
             <SelectValue placeholder="Pagamento" />
@@ -358,15 +341,15 @@ export function FilaPedidosPorArea({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="cronologico">Ordenar: Cronológico</SelectItem>
-            <SelectItem value="prioridade_ia">Ordenar: Prioridade IA</SelectItem>
+            <SelectItem value="risco">Ordenar: Risco</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {ordenacao === "prioridade_ia" && (
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Sparkles className="h-3 w-3" />
-          Ordenado por score IA (maior primeiro)
+      {(ordenacao === "risco" || somenteRiscoAlto) && (
+        <p className="text-xs text-muted-foreground">
+          {ordenacao === "risco" && "Ordenado por risco (maior primeiro). "}
+          {somenteRiscoAlto && "Mostrando apenas pedidos em risco alto."}
         </p>
       )}
 
@@ -374,7 +357,7 @@ export function FilaPedidosPorArea({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-20">Score</TableHead>
+              <TableHead className="w-16">Risco</TableHead>
               <TableHead>ID Externo</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Valor</TableHead>
@@ -400,7 +383,7 @@ export function FilaPedidosPorArea({
               </TableRow>
             )}
             {pageItems.map((p) => {
-              const sc = scoreMap.get(p.id);
+              const risco = riscoMap?.get(p.id);
               return (
                 <TableRow
                   key={p.id}
@@ -408,16 +391,17 @@ export function FilaPedidosPorArea({
                   onClick={() => navigate(`/pedidos/${p.id}`)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    {sc ? (
-                      <BadgePriorizacao
-                        score={sc.score}
-                        breakdown={sc.breakdown}
-                        compact
-                      />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
+                    <FarolRisco
+                      faixa={risco?.risco_faixa ?? null}
+                      cor={risco?.risco_cor ?? null}
+                      score={risco?.risco_score ?? null}
+                      motivos={risco?.risco_motivos ?? []}
+                      rotuloFaixa={
+                        risco?.risco_faixa ? faixas?.get(risco.risco_faixa)?.rotulo ?? null : null
+                      }
+                    />
                   </TableCell>
+
                   <TableCell>
                     <span className="font-mono text-xs">{p.id_externo}</span>
                   </TableCell>
@@ -487,75 +471,9 @@ export function FilaPedidosPorArea({
                     {p.proxima_acao || <span className="opacity-50">—</span>}
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-1.5">
-                      {pedidosComMsg.has(p.id) && (
-                        <button
-                          onClick={() => navigate(`/pedidos/${p.id}`)}
-                          title="Mensagem do Comercial aguardando resposta"
-                          className="inline-flex items-center gap-1 px-1.5 py-1 rounded border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 text-xs"
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" />
-                          <span className="font-medium">msg</span>
-                        </button>
-                      )}
-                      <MarcacaoPedido pedidoId={p.id} marcacao={p.marcacao} iconOnly />
-
-                      <TabelaCadastroDialog
-                        pedido_id={p.id}
-                        id_externo={p.id_externo}
-                        parceiro_id={p.parceiro_id}
-                        parceiro_nome={p.parceiro_razao}
-                      />
-
-
-
-                      {p.estagio === "recebido" && (
-                        <TriarPedidoDialog
-                          pedido_id={p.id}
-                          perfil_credito={null}
-                          estagio_atual={p.estagio}
-                          forma_solicitada={p.forma_solicitada}
-                          triggerLabel="Triar"
-                          triggerVariant="outline"
-                        />
-                      )}
-
-                      {p.estagio === "cobranca" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/recebimento/cobranca/${p.id}`, { state: { from: "/pedidos", fromLabel: "Fila de Pedidos" } })}
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          Cobrança
-                        </Button>
-                      )}
-
-                      {p.estagio === "aguardando_pagamento" && (
-                        <ConfirmarPortaoPagoDialog
-                          pedido_id={p.id}
-                        />
-                      )}
-
-                      <BotaoSplitPedido
-                        pedido_id={p.id}
-                        id_externo={p.id_externo}
-                        valor_liquido={p.valor_liquido}
-                        estagio={p.estagio}
-                        variante="compact"
-                      />
-
-                      {p.estagio === "pre_separacao" && !p.bling_id_destino && (
-                        <EnviarBlingDialog
-                          pedido_id={p.id}
-                          parceiro_id={p.parceiro_id}
-                          id_externo={p.id_externo}
-                          valor_liquido={p.valor_liquido}
-                          forma_solicitada={p.forma_solicitada}
-                        />
-                      )}
-                    </div>
+                    <AcoesLinha p={p} temMsg={pedidosComMsg.has(p.id)} />
                   </TableCell>
+
                 </TableRow>
               );
             })}
@@ -801,4 +719,170 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     </>
   );
 }
+
+/** Farol de risco — bolinha colorida + tooltip com faixa, score e motivos. */
+function FarolRisco({
+  faixa,
+  cor,
+  score,
+  motivos,
+  rotuloFaixa,
+}: {
+  faixa: string | null;
+  cor: string | null;
+  score: number | null;
+  motivos: { codigo: string; rotulo: string; pontos: number }[];
+  rotuloFaixa: string | null;
+}) {
+  if (!faixa && score == null) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+  const bg = RISCO_COR_TOKEN[cor ?? ""] ?? "bg-muted-foreground";
+  const label = rotuloFaixa || faixa || "Risco";
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex items-center gap-1.5 cursor-help"
+            aria-label={`Risco: ${label}`}
+          >
+            <span className={cn("h-2.5 w-2.5 rounded-full", bg)} />
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {score ?? "—"}
+            </span>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          <p className="text-xs font-semibold">{label}{score != null ? ` · ${score}` : ""}</p>
+          {motivos.length > 0 ? (
+            <ul className="mt-1 space-y-0.5 text-xs">
+              {motivos.map((m) => (
+                <li key={m.codigo} className="flex justify-between gap-3">
+                  <span className="opacity-80">{m.rotulo}</span>
+                  <span className="font-mono">+{m.pontos}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-xs opacity-80">Sem motivos registrados.</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+/** Coluna de ações: uma ação primária por estágio + resto no menu "⋯". */
+function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
+  const navigate = useNavigate();
+  const [cadastroOpen, setCadastroOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
+
+  return (
+    <div className="flex justify-end items-center gap-1.5">
+      {temMsg && (
+        <button
+          onClick={() => navigate(`/pedidos/${p.id}`)}
+          title="Mensagem do Comercial aguardando resposta"
+          className="inline-flex items-center gap-1 px-1.5 py-1 rounded border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 text-xs"
+        >
+          <MessageCircle className="h-3.5 w-3.5" />
+          <span className="font-medium">msg</span>
+        </button>
+      )}
+
+      {/* Ação primária do estágio */}
+      {p.estagio === "recebido" && (
+        <TriarPedidoDialog
+          pedido_id={p.id}
+          perfil_credito={null}
+          estagio_atual={p.estagio}
+          forma_solicitada={p.forma_solicitada}
+          triggerLabel="Triar"
+          triggerVariant="outline"
+        />
+      )}
+      {p.estagio === "cobranca" && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            navigate(`/recebimento/cobranca/${p.id}`, {
+              state: { from: "/pedidos", fromLabel: "Fila de Pedidos" },
+            })
+          }
+        >
+          <ExternalLink className="h-3 w-3 mr-1" />
+          Cobrança
+        </Button>
+      )}
+      {p.estagio === "aguardando_pagamento" && (
+        <ConfirmarPortaoPagoDialog pedido_id={p.id} />
+      )}
+      {p.estagio === "pre_separacao" && !p.bling_id_destino && (
+        <EnviarBlingDialog
+          pedido_id={p.id}
+          parceiro_id={p.parceiro_id}
+          id_externo={p.id_externo}
+          valor_liquido={p.valor_liquido}
+          forma_solicitada={p.forma_solicitada}
+        />
+      )}
+
+      {/* Secundárias */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Mais ações">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuItem onSelect={() => navigate(`/pedidos/${p.id}`)}>
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Abrir pedido
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setCadastroOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Tabela de cadastro
+          </DropdownMenuItem>
+          <BotaoSplitPedido
+            pedido_id={p.id}
+            id_externo={p.id_externo}
+            valor_liquido={p.valor_liquido}
+            estagio={p.estagio}
+            variante="menuitem"
+            open={splitOpen}
+            onOpenChange={setSplitOpen}
+          />
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Marcação continua acessível direto (popover próprio) */}
+      <MarcacaoPedido pedidoId={p.id} marcacao={p.marcacao} iconOnly />
+
+      {/* Diálogos ficam fora do menu — o conteúdo do menu desmonta ao fechar. */}
+      <TabelaCadastroDialog
+        pedido_id={p.id}
+        id_externo={p.id_externo}
+        parceiro_id={p.parceiro_id}
+        parceiro_nome={p.parceiro_razao}
+        open={cadastroOpen}
+        onOpenChange={setCadastroOpen}
+        hideTrigger
+      />
+      <BotaoSplitPedido
+        pedido_id={p.id}
+        id_externo={p.id_externo}
+        valor_liquido={p.valor_liquido}
+        estagio={p.estagio}
+        variante="dialogo"
+        open={splitOpen}
+        onOpenChange={setSplitOpen}
+      />
+    </div>
+  );
+}
+
 

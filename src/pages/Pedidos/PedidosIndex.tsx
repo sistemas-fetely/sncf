@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
@@ -8,6 +9,8 @@ import type { EstagioPedido } from "@/types/pedido";
 export default function PedidosIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
+  const [incluirCancelados, setIncluirCancelados] = useState(false);
+  const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
 
   const handlePipelineClick = (estagio: EstagioPedido) => {
     const next = new URLSearchParams(searchParams);
@@ -41,6 +44,10 @@ export default function PedidosIndex() {
               onClickEstagio={handlePipelineClick}
               onLimparFiltro={handleLimparFiltro}
               estagioAtivo={estagioParam}
+              incluirCancelados={incluirCancelados}
+              onToggleCancelados={setIncluirCancelados}
+              riscoAltoAtivo={riscoAltoAtivo}
+              onToggleRiscoAlto={() => setRiscoAltoAtivo((v) => !v)}
             />
           </div>
 
@@ -50,6 +57,8 @@ export default function PedidosIndex() {
               area="todas"
               estagios={estagioParam ? [estagioParam] : undefined}
               apenasAtivos={!estagioParam}
+              incluirCancelados={incluirCancelados}
+              somenteRiscoAlto={riscoAltoAtivo}
             />
           </div>
         </TabsContent>
@@ -61,3 +70,4 @@ export default function PedidosIndex() {
     </div>
   );
 }
+

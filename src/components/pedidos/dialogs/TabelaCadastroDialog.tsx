@@ -18,7 +18,12 @@ interface TabelaCadastroDialogProps {
   id_externo: string;
   parceiro_id: string;
   parceiro_nome: string;
+  /** Modo controlado — quando usado dentro de menus, sem trigger próprio. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
+
 
 const COLUNAS: { key: string; label: string }[] = [
   { key: "sku",                 label: "SKU" },
@@ -85,8 +90,18 @@ export function TabelaCadastroDialog({
   id_externo,
   parceiro_id,
   parceiro_nome,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }: TabelaCadastroDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [openInterno, setOpenInterno] = useState(false);
+  const controlado = openProp !== undefined;
+  const open = controlado ? !!openProp : openInterno;
+  const setOpen = (v: boolean) => {
+    if (controlado) onOpenChange?.(v);
+    else setOpenInterno(v);
+  };
+
   const [enviandoEmail, setEnviandoEmail] = useState(false);
   const { toast } = useToast();
 
@@ -188,17 +203,20 @@ export function TabelaCadastroDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => e.stopPropagation()}
-          title="Tabela de cadastro"
-        >
-          <FileSpreadsheet className="h-3 w-3 mr-1" />
-          Cadastro
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => e.stopPropagation()}
+            title="Tabela de cadastro"
+          >
+            <FileSpreadsheet className="h-3 w-3 mr-1" />
+            Cadastro
+          </Button>
+        </DialogTrigger>
+      )}
+
 
       <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
         <DialogHeader>

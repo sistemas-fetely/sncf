@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Scissors } from "lucide-react";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
@@ -12,9 +13,13 @@ interface Props {
   valor_liquido: number;
   valor_bruto?: number;
   estagio: string | null | undefined;
-  /** "full" = botão largura total (ficha do pedido) | "compact" = botão de tabela */
-  variante?: "full" | "compact";
+  /** "full" | "compact" | "menuitem" (só o item de menu) | "dialogo" (só o diálogo) */
+  variante?: "full" | "compact" | "menuitem" | "dialogo";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
+
+
 
 /**
  * Gatilho único do split. Nenhuma lista de estágio em código:
@@ -27,8 +32,16 @@ export function BotaoSplitPedido({
   valor_bruto,
   estagio,
   variante = "full",
+  open: openProp,
+  onOpenChange,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [openInterno, setOpenInterno] = useState(false);
+  const controlado = openProp !== undefined;
+  const open = controlado ? !!openProp : openInterno;
+  const setOpen = (v: boolean) => {
+    if (controlado) onOpenChange?.(v);
+    else setOpenInterno(v);
+  };
   const { regraDe, isLoading } = usePedidoEdicaoCampo(estagio);
   const { data: permissoes } = usePermissoesDoUsuario();
   const { roles } = useAuth();
@@ -40,6 +53,31 @@ export function BotaoSplitPedido({
   if (isLoading || !podeSplit || !permitido) return null;
 
   const rotulo = regraDe("split")?.rotulo || "Split";
+
+  // Só o diálogo — usado quando o gatilho vive dentro de um DropdownMenu
+  // (o conteúdo do menu desmonta ao fechar e levaria o diálogo junto).
+  if (variante === "dialogo") {
+    return (
+      <SplitPedidoDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedido_id={pedido_id}
+        id_externo={id_externo}
+        valor_liquido={valor_liquido}
+        valor_bruto={valor_bruto ?? valor_liquido}
+        estagio_origem={estagio ?? null}
+      />
+    );
+  }
+
+  if (variante === "menuitem") {
+    return (
+      <DropdownMenuItem onSelect={() => setOpen(true)}>
+        <Scissors className="h-4 w-4 mr-2" />
+        {rotulo}
+      </DropdownMenuItem>
+    );
+  }
 
   return (
     <>
@@ -54,6 +92,7 @@ export function BotaoSplitPedido({
           {rotulo}
         </Button>
       )}
+
       <SplitPedidoDialog
         open={open}
         onOpenChange={setOpen}
@@ -66,3 +105,4 @@ export function BotaoSplitPedido({
     </>
   );
 }
+
