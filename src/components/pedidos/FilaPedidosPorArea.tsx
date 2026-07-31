@@ -22,6 +22,7 @@ import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialo
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
+import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Button } from "@/components/ui/button";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 
