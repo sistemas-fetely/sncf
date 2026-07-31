@@ -123,6 +123,7 @@ export default function NfsDeVenda() {
 // ============================================================
 function AbaNFs() {
   const navigate = useNavigate();
+  const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [busca, setBusca] = useState("");
