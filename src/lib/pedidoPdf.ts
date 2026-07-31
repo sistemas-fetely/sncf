@@ -13,17 +13,37 @@ interface ItemPedido {
   subtotal?: number;
 }
 
-interface PedidoPdfData {
+export interface PedidoPdfData {
   id_externo: string;
   data_pedido: string;
   parceiro_nome: string;
   forma_pagamento: string;
   condicao_pagamento?: string;
   valor_bruto: number;
+  /** Valor real do desconto, em reais. Nunca derivado do percentual. */
+  desconto_valor: number;
+  /** Só para exibir o percentual no rótulo, quando existir. */
   desconto_pct?: number;
+  bonus_pix_valor?: number;
   valor_frete?: number;
+  /** Resolvido por quem chama (tabela frete_tipos). CIF = false. */
+  frete_entra_no_liquido: boolean;
   valor_liquido: number;
   itens: ItemPedido[];
+}
+
+/**
+ * Confere se os componentes fecham com o valor líquido.
+ * Função pura — usada para avisar o operador antes de gerar o documento.
+ */
+export function conferirTotaisPedido(data: PedidoPdfData) {
+  const somaComponentes =
+    Number(data.valor_bruto ?? 0) -
+    Number(data.desconto_valor ?? 0) -
+    Number(data.bonus_pix_valor ?? 0) +
+    (data.frete_entra_no_liquido ? Number(data.valor_frete ?? 0) : 0);
+  const diferenca = somaComponentes - Number(data.valor_liquido ?? 0);
+  return { fecha: Math.abs(diferenca) < 0.01, somaComponentes, diferenca };
 }
 
 export function gerarPedidoPdf(data: PedidoPdfData): string {
@@ -110,17 +130,29 @@ export function gerarPedidoPdf(data: PedidoPdfData): string {
   const finalY = (doc as any).lastAutoTable?.finalY ?? 200;
   const resumoY = finalY + 8;
 
-  doc.setFillColor(...Creme);
-  doc.roundedRect(120, resumoY, 76, 38, 3, 3, "F");
+  const linhas: [string, number | null][] = [["Valor bruto:", data.valor_bruto]];
+  const descontoValor = Number(data.desconto_valor ?? 0);
+  if (descontoValor > 0) {
+    const rotulo =
+      data.desconto_pct && data.desconto_pct > 0
+        ? `Desconto (${data.desconto_pct}%):`
+        : "Desconto:";
+    linhas.push([rotulo, descontoValor]);
+  }
+  const bonusPix = Number(data.bonus_pix_valor ?? 0);
+  if (bonusPix > 0) {
+    linhas.push(["Bônus PIX:", bonusPix]);
+  }
+  const frete = Number(data.valor_frete ?? 0);
+  if (frete > 0) {
+    if (data.frete_entra_no_liquido) linhas.push(["Frete:", frete]);
+    else linhas.push(["Frete: por conta da Fetely", null]);
+  }
 
-  const linhas: [string, number][] = [["Valor bruto:", data.valor_bruto]];
-  if (data.desconto_pct && data.desconto_pct > 0) {
-    const descV = data.valor_bruto * (data.desconto_pct / 100);
-    linhas.push([`Desconto (${data.desconto_pct}%):`, -descV]);
-  }
-  if (data.valor_frete && data.valor_frete > 0) {
-    linhas.push(["Frete:", data.valor_frete]);
-  }
+  doc.setFillColor(...Creme);
+  doc.roundedRect(120, resumoY, 76, linhas.length * 7 + 6, 3, 3, "F");
+
+
 
   let rowY = resumoY + 8;
   doc.setFontSize(9);
@@ -128,9 +160,11 @@ export function gerarPedidoPdf(data: PedidoPdfData): string {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(80, 80, 80);
     doc.text(label, 125, rowY);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(30, 30, 30);
-    doc.text(fmtBRL.format(Math.abs(valor)), 193, rowY, { align: "right" });
+    if (valor !== null) {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 30, 30);
+      doc.text(fmtBRL.format(Math.abs(valor)), 193, rowY, { align: "right" });
+    }
     rowY += 7;
   }
 

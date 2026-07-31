@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { gerarPedidoPdf } from "@/lib/pedidoPdf";
+import { fetchPedidoParaExportar } from "@/hooks/pedidos/usePedidoParaExportar";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
@@ -13,28 +14,9 @@ export function useEnviarEmailPedidoCobranca() {
 
   return useMutation({
     mutationFn: async ({ pedido_id, emails, cc }: { pedido_id: string; emails: string[]; cc?: string[] }) => {
-      const { data: pedido, error: errP } = await (supabase as any)
-        .from("pedidos")
-        .select("*")
-        .eq("id", pedido_id)
-        .maybeSingle();
-      if (errP || !pedido) throw new Error("Pedido não encontrado");
-
-      const { data: parceiro } = await (supabase as any)
-        .from("parceiros_comerciais")
-        .select("razao_social, email")
-        .eq("id", pedido.parceiro_id)
-        .maybeSingle();
-
-      const { data: itens } = await (supabase as any)
-        .from("pedido_itens")
-        .select("descricao, sku, quantidade, valor_unitario")
-        .eq("pedido_id", pedido_id)
-        .order("ordem");
-      const itensArr = (itens ?? []).map((it: any) => ({
-        ...it,
-        subtotal: Number(it.quantidade) * Number(it.valor_unitario),
-      }));
+      const exp = await fetchPedidoParaExportar(pedido_id);
+      const pedido = exp.pedido;
+      const parceiro = exp.parceiro;
 
       // ── Link de pagamento: view vw_pedido_link_pagamento -> fallback antigo ──
       let link_pagamento: string | null = null;
@@ -115,18 +97,7 @@ export function useEnviarEmailPedidoCobranca() {
       }
 
 
-      const pdfBase64 = gerarPedidoPdf({
-        id_externo: pedido.id_externo,
-        data_pedido: fmtDate(pedido.data_pedido),
-        parceiro_nome: parceiro?.razao_social,
-        forma_pagamento: pedido.forma_solicitada ?? "",
-        condicao_pagamento: pedido.condicao_solicitada ?? undefined,
-        valor_bruto: Number(pedido.valor_bruto ?? 0),
-        desconto_pct: Number(pedido.desconto_pct ?? 0),
-        valor_frete: Number(pedido.valor_frete ?? 0),
-        valor_liquido: Number(pedido.valor_liquido ?? 0),
-        itens: itensArr,
-      });
+      const pdfBase64 = gerarPedidoPdf(exp.pdf);
 
       const descontoValor =
         Number(pedido.valor_bruto ?? 0) * (Number(pedido.desconto_pct ?? 0) / 100);
