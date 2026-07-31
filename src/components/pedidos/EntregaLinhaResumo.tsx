@@ -34,7 +34,7 @@ export function EntregaLinhaResumo({ info }: { info: EntregaLinhaInfo | undefine
         className={cn(
           "text-[10px] rounded px-1 py-[1px] border",
           proc.alerta
-            ? "bg-warning/15 text-warning-foreground border-warning/40"
+            ? "bg-warning/15 text-warning border-warning/40 font-medium"
             : "bg-success/10 text-success border-success/30",
         )}
       >
