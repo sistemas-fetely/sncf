@@ -240,6 +240,22 @@ export function FilaPedidosPorArea({
     },
   });
 
+  // Resumo de saída (data de entrega, transportadora, NF) para pedidos já expedidos
+  const pedidoIdsSaida = useMemo(
+    () =>
+      (linhas || [])
+        .filter((p) => (ESTAGIOS_COM_RESUMO_ENTREGA as readonly string[]).includes(p.estagio))
+        .map((p) => p.id),
+    [linhas]
+  );
+  const {
+    data: entregaMap,
+    isError: entregaErro,
+    error: entregaErrorObj,
+  } = usePedidosEntregaLote(pedidoIdsSaida);
+
+
+
   const { data: msgPendentes } = useQuery({
     queryKey: ["canal-msgs-pendentes"],
     queryFn: async () => {
