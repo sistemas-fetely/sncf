@@ -20,6 +20,8 @@ import {
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
+import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
+import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
 
 type OrigemOportunidade = "portao_vencido" | "estoque_inadimplente" | "manual";
 
@@ -132,6 +134,8 @@ export default function Oportunidades() {
     return base;
   }, [data, busca, origem]);
 
+  const { data: linksFila } = useLinksPagamentoFila(data.map((r) => r.pedido_id));
+
   const kpis = useMemo(() => {
     const qtd = filtradas.length;
     const valor = filtradas.reduce((s, r) => s + Number(r.valor_em_jogo || 0), 0);
@@ -238,6 +242,9 @@ export default function Oportunidades() {
                               venc. {formatDateBR(r.vencimento_portao)}
                             </div>
                           )}
+                          <div className="mt-1">
+                            <BadgeLinkFila linha={linksFila?.[r.pedido_id]} />
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Tooltip>

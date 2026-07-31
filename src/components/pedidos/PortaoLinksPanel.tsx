@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -6,7 +5,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Copy, Check } from "lucide-react";
+import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
@@ -18,27 +17,6 @@ interface ParcelaPlano {
   data_vencimento?: string;
   tipo_pagamento?: string;
   link_pagamento?: string;
-}
-
-function LinkCell({ url }: { url?: string | null }) {
-  const [copiado, setCopiado] = useState(false);
-  if (!url) return <span className="text-muted-foreground">—</span>;
-  const copiar = () => {
-    navigator.clipboard.writeText(url).then(() => {
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 1400);
-    });
-  };
-  return (
-    <div className="flex items-center gap-2 max-w-[260px]">
-      <span className="truncate text-xs text-primary underline cursor-pointer" onClick={copiar} title={url}>
-        {url}
-      </span>
-      <button onClick={copiar} className="shrink-0 text-muted-foreground hover:text-primary transition-colors">
-        {copiado ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-      </button>
-    </div>
-  );
 }
 
 const BOLETO_STATUS_LABEL: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -142,9 +120,11 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
         <p className="text-xs text-muted-foreground mt-1">
           {portao.tipo_pagamento === "boleto"
             ? "O boleto de entrada foi gerado e aguarda inclusão na remessa Safra. Após o pagamento ser confirmado pelo banco, as parcelas restantes serão criadas automaticamente."
-            : 'Ainda não há título a receber (ele nasce quando o portão é pago). Os links abaixo já estão salvos e podem ser enviados pelo botão "Enviar cobrança".'}
+            : 'Ainda não há título a receber (ele nasce quando o portão é pago). O link de pagamento é ÚNICO para o pedido — não existe um link por parcela — e pode ser enviado pelo botão "Enviar cobrança".'}
         </p>
       </div>
+
+      <LinkPagamentoCard pedidoId={pedidoId} />
 
       <div className="border rounded-md overflow-hidden">
         <Table>
@@ -168,9 +148,13 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                 <TableCell>{fmtDate(l.vencimento)}</TableCell>
                 <TableCell>{l.tipo ?? "—"}</TableCell>
                 <TableCell>
-                  {l.eh_gate && l.tipo === "boleto"
-                    ? <BoletoEntradaCell tituloEntrada={tituloEntradaQ.data} />
-                    : <LinkCell url={l.link} />}
+                  {l.eh_gate && l.tipo === "boleto" ? (
+                    <BoletoEntradaCell tituloEntrada={tituloEntradaQ.data} />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {l.link ? "mesmo link do pedido" : "—"}
+                    </span>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
