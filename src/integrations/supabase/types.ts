@@ -19223,6 +19223,7 @@ export type Database = {
           data_despesa: string
           descricao: string | null
           destino_trajeto: string | null
+          estabelecimento: string | null
           evento_gerador: string | null
           id: string
           justificativa: string | null
@@ -19231,6 +19232,7 @@ export type Database = {
           numero_comprovante: string | null
           origem_trajeto: string | null
           plano_contas_id: string | null
+          projeto_evento: string | null
           seq: number
           solicitacao_id: string
           status_item: string
@@ -19246,6 +19248,7 @@ export type Database = {
           data_despesa: string
           descricao?: string | null
           destino_trajeto?: string | null
+          estabelecimento?: string | null
           evento_gerador?: string | null
           id?: string
           justificativa?: string | null
@@ -19254,6 +19257,7 @@ export type Database = {
           numero_comprovante?: string | null
           origem_trajeto?: string | null
           plano_contas_id?: string | null
+          projeto_evento?: string | null
           seq: number
           solicitacao_id: string
           status_item?: string
@@ -19269,6 +19273,7 @@ export type Database = {
           data_despesa?: string
           descricao?: string | null
           destino_trajeto?: string | null
+          estabelecimento?: string | null
           evento_gerador?: string | null
           id?: string
           justificativa?: string | null
@@ -19277,6 +19282,7 @@ export type Database = {
           numero_comprovante?: string | null
           origem_trajeto?: string | null
           plano_contas_id?: string | null
+          projeto_evento?: string | null
           seq?: number
           solicitacao_id?: string
           status_item?: string
@@ -30922,14 +30928,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -34979,6 +34985,14 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_badges: {
+        Args: never
+        Returns: {
+          fonte: string
+          severidade: string
+          total: number
+        }[]
+      }
       fn_brl: { Args: { p_valor: number }; Returns: string }
       fn_calcular_meta_entrega: {
         Args: { p_pedido_id: string }
@@ -35133,6 +35147,14 @@ export type Database = {
           p_zonas: Json
         }
         Returns: Json
+      }
+      fn_inbox_badge: {
+        Args: never
+        Returns: {
+          abertas: number
+          atrasadas: number
+          bloqueantes: number
+        }[]
       }
       fn_inbox_filas: {
         Args: never
