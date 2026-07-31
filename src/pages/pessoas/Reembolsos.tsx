@@ -265,6 +265,12 @@ export default function Reembolsos() {
         onOpenChange={setSheetAberto}
         onCriado={(id) => setSolicitacaoAberta(id)}
       />
+      <ImportarPlanilhaSheet
+        open={importarAberto}
+        onOpenChange={setImportarAberto}
+        onCriado={(id) => setSolicitacaoAberta(id)}
+      />
+
       <SolicitacaoDrawer
         solicitacaoId={solicitacaoAberta}
         onOpenChange={(v) => !v && setSolicitacaoAberta(null)}
