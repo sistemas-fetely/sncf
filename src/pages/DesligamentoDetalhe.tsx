@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { humanizeError } from "@/lib/errorMessages";
+import { formatError } from "@/lib/format-error";
+
 import { cn } from "@/lib/utils";
 
 interface Tarefa {
