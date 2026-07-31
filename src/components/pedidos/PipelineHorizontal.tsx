@@ -69,10 +69,28 @@ interface Props {
   onClickEstagio?: (estagio: EstagioPedido) => void;
   onLimparFiltro?: () => void;
   estagioAtivo?: EstagioPedido | null;
+  incluirCancelados?: boolean;
+  onToggleCancelados?: (v: boolean) => void;
+  riscoAltoAtivo?: boolean;
+  onToggleRiscoAlto?: () => void;
 }
 
-export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtivo }: Props) {
-  const { data, isLoading } = usePedidosPipeline();
+const fmtBRL = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 0,
+});
+
+export function PipelineHorizontal({
+  onClickEstagio,
+  onLimparFiltro,
+  estagioAtivo,
+  incluirCancelados = false,
+  onToggleCancelados,
+  riscoAltoAtivo = false,
+  onToggleRiscoAlto,
+}: Props) {
+  const { data, isLoading, isError, error } = usePedidosPipeline();
 
   const { data: pagamentoVencido } = useQuery({
     queryKey: ["pedidos-pagamento-vencido-count"],
@@ -116,8 +134,28 @@ export function PipelineHorizontal({ onClickEstagio, onLimparFiltro, estagioAtiv
   const fases = estagios.filter(
     (e) => !["cancelado", "recuperacao_venda"].includes(e.estagio)
   );
-  const totalQtd = estagios.reduce((acc, e) => acc + e.qtd, 0);
-  const totalSla = estagios.reduce((acc, e) => acc + e.sla, 0);
+
+  // Universo do card "Todos" = exatamente o que a tabela mostra por padrão:
+  // ativos (sem entregue) + cancelados/recuperação apenas com o toggle ligado.
+  const { totalQtd, totalSla, riscoVermelhoQtd, riscoVermelhoValor } = useMemo(() => {
+    const excluidosSempre = new Set<string>(["entregue"]);
+    const naoAtivos = new Set<string>(["cancelado", "recuperacao_venda"]);
+    let qtd = 0;
+    let sla = 0;
+    let rQtd = 0;
+    let rValor = 0;
+    (data || []).forEach((row) => {
+      const e = row.estagio as string;
+      if (excluidosSempre.has(e)) return;
+      if (naoAtivos.has(e) && !incluirCancelados) return;
+      qtd += Number(row.qtd || 0);
+      sla += Number(row.qtd_sla_estourado || 0);
+      rQtd += Number(row.qtd_risco_vermelho || 0);
+      rValor += Number(row.valor_risco_vermelho || 0);
+    });
+    return { totalQtd: qtd, totalSla: sla, riscoVermelhoQtd: rQtd, riscoVermelhoValor: rValor };
+  }, [data, incluirCancelados]);
+
 
   if (isLoading) {
     return (
