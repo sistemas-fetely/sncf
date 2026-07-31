@@ -577,22 +577,39 @@ export default function Onboarding() {
         </div>
       )}
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setMotivoExclusao(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir onboarding permanentemente?</AlertDialogTitle>
             <AlertDialogDescription>
-              O onboarding de "{deleteTarget?.nome}" e todas as tarefas vinculadas serão excluídos. Essa ação não pode ser desfeita.
+              O onboarding de "{deleteTarget?.nome}" será excluído. As tarefas do processo serão
+              CANCELADAS com o motivo informado — não são excluídas, e o histórico é preservado.
+              Essa ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-exclusao-onboarding">Motivo da exclusão *</Label>
+            <Textarea
+              id="motivo-exclusao-onboarding"
+              value={motivoExclusao}
+              onChange={(e) => setMotivoExclusao(e.target.value)}
+              placeholder="Explique por que este processo está sendo excluído"
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteOnboarding} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDeleteOnboarding}
+              disabled={!motivoExclusao.trim()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
     </TooltipProvider>
   );
