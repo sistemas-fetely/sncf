@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Receipt, Plus, Wrench, CalendarRange, RefreshCw, Loader2 } from "lucide-react";
+import { Receipt, Plus, Wrench, CalendarRange, RefreshCw, Loader2, FileUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,10 +10,14 @@ import {
 import { cn } from "@/lib/utils";
 import LancarReembolsoSheet from "@/components/pessoas/reembolso/LancarReembolsoSheet";
 import SolicitacaoDrawer from "@/components/pessoas/reembolso/SolicitacaoDrawer";
+import ImportarPlanilhaSheet, {
+  BotaoBaixarTemplate,
+} from "@/components/pessoas/reembolso/ImportarPlanilhaSheet";
 import {
   useSolicitacoes, useCiclos, useCicloDaData, formatarBRL, formatarData,
   ROTULO_ESTADO, type EstadoSolicitacao,
 } from "@/hooks/useReembolso";
+
 
 type Filtro = "todos" | EstadoSolicitacao;
 
