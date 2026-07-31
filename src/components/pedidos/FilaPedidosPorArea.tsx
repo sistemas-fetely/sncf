@@ -153,9 +153,14 @@ export function FilaPedidosPorArea({
     }
     if (ordenacao !== "risco") return base;
     return [...base].sort((a, b) => {
-      const sa = riscoMap?.get(a.id)?.risco_score ?? -1;
-      const sb = riscoMap?.get(b.id)?.risco_score ?? -1;
+      const ra = riscoMap?.get(a.id);
+      const rb = riscoMap?.get(b.id);
+      const sa = ra?.risco_score ?? -1;
+      const sb = rb?.risco_score ?? -1;
       if (sb !== sa) return sb - sa;
+      const da = ra?.dias_na_fase ?? -1;
+      const db = rb?.dias_na_fase ?? -1;
+      if (db !== da) return db - da;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
   }, [data, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
