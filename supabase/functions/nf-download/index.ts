@@ -52,19 +52,13 @@ serve(async (req) => {
     if (nfErr) return err(500, `Falha ao carregar a NF: ${nfErr.message}`, { nf_id: nfId });
     if (!nf) return err(404, `NF ${nfId} não encontrada em nfs_emitidas.`, { nf_id: nfId });
 
-    let pdfUrl: string | null = nf.pdf_url ?? null;
+    // pdf_url é CACHE, não endereço: o link do Bling é assinado e expira em ~48h.
+    // Por isso, sempre que houver bling_id, resolvemos um link fresco na API.
+    let pdfUrl: string | null = null;
+    let origemLink: "bling_fresco" | "cache_sem_bling_id" = "bling_fresco";
     let houveBackfill = false;
 
-    // 2. Sem link: resolve no Bling e faz backfill.
-    if (!pdfUrl) {
-      if (!nf.bling_id) {
-        return err(
-          404,
-          `NF ${nf.numero ?? nfId} não tem pdf_url nem bling_id — não há como resolver o PDF no Bling.`,
-          { nf_id: nfId },
-        );
-      }
-
+    if (nf.bling_id) {
       const { data: cfgData } = await supabase
         .from("integracoes_config")
         .select("*")
@@ -78,7 +72,7 @@ serve(async (req) => {
       const token = await ensureFreshToken(supabase, cfg);
       const client = makeBlingClient(supabase, cfg, token);
 
-      console.log("[nf-download] resolvendo no Bling", { nf_id: nfId, bling_id: nf.bling_id });
+      console.log("[nf-download] resolvendo link fresco no Bling", { nf_id: nfId, bling_id: nf.bling_id });
       const res = await client.get(`/nfe/${nf.bling_id}`);
       const d = res?.data ?? {};
       const link = String(d.linkPDF ?? d.linkDanfe ?? "").trim();
@@ -91,13 +85,28 @@ serve(async (req) => {
         );
       }
 
+      // Backfill: mantém o cache quente com o link novo.
       const patch: Record<string, unknown> = { pdf_url: link };
       if (linkXml && !nf.xml_url) patch.xml_url = linkXml;
       const { error: upErr } = await supabase.from("nfs_emitidas").update(patch).eq("id", nf.id);
       if (upErr) return err(500, `PDF resolvido, mas o backfill falhou: ${upErr.message}`, { nf_id: nfId });
 
       pdfUrl = link;
+      origemLink = "bling_fresco";
       houveBackfill = true;
+    } else if (nf.pdf_url) {
+      pdfUrl = nf.pdf_url;
+      origemLink = "cache_sem_bling_id";
+      console.log("[nf-download] usando pdf_url em cache (sem bling_id) — link pode estar expirado", {
+        nf_id: nfId,
+        numero: nf.numero,
+      });
+    } else {
+      return err(
+        404,
+        `NF ${nf.numero ?? nfId} não tem pdf_url nem bling_id — não há como resolver o PDF no Bling.`,
+        { nf_id: nfId },
+      );
     }
 
     // 3. Fetch server-side (sem cookie de sessão → sem tela de CNPJ).
@@ -106,6 +115,7 @@ serve(async (req) => {
     const ct = (pdfRes.headers.get("content-type") || "").toLowerCase();
     console.log("[nf-download] resposta do Bling", {
       nf_id: nfId,
+      origem_link: origemLink,
       status: pdfRes.status,
       content_type: ct || null,
       url_final: pdfRes.url,
@@ -114,27 +124,41 @@ serve(async (req) => {
 
     if (!pdfRes.ok) {
       const trecho = (await pdfRes.text().catch(() => "")).slice(0, 300);
-      return err(502, `Bling recusou o download do PDF (HTTP ${pdfRes.status}).`, { detalhe: trecho, nf_id: nfId });
+      return err(502, `Bling recusou o download do PDF (HTTP ${pdfRes.status}).`, {
+        detalhe: trecho,
+        nf_id: nfId,
+        origem_link: origemLink,
+      });
     }
 
     const bytes = new Uint8Array(await pdfRes.arrayBuffer());
     const assinatura = new TextDecoder().decode(bytes.slice(0, 5));
     if (!ct.includes("pdf") && assinatura !== "%PDF-") {
-      const trecho = new TextDecoder().decode(bytes.slice(0, 300));
-      return err(502, `A resposta do Bling não é um PDF (content-type: ${ct || "desconhecido"}).`, {
-        detalhe: trecho,
+      const corpo = new TextDecoder().decode(bytes.slice(0, 1000));
+      const ehValidacao = corpo.includes("Validação de Acesso") || corpo.includes("Valida&ccedil;&atilde;o de Acesso");
+      const msg = ehValidacao
+        ? origemLink === "bling_fresco"
+          ? "O Bling recusou o acesso ao PDF mesmo com link renovado (tela de Validação de Acesso)."
+          : "O link salvo desta NF expirou e ela não tem bling_id para renovar — o Bling devolveu a tela de Validação de Acesso."
+        : `A resposta do Bling não é um PDF (content-type: ${ct || "desconhecido"}).`;
+      return err(502, msg, {
+        detalhe: corpo.slice(0, 300),
         nf_id: nfId,
+        origem_link: origemLink,
       });
     }
+
 
     const nome = `NF-${nf.numero ?? nfId}${nf.serie ? `-${nf.serie}` : ""}.pdf`;
     console.log("[nf-download] sucesso", {
       nf_id: nfId,
       numero: nf.numero,
+      origem_link: origemLink,
       bytes: bytes.byteLength,
       backfill: houveBackfill,
       arquivo: nome,
     });
+
 
     return new Response(bytes, {
       status: 200,
