@@ -142,13 +142,8 @@ export function EntregaLinhaResumo({ info }: { info: EntregaLinhaInfo | undefine
           linhaData
         ))
       )}
+      <LinhaTransportadora nome={info.transportadora_nome} />
 
-
-      {info.transportadora_nome ? (
-        <p className="text-[11px] text-muted-foreground">{info.transportadora_nome}</p>
-      ) : (
-        <p className="text-[11px] text-muted-foreground/60 italic">transportadora não registrada</p>
-      )}
 
       {info.nf_numero ? (
         <p className="text-[11px] text-muted-foreground">
