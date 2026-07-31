@@ -398,7 +398,22 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
         <div className="flex justify-between"><span className="text-muted-foreground">Bruto</span><span>{fmtBRL.format(bruto)}</span></div>
         <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-destructive">− {fmtBRL.format(desconto)}</span></div>
         <div className="flex justify-between"><span className="text-muted-foreground">Bônus PIX</span><span className="text-destructive">− {fmtBRL.format(bonus)}</span></div>
-        <div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>+ {fmtBRL.format(frete)}</span></div>
+        <div className="flex justify-between gap-2">
+          <span className="text-muted-foreground">
+            Frete
+            {!freteConta && (
+              <span className="ml-1 text-xs text-muted-foreground/70">
+                não cobrado do cliente{freteTipo?.rotulo ? ` (${freteTipo.rotulo})` : ""}
+              </span>
+            )}
+          </span>
+          {freteConta ? (
+            <span>+ {fmtBRL.format(frete)}</span>
+          ) : (
+            <span className="text-muted-foreground/60 line-through">{fmtBRL.format(frete)}</span>
+          )}
+        </div>
+
         <div className="flex justify-between border-t pt-1.5">
           <span className="text-muted-foreground">Líquido projetado</span>
           <span className={`font-semibold ${liquidoProjetado < 0 ? "text-destructive" : ""}`}>{fmtBRL.format(liquidoProjetado)}</span>
