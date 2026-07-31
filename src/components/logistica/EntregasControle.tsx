@@ -19,8 +19,11 @@ import {
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SortableTableHead, ordenarPor, type SortState } from "@/components/shared/SortableTableHead";
 import { useLogisticaEntregas, type EntregaRow } from "@/hooks/logistica/useLogisticaEntregas";
+import { useLogisticaFilaFeed } from "@/hooks/logistica/useLogisticaFilaFeed";
+import { useLogisticaSaudeTransportadora } from "@/hooks/logistica/useLogisticaSaudeTransportadora";
 
 type SortCol =
   | "estado" | "canal" | "documento" | "pedido" | "cliente" | "valor"
