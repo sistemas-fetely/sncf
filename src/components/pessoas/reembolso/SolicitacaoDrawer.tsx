@@ -567,7 +567,7 @@ function BlocoComprovantes({
       const url = await urlAssinada(c.arquivo_path);
       setVisualizando({ comprovante: c, url, dados });
     } catch (err) {
-      toast.error((err as { message?: string })?.message ?? "Falha ao abrir o arquivo.");
+      toast.error(formatError(err));
     } finally {
       setAbrindo(null);
     }
