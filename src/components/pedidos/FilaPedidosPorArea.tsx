@@ -761,9 +761,9 @@ function FarolRisco({
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-xs">
           <p className="text-xs font-semibold">{label}{score != null ? ` · ${score}` : ""}</p>
-          {motivos.length > 0 ? (
+          {motivosOrdenados.length > 0 ? (
             <ul className="mt-1 space-y-0.5 text-xs">
-              {motivos.map((m) => (
+              {motivosOrdenados.map((m) => (
                 <li key={m.codigo} className="flex justify-between gap-3">
                   <span className="opacity-80">{m.rotulo}</span>
                   <span className="font-mono">+{m.pontos}</span>
