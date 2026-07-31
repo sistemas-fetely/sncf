@@ -84,8 +84,8 @@ function FormDialog({
       qc.invalidateQueries({ queryKey: ["condicoes-pagamento-ativas"] });
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error(msg);
+      console.error("condicao_pagamento_salvar:", e);
+      toast.error(formatError(e));
     } finally {
       setSaving(false);
     }
