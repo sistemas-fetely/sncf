@@ -178,7 +178,13 @@ export default function ReembolsoCiclos() {
                     </span>
 
                     {c.estado === "aberto" && (
-                      <Dialog open={confirmando} onOpenChange={setConfirmando}>
+                      <Dialog
+                        open={confirmando}
+                        onOpenChange={(v) => {
+                          setConfirmando(v);
+                          if (v) setDataPagamento(c.data_corte ?? hoje());
+                        }}
+                      >
                         <DialogTrigger asChild>
                           <Button size="sm">Fechar ciclo e gerar lotes</Button>
                         </DialogTrigger>
@@ -191,6 +197,18 @@ export default function ReembolsoCiclos() {
                               e vai para o próximo ciclo.
                             </DialogDescription>
                           </DialogHeader>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Data do pagamento (folha)</Label>
+                            <Input
+                              type="date"
+                              value={dataPagamento}
+                              onChange={(e) => setDataPagamento(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              É o vencimento que vai para o contas a pagar. O reembolso passa a
+                              aparecer em “a pagar” a partir do fechamento, antes de o PIX sair.
+                            </p>
+                          </div>
                           <DialogFooter>
                             <Button variant="outline" onClick={() => setConfirmando(false)}>
                               Cancelar
@@ -208,6 +226,7 @@ export default function ReembolsoCiclos() {
                         </DialogContent>
                       </Dialog>
                     )}
+
                   </div>
                 </div>
 
