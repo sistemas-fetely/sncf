@@ -130,9 +130,6 @@ export function gerarPedidoPdf(data: PedidoPdfData): string {
   const finalY = (doc as any).lastAutoTable?.finalY ?? 200;
   const resumoY = finalY + 8;
 
-  doc.setFillColor(...Creme);
-  doc.roundedRect(120, resumoY, 76, 10 + linhasAltura, 3, 3, "F");
-
   const linhas: [string, number | null][] = [["Valor bruto:", data.valor_bruto]];
   const descontoValor = Number(data.desconto_valor ?? 0);
   if (descontoValor > 0) {
@@ -151,6 +148,11 @@ export function gerarPedidoPdf(data: PedidoPdfData): string {
     if (data.frete_entra_no_liquido) linhas.push(["Frete:", frete]);
     else linhas.push(["Frete: por conta da Fetely", null]);
   }
+
+  doc.setFillColor(...Creme);
+  doc.roundedRect(120, resumoY, 76, linhas.length * 7 + 6, 3, 3, "F");
+
+
 
   let rowY = resumoY + 8;
   doc.setFontSize(9);
