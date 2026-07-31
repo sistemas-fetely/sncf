@@ -6,7 +6,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Copy, Check } from "lucide-react";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -19,27 +18,6 @@ interface ParcelaPlano {
   data_vencimento?: string;
   tipo_pagamento?: string;
   link_pagamento?: string;
-}
-
-function LinkCell({ url }: { url?: string | null }) {
-  const [copiado, setCopiado] = useState(false);
-  if (!url) return <span className="text-muted-foreground">—</span>;
-  const copiar = () => {
-    navigator.clipboard.writeText(url).then(() => {
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 1400);
-    });
-  };
-  return (
-    <div className="flex items-center gap-2 max-w-[260px]">
-      <span className="truncate text-xs text-primary underline cursor-pointer" onClick={copiar} title={url}>
-        {url}
-      </span>
-      <button onClick={copiar} className="shrink-0 text-muted-foreground hover:text-primary transition-colors">
-        {copiado ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-      </button>
-    </div>
-  );
 }
 
 const BOLETO_STATUS_LABEL: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
