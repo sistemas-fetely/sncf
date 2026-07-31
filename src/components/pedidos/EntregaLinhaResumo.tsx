@@ -21,9 +21,84 @@ function proveniencia(metodo: string | null): { rotulo: string; alerta: boolean 
   return { rotulo: "origem da data desconhecida", alerta: true };
 }
 
+/** Dias corridos entre hoje e uma data ISO (positivo = data já passou). */
+function diasDesde(v: string): number | null {
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return null;
+  const hoje = new Date();
+  const a = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  const b = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return Math.floor((b - a) / 86400000);
+}
+
+const TOOLTIP_META =
+  "Alvo calculado pelo sistema: SLAs internos + 5 dias úteis de trânsito fixos. Não é prazo informado pela transportadora.";
+
+function LinhaTransportadora({ nome }: { nome: string | null }) {
+  return nome ? (
+    <p className="text-[11px] text-muted-foreground">{nome}</p>
+  ) : (
+    <p className="text-[11px] text-muted-foreground/60 italic">transportadora não registrada</p>
+  );
+}
+
+/** Bloco de logística para pedidos ainda não entregues (faturado / em_transporte). */
+function ResumoEmRota({ info }: { info: EntregaLinhaInfo }) {
+  const prazo = fmtData(info.prazo_transportadora);
+  const meta = fmtData(info.data_entrega_prevista);
+  const atraso = info.data_entrega_prevista ? diasDesde(info.data_entrega_prevista) : null;
+  const atrasada = atraso !== null && atraso > 0;
+  const rastreio = info.entrega_ocorrencia_texto;
+
+  return (
+    <>
+      {prazo ? (
+        <p className="text-[11px] font-medium text-foreground">
+          Prazo da transportadora: <span className="text-primary">{prazo}</span>
+        </p>
+      ) : (
+        <p className="text-[11px] text-muted-foreground/60 italic">sem prazo da transportadora</p>
+      )}
+
+      {meta && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="w-fit cursor-help flex flex-wrap items-center gap-1">
+                <span className="text-[10px] rounded px-1 py-[1px] border bg-muted text-muted-foreground border-border">
+                  Meta interna
+                </span>
+                <span className={cn("text-[11px]", atrasada ? "text-destructive font-medium" : "text-muted-foreground")}>
+                  {atrasada ? `${atraso} dias além da meta` : meta}
+                </span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs max-w-[280px]">
+                {TOOLTIP_META}
+                {atrasada ? ` Meta era ${meta}.` : ""}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+
+      {rastreio ? (
+        <p className={cn("text-[11px]", info.entrega_ocorrencia_problema ? "text-warning" : "text-muted-foreground")}>
+          Rastreio: {rastreio}
+        </p>
+      ) : (
+        <p className="text-[11px] text-muted-foreground/60 italic">sem rastreio registrado</p>
+      )}
+    </>
+  );
+}
+
 export function EntregaLinhaResumo({ info }: { info: EntregaLinhaInfo | undefined }) {
   const { baixar, baixando } = useDownloadNfPdf();
   if (!info) return null;
+
+  const emRota = info.estagio === "em_transporte" || info.estagio === "faturado";
 
   const dataBruta = info.entregue_em || info.data_entrega_transportadora;
   const data = fmtData(dataBruta);
@@ -48,7 +123,10 @@ export function EntregaLinhaResumo({ info }: { info: EntregaLinhaInfo | undefine
 
   return (
     <div className="mt-1 space-y-0.5">
-      {linhaData &&
+      {emRota ? (
+        <ResumoEmRota info={info} />
+      ) : (
+        linhaData &&
         (ocorrencia ? (
           <TooltipProvider>
             <Tooltip>
@@ -62,7 +140,9 @@ export function EntregaLinhaResumo({ info }: { info: EntregaLinhaInfo | undefine
           </TooltipProvider>
         ) : (
           linhaData
-        ))}
+        ))
+      )}
+
 
       {info.transportadora_nome ? (
         <p className="text-[11px] text-muted-foreground">{info.transportadora_nome}</p>
