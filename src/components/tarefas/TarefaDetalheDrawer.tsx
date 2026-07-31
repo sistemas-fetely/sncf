@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import {
   Plus, ArrowRight, MessageSquare, UserPlus, CheckCircle, RotateCcw,
   Pencil, Send, Loader2, Calendar, User, Building2, Flag, Play, PauseCircle,
@@ -64,7 +65,6 @@ const STATUS_LABEL: Record<string, string> = {
   em_andamento: "Em andamento",
   aguardando_terceiro: "Aguardando terceiro",
   concluida: "Concluída",
-  atrasada: "Atrasada",
   cancelada: "Cancelada",
 };
 
@@ -73,7 +73,6 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
   em_andamento: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
   aguardando_terceiro: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
   concluida: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
-  atrasada: "bg-destructive/15 text-destructive border-destructive/30",
   cancelada: "bg-muted text-muted-foreground border-border",
 };
 

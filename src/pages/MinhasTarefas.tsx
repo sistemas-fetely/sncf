@@ -66,7 +66,7 @@ interface Tarefa {
   dias_restantes?: number | null;
 }
 
-type StatusFilter = "ativas" | "pendente" | "atrasada" | "em_andamento" | "aguardando_terceiro" | "concluida" | "todas";
+type StatusFilter = "ativas" | "pendente" | "atrasadas" | "em_andamento" | "aguardando_terceiro" | "concluida" | "todas";
 type AgrupamentoTipo = "prioridade" | "area" | "prazo" | "processo" | "nenhum";
 
 interface PrioridadeDia {
@@ -137,7 +137,6 @@ export default function MinhasTarefas() {
     if (!user) return;
     setLoading(true);
 
-    // Status "atrasada" é responsabilidade do job noturno tarefas-vencimento-diario
 
 
     // Buscar tarefas: minhas (responsavel ou role) + acompanhamento (accountable)
@@ -313,7 +312,7 @@ export default function MinhasTarefas() {
     lista.filter((t) => {
       // status
       if (statusFilter === "ativas" && !["pendente", "em_andamento", "aguardando_terceiro"].includes(t.status)) return false;
-      if (statusFilter === "atrasada" && !t.esta_atrasada) return false;
+      if (statusFilter === "atrasadas" && !t.esta_atrasada) return false;
       if (["pendente", "em_andamento", "aguardando_terceiro", "concluida"].includes(statusFilter) && t.status !== statusFilter) return false;
       // tipo
       if (tipoFilter !== "todos" && t.tipo_processo !== tipoFilter) return false;
@@ -900,7 +899,7 @@ export default function MinhasTarefas() {
                 <SelectContent>
                   <SelectItem value="ativas">Ativas (abertas)</SelectItem>
                   <SelectItem value="pendente">Pendentes</SelectItem>
-                  <SelectItem value="atrasada">Atrasadas</SelectItem>
+                  <SelectItem value="atrasadas">Atrasadas</SelectItem>
                   <SelectItem value="em_andamento">Em andamento</SelectItem>
                   <SelectItem value="aguardando_terceiro">Aguardando terceiro</SelectItem>
                   <SelectItem value="concluida">Concluídas</SelectItem>
