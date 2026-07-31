@@ -132,29 +132,18 @@ export function FilaPedidosPorArea({
     (usarEstagiosMultiplos && estagios && estagios.length > 0) ||
     (!usarEstagiosMultiplos && !!estagioFilter && estagioFilter !== "todos");
 
-  const { data, isLoading } = usePedidosFila({
+  const { data, isLoading, isError, error } = usePedidosFila({
     area,
     estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
     estagios: usarEstagiosMultiplos ? estagios : undefined,
     busca: busca || undefined,
     apenasAtivos: apenasAtivos && !estagioEspecificoSelecionado,
+    incluirCancelados,
   });
 
-  // Scores IA — fetch paralelo, merge por id.
-  const { data: priorizados } = useFilaPedidosPriorizada({
-    area,
-    estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
-    estagios: usarEstagiosMultiplos ? estagios : undefined,
-    ordenacao,
-  });
-
-  const scoreMap = useMemo(() => {
-    const m = new Map<string, { score: number; breakdown: ScoreBreakdown }>();
-    (priorizados || []).forEach((p) => {
-      m.set(p.id, { score: p.score_total, breakdown: p.score_breakdown });
-    });
-    return m;
-  }, [priorizados]);
+  // Farol de risco — fonte única: vw_pedido_risco + dimensão pedido_risco_faixa.
+  const { data: riscoMap } = usePedidoRisco();
+  const { data: faixas } = usePedidoRiscoFaixas();
 
   const linhas = useMemo(() => {
     let base: PedidoFilaItem[] = data || [];
@@ -171,14 +160,18 @@ export function FilaPedidosPorArea({
         return s === situacaoFilter;
       });
     }
-    if (ordenacao !== "prioridade_ia") return base;
+    if (somenteRiscoAlto) {
+      base = base.filter((p) => riscoMap?.get(p.id)?.risco_cor === "destructive");
+    }
+    if (ordenacao !== "risco") return base;
     return [...base].sort((a, b) => {
-      const sa = scoreMap.get(a.id)?.score ?? -1;
-      const sb = scoreMap.get(b.id)?.score ?? -1;
+      const sa = riscoMap?.get(a.id)?.risco_score ?? -1;
+      const sb = riscoMap?.get(b.id)?.risco_score ?? -1;
       if (sb !== sa) return sb - sa;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, ordenacao, scoreMap, marcacaoFilter, formaPgtoFilter, situacaoFilter]);
+  }, [data, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
+
 
   const formasPgtoDisponiveis = useMemo(() => {
     const set = new Set<string>();
