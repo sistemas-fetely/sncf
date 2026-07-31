@@ -762,7 +762,7 @@ export default function MinhasTarefas() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Minhas Tarefas</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Inbox</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Visão unificada de todas as suas pendências
           </p>
