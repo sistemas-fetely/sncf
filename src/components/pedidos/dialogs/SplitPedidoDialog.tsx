@@ -194,7 +194,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-md border p-3 bg-blue-50/50">
                     <div className="text-xs font-medium text-blue-900">
-                      {id_externo} — Pedido original (fica)
+                      {id_externo} — {origemEstoque ? "Continua aguardando estoque" : "Pedido original (fica)"}
                     </div>
                     <div className="text-lg font-semibold mt-1">{fmtBRL.format(valorOrig)}</div>
                     <div className="text-xs text-muted-foreground">
@@ -203,7 +203,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                   </div>
                   <div className="rounded-md border p-3 bg-yellow-50/50">
                     <div className="text-xs font-medium text-yellow-900">
-                      {id_externo}/01 — Novo pedido (split)
+                      {id_externo}/01 — {origemEstoque ? "Seguir agora (tem estoque)" : "Novo pedido (split)"}
                     </div>
                     <div className="text-lg font-semibold mt-1">{fmtBRL.format(valorSplit)}</div>
                     <div className="text-xs text-muted-foreground">
@@ -216,13 +216,13 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
               <Separator />
 
               <div className="space-y-2">
-                <Label>Estágio inicial do novo pedido</Label>
+                <Label>{origemEstoque ? "Destino do novo pedido" : "Estágio inicial do novo pedido"}</Label>
                 <Select value={estagio} onValueChange={(v) => setEstagio(v as EstagioSplit)}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ESTAGIO_OPTIONS.map((opt) => (
+                    {opcoesEstagio.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>
