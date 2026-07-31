@@ -704,10 +704,13 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
                 {itens.length} item{itens.length === 1 ? "" : "s"}
               </Badge>
             </div>
-            <Button onClick={enviar} disabled={lancar.isPending}>
-              {lancar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Lançar
+            <Button onClick={enviar} disabled={lancar.isPending || !!progresso}>
+              {(lancar.isPending || !!progresso) && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+              {progresso ?? "Lançar"}
             </Button>
+
           </div>
         </div>
       </SheetContent>
