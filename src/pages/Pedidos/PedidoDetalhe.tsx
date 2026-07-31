@@ -1958,6 +1958,8 @@ export default function PedidoDetalhe() {
                   gera_titulo_receber={geraTituloReceber}
                 />
               )}
+              <ExportarPedidoDialog pedidoId={pedido.id} />
+
               {geraTituloReceber ? (
                 <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
               ) : (
