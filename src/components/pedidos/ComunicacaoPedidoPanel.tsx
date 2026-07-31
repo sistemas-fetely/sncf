@@ -137,6 +137,8 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   });
 
   const logQ = usePedidoEmailLog(pedido_id);
+  const linkQ = useLinkPagamentoPedido(pedido_id);
+  const registrarLink = useRegistrarLinkPagamento();
 
   // ── Mutations ──
   const enviarCobranca = useEnviarEmailPedidoCobranca();
