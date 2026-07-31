@@ -468,9 +468,107 @@ export default function DestinosCadastro() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    As outras 58 colunas voltam idênticas. Só o Grupo de Produtos é preenchido.
+                    Só o Grupo de Produtos e os campos fiscais vazios são alterados. A coluna{" "}
+                    <strong>Origem</strong> nunca é tocada. As demais colunas voltam idênticas.
                   </AlertDescription>
                 </Alert>
+
+                {fiscalCarregando && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando dados fiscais do
+                    SNCF…
+                  </p>
+                )}
+
+                {fiscalErro && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Completar fiscal indisponível</AlertTitle>
+                    <AlertDescription className="text-xs space-y-2 break-words">
+                      <p>{fiscalErro}</p>
+                      <p>
+                        Você pode seguir só com o Grupo de Produtos — nenhum campo fiscal vazio será
+                        completado.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void carregarFiscal()}
+                        disabled={fiscalCarregando}
+                      >
+                        Tentar de novo
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {resumo && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Já preenchido</p>
+                      <p className="text-2xl font-bold">{resumo.jaPreenchido}</p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Vai mudar</p>
+                      <p className="text-2xl font-bold">{resumo.vaiMudar}</p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Completado pelo SNCF</p>
+                      <p className="text-2xl font-bold">{resumo.completados}</p>
+                    </div>
+                  </div>
+                )}
+
+                {resumo?.vaiMudar === 0 && (
+                  <Alert className="border-emerald-500/50 bg-emerald-50/60 dark:bg-emerald-950/20">
+                    <Info className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
+                    <AlertDescription className="text-xs text-emerald-700 dark:text-emerald-400">
+                      O Bling já está sincronizado. O download é opcional.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {plano && plano.naoEncontrados > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {plano.naoEncontrados} SKU não encontrado no SNCF — essas linhas não recebem
+                    completar fiscal (informativo).
+                  </p>
+                )}
+
+                {plano && plano.detalhes.length > 0 && (
+                  <div className="rounded-lg border">
+                    <button
+                      type="button"
+                      onClick={() => setDetalheAberto((v) => !v)}
+                      className="w-full flex items-center justify-between p-3 text-sm font-medium"
+                    >
+                      <span>
+                        Detalhamento do que foi completado ({plano.detalhes.length} linha
+                        {plano.detalhes.length > 1 ? "s" : ""})
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${detalheAberto ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    {detalheAberto && (
+                      <div className="border-t max-h-72 overflow-auto p-3 space-y-1 text-xs">
+                        {plano.detalhes.map((d, i) => (
+                          <div key={`${d.codigo}-${i}`} className="flex gap-2">
+                            <span className="font-mono shrink-0">{d.codigo}</span>
+                            <span className="text-muted-foreground truncate flex-1">
+                              {d.descricao}
+                            </span>
+                            <span className="shrink-0 text-emerald-700 dark:text-emerald-400">
+                              {d.campos.join(", ")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+
 
                 <div className="rounded-lg border">
                   <Table>
