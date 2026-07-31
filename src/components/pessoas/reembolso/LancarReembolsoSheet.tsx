@@ -79,7 +79,9 @@ function novoItem(): ItemForm {
     km: "",
     justificativa: "",
     plano_contas_id: "",
+    arquivo: null,
     rateioAberto: false,
+
     rateio: [{ centro_custo_id: "", percentual: "100" }],
   };
 }
