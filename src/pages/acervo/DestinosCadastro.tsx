@@ -12,7 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  AlertTriangle, Download, FileSpreadsheet, Loader2, Upload, ExternalLink, Info,
+  AlertTriangle, ChevronDown, Download, FileSpreadsheet, Loader2, Upload, ExternalLink, Info,
 } from "lucide-react";
 
 const VERDE = "#1A4A3A";
@@ -21,11 +21,49 @@ const COL_NCM = "NCM";
 const COL_ORIGEM = "Origem";
 const COL_CODIGO = "Código";
 const COL_GRUPO = "Grupo de produtos";
+const COL_CEST = "CEST";
+const COL_PESO = "Peso líquido (Kg)";
+const COL_ALTURA = "Altura do Produto";
+const COL_LARGURA = "Largura do produto";
+const COL_PROFUNDIDADE = "Profundidade do produto";
+
+/** Campos completáveis: coluna do CSV -> campo da view. Origem NUNCA entra aqui. */
+const MAPA_FISCAL: { coluna: string; campo: keyof FiscalSncf; rotulo: string }[] = [
+  { coluna: COL_NCM, campo: "ncm_sncf", rotulo: "NCM" },
+  { coluna: COL_CEST, campo: "cest_sncf", rotulo: "CEST" },
+  { coluna: COL_PESO, campo: "peso_liquido_br", rotulo: "Peso líquido" },
+  { coluna: COL_ALTURA, campo: "altura_br", rotulo: "Altura" },
+  { coluna: COL_LARGURA, campo: "largura_br", rotulo: "Largura" },
+  { coluna: COL_PROFUNDIDADE, campo: "profundidade_br", rotulo: "Profundidade" },
+];
+
+interface FiscalSncf {
+  sku: string;
+  nome_comercial: string | null;
+  ncm_sncf: string | null;
+  cest_sncf: string | null;
+  peso_liquido_br: string | null;
+  altura_br: string | null;
+  largura_br: string | null;
+  profundidade_br: string | null;
+  ean: string | null;
+}
+
+/** Normaliza só para COMPARAR: remove tabs de proteção e espaços. */
+function chaveSku(v: string): string {
+  return v.replace(/\t/g, "").trim().toUpperCase();
+}
+
+/** Vazio de verdade. "0,00" é valor preenchido. */
+function celulaVazia(v: string | undefined): boolean {
+  return (v ?? "").replace(/\t/g, "").trim() === "";
+}
 
 interface ParsedCsv {
   header: string[];
   rows: string[][];
 }
+
 
 /**
  * Parser de CSV do Bling: separador ';', campos entre aspas duplas,
@@ -111,6 +149,33 @@ export default function DestinosCadastro() {
   const [grupos, setGrupos] = useState<string[] | null>(null); // por linha
   const [erro, setErro] = useState<string | null>(null);
   const [processando, setProcessando] = useState(false);
+  const [fiscal, setFiscal] = useState<Map<string, FiscalSncf> | null>(null);
+  const [fiscalErro, setFiscalErro] = useState<string | null>(null);
+  const [fiscalCarregando, setFiscalCarregando] = useState(false);
+  const [detalheAberto, setDetalheAberto] = useState(false);
+
+  const carregarFiscal = async () => {
+    setFiscalCarregando(true);
+    setFiscalErro(null);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("vw_bling_completar_fiscal")
+        .select(
+          "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean",
+        );
+      if (error) throw error;
+      const m = new Map<string, FiscalSncf>();
+      for (const r of (data ?? []) as FiscalSncf[]) {
+        if (r.sku) m.set(chaveSku(r.sku), r);
+      }
+      setFiscal(m);
+    } catch (e) {
+      setFiscal(null);
+      setFiscalErro(formatError(e));
+    } finally {
+      setFiscalCarregando(false);
+    }
+  };
 
   const idx = useMemo(() => {
     if (!parsed) return null;
@@ -129,6 +194,7 @@ export default function DestinosCadastro() {
     setGrupos(null);
     setErro(null);
     setArquivoNome(null);
+    setDetalheAberto(false);
   };
 
   const handleArquivo = async (file: File) => {
@@ -182,6 +248,7 @@ export default function DestinosCadastro() {
       setParsed(p);
       setGrupos(porLinha);
       toast.success(`${p.rows.length} produto(s) lido(s) · ${pares.size} par(es) NCM+Origem`);
+      await carregarFiscal();
     } catch (e) {
       const msg = formatError(e);
       setErro(msg);
@@ -192,6 +259,61 @@ export default function DestinosCadastro() {
       setProcessando(false);
     }
   };
+
+  /**
+   * Plano de completar: por linha, quais colunas vazias o SNCF preenche.
+   * Nunca sobrescreve célula com valor. Nunca toca em Origem.
+   */
+  const plano = useMemo(() => {
+    if (!parsed || !idx) return null;
+    const indices = new Map<string, number>();
+    for (const m of MAPA_FISCAL) {
+      const i = parsed.header.findIndex((h) => h === m.coluna);
+      if (i >= 0) indices.set(m.coluna, i);
+    }
+    const porLinha: { col: number; valor: string; rotulo: string }[][] = [];
+    const detalhes: { codigo: string; descricao: string; campos: string[] }[] = [];
+    let naoEncontrados = 0;
+
+    parsed.rows.forEach((r) => {
+      const preenche: { col: number; valor: string; rotulo: string }[] = [];
+      const codigoRaw = r[idx.codigo] ?? "";
+      const info = fiscal?.get(chaveSku(codigoRaw));
+      if (fiscal && !info) naoEncontrados++;
+      if (info) {
+        for (const m of MAPA_FISCAL) {
+          const col = indices.get(m.coluna);
+          if (col === undefined) continue;
+          if (!celulaVazia(r[col])) continue;
+          const valor = (info[m.campo] as string | null) ?? "";
+          if (valor.trim() === "") continue;
+          preenche.push({ col, valor, rotulo: m.rotulo });
+        }
+      }
+      porLinha.push(preenche);
+      if (preenche.length > 0) {
+        detalhes.push({
+          codigo: codigoRaw.replace(/\t/g, "").trim(),
+          descricao: idx.descricao >= 0 ? r[idx.descricao] ?? "" : info?.nome_comercial ?? "",
+          campos: preenche.map((p) => p.rotulo),
+        });
+      }
+    });
+
+    return { porLinha, detalhes, naoEncontrados };
+  }, [parsed, idx, fiscal]);
+
+  const resumo = useMemo(() => {
+    if (!parsed || !grupos || !idx) return null;
+    let jaPreenchido = 0;
+    let vaiMudar = 0;
+    parsed.rows.forEach((r, i) => {
+      const atual = (r[idx.grupo] ?? "").replace(/\t/g, "").trim();
+      if (atual !== "" && atual === grupos[i]) jaPreenchido++;
+      else vaiMudar++;
+    });
+    return { jaPreenchido, vaiMudar, completados: plano?.detalhes.length ?? 0 };
+  }, [parsed, grupos, idx, plano]);
 
   const contagem = useMemo(() => {
     if (!grupos) return [];
@@ -212,15 +334,21 @@ export default function DestinosCadastro() {
       }));
   }, [parsed, grupos, idx]);
 
+  // NCM vazio avaliado DEPOIS do completar pelo SNCF.
   const semNcm = useMemo(() => {
     if (!parsed || !idx) return [];
     return parsed.rows
-      .filter((r) => (r[idx.ncm] ?? "").trim() === "")
-      .map((r) => ({
+      .map((r, i) => ({ r, i }))
+      .filter(({ r, i }) => {
+        if (!celulaVazia(r[idx.ncm])) return false;
+        const completa = plano?.porLinha[i]?.some((p) => p.col === idx.ncm);
+        return !completa;
+      })
+      .map(({ r }) => ({
         codigo: r[idx.codigo] ?? "",
         descricao: idx.descricao >= 0 ? r[idx.descricao] ?? "" : "",
       }));
-  }, [parsed, idx]);
+  }, [parsed, idx, plano]);
 
   const baixar = () => {
     if (!parsed || !grupos || !idx) return;
@@ -229,6 +357,7 @@ export default function DestinosCadastro() {
         const copia = [...r];
         while (copia.length < parsed.header.length) copia.push("");
         copia[idx.grupo] = grupos[i];
+        for (const p of plano?.porLinha[i] ?? []) copia[p.col] = p.valor;
         return copia;
       });
       const blob = gerarCsv(parsed.header, rows);
@@ -244,6 +373,7 @@ export default function DestinosCadastro() {
       toast.error(formatError(e));
     }
   };
+
 
   return (
     <div className="p-6 space-y-6 max-w-5xl">
@@ -338,9 +468,107 @@ export default function DestinosCadastro() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    As outras 58 colunas voltam idênticas. Só o Grupo de Produtos é preenchido.
+                    Só o Grupo de Produtos e os campos fiscais vazios são alterados. A coluna{" "}
+                    <strong>Origem</strong> nunca é tocada. As demais colunas voltam idênticas.
                   </AlertDescription>
                 </Alert>
+
+                {fiscalCarregando && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando dados fiscais do
+                    SNCF…
+                  </p>
+                )}
+
+                {fiscalErro && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Completar fiscal indisponível</AlertTitle>
+                    <AlertDescription className="text-xs space-y-2 break-words">
+                      <p>{fiscalErro}</p>
+                      <p>
+                        Você pode seguir só com o Grupo de Produtos — nenhum campo fiscal vazio será
+                        completado.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void carregarFiscal()}
+                        disabled={fiscalCarregando}
+                      >
+                        Tentar de novo
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {resumo && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Já preenchido</p>
+                      <p className="text-2xl font-bold">{resumo.jaPreenchido}</p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Vai mudar</p>
+                      <p className="text-2xl font-bold">{resumo.vaiMudar}</p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Completado pelo SNCF</p>
+                      <p className="text-2xl font-bold">{resumo.completados}</p>
+                    </div>
+                  </div>
+                )}
+
+                {resumo?.vaiMudar === 0 && (
+                  <Alert className="border-emerald-500/50 bg-emerald-50/60 dark:bg-emerald-950/20">
+                    <Info className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
+                    <AlertDescription className="text-xs text-emerald-700 dark:text-emerald-400">
+                      O Bling já está sincronizado. O download é opcional.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {plano && plano.naoEncontrados > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {plano.naoEncontrados} SKU não encontrado no SNCF — essas linhas não recebem
+                    completar fiscal (informativo).
+                  </p>
+                )}
+
+                {plano && plano.detalhes.length > 0 && (
+                  <div className="rounded-lg border">
+                    <button
+                      type="button"
+                      onClick={() => setDetalheAberto((v) => !v)}
+                      className="w-full flex items-center justify-between p-3 text-sm font-medium"
+                    >
+                      <span>
+                        Detalhamento do que foi completado ({plano.detalhes.length} linha
+                        {plano.detalhes.length > 1 ? "s" : ""})
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${detalheAberto ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    {detalheAberto && (
+                      <div className="border-t max-h-72 overflow-auto p-3 space-y-1 text-xs">
+                        {plano.detalhes.map((d, i) => (
+                          <div key={`${d.codigo}-${i}`} className="flex gap-2">
+                            <span className="font-mono shrink-0">{d.codigo}</span>
+                            <span className="text-muted-foreground truncate flex-1">
+                              {d.descricao}
+                            </span>
+                            <span className="shrink-0 text-emerald-700 dark:text-emerald-400">
+                              {d.campos.join(", ")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+
 
                 <div className="rounded-lg border">
                   <Table>
