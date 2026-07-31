@@ -5508,6 +5508,7 @@ export type Database = {
           id: string
           nome: string
           ordem: number | null
+          role_responsavel: Database["public"]["Enums"]["app_role"] | null
           unidade_id: string | null
           updated_at: string
         }
@@ -5517,6 +5518,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number | null
+          role_responsavel?: Database["public"]["Enums"]["app_role"] | null
           unidade_id?: string | null
           updated_at?: string
         }
@@ -5526,6 +5528,7 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number | null
+          role_responsavel?: Database["public"]["Enums"]["app_role"] | null
           unidade_id?: string | null
           updated_at?: string
         }
@@ -21500,6 +21503,7 @@ export type Database = {
           accountable_role: string | null
           accountable_user_id: string | null
           area_destino: string | null
+          area_destino_id: string | null
           bloqueante: boolean | null
           colaborador_id: string | null
           colaborador_nome: string | null
@@ -21537,6 +21541,7 @@ export type Database = {
           accountable_role?: string | null
           accountable_user_id?: string | null
           area_destino?: string | null
+          area_destino_id?: string | null
           bloqueante?: boolean | null
           colaborador_id?: string | null
           colaborador_nome?: string | null
@@ -21574,6 +21579,7 @@ export type Database = {
           accountable_role?: string | null
           accountable_user_id?: string | null
           area_destino?: string | null
+          area_destino_id?: string | null
           bloqueante?: boolean | null
           colaborador_id?: string | null
           colaborador_nome?: string | null
@@ -21608,6 +21614,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sncf_tarefas_area_destino_id_fkey"
+            columns: ["area_destino_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sncf_tarefas_origem_extensao_id_fkey"
             columns: ["origem_extensao_id"]
@@ -29609,14 +29622,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
