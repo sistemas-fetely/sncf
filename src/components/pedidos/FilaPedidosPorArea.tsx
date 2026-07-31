@@ -4,17 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
-import {
-  useFilaPedidosPriorizada,
-  type OrdenacaoFila,
-} from "@/hooks/pedidos/useFilaPedidosPriorizada";
+import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Sparkles, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
@@ -26,13 +26,14 @@ import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 import {
   EstagioBadge, FormatoIdade,
 } from "./BadgesPedido";
-import { BadgePriorizacao } from "./BadgePriorizacao";
 import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
 import {
-  ESTAGIO_LABELS, ESTAGIO_AREA, PIPELINE_PRINCIPAL,
+  ESTAGIO_AREA, PIPELINE_PRINCIPAL,
   ESTAGIOS_TERMINAIS, ESTAGIOS_RECUPERAVEIS,
 } from "@/types/pedido";
-import type { AreaPedido, EstagioPedido, PedidoFilaItem, ScoreBreakdown } from "@/types/pedido";
+import type { AreaPedido, EstagioPedido, PedidoFilaItem } from "@/types/pedido";
+
+type OrdenacaoFila = "cronologico" | "risco";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -41,6 +42,7 @@ type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
 const ROW_HEIGHT = 80; // px aprox (linhas com 2 linhas de texto)
 const FOOTER_RESERVE = 80;
+
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
