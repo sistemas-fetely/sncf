@@ -30128,14 +30128,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -33764,6 +33764,10 @@ export type Database = {
       fn_exigir_edicao_permitida: {
         Args: { p_campo: string; p_motivo?: string; p_pedido_id: string }
         Returns: undefined
+      }
+      fn_exigir_nf_para_faturado: {
+        Args: { p_motivo?: string; p_pedido_id: string }
+        Returns: boolean
       }
       fn_extrair_dimensoes: { Args: { p_texto: string }; Returns: number[] }
       fn_fluxo_caixa_projetado: {
