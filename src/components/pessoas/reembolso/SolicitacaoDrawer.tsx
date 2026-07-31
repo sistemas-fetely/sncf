@@ -262,6 +262,16 @@ export default function SolicitacaoDrawer({ solicitacaoId, onOpenChange }: Props
                 </CardContent>
               </Card>
 
+              {/* Comprovantes */}
+              <BlocoComprovantes
+                solicitacaoId={solicitacao.id}
+                itens={itens}
+                apontamentos={apontamentos}
+                somenteLeitura={somenteLeitura}
+                nomeCategoria={nomeCategoria}
+              />
+
+
               {/* Itens */}
               <Card className="card-shadow">
                 <CardContent className="py-4 space-y-3">
