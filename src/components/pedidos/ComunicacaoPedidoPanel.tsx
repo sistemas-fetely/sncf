@@ -528,7 +528,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
             <Button variant="outline" onClick={fecharDialog} disabled={sending}>
               Cancelar
             </Button>
-            <Button onClick={handleEnviar} disabled={!emailPrincipal.trim() || sending} className="gap-1.5">
+            <Button onClick={handleEnviar} disabled={!emailPrincipal.trim() || sending || precisaRenovar} className="gap-1.5">
               {sending ? (
                 <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
               ) : (
