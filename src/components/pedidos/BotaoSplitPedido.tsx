@@ -45,7 +45,17 @@ export function BotaoSplitPedido({
 
   return (
     <>
-      {variante === "compact" ? (
+      {variante === "menuitem" ? (
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            setOpen(true);
+          }}
+        >
+          <Scissors className="h-4 w-4 mr-2" />
+          {rotulo}
+        </DropdownMenuItem>
+      ) : variante === "compact" ? (
         <Button variant="outline" size="sm" onClick={() => setOpen(true)} title={rotulo}>
           <Scissors className="h-3 w-3 mr-1" />
           {rotulo}
@@ -56,6 +66,7 @@ export function BotaoSplitPedido({
           {rotulo}
         </Button>
       )}
+
       <SplitPedidoDialog
         open={open}
         onOpenChange={setOpen}
