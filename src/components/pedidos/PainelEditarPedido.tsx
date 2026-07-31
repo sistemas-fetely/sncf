@@ -331,13 +331,19 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
   const [valorStr, setValorStr] = useState("");
   const [motivo, setMotivo] = useState("");
 
+  const { getFreteTipo, freteEntraNoLiquido } = useFreteTipos();
+  const freteTipo = getFreteTipo(pedido?.frete_tipo);
+  const freteConta = freteEntraNoLiquido(pedido?.frete_tipo);
+
   const bruto = num(pedido?.valor_bruto);
   const bonus = num(pedido?.bonus_pix_valor);
   const frete = num(pedido?.valor_frete);
   const valorNum = Number(String(valorStr).replace(",", ".")) || 0;
   const desconto = tipo === "pct" ? (bruto * valorNum) / 100 : valorNum;
-  // Fórmula oficial: o frete ENTRA no líquido.
-  const liquidoProjetado = bruto - desconto - bonus + frete;
+  // O frete só entra no líquido quando a dimensão `frete_tipos` manda.
+  const freteEfetivo = freteConta ? frete : 0;
+  const liquidoProjetado = bruto - desconto - bonus + freteEfetivo;
+
 
   const salvar = useMutation({
     mutationFn: async () => {
