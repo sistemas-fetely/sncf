@@ -48,7 +48,7 @@ export default function Logistica() {
                   : "bg-card text-foreground hover:bg-muted border-border"
               )}
             >
-              <Package className="h-3.5 w-3.5" /> Rastreio
+              <Package className="h-3.5 w-3.5" /> Entregas
             </button>
             {transportadoras.map((t) => {
               const nome = t.nome_fantasia ?? t.razao_social;
