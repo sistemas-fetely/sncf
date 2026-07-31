@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, AlertTriangle, ShoppingCart, RefreshCw, Undo2, CheckCircle2, Scissors,
+  Paperclip, Eye, Trash2, ExternalLink,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -18,13 +19,27 @@ import {
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import ResolverCadastroInline from "./ResolverCadastroInline";
 import {
   useSolicitacao, useApontamentos, useCategorias, useGlosarItem, useAprovar,
-  useDevolver, useReabrir, formatarBRL, formatarData, ROTULO_ESTADO,
-  type ApontamentoComRegra, type ItemSolicitacao,
+  useDevolver, useReabrir, useComprovantes, useAnexarComprovante, useRemoverComprovante,
+  useUrlAssinada, formatarBRL, formatarData, formatarTamanho, ROTULO_ESTADO,
+  MIMES_COMPROVANTE, LIMITE_COMPROVANTE_BYTES,
+  type ApontamentoComRegra, type ItemSolicitacao, type Comprovante, type TipoAnexo,
 } from "@/hooks/useReembolso";
+
+interface DadosConferencia {
+  titulo: string;
+  data: string | null;
+  valor: number | null;
+  cnpj: string | null;
+  estabelecimento: string | null;
+}
+
 
 function BadgeEstado({ estado }: { estado: string }) {
   const tom =
