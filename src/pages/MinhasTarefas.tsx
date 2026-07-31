@@ -978,6 +978,11 @@ export default function MinhasTarefas() {
         </TabsContent>
       </Tabs>
 
+      {/* Filas da operação — inbox único */}
+      <FilasOperacao />
+
+
+
       {/* Dialog de conclusão */}
       <AlertDialog open={!!concluirTarefa} onOpenChange={(open) => { if (!open) setConcluirTarefa(null); }}>
         <AlertDialogContent>
