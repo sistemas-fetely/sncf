@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { RadarOperacional } from "@/components/tarefas/RadarOperacional";
+import { FilasOperacao } from "@/components/tarefas/FilasOperacao";
 import { SubmeterNFDialog } from "@/components/minhas-notas/SubmeterNFDialog";
 import { AprovarNFDialog } from "@/components/minhas-notas/AprovarNFDialog";
 import { NovaTarefaDialog } from "@/components/tarefas/NovaTarefaDialog";
