@@ -36251,6 +36251,7 @@ export type Database = {
         Returns: Json
       }
       reconciliar_produtos_espelho: { Args: never; Returns: number }
+      reembolso_anexar_comprovante: { Args: { p: Json }; Returns: Json }
       reembolso_aprovar: {
         Args: { p_justificativa_excecao?: string; p_solicitacao_id: string }
         Returns: Json
@@ -36273,6 +36274,10 @@ export type Database = {
           p_data_pagamento: string
           p_lote_id: string
         }
+        Returns: Json
+      }
+      reembolso_remover_comprovante: {
+        Args: { p_comprovante_id: string }
         Returns: Json
       }
       reembolso_resolver_cadastro: {
