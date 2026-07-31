@@ -228,19 +228,14 @@ export default function OnboardingDetalhe() {
       return;
     }
     setUpdatingTask(tarefaAConcluir.id);
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({
-        status: "concluida",
-        concluida_em: new Date().toISOString(),
-        concluida_por: user.id,
-        evidencia_texto: observacao.trim(),
-        evidencia_url: linkEvidencia.trim() || null,
-      } as any)
-      .eq("id", tarefaAConcluir.id);
+    const { error } = await supabase.rpc("concluir_tarefa", {
+      p_tarefa_id: tarefaAConcluir.id,
+      p_evidencia_texto: observacao.trim(),
+      p_evidencia_url: linkEvidencia.trim() || null,
+    });
 
     if (error) {
-      toast.error("Erro ao concluir tarefa");
+      toast.error("Erro ao concluir tarefa: " + formatError(error));
       setUpdatingTask(null);
       return;
     }
