@@ -208,7 +208,8 @@ export default function ParametrosCondicoesPagamento() {
       qc.invalidateQueries({ queryKey: ["condicoes-pagamento-admin"] });
       qc.invalidateQueries({ queryKey: ["condicoes-pagamento-ativas"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      console.error("condicao_pagamento_toggle:", e);
+      toast.error(formatError(e));
     }
   }
 
