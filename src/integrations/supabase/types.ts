@@ -30885,18 +30885,30 @@ export type Database = {
           canal: string | null
           canal_contratacao: string | null
           classe_rastreio: string | null
+          cliente: string | null
           data_entrega: string | null
           devolucao: boolean | null
+          dias_sem_movimento: number | null
           documento_ref: string | null
+          eh_problema: boolean | null
           entregue: boolean | null
+          estado_canonico: string | null
+          estado_rotulo: string | null
           fonte: string | null
           fonte_id: string | null
           municipio_destino: string | null
+          ocorrencia_codigo: string | null
+          ocorrencia_em: string | null
+          ocorrencia_texto: string | null
+          ordem_urgencia: number | null
+          pedido_externo: string | null
+          pedido_id: string | null
           previsao_entrega: string | null
           status_texto: string | null
           transportadora: string | null
           transportadora_id: string | null
           uf_destino: string | null
+          valor: number | null
         }
         Relationships: []
       }
@@ -31159,14 +31171,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -31529,14 +31541,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -35427,7 +35439,6 @@ export type Database = {
           total: number
         }[]
       }
-      fn_job_tarefas_vencimento: { Args: never; Returns: Json }
       fn_liquido_pedido: {
         Args: {
           p_bonus_pix: number
@@ -35522,6 +35533,10 @@ export type Database = {
         Returns: string
       }
       fn_reembolso_meu_vinculo: { Args: never; Returns: string }
+      fn_reembolso_notificar_aprovacao: {
+        Args: { p_solicitacao_id: string }
+        Returns: number
+      }
       fn_reembolso_papel_solicitante: {
         Args: { p_vinculo_id: string }
         Returns: string
@@ -36715,6 +36730,10 @@ export type Database = {
           p_proxima_acao?: string
         }
         Returns: Json
+      }
+      transicionar_tarefa: {
+        Args: { p_novo_status: string; p_tarefa_id: string }
+        Returns: undefined
       }
       tratar_achado_auditoria: {
         Args: {
