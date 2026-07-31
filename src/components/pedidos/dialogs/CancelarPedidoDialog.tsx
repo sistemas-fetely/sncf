@@ -9,11 +9,21 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { XCircle, CheckCircle2, CopyPlus, AlertTriangle, Info } from "lucide-react";
+import { XCircle, CheckCircle2, CopyPlus, AlertTriangle, Info, Undo2 } from "lucide-react";
 import { useCancelarPedido } from "@/hooks/pedidos/useCancelarPedido";
 import { useClonarPedido } from "@/hooks/pedidos/useClonarPedido";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,11 +33,24 @@ interface Props {
   pedido_id: string;
   id_externo: string;
   estagio: string;
+  cliente_nome?: string | null;
 }
 
 const ESTAGIOS_BLOQUEADOS = ["faturado", "em_transporte", "entregue"];
 
-export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) {
+const brl = (v: number) =>
+  `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+function mensagemErro(e: unknown): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const err = e as any;
+  return (
+    [err?.message, err?.details, err?.hint].filter(Boolean).join(" · ") ||
+    "Erro desconhecido no banco."
+  );
+}
+
+export function CancelarPedidoDialog({ pedido_id, id_externo, estagio, cliente_nome }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -35,6 +58,11 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
   const [step, setStep] = useState<"confirm" | "result">("confirm");
   const [devolvendo, setDevolvendo] = useState(false);
   const [devolvido, setDevolvido] = useState(false);
+  const [confirmDevolucaoOpen, setConfirmDevolucaoOpen] = useState(false);
+  const [motivoDevolucao, setMotivoDevolucao] = useState("");
+  const [confirmReverterOpen, setConfirmReverterOpen] = useState(false);
+  const [motivoReversao, setMotivoReversao] = useState("");
+  const [revertendo, setRevertendo] = useState(false);
   const [resultado, setResultado] = useState<{
     titulos_cancelados: number;
     boletos_baixa_pendente: number;
@@ -51,6 +79,14 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
   const rootIdExterno = id_externo.replace(/\/C\d+$/, "");
   const cloneIdExternoPreview = `${rootIdExterno}/C01`;
 
+  const invalidarCredito = () => {
+    qc.invalidateQueries({ queryKey: ["credito-clientes-haveres"] });
+    qc.invalidateQueries({ queryKey: ["haver-disponivel"] });
+    qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedido_id] });
+    qc.invalidateQueries({ queryKey: ["pedido-titulos", pedido_id] });
+    qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+  };
+
   const handleOpenChange = (v: boolean) => {
     if (!v) {
       // Só invalida ao fechar se o cancelamento foi concluído (passo 2)
@@ -66,24 +102,67 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
       setResultado(null);
       setDevolvendo(false);
       setDevolvido(false);
+      setMotivoDevolucao("");
+      setMotivoReversao("");
+      setConfirmDevolucaoOpen(false);
+      setConfirmReverterOpen(false);
+      setRevertendo(false);
     }
     setOpen(v);
   };
 
   const handleDevolver = async () => {
     if (!resultado?.haver_id) return;
+    if (motivoDevolucao.trim().length < 5) return;
     setDevolvendo(true);
-    const { error } = await (supabase as any).rpc("marcar_haver_devolucao", {
-      p_haver_id: resultado.haver_id,
-      p_motivo: motivo.trim() || null,
-    });
-    setDevolvendo(false);
-    if (error) {
-      toast({ title: "Não foi possível marcar devolução", description: error.message, variant: "destructive" });
-      return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc("marcar_haver_devolucao", {
+        p_haver_id: resultado.haver_id,
+        p_motivo: motivoDevolucao.trim(),
+      });
+      if (error) throw error;
+      setDevolvido(true);
+      setConfirmDevolucaoOpen(false);
+      setMotivoDevolucao("");
+      invalidarCredito();
+      toast({ title: "Crédito anulado — dinheiro será devolvido ao cliente" });
+    } catch (e) {
+      toast({
+        title: "Não foi possível anular o crédito",
+        description: mensagemErro(e),
+        variant: "destructive",
+      });
+    } finally {
+      setDevolvendo(false);
     }
-    setDevolvido(true);
-    toast({ title: "Marcado para devolução" });
+  };
+
+  const handleReverterDevolucao = async () => {
+    if (!resultado?.haver_id) return;
+    if (motivoReversao.trim().length < 5) return;
+    setRevertendo(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc("reverter_haver_devolucao", {
+        p_haver_id: resultado.haver_id,
+        p_motivo: motivoReversao.trim(),
+      });
+      if (error) throw error;
+      setDevolvido(false);
+      setConfirmReverterOpen(false);
+      setMotivoReversao("");
+      invalidarCredito();
+      toast({ title: "Devolução desfeita — crédito restaurado" });
+    } catch (e) {
+      toast({
+        title: "Não foi possível desfazer a devolução",
+        description: mensagemErro(e),
+        variant: "destructive",
+      });
+    } finally {
+      setRevertendo(false);
+    }
   };
 
   const handleConfirmar = async () => {
@@ -102,6 +181,8 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
     await clonar.mutateAsync({ pedido_id });
     setOpen(false);
   };
+
+  const valorCredito = resultado?.valor_credito_pendente ?? 0;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -169,31 +250,39 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
             </DialogHeader>
 
             <div className="space-y-3">
-              {resultado.valor_credito_pendente > 0 && (
+              {valorCredito > 0 && (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>
-                      R${" "}
-                      {resultado.valor_credito_pendente.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </strong>{" "}
-                    em pagamento(s) recebido(s) viraram haver do cliente (disponível por 180 dias).
+                    <strong>{brl(valorCredito)}</strong> em pagamento(s) recebido(s) viraram
+                    haver do cliente (disponível por 180 dias).
                     {devolvido ? (
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Marcado para devolução ao cliente.
-                      </p>
+                      <div className="mt-2 space-y-2">
+                        <p className="text-sm text-destructive font-medium">
+                          Crédito anulado — o valor será devolvido ao cliente por fora do
+                          sistema.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => setConfirmReverterOpen(true)}
+                        >
+                          <Undo2 className="h-4 w-4" />
+                          Desfazer devolução
+                        </Button>
+                      </div>
                     ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                        onClick={handleDevolver}
-                        disabled={devolvendo}
-                      >
-                        {devolvendo ? "Marcando..." : "Marcar para devolução"}
-                      </Button>
+                      <div className="mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => setConfirmDevolucaoOpen(true)}
+                        >
+                          Não gerar crédito — dinheiro será devolvido
+                        </Button>
+                      </div>
                     )}
                   </AlertDescription>
                 </Alert>
@@ -238,6 +327,90 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio }: Props) 
           </>
         )}
       </DialogContent>
+
+      {/* Confirmação destrutiva: anular o crédito */}
+      <AlertDialog open={confirmDevolucaoOpen} onOpenChange={setConfirmDevolucaoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Anular o crédito do cliente?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p className="text-2xl font-bold text-destructive">{brl(valorCredito)}</p>
+                {cliente_nome && (
+                  <p className="text-sm">
+                    Cliente: <strong>{cliente_nome}</strong>
+                  </p>
+                )}
+                <p>
+                  O crédito de <strong>{brl(valorCredito)}</strong> deixa de existir. O
+                  cliente <strong>não</strong> poderá usar esse valor em pedidos futuros — o
+                  dinheiro deve ser devolvido a ele por fora do sistema.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <Label>Motivo da devolução (mínimo 5 caracteres) *</Label>
+            <Textarea
+              value={motivoDevolucao}
+              onChange={(e) => setMotivoDevolucao(e.target.value)}
+              placeholder="Ex: Cliente pediu estorno via PIX"
+              rows={3}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={devolvendo}>Manter crédito</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDevolver();
+              }}
+              disabled={motivoDevolucao.trim().length < 5 || devolvendo}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {devolvendo ? "Anulando..." : `Anular crédito de ${brl(valorCredito)}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação: desfazer a devolução */}
+      <AlertDialog open={confirmReverterOpen} onOpenChange={setConfirmReverterOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desfazer a devolução?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O crédito de <strong>{brl(valorCredito)}</strong> volta a ficar disponível para
+              o cliente. Use isto quando a devolução foi marcada por engano.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <Label>Motivo da reversão (mínimo 5 caracteres) *</Label>
+            <Textarea
+              value={motivoReversao}
+              onChange={(e) => setMotivoReversao(e.target.value)}
+              placeholder="Ex: Clique errado, cliente vai usar o crédito"
+              rows={3}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={revertendo}>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleReverterDevolucao();
+              }}
+              disabled={motivoReversao.trim().length < 5 || revertendo}
+            >
+              {revertendo ? "Desfazendo..." : "Desfazer devolução"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
