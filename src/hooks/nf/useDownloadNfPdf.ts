@@ -2,44 +2,52 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-async function extrairMensagemErro(data: unknown, fallback: string): Promise<string> {
+// Mesmas constantes de ambiente usadas por src/integrations/supabase/client.ts
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+function mensagemDeCorpo(texto: string, status: number): string {
   try {
-    if (data instanceof Blob) {
-      const txt = await data.text();
-      const j = JSON.parse(txt);
-      return [j.error, j.detalhe].filter(Boolean).join(" — ") || txt.slice(0, 300);
-    }
-    if (data && typeof data === "object") {
-      const j = data as { error?: string; detalhe?: string };
-      if (j.error) return [j.error, j.detalhe].filter(Boolean).join(" — ");
-    }
+    const j = JSON.parse(texto) as { error?: string; detalhe?: string };
+    const msg = [j.error, j.detalhe].filter(Boolean).join(" — ");
+    if (msg) return msg;
   } catch {
-    /* mantém o fallback */
+    /* corpo não é JSON */
   }
-  return fallback;
+  return `HTTP ${status}: ${texto.slice(0, 300) || "resposta vazia"}`;
 }
 
 export function useDownloadNfPdf() {
   const mutation = useMutation({
     mutationFn: async ({ nf_id, nome }: { nf_id: string; nome?: string }) => {
-      const { data, error } = await supabase.functions.invoke("nf-download", { body: { nf_id } });
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (error) {
-        // FAIL-LOUD: usa a mensagem real devolvida pela função, não a genérica.
-        const msg = await extrairMensagemErro(data, error.message);
-        throw new Error(msg);
+      if (!session?.access_token) {
+        throw new Error("Sessão expirada — entre novamente para baixar a NF.");
       }
 
-      let blob: Blob;
-      if (data instanceof Blob) blob = data;
-      else if (data instanceof ArrayBuffer) blob = new Blob([data], { type: "application/pdf" });
-      else {
-        // Função respondeu JSON de erro com status 2xx (não deve acontecer, mas é explícito).
-        throw new Error(await extrairMensagemErro(data, "Resposta inesperada da função nf-download."));
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/nf-download`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ nf_id }),
+      });
+
+      // FAIL-LOUD: o corpo real do erro vira a mensagem do toast.
+      if (!res.ok) {
+        const texto = await res.text().catch(() => "");
+        throw new Error(mensagemDeCorpo(texto, res.status));
       }
 
+      const blob = await res.blob();
       if (blob.type && blob.type.includes("json")) {
-        throw new Error(await extrairMensagemErro(blob, "Falha ao baixar o PDF da NF."));
+        const texto = await blob.text().catch(() => "");
+        throw new Error(mensagemDeCorpo(texto, res.status));
       }
 
       const url = URL.createObjectURL(blob);
