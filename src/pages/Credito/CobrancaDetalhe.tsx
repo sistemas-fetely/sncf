@@ -24,6 +24,7 @@ import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
 import { useMaterializarComHaver } from "@/hooks/credito/useMaterializarComHaver";
 import { useHaverDisponivelCliente } from "@/hooks/credito/useHaverDisponivelCliente";
+import { useTitulosPedidoResumo } from "@/hooks/credito/useTitulosPedidoResumo";
 import { useCriarPortaoProvisorio } from "@/hooks/credito/useCriarPortaoProvisorio";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Switch } from "@/components/ui/switch";
@@ -395,6 +396,13 @@ export default function CobrancaDetalhe() {
   const haverSaldo = haverCliente?.saldo ?? 0;
   const haverDisponivel = !exigePortao && haverSaldo > 0;
 
+  // HAVER-É-PAGAMENTO: parte do pedido pode já estar quitada (haver ou entrada
+  // paga por qualquer meio). A base do parcelamento é o líquido MENOS o que já
+  // está pago — `pedidos.valor_liquido` nunca é reduzido no banco.
+  const titulosResumoQ = useTitulosPedidoResumo(pedidoId);
+  const jaPagoPedido = Number(titulosResumoQ.data?.somaPagos ?? 0);
+  const jaPagoHaver = Number(titulosResumoQ.data?.somaHaver ?? 0);
+
   const [titulos, setTitulos] = useState<TituloProposto[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { regraDe: regraEdicaoCampo } = usePedidoEdicaoCampo((pedidoQ.data as any)?.estagio);
@@ -407,13 +415,16 @@ export default function CobrancaDetalhe() {
   const [diasPrimeiroPagamento, setDiasPrimeiroPagamento] = useState<number>(DIAS_PRIMEIRO_PAGAMENTO_FALLBACK);
   const [intervaloDias, setIntervaloDias] = useState<number>(INTERVALO_PARCELAS_FALLBACK);
   const [valorHaverAplicar, setValorHaverAplicar] = useState<number>(0);
-  const maxHaver = Math.min(haverSaldo, Number((pedidoQ.data as any)?.valor_liquido ?? 0));
+  const baseCobravel = Math.max(
+    0,
+    Number((pedidoQ.data as any)?.valor_liquido ?? 0) - jaPagoPedido,
+  );
+  const maxHaver = Math.min(haverSaldo, baseCobravel);
 
   const handleAplicarHaver = (v: number) => {
     const aplicar = Math.max(0, Math.min(Number.isFinite(v) ? v : 0, maxHaver));
     setValorHaverAplicar(aplicar);
-    const base = Number((pedidoQ.data as any)?.valor_liquido ?? 0);
-    const novoTotal = Math.max(0, base - aplicar);
+    const novoTotal = Math.max(0, baseCobravel - aplicar);
     setValorTotalCobrar(novoTotal);
     setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
   };
@@ -456,11 +467,13 @@ export default function CobrancaDetalhe() {
     setTitulos(aplicarPrimeiraDataECascata(novos, diasUsar, intervaloUsar));
 
     const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
-    const novoTotal = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
+    const bruto = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
+    const novoTotal = Math.max(0, bruto - jaPagoPedido);
     setValorTotalCobrar(novoTotal);
+    if (jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     setParcelasIguais(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propostaQ.data, pedidoQ.data?.valor_liquido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
+  }, [propostaQ.data, pedidoQ.data?.valor_liquido, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
 
 
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
@@ -470,8 +483,9 @@ export default function CobrancaDetalhe() {
     () => titulos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0),
     [titulos],
   );
-  const diff = totalEditado - valorPedido;
-  const pctDiff = valorPedido > 0 ? Math.abs(diff) / valorPedido : 0;
+  const valorACobrar = Math.max(0, valorPedido - jaPagoPedido);
+  const diff = totalEditado - valorACobrar;
+  const pctDiff = valorACobrar > 0 ? Math.abs(diff) / valorACobrar : 0;
   const temDivergenciaLeve = Math.abs(diff) > 0.005 && pctDiff <= 0.01;
   const temDivergenciaGrave = pctDiff > 0.01;
 
@@ -866,6 +880,20 @@ export default function CobrancaDetalhe() {
               novoValorLiquido={totalEditado}
             />
           </div>
+          {jaPagoPedido > 0.005 && (
+            <Alert className="mb-4 border-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20">
+              <AlertDescription className="text-sm">
+                Este pedido já tem <strong>{fmtBRL.format(jaPagoPedido)}</strong> quitado
+                {jaPagoHaver > 0.005 && (
+                  <> (crédito do cliente / haver: <strong>{fmtBRL.format(jaPagoHaver)}</strong>)</>
+                )}
+                . O valor do pedido segue sendo {fmtBRL.format(valorPedido)}, e você está
+                parcelando apenas o restante:{" "}
+                <strong>{fmtBRL.format(valorACobrar)}</strong>.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Faixa de controles: total a cobrar + parcelas iguais */}
           <div className="flex flex-wrap items-end gap-4 mb-4 p-3 rounded-md border bg-muted/30">
             <div className="space-y-1">
@@ -1077,8 +1105,11 @@ export default function CobrancaDetalhe() {
                   </TableCell>
                   <TableCell colSpan={4} className="text-xs text-muted-foreground">
                     Pedido: {fmtBRL.format(valorPedido)}
+                    {jaPagoPedido > 0.005 && (
+                      <> · já pago {fmtBRL.format(jaPagoPedido)} · a cobrar {fmtBRL.format(valorACobrar)}</>
+                    )}
                     {titulos.length > 0 && (
-                      <> · {titulos.length}x de {fmtBRL.format(valorPedido / titulos.length)}</>
+                      <> · {titulos.length}x de {fmtBRL.format(valorACobrar / titulos.length)}</>
                     )}
                     {Math.abs(diff) > 0.005 && (
                       <> · diferença {fmtBRL.format(diff)}</>

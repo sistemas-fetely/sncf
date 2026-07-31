@@ -21628,6 +21628,13 @@ export type Database = {
             referencedRelation: "sncf_template_extensoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sncf_tarefas_sistema_origem_fkey"
+            columns: ["sistema_origem"]
+            isOneToOne: false
+            referencedRelation: "sncf_sistemas"
+            referencedColumns: ["slug"]
+          },
         ]
       }
       sncf_tarefas_historico: {
@@ -22174,6 +22181,65 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      tarefas_filas: {
+        Row: {
+          ativo: boolean
+          chave: string
+          created_at: string
+          departamento_id: string | null
+          descricao: string | null
+          estado: string
+          fonte_contagem: string | null
+          fonte_tipo: string
+          id: string
+          nome: string
+          ordem: number
+          rota: string | null
+          severidade: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          estado?: string
+          fonte_contagem?: string | null
+          fonte_tipo?: string
+          id?: string
+          nome: string
+          ordem?: number
+          rota?: string | null
+          severidade?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          estado?: string
+          fonte_contagem?: string | null
+          fonte_tipo?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          rota?: string | null
+          severidade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_filas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       temas_investimento: {
         Row: {
