@@ -8012,6 +8012,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -9620,6 +9627,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -9843,6 +9857,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
           {
@@ -10142,6 +10163,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
           {
@@ -10508,6 +10536,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
           {
@@ -17860,77 +17895,110 @@ export type Database = {
       }
       produtos: {
         Row: {
+          altura_cm: number | null
           ativo: boolean | null
           bling_id: string | null
           categoria: string | null
+          cest: string | null
           codigo: string | null
           created_at: string | null
           descricao: string | null
+          detalhe_erro: string | null
+          detalhe_lido_em: string | null
+          detalhe_payload: Json | null
           estoque_atual: number | null
           estoque_minimo: number | null
+          formato_bling: string | null
           gtin: string | null
           id: string
           imagem_url: string | null
+          largura_cm: number | null
           linha: string | null
           marca: string | null
           ncm: string | null
           nome: string
           origem: string | null
+          origem_fisc: string | null
           peso_bruto: number | null
           peso_liquido: number | null
           preco_custo: number | null
           preco_venda: number | null
+          profundidade_cm: number | null
+          situacao_bling: string | null
           tipo: string | null
+          tipo_bling: string | null
           unidade: string | null
           updated_at: string | null
         }
         Insert: {
+          altura_cm?: number | null
           ativo?: boolean | null
           bling_id?: string | null
           categoria?: string | null
+          cest?: string | null
           codigo?: string | null
           created_at?: string | null
           descricao?: string | null
+          detalhe_erro?: string | null
+          detalhe_lido_em?: string | null
+          detalhe_payload?: Json | null
           estoque_atual?: number | null
           estoque_minimo?: number | null
+          formato_bling?: string | null
           gtin?: string | null
           id?: string
           imagem_url?: string | null
+          largura_cm?: number | null
           linha?: string | null
           marca?: string | null
           ncm?: string | null
           nome: string
           origem?: string | null
+          origem_fisc?: string | null
           peso_bruto?: number | null
           peso_liquido?: number | null
           preco_custo?: number | null
           preco_venda?: number | null
+          profundidade_cm?: number | null
+          situacao_bling?: string | null
           tipo?: string | null
+          tipo_bling?: string | null
           unidade?: string | null
           updated_at?: string | null
         }
         Update: {
+          altura_cm?: number | null
           ativo?: boolean | null
           bling_id?: string | null
           categoria?: string | null
+          cest?: string | null
           codigo?: string | null
           created_at?: string | null
           descricao?: string | null
+          detalhe_erro?: string | null
+          detalhe_lido_em?: string | null
+          detalhe_payload?: Json | null
           estoque_atual?: number | null
           estoque_minimo?: number | null
+          formato_bling?: string | null
           gtin?: string | null
           id?: string
           imagem_url?: string | null
+          largura_cm?: number | null
           linha?: string | null
           marca?: string | null
           ncm?: string | null
           nome?: string
           origem?: string | null
+          origem_fisc?: string | null
           peso_bruto?: number | null
           peso_liquido?: number | null
           preco_custo?: number | null
           preco_venda?: number | null
+          profundidade_cm?: number | null
+          situacao_bling?: string | null
           tipo?: string | null
+          tipo_bling?: string | null
           unidade?: string | null
           updated_at?: string | null
         }
@@ -23220,6 +23288,7 @@ export type Database = {
           eh_problema: boolean
           eh_terminal: boolean
           id: string
+          muda_custodia: boolean
           ordem_urgencia: number
           transportadora_id: string | null
         }
@@ -23231,6 +23300,7 @@ export type Database = {
           eh_problema?: boolean
           eh_terminal?: boolean
           id?: string
+          muda_custodia?: boolean
           ordem_urgencia?: number
           transportadora_id?: string | null
         }
@@ -23242,6 +23312,7 @@ export type Database = {
           eh_problema?: boolean
           eh_terminal?: boolean
           id?: string
+          muda_custodia?: boolean
           ordem_urgencia?: number
           transportadora_id?: string | null
         }
@@ -25185,6 +25256,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -26495,6 +26573,41 @@ export type Database = {
             referencedColumns: ["vinculo_id"]
           },
         ]
+      }
+      vw_bling_cadastro_divergencia: {
+        Row: {
+          altura_cm: number | null
+          ativo: boolean | null
+          ausente_no_bling: boolean | null
+          bling_ativo: boolean | null
+          bling_categoria: string | null
+          bling_gtin: string | null
+          bling_id: string | null
+          bling_marca: string | null
+          bling_ncm: string | null
+          bling_nome: string | null
+          bling_peso_liquido: number | null
+          bling_preco_custo: number | null
+          bling_preco_venda: number | null
+          bling_unidade: string | null
+          campos_divergentes: string[] | null
+          campos_nao_espelhados: string[] | null
+          cest: string | null
+          ean: string | null
+          grupo: string | null
+          largura_cm: number | null
+          linha: string | null
+          marca: string | null
+          ncm: string | null
+          nome_comercial: string | null
+          nome_completo: string | null
+          peso_g: number | null
+          preco_custo: number | null
+          preco_varejo: number | null
+          profundidade_cm: number | null
+          sku: string | null
+        }
+        Relationships: []
       }
       vw_cobranca_divergencias: {
         Row: {
@@ -27967,6 +28080,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -28255,6 +28375,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -28366,6 +28493,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
           {
@@ -29170,14 +29304,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -31833,6 +31967,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -32958,7 +33099,6 @@ export type Database = {
         }
         Returns: Json
       }
-      fn_job_entregue_por_eta: { Args: never; Returns: number }
       fn_liquido_pedido: {
         Args: {
           p_bonus_pix: number
@@ -33011,6 +33151,17 @@ export type Database = {
       }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
       fn_pode_operar_mercadoria: { Args: never; Returns: boolean }
+      fn_processar_ocorrencia_transp: {
+        Args: {
+          p_codigo: string
+          p_fonte: string
+          p_nf: string
+          p_ocorrencia_data: string
+          p_pedido_id: string
+          p_transportadora_id: string
+        }
+        Returns: string
+      }
       fn_recalcular_tags_doc_cpr: {
         Args: { p_cpr_id: string }
         Returns: undefined
@@ -34309,6 +34460,10 @@ export type Database = {
         Returns: Json
       }
       vincular_titulos_nf: { Args: never; Returns: number }
+      zz_aposentado_fn_job_entregue_por_eta_20260730: {
+        Args: never
+        Returns: number
+      }
     }
     Enums: {
       app_role:
