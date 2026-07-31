@@ -486,7 +486,16 @@ export function FilaPedidosPorArea({
                       })()}
                       <MarcacaoBadge marcacao={p.marcacao} />
                     </div>
+                    {(ESTAGIOS_COM_RESUMO_ENTREGA as readonly string[]).includes(p.estagio) &&
+                      (entregaErro ? (
+                        <p className="mt-1 text-[11px] text-destructive">
+                          Erro ao carregar entrega/NF: {(entregaErrorObj as Error)?.message || "falha desconhecida"}
+                        </p>
+                      ) : (
+                        <EntregaLinhaResumo info={entregaMap?.get(p.id)} />
+                      ))}
                   </TableCell>
+
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     <FormatoIdade minutos={p.idade_minutos} />
                   </TableCell>
