@@ -483,75 +483,9 @@ export function FilaPedidosPorArea({
                     {p.proxima_acao || <span className="opacity-50">—</span>}
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-1.5">
-                      {pedidosComMsg.has(p.id) && (
-                        <button
-                          onClick={() => navigate(`/pedidos/${p.id}`)}
-                          title="Mensagem do Comercial aguardando resposta"
-                          className="inline-flex items-center gap-1 px-1.5 py-1 rounded border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 text-xs"
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" />
-                          <span className="font-medium">msg</span>
-                        </button>
-                      )}
-                      <MarcacaoPedido pedidoId={p.id} marcacao={p.marcacao} iconOnly />
-
-                      <TabelaCadastroDialog
-                        pedido_id={p.id}
-                        id_externo={p.id_externo}
-                        parceiro_id={p.parceiro_id}
-                        parceiro_nome={p.parceiro_razao}
-                      />
-
-
-
-                      {p.estagio === "recebido" && (
-                        <TriarPedidoDialog
-                          pedido_id={p.id}
-                          perfil_credito={null}
-                          estagio_atual={p.estagio}
-                          forma_solicitada={p.forma_solicitada}
-                          triggerLabel="Triar"
-                          triggerVariant="outline"
-                        />
-                      )}
-
-                      {p.estagio === "cobranca" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/recebimento/cobranca/${p.id}`, { state: { from: "/pedidos", fromLabel: "Fila de Pedidos" } })}
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          Cobrança
-                        </Button>
-                      )}
-
-                      {p.estagio === "aguardando_pagamento" && (
-                        <ConfirmarPortaoPagoDialog
-                          pedido_id={p.id}
-                        />
-                      )}
-
-                      <BotaoSplitPedido
-                        pedido_id={p.id}
-                        id_externo={p.id_externo}
-                        valor_liquido={p.valor_liquido}
-                        estagio={p.estagio}
-                        variante="compact"
-                      />
-
-                      {p.estagio === "pre_separacao" && !p.bling_id_destino && (
-                        <EnviarBlingDialog
-                          pedido_id={p.id}
-                          parceiro_id={p.parceiro_id}
-                          id_externo={p.id_externo}
-                          valor_liquido={p.valor_liquido}
-                          forma_solicitada={p.forma_solicitada}
-                        />
-                      )}
-                    </div>
+                    <AcoesLinha p={p} temMsg={pedidosComMsg.has(p.id)} />
                   </TableCell>
+
                 </TableRow>
               );
             })}
