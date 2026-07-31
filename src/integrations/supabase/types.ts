@@ -28339,10 +28339,13 @@ export type Database = {
       vw_importacao_pedido_conferencia_nf: {
         Row: {
           alocacoes_na_linha: number | null
+          alocado_na_linha: number | null
+          alocado_total_sku: number | null
           codigo_nf: string | null
           furo: number | null
           importacao_pedido_id: number | null
           item_seq: number | null
+          linha_distribuida_inteira: boolean | null
           ncm: string | null
           nf_id: number | null
           nf_linha_id: string | null
@@ -29167,14 +29170,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -29516,14 +29519,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
