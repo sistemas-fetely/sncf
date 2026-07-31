@@ -170,6 +170,17 @@ export function useEnviarEmailPedidoCobranca() {
         .eq("pedido_id", pedido_id)
         .not("status", "in", "(cancelado,pago,pago_com_atraso,pago_judicial,baixado_por_perda)");
 
+      // Marca o link ativo como reenviado ao cliente (nao derruba o envio se falhar)
+      try {
+        const { error: errMarcar } = await (supabase as any).rpc("marcar_link_enviado", {
+          p_pedido_id: pedido_id,
+        });
+        if (errMarcar) console.error("marcar_link_enviado falhou:", errMarcar);
+      } catch (e) {
+        console.error("marcar_link_enviado falhou:", e);
+      }
+
+
       return { email: emails[0], id_externo: pedido.id_externo };
     },
     onSuccess: (data, vars) => {
