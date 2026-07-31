@@ -519,3 +519,389 @@ function PopoverGlosa({
     </Popover>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Comprovantes
+// ---------------------------------------------------------------------------
+
+function BlocoComprovantes({
+  solicitacaoId,
+  itens,
+  apontamentos,
+  somenteLeitura,
+  nomeCategoria,
+}: {
+  solicitacaoId: string;
+  itens: ItemSolicitacao[];
+  apontamentos: ApontamentoComRegra[];
+  somenteLeitura: boolean;
+  nomeCategoria: Map<string, string>;
+}) {
+  const comprovantesQ = useComprovantes(solicitacaoId);
+  const remover = useRemoverComprovante();
+  const urlAssinada = useUrlAssinada();
+  const [visualizando, setVisualizando] = useState<{
+    comprovante: Comprovante;
+    url: string;
+    dados: DadosConferencia;
+  } | null>(null);
+  const [abrindo, setAbrindo] = useState<string | null>(null);
+
+  const comprovantes = comprovantesQ.data ?? [];
+  const porItem = useMemo(() => {
+    const m = new Map<string, Comprovante>();
+    for (const c of comprovantes) {
+      if (c.tipo_anexo === "comprovante" && c.item_id) m.set(c.item_id, c);
+    }
+    return m;
+  }, [comprovantes]);
+
+  const anexoLider = comprovantes.find((c) => c.tipo_anexo === "ok_lider") ?? null;
+  const anexoDiretoria = comprovantes.find((c) => c.tipo_anexo === "ok_previo_diretoria") ?? null;
+  const temR15 = apontamentos.some((a) => a.regra_codigo === "R-15");
+  const temR09 = apontamentos.some((a) => a.regra_codigo === "R-09");
+
+  async function ver(c: Comprovante, dados: DadosConferencia) {
+    setAbrindo(c.id);
+    try {
+      const url = await urlAssinada(c.arquivo_path);
+      setVisualizando({ comprovante: c, url, dados });
+    } catch (err) {
+      toast.error((err as { message?: string })?.message ?? "Falha ao abrir o arquivo.");
+    } finally {
+      setAbrindo(null);
+    }
+  }
+
+  async function aoRemover(c: Comprovante) {
+    try {
+      await remover.mutateAsync({ solicitacaoId, comprovanteId: c.id });
+      toast.success("Anexo removido.");
+    } catch {
+      // erro já exibido pelo hook
+    }
+  }
+
+  function LinhaAnexo({ c, dados }: { c: Comprovante; dados: DadosConferencia }) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-md bg-success/10 px-3 py-2 text-xs">
+        <span className="truncate">
+          <Badge variant="outline" className="mr-2">
+            {c.numero ?? "—"}
+          </Badge>
+          {c.nome_original ?? c.arquivo_path}
+          <span className="text-muted-foreground"> · {formatarTamanho(c.tamanho_bytes)}</span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1">
+          <Button size="sm" variant="outline" onClick={() => ver(c, dados)} disabled={abrindo === c.id}>
+            {abrindo === c.id ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
+            )}
+            Ver
+          </Button>
+          {!somenteLeitura && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => aoRemover(c)}
+              disabled={remover.isPending}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Remover
+            </Button>
+          )}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <Card className="card-shadow">
+      <CardContent className="space-y-4 py-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Paperclip className="h-4 w-4" /> Comprovantes
+        </h3>
+
+        {comprovantesQ.isError && (
+          <BlocoErro
+            mensagem={(comprovantesQ.error as Error)?.message ?? "Falha ao carregar os anexos."}
+            onRetry={() => comprovantesQ.refetch()}
+          />
+        )}
+        {comprovantesQ.isLoading && (
+          <p className="text-sm text-muted-foreground">Carregando anexos…</p>
+        )}
+
+        <div className="space-y-3">
+          {itens.map((i, idx) => {
+            const c = porItem.get(i.id) ?? null;
+            const dados: DadosConferencia = {
+              titulo: `Item ${i.seq ?? idx + 1}`,
+              data: i.data_despesa,
+              valor: i.valor_solicitado,
+              cnpj: i.cnpj_emitente,
+              estabelecimento: i.estabelecimento,
+            };
+            return (
+              <div key={i.id} className="space-y-2 rounded-md border p-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                  <Badge variant="outline">Item {i.seq ?? idx + 1}</Badge>
+                  <span>{i.categoria_id ? nomeCategoria.get(i.categoria_id) ?? "—" : "—"}</span>
+                  <span className="text-muted-foreground">{formatarData(i.data_despesa)}</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatarBRL(i.valor_solicitado)}
+                  </span>
+                  <span className="text-muted-foreground">
+                    CNPJ {i.cnpj_emitente ?? "—"}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {i.estabelecimento ?? "sem estabelecimento"}
+                  </span>
+                </div>
+
+                {c ? (
+                  <LinhaAnexo c={c} dados={dados} />
+                ) : somenteLeitura ? (
+                  <p className="text-xs text-muted-foreground">Sem comprovante anexado.</p>
+                ) : (
+                  <UploadAnexo
+                    solicitacaoId={solicitacaoId}
+                    itemId={i.id}
+                    tipoAnexo="comprovante"
+                    rotulo="Anexar comprovante"
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="space-y-3 border-t pt-3">
+          <AnexoSolicitacao
+            solicitacaoId={solicitacaoId}
+            tipoAnexo="ok_lider"
+            rotulo="OK do líder por escrito"
+            anexo={anexoLider}
+            destaque={temR15}
+            somenteLeitura={somenteLeitura}
+            renderAnexo={(c) => (
+              <LinhaAnexo
+                c={c}
+                dados={{
+                  titulo: "OK do líder por escrito",
+                  data: null,
+                  valor: null,
+                  cnpj: null,
+                  estabelecimento: null,
+                }}
+              />
+            )}
+          />
+          <AnexoSolicitacao
+            solicitacaoId={solicitacaoId}
+            tipoAnexo="ok_previo_diretoria"
+            rotulo="OK prévio da Diretoria"
+            anexo={anexoDiretoria}
+            destaque={temR09}
+            somenteLeitura={somenteLeitura}
+            renderAnexo={(c) => (
+              <LinhaAnexo
+                c={c}
+                dados={{
+                  titulo: "OK prévio da Diretoria",
+                  data: null,
+                  valor: null,
+                  cnpj: null,
+                  estabelecimento: null,
+                }}
+              />
+            )}
+          />
+        </div>
+      </CardContent>
+
+      <VisualizadorDialog
+        aberto={visualizando}
+        onFechar={() => setVisualizando(null)}
+      />
+    </Card>
+  );
+}
+
+function AnexoSolicitacao({
+  solicitacaoId,
+  tipoAnexo,
+  rotulo,
+  anexo,
+  destaque,
+  somenteLeitura,
+  renderAnexo,
+}: {
+  solicitacaoId: string;
+  tipoAnexo: TipoAnexo;
+  rotulo: string;
+  anexo: Comprovante | null;
+  destaque: boolean;
+  somenteLeitura: boolean;
+  renderAnexo: (c: Comprovante) => JSX.Element;
+}) {
+  return (
+    <div
+      className={cn(
+        "space-y-2 rounded-md border p-3",
+        destaque && "border-warning/50 bg-warning/10",
+      )}
+    >
+      <div className="flex items-center gap-2 text-xs font-semibold">
+        {rotulo}
+        {destaque && (
+          <span className="flex items-center gap-1 font-normal text-warning">
+            <AlertTriangle className="h-3.5 w-3.5" /> pendência em aberto pede este anexo
+          </span>
+        )}
+      </div>
+      {anexo ? (
+        renderAnexo(anexo)
+      ) : somenteLeitura ? (
+        <p className="text-xs text-muted-foreground">Sem anexo.</p>
+      ) : (
+        <UploadAnexo
+          solicitacaoId={solicitacaoId}
+          itemId={null}
+          tipoAnexo={tipoAnexo}
+          rotulo={`Anexar ${rotulo.toLowerCase()}`}
+        />
+      )}
+    </div>
+  );
+}
+
+function UploadAnexo({
+  solicitacaoId,
+  itemId,
+  tipoAnexo,
+  rotulo,
+}: {
+  solicitacaoId: string;
+  itemId: string | null;
+  tipoAnexo: TipoAnexo;
+  rotulo: string;
+}) {
+  const anexar = useAnexarComprovante();
+
+  async function aoEscolher(file: File | null) {
+    if (!file) return;
+    if (!(MIMES_COMPROVANTE as readonly string[]).includes(file.type)) {
+      toast.error("Formato não aceito. Use PDF, PNG, JPEG ou WEBP.");
+      return;
+    }
+    if (file.size > LIMITE_COMPROVANTE_BYTES) {
+      toast.error("Arquivo acima de 10 MB.");
+      return;
+    }
+    try {
+      const r = await anexar.mutateAsync({ solicitacaoId, itemId, tipoAnexo, file });
+      toast.success(`Anexo ${r.numero ?? ""} registrado.`.replace("  ", " "));
+    } catch {
+      // erro já exibido pelo hook
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{rotulo}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          type="file"
+          className="text-xs"
+          accept={MIMES_COMPROVANTE.join(",")}
+          disabled={anexar.isPending}
+          onChange={(e) => aoEscolher(e.target.files?.[0] ?? null)}
+        />
+        {anexar.isPending && <Loader2 className="h-4 w-4 shrink-0 animate-spin" />}
+      </div>
+    </div>
+  );
+}
+
+function VisualizadorDialog({
+  aberto,
+  onFechar,
+}: {
+  aberto: { comprovante: Comprovante; url: string; dados: DadosConferencia } | null;
+  onFechar: () => void;
+}) {
+  const c = aberto?.comprovante;
+  const mime = c?.mime ?? "";
+  return (
+    <Dialog open={!!aberto} onOpenChange={(v) => !v && onFechar()}>
+      <DialogContent className="max-w-5xl">
+        <DialogHeader>
+          <DialogTitle>{c?.nome_original ?? "Documento"}</DialogTitle>
+          <DialogDescription>{aberto?.dados.titulo}</DialogDescription>
+        </DialogHeader>
+
+        {aberto && (
+          <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+            <div className="min-w-0 md:order-1 order-2">
+              {mime.startsWith("image/") ? (
+                <img
+                  src={aberto.url}
+                  alt={`Documento ${c?.nome_original ?? ""}`}
+                  className="w-full rounded-md border"
+                />
+              ) : mime === "application/pdf" ? (
+                <iframe
+                  src={aberto.url}
+                  title={c?.nome_original ?? "Documento"}
+                  className="w-full rounded-md border"
+                  style={{ minHeight: "70vh" }}
+                />
+              ) : (
+                <div className="space-y-2 rounded-md border p-4 text-sm text-muted-foreground">
+                  <p>Este formato não abre aqui.</p>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={aberto.url} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5" /> Abrir em nova aba
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 text-sm md:order-2 order-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Conferir contra
+              </p>
+              <p>
+                <span className="text-muted-foreground">Data </span>
+                {formatarData(aberto.dados.data)}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Valor </span>
+                <span className="font-semibold tabular-nums">
+                  {aberto.dados.valor == null ? "—" : formatarBRL(aberto.dados.valor)}
+                </span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">CNPJ </span>
+                {aberto.dados.cnpj ?? "—"}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Estabelecimento </span>
+                {aberto.dados.estabelecimento ?? "—"}
+              </p>
+              <Button variant="outline" size="sm" asChild>
+                <a href={aberto.url} target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" /> Abrir em nova aba
+                </a>
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
