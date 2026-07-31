@@ -68,6 +68,8 @@ export interface EntregaLinhaInfo {
   nf_chave: string | null;
   nf_pdf_url: string | null;
   nf_data_emissao: string | null;
+  nf_id: string | null;
+  nf_bling_id: string | null;
 }
 
 /**
@@ -93,7 +95,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           .in("pedido_id", ids),
         sb
           .from("nfs_emitidas")
-          .select("pedido_venda_id, numero, serie, chave_acesso, pdf_url, data_emissao, situacao")
+          .select("id, bling_id, pedido_venda_id, numero, serie, chave_acesso, pdf_url, data_emissao, situacao")
           .in("pedido_venda_id", ids)
           .in("situacao", ["emitida", "autorizada"])
           .order("data_emissao", { ascending: false }),
@@ -103,7 +105,15 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
 
       const nfMap = new Map<
         string,
-        { numero: string | null; serie: string | null; chave: string | null; pdf: string | null; data: string | null }
+        {
+          numero: string | null;
+          serie: string | null;
+          chave: string | null;
+          pdf: string | null;
+          data: string | null;
+          id: string | null;
+          bling_id: string | null;
+        }
       >();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const r of (nfRes.data || []) as any[]) {
@@ -114,6 +124,8 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           chave: r.chave_acesso ?? null,
           pdf: r.pdf_url ?? null,
           data: r.data_emissao ?? null,
+          id: r.id ?? null,
+          bling_id: r.bling_id ?? null,
         });
       }
 
@@ -131,6 +143,8 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           nf_chave: null,
           nf_pdf_url: null,
           nf_data_emissao: null,
+          nf_id: null,
+          nf_bling_id: null,
         };
         m.set(pid, { ...base, ...patch });
       };
@@ -154,6 +168,8 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           nf_chave: nf.chave,
           nf_pdf_url: nf.pdf,
           nf_data_emissao: nf.data,
+          nf_id: nf.id,
+          nf_bling_id: nf.bling_id,
         });
       }
       // Garante entrada para todo pedido pedido (para render de lacunas)
