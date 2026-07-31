@@ -159,15 +159,20 @@ export default function DestinosCadastro() {
         pares.set(`${ncm}|${origem}`, { ncm, origem });
       }
 
+      // Uma chamada por par distinto (~15), todas em paralelo — nunca por linha.
+      const entradas = [...pares.entries()];
+      const respostas = await Promise.all(
+        entradas.map(async ([, par]) => {
+          const { data, error } = await (supabase as any).rpc("fn_grupo_fiscal", {
+            p_ncm: par.ncm,
+            p_origem: par.origem,
+          });
+          if (error) throw error;
+          return (data as string) ?? "FISCAL-REVISAR";
+        }),
+      );
       const resolvidos = new Map<string, string>();
-      for (const [chave, par] of pares) {
-        const { data, error } = await (supabase as any).rpc("fn_grupo_fiscal", {
-          p_ncm: par.ncm,
-          p_origem: par.origem,
-        });
-        if (error) throw error;
-        resolvidos.set(chave, (data as string) ?? "FISCAL-REVISAR");
-      }
+      entradas.forEach(([chave], i) => resolvidos.set(chave, respostas[i]));
 
       const porLinha = p.rows.map((r) => {
         const chave = `${(r[iNcm] ?? "").trim()}|${(r[iOrigem] ?? "").trim()}`;
