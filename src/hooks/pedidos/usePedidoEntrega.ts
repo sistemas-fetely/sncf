@@ -57,12 +57,17 @@ export function usePedidoEntrega(pedidoId: string | undefined, estagio: string |
 }
 
 export interface EntregaLinhaInfo {
+  estagio: string | null;
   entregue_em: string | null;
   entregue_metodo: string | null;
   transportadora_nome: string | null;
   data_entrega_transportadora: string | null;
+  data_entrega_prevista: string | null;
   prazo_transportadora: string | null;
   entrega_ocorrencia_texto: string | null;
+  entrega_ocorrencia_codigo: string | null;
+  entrega_ocorrencia_classe: string | null;
+  entrega_ocorrencia_problema: boolean | null;
   nf_numero: string | null;
   nf_serie: string | null;
   nf_chave: string | null;
@@ -71,6 +76,7 @@ export interface EntregaLinhaInfo {
   nf_id: string | null;
   nf_bling_id: string | null;
 }
+
 
 /**
  * Versão em lote para a fila de pedidos.
