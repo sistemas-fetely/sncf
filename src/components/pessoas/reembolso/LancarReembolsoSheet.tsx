@@ -112,12 +112,15 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
   const centrosQ = useCentrosCusto();
   const planoQ = usePlanoContas();
   const lancar = useLancarSolicitacao();
+  const anexar = useAnexarComprovante();
 
   const [vinculoId, setVinculoId] = useState("");
   const [emailRemetente, setEmailRemetente] = useState("");
   const [dataRecebimento, setDataRecebimento] = useState(hoje());
   const [threadRef, setThreadRef] = useState("");
   const [itens, setItens] = useState<ItemForm[]>([novoItem()]);
+  const [progresso, setProgresso] = useState<string | null>(null);
+
 
   const vinculo = (vinculosQ.data ?? []).find((v) => v.vinculo_id === vinculoId) ?? null;
 
