@@ -33701,6 +33701,10 @@ export type Database = {
         Args: { p_motivo?: string; p_pedido_id: string }
         Returns: Json
       }
+      reverter_haver_devolucao: {
+        Args: { p_haver_id: string; p_motivo?: string }
+        Returns: Json
+      }
       reverter_para_cobranca: { Args: { p_pedido_id: string }; Returns: Json }
       revogar_acessos_ex_colaboradores: { Args: never; Returns: number }
       rotear_documento_para_boleto: {
