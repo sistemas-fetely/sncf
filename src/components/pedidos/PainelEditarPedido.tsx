@@ -20,6 +20,8 @@ import { usePedidoEdicaoCampo, type CampoEdicao, type RegraEdicaoCampo } from "@
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import { formatError } from "@/lib/format-error";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
+import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
+
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const num = (v: unknown) => Number(v || 0);
@@ -331,13 +333,19 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
   const [valorStr, setValorStr] = useState("");
   const [motivo, setMotivo] = useState("");
 
+  const { getFreteTipo, freteEntraNoLiquido } = useFreteTipos();
+  const freteTipo = getFreteTipo(pedido?.frete_tipo);
+  const freteConta = freteEntraNoLiquido(pedido?.frete_tipo);
+
   const bruto = num(pedido?.valor_bruto);
   const bonus = num(pedido?.bonus_pix_valor);
   const frete = num(pedido?.valor_frete);
   const valorNum = Number(String(valorStr).replace(",", ".")) || 0;
   const desconto = tipo === "pct" ? (bruto * valorNum) / 100 : valorNum;
-  // Fórmula oficial: o frete ENTRA no líquido.
-  const liquidoProjetado = bruto - desconto - bonus + frete;
+  // O frete só entra no líquido quando a dimensão `frete_tipos` manda.
+  const freteEfetivo = freteConta ? frete : 0;
+  const liquidoProjetado = bruto - desconto - bonus + freteEfetivo;
+
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -390,7 +398,22 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
         <div className="flex justify-between"><span className="text-muted-foreground">Bruto</span><span>{fmtBRL.format(bruto)}</span></div>
         <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-destructive">− {fmtBRL.format(desconto)}</span></div>
         <div className="flex justify-between"><span className="text-muted-foreground">Bônus PIX</span><span className="text-destructive">− {fmtBRL.format(bonus)}</span></div>
-        <div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>+ {fmtBRL.format(frete)}</span></div>
+        <div className="flex justify-between gap-2">
+          <span className="text-muted-foreground">
+            Frete
+            {!freteConta && (
+              <span className="ml-1 text-xs text-muted-foreground/70">
+                não cobrado do cliente{freteTipo?.rotulo ? ` (${freteTipo.rotulo})` : ""}
+              </span>
+            )}
+          </span>
+          {freteConta ? (
+            <span>+ {fmtBRL.format(frete)}</span>
+          ) : (
+            <span className="text-muted-foreground/60 line-through">{fmtBRL.format(frete)}</span>
+          )}
+        </div>
+
         <div className="flex justify-between border-t pt-1.5">
           <span className="text-muted-foreground">Líquido projetado</span>
           <span className={`font-semibold ${liquidoProjetado < 0 ? "text-destructive" : ""}`}>{fmtBRL.format(liquidoProjetado)}</span>

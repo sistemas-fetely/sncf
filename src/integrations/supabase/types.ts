@@ -8223,6 +8223,39 @@ export type Database = {
           },
         ]
       }
+      frete_tipos: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          entra_no_liquido: boolean
+          observacao: string | null
+          ordem: number
+          rateia_por: string
+          rotulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          entra_no_liquido: boolean
+          observacao?: string | null
+          ordem?: number
+          rateia_por?: string
+          rotulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          entra_no_liquido?: boolean
+          observacao?: string | null
+          ordem?: number
+          rateia_por?: string
+          rotulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ged_areas: {
         Row: {
           ativo: boolean
@@ -29257,14 +29290,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -32609,6 +32642,11 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_frete_no_liquido: {
+        Args: { p_frete_tipo: string; p_valor_frete: number }
+        Returns: number
+      }
+      fn_frete_rateia_por: { Args: { p_frete_tipo: string }; Returns: string }
       fn_gerar_cprs_de_contrato: {
         Args: { p_contrato_id: string }
         Returns: number
