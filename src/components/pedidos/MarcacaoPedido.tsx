@@ -32,6 +32,11 @@ interface Props {
   pedidoId: string;
   marcacao: string | null;
   iconOnly?: boolean;
+  /** Abertura controlada pelo pai (uso: item dentro de DropdownMenu). */
+  open?: boolean;
+  onOpenChange?: (o: boolean) => void;
+  /** Esconde o botão próprio — o popover ancora num alvo invisível. */
+  semTrigger?: boolean;
 }
 
 export function MarcacaoBadge({ marcacao }: { marcacao: string | null }) {
@@ -44,9 +49,22 @@ export function MarcacaoBadge({ marcacao }: { marcacao: string | null }) {
   );
 }
 
-export function MarcacaoPedido({ pedidoId, marcacao, iconOnly = false }: Props) {
+export function MarcacaoPedido({
+  pedidoId,
+  marcacao,
+  iconOnly = false,
+  open: openProp,
+  onOpenChange,
+  semTrigger = false,
+}: Props) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openInterno, setOpenInterno] = useState(false);
+  const controlado = openProp !== undefined;
+  const open = controlado ? openProp : openInterno;
+  const setOpen = (o: boolean) => {
+    if (!controlado) setOpenInterno(o);
+    onOpenChange?.(o);
+  };
   const [valor, setValor] = useState(marcacao ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -73,16 +91,20 @@ export function MarcacaoPedido({ pedidoId, marcacao, iconOnly = false }: Props) 
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setValor(marcacao ?? ""); }}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => e.stopPropagation()}
-          className={iconOnly ? "h-8 w-8 p-0" : ""}
-          title="Marcar / editar marcação"
-        >
-          <Tag className="h-3.5 w-3.5" />
-          {!iconOnly && <span className="ml-1">Marcar</span>}
-        </Button>
+        {semTrigger ? (
+          <span aria-hidden className="inline-block h-0 w-0" />
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => e.stopPropagation()}
+            className={iconOnly ? "h-8 w-8 p-0" : ""}
+            title="Marcar / editar marcação"
+          >
+            <Tag className="h-3.5 w-3.5" />
+            {!iconOnly && <span className="ml-1">Marcar</span>}
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-72 space-y-3" onClick={(e) => e.stopPropagation()}>
         <div>
