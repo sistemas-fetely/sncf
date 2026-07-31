@@ -106,6 +106,7 @@ export default function MinhasTarefas() {
 
   // Cancelar
   const [cancelarTarefa, setCancelarTarefa] = useState<Tarefa | null>(null);
+  const [motivoCancelamentoTarefa, setMotivoCancelamentoTarefa] = useState("");
 
   // Cancelar com motivo (super_admin)
   const [deleteTarget, setDeleteTarget] = useState<Tarefa | null>(null);
