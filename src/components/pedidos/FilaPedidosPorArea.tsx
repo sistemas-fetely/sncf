@@ -916,6 +916,12 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
         onOpenChange={setCadastroOpen}
         hideTrigger
       />
+      <ExportarPedidoDialog
+        pedidoId={p.id}
+        open={exportarOpen}
+        onOpenChange={setExportarOpen}
+        hideTrigger
+      />
       <BotaoSplitPedido
         pedido_id={p.id}
         id_externo={p.id_externo}
