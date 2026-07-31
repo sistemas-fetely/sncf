@@ -154,6 +154,9 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const [emailsAdicionais, setEmailsAdicionais] = useState<string[]>([]);
   const [novoEmail, setNovoEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const [novoLink, setNovoLink] = useState("");
+  const [geradoEm, setGeradoEm] = useState(hojeISO);
 
   useEffect(() => {
     if (dialogOpen && parceiroQ.data?.email && !emailPrincipal) {
@@ -166,6 +169,8 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     setEmailPrincipal(parceiroQ.data?.email ?? "");
     setEmailsAdicionais([]);
     setNovoEmail("");
+    setNovoLink("");
+    setGeradoEm(hojeISO);
     setDialogOpen(true);
   };
 
