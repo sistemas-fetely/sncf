@@ -244,21 +244,65 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
       }),
     };
 
+    let resultado: Awaited<ReturnType<typeof lancar.mutateAsync>>;
     try {
-      const resultado = await lancar.mutateAsync(payload);
-      const pend = resultado?.apontamentos ?? 0;
-      toast.success(
-        pend > 0
-          ? `${resultado.numero} lançado. ${pend} pendência${pend === 1 ? "" : "s"} para resolver.`
-          : `${resultado.numero} lançado sem pendências.`,
-      );
-      resetar();
-      onOpenChange(false);
-      onCriado(resultado.id);
+      resultado = await lancar.mutateAsync(payload);
     } catch {
       // erro já exibido pelo hook (toast com a mensagem do banco)
+      return;
     }
+
+    const pend = resultado?.apontamentos ?? 0;
+    toast.success(
+      pend > 0
+        ? `${resultado.numero} lançado. ${pend} pendência${pend === 1 ? "" : "s"} para resolver.`
+        : `${resultado.numero} lançado sem pendências.`,
+    );
+
+    // Os anexos só podem subir agora: solicitacao_id e item_id nascem no lançamento.
+    const comArquivo = itens
+      .map((i, idx) => ({ idx, arquivo: i.arquivo }))
+      .filter((e): e is { idx: number; arquivo: File } => !!e.arquivo);
+
+    if (comArquivo.length > 0) {
+      try {
+        const itensGravados = await buscarItensDaSolicitacao(resultado.id);
+        for (const [n, entrada] of comArquivo.entries()) {
+          setProgresso(`Enviando comprovante ${n + 1} de ${comArquivo.length}…`);
+          const itemGravado = itensGravados[entrada.idx];
+          if (!itemGravado) {
+            throw new Error(`Não localizei o item ${entrada.idx + 1} da solicitação criada.`);
+          }
+          try {
+            await anexar.mutateAsync({
+              solicitacaoId: resultado.id,
+              itemId: itemGravado.id,
+              tipoAnexo: "comprovante",
+              file: entrada.arquivo,
+            });
+          } catch {
+            toast.error(
+              `Reembolso ${resultado.numero} lançado, mas o comprovante do item ${entrada.idx + 1} não subiu. Anexe pelo detalhe.`,
+            );
+            break;
+          }
+        }
+      } catch (err) {
+        toast.error(
+          `Reembolso ${resultado.numero} lançado, mas os comprovantes não subiram. Anexe pelo detalhe.`,
+          { description: (err as { message?: string })?.message },
+        );
+      } finally {
+        setProgresso(null);
+      }
+    }
+
+    const id = resultado.id;
+    resetar();
+    onOpenChange(false);
+    onCriado(id);
   }
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
