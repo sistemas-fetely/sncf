@@ -167,10 +167,22 @@ const CobrancaPedidoEmail = ({
                     <Column style={resumoValor}>{desconto}</Column>
                   </Row>
                 )}
+                {bonus_pix && (
+                  <Row>
+                    <Column style={resumoLabel}>Bônus PIX</Column>
+                    <Column style={resumoValor}>{bonus_pix}</Column>
+                  </Row>
+                )}
                 {valor_frete && (
                   <Row>
                     <Column style={resumoLabel}>Frete</Column>
                     <Column style={resumoValor}>{valor_frete}</Column>
+                  </Row>
+                )}
+                {!valor_frete && frete_por_conta_fetely && (
+                  <Row>
+                    <Column style={resumoLabel}>Frete</Column>
+                    <Column style={resumoValor}>por conta da Fetely</Column>
                   </Row>
                 )}
                 <Row>
