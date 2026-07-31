@@ -21,11 +21,49 @@ const COL_NCM = "NCM";
 const COL_ORIGEM = "Origem";
 const COL_CODIGO = "Código";
 const COL_GRUPO = "Grupo de produtos";
+const COL_CEST = "CEST";
+const COL_PESO = "Peso líquido (Kg)";
+const COL_ALTURA = "Altura do Produto";
+const COL_LARGURA = "Largura do produto";
+const COL_PROFUNDIDADE = "Profundidade do produto";
+
+/** Campos completáveis: coluna do CSV -> campo da view. Origem NUNCA entra aqui. */
+const MAPA_FISCAL: { coluna: string; campo: keyof FiscalSncf; rotulo: string }[] = [
+  { coluna: COL_NCM, campo: "ncm_sncf", rotulo: "NCM" },
+  { coluna: COL_CEST, campo: "cest_sncf", rotulo: "CEST" },
+  { coluna: COL_PESO, campo: "peso_liquido_br", rotulo: "Peso líquido" },
+  { coluna: COL_ALTURA, campo: "altura_br", rotulo: "Altura" },
+  { coluna: COL_LARGURA, campo: "largura_br", rotulo: "Largura" },
+  { coluna: COL_PROFUNDIDADE, campo: "profundidade_br", rotulo: "Profundidade" },
+];
+
+interface FiscalSncf {
+  sku: string;
+  nome_comercial: string | null;
+  ncm_sncf: string | null;
+  cest_sncf: string | null;
+  peso_liquido_br: string | null;
+  altura_br: string | null;
+  largura_br: string | null;
+  profundidade_br: string | null;
+  ean: string | null;
+}
+
+/** Normaliza só para COMPARAR: remove tabs de proteção e espaços. */
+function chaveSku(v: string): string {
+  return v.replace(/\t/g, "").trim().toUpperCase();
+}
+
+/** Vazio de verdade. "0,00" é valor preenchido. */
+function celulaVazia(v: string | undefined): boolean {
+  return (v ?? "").replace(/\t/g, "").trim() === "";
+}
 
 interface ParsedCsv {
   header: string[];
   rows: string[][];
 }
+
 
 /**
  * Parser de CSV do Bling: separador ';', campos entre aspas duplas,
