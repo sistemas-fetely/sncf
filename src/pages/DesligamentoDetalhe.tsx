@@ -42,6 +42,10 @@ interface Tarefa {
   evidencia_texto: string | null;
   evidencia_url: string | null;
   concluida_em: string | null;
+  esta_aberta?: boolean | null;
+  esta_atrasada?: boolean | null;
+  dias_atraso?: number | null;
+  dias_restantes?: number | null;
 }
 
 interface Checklist {
@@ -124,7 +128,7 @@ export default function DesligamentoDetalhe() {
     setLoading(true);
     const [cRes, tRes] = await Promise.all([
       supabase.from("onboarding_checklists").select("*").eq("id", id).maybeSingle(),
-      supabase.from("sncf_tarefas").select("*").eq("processo_id", id).order("prazo_data", { nullsFirst: false }),
+      supabase.from("vw_tarefas").select("*").eq("processo_id", id).order("prazo_data", { nullsFirst: false }),
     ]);
     if (cRes.error || !cRes.data) {
       toast.error("Processo não encontrado");
@@ -152,7 +156,7 @@ export default function DesligamentoDetalhe() {
   const stats = useMemo(() => {
     const total = tarefas.length;
     const concluidas = tarefas.filter((t) => t.status === "concluida").length;
-    const atrasadas = tarefas.filter((t) => t.status === "atrasada").length;
+    const atrasadas = tarefas.filter((t) => t.esta_atrasada).length;
     const legais = tarefas.filter((t) => t.bloqueante && t.status !== "concluida").length;
     const pct = total > 0 ? Math.round((concluidas / total) * 100) : 0;
     return { total, concluidas, atrasadas, legais, pct };
@@ -309,7 +313,7 @@ export default function DesligamentoDetalhe() {
                   key={t.id}
                   className={cn(
                     "flex items-start gap-3 p-3 rounded-lg border",
-                    t.status === "atrasada"
+                    t.esta_atrasada
                       ? "bg-destructive/5 border-destructive/30"
                       : t.bloqueante && t.status !== "concluida"
                       ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
@@ -347,7 +351,12 @@ export default function DesligamentoDetalhe() {
                         </Badge>
                       )}
                       {t.prioridade === "urgente" && <Badge variant="destructive" className="text-[10px]">Urgente</Badge>}
-                      {t.status === "atrasada" && <Badge variant="destructive" className="text-[10px]">Atrasada</Badge>}
+                      {t.status === "em_andamento" && <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500/90">Em andamento</Badge>}
+                      {t.esta_atrasada && (
+                        <Badge variant="destructive" className="text-[10px]">
+                          Atrasada{t.dias_atraso ? ` há ${t.dias_atraso}d` : ""}
+                        </Badge>
+                      )}
                     </div>
                     {t.descricao && <p className="text-xs text-muted-foreground mt-1">{t.descricao}</p>}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
