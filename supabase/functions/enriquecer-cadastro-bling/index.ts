@@ -43,22 +43,27 @@ function mapearDetalhe(d: any) {
   const dim = d?.dimensoes ?? {};
   const trib = d?.tributacao ?? {};
   return {
-    ncm: texto(trib.ncm ?? d?.ncm),
+    // aninhados em tributacao
+    ncm: texto(trib.ncm),
+    cest: texto(trib.cest),
+    origem_fisc: texto(trib.origem),
+    // raiz
     gtin: texto(d?.gtin),
     peso_liquido: num(d?.pesoLiquido),
     peso_bruto: num(d?.pesoBruto),
     unidade: texto(d?.unidade),
-    descricao: texto(d?.descricaoCurta ?? d?.descricao ?? d?.descricaoComplementar),
-    cest: texto(trib.cest ?? d?.cest),
-    origem_fisc: texto(trib.origem ?? d?.origem),
+    situacao_bling: texto(d?.situacao),
+    tipo_bling: texto(d?.tipo),
+    formato_bling: texto(d?.formato),
+    itens_por_caixa: num(d?.itensPorCaixa),
+    categoria: texto(d?.categoria?.id),
+    // dimensoes
     altura_cm: num(dim.altura),
     largura_cm: num(dim.largura),
     profundidade_cm: num(dim.profundidade),
-    tipo_bling: texto(d?.tipo),
-    formato_bling: texto(d?.formato),
-    situacao_bling: texto(d?.situacao),
   };
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
