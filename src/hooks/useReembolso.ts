@@ -816,16 +816,24 @@ export interface ResultadoFechamento {
   adiados_sem_pix?: number;
   adiados_nomes?: string[] | string | null;
   ciclo_destino_adiados?: string | null;
+  cprs_criadas?: number;
+  vencimento?: string;
 }
 
 export function useFecharCiclo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { referencia: string }): Promise<ResultadoFechamento> => {
+    mutationFn: async (args: {
+      referencia: string;
+      dataPagamentoPrevista?: string | null;
+    }): Promise<ResultadoFechamento> => {
       // Cast só do resultado: ainda não consta no types.ts gerado.
       const { data, error } = await supabase.rpc(
         "reembolso_fechar_ciclo" as never,
-        { p_referencia: args.referencia } as never,
+        {
+          p_referencia: args.referencia,
+          p_data_pagamento_prevista: args.dataPagamentoPrevista ?? null,
+        } as never,
       );
       if (error) throw error;
       return data as unknown as ResultadoFechamento;
@@ -840,6 +848,7 @@ export function useFecharCiclo() {
     onError: erroVisivel,
   });
 }
+
 
 export interface ResultadoPagamento {
   ok?: boolean;
