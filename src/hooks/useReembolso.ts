@@ -68,7 +68,26 @@ export interface ItemSolicitacao {
   numero_comprovante: string | null;
   status_item: string | null;
   justificativa: string | null;
+  estabelecimento: string | null;
+  projeto_evento?: string | null;
 }
+
+export type TipoAnexo = "comprovante" | "ok_previo_diretoria" | "ok_lider" | "justificativa";
+
+export interface Comprovante {
+  id: string;
+  solicitacao_id: string;
+  item_id: string | null;
+  numero: string | null;
+  arquivo_path: string;
+  nome_original: string | null;
+  mime: string | null;
+  tamanho_bytes: number | null;
+  conferido: boolean | null;
+  tipo_anexo: TipoAnexo;
+  created_at: string | null;
+}
+
 
 export interface Categoria {
   id: string;
