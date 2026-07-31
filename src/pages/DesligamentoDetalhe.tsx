@@ -184,17 +184,12 @@ export default function DesligamentoDetalhe() {
       return;
     }
     setSalvando(true);
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({
-        status: "concluida",
-        concluida_em: new Date().toISOString(),
-        concluida_por: user?.id,
-        evidencia_texto: evidenciaTexto.trim(),
-        evidencia_url: evidenciaUrl.trim() || null,
-      })
-      .eq("id", tarefaAConcluir.id);
-    if (error) toast.error("Erro: " + error.message);
+    const { error } = await supabase.rpc("concluir_tarefa", {
+      p_tarefa_id: tarefaAConcluir.id,
+      p_evidencia_texto: evidenciaTexto.trim(),
+      p_evidencia_url: evidenciaUrl.trim() || null,
+    });
+    if (error) toast.error("Erro: " + formatError(error));
     else {
       toast.success("Tarefa concluída");
       setTarefaAConcluir(null);

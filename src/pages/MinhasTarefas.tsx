@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
+import { formatError } from "@/lib/format-error";
 import {
   ClipboardList, CheckCircle2, AlertTriangle, Clock, Eye, Inbox, Plus,
   Play, Pencil, X, MoreVertical, Users, ExternalLink, Filter,
@@ -65,7 +66,7 @@ interface Tarefa {
   dias_restantes?: number | null;
 }
 
-type StatusFilter = "ativas" | "pendente" | "atrasada" | "em_andamento" | "aguardando_terceiro" | "concluida" | "todas";
+type StatusFilter = "ativas" | "pendente" | "atrasadas" | "em_andamento" | "aguardando_terceiro" | "concluida" | "todas";
 type AgrupamentoTipo = "prioridade" | "area" | "prazo" | "processo" | "nenhum";
 
 interface PrioridadeDia {
@@ -105,6 +106,7 @@ export default function MinhasTarefas() {
 
   // Cancelar
   const [cancelarTarefa, setCancelarTarefa] = useState<Tarefa | null>(null);
+  const [motivoCancelamentoTarefa, setMotivoCancelamentoTarefa] = useState("");
 
   // Cancelar com motivo (super_admin)
   const [deleteTarget, setDeleteTarget] = useState<Tarefa | null>(null);
@@ -135,7 +137,6 @@ export default function MinhasTarefas() {
     if (!user) return;
     setLoading(true);
 
-    // Status "atrasada" é responsabilidade do job noturno tarefas-vencimento-diario
 
 
     // Buscar tarefas: minhas (responsavel ou role) + acompanhamento (accountable)
@@ -311,7 +312,7 @@ export default function MinhasTarefas() {
     lista.filter((t) => {
       // status
       if (statusFilter === "ativas" && !["pendente", "em_andamento", "aguardando_terceiro"].includes(t.status)) return false;
-      if (statusFilter === "atrasada" && !t.esta_atrasada) return false;
+      if (statusFilter === "atrasadas" && !t.esta_atrasada) return false;
       if (["pendente", "em_andamento", "aguardando_terceiro", "concluida"].includes(statusFilter) && t.status !== statusFilter) return false;
       // tipo
       if (tipoFilter !== "todos" && t.tipo_processo !== tipoFilter) return false;
@@ -381,11 +382,11 @@ export default function MinhasTarefas() {
   };
 
   const handleIniciar = async (t: Tarefa) => {
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ status: "em_andamento", iniciada_em: new Date().toISOString() })
-      .eq("id", t.id);
-    if (error) toast.error("Erro: " + humanizeError(error.message));
+    const { error } = await supabase.rpc("transicionar_tarefa", {
+      p_tarefa_id: t.id,
+      p_novo_status: "em_andamento",
+    });
+    if (error) toast.error("Erro: " + humanizeError(formatError(error)));
     else {
       toast.success("Tarefa iniciada! Agora aparece em 'Ativas' como 'Em andamento'.");
       void loadTarefas();
@@ -393,11 +394,11 @@ export default function MinhasTarefas() {
   };
 
   const handleAguardando = async (t: Tarefa) => {
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ status: "aguardando_terceiro" })
-      .eq("id", t.id);
-    if (error) toast.error("Erro: " + humanizeError(error.message));
+    const { error } = await supabase.rpc("transicionar_tarefa", {
+      p_tarefa_id: t.id,
+      p_novo_status: "aguardando_terceiro",
+    });
+    if (error) toast.error("Erro: " + humanizeError(formatError(error)));
     else {
       toast.success("Tarefa em espera.");
       void loadTarefas();
@@ -405,11 +406,11 @@ export default function MinhasTarefas() {
   };
 
   const handleRetomar = async (t: Tarefa) => {
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ status: "em_andamento" })
-      .eq("id", t.id);
-    if (error) toast.error("Erro: " + humanizeError(error.message));
+    const { error } = await supabase.rpc("transicionar_tarefa", {
+      p_tarefa_id: t.id,
+      p_novo_status: "em_andamento",
+    });
+    if (error) toast.error("Erro: " + humanizeError(formatError(error)));
     else {
       toast.success("Tarefa retomada!");
       void loadTarefas();
@@ -417,15 +418,16 @@ export default function MinhasTarefas() {
   };
 
   const confirmarCancelamento = async () => {
-    if (!cancelarTarefa) return;
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ status: "cancelada" })
-      .eq("id", cancelarTarefa.id);
-    if (error) toast.error("Erro: " + humanizeError(error.message));
+    if (!cancelarTarefa || !motivoCancelamentoTarefa.trim()) return;
+    const { error } = await supabase.rpc("cancelar_tarefa", {
+      p_tarefa_id: cancelarTarefa.id,
+      p_motivo: motivoCancelamentoTarefa.trim(),
+    });
+    if (error) toast.error("Erro: " + humanizeError(formatError(error)));
     else {
       toast.success("Tarefa cancelada");
       setCancelarTarefa(null);
+      setMotivoCancelamentoTarefa("");
       void loadTarefas();
     }
   };
@@ -897,7 +899,7 @@ export default function MinhasTarefas() {
                 <SelectContent>
                   <SelectItem value="ativas">Ativas (abertas)</SelectItem>
                   <SelectItem value="pendente">Pendentes</SelectItem>
-                  <SelectItem value="atrasada">Atrasadas</SelectItem>
+                  <SelectItem value="atrasadas">Atrasadas</SelectItem>
                   <SelectItem value="em_andamento">Em andamento</SelectItem>
                   <SelectItem value="aguardando_terceiro">Aguardando terceiro</SelectItem>
                   <SelectItem value="concluida">Concluídas</SelectItem>
@@ -1017,18 +1019,29 @@ export default function MinhasTarefas() {
       </AlertDialog>
 
       {/* Dialog de cancelamento */}
-      <AlertDialog open={!!cancelarTarefa} onOpenChange={(open) => { if (!open) setCancelarTarefa(null); }}>
+      <AlertDialog open={!!cancelarTarefa} onOpenChange={(open) => { if (!open) { setCancelarTarefa(null); setMotivoCancelamentoTarefa(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar tarefa?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja cancelar "{cancelarTarefa?.titulo}"? Esta ação pode ser revertida posteriormente.
+              Tem certeza que deseja cancelar "{cancelarTarefa?.titulo}"? O motivo fica registrado no histórico da tarefa.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-cancelar-tarefa">Motivo *</Label>
+            <Textarea
+              id="motivo-cancelar-tarefa"
+              value={motivoCancelamentoTarefa}
+              onChange={(e) => setMotivoCancelamentoTarefa(e.target.value)}
+              placeholder="Por que esta tarefa está sendo cancelada?"
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmarCancelamento}
+              disabled={!motivoCancelamentoTarefa.trim()}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Cancelar tarefa

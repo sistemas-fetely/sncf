@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { NovaTarefaDialog } from "@/components/tarefas/NovaTarefaDialog";
 import { BadgePredictor } from "@/components/tarefas/BadgePredictor";
 import { TarefaDetalheDrawer, type TarefaDrawer } from "@/components/tarefas/TarefaDetalheDrawer";
+import { formatError } from "@/lib/format-error";
 
 interface Subordinado {
   id: string; // profile.id ou colaborador.id
@@ -239,11 +240,12 @@ export default function TarefasDoTime() {
 
   const confirmarReatribuir = async () => {
     if (!reatribuirTarefa || !novoResponsavel) return;
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ responsavel_user_id: novoResponsavel })
-      .eq("id", reatribuirTarefa.id);
-    if (error) toast.error("Erro: " + error.message);
+    const { error } = await supabase.rpc("delegar_tarefa", {
+      p_tarefa_id: reatribuirTarefa.id,
+      p_para_user_id: novoResponsavel,
+      p_motivo: null,
+    });
+    if (error) toast.error("Erro: " + formatError(error));
     else {
       toast.success("Tarefa reatribuída");
       setReatribuirTarefa(null);
