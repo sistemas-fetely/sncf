@@ -549,7 +549,46 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
                           />
                         </div>
                       )}
+
+                      <div className="col-span-2 space-y-1">
+                        <Label className="text-xs flex items-center gap-1">
+                          <Paperclip className="h-3.5 w-3.5" /> Comprovante
+                        </Label>
+                        {item.arquivo ? (
+                          <div className="flex items-center justify-between rounded-md border px-3 py-2 text-xs">
+                            <span className="truncate">
+                              {item.arquivo.name}{" "}
+                              <span className="text-muted-foreground">
+                                · {formatarTamanho(item.arquivo.size)}
+                              </span>
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => escolherArquivo(item.uid, null)}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Input
+                              type="file"
+                              accept={MIMES_COMPROVANTE.join(",")}
+                              onChange={(e) =>
+                                escolherArquivo(item.uid, e.target.files?.[0] ?? null)
+                              }
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              PDF, PNG, JPEG ou WEBP, até 10 MB. Anexar não é obrigatório para
+                              lançar — dá para anexar depois pelo detalhe.
+                            </p>
+                          </>
+                        )}
+                      </div>
                     </div>
+
+
 
                     <div className="rounded-md border">
                       <button
