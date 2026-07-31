@@ -911,7 +911,8 @@ function PainelSku({
     queryKey: ["cockpit-sku-reservas", sku],
     enabled: !!sku,
     queryFn: async (): Promise<ReservaRow[]> => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("pedido_itens")
         .select("quantidade, pedidos!inner(id_externo, estagio, parceiro_id, parceiros_comerciais(nome_fantasia, razao_social))")
         .eq("sku", sku!)
