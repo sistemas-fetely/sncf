@@ -168,7 +168,11 @@ export interface PipelineItem {
   qtd: number;
   qtd_sla_estourado: number;
   soma_valor: number;
+  qtd_risco_vermelho?: number | null;
+  qtd_risco_amarelo?: number | null;
+  valor_risco_vermelho?: number | null;
 }
+
 
 export type UrgenciaDeclarada = "normal" | "alta" | "critica";
 
