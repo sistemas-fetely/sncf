@@ -210,6 +210,215 @@ function LinhaEntrega({ r, completo }: { r: EntregaRow; completo?: boolean }) {
   );
 }
 
+const num = (v: number | null | undefined) =>
+  v == null ? "—" : Number(v).toLocaleString("pt-BR");
+
+function pct(v: number | null | undefined) {
+  return v == null ? "—" : `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+}
+
+function otdCls(v: number | null | undefined) {
+  if (v == null) return "text-muted-foreground";
+  if (v >= 95) return "text-emerald-700";
+  if (v >= 85) return "text-amber-600";
+  return "text-destructive";
+}
+
+/** Bloco — Rastreio sem atualização. Não renderiza nada quando a view vem vazia. */
+function AlertaFeedParado() {
+  const { data = [], error } = useLogisticaFilaFeed();
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 mt-0.5" />
+        <div>
+          <div className="font-medium">Erro ao carregar a fila de feed</div>
+          <div>{formatError(error)}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/5">
+      <div className="flex items-center gap-2 p-3 border-b border-destructive/20">
+        <AlertTriangle className="h-4 w-4 text-destructive" />
+        <div className="text-sm font-medium">Rastreio sem atualização</div>
+        <Badge variant="outline" className="text-xs">{data.length}</Badge>
+      </div>
+      <div className="divide-y divide-border/60">
+        {data.map((f, i) => {
+          const grave = (f.severidade ?? 3) === 1;
+          return (
+            <div
+              key={`${f.transportadora}-${f.canal}-${i}`}
+              className={cn(
+                "flex items-start gap-2 p-3",
+                grave ? "bg-destructive/5" : "bg-amber-500/5"
+              )}
+            >
+              <AlertTriangle
+                className={cn("h-4 w-4 mt-0.5 shrink-0", grave ? "text-destructive" : "text-amber-600")}
+              />
+              <div className="min-w-0">
+                <div className={cn("text-xs font-medium", grave ? "text-destructive" : "text-amber-700")}>
+                  {texto(f.diagnostico)}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  Última ocorrência: {fmtData(f.ultima_ocorrencia)} · Última importação:{" "}
+                  {fmtData(f.ultima_importacao)} · {num(f.remessas)} remessas afetadas
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Bloco — Saúde por transportadora. */
+function SaudeTransportadora() {
+  const { data = [], isLoading, error } = useLogisticaSaudeTransportadora();
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 mt-0.5" />
+        <div>
+          <div className="font-medium">Erro ao carregar a saúde por transportadora</div>
+          <div>{formatError(error)}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border bg-card">
+      <div className="flex items-center gap-2 p-3 border-b">
+        <Truck className="h-4 w-4 text-gold" />
+        <div className="text-sm font-medium">Saúde por transportadora</div>
+        {!isLoading && <Badge variant="outline" className="text-xs">{data.length}</Badge>}
+      </div>
+
+      {isLoading ? (
+        <div className="p-6 text-center text-xs text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Carregando…
+        </div>
+      ) : data.length === 0 ? (
+        <div className="p-6 text-center text-xs text-muted-foreground">Sem dados de transportadora</div>
+      ) : (
+        <div className="overflow-auto max-h-[52vh]">
+          <TooltipProvider>
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-card [&_tr]:bg-card">
+                <TableRow className="text-xs bg-card hover:bg-card">
+                  <TableHead>Transportadora</TableHead>
+                  <TableHead className="text-right">Remessas</TableHead>
+                  <TableHead className="text-right">OTD</TableHead>
+                  <TableHead className="text-right">Atrasadas</TableHead>
+                  <TableHead className="text-right">Pior atraso</TableHead>
+                  <TableHead className="text-right">Gap médio</TableHead>
+                  <TableHead className="text-right">Com problema</TableHead>
+                  <TableHead className="text-right">Paradas +7d</TableHead>
+                  <TableHead className="text-right">Valor em trânsito</TableHead>
+                  <TableHead>Feed</TableHead>
+                  <TableHead className="text-right">Cobertura</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.map((s, i) => {
+                  const gap = s.gap_medio_dias == null ? null : Number(s.gap_medio_dias);
+                  const cobertura = s.cobertura_medicao_pct == null ? null : Number(s.cobertura_medicao_pct);
+                  return (
+                    <TableRow key={`${s.transportadora}-${s.canal}-${i}`} className="text-xs">
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate max-w-[220px]">{texto(s.transportadora)}</span>
+                          <BadgeCanal canal={s.canal ?? null} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{num(s.remessas)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className={cn("text-lg font-medium tabular-nums leading-none", otdCls(s.otd_pct))}>
+                          {pct(s.otd_pct)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {num(s.no_prazo)} de {num(s.mensuraveis)} medidas
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{num(s.atrasadas)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {s.pior_atraso_dias == null ? "—" : `${num(s.pior_atraso_dias)} d`}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "text-right tabular-nums",
+                          gap != null && gap < 0 && "text-emerald-700",
+                          gap != null && gap > 0 && "text-destructive"
+                        )}
+                      >
+                        {gap == null
+                          ? "—"
+                          : `${gap > 0 ? "+" : ""}${gap.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} d`}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{num(s.com_problema)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{num(s.paradas_7d)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {s.valor_em_transito == null ? "—" : formatBRL(Number(s.valor_em_transito))}
+                      </TableCell>
+                      <TableCell>
+                        {s.feed_velho ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-destructive/40 text-destructive bg-destructive/10"
+                          >
+                            {num(s.dias_feed_atrasado)} dias
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
+                            atual
+                          </Badge>
+                        )}
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {texto(s.modo_alimentacao)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {cobertura != null && cobertura < 80 ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-amber-600 cursor-help">{pct(cobertura)}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Parte das entregas não tem data para medir prazo
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          pct(cobertura)
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
+        </div>
+      )}
+
+      <div className="border-t p-2 text-[10px] text-muted-foreground">
+        OTD compara data de entrega com previsão da transportadora. Só entra no cálculo remessa
+        entregue com as duas datas.
+      </div>
+    </div>
+  );
+}
+
+
 export function EntregasControle() {
   const { data = [], isLoading, error } = useLogisticaEntregas();
 
