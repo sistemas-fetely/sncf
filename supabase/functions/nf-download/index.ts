@@ -153,10 +153,12 @@ serve(async (req) => {
     console.log("[nf-download] sucesso", {
       nf_id: nfId,
       numero: nf.numero,
+      origem_link: origemLink,
       bytes: bytes.byteLength,
       backfill: houveBackfill,
       arquivo: nome,
     });
+
 
     return new Response(bytes, {
       status: 200,
