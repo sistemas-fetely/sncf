@@ -58,6 +58,11 @@ interface Tarefa {
   evidencia_url: string | null;
   criado_por: string | null;
   created_at: string;
+  // Derivados da view vw_tarefas
+  esta_aberta?: boolean | null;
+  esta_atrasada?: boolean | null;
+  dias_atraso?: number | null;
+  dias_restantes?: number | null;
 }
 
 type StatusFilter = "ativas" | "pendente" | "atrasada" | "em_andamento" | "aguardando_terceiro" | "concluida" | "todas";
