@@ -278,8 +278,8 @@ export function ExportarPedidoDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       {!hideTrigger && (
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
-            <Download className="h-3 w-3 mr-1" />
+          <Button variant="outline" size="sm" className="w-full gap-2" onClick={(e) => e.stopPropagation()}>
+            <Download className="h-4 w-4" />
             Exportar pedido
           </Button>
         </DialogTrigger>
