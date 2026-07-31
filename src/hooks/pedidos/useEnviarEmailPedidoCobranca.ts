@@ -99,8 +99,6 @@ export function useEnviarEmailPedidoCobranca() {
 
       const pdfBase64 = gerarPedidoPdf(exp.pdf);
 
-      const descontoValor =
-        Number(pedido.valor_bruto ?? 0) * (Number(pedido.desconto_pct ?? 0) / 100);
       const templateData: Record<string, any> = {
         parceiro_nome: parceiro?.razao_social,
         pedido_id_externo: pedido.id_externo,
@@ -111,9 +109,19 @@ export function useEnviarEmailPedidoCobranca() {
         valor_bruto: fmtBRL.format(Number(pedido.valor_bruto ?? 0)),
         valor_liquido: fmtBRL.format(Number(pedido.valor_liquido ?? 0)),
       };
-      if (descontoValor > 0) templateData.desconto = `-${fmtBRL.format(descontoValor)}`;
-      if (Number(pedido.valor_frete ?? 0) > 0)
-        templateData.valor_frete = `+${fmtBRL.format(Number(pedido.valor_frete))}`;
+
+      // Mesmos números do PDF anexado (fonte única: exp.pdf)
+      const descontoPdf = Number(exp.pdf.desconto_valor ?? 0);
+      const bonusPix = Number(exp.pdf.bonus_pix_valor ?? 0);
+      const fretePdf = Number(exp.pdf.valor_frete ?? 0);
+
+      if (descontoPdf > 0) templateData.desconto = `-${fmtBRL.format(descontoPdf)}`;
+      if (bonusPix > 0) templateData.bonus_pix = `-${fmtBRL.format(bonusPix)}`;
+      if (exp.frete_entra_no_liquido && fretePdf > 0) {
+        templateData.valor_frete = `+${fmtBRL.format(fretePdf)}`;
+      } else if (fretePdf > 0) {
+        templateData.frete_por_conta_fetely = true;
+      }
       if (link_pagamento) templateData.link_pagamento = link_pagamento;
 
       const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
