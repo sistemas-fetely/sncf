@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatError } from "@/lib/format-error";
 import { toast } from "sonner";
 import {
   Loader2, AlertTriangle, ShoppingCart, RefreshCw, Undo2, CheckCircle2, Scissors,
@@ -567,7 +568,7 @@ function BlocoComprovantes({
       const url = await urlAssinada(c.arquivo_path);
       setVisualizando({ comprovante: c, url, dados });
     } catch (err) {
-      toast.error((err as { message?: string })?.message ?? "Falha ao abrir o arquivo.");
+      toast.error(formatError(err));
     } finally {
       setAbrindo(null);
     }

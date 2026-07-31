@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { formatError } from "@/lib/format-error";
+
 
 // ---------------------------------------------------------------------------
 // Tipos do submódulo de reembolso.
@@ -194,12 +196,12 @@ export interface PessoaOpcao {
 export type Json = any;
 
 function erroVisivel(err: unknown) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const e = err as any;
-  toast.error(e?.message ?? String(err), {
+  const e = err as { details?: string; hint?: string } | null;
+  toast.error(formatError(err), {
     description: e?.details || e?.hint || undefined,
   });
 }
+
 
 export const CHAVES_REEMBOLSO = {
   solicitacoes: ["reembolso-solicitacoes"] as const,

@@ -30793,6 +30793,23 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_logistica_fila_feed: {
+        Row: {
+          canal: string | null
+          cobertura_medicao_pct: number | null
+          diagnostico: string | null
+          dias_feed_atrasado: number | null
+          exige_acao_nossa: boolean | null
+          modo_alimentacao: string | null
+          otd_pct: number | null
+          remessas: number | null
+          severidade: number | null
+          transportadora: string | null
+          ultima_importacao: string | null
+          ultima_ocorrencia: string | null
+        }
+        Relationships: []
+      }
       vw_logistica_frete_mensal: {
         Row: {
           frete_total: number | null
@@ -30903,7 +30920,9 @@ export type Database = {
           estado_rotulo: string | null
           fonte: string | null
           fonte_id: string | null
+          gap_dias: number | null
           municipio_destino: string | null
+          no_prazo: boolean | null
           ocorrencia_codigo: string | null
           ocorrencia_em: string | null
           ocorrencia_texto: string | null
@@ -30916,6 +30935,32 @@ export type Database = {
           transportadora_id: string | null
           uf_destino: string | null
           valor: number | null
+        }
+        Relationships: []
+      }
+      vw_logistica_saude_transportadora: {
+        Row: {
+          arquivos_importados: number | null
+          atrasadas: number | null
+          canal: string | null
+          cobertura_medicao_pct: number | null
+          com_problema: number | null
+          dias_feed_atrasado: number | null
+          entregues: number | null
+          feed_velho: boolean | null
+          gap_medio_dias: number | null
+          mensuraveis: number | null
+          modo_alimentacao: string | null
+          no_prazo: number | null
+          otd_pct: number | null
+          paradas_7d: number | null
+          pior_atraso_dias: number | null
+          remessas: number | null
+          sem_estado: number | null
+          transportadora: string | null
+          ultima_importacao: string | null
+          ultima_ocorrencia: string | null
+          valor_em_transito: number | null
         }
         Relationships: []
       }
@@ -31178,14 +31223,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -31548,14 +31593,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
