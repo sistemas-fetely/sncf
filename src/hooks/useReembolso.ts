@@ -207,7 +207,52 @@ export const CHAVES_REEMBOLSO = {
   apontamentos: (id: string) => ["reembolso-apontamentos", id] as const,
   ciclos: ["reembolso-ciclos"] as const,
   lotes: (cicloId: string) => ["reembolso-lotes", cicloId] as const,
+  comprovantes: (id: string) => ["reembolso-comprovantes", id] as const,
 };
+
+export const BUCKET_COMPROVANTES = "comprovantes-reembolso";
+export const MIMES_COMPROVANTE = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+] as const;
+export const LIMITE_COMPROVANTE_BYTES = 10 * 1024 * 1024;
+
+/** Sanitiza o nome do arquivo: minúsculas, sem acento, sem caractere especial. */
+export function sanitizarNomeArquivo(nome: string): string {
+  return nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9.]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120) || "arquivo";
+}
+
+export function caminhoComprovante(
+  solicitacaoId: string,
+  tipoAnexo: TipoAnexo,
+  nomeArquivo: string,
+): string {
+  return `solicitacoes/${solicitacaoId}/${tipoAnexo}-${Date.now()}-${sanitizarNomeArquivo(nomeArquivo)}`;
+}
+
+export function formatarTamanho(bytes: number | null | undefined): string {
+  const b = Number(bytes ?? 0);
+  if (!b) return "—";
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export const ROTULO_TIPO_ANEXO: Record<TipoAnexo, string> = {
+  comprovante: "Comprovante",
+  ok_lider: "OK do líder por escrito",
+  ok_previo_diretoria: "OK prévio da Diretoria",
+  justificativa: "Justificativa",
+};
+
 
 // ---------------------------------------------------------------------------
 // Queries
