@@ -14,6 +14,7 @@ import { getHighestRoleLabel } from "@/lib/user-role";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMeuContratoPJ } from "@/hooks/useMinhasNotas";
+import { useBadgesNavegacao } from "@/hooks/useBadgesNavegacao";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -38,12 +39,14 @@ interface MenuItem {
   end?: boolean;
   requireRole?: "gestor_or_rh" | "admin_rh_or_super";
   badge?: string;
+  /** Casa com sncf_navegacao.badge_fonte — contagem vem de fn_badges() */
+  badgeFonte?: string;
 }
 
 // Grupo 1: Operacional diário
 const operacionalItems: MenuItem[] = [
   { title: "Portal", url: "/sncf", icon: LayoutGrid, end: true },
-  { title: "Minhas Tarefas", url: "/tarefas", icon: ClipboardList, end: true },
+  { title: "Inbox", url: "/tarefas", icon: ClipboardList, end: true, badgeFonte: "inbox_tarefas" },
   { title: "Tarefas do Time", url: "/tarefas/time", icon: UsersRound, requireRole: "gestor_or_rh" },
 ];
 
@@ -86,6 +89,7 @@ export function SNCFSidebar() {
 
   const isAdminRHOrSuper = roles.some((r) => ["super_admin", "admin_rh"].includes(r));
   const { data: contratoPJ } = useMeuContratoPJ();
+  const { data: badgesNav } = useBadgesNavegacao();
 
   const operacionalItemsFinal = contratoPJ
     ? [...operacionalItems, minhasNotasItem]
@@ -207,6 +211,19 @@ export function SNCFSidebar() {
                                 {item.badge}
                               </Badge>
                             )}
+                            {(() => {
+                              if (!item.badgeFonte) return null;
+                              const b = badgesNav?.get(item.badgeFonte);
+                              if (!b || b.total <= 0) return null;
+                              return (
+                                <Badge
+                                  variant={b.severidade === "critica" ? "destructive" : "secondary"}
+                                  className="text-[9px] px-1.5 py-0 h-4"
+                                >
+                                  {b.total}
+                                </Badge>
+                              );
+                            })()}
                             {item.url === "/fala-fetely/conhecimento" && qtdSugestoesPendentes > 0 && (
                               <Badge variant="destructive" className="text-[9px] px-1.5 py-0 h-4">
                                 {qtdSugestoesPendentes}
