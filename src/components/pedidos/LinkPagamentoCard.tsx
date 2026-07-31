@@ -48,7 +48,7 @@ export function BadgeSituacaoLink({ linha }: { linha: LinkPagamentoPedido }) {
  * Badge compacta para filas. Só aparece quando a cobrança está VIVA e o link
  * não está válido — link de parcela já capturada é histórico, não exige ação.
  */
-export function BadgeLinkFila({ linha }: { linha?: LinkPagamentoPedino | null }) {
+export function BadgeLinkFila({ linha }: { linha?: LinkPagamentoPedido | null }) {
   if (!linha || linha.cobranca_viva !== true || linha.situacao === "valido") return null;
   const d = Number(linha.dias_para_vencer ?? 0);
   if (linha.situacao === "expirado") {
@@ -64,8 +64,6 @@ export function BadgeLinkFila({ linha }: { linha?: LinkPagamentoPedino | null })
     </Badge>
   );
 }
-type LinkPagamentoPedino = LinkPagamentoPedido;
-
 function UrlCopiavel({ url, className }: { url: string; className?: string }) {
   const [copiado, setCopiado] = useState(false);
   const copiar = () => {
