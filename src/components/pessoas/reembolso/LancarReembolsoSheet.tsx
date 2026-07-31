@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
+import {
+  Loader2, Plus, Trash2, ChevronDown, ChevronRight, AlertTriangle, Paperclip, X,
+} from "lucide-react";
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -16,8 +18,11 @@ import {
 import { cn } from "@/lib/utils";
 import {
   useCategorias, useVinculosAtivos, useCentrosCusto, usePlanoContas,
-  useLancarSolicitacao, formatarBRL, type Categoria,
+  useLancarSolicitacao, useAnexarComprovante, buscarItensDaSolicitacao,
+  formatarBRL, formatarTamanho, MIMES_COMPROVANTE, LIMITE_COMPROVANTE_BYTES,
+  type Categoria,
 } from "@/hooks/useReembolso";
+
 
 const TIPOS_DOCUMENTO = [
   { valor: "cupom", rotulo: "Cupom fiscal" },
