@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
+import { formatError } from "@/lib/format-error";
 import {
   ClipboardList, CheckCircle2, AlertTriangle, Clock, Eye, Inbox, Plus,
   Play, Pencil, X, MoreVertical, Users, ExternalLink, Filter,
