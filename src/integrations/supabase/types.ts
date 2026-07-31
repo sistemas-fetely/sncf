@@ -7986,6 +7986,33 @@ export type Database = {
         }
         Relationships: []
       }
+      fiscal_grupo_regra: {
+        Row: {
+          ativo: boolean
+          familia: string
+          id: number
+          mercadoria: boolean
+          ncm: string
+          observacao: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          familia: string
+          id?: never
+          mercadoria?: boolean
+          ncm: string
+          observacao?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          familia?: string
+          id?: never
+          mercadoria?: boolean
+          ncm?: string
+          observacao?: string | null
+        }
+        Relationships: []
+      }
       folha_competencias: {
         Row: {
           competencia: string
@@ -31298,14 +31325,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -35120,6 +35147,10 @@ export type Database = {
         Returns: number
       }
       fn_gerar_numero_titulo: { Args: { p_parcela: number }; Returns: string }
+      fn_grupo_fiscal: {
+        Args: { p_ncm: string; p_origem: string }
+        Returns: string
+      }
       fn_gtin14: {
         Args: { p_ean13: string; p_indicador?: string }
         Returns: string
