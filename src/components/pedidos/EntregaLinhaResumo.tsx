@@ -22,6 +22,7 @@ function proveniencia(metodo: string | null): { rotulo: string; alerta: boolean 
 }
 
 export function EntregaLinhaResumo({ info }: { info: EntregaLinhaInfo | undefined }) {
+  const { baixar, baixando } = useDownloadNfPdf();
   if (!info) return null;
 
   const dataBruta = info.entregue_em || info.data_entrega_transportadora;
