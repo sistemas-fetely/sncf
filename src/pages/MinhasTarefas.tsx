@@ -172,7 +172,6 @@ export default function MinhasTarefas() {
     }
 
     const lista: PrioridadeDia[] = [];
-    const hojeStr = new Date().toISOString().slice(0, 10);
 
     // Tarefas legais bloqueantes atrasadas — todos os perfis (gestor direto, RH, super)
     const { data: tarefasLegais } = await supabase
