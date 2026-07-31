@@ -880,6 +880,147 @@ export function useRegistrarPagamento() {
 }
 
 // ---------------------------------------------------------------------------
+// Comprovantes (anexos)
+// ---------------------------------------------------------------------------
+
+export function useComprovantes(solicitacaoId: string | null) {
+  return useQuery({
+    enabled: !!solicitacaoId,
+    queryKey: CHAVES_REEMBOLSO.comprovantes(solicitacaoId ?? ""),
+    queryFn: async (): Promise<Comprovante[]> => {
+      // Cast só do resultado: ainda não consta no types.ts gerado.
+      const { data, error } = await supabase
+        .from("reembolso_comprovantes" as never)
+        .select("*")
+        .eq("solicitacao_id", solicitacaoId)
+        .order("tipo_anexo")
+        .order("numero");
+      if (error) throw error;
+      return (data ?? []) as unknown as Comprovante[];
+    },
+  });
+}
+
+export interface ResultadoAnexo {
+  ok?: boolean;
+  id?: string;
+  numero?: string;
+  tipo?: string;
+  apontamentos?: number;
+  bloqueantes?: number;
+}
+
+async function invalidarComprovantes(
+  qc: ReturnType<typeof useQueryClient>,
+  solicitacaoId: string,
+) {
+  await Promise.all([
+    qc.invalidateQueries({ queryKey: CHAVES_REEMBOLSO.comprovantes(solicitacaoId) }),
+    qc.invalidateQueries({ queryKey: CHAVES_REEMBOLSO.apontamentos(solicitacaoId) }),
+    qc.invalidateQueries({ queryKey: CHAVES_REEMBOLSO.solicitacao(solicitacaoId) }),
+    qc.invalidateQueries({ queryKey: CHAVES_REEMBOLSO.solicitacoes }),
+  ]);
+}
+
+export function useAnexarComprovante() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      solicitacaoId: string;
+      itemId: string | null;
+      tipoAnexo: TipoAnexo;
+      file: File;
+    }): Promise<ResultadoAnexo> => {
+      const path = caminhoComprovante(args.solicitacaoId, args.tipoAnexo, args.file.name);
+
+      const { error: upErr } = await supabase.storage
+        .from(BUCKET_COMPROVANTES)
+        .upload(path, args.file, { contentType: args.file.type || undefined, upsert: false });
+      if (upErr) throw upErr;
+
+      try {
+        // Cast só do resultado: ainda não consta no types.ts gerado.
+        const { data, error } = await supabase.rpc("reembolso_anexar_comprovante" as never, {
+          p: {
+            solicitacao_id: args.solicitacaoId,
+            item_id: args.itemId,
+            tipo_anexo: args.tipoAnexo,
+            arquivo_path: path,
+            nome_original: args.file.name,
+            mime: args.file.type || null,
+            tamanho_bytes: args.file.size,
+          },
+        } as never);
+        if (error) throw error;
+        return data as unknown as ResultadoAnexo;
+      } catch (err) {
+        // A RPC falhou depois do upload: não deixa arquivo órfão no bucket.
+        await supabase.storage.from(BUCKET_COMPROVANTES).remove([path]);
+        throw err;
+      }
+    },
+    onSuccess: async (_data, vars) => {
+      await invalidarComprovantes(qc, vars.solicitacaoId);
+    },
+    onError: erroVisivel,
+  });
+}
+
+export interface ResultadoRemocaoAnexo {
+  ok?: boolean;
+  removido?: boolean;
+  arquivo_path?: string | null;
+  apontamentos?: number;
+  bloqueantes?: number;
+}
+
+export function useRemoverComprovante() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      solicitacaoId: string;
+      comprovanteId: string;
+    }): Promise<ResultadoRemocaoAnexo> => {
+      // RPC primeiro, storage depois: o inverso deixaria registro órfão.
+      // Cast só do resultado: ainda não consta no types.ts gerado.
+      const { data, error } = await supabase.rpc("reembolso_remover_comprovante" as never, {
+        p_comprovante_id: args.comprovanteId,
+      } as never);
+      if (error) throw error;
+      const resultado = data as unknown as ResultadoRemocaoAnexo;
+      if (resultado?.arquivo_path) {
+        const { error: stErr } = await supabase.storage
+          .from(BUCKET_COMPROVANTES)
+          .remove([resultado.arquivo_path]);
+        if (stErr) {
+          toast.warning("Registro removido, mas o arquivo continuou no armazenamento.", {
+            description: stErr.message,
+          });
+        }
+      }
+      return resultado;
+    },
+    onSuccess: async (_data, vars) => {
+      await invalidarComprovantes(qc, vars.solicitacaoId);
+    },
+    onError: erroVisivel,
+  });
+}
+
+/** Gera a URL assinada (300s) do anexo. Gere só no momento de abrir. */
+export function useUrlAssinada() {
+  return async function urlAssinada(path: string): Promise<string> {
+    const { data, error } = await supabase.storage
+      .from(BUCKET_COMPROVANTES)
+      .createSignedUrl(path, 300);
+    if (error) throw error;
+    if (!data?.signedUrl) throw new Error("Não foi possível gerar o link do arquivo.");
+    return data.signedUrl;
+  };
+}
+
+
+// ---------------------------------------------------------------------------
 // Utilidades de apresentação
 // ---------------------------------------------------------------------------
 
