@@ -283,6 +283,14 @@ export function FilaPedidosPorArea({
   const fimRange = Math.min(paginaAtual * pageSize, totalLinhas);
   const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
+  if (isError) {
+    return (
+      <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        Erro ao carregar a fila: {(error as Error)?.message ?? "erro desconhecido"}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-2">
@@ -295,22 +303,7 @@ export function FilaPedidosPorArea({
             className="pl-10"
           />
         </div>
-        {!usarEstagiosMultiplos && (
-          <Select
-            value={estagioFilter}
-            onValueChange={(v) => setEstagioFilter(v as EstagioPedido | "todos")}
-          >
-            <SelectTrigger className="w-full sm:w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os estágios</SelectItem>
-              {estagiosDoSelect.map((e) => (
-                <SelectItem key={e} value={e}>{ESTAGIO_LABELS[e]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+
         <Select value={formaPgtoFilter} onValueChange={setFormaPgtoFilter}>
           <SelectTrigger className="w-full sm:w-44">
             <SelectValue placeholder="Pagamento" />
