@@ -232,7 +232,8 @@ export default function ContaPagarDetalheDrawer({
     queryKey: ["conta-pagar-detalhe", contaId],
     enabled: !!contaId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("contas_pagar_receber")
         .select(
           `*, plano_contas:plano_contas_id(codigo,nome), formas_pagamento:forma_pagamento_id(nome,codigo,cobra_email,pula_aprovacao), meios_pagamento:meio_pagamento_id(codigo), parceiros_comerciais:parceiro_id(razao_social), centros_custo:centro_custo_id(codigo,nome), linhas_investimento:linha_investimento_id(descricao, temas_investimento:tema_id(nome, frentes_investimento:frente_id(nome)))`
