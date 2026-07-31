@@ -18,7 +18,12 @@ interface TabelaCadastroDialogProps {
   id_externo: string;
   parceiro_id: string;
   parceiro_nome: string;
+  /** Modo controlado — quando usado dentro de menus, sem trigger próprio. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
+
 
 const COLUNAS: { key: string; label: string }[] = [
   { key: "sku",                 label: "SKU" },
