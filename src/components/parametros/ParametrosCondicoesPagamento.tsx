@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,8 +84,8 @@ function FormDialog({
       qc.invalidateQueries({ queryKey: ["condicoes-pagamento-ativas"] });
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error(msg);
+      console.error("condicao_pagamento_salvar:", e);
+      toast.error(formatError(e));
     } finally {
       setSaving(false);
     }
@@ -207,7 +208,8 @@ export default function ParametrosCondicoesPagamento() {
       qc.invalidateQueries({ queryKey: ["condicoes-pagamento-admin"] });
       qc.invalidateQueries({ queryKey: ["condicoes-pagamento-ativas"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      console.error("condicao_pagamento_toggle:", e);
+      toast.error(formatError(e));
     }
   }
 
