@@ -879,6 +879,10 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Cadastro
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setExportarOpen(true)}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar pedido
+          </DropdownMenuItem>
           <BotaoSplitPedido
             pedido_id={p.id}
             id_externo={p.id_externo}
