@@ -7,6 +7,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Copy, Check } from "lucide-react";
+import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
@@ -142,9 +143,11 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
         <p className="text-xs text-muted-foreground mt-1">
           {portao.tipo_pagamento === "boleto"
             ? "O boleto de entrada foi gerado e aguarda inclusão na remessa Safra. Após o pagamento ser confirmado pelo banco, as parcelas restantes serão criadas automaticamente."
-            : 'Ainda não há título a receber (ele nasce quando o portão é pago). Os links abaixo já estão salvos e podem ser enviados pelo botão "Enviar cobrança".'}
+            : 'Ainda não há título a receber (ele nasce quando o portão é pago). O link de pagamento é ÚNICO para o pedido — não existe um link por parcela — e pode ser enviado pelo botão "Enviar cobrança".'}
         </p>
       </div>
+
+      <LinkPagamentoCard pedidoId={pedidoId} />
 
       <div className="border rounded-md overflow-hidden">
         <Table>
@@ -168,9 +171,13 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                 <TableCell>{fmtDate(l.vencimento)}</TableCell>
                 <TableCell>{l.tipo ?? "—"}</TableCell>
                 <TableCell>
-                  {l.eh_gate && l.tipo === "boleto"
-                    ? <BoletoEntradaCell tituloEntrada={tituloEntradaQ.data} />
-                    : <LinkCell url={l.link} />}
+                  {l.eh_gate && l.tipo === "boleto" ? (
+                    <BoletoEntradaCell tituloEntrada={tituloEntradaQ.data} />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {l.link ? "mesmo link do pedido" : "—"}
+                    </span>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
