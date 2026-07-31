@@ -390,6 +390,91 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
           </DialogHeader>
 
           <div className="space-y-4">
+            {dialogTipo === "cobranca" && !!linkUrl && (
+              <div className="rounded-md border bg-muted/40 p-3 space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Link que será enviado
+                    </p>
+                    <p className="truncate text-sm font-medium" title={linkUrl}>
+                      {linkUrl}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Gerado em {fmtDataBR(linkInfo?.gerado_em)} · válido até {fmtDataBR(linkInfo?.expira_em)}
+                    </p>
+                  </div>
+                  {linkInfo?.situacao === "expirado" ? (
+                    <Badge variant="destructive" className="shrink-0">
+                      VENCIDO há {Math.abs(diasVencer)} dia(s)
+                    </Badge>
+                  ) : linkInfo?.situacao === "vencendo" ? (
+                    <Badge className="shrink-0 bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                      vence em {diasVencer} dia(s)
+                    </Badge>
+                  ) : (
+                    <Badge className="shrink-0 bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                      válido
+                    </Badge>
+                  )}
+                </div>
+                {!!linkUrl && !linkUrlValida && (
+                  <p className="text-xs text-destructive">
+                    Link inválido no cadastro — cadastre a URL completa do SafraPay.
+                  </p>
+                )}
+                {linkInfo?.renovado_nao_reenviado && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Link renovado e ainda não reenviado ao cliente.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {precisaRenovar && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 space-y-2 dark:border-amber-800 dark:bg-amber-950/30">
+                <p className="text-xs font-medium text-amber-900 dark:text-amber-300">
+                  {linkExpirado
+                    ? "Link vencido. Gere um link novo no SafraPay e cole abaixo antes de enviar."
+                    : !linkUrl
+                      ? "Sem link de pagamento. Cole o link do SafraPay antes de enviar."
+                      : "Link inválido. Cole a URL completa do SafraPay antes de enviar."}
+                </p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="comunic-novo-link">Link novo do SafraPay</Label>
+                  <Input
+                    id="comunic-novo-link"
+                    type="url"
+                    placeholder="https://..."
+                    value={novoLink}
+                    onChange={(e) => setNovoLink(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="comunic-gerado-em">Gerado em</Label>
+                  <Input
+                    id="comunic-gerado-em"
+                    type="date"
+                    max={hojeISO}
+                    value={geradoEm}
+                    onChange={(e) => setGeradoEm(e.target.value)}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={salvarLinkNovo}
+                  disabled={!novoLink.trim() || registrarLink.isPending}
+                  className="gap-1.5"
+                >
+                  {registrarLink.isPending ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" />Salvando…</>
+                  ) : (
+                    "Salvar link"
+                  )}
+                </Button>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label htmlFor="comunic-email-principal">Email principal</Label>
               <Input
