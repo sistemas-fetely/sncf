@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { RadarOperacional } from "@/components/tarefas/RadarOperacional";
+import { FilasOperacao } from "@/components/tarefas/FilasOperacao";
 import { SubmeterNFDialog } from "@/components/minhas-notas/SubmeterNFDialog";
 import { AprovarNFDialog } from "@/components/minhas-notas/AprovarNFDialog";
 import { NovaTarefaDialog } from "@/components/tarefas/NovaTarefaDialog";
@@ -762,7 +763,7 @@ export default function MinhasTarefas() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Minhas Tarefas</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Inbox</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Visão unificada de todas as suas pendências
           </p>
@@ -837,6 +838,10 @@ export default function MinhasTarefas() {
       )}
 
       {/* KPIs */}
+      <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+        Minhas tarefas
+      </h2>
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-4 text-center">
@@ -973,6 +978,11 @@ export default function MinhasTarefas() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Filas da operação — inbox único */}
+      <FilasOperacao />
+
+
 
       {/* Dialog de conclusão */}
       <AlertDialog open={!!concluirTarefa} onOpenChange={(open) => { if (!open) setConcluirTarefa(null); }}>
