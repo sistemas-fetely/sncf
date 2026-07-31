@@ -290,7 +290,7 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
       } catch (err) {
         toast.error(
           `Reembolso ${resultado.numero} lançado, mas os comprovantes não subiram. Anexe pelo detalhe.`,
-          { description: (err as { message?: string })?.message },
+          { description: formatError(err) },
         );
       } finally {
         setProgresso(null);
