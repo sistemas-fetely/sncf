@@ -29,6 +29,12 @@ const ESTAGIO_OPTIONS: { value: EstagioSplit; label: string; desc: string }[] = 
   { value: "cobranca",           label: "Cobrança",           desc: "Precisa renegociar condições de pagamento" },
 ];
 
+/** Quando a origem está aguardando estoque, o operador separa o que TEM do que FALTA. */
+const ESTAGIO_OPTIONS_ESTOQUE: { value: EstagioSplit; label: string; desc: string }[] = [
+  { value: "pre_separacao",      label: "Seguir para separação", desc: "O que chegou já segue para separação agora" },
+  { value: "aguardando_estoque", label: "Continuar aguardando",  desc: "O novo pedido também segue esperando estoque" },
+];
+
 interface ItemPedido {
   descricao: string;
   sku: string;
@@ -43,12 +49,17 @@ interface Props {
   id_externo: string;
   valor_liquido: number;
   valor_bruto: number;
+  estagio_origem?: string | null;
 }
 
-export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, valor_liquido }: Props) {
+export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, valor_liquido, estagio_origem }: Props) {
   const criarSplit = useCriarSplit();
+  const origemEstoque = estagio_origem === "aguardando_estoque";
+  const opcoesEstagio = origemEstoque ? ESTAGIO_OPTIONS_ESTOQUE : ESTAGIO_OPTIONS;
   const [qtdSplit, setQtdSplit] = useState<Record<string, number>>({});
-  const [estagio, setEstagio] = useState<EstagioSplit>("aguardando_estoque");
+  const [estagio, setEstagio] = useState<EstagioSplit>(
+    origemEstoque ? "pre_separacao" : "aguardando_estoque",
+  );
   const [dataEntrega, setDataEntrega] = useState("");
   const [observacao, setObservacao] = useState("");
   const [financeiroCoberto, setFinanceiroCoberto] = useState(false);
