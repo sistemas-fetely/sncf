@@ -23,8 +23,9 @@ interface EnvioB2C {
   municipio_destino: string | null;
   rastreio: string | null;
   documento_ref: string | null;
-  entregue: boolean | null;
-  devolucao: boolean | null;
+  estado_canonico: string | null;
+  estado_rotulo: string | null;
+  eh_problema: boolean | null;
   status_texto: string | null;
 }
 
@@ -55,15 +56,20 @@ function useEnviosB2C(transportadoraId: string) {
           .eq("fonte", "postagem")
           .order("data_evento", { ascending: false, nullsFirst: false }),
         sb.from("vw_logistica_rastreio")
-          .select("fonte_id, entregue, devolucao, status_texto, canal")
+          .select("fonte_id, estado_canonico, estado_rotulo, eh_problema, status_texto, canal")
           .eq("transportadora_id", transportadoraId)
           .eq("canal", "b2c"),
       ]);
       if (fatoRes.error) throw fatoRes.error;
       if (rastreioRes.error) throw rastreioRes.error;
-      const statusPorId = new Map<string, { entregue: boolean | null; devolucao: boolean | null; status_texto: string | null }>();
+      const statusPorId = new Map<string, { estado_canonico: string | null; estado_rotulo: string | null; eh_problema: boolean | null; status_texto: string | null }>();
       for (const r of rastreioRes.data ?? []) {
-        if (r.fonte_id) statusPorId.set(r.fonte_id, { entregue: r.entregue, devolucao: r.devolucao, status_texto: r.status_texto });
+        if (r.fonte_id) statusPorId.set(r.fonte_id, {
+          estado_canonico: r.estado_canonico,
+          estado_rotulo: r.estado_rotulo,
+          eh_problema: r.eh_problema,
+          status_texto: r.status_texto,
+        });
       }
       return (fatoRes.data ?? []).map((r: {
         fonte_id: string;
@@ -83,8 +89,9 @@ function useEnviosB2C(transportadoraId: string) {
           municipio_destino: r.municipio_destino,
           rastreio: r.rastreio,
           documento_ref: r.documento_ref,
-          entregue: s?.entregue ?? null,
-          devolucao: s?.devolucao ?? null,
+          estado_canonico: s?.estado_canonico ?? null,
+          estado_rotulo: s?.estado_rotulo ?? null,
+          eh_problema: s?.eh_problema ?? null,
           status_texto: s?.status_texto ?? null,
         };
       });
@@ -101,8 +108,8 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
   const kpis = useMemo(() => {
     let entregues = 0, devolucoes = 0, total = 0;
     for (const f of envios) {
-      if (f.entregue === true) entregues++;
-      if (f.devolucao === true) devolucoes++;
+      if (f.estado_canonico === "entregue") entregues++;
+      if (f.estado_canonico === "devolucao") devolucoes++;
       total += Number(f.custo_frete ?? 0);
     }
     return { entregues, devolucoes, total, count: envios.length };
@@ -111,8 +118,9 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return envios.filter((f) => {
-      if (filtro === "entregue" && f.entregue !== true) return false;
-      if (filtro === "pendente" && f.entregue === true) return false;
+      const entregue = f.estado_canonico === "entregue";
+      if (filtro === "entregue" && !entregue) return false;
+      if (filtro === "pendente" && entregue) return false;
       if (q) {
         const alvo = `${f.documento_ref ?? ""} ${f.municipio_destino ?? ""} ${f.rastreio ?? ""}`.toLowerCase();
         if (!alvo.includes(q)) return false;
@@ -195,13 +203,18 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
                     <td className="p-2 font-mono text-xs">{f.rastreio ?? "—"}</td>
                     <td className="p-2 text-right tabular-nums">{BRL.format(Number(f.custo_frete ?? 0))}</td>
                     <td className="p-2">
-                      {f.entregue ? (
-                        <Badge variant="outline" className="text-success border-success/40">Entregue</Badge>
-                      ) : f.devolucao ? (
-                        <Badge variant="outline" className="text-destructive border-destructive/40">Devolução</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">{f.status_texto ?? "Pendente"}</Badge>
-                      )}
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          f.estado_canonico === "entregue"
+                            ? "text-success border-success/40"
+                            : f.estado_canonico === "devolucao" || f.eh_problema
+                              ? "text-destructive border-destructive/40"
+                              : "text-muted-foreground",
+                        )}
+                      >
+                        {f.estado_rotulo ?? f.status_texto ?? "Pendente"}
+                      </Badge>
                     </td>
                   </tr>
                 ))}

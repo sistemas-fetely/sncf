@@ -15,7 +15,6 @@ export interface EntregaRow {
   previsao_entrega: string | null;
   status_texto: string | null;
   documento_ref: string | null;
-  classe_rastreio: string | null;
   canal_contratacao: string | null;
   estado_canonico: string | null;
   estado_rotulo: string | null;
