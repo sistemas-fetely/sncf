@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Scissors } from "lucide-react";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
@@ -12,9 +13,10 @@ interface Props {
   valor_liquido: number;
   valor_bruto?: number;
   estagio: string | null | undefined;
-  /** "full" = botão largura total (ficha do pedido) | "compact" = botão de tabela */
-  variante?: "full" | "compact";
+  /** "full" = botão largura total | "compact" = botão de tabela | "menuitem" = item de DropdownMenu */
+  variante?: "full" | "compact" | "menuitem";
 }
+
 
 /**
  * Gatilho único do split. Nenhuma lista de estágio em código:
