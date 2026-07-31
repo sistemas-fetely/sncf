@@ -114,7 +114,7 @@ function VelocidadeInsightsSection() {
 
       const [convitesRes, tarefasRes, vagasRes, candidatosRes, contratosVencRes] = await Promise.all([
         supabase.from("convites_cadastro").select("id, status, created_at, preenchido_em"),
-        supabase.from("sncf_tarefas").select("id, status, prazo_data, bloqueante").eq("tipo_processo", "onboarding").in("status", ["pendente", "atrasada"]),
+        supabase.from("vw_tarefas").select("id, status, prazo_data, bloqueante, esta_aberta, esta_atrasada").eq("tipo_processo", "onboarding").eq("esta_aberta", true),
         supabase.from("vagas" as any).select("id").eq("status", "aberta"),
         supabase.from("candidatos").select("id, status").in("status", ["recebido", "triagem", "entrevista"]),
         supabase.from("contratos_pj").select("id").eq("status", "ativo").not("data_fim", "is", null).gte("data_fim", hojeStr).lte("data_fim", em30dStr),
@@ -131,9 +131,7 @@ function VelocidadeInsightsSection() {
       );
       const tempoMedio = tempos.length > 0 ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
 
-      const tarefasAtrasadas = tarefasOnb.filter((t: any) =>
-        t.status === "atrasada" || (t.prazo_data && t.prazo_data < hojeStr)
-      );
+      const tarefasAtrasadas = tarefasOnb.filter((t: any) => t.esta_atrasada);
 
       setData({
         tempoMedioPreenchimento: tempoMedio,

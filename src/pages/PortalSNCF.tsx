@@ -60,10 +60,10 @@ export default function PortalSNCF() {
         supabase.from("sncf_sistemas").select("*").eq("ativo", true).order("ordem"),
         supabase.from("sncf_user_systems").select("sistema_id, ativo").eq("user_id", user.id),
         supabase
-          .from("sncf_tarefas")
+          .from("vw_tarefas")
           .select("id", { count: "exact", head: true })
           .eq("responsavel_user_id", user.id)
-          .in("status", ["pendente", "atrasada", "em_andamento"]),
+          .eq("esta_aberta", true),
       ]);
       if (sistemasRes.data) setSistemas(sistemasRes.data as Sistema[]);
       if (userSystemsRes.data) setUserSystems(userSystemsRes.data as UserSystem[]);
