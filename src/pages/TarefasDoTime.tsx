@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { NovaTarefaDialog } from "@/components/tarefas/NovaTarefaDialog";
 import { BadgePredictor } from "@/components/tarefas/BadgePredictor";
 import { TarefaDetalheDrawer, type TarefaDrawer } from "@/components/tarefas/TarefaDetalheDrawer";
+import { formatError } from "@/lib/format-error";
 
 interface Subordinado {
   id: string; // profile.id ou colaborador.id
