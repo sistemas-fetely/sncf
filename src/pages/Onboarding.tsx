@@ -308,23 +308,26 @@ export default function Onboarding() {
 
   async function handleDeleteOnboarding() {
     if (!deleteTarget) return;
-    const { data: tarefasIds } = await supabase
-      .from("sncf_tarefas")
-      .select("id")
-      .eq("processo_id", deleteTarget.id);
-    const ids = (tarefasIds || []).map((t: any) => t.id);
-    if (ids.length > 0) {
-      await supabase.from("sncf_tarefas_historico").delete().in("tarefa_id", ids);
+    const motivo = motivoExclusao.trim();
+    if (!motivo) {
+      toast.error("Informe o motivo da exclusão");
+      return;
     }
-    await supabase.from("sncf_tarefas").delete().eq("processo_id", deleteTarget.id);
-    const { error } = await supabase.from("onboarding_checklists").delete().eq("id", deleteTarget.id);
-    if (error) toast.error(humanizeError(error.message));
-    else {
-      toast.success("Onboarding excluído");
-      void loadChecklists();
+    const { data, error } = await (supabase as any).rpc("excluir_checklist_processo", {
+      p_checklist_id: deleteTarget.id,
+      p_motivo: motivo,
+    });
+    if (error) {
+      toast.error(formatError(error));
+      return;
     }
+    const canceladas = (data as any)?.tarefas_canceladas ?? 0;
+    toast.success(`Processo excluído. ${canceladas} tarefa${canceladas === 1 ? "" : "s"} cancelada${canceladas === 1 ? "" : "s"}.`);
+    void loadChecklists();
+    setMotivoExclusao("");
     setDeleteTarget(null);
   }
+
 
   // Colaborador view
   if (isColaborador) {
