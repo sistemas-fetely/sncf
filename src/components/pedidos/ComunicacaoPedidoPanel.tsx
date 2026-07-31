@@ -19,6 +19,10 @@ import { useEnviarEmailNfFaturado } from "@/hooks/pedidos/useEnviarEmailNfFatura
 import { useEnviarEmailNfBoletos } from "@/hooks/pedidos/useEnviarEmailNfBoletos";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { usePedidoEmailLog, useLogEmailEnvio } from "@/hooks/pedidos/usePedidoEmailLog";
+import { Badge } from "@/components/ui/badge";
+import {
+  useLinkPagamentoPedido, useRegistrarLinkPagamento, fmtDataBR,
+} from "@/hooks/pedidos/useLinkPagamentoPedido";
 
 type TipoEmail = "cobranca" | "portao_boleto" | "boleto" | "nf" | "nf_boletos";
 
