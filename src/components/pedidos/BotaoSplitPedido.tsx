@@ -29,8 +29,16 @@ export function BotaoSplitPedido({
   valor_bruto,
   estagio,
   variante = "full",
+  open: openProp,
+  onOpenChange,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [openInterno, setOpenInterno] = useState(false);
+  const controlado = openProp !== undefined;
+  const open = controlado ? !!openProp : openInterno;
+  const setOpen = (v: boolean) => {
+    if (controlado) onOpenChange?.(v);
+    else setOpenInterno(v);
+  };
   const { regraDe, isLoading } = usePedidoEdicaoCampo(estagio);
   const { data: permissoes } = usePermissoesDoUsuario();
   const { roles } = useAuth();
@@ -43,19 +51,34 @@ export function BotaoSplitPedido({
 
   const rotulo = regraDe("split")?.rotulo || "Split";
 
+  // Só o diálogo — usado quando o gatilho vive dentro de um DropdownMenu
+  // (o conteúdo do menu desmonta ao fechar e levaria o diálogo junto).
+  if (variante === "dialogo") {
+    return (
+      <SplitPedidoDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedido_id={pedido_id}
+        id_externo={id_externo}
+        valor_liquido={valor_liquido}
+        valor_bruto={valor_bruto ?? valor_liquido}
+        estagio_origem={estagio ?? null}
+      />
+    );
+  }
+
+  if (variante === "menuitem") {
+    return (
+      <DropdownMenuItem onSelect={() => setOpen(true)}>
+        <Scissors className="h-4 w-4 mr-2" />
+        {rotulo}
+      </DropdownMenuItem>
+    );
+  }
+
   return (
     <>
-      {variante === "menuitem" ? (
-        <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault();
-            setOpen(true);
-          }}
-        >
-          <Scissors className="h-4 w-4 mr-2" />
-          {rotulo}
-        </DropdownMenuItem>
-      ) : variante === "compact" ? (
+      {variante === "compact" ? (
         <Button variant="outline" size="sm" onClick={() => setOpen(true)} title={rotulo}>
           <Scissors className="h-3 w-3 mr-1" />
           {rotulo}
@@ -79,3 +102,4 @@ export function BotaoSplitPedido({
     </>
   );
 }
+
