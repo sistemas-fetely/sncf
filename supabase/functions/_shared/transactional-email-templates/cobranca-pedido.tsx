@@ -14,7 +14,9 @@ interface CobrancaPedidoProps {
   condicao_pagamento?: string
   valor_bruto?:      string
   desconto?:         string
+  bonus_pix?:        string
   valor_frete?:      string
+  frete_por_conta_fetely?: boolean
   valor_liquido?:    string
   link_pagamento?:   string
   tipo_pagamento?:   TipoPagamento
