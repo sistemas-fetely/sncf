@@ -15,6 +15,8 @@ const erroFkReal = {
 describe("formatError", () => {
   it("idioma antigo produzia [object Object]", () => {
     const e: unknown = erroFkReal;
+    // eslint-disable-next-line no-restricted-syntax -- uso proposital: este
+    // teste PROVA que o idioma antigo produzia "[object Object]".
     const antigo = e instanceof Error ? e.message : String(e);
     expect(antigo).toBe("[object Object]");
   });
