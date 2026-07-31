@@ -253,21 +253,40 @@ export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: 
       };
 
       // Dados de despesa: cabeçalho na linha 15, dados da 16 em diante.
-      // Não paramos em linha fixa: a planilha pode ter sido esticada.
+      // A aba continua depois das despesas (TOTAL, DECLARAÇÃO, DADOS BANCÁRIOS,
+      // USO INTERNO). Achamos o marcador de fim do bloco e não lemos além dele.
+      const MARCADORES = ["total", "declaracao", "dados bancarios", "uso interno", "validacao"];
+      let fimDespesas = matriz.length;
+      let achouMarcador = false;
+      for (let linha = 16; linha <= matriz.length; linha += 1) {
+        const rotulo = normalizar(cel(linha, 0));
+        if (rotulo && MARCADORES.some((m) => rotulo.startsWith(m))) {
+          fimDespesas = linha - 1;
+          achouMarcador = true;
+          break;
+        }
+      }
+
       const brutas: LinhaPlanilha[] = [];
       let ignoradasContagem = 0;
-      let pendentesEmBranco = 0;
-      for (let linha = 16; linha <= matriz.length; linha += 1) {
+      for (let linha = 16; linha <= fimDespesas; linha += 1) {
         const dataCel = cel(linha, 0);
         const valorCel = cel(linha, 6);
         const outras = [1, 2, 3, 4, 5, 7].map((c) => cel(linha, c));
         if (vazio(dataCel) && vazio(valorCel)) {
-          if (outras.every(vazio)) pendentesEmBranco += 1;
-          else pendentesEmBranco += 1;
-          continue;
+          // Tudo vazio: linha em branco do bloco, só conta.
+          if (outras.every(vazio)) {
+            ignoradasContagem += 1;
+            continue;
+          }
+          // Sem marcador de fim, rótulo solto (coluna A com texto e nada mais) não é despesa.
+          if (!achouMarcador && !vazio(dataCel) === false && outras.every(vazio)) {
+            ignoradasContagem += 1;
+            continue;
+          }
+          // Parcialmente preenchida: entra na prévia marcada com problema.
         }
-        ignoradasContagem += pendentesEmBranco;
-        pendentesEmBranco = 0;
+
 
         const dataIso = parseDataPlanilha(dataCel);
         const categoriaTexto = textoCelula(cel(linha, 1));
