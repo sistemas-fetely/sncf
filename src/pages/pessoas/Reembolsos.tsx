@@ -113,6 +113,12 @@ export default function Reembolsos() {
             <Plus className="h-4 w-4" />
             Lançar reembolso recebido
           </Button>
+          <Button variant="outline" onClick={() => setImportarAberto(true)}>
+            <FileUp className="h-4 w-4" />
+            Importar planilha
+          </Button>
+          <BotaoBaixarTemplate />
+
           <Button variant="outline" asChild>
             <Link to="/pessoas/reembolsos/ciclos">
               <CalendarRange className="h-4 w-4" />
