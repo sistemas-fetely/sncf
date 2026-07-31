@@ -10,7 +10,10 @@ interface Opts {
   estagios?: EstagioPedido[];
   busca?: string;
   apenasAtivos?: boolean;
+  /** Quando true, cancelados/recuperação entram na consulta (só `entregue` fica de fora). */
+  incluirCancelados?: boolean;
 }
+
 
 export function usePedidosFila(opts: Opts = {}) {
   return useQuery({
