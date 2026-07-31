@@ -18933,6 +18933,80 @@ export type Database = {
         }
         Relationships: []
       }
+      qualidade_medicao: {
+        Row: {
+          contagem: number | null
+          erro: string | null
+          id: number
+          medido_em: string
+          regra_slug: string
+        }
+        Insert: {
+          contagem?: number | null
+          erro?: string | null
+          id?: never
+          medido_em?: string
+          regra_slug: string
+        }
+        Update: {
+          contagem?: number | null
+          erro?: string | null
+          id?: never
+          medido_em?: string
+          regra_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualidade_medicao_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "qualidade_regra"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      qualidade_regra: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          link_acao: string | null
+          modulo: string
+          o_que_significa: string
+          objeto: string | null
+          ordem: number
+          severidade: string
+          slug: string
+          sql_contagem: string
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          link_acao?: string | null
+          modulo: string
+          o_que_significa: string
+          objeto?: string | null
+          ordem?: number
+          severidade: string
+          slug: string
+          sql_contagem: string
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          link_acao?: string | null
+          modulo?: string
+          o_que_significa?: string
+          objeto?: string | null
+          ordem?: number
+          severidade?: string
+          slug?: string
+          sql_contagem?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       rastreio_status_dim: {
         Row: {
           ativo: boolean
@@ -19753,11 +19827,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_aprovacao: string | null
+          data_fechamento: string | null
           data_recebimento: string
           email_remetente: string | null
           email_thread_ref: string | null
           encaminhado_para_compras: boolean
           estado: string
+          fechado_por: string | null
           id: string
           justificativa_excecao_teto: string | null
           motivo_cancelamento: string | null
@@ -19780,11 +19856,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_aprovacao?: string | null
+          data_fechamento?: string | null
           data_recebimento?: string
           email_remetente?: string | null
           email_thread_ref?: string | null
           encaminhado_para_compras?: boolean
           estado?: string
+          fechado_por?: string | null
           id?: string
           justificativa_excecao_teto?: string | null
           motivo_cancelamento?: string | null
@@ -19807,11 +19885,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_aprovacao?: string | null
+          data_fechamento?: string | null
           data_recebimento?: string
           email_remetente?: string | null
           email_thread_ref?: string | null
           encaminhado_para_compras?: boolean
           estado?: string
+          fechado_por?: string | null
           id?: string
           justificativa_excecao_teto?: string | null
           motivo_cancelamento?: string | null
@@ -31079,14 +31159,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -31449,14 +31529,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -34382,6 +34462,7 @@ export type Database = {
         }
         Returns: Json
       }
+      atualizar_qualidade_painel: { Args: never; Returns: Json }
       autosave_convite_cadastro: {
         Args: { _dados: Json; _token: string }
         Returns: boolean
@@ -35081,6 +35162,10 @@ export type Database = {
       }
       erguer_bandeira_vermelha: {
         Args: { p_motivo: string; p_parceiro_id: string }
+        Returns: Json
+      }
+      excluir_checklist_processo: {
+        Args: { p_checklist_id: string; p_motivo: string }
         Returns: Json
       }
       excluir_comentario_pedido: {
@@ -36135,6 +36220,7 @@ export type Database = {
         Args: { p_motivo: string; p_solicitacao_id: string }
         Returns: Json
       }
+      reembolso_encerrar_lote: { Args: { p_lote_id: string }; Returns: Json }
       reembolso_fechar_ciclo: { Args: { p_referencia: string }; Returns: Json }
       reembolso_glosar_item: {
         Args: { p_item_id: string; p_motivo: string; p_valor_aprovado: number }

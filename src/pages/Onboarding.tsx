@@ -12,6 +12,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { humanizeError } from "@/lib/errorMessages";
+import { formatError } from "@/lib/format-error";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -102,6 +104,8 @@ export default function Onboarding() {
   const [filter, setFilter] = useState("todos");
   const [updatingTask, setUpdatingTask] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Checklist | null>(null);
+  const [motivoExclusao, setMotivoExclusao] = useState("");
+
 
   // Dialog de conclusão com evidência
   const [tarefaAConcluir, setTarefaAConcluir] = useState<Tarefa | null>(null);
@@ -308,23 +312,26 @@ export default function Onboarding() {
 
   async function handleDeleteOnboarding() {
     if (!deleteTarget) return;
-    const { data: tarefasIds } = await supabase
-      .from("sncf_tarefas")
-      .select("id")
-      .eq("processo_id", deleteTarget.id);
-    const ids = (tarefasIds || []).map((t: any) => t.id);
-    if (ids.length > 0) {
-      await supabase.from("sncf_tarefas_historico").delete().in("tarefa_id", ids);
+    const motivo = motivoExclusao.trim();
+    if (!motivo) {
+      toast.error("Informe o motivo da exclusão");
+      return;
     }
-    await supabase.from("sncf_tarefas").delete().eq("processo_id", deleteTarget.id);
-    const { error } = await supabase.from("onboarding_checklists").delete().eq("id", deleteTarget.id);
-    if (error) toast.error(humanizeError(error.message));
-    else {
-      toast.success("Onboarding excluído");
-      void loadChecklists();
+    const { data, error } = await (supabase as any).rpc("excluir_checklist_processo", {
+      p_checklist_id: deleteTarget.id,
+      p_motivo: motivo,
+    });
+    if (error) {
+      toast.error(formatError(error));
+      return;
     }
+    const canceladas = (data as any)?.tarefas_canceladas ?? 0;
+    toast.success(`Processo excluído. ${canceladas} tarefa${canceladas === 1 ? "" : "s"} cancelada${canceladas === 1 ? "" : "s"}.`);
+    void loadChecklists();
+    setMotivoExclusao("");
     setDeleteTarget(null);
   }
+
 
   // Colaborador view
   if (isColaborador) {
@@ -570,22 +577,39 @@ export default function Onboarding() {
         </div>
       )}
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setMotivoExclusao(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir onboarding permanentemente?</AlertDialogTitle>
             <AlertDialogDescription>
-              O onboarding de "{deleteTarget?.nome}" e todas as tarefas vinculadas serão excluídos. Essa ação não pode ser desfeita.
+              O onboarding de "{deleteTarget?.nome}" será excluído. As tarefas do processo serão
+              CANCELADAS com o motivo informado — não são excluídas, e o histórico é preservado.
+              Essa ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-exclusao-onboarding">Motivo da exclusão *</Label>
+            <Textarea
+              id="motivo-exclusao-onboarding"
+              value={motivoExclusao}
+              onChange={(e) => setMotivoExclusao(e.target.value)}
+              placeholder="Explique por que este processo está sendo excluído"
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteOnboarding} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDeleteOnboarding}
+              disabled={!motivoExclusao.trim()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
     </TooltipProvider>
   );

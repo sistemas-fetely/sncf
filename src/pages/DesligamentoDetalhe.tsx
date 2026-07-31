@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { humanizeError } from "@/lib/errorMessages";
+import { formatError } from "@/lib/format-error";
+
 import { cn } from "@/lib/utils";
 
 interface Tarefa {
@@ -89,23 +91,24 @@ export default function DesligamentoDetalhe() {
   const [evidenciaUrl, setEvidenciaUrl] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [motivoExclusao, setMotivoExclusao] = useState("");
 
   const handleDeleteDesligamento = async () => {
     if (!checklist) return;
-    const { data: tarefasIds } = await supabase
-      .from("sncf_tarefas")
-      .select("id")
-      .eq("processo_id", checklist.id);
-    const ids = (tarefasIds || []).map((t: any) => t.id);
-    if (ids.length > 0) {
-      await supabase.from("sncf_tarefas_historico").delete().in("tarefa_id", ids);
-    }
-    await supabase.from("sncf_tarefas").delete().eq("processo_id", checklist.id);
-    const { error } = await supabase.from("onboarding_checklists").delete().eq("id", checklist.id);
-    if (error) {
-      toast.error(humanizeError(error.message));
+    const motivo = motivoExclusao.trim();
+    if (!motivo) {
+      toast.error("Informe o motivo da exclusão");
       return;
     }
+    const { data, error } = await (supabase as any).rpc("excluir_checklist_processo", {
+      p_checklist_id: checklist.id,
+      p_motivo: motivo,
+    });
+    if (error) {
+      toast.error(formatError(error));
+      return;
+    }
+
     // Reverter status do colaborador
     if (checklist.colaborador_id) {
       if (checklist.colaborador_tipo === "clt") {
@@ -118,7 +121,9 @@ export default function DesligamentoDetalhe() {
           .eq("id", checklist.colaborador_id);
       }
     }
-    toast.success("Desligamento excluído");
+    const canceladas = (data as any)?.tarefas_canceladas ?? 0;
+    toast.success(`Processo excluído. ${canceladas} tarefa${canceladas === 1 ? "" : "s"} cancelada${canceladas === 1 ? "" : "s"}.`);
+
     setShowDeleteDialog(false);
     navigate("/pessoas");
   };
@@ -430,23 +435,39 @@ export default function DesligamentoDetalhe() {
       </Dialog>
 
       {/* Excluir desligamento (super_admin) */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog open={showDeleteDialog} onOpenChange={(o) => { setShowDeleteDialog(o); if (!o) setMotivoExclusao(""); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir desligamento permanentemente?</AlertDialogTitle>
             <AlertDialogDescription>
-              O processo de desligamento de "{colabNome}" e todas as tarefas vinculadas serão excluídos.
+              O processo de desligamento de "{colabNome}" será excluído. As tarefas do processo serão
+              CANCELADAS com o motivo informado — não são excluídas, e o histórico é preservado.
               O status do colaborador será revertido para "ativo". Essa ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-exclusao-desligamento">Motivo da exclusão *</Label>
+            <Textarea
+              id="motivo-exclusao-desligamento"
+              value={motivoExclusao}
+              onChange={(e) => setMotivoExclusao(e.target.value)}
+              placeholder="Explique por que este processo está sendo excluído"
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDesligamento} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDeleteDesligamento}
+              disabled={!motivoExclusao.trim()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
