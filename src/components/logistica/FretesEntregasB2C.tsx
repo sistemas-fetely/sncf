@@ -108,8 +108,8 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
   const kpis = useMemo(() => {
     let entregues = 0, devolucoes = 0, total = 0;
     for (const f of envios) {
-      if (f.entregue === true) entregues++;
-      if (f.devolucao === true) devolucoes++;
+      if (f.estado_canonico === "entregue") entregues++;
+      if (f.estado_canonico === "devolucao") devolucoes++;
       total += Number(f.custo_frete ?? 0);
     }
     return { entregues, devolucoes, total, count: envios.length };
@@ -118,8 +118,9 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return envios.filter((f) => {
-      if (filtro === "entregue" && f.entregue !== true) return false;
-      if (filtro === "pendente" && f.entregue === true) return false;
+      const entregue = f.estado_canonico === "entregue";
+      if (filtro === "entregue" && !entregue) return false;
+      if (filtro === "pendente" && entregue) return false;
       if (q) {
         const alvo = `${f.documento_ref ?? ""} ${f.municipio_destino ?? ""} ${f.rastreio ?? ""}`.toLowerCase();
         if (!alvo.includes(q)) return false;
