@@ -102,6 +102,8 @@ export default function Onboarding() {
   const [filter, setFilter] = useState("todos");
   const [updatingTask, setUpdatingTask] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Checklist | null>(null);
+  const [motivoExclusao, setMotivoExclusao] = useState("");
+
 
   // Dialog de conclusão com evidência
   const [tarefaAConcluir, setTarefaAConcluir] = useState<Tarefa | null>(null);
