@@ -110,3 +110,51 @@ export function useMarcarLinkEnviado() {
     },
   });
 }
+
+/** Batch: 1 chamada para todos os pedidos da fila. Retorna Record<pedido_id, linha>. */
+export function useLinksPagamentoFila(pedidoIds: string[]) {
+  const ids = Array.from(new Set(pedidoIds.filter(Boolean)));
+  return useQuery({
+    queryKey: ["links-pagamento-fila", ids],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_link_pagamento")
+        .select("*")
+        .in("pedido_id", ids);
+      if (error) throw new Error(formatError(error));
+      const map: Record<string, LinkPagamentoPedido> = {};
+      for (const r of (data ?? []) as LinkPagamentoPedido[]) map[r.pedido_id] = r;
+      return map;
+    },
+    enabled: ids.length > 0,
+  });
+}
+
+export interface HistoricoLinkPagamento {
+  id: string;
+  link: string | null;
+  tipo_pagamento: string | null;
+  gerado_em: string | null;
+  expira_em: string | null;
+  status: string | null;
+  motivo_troca: string | null;
+  enviado_em: string | null;
+  created_at: string | null;
+}
+
+/** Trilha completa de links do pedido (inclui substituídos). */
+export function useHistoricoLinksPagamento(pedidoId?: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["historico-links", pedidoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pedido_link_pagamento")
+        .select("id, link, tipo_pagamento, gerado_em, expira_em, status, motivo_troca, enviado_em, created_at")
+        .eq("pedido_id", pedidoId)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(formatError(error));
+      return (data ?? []) as HistoricoLinkPagamento[];
+    },
+    enabled: !!pedidoId && enabled,
+  });
+}
