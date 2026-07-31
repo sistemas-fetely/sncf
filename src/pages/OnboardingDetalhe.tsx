@@ -23,6 +23,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SmartBackButton } from "@/components/SmartBackButton";
+import { formatError } from "@/lib/format-error";
 
 type Tarefa = {
   id: string;
