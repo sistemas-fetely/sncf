@@ -525,26 +525,37 @@ export function EntregasControle() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando entregas…
+      <div className="space-y-4">
+        <AlertaFeedParado />
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando entregas…
+        </div>
+        <SaudeTransportadora />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive flex items-start gap-2">
-        <AlertTriangle className="h-4 w-4 mt-0.5" />
-        <div>
-          <div className="font-medium">Erro ao carregar as entregas</div>
-          <div className="text-xs">{formatError(error)}</div>
+      <div className="space-y-4">
+        <AlertaFeedParado />
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 mt-0.5" />
+          <div>
+            <div className="font-medium">Erro ao carregar as entregas</div>
+            <div className="text-xs">{formatError(error)}</div>
+          </div>
         </div>
+        <SaudeTransportadora />
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {/* Bloco 0 — Rastreio sem atualização */}
+      <AlertaFeedParado />
+
       {/* Bloco 1 — Precisa de atenção */}
       <div className="rounded-lg border bg-card">
         <div className="flex items-center gap-2 p-3 border-b">
