@@ -74,6 +74,7 @@ import { EnviarEmailNfDialog } from "@/components/pedidos/dialogs/EnviarEmailNfD
 import { EnviarEmailNfBoletosDialog } from "@/components/pedidos/dialogs/EnviarEmailNfBoletosDialog";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
+import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
@@ -1957,6 +1958,8 @@ export default function PedidoDetalhe() {
                   gera_titulo_receber={geraTituloReceber}
                 />
               )}
+              <ExportarPedidoDialog pedidoId={pedido.id} />
+
               {geraTituloReceber ? (
                 <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
               ) : (

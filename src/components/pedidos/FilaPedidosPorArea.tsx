@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -22,6 +22,7 @@ import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialo
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
+import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Button } from "@/components/ui/button";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 
@@ -810,6 +811,7 @@ function FarolRisco({
 function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
   const navigate = useNavigate();
   const [cadastroOpen, setCadastroOpen] = useState(false);
+  const [exportarOpen, setExportarOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [marcacaoOpen, setMarcacaoOpen] = useState(false);
 
@@ -879,6 +881,10 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Cadastro
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setExportarOpen(true)}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar pedido
+          </DropdownMenuItem>
           <BotaoSplitPedido
             pedido_id={p.id}
             id_externo={p.id_externo}
@@ -909,6 +915,12 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
         parceiro_nome={p.parceiro_razao}
         open={cadastroOpen}
         onOpenChange={setCadastroOpen}
+        hideTrigger
+      />
+      <ExportarPedidoDialog
+        pedidoId={p.id}
+        open={exportarOpen}
+        onOpenChange={setExportarOpen}
         hideTrigger
       />
       <BotaoSplitPedido
