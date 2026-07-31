@@ -58,7 +58,9 @@ function Resumo({ rotulo, valor }: { rotulo: string; valor: string | number }) {
 export default function Reembolsos() {
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [sheetAberto, setSheetAberto] = useState(false);
+  const [importarAberto, setImportarAberto] = useState(false);
   const [solicitacaoAberta, setSolicitacaoAberta] = useState<string | null>(null);
+
 
   const listaQ = useSolicitacoes("todos");
   const ciclosQ = useCiclos();
