@@ -115,6 +115,25 @@ export default function ReembolsoCiclos() {
         </div>
       )}
 
+      {resultadoFechamento && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-success/40 bg-success/10 p-4 text-sm text-success">
+          <span>
+            {resultadoFechamento.lotes ?? 0} lote(s) gerado(s) ·{" "}
+            {resultadoFechamento.cprs_criadas ?? 0} título(s) criado(s) em contas a pagar, vencendo
+            em {formatarData(resultadoFechamento.vencimento)}.
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto"
+            onClick={() => setResultadoFechamento(null)}
+          >
+            Entendi
+          </Button>
+        </div>
+      )}
+
+
       {ciclosQ.isError ? (
         <BlocoErro
           mensagem={`Não foi possível carregar os ciclos. ${(ciclosQ.error as Error)?.message ?? ""}`}
