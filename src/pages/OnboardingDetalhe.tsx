@@ -399,7 +399,7 @@ export default function OnboardingDetalhe() {
                 {tarefasOrdenadas.map((t) => {
                   const atrasada = isTarefaAtrasada(t);
                   const atrasoLegal = atrasada && t.bloqueante;
-                  const dias = atrasada && t.prazo_data ? diasAtraso(t.prazo_data) : 0;
+                  const dias = t.dias_atraso ?? 0;
 
                   return (
                     <div
