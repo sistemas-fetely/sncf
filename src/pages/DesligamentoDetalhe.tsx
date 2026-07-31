@@ -119,7 +119,9 @@ export default function DesligamentoDetalhe() {
           .eq("id", checklist.colaborador_id);
       }
     }
-    toast.success("Desligamento excluído");
+    const canceladas = (data as any)?.tarefas_canceladas ?? 0;
+    toast.success(`Processo excluído. ${canceladas} tarefa${canceladas === 1 ? "" : "s"} cancelada${canceladas === 1 ? "" : "s"}.`);
+
     setShowDeleteDialog(false);
     navigate("/pessoas");
   };
