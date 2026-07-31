@@ -21,12 +21,7 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
-      // ===== ERRO CEGO =====
-      // Proibe o idioma que produz "[object Object]" na UI.
-      // O erro do PostgREST e objeto plano em runtime (PostgrestBuilder faz
-      // JSON.parse e nunca instancia a classe), embora o TIPO declare
-      // PostgrestError extends Error. Logo `e instanceof Error` e false e
-      // String(e) vira "[object Object]". Use formatError(e).
+      // ===== ERRO CEGO — proibe o idioma que produz "[object Object]" =====
       "no-restricted-syntax": [
         "error",
         {
@@ -45,11 +40,9 @@ export default tseslint.config(
     },
   },
   {
-    // ===== RATCHET (catraca) do ERRO CEGO =====
-    // Divida legada: os arquivos abaixo ainda usam o idioma proibido.
-    // A regra cai para "warn" aqui para nao poluir o lint com erro herdado.
-    // CODIGO NOVO nao entra nesta lista -> a regra e "error" para ele.
-    // A lista SO PODE ENCOLHER. Quando zerar, remova este bloco inteiro.
+    // ===== RATCHET do ERRO CEGO — divida legada, so pode encolher =====
+    // Codigo novo NAO entra nesta lista -> regra e "error" para ele.
+    // Quando zerar, remova este bloco inteiro.
     files: [
       "src/components/acervo/SincronizacaoEstoqueShopify.tsx",
       "src/components/compras/ImportarItensDialog.tsx",
