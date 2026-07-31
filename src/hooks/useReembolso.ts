@@ -1019,6 +1019,20 @@ export function useUrlAssinada() {
   };
 }
 
+/** Busca os itens de uma solicitação ordenados por seq (usado logo após lançar). */
+export async function buscarItensDaSolicitacao(
+  solicitacaoId: string,
+): Promise<ItemSolicitacao[]> {
+  // Cast só do resultado: ainda não consta no types.ts gerado.
+  const { data, error } = await supabase
+    .from("reembolso_itens" as never)
+    .select("*")
+    .eq("solicitacao_id", solicitacaoId)
+    .order("seq");
+  if (error) throw error;
+  return (data ?? []) as unknown as ItemSolicitacao[];
+}
+
 
 // ---------------------------------------------------------------------------
 // Utilidades de apresentação
