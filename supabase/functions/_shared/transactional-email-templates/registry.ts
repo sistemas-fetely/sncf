@@ -32,6 +32,7 @@ import { template as nfEntrega } from './nf-entrega.tsx'
 import { template as nfEntregaBoleto } from './nf-entrega-boleto.tsx'
 import { template as reguaCobranca } from './regua-cobranca.tsx'
 import { template as solicitacaoDocumento } from './solicitacao-documento.tsx'
+import { template as pedidoEspelho } from './pedido-espelho.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'convite-cadastro': conviteCadastro,
