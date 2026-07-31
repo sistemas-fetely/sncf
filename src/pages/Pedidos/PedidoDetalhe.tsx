@@ -8,6 +8,7 @@ import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTitulo
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
+import { useTitulosPedidoResumo } from "@/hooks/credito/useTitulosPedidoResumo";
 import { usePedidoPriorizado } from "@/hooks/pedidos/useFilaPedidosPriorizada";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
@@ -760,6 +761,7 @@ export default function PedidoDetalhe() {
   const freteComparativo = useFreteComparativo(id);
   const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
+  const { data: titulosResumo } = useTitulosPedidoResumo(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
   const [confirmRestaurar, setConfirmRestaurar] = useState(false);
@@ -1194,6 +1196,7 @@ export default function PedidoDetalhe() {
                       const temBreakdown   = celebra > 0.01 || pix > 0.01;
                       const descontoSimples = Math.max(0, bruto + frete - liquido);
                       const temFrete       = frete > 0.01;
+                      const creditoHaver   = Number(titulosResumo?.somaHaver ?? 0);
                       return (
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-sm">
@@ -1233,6 +1236,25 @@ export default function PedidoDetalhe() {
                               <span>{fmtBRL.format(liquido)}</span>
                             </div>
                           </div>
+                          {/* HAVER-É-PAGAMENTO: o líquido não muda; o crédito é uma parcela paga. */}
+                          {creditoHaver > 0.005 && (
+                            <>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-emerald-700 dark:text-emerald-400">
+                                  Crédito aplicado (haver)
+                                </span>
+                                <span className="text-emerald-700 dark:text-emerald-400">
+                                  −{fmtBRL.format(creditoHaver)}
+                                </span>
+                              </div>
+                              <div className="border-t border-border/60 pt-2">
+                                <div className="flex justify-between text-base font-semibold">
+                                  <span>A cobrar</span>
+                                  <span>{fmtBRL.format(Math.max(0, liquido - creditoHaver))}</span>
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
                       );
                     })()}
