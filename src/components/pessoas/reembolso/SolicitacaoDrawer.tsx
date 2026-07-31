@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatError } from "@/lib/format-error";
 import { toast } from "sonner";
 import {
   Loader2, AlertTriangle, ShoppingCart, RefreshCw, Undo2, CheckCircle2, Scissors,

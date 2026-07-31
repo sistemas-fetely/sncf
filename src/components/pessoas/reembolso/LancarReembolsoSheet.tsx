@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatError } from "@/lib/format-error";
 import { toast } from "sonner";
 import {
   Loader2, Plus, Trash2, ChevronDown, ChevronRight, AlertTriangle, Paperclip, X,
