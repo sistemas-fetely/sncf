@@ -28338,6 +28338,7 @@ export type Database = {
       }
       vw_importacao_pedido_conferencia_nf: {
         Row: {
+          alocacoes_na_linha: number | null
           codigo_nf: string | null
           furo: number | null
           importacao_pedido_id: number | null
@@ -28349,7 +28350,9 @@ export type Database = {
           numero_pedido: string | null
           qtd_alocada: number | null
           qtd_nf: number | null
+          qtd_nf_somavel: number | null
           qtd_pedido: number | null
+          seq_na_linha: number | null
           situacao: string | null
           sku: string | null
           valor_nf: number | null
@@ -29513,14 +29516,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
