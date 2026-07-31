@@ -59,12 +59,16 @@ function buildPageRange(current: number, total: number): (number | "…")[] {
 interface Props {
   area: AreaPedido | "todas";
   estagioInicial?: EstagioPedido | "todos";
-  /** Múltiplos estágios — quando preenchido, esconde o Select interno */
+  /** Múltiplos estágios (vindos dos cards do pipeline) */
   estagios?: EstagioPedido[];
   apenasAtivos?: boolean;
+  /** Espelha o toggle do pipeline: traz cancelados/recuperação para a fila. */
+  incluirCancelados?: boolean;
+  /** Espelha a tarja de risco alto do pipeline. */
+  somenteRiscoAlto?: boolean;
 }
 
-/** Lista completa de estágios pra Select (pipeline + cancelado + recuperação). */
+/** Lista completa de estágios (pipeline + cancelado + recuperação). */
 function todosOsEstagios(): EstagioPedido[] {
   return [
     ...PIPELINE_PRINCIPAL,
@@ -78,9 +82,12 @@ export function FilaPedidosPorArea({
   estagioInicial = "todos",
   estagios,
   apenasAtivos = true,
+  incluirCancelados = false,
+  somenteRiscoAlto = false,
 }: Props) {
   const [busca, setBusca] = useState("");
-  const [estagioFilter, setEstagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
+  const [estagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
+
   const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
   const [formaPgtoFilter, setFormaPgtoFilter] = useState<string>("todas");
   const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
