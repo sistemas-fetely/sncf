@@ -5542,6 +5542,32 @@ export type Database = {
           },
         ]
       }
+      departamentos_apelidos: {
+        Row: {
+          apelido: string
+          created_at: string
+          departamento_id: string
+        }
+        Insert: {
+          apelido: string
+          created_at?: string
+          departamento_id: string
+        }
+        Update: {
+          apelido?: string
+          created_at?: string
+          departamento_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departamentos_apelidos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dependentes: {
         Row: {
           colaborador_id: string
@@ -21635,6 +21661,13 @@ export type Database = {
             referencedRelation: "sncf_sistemas"
             referencedColumns: ["slug"]
           },
+          {
+            foreignKeyName: "sncf_tarefas_tipo_processo_fkey"
+            columns: ["tipo_processo"]
+            isOneToOne: false
+            referencedRelation: "tarefas_tipos_processo"
+            referencedColumns: ["chave"]
+          },
         ]
       }
       sncf_tarefas_historico: {
@@ -21695,6 +21728,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tarefas_emissao_nf_pendentes"
             referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_historico_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -22234,6 +22274,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tarefas_filas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_tipos_processo: {
+        Row: {
+          ativo: boolean
+          chave: string
+          created_at: string
+          departamento_id: string | null
+          descricao: string | null
+          nome: string
+          ordem: number
+          prazo_dias_bloqueante: number
+          prazo_dias_padrao: number
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          nome: string
+          ordem?: number
+          prazo_dias_bloqueante?: number
+          prazo_dias_padrao?: number
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          nome?: string
+          ordem?: number
+          prazo_dias_bloqueante?: number
+          prazo_dias_padrao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_tipos_processo_departamento_id_fkey"
             columns: ["departamento_id"]
             isOneToOne: false
             referencedRelation: "departamentos"
@@ -25606,6 +25690,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tarefas_emissao_nf_pendentes"
             referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -30037,14 +30128,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -31749,6 +31840,73 @@ export type Database = {
           },
         ]
       }
+      vw_tarefas: {
+        Row: {
+          accountable_user_id: string | null
+          area_destino_id: string | null
+          area_nome: string | null
+          area_role: string | null
+          bloqueante: boolean | null
+          colaborador_nome: string | null
+          colaborador_tipo: string | null
+          concluida_em: string | null
+          concluida_por: string | null
+          created_at: string | null
+          criado_por: string | null
+          delegado_de_user_id: string | null
+          delegado_em: string | null
+          delegado_por_user_id: string | null
+          descricao: string | null
+          dias_atraso: number | null
+          dias_restantes: number | null
+          dono_inalcancavel: boolean | null
+          esta_aberta: boolean | null
+          esta_atrasada: boolean | null
+          evidencia_texto: string | null
+          evidencia_url: string | null
+          id: string | null
+          informar_user_ids: string[] | null
+          iniciada_em: string | null
+          link_acao: string | null
+          motivo_bloqueio: string | null
+          prazo_data: string | null
+          prioridade: string | null
+          processo_id: string | null
+          processo_tipo: string | null
+          responsavel_role: string | null
+          responsavel_user_id: string | null
+          sistema_origem: string | null
+          sistema_origem_nome: string | null
+          status: string | null
+          tipo_processo: string | null
+          tipo_processo_nome: string | null
+          titulo: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sncf_tarefas_area_destino_id_fkey"
+            columns: ["area_destino_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_sistema_origem_fkey"
+            columns: ["sistema_origem"]
+            isOneToOne: false
+            referencedRelation: "sncf_sistemas"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_tipo_processo_fkey"
+            columns: ["tipo_processo"]
+            isOneToOne: false
+            referencedRelation: "tarefas_tipos_processo"
+            referencedColumns: ["chave"]
+          },
+        ]
+      }
       vw_temas_investimento_kpis: {
         Row: {
           ativa: boolean | null
@@ -32867,6 +33025,10 @@ export type Database = {
         Args: { p_titulo_id: string }
         Returns: Json
       }
+      cancelar_tarefa: {
+        Args: { p_motivo: string; p_tarefa_id: string }
+        Returns: undefined
+      }
       capturar_custo_mensal: { Args: never; Returns: number }
       classificar_debito_direto: {
         Args: {
@@ -32939,6 +33101,14 @@ export type Database = {
       conciliar_transacao_ofx: {
         Args: { p_conta_pagar_id: string; p_ofx_id: string }
         Returns: Json
+      }
+      concluir_tarefa: {
+        Args: {
+          p_evidencia_texto?: string
+          p_evidencia_url?: string
+          p_tarefa_id: string
+        }
+        Returns: undefined
       }
       condicao_pagamento_salvar: {
         Args: {
@@ -33188,6 +33358,27 @@ export type Database = {
         }
         Returns: Json
       }
+      criar_tarefa: {
+        Args: {
+          p_accountable_user_id?: string
+          p_area_destino?: string
+          p_area_destino_id?: string
+          p_bloqueante?: boolean
+          p_descricao?: string
+          p_link_acao?: string
+          p_motivo_bloqueio?: string
+          p_prazo_data?: string
+          p_prioridade?: string
+          p_processo_id?: string
+          p_processo_tipo?: string
+          p_responsavel_role?: string
+          p_responsavel_user_id?: string
+          p_sistema_origem: string
+          p_tipo_processo: string
+          p_titulo: string
+        }
+        Returns: string
+      }
       criar_tarefa_aprovacao_nf_pj: {
         Args: { _nota_id: string }
         Returns: string
@@ -33237,6 +33428,10 @@ export type Database = {
       delegacao_ativa_entre: {
         Args: { _gestor: string; _substituto: string }
         Returns: boolean
+      }
+      delegar_tarefa: {
+        Args: { p_motivo?: string; p_para_user_id: string; p_tarefa_id: string }
+        Returns: undefined
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -33641,6 +33836,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_job_tarefas_vencimento: { Args: never; Returns: Json }
       fn_liquido_pedido: {
         Args: {
           p_bonus_pix: number
@@ -33692,6 +33888,10 @@ export type Database = {
         Returns: boolean
       }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
+      fn_pode_agir_na_tarefa: {
+        Args: { p_tarefa_id: string }
+        Returns: boolean
+      }
       fn_pode_operar_mercadoria: { Args: never; Returns: boolean }
       fn_processar_ocorrencia_transp: {
         Args: {
@@ -33806,6 +34006,18 @@ export type Database = {
               tipo: string
             }[]
           }
+      fn_tarefa_sou_raci: {
+        Args: {
+          p_acc_user: string
+          p_criado_por: string
+          p_deleg_de: string
+          p_deleg_por: string
+          p_informar: string[]
+          p_resp_role: string
+          p_resp_user: string
+        }
+        Returns: boolean
+      }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
       fn_transicionar_entregues: { Args: never; Returns: Json }
       fn_transicionar_expedidos: { Args: never; Returns: Json }
