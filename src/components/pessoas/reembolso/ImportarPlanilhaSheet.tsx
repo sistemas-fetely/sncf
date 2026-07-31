@@ -123,6 +123,7 @@ interface LinhaPlanilha {
   estabelecimento: string;
   cnpj: string;
   numeroComprovante: string;
+  eventoGerador: string;
   valorBruto: string;
   valor: number;
   problemas: string[];
@@ -291,6 +292,7 @@ export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: 
           estabelecimento: textoCelula(cel(linha, 3)),
           cnpj,
           numeroComprovante: textoCelula(cel(linha, 5)),
+          eventoGerador: textoCelula(cel(linha, 7)),
           valorBruto: textoCelula(valorCel),
           valor: Number.isFinite(valor) ? valor : 0,
           problemas,
@@ -356,7 +358,7 @@ export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: 
         cnpj_emitente: l.cnpj || null,
         numero_comprovante: l.numeroComprovante || null,
         valor_solicitado: l.valor,
-        evento_gerador: l.eventoGerador ?? null,
+        evento_gerador: l.eventoGerador || null,
         projeto_evento: projetoEvento.trim() || null,
       })),
     };
