@@ -14,7 +14,9 @@ interface CobrancaPedidoProps {
   condicao_pagamento?: string
   valor_bruto?:      string
   desconto?:         string
+  bonus_pix?:        string
   valor_frete?:      string
+  frete_por_conta_fetely?: boolean
   valor_liquido?:    string
   link_pagamento?:   string
   tipo_pagamento?:   TipoPagamento
@@ -64,7 +66,9 @@ const CobrancaPedidoEmail = ({
   condicao_pagamento,
   valor_bruto,
   desconto,
+  bonus_pix,
   valor_frete,
+  frete_por_conta_fetely,
   valor_liquido,
   link_pagamento,
   tipo_pagamento,
@@ -167,10 +171,22 @@ const CobrancaPedidoEmail = ({
                     <Column style={resumoValor}>{desconto}</Column>
                   </Row>
                 )}
+                {bonus_pix && (
+                  <Row>
+                    <Column style={resumoLabel}>Bônus PIX</Column>
+                    <Column style={resumoValor}>{bonus_pix}</Column>
+                  </Row>
+                )}
                 {valor_frete && (
                   <Row>
                     <Column style={resumoLabel}>Frete</Column>
                     <Column style={resumoValor}>{valor_frete}</Column>
+                  </Row>
+                )}
+                {!valor_frete && frete_por_conta_fetely && (
+                  <Row>
+                    <Column style={resumoLabel}>Frete</Column>
+                    <Column style={resumoValor}>por conta da Fetely</Column>
                   </Row>
                 )}
                 <Row>
