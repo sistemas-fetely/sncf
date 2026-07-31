@@ -157,6 +157,14 @@ export function PipelineHorizontal({
   }, [data, incluirCancelados]);
 
 
+  if (isError) {
+    return (
+      <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        Erro ao carregar o pipeline: {(error as Error)?.message ?? "erro desconhecido"}
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex gap-2">
@@ -169,8 +177,25 @@ export function PipelineHorizontal({
 
   return (
     <div className="space-y-2">
-      {(totalSla > 0 || (pagamentoVencido?.ativos ?? 0) > 0 || (pagamentoVencido?.entregues ?? 0) > 0) && (
+      {(riscoVermelhoQtd > 0 || totalSla > 0 || (pagamentoVencido?.ativos ?? 0) > 0 || (pagamentoVencido?.entregues ?? 0) > 0) && (
         <div className="flex items-center gap-4 text-xs flex-wrap">
+          {riscoVermelhoQtd > 0 && (
+            <button
+              type="button"
+              onClick={() => onToggleRiscoAlto?.()}
+              aria-pressed={riscoAltoAtivo}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-2 py-0.5 font-semibold transition-colors",
+                riscoAltoAtivo
+                  ? "bg-destructive text-destructive-foreground ring-1 ring-destructive"
+                  : "bg-destructive/10 text-destructive ring-1 ring-destructive/30 hover:bg-destructive/20"
+              )}
+              title={riscoAltoAtivo ? "Clique para limpar o filtro de risco alto" : "Filtrar somente risco alto"}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {riscoVermelhoQtd} em risco alto · {fmtBRL.format(riscoVermelhoValor)}
+            </button>
+          )}
           {totalSla > 0 && (
             <div className="flex items-center gap-1.5 text-destructive">
               <AlertTriangle className="h-3.5 w-3.5" />
@@ -209,6 +234,27 @@ export function PipelineHorizontal({
             {totalQtd}
           </span>
         </button>
+
+        {/* Toggle: incluir cancelados */}
+        <button
+          type="button"
+          onClick={() => onToggleCancelados?.(!incluirCancelados)}
+          aria-pressed={incluirCancelados}
+          className={cn(
+            "flex flex-col items-center justify-center rounded-md border py-2 px-3 transition-all duration-200 min-w-[92px] text-center",
+            "gold-border-hover focus-visible:outline-none",
+            incluirCancelados ? "gold-border bg-gold-soft shadow-sm" : "border-border bg-card"
+          )}
+          title="Inclui cancelados e recuperação de venda na fila"
+        >
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide leading-tight">
+            Incluir<br />cancelados
+          </span>
+          <span className="text-[11px] font-semibold">
+            {incluirCancelados ? "Ligado" : "Desligado"}
+          </span>
+        </button>
+
 
         {/* Cards por fase */}
         {fases.map(({ estagio, qtd, sla }) => {
