@@ -58,6 +58,11 @@ interface Tarefa {
   evidencia_url: string | null;
   criado_por: string | null;
   created_at: string;
+  // Derivados da view vw_tarefas
+  esta_aberta?: boolean | null;
+  esta_atrasada?: boolean | null;
+  dias_atraso?: number | null;
+  dias_restantes?: number | null;
 }
 
 type StatusFilter = "ativas" | "pendente" | "atrasada" | "em_andamento" | "aguardando_terceiro" | "concluida" | "todas";
@@ -140,7 +145,7 @@ export default function MinhasTarefas() {
     }
 
     const { data, error } = await supabase
-      .from("sncf_tarefas")
+      .from("vw_tarefas")
       .select("*")
       .or(filters.join(","))
       .order("prazo_data", { ascending: true, nullsFirst: false });
@@ -167,15 +172,13 @@ export default function MinhasTarefas() {
     }
 
     const lista: PrioridadeDia[] = [];
-    const hojeStr = new Date().toISOString().slice(0, 10);
 
     // Tarefas legais bloqueantes atrasadas — todos os perfis (gestor direto, RH, super)
     const { data: tarefasLegais } = await supabase
-      .from("sncf_tarefas")
+      .from("vw_tarefas")
       .select("id, titulo, prazo_data, processo_id, tipo_processo, colaborador_nome")
       .eq("bloqueante", true)
-      .in("status", ["pendente", "atrasada"])
-      .lt("prazo_data", hojeStr)
+      .eq("esta_atrasada", true)
       .or(`responsavel_user_id.eq.${user.id},accountable_user_id.eq.${user.id}`);
 
     if (tarefasLegais && tarefasLegais.length > 0) {
@@ -307,8 +310,9 @@ export default function MinhasTarefas() {
   const aplicarFiltros = (lista: Tarefa[]) =>
     lista.filter((t) => {
       // status
-      if (statusFilter === "ativas" && !["pendente", "atrasada", "em_andamento", "aguardando_terceiro"].includes(t.status)) return false;
-      if (["pendente", "atrasada", "em_andamento", "aguardando_terceiro", "concluida"].includes(statusFilter) && t.status !== statusFilter) return false;
+      if (statusFilter === "ativas" && !["pendente", "em_andamento", "aguardando_terceiro"].includes(t.status)) return false;
+      if (statusFilter === "atrasada" && !t.esta_atrasada) return false;
+      if (["pendente", "em_andamento", "aguardando_terceiro", "concluida"].includes(statusFilter) && t.status !== statusFilter) return false;
       // tipo
       if (tipoFilter !== "todos" && t.tipo_processo !== tipoFilter) return false;
       // sistema
@@ -323,7 +327,7 @@ export default function MinhasTarefas() {
   const kpis = useMemo(() => {
     const hoje = new Date().toISOString().split("T")[0];
     const pendentes = minhasTarefas.filter((t) => t.status === "pendente").length;
-    const atrasadas = minhasTarefas.filter((t) => t.status === "atrasada").length;
+    const atrasadas = minhasTarefas.filter((t) => t.esta_atrasada).length;
     const emAndamento = minhasTarefas.filter((t) => t.status === "em_andamento").length;
     const concluidasHoje = minhasTarefas.filter(
       (t) => t.status === "concluida" && t.concluida_em?.startsWith(hoje),
@@ -361,18 +365,13 @@ export default function MinhasTarefas() {
     if (!concluirTarefa) return;
     setSalvando(true);
     
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({
-        status: "concluida",
-        concluida_em: new Date().toISOString(),
-        concluida_por: user?.id,
-        evidencia_texto: evidenciaTexto.trim() || null,
-        evidencia_url: null,
-      })
-      .eq("id", concluirTarefa.id);
+    const { error } = await supabase.rpc("concluir_tarefa", {
+      p_tarefa_id: concluirTarefa.id,
+      p_evidencia_texto: evidenciaTexto.trim() || undefined,
+      p_evidencia_url: evidenciaUrl.trim() || undefined,
+    });
 
-    if (error) toast.error("Erro: " + humanizeError(error.message));
+    if (error) toast.error("Erro: " + (error.message || humanizeError(error.message)));
     else {
       toast.success("Tarefa concluída!");
       setConcluirTarefa(null);
@@ -521,9 +520,7 @@ export default function MinhasTarefas() {
   };
 
   const renderTarefa = (tarefa: Tarefa) => {
-    const diasAtraso = tarefa.prazo_data
-      ? Math.ceil((Date.now() - new Date(tarefa.prazo_data + "T00:00:00").getTime()) / 86400000)
-      : 0;
+    const diasAtraso = tarefa.dias_atraso ?? 0;
 
     return (
       <div
@@ -531,7 +528,7 @@ export default function MinhasTarefas() {
         onClick={() => setDrawerTarefa(tarefa)}
         className={cn(
           "flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
-          tarefa.status === "atrasada"
+          tarefa.esta_atrasada
             ? "bg-destructive/5 border-destructive/30 hover:bg-destructive/10"
             : tarefa.bloqueante
             ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900 hover:bg-amber-100/50"
@@ -578,7 +575,10 @@ export default function MinhasTarefas() {
             {tarefa.tipo_processo === "manual" && (
               <Badge variant="outline" className="text-[10px]">Manual</Badge>
             )}
-            {tarefa.status === "atrasada" && (
+            {tarefa.status === "pendente" && (
+              <Badge variant="secondary" className="text-[10px]">Pendente</Badge>
+            )}
+            {tarefa.esta_atrasada && (
               <Badge variant="destructive" className="text-[10px]">
                 Atrasada {diasAtraso > 0 ? `há ${diasAtraso} dia${diasAtraso !== 1 ? "s" : ""}` : ""}
               </Badge>
@@ -650,7 +650,7 @@ export default function MinhasTarefas() {
           {/* Barra de ações rápidas */}
           {!["concluida", "cancelada"].includes(tarefa.status) && (
             <div className="flex gap-1 flex-wrap justify-end">
-              {["pendente", "atrasada"].includes(tarefa.status) && (
+              {tarefa.status === "pendente" && (
                 <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10"
                   onClick={() => handleIniciar(tarefa)}>
                   <Play className="h-3 w-3" /> Iniciar
@@ -895,7 +895,7 @@ export default function MinhasTarefas() {
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ativas">Ativas (pendente + atrasada)</SelectItem>
+                  <SelectItem value="ativas">Ativas (abertas)</SelectItem>
                   <SelectItem value="pendente">Pendentes</SelectItem>
                   <SelectItem value="atrasada">Atrasadas</SelectItem>
                   <SelectItem value="em_andamento">Em andamento</SelectItem>

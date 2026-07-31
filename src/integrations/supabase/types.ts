@@ -30692,6 +30692,7 @@ export type Database = {
           dias_desde_faturamento: number | null
           dias_sem_movimento: number | null
           estagio: string | null
+          exige_acao_nossa: boolean | null
           id_externo: string | null
           motivo: string | null
           pedido_id: string | null
@@ -31078,14 +31079,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -33225,11 +33226,14 @@ export type Database = {
       }
       vw_tarefas: {
         Row: {
+          accountable_role: string | null
           accountable_user_id: string | null
+          area_destino: string | null
           area_destino_id: string | null
           area_nome: string | null
           area_role: string | null
           bloqueante: boolean | null
+          colaborador_id: string | null
           colaborador_nome: string | null
           colaborador_tipo: string | null
           concluida_em: string | null
@@ -33252,7 +33256,9 @@ export type Database = {
           iniciada_em: string | null
           link_acao: string | null
           motivo_bloqueio: string | null
+          origem_extensao_id: string | null
           prazo_data: string | null
+          prazo_dias: number | null
           prioridade: string | null
           processo_id: string | null
           processo_tipo: string | null
@@ -33272,6 +33278,13 @@ export type Database = {
             columns: ["area_destino_id"]
             isOneToOne: false
             referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_origem_extensao_id_fkey"
+            columns: ["origem_extensao_id"]
+            isOneToOne: false
+            referencedRelation: "sncf_template_extensoes"
             referencedColumns: ["id"]
           },
           {

@@ -54,6 +54,11 @@ interface TarefaTI {
   colaborador_nome: string | null;
   tipo_processo: string | null;
   area_destino: string | null;
+  area_nome?: string | null;
+  esta_aberta?: boolean | null;
+  esta_atrasada?: boolean | null;
+  dias_atraso?: number | null;
+  dias_restantes?: number | null;
 }
 
 const statusVariant: Record<string, { label: string; className: string }> = {
@@ -78,32 +83,20 @@ export default function TIDashboard() {
   const [salvando, setSalvando] = useState(false);
 
   const loadTarefas = async () => {
-    const { data: tarefas } = await (supabase as any)
-      .from("sncf_tarefas")
+    const { data: tarefas, error } = await (supabase as any)
+      .from("vw_tarefas")
       .select("*")
-      .eq("area_destino", "TI")
-      .in("status", ["pendente", "atrasada", "em_andamento"])
+      .eq("area_nome", "Tecnologia da Informação")
+      .eq("esta_aberta", true)
       .order("prazo_data", { ascending: true });
 
-    const lista = (tarefas || []) as TarefaTI[];
-
-    // Marcar atrasadas automaticamente
-    const hoje = new Date().toISOString().split("T")[0];
-    const atrasadasIds = lista
-      .filter((t) => t.status === "pendente" && t.prazo_data && t.prazo_data < hoje)
-      .map((t) => t.id);
-    if (atrasadasIds.length > 0) {
-      await (supabase as any)
-        .from("sncf_tarefas")
-        .update({ status: "atrasada" })
-        .in("id", atrasadasIds);
-      // Refletir na lista local
-      lista.forEach((t) => {
-        if (atrasadasIds.includes(t.id)) t.status = "atrasada";
-      });
+    if (error) {
+      toast.error("Erro ao carregar tarefas de TI: " + error.message);
+      setTarefasTI([]);
+      return;
     }
 
-    setTarefasTI(lista);
+    setTarefasTI((tarefas || []) as TarefaTI[]);
   };
 
   const load = async () => {
@@ -153,16 +146,11 @@ export default function TIDashboard() {
       return;
     }
     setSalvando(true);
-    const { error } = await (supabase as any)
-      .from("sncf_tarefas")
-      .update({
-        status: "concluida",
-        concluida_em: new Date().toISOString(),
-        concluida_por: user?.id,
-        evidencia_texto: evidenciaTexto.trim(),
-        evidencia_url: evidenciaUrl.trim() || null,
-      })
-      .eq("id", concluirTarefa.id);
+    const { error } = await supabase.rpc("concluir_tarefa", {
+      p_tarefa_id: concluirTarefa.id,
+      p_evidencia_texto: evidenciaTexto.trim(),
+      p_evidencia_url: evidenciaUrl.trim() || undefined,
+    });
 
     if (error) {
       toast.error("Erro: " + error.message);
@@ -261,14 +249,12 @@ export default function TIDashboard() {
           ) : (
             <div className="space-y-2">
               {tarefasTI.map((tarefa) => {
-                const diasAtraso = tarefa.prazo_data
-                  ? Math.ceil((Date.now() - new Date(tarefa.prazo_data + "T00:00:00").getTime()) / 86400000)
-                  : 0;
+                const diasAtraso = tarefa.dias_atraso ?? 0;
                 return (
                   <div
                     key={tarefa.id}
                     className={`flex items-start gap-3 p-3 rounded-lg border ${
-                      tarefa.status === "atrasada"
+                      tarefa.esta_atrasada
                         ? "bg-red-50 border-red-200"
                         : tarefa.bloqueante
                         ? "bg-yellow-50 border-yellow-200"
@@ -288,9 +274,12 @@ export default function TIDashboard() {
                             <AlertTriangle className="h-3 w-3" /> Legal
                           </Badge>
                         )}
-                        {tarefa.status === "atrasada" && (
+                        {tarefa.status === "em_andamento" && (
+                          <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500/90">Em andamento</Badge>
+                        )}
+                        {tarefa.esta_atrasada && (
                           <Badge variant="destructive" className="text-[10px]">
-                            Atrasada {tarefa.prazo_data ? `há ${diasAtraso} dias` : ""}
+                            Atrasada {diasAtraso > 0 ? `há ${diasAtraso} dias` : ""}
                           </Badge>
                         )}
                       </div>

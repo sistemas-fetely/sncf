@@ -63,6 +63,10 @@ type Tarefa = {
   motivo_bloqueio?: string | null;
   evidencia_texto?: string | null;
   evidencia_url?: string | null;
+  esta_aberta?: boolean | null;
+  esta_atrasada?: boolean | null;
+  dias_atraso?: number | null;
+  dias_restantes?: number | null;
 };
 
 const statusFilter = [
@@ -130,25 +134,16 @@ export default function Onboarding() {
     let tarefasMap: Record<string, Tarefa[]> = {};
     let allTarefas: any[] = [];
     if (ids.length > 0) {
-      const { data: tarefas } = await supabase
-        .from("sncf_tarefas")
+      const { data: tarefas, error: errTarefas } = await supabase
+        .from("vw_tarefas")
         .select("*")
         .eq("tipo_processo", "onboarding")
         .in("processo_id", ids)
         .order("prazo_dias", { ascending: true });
 
-      allTarefas = tarefas || [];
+      if (errTarefas) toast.error("Erro ao carregar tarefas: " + errTarefas.message);
 
-      // Marcar tarefas pendentes com prazo passado como "atrasada"
-      const hojeStr = new Date().toISOString().split("T")[0];
-      const atrasadas = allTarefas.filter((t: any) => t.status === "pendente" && t.prazo_data && t.prazo_data < hojeStr);
-      if (atrasadas.length > 0) {
-        await supabase.from("sncf_tarefas")
-          .update({ status: "atrasada" })
-          .in("id", atrasadas.map((t: any) => t.id))
-          .eq("status", "pendente");
-        atrasadas.forEach((t: any) => { t.status = "atrasada"; });
-      }
+      allTarefas = tarefas || [];
 
       allTarefas.forEach((t: any) => {
         const item = { ...t, checklist_id: t.processo_id };
@@ -197,7 +192,7 @@ export default function Onboarding() {
   }
 
   function isTarefaAtrasada(t: Tarefa) {
-    return t.status === "atrasada" || (t.status === "pendente" && t.prazo_data && new Date(t.prazo_data) < new Date());
+    return !!t.esta_atrasada;
   }
 
   function hasOverdue(cl: Checklist) {

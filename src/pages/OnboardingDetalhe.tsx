@@ -43,6 +43,10 @@ type Tarefa = {
   evidencia_texto: string | null;
   evidencia_url: string | null;
   origem_extensao_id: string | null;
+  esta_aberta?: boolean | null;
+  esta_atrasada?: boolean | null;
+  dias_atraso?: number | null;
+  dias_restantes?: number | null;
 };
 
 type ExtensaoMeta = {
@@ -124,7 +128,7 @@ export default function OnboardingDetalhe() {
 
     // Tarefas
     const { data: tarefasData } = await supabase
-      .from("sncf_tarefas")
+      .from("vw_tarefas")
       .select("*")
       .eq("tipo_processo", "onboarding")
       .eq("processo_id", id)
@@ -148,21 +152,6 @@ export default function OnboardingDetalhe() {
       setExtensoesMap(map);
     } else {
       setExtensoesMap({});
-    }
-
-    // Marcar atrasadas
-    const hojeStr = new Date().toISOString().split("T")[0];
-    const atrasadasIds = tarefas
-      .filter((t) => t.status === "pendente" && t.prazo_data && t.prazo_data < hojeStr)
-      .map((t) => t.id);
-    if (atrasadasIds.length > 0) {
-      await supabase
-        .from("sncf_tarefas")
-        .update({ status: "atrasada" })
-        .in("id", atrasadasIds);
-      tarefas.forEach((t) => {
-        if (atrasadasIds.includes(t.id)) t.status = "atrasada";
-      });
     }
 
     // Nome / cargo / departamento
@@ -203,17 +192,10 @@ export default function OnboardingDetalhe() {
 
   const stats = useMemo(() => {
     const tarefas = checklist?.tarefas || [];
-    const hojeStr = new Date().toISOString().split("T")[0];
     const total = tarefas.length;
     const concluidas = tarefas.filter((t) => t.status === "concluida").length;
-    const atrasadas = tarefas.filter(
-      (t) => t.status === "atrasada" || (t.status === "pendente" && t.prazo_data && t.prazo_data < hojeStr)
-    ).length;
-    const atrasadasLegais = tarefas.filter(
-      (t) =>
-        t.bloqueante &&
-        (t.status === "atrasada" || (t.status === "pendente" && t.prazo_data && t.prazo_data < hojeStr))
-    ).length;
+    const atrasadas = tarefas.filter((t) => t.esta_atrasada).length;
+    const atrasadasLegais = tarefas.filter((t) => t.bloqueante && t.esta_atrasada).length;
     const progress = total > 0 ? Math.round((concluidas / total) * 100) : 0;
     return { total, concluidas, atrasadas, atrasadasLegais, progress };
   }, [checklist]);
@@ -229,8 +211,7 @@ export default function OnboardingDetalhe() {
   }, [checklist]);
 
   function isTarefaAtrasada(t: Tarefa) {
-    const hojeStr = new Date().toISOString().split("T")[0];
-    return t.status === "atrasada" || (t.status === "pendente" && !!t.prazo_data && t.prazo_data < hojeStr);
+    return !!t.esta_atrasada;
   }
 
   function handleClickConcluir(tarefa: Tarefa) {
@@ -418,7 +399,7 @@ export default function OnboardingDetalhe() {
                 {tarefasOrdenadas.map((t) => {
                   const atrasada = isTarefaAtrasada(t);
                   const atrasoLegal = atrasada && t.bloqueante;
-                  const dias = atrasada && t.prazo_data ? diasAtraso(t.prazo_data) : 0;
+                  const dias = t.dias_atraso ?? 0;
 
                   return (
                     <div

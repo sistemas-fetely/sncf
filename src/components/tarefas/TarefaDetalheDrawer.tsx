@@ -38,6 +38,10 @@ export interface TarefaDrawer {
   delegado_de_user_id?: string | null;
   delegado_por_user_id?: string | null;
   delegado_em?: string | null;
+  esta_aberta?: boolean | null;
+  esta_atrasada?: boolean | null;
+  dias_atraso?: number | null;
+  dias_restantes?: number | null;
 }
 
 interface Props {
@@ -213,16 +217,10 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
   const handleDelegar = async (novoUserId: string, nomeNovo: string) => {
     setExecutandoAcao(true);
     setDelegarOpen(false);
-    const responsavelAnterior = tarefa.responsavel_user_id;
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({
-        responsavel_user_id: novoUserId,
-        delegado_de_user_id: responsavelAnterior,
-        delegado_por_user_id: user?.id,
-        delegado_em: new Date().toISOString(),
-      })
-      .eq("id", tarefa.id);
+    const { error } = await supabase.rpc("delegar_tarefa", {
+      p_tarefa_id: tarefa.id,
+      p_para_user_id: novoUserId,
+    });
     if (error) {
       toast.error("Erro ao delegar: " + error.message);
       setExecutandoAcao(false);
@@ -235,9 +233,8 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
     setExecutandoAcao(false);
   };
 
-  const diasRestantes = tarefa.prazo_data
-    ? Math.ceil((new Date(tarefa.prazo_data + "T00:00:00").getTime() - Date.now()) / 86400000)
-    : null;
+  const diasRestantes = tarefa.dias_restantes ?? null;
+  const diasAtraso = tarefa.dias_atraso ?? 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -248,6 +245,11 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
               <Badge variant="outline" className={STATUS_BADGE_CLASS[tarefa.status] ?? ""}>
                 {STATUS_LABEL[tarefa.status] ?? tarefa.status}
               </Badge>
+              {tarefa.esta_atrasada && (
+                <Badge variant="destructive" className="gap-1">
+                  Atrasada{diasAtraso > 0 ? ` há ${diasAtraso} dia(s)` : ""}
+                </Badge>
+              )}
               {tarefa.prioridade === "urgente" && (
                 <Badge variant="destructive" className="gap-1">
                   <Flag className="h-3 w-3" /> Urgente
@@ -270,7 +272,7 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
           {/* Ações primárias */}
           {podeAgir && (
             <div className="flex flex-wrap gap-2 mt-4">
-              {["pendente", "atrasada"].includes(tarefa.status) && (
+              {tarefa.status === "pendente" && (
                 <Button size="sm" onClick={handleIniciar} disabled={executandoAcao} className="gap-1.5">
                   <Play className="h-3.5 w-3.5" /> Iniciar
                 </Button>
@@ -346,12 +348,15 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
               <Calendar className="h-3.5 w-3.5" />
               <span>
                 Prazo: {new Date(tarefa.prazo_data + "T00:00:00").toLocaleDateString("pt-BR")}
-                {diasRestantes !== null && (
-                  <span className={cn("ml-1.5", diasRestantes < 0 && "text-destructive font-medium")}>
-                    ({diasRestantes < 0 ? `${Math.abs(diasRestantes)} dia(s) atrasada` :
-                      diasRestantes === 0 ? "hoje" : `em ${diasRestantes} dia(s)`})
+                {tarefa.esta_atrasada ? (
+                  <span className="ml-1.5 text-destructive font-medium">
+                    ({diasAtraso} dia(s) atrasada)
                   </span>
-                )}
+                ) : diasRestantes !== null ? (
+                  <span className="ml-1.5">
+                    ({diasRestantes === 0 ? "hoje" : `em ${diasRestantes} dia(s)`})
+                  </span>
+                ) : null}
               </span>
             </div>
           )}

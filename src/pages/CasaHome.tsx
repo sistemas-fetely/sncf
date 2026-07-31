@@ -83,11 +83,10 @@ export default function CasaHome() {
     queryFn: async () => {
       const hoje = new Date().toISOString().slice(0, 10);
       const { count, error } = await supabase
-        .from("sncf_tarefas")
+        .from("vw_tarefas")
         .select("*", { count: "exact", head: true })
         .eq("responsavel_user_id", user!.id)
-        .neq("status", "concluida")
-        .neq("status", "cancelada")
+        .eq("esta_aberta", true)
         .or(`prazo_data.lte.${hoje},prazo_data.is.null`);
       if (error) throw error;
       return count ?? 0;
