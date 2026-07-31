@@ -20,6 +20,8 @@ import { usePedidoEdicaoCampo, type CampoEdicao, type RegraEdicaoCampo } from "@
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import { formatError } from "@/lib/format-error";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
+import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
+
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const num = (v: unknown) => Number(v || 0);
