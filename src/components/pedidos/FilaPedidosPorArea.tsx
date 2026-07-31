@@ -68,14 +68,8 @@ interface Props {
   somenteRiscoAlto?: boolean;
 }
 
-/** Lista completa de estágios (pipeline + cancelado + recuperação). */
-function todosOsEstagios(): EstagioPedido[] {
-  return [
-    ...PIPELINE_PRINCIPAL,
-    ...ESTAGIOS_RECUPERAVEIS,
-    ...ESTAGIOS_TERMINAIS.filter((e) => !PIPELINE_PRINCIPAL.includes(e)),
-  ];
-}
+
+
 
 export function FilaPedidosPorArea({
   area,
