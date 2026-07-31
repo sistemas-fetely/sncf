@@ -87,23 +87,6 @@ serve(async (req) => {
         return err("Sem NF de saída autorizada para este pedido", 422);
       }
 
-      // Bling client lazy (apenas se precisar completar pdf/xml)
-      let blingClient: any = null;
-      const ensureClient = async () => {
-        if (blingClient) return blingClient;
-        const { data: cfg } = await supabase
-          .from("integracoes_config")
-          .select("*")
-          .eq("sistema", "bling")
-          .maybeSingle();
-        if (!cfg || !cfg.access_token) {
-          throw new Error("Bling não conectado");
-        }
-        const freshToken = await ensureFreshToken(supabase, cfg);
-        blingClient = makeBlingClient(supabase, cfg, freshToken);
-        return blingClient;
-      };
-
       // base64 chunked (evita stack overflow para PDFs grandes)
       const toBase64 = (bytes: Uint8Array): string => {
         let binary = "";
@@ -121,60 +104,78 @@ serve(async (req) => {
       const nf_numeros: string[] = [];
 
       for (const nf of nfs) {
-        let pdfUrl: string | null = nf.pdf_url ?? null;
-        let xmlVal: string | null = nf.xml_url ?? null;
+        const rotulo = nf.numero ?? nf.bling_id ?? nf.id;
 
-        if ((!pdfUrl || !xmlVal) && nf.bling_id) {
-          try {
-            const cli = await ensureClient();
-            const resp = await cli.get(`/nfe/${nf.bling_id}`);
-            const d = resp?.data ?? resp;
-            pdfUrl = pdfUrl ?? d?.linkPDF ?? d?.linkDanfe ?? null;
-            xmlVal = xmlVal ?? d?.xml ?? null;
-            if (pdfUrl || xmlVal) {
-              await supabase
-                .from("nfs_emitidas")
-                .update({ pdf_url: pdfUrl, xml_url: xmlVal })
-                .eq("id", nf.id)
-                .then(() => {})
-                .catch(() => {});
-            }
-          } catch (e) {
-            console.error(`[anexos_nf] Falha ao buscar NF ${nf.bling_id} no Bling: ${(e as Error).message}`);
-          }
+        // FAIL-LOUD: qualquer falha de resolução/validação aborta o ramo inteiro.
+        // Mandar nota fiscal falsa (página de Validação de Acesso do Bling com
+        // nome de PDF) é pior do que não mandar e-mail nenhum.
+        let resolvido;
+        let pdfBytes: Uint8Array;
+        try {
+          resolvido = await resolverLinkPdfFresco(supabase, null, nf as any);
+          pdfBytes = await baixarPdfValidado(resolvido.url, resolvido.origem, {
+            nf_id: nf.id,
+            numero: nf.numero,
+          });
+        } catch (e) {
+          const msg = (e as Error).message || String(e);
+          const status = e instanceof NfAnexoError ? e.status : 502;
+          console.error(`[anexos_nf] PDF da NF ${rotulo} reprovado`, {
+            nf_id: nf.id,
+            bling_id: nf.bling_id,
+            erro: msg,
+            extra: e instanceof NfAnexoError ? e.extra : null,
+          });
+          return err(`Anexo da NF ${rotulo} não pôde ser validado: ${msg}`, status);
         }
 
-        if (!pdfUrl) {
-          return err(`NF ${nf.numero ?? nf.bling_id} sem PDF no Bling`, 422);
-        }
-
-        // PDF
-        const pdfResp = await fetch(pdfUrl);
-        if (!pdfResp.ok) {
-          return err(`Falha ao baixar PDF da NF ${nf.numero}: HTTP ${pdfResp.status}`, 502);
-        }
-        const pdfBytes = new Uint8Array(await pdfResp.arrayBuffer());
         attachments.push({
           filename: `NF_${nf.numero ?? nf.bling_id}.pdf`,
           content: toBase64(pdfBytes),
         });
+        console.log("[anexos_nf] PDF validado", {
+          nf_numero: nf.numero,
+          nf_id: nf.id,
+          bytes: pdfBytes.byteLength,
+          origem_link: resolvido.origem,
+        });
 
-        // XML (sempre)
+        // XML (sempre que houver) — validado antes de anexar.
+        const xmlVal = resolvido.xml;
         if (xmlVal) {
           let xmlText: string;
-          if (xmlVal.startsWith("http")) {
-            const xmlResp = await fetch(xmlVal);
-            if (!xmlResp.ok) {
-              return err(`Falha ao baixar XML da NF ${nf.numero}: HTTP ${xmlResp.status}`, 502);
+          try {
+            if (xmlVal.startsWith("http")) {
+              const xmlResp = await fetch(xmlVal);
+              if (!xmlResp.ok) {
+                throw new NfAnexoError(
+                  502,
+                  `Falha ao baixar XML da NF ${rotulo}: HTTP ${xmlResp.status}`,
+                );
+              }
+              xmlText = validarXmlNf(await xmlResp.text(), { nf_id: nf.id });
+            } else {
+              xmlText = validarXmlNf(xmlVal, { nf_id: nf.id });
             }
-            xmlText = await xmlResp.text();
-          } else {
-            xmlText = xmlVal;
+          } catch (e) {
+            const msg = (e as Error).message || String(e);
+            const status = e instanceof NfAnexoError ? e.status : 502;
+            console.error(`[anexos_nf] XML da NF ${rotulo} reprovado`, {
+              nf_id: nf.id,
+              erro: msg,
+            });
+            return err(`XML da NF ${rotulo} não pôde ser validado: ${msg}`, status);
           }
+
           const xmlBytes = new TextEncoder().encode(xmlText);
           attachments.push({
             filename: `NF_${nf.numero ?? nf.bling_id}.xml`,
             content: toBase64(xmlBytes),
+          });
+          console.log("[anexos_nf] XML validado", {
+            nf_numero: nf.numero,
+            nf_id: nf.id,
+            bytes: xmlBytes.byteLength,
           });
         }
 
@@ -182,6 +183,7 @@ serve(async (req) => {
       }
 
       return ok({ sucesso: true, attachments, nf_numeros });
+
     }
     // ── fim branch anexos_nf ─────────────────────────────────────────────
 
