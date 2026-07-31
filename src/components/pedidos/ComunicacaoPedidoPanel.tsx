@@ -305,6 +305,32 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   };
 
   const dialogCfg = dialogTipo ? TIPO_LABEL[dialogTipo] : null;
+
+  // ── Link de pagamento (view) ──
+  const linkInfo = linkQ.data ?? null;
+  const linkUrl = linkInfo?.link?.trim() ?? "";
+  const linkUrlValida = /^https?:\/\//i.test(linkUrl);
+  const tipoLinkNorm = (linkInfo?.tipo_pagamento ?? portao?.tipo_pagamento ?? "").toString().toLowerCase();
+  const tipoExigeLink = tipoLinkNorm.includes("cart") || tipoLinkNorm.includes("pix");
+  const linkExpirado = linkInfo?.situacao === "expirado";
+  const precisaRenovar =
+    dialogTipo === "cobranca" &&
+    (linkExpirado || (!!linkUrl && !linkUrlValida) || (!linkUrl && tipoExigeLink));
+  const diasVencer = linkInfo?.dias_para_vencer ?? 0;
+
+  const salvarLinkNovo = async () => {
+    if (!novoLink.trim()) return;
+    await registrarLink.mutateAsync({
+      pedido_id,
+      link: novoLink.trim(),
+      gerado_em: geradoEm || undefined,
+      tipo_pagamento: linkInfo?.tipo_pagamento ?? portao?.tipo_pagamento ?? undefined,
+      motivo: "Renovação de link vencido/inválido",
+    });
+    setNovoLink("");
+    await linkQ.refetch();
+  };
+
   const historico = (logQ.data ?? []).slice(0, 5);
 
   return (
