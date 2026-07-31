@@ -435,23 +435,39 @@ export default function DesligamentoDetalhe() {
       </Dialog>
 
       {/* Excluir desligamento (super_admin) */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog open={showDeleteDialog} onOpenChange={(o) => { setShowDeleteDialog(o); if (!o) setMotivoExclusao(""); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir desligamento permanentemente?</AlertDialogTitle>
             <AlertDialogDescription>
-              O processo de desligamento de "{colabNome}" e todas as tarefas vinculadas serão excluídos.
+              O processo de desligamento de "{colabNome}" será excluído. As tarefas do processo serão
+              CANCELADAS com o motivo informado — não são excluídas, e o histórico é preservado.
               O status do colaborador será revertido para "ativo". Essa ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-exclusao-desligamento">Motivo da exclusão *</Label>
+            <Textarea
+              id="motivo-exclusao-desligamento"
+              value={motivoExclusao}
+              onChange={(e) => setMotivoExclusao(e.target.value)}
+              placeholder="Explique por que este processo está sendo excluído"
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDesligamento} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDeleteDesligamento}
+              disabled={!motivoExclusao.trim()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
