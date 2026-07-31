@@ -496,31 +496,18 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
   );
 }
 
-function BotaoSplitPedidoInline({ pedido }: { pedido: any }) {
-  const { data: permissoes } = usePermissoesDoUsuario();
-  const { roles } = useAuth();
-  const isSuperAdmin = (roles ?? []).includes("super_admin");
-  const podeSplit = isSuperAdmin || (permissoes?.has("operacao.split_pedido") ?? false);
-  const [splitOpen, setSplitOpen] = useState(false);
-
-  if (!podeSplit) return null;
-
+function BotaoSplitPedidoInline({ pedido, estagio }: { pedido: any; estagio: string | null | undefined }) {
   return (
-    <>
-      <Button variant="outline" className="w-full gap-2" onClick={() => setSplitOpen(true)}>
-        <Scissors className="h-4 w-4" />Split
-      </Button>
-      <SplitPedidoDialog
-        open={splitOpen}
-        onOpenChange={setSplitOpen}
-        pedido_id={pedido.id}
-        id_externo={pedido.id_externo}
-        valor_liquido={pedido.valor_liquido}
-        valor_bruto={pedido.valor_bruto}
-      />
-    </>
+    <BotaoSplitPedido
+      pedido_id={pedido.id}
+      id_externo={pedido.id_externo}
+      valor_liquido={pedido.valor_liquido}
+      valor_bruto={pedido.valor_bruto}
+      estagio={estagio}
+    />
   );
 }
+
 
 function AcoesPedidoCobranca({ pedido, parceiro }: { pedido: any; parceiro: any }) {
   const navigate = useNavigate();
