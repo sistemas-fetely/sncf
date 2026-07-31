@@ -17912,6 +17912,7 @@ export type Database = {
           gtin: string | null
           id: string
           imagem_url: string | null
+          itens_por_caixa: number | null
           largura_cm: number | null
           linha: string | null
           marca: string | null
@@ -17948,6 +17949,7 @@ export type Database = {
           gtin?: string | null
           id?: string
           imagem_url?: string | null
+          itens_por_caixa?: number | null
           largura_cm?: number | null
           linha?: string | null
           marca?: string | null
@@ -17984,6 +17986,7 @@ export type Database = {
           gtin?: string | null
           id?: string
           imagem_url?: string | null
+          itens_por_caixa?: number | null
           largura_cm?: number | null
           linha?: string | null
           marca?: string | null
@@ -29459,14 +29462,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
