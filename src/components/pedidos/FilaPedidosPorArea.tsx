@@ -810,6 +810,7 @@ function FarolRisco({
 function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
   const navigate = useNavigate();
   const [cadastroOpen, setCadastroOpen] = useState(false);
+  const [exportarOpen, setExportarOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [marcacaoOpen, setMarcacaoOpen] = useState(false);
 
