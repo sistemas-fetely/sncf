@@ -1,9 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { formatError } from "@/lib/format-error";
 
-// Regressao do Mapa_Erro_Cego (31/07/2026).
-// Objeto EXATO que o PostgREST entrega no catch (JSON.parse do body),
-// para a violacao de FK vista em producao.
+// Regressao do Mapa_Erro_Cego (31/07/2026): objeto EXATO do PostgREST
+// na violacao de FK vista em producao.
 const erroFkReal = {
   code: "23503",
   details:
