@@ -29,6 +29,12 @@ const ESTAGIO_OPTIONS: { value: EstagioSplit; label: string; desc: string }[] = 
   { value: "cobranca",           label: "Cobrança",           desc: "Precisa renegociar condições de pagamento" },
 ];
 
+/** Quando a origem está aguardando estoque, o operador separa o que TEM do que FALTA. */
+const ESTAGIO_OPTIONS_ESTOQUE: { value: EstagioSplit; label: string; desc: string }[] = [
+  { value: "pre_separacao",      label: "Seguir para separação", desc: "O que chegou já segue para separação agora" },
+  { value: "aguardando_estoque", label: "Continuar aguardando",  desc: "O novo pedido também segue esperando estoque" },
+];
+
 interface ItemPedido {
   descricao: string;
   sku: string;
@@ -43,12 +49,17 @@ interface Props {
   id_externo: string;
   valor_liquido: number;
   valor_bruto: number;
+  estagio_origem?: string | null;
 }
 
-export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, valor_liquido }: Props) {
+export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, valor_liquido, estagio_origem }: Props) {
   const criarSplit = useCriarSplit();
+  const origemEstoque = estagio_origem === "aguardando_estoque";
+  const opcoesEstagio = origemEstoque ? ESTAGIO_OPTIONS_ESTOQUE : ESTAGIO_OPTIONS;
   const [qtdSplit, setQtdSplit] = useState<Record<string, number>>({});
-  const [estagio, setEstagio] = useState<EstagioSplit>("aguardando_estoque");
+  const [estagio, setEstagio] = useState<EstagioSplit>(
+    origemEstoque ? "pre_separacao" : "aguardando_estoque",
+  );
   const [dataEntrega, setDataEntrega] = useState("");
   const [observacao, setObservacao] = useState("");
   const [financeiroCoberto, setFinanceiroCoberto] = useState(false);
@@ -89,21 +100,25 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
   const podeConfirmar = temItensSplit && itensOriginal.length > 0;
 
   const handleConfirmar = async () => {
-    await criarSplit.mutateAsync({
-      pedido_id,
-      itens_original:        itensOriginal,
-      itens_split:           itensSplit,
-      valor_original:        valorOrig,
-      valor_split:           valorSplit,
-      estagio_inicial:       estagio,
-      data_entrega_prevista: dataEntrega || null,
-      observacao:            observacao || null,
-      financeiro_coberto:    financeiroCoberto,
-    });
-    onOpenChange(false);
+    try {
+      await criarSplit.mutateAsync({
+        pedido_id,
+        itens_original:        itensOriginal,
+        itens_split:           itensSplit,
+        valor_original:        valorOrig,
+        valor_split:           valorSplit,
+        estagio_inicial:       estagio,
+        data_entrega_prevista: dataEntrega || null,
+        observacao:            observacao || null,
+        financeiro_coberto:    financeiroCoberto,
+      });
+      onOpenChange(false);
+    } catch {
+      // erro do Postgres já é exibido em toast pelo hook (FAIL-LOUD); dialog fica aberto
+    }
   };
 
-  const estagioSelecionado = ESTAGIO_OPTIONS.find((e) => e.value === estagio);
+  const estagioSelecionado = opcoesEstagio.find((e) => e.value === estagio);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!criarSplit.isPending) onOpenChange(v); }}>
@@ -114,10 +129,13 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
             Split do pedido {id_externo}
           </DialogTitle>
           <DialogDescription>
-            Defina quantas unidades de cada item vão no novo pedido split.
-            O pedido original {id_externo} mantém o número — o split recebe {id_externo}/01 (ou próxima sequência).
+            {origemEstoque
+              ? <>Separe o que <strong>tem estoque</strong> do que <strong>falta</strong>. O que ficar em {id_externo} continua aguardando estoque; o que você mover vai para o novo pedido {id_externo}/01.</>
+              : <>Defina quantas unidades de cada item vão no novo pedido split.
+                 O pedido original {id_externo} mantém o número — o split recebe {id_externo}/01 (ou próxima sequência).</>}
           </DialogDescription>
         </DialogHeader>
+
 
         <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
           {isLoading ? (
@@ -176,7 +194,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-md border p-3 bg-blue-50/50">
                     <div className="text-xs font-medium text-blue-900">
-                      {id_externo} — Pedido original (fica)
+                      {id_externo} — {origemEstoque ? "Continua aguardando estoque" : "Pedido original (fica)"}
                     </div>
                     <div className="text-lg font-semibold mt-1">{fmtBRL.format(valorOrig)}</div>
                     <div className="text-xs text-muted-foreground">
@@ -185,7 +203,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                   </div>
                   <div className="rounded-md border p-3 bg-yellow-50/50">
                     <div className="text-xs font-medium text-yellow-900">
-                      {id_externo}/01 — Novo pedido (split)
+                      {id_externo}/01 — {origemEstoque ? "Seguir agora (tem estoque)" : "Novo pedido (split)"}
                     </div>
                     <div className="text-lg font-semibold mt-1">{fmtBRL.format(valorSplit)}</div>
                     <div className="text-xs text-muted-foreground">
@@ -198,13 +216,13 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
               <Separator />
 
               <div className="space-y-2">
-                <Label>Estágio inicial do novo pedido</Label>
+                <Label>{origemEstoque ? "Destino do novo pedido" : "Estágio inicial do novo pedido"}</Label>
                 <Select value={estagio} onValueChange={(v) => setEstagio(v as EstagioSplit)}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ESTAGIO_OPTIONS.map((opt) => (
+                    {opcoesEstagio.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>
