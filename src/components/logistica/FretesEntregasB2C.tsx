@@ -203,13 +203,18 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
                     <td className="p-2 font-mono text-xs">{f.rastreio ?? "—"}</td>
                     <td className="p-2 text-right tabular-nums">{BRL.format(Number(f.custo_frete ?? 0))}</td>
                     <td className="p-2">
-                      {f.entregue ? (
-                        <Badge variant="outline" className="text-success border-success/40">Entregue</Badge>
-                      ) : f.devolucao ? (
-                        <Badge variant="outline" className="text-destructive border-destructive/40">Devolução</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">{f.status_texto ?? "Pendente"}</Badge>
-                      )}
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          f.estado_canonico === "entregue"
+                            ? "text-success border-success/40"
+                            : f.estado_canonico === "devolucao" || f.eh_problema
+                              ? "text-destructive border-destructive/40"
+                              : "text-muted-foreground",
+                        )}
+                      >
+                        {f.estado_rotulo ?? f.status_texto ?? "Pendente"}
+                      </Badge>
                     </td>
                   </tr>
                 ))}
