@@ -180,15 +180,29 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
   const handleAcaoStatus = async (
     novoStatus: string,
     descricao: string,
-    extraFields: Record<string, unknown> = {},
+    opts: { evidenciaTexto?: string | null; evidenciaUrl?: string | null; motivo?: string } = {},
   ) => {
     setExecutandoAcao(true);
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ status: novoStatus, ...extraFields })
-      .eq("id", tarefa.id);
+    let error: unknown = null;
+    if (novoStatus === "concluida") {
+      ({ error } = await supabase.rpc("concluir_tarefa", {
+        p_tarefa_id: tarefa.id,
+        p_evidencia_texto: opts.evidenciaTexto ?? null,
+        p_evidencia_url: opts.evidenciaUrl ?? null,
+      }));
+    } else if (novoStatus === "cancelada") {
+      ({ error } = await supabase.rpc("cancelar_tarefa", {
+        p_tarefa_id: tarefa.id,
+        p_motivo: opts.motivo ?? "",
+      }));
+    } else {
+      ({ error } = await supabase.rpc("transicionar_tarefa", {
+        p_tarefa_id: tarefa.id,
+        p_novo_status: novoStatus,
+      }));
+    }
     if (error) {
-      toast.error("Erro: " + error.message);
+      toast.error("Erro: " + formatError(error));
       setExecutandoAcao(false);
       return;
     }
@@ -199,8 +213,7 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
     setExecutandoAcao(false);
   };
 
-  const handleIniciar = () =>
-    handleAcaoStatus("em_andamento", "Iniciou a tarefa", { iniciada_em: new Date().toISOString() });
+  const handleIniciar = () => handleAcaoStatus("em_andamento", "Iniciou a tarefa");
   const handleAguardando = () => handleAcaoStatus("aguardando_terceiro", "Moveu para aguardando terceiro");
   const handleRetomar = () => handleAcaoStatus("em_andamento", "Retomou a tarefa");
 
