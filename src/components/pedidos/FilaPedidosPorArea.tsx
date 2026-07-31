@@ -784,20 +784,10 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
   const navigate = useNavigate();
   const [cadastroOpen, setCadastroOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
+  const [marcacaoOpen, setMarcacaoOpen] = useState(false);
 
   return (
     <div className="flex justify-end items-center gap-1.5">
-      {temMsg && (
-        <button
-          onClick={() => navigate(`/pedidos/${p.id}`)}
-          title="Mensagem do Comercial aguardando resposta"
-          className="inline-flex items-center gap-1 px-1.5 py-1 rounded border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 text-xs"
-        >
-          <MessageCircle className="h-3.5 w-3.5" />
-          <span className="font-medium">msg</span>
-        </button>
-      )}
-
       {/* Ação primária do estágio */}
       {p.estagio === "recebido" && (
         <TriarPedidoDialog
@@ -848,9 +838,19 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
             <ExternalLink className="h-4 w-4 mr-2" />
             Abrir pedido
           </DropdownMenuItem>
+          {temMsg && (
+            <DropdownMenuItem onSelect={() => navigate(`/pedidos/${p.id}`)}>
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Mensagem pendente
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={() => setMarcacaoOpen(true)}>
+            <Tag className="h-4 w-4 mr-2" />
+            Marcação
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setCadastroOpen(true)}>
             <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Tabela de cadastro
+            Cadastro
           </DropdownMenuItem>
           <BotaoSplitPedido
             pedido_id={p.id}
@@ -864,8 +864,15 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Marcação continua acessível direto (popover próprio) */}
-      <MarcacaoPedido pedidoId={p.id} marcacao={p.marcacao} iconOnly />
+      {/* Popover de marcação controlado pelo menu (trigger invisível). */}
+      <MarcacaoPedido
+        pedidoId={p.id}
+        marcacao={p.marcacao}
+        semTrigger
+        open={marcacaoOpen}
+        onOpenChange={setMarcacaoOpen}
+      />
+
 
       {/* Diálogos ficam fora do menu — o conteúdo do menu desmonta ao fechar. */}
       <TabelaCadastroDialog
