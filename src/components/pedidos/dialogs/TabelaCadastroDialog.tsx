@@ -90,8 +90,18 @@ export function TabelaCadastroDialog({
   id_externo,
   parceiro_id,
   parceiro_nome,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }: TabelaCadastroDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [openInterno, setOpenInterno] = useState(false);
+  const controlado = openProp !== undefined;
+  const open = controlado ? !!openProp : openInterno;
+  const setOpen = (v: boolean) => {
+    if (controlado) onOpenChange?.(v);
+    else setOpenInterno(v);
+  };
+
   const [enviandoEmail, setEnviandoEmail] = useState(false);
   const { toast } = useToast();
 
