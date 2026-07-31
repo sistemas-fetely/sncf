@@ -353,15 +353,15 @@ export function FilaPedidosPorArea({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="cronologico">Ordenar: Cronológico</SelectItem>
-            <SelectItem value="prioridade_ia">Ordenar: Prioridade IA</SelectItem>
+            <SelectItem value="risco">Ordenar: Risco</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {ordenacao === "prioridade_ia" && (
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Sparkles className="h-3 w-3" />
-          Ordenado por score IA (maior primeiro)
+      {(ordenacao === "risco" || somenteRiscoAlto) && (
+        <p className="text-xs text-muted-foreground">
+          {ordenacao === "risco" && "Ordenado por risco (maior primeiro). "}
+          {somenteRiscoAlto && "Mostrando apenas pedidos em risco alto."}
         </p>
       )}
 
@@ -369,7 +369,7 @@ export function FilaPedidosPorArea({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-20">Score</TableHead>
+              <TableHead className="w-16">Risco</TableHead>
               <TableHead>ID Externo</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Valor</TableHead>
@@ -395,7 +395,7 @@ export function FilaPedidosPorArea({
               </TableRow>
             )}
             {pageItems.map((p) => {
-              const sc = scoreMap.get(p.id);
+              const risco = riscoMap?.get(p.id);
               return (
                 <TableRow
                   key={p.id}
@@ -403,16 +403,17 @@ export function FilaPedidosPorArea({
                   onClick={() => navigate(`/pedidos/${p.id}`)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    {sc ? (
-                      <BadgePriorizacao
-                        score={sc.score}
-                        breakdown={sc.breakdown}
-                        compact
-                      />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
+                    <FarolRisco
+                      faixa={risco?.risco_faixa ?? null}
+                      cor={risco?.risco_cor ?? null}
+                      score={risco?.risco_score ?? null}
+                      motivos={risco?.risco_motivos ?? []}
+                      rotuloFaixa={
+                        risco?.risco_faixa ? faixas?.get(risco.risco_faixa)?.rotulo ?? null : null
+                      }
+                    />
                   </TableCell>
+
                   <TableCell>
                     <span className="font-mono text-xs">{p.id_externo}</span>
                   </TableCell>
