@@ -120,11 +120,8 @@ export function FilaPedidosPorArea({
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
 
-  const estagiosDoSelect = useMemo(() => {
-    const completo = todosOsEstagios();
-    if (area === "todas") return completo;
-    return completo.filter((e) => ESTAGIO_AREA[e] === area);
-  }, [area]);
+
+
 
   // Quando um estágio específico é selecionado (ex: 'cancelado' ou 'entregue'),
   // desativa o filtro `apenasAtivos` que excluiria justamente esses estágios.
