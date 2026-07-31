@@ -29,7 +29,6 @@ import {
 import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
 import type { AreaPedido, EstagioPedido, PedidoFilaItem } from "@/types/pedido";
 
-import type { AreaPedido, EstagioPedido, PedidoFilaItem } from "@/types/pedido";
 
 type OrdenacaoFila = "cronologico" | "risco";
 
