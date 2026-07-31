@@ -100,21 +100,25 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
   const podeConfirmar = temItensSplit && itensOriginal.length > 0;
 
   const handleConfirmar = async () => {
-    await criarSplit.mutateAsync({
-      pedido_id,
-      itens_original:        itensOriginal,
-      itens_split:           itensSplit,
-      valor_original:        valorOrig,
-      valor_split:           valorSplit,
-      estagio_inicial:       estagio,
-      data_entrega_prevista: dataEntrega || null,
-      observacao:            observacao || null,
-      financeiro_coberto:    financeiroCoberto,
-    });
-    onOpenChange(false);
+    try {
+      await criarSplit.mutateAsync({
+        pedido_id,
+        itens_original:        itensOriginal,
+        itens_split:           itensSplit,
+        valor_original:        valorOrig,
+        valor_split:           valorSplit,
+        estagio_inicial:       estagio,
+        data_entrega_prevista: dataEntrega || null,
+        observacao:            observacao || null,
+        financeiro_coberto:    financeiroCoberto,
+      });
+      onOpenChange(false);
+    } catch {
+      // erro do Postgres já é exibido em toast pelo hook (FAIL-LOUD); dialog fica aberto
+    }
   };
 
-  const estagioSelecionado = ESTAGIO_OPTIONS.find((e) => e.value === estagio);
+  const estagioSelecionado = opcoesEstagio.find((e) => e.value === estagio);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!criarSplit.isPending) onOpenChange(v); }}>
@@ -125,10 +129,13 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
             Split do pedido {id_externo}
           </DialogTitle>
           <DialogDescription>
-            Defina quantas unidades de cada item vão no novo pedido split.
-            O pedido original {id_externo} mantém o número — o split recebe {id_externo}/01 (ou próxima sequência).
+            {origemEstoque
+              ? <>Separe o que <strong>tem estoque</strong> do que <strong>falta</strong>. O que ficar em {id_externo} continua aguardando estoque; o que você mover vai para o novo pedido {id_externo}/01.</>
+              : <>Defina quantas unidades de cada item vão no novo pedido split.
+                 O pedido original {id_externo} mantém o número — o split recebe {id_externo}/01 (ou próxima sequência).</>}
           </DialogDescription>
         </DialogHeader>
+
 
         <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
           {isLoading ? (
