@@ -239,11 +239,12 @@ export default function TarefasDoTime() {
 
   const confirmarReatribuir = async () => {
     if (!reatribuirTarefa || !novoResponsavel) return;
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ responsavel_user_id: novoResponsavel })
-      .eq("id", reatribuirTarefa.id);
-    if (error) toast.error("Erro: " + error.message);
+    const { error } = await supabase.rpc("delegar_tarefa", {
+      p_tarefa_id: reatribuirTarefa.id,
+      p_para_user_id: novoResponsavel,
+      p_motivo: null,
+    });
+    if (error) toast.error("Erro: " + formatError(error));
     else {
       toast.success("Tarefa reatribuída");
       setReatribuirTarefa(null);
