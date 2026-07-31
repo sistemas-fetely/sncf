@@ -21,12 +21,7 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
-      // ===== ERRO CEGO =====
-      // Proibe o idioma que produz "[object Object]" na UI.
-      // O erro do PostgREST e objeto plano em runtime (PostgrestBuilder faz
-      // JSON.parse e nunca instancia a classe), embora o TIPO declare
-      // PostgrestError extends Error. Logo `e instanceof Error` e false e
-      // String(e) vira "[object Object]". Use formatError(e).
+      // ===== ERRO CEGO — proibe o idioma que produz "[object Object]" =====
       "no-restricted-syntax": [
         "error",
         {
