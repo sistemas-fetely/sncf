@@ -20915,7 +20915,11 @@ export type Database = {
           editado_por: string | null
           editado_por_nome: string | null
           fala_fetely_conhecimento_id: string | null
+          fonte: string | null
+          fonte_url: string | null
+          fonte_versao: string | null
           id: string
+          modulo_id: string | null
           ordem: number
           slug: string
           sync_fala_fetely: boolean | null
@@ -20923,6 +20927,7 @@ export type Database = {
           tipo: string
           titulo: string
           updated_at: string
+          verificado_em: string | null
           versao: number
         }
         Insert: {
@@ -20936,7 +20941,11 @@ export type Database = {
           editado_por?: string | null
           editado_por_nome?: string | null
           fala_fetely_conhecimento_id?: string | null
+          fonte?: string | null
+          fonte_url?: string | null
+          fonte_versao?: string | null
           id?: string
+          modulo_id?: string | null
           ordem?: number
           slug: string
           sync_fala_fetely?: boolean | null
@@ -20944,6 +20953,7 @@ export type Database = {
           tipo: string
           titulo: string
           updated_at?: string
+          verificado_em?: string | null
           versao?: number
         }
         Update: {
@@ -20957,7 +20967,11 @@ export type Database = {
           editado_por?: string | null
           editado_por_nome?: string | null
           fala_fetely_conhecimento_id?: string | null
+          fonte?: string | null
+          fonte_url?: string | null
+          fonte_versao?: string | null
           id?: string
+          modulo_id?: string | null
           ordem?: number
           slug?: string
           sync_fala_fetely?: boolean | null
@@ -20965,9 +20979,18 @@ export type Database = {
           tipo?: string
           titulo?: string
           updated_at?: string
+          verificado_em?: string | null
           versao?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sncf_documentacao_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "sncf_modulo"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sncf_documentacao_versoes: {
         Row: {
@@ -21012,6 +21035,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sncf_modulo: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       sncf_navegacao: {
         Row: {
@@ -25324,6 +25380,84 @@ export type Database = {
           },
         ]
       }
+      zz_snapshot_farol_20260730: {
+        Row: {
+          bloqueio: string | null
+          cliente: string | null
+          data_estagio: string | null
+          data_pg: string | null
+          dias_sem_confirmacao: number | null
+          dias_vs_meta: number | null
+          entregue_com_atraso: boolean | null
+          estagio: string | null
+          eta_vivo: string | null
+          expedido: boolean | null
+          fase_gargalo: string | null
+          fase_logistica: string | null
+          id_externo: string | null
+          meta: string | null
+          pago_apos_expedicao: boolean | null
+          parceiro_id: string | null
+          pedido_id: string | null
+          prazo: string | null
+          sla_cor: string | null
+          sla_fase_atual: number | null
+          status_label: string | null
+          tempo_na_fase: number | null
+          valor_liquido: number | null
+        }
+        Insert: {
+          bloqueio?: string | null
+          cliente?: string | null
+          data_estagio?: string | null
+          data_pg?: string | null
+          dias_sem_confirmacao?: number | null
+          dias_vs_meta?: number | null
+          entregue_com_atraso?: boolean | null
+          estagio?: string | null
+          eta_vivo?: string | null
+          expedido?: boolean | null
+          fase_gargalo?: string | null
+          fase_logistica?: string | null
+          id_externo?: string | null
+          meta?: string | null
+          pago_apos_expedicao?: boolean | null
+          parceiro_id?: string | null
+          pedido_id?: string | null
+          prazo?: string | null
+          sla_cor?: string | null
+          sla_fase_atual?: number | null
+          status_label?: string | null
+          tempo_na_fase?: number | null
+          valor_liquido?: number | null
+        }
+        Update: {
+          bloqueio?: string | null
+          cliente?: string | null
+          data_estagio?: string | null
+          data_pg?: string | null
+          dias_sem_confirmacao?: number | null
+          dias_vs_meta?: number | null
+          entregue_com_atraso?: boolean | null
+          estagio?: string | null
+          eta_vivo?: string | null
+          expedido?: boolean | null
+          fase_gargalo?: string | null
+          fase_logistica?: string | null
+          id_externo?: string | null
+          meta?: string | null
+          pago_apos_expedicao?: boolean | null
+          parceiro_id?: string | null
+          pedido_id?: string | null
+          prazo?: string | null
+          sla_cor?: string | null
+          sla_fase_atual?: number | null
+          status_label?: string | null
+          tempo_na_fase?: number | null
+          valor_liquido?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       contas_pagar: {
@@ -28931,6 +29065,27 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_logistica_fila_atencao: {
+        Row: {
+          cidade: string | null
+          cliente: string | null
+          diagnostico: string | null
+          dias_desde_faturamento: number | null
+          dias_sem_movimento: number | null
+          estagio: string | null
+          id_externo: string | null
+          motivo: string | null
+          pedido_id: string | null
+          severidade: number | null
+          transportadora: string | null
+          uf: string | null
+          ultima_ocorrencia: string | null
+          ultima_ocorrencia_codigo: string | null
+          ultima_ocorrencia_em: string | null
+          valor_liquido: number | null
+        }
+        Relationships: []
+      }
       vw_logistica_frete_mensal: {
         Row: {
           frete_total: number | null
@@ -29304,14 +29459,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -29653,14 +29808,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
