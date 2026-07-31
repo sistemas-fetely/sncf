@@ -31593,14 +31593,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -35607,6 +35607,10 @@ export type Database = {
         Args: { p_solicitacao_id: string }
         Returns: number
       }
+      fn_reembolso_notificar_devolucao: {
+        Args: { p_motivo: string; p_solicitacao_id: string }
+        Returns: number
+      }
       fn_reembolso_papel_solicitante: {
         Args: { p_vinculo_id: string }
         Returns: string
@@ -36307,7 +36311,10 @@ export type Database = {
         Returns: Json
       }
       reembolso_encerrar_lote: { Args: { p_lote_id: string }; Returns: Json }
-      reembolso_fechar_ciclo: { Args: { p_referencia: string }; Returns: Json }
+      reembolso_fechar_ciclo: {
+        Args: { p_data_pagamento_prevista?: string; p_referencia: string }
+        Returns: Json
+      }
       reembolso_glosar_item: {
         Args: { p_item_id: string; p_motivo: string; p_valor_aprovado: number }
         Returns: Json

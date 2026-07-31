@@ -816,16 +816,24 @@ export interface ResultadoFechamento {
   adiados_sem_pix?: number;
   adiados_nomes?: string[] | string | null;
   ciclo_destino_adiados?: string | null;
+  cprs_criadas?: number;
+  vencimento?: string;
 }
 
 export function useFecharCiclo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { referencia: string }): Promise<ResultadoFechamento> => {
+    mutationFn: async (args: {
+      referencia: string;
+      dataPagamentoPrevista?: string | null;
+    }): Promise<ResultadoFechamento> => {
       // Cast só do resultado: ainda não consta no types.ts gerado.
       const { data, error } = await supabase.rpc(
         "reembolso_fechar_ciclo" as never,
-        { p_referencia: args.referencia } as never,
+        {
+          p_referencia: args.referencia,
+          p_data_pagamento_prevista: args.dataPagamentoPrevista ?? null,
+        } as never,
       );
       if (error) throw error;
       return data as unknown as ResultadoFechamento;
@@ -840,6 +848,7 @@ export function useFecharCiclo() {
     onError: erroVisivel,
   });
 }
+
 
 export interface ResultadoPagamento {
   ok?: boolean;
@@ -1070,3 +1079,40 @@ export const ROTULO_ESTADO: Record<string, string> = {
   fechado: "Fechado",
   cancelado: "Cancelado",
 };
+
+
+// ---------------------------------------------------------------------------
+// Parâmetros (tetos, prazos, canal de envio) — usados no template da planilha
+// ---------------------------------------------------------------------------
+
+export interface ParametroReembolso {
+  chave: string;
+  unidade: string;
+  descricao: string | null;
+  valor_numerico: number | null;
+  valor_texto: string | null;
+  vigencia_inicio: string;
+  vigencia_fim: string | null;
+}
+
+/** Parâmetros vigentes hoje, um por chave (o de vigência mais recente). */
+export function useReembolsoParametros() {
+  return useQuery({
+    queryKey: ["reembolso-parametros"],
+    queryFn: async (): Promise<Record<string, ParametroReembolso>> => {
+      const hojeIso = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("reembolso_parametros")
+        .select("chave,unidade,descricao,valor_numerico,valor_texto,vigencia_inicio,vigencia_fim")
+        .lte("vigencia_inicio", hojeIso)
+        .order("vigencia_inicio", { ascending: true });
+      if (error) throw error;
+      const mapa: Record<string, ParametroReembolso> = {};
+      for (const p of (data ?? []) as ParametroReembolso[]) {
+        if (p.vigencia_fim && p.vigencia_fim < hojeIso) continue;
+        mapa[p.chave] = p;
+      }
+      return mapa;
+    },
+  });
+}

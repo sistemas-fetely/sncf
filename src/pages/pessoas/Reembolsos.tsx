@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Receipt, Plus, Wrench, CalendarRange, RefreshCw, Loader2 } from "lucide-react";
+import { Receipt, Plus, Wrench, CalendarRange, RefreshCw, Loader2, FileUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,10 +10,14 @@ import {
 import { cn } from "@/lib/utils";
 import LancarReembolsoSheet from "@/components/pessoas/reembolso/LancarReembolsoSheet";
 import SolicitacaoDrawer from "@/components/pessoas/reembolso/SolicitacaoDrawer";
+import ImportarPlanilhaSheet, {
+  BotaoBaixarTemplate,
+} from "@/components/pessoas/reembolso/ImportarPlanilhaSheet";
 import {
   useSolicitacoes, useCiclos, useCicloDaData, formatarBRL, formatarData,
   ROTULO_ESTADO, type EstadoSolicitacao,
 } from "@/hooks/useReembolso";
+
 
 type Filtro = "todos" | EstadoSolicitacao;
 
@@ -54,7 +58,9 @@ function Resumo({ rotulo, valor }: { rotulo: string; valor: string | number }) {
 export default function Reembolsos() {
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [sheetAberto, setSheetAberto] = useState(false);
+  const [importarAberto, setImportarAberto] = useState(false);
   const [solicitacaoAberta, setSolicitacaoAberta] = useState<string | null>(null);
+
 
   const listaQ = useSolicitacoes("todos");
   const ciclosQ = useCiclos();
@@ -107,6 +113,12 @@ export default function Reembolsos() {
             <Plus className="h-4 w-4" />
             Lançar reembolso recebido
           </Button>
+          <Button variant="outline" onClick={() => setImportarAberto(true)}>
+            <FileUp className="h-4 w-4" />
+            Importar planilha
+          </Button>
+          <BotaoBaixarTemplate />
+
           <Button variant="outline" asChild>
             <Link to="/pessoas/reembolsos/ciclos">
               <CalendarRange className="h-4 w-4" />
@@ -253,6 +265,12 @@ export default function Reembolsos() {
         onOpenChange={setSheetAberto}
         onCriado={(id) => setSolicitacaoAberta(id)}
       />
+      <ImportarPlanilhaSheet
+        open={importarAberto}
+        onOpenChange={setImportarAberto}
+        onCriado={(id) => setSolicitacaoAberta(id)}
+      />
+
       <SolicitacaoDrawer
         solicitacaoId={solicitacaoAberta}
         onOpenChange={(v) => !v && setSolicitacaoAberta(null)}

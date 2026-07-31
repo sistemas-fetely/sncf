@@ -45,7 +45,9 @@ export default function ReembolsoCiclos() {
   const fecharCiclo = useFecharCiclo();
   const [expandido, setExpandido] = useState<string | null>(null);
   const [avisoAdiados, setAvisoAdiados] = useState<ResultadoFechamento | null>(null);
+  const [resultadoFechamento, setResultadoFechamento] = useState<ResultadoFechamento | null>(null);
   const [confirmando, setConfirmando] = useState(false);
+  const [dataPagamento, setDataPagamento] = useState<string>("");
   const [solicitacaoAberta, setSolicitacaoAberta] = useState<string | null>(null);
 
   const aprovadas = aprovadasQ.data ?? [];
@@ -53,16 +55,21 @@ export default function ReembolsoCiclos() {
 
   async function aoFechar(referencia: string) {
     try {
-      const r = await fecharCiclo.mutateAsync({ referencia });
+      const r = await fecharCiclo.mutateAsync({
+        referencia,
+        dataPagamentoPrevista: dataPagamento || null,
+      });
       toast.success(
         `Ciclo ${r.ciclo ?? referencia} fechado. ${r.lotes ?? 0} lote(s), ${formatarBRL(r.total)}.`,
       );
       setConfirmando(false);
+      setResultadoFechamento(r);
       if ((r.adiados_sem_pix ?? 0) > 0) setAvisoAdiados(r);
     } catch {
       // erro já exibido pelo hook
     }
   }
+
 
   return (
     <div className="p-6 space-y-5">
@@ -107,6 +114,25 @@ export default function ReembolsoCiclos() {
           </div>
         </div>
       )}
+
+      {resultadoFechamento && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-success/40 bg-success/10 p-4 text-sm text-success">
+          <span>
+            {resultadoFechamento.lotes ?? 0} lote(s) gerado(s) ·{" "}
+            {resultadoFechamento.cprs_criadas ?? 0} título(s) criado(s) em contas a pagar, vencendo
+            em {formatarData(resultadoFechamento.vencimento)}.
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto"
+            onClick={() => setResultadoFechamento(null)}
+          >
+            Entendi
+          </Button>
+        </div>
+      )}
+
 
       {ciclosQ.isError ? (
         <BlocoErro
@@ -171,7 +197,13 @@ export default function ReembolsoCiclos() {
                     </span>
 
                     {c.estado === "aberto" && (
-                      <Dialog open={confirmando} onOpenChange={setConfirmando}>
+                      <Dialog
+                        open={confirmando}
+                        onOpenChange={(v) => {
+                          setConfirmando(v);
+                          if (v) setDataPagamento(c.data_corte ?? hoje());
+                        }}
+                      >
                         <DialogTrigger asChild>
                           <Button size="sm">Fechar ciclo e gerar lotes</Button>
                         </DialogTrigger>
@@ -184,6 +216,18 @@ export default function ReembolsoCiclos() {
                               e vai para o próximo ciclo.
                             </DialogDescription>
                           </DialogHeader>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Data do pagamento (folha)</Label>
+                            <Input
+                              type="date"
+                              value={dataPagamento}
+                              onChange={(e) => setDataPagamento(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              É o vencimento que vai para o contas a pagar. O reembolso passa a
+                              aparecer em “a pagar” a partir do fechamento, antes de o PIX sair.
+                            </p>
+                          </div>
                           <DialogFooter>
                             <Button variant="outline" onClick={() => setConfirmando(false)}>
                               Cancelar
@@ -201,6 +245,7 @@ export default function ReembolsoCiclos() {
                         </DialogContent>
                       </Dialog>
                     )}
+
                   </div>
                 </div>
 
