@@ -188,10 +188,7 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
       setExecutandoAcao(false);
       return;
     }
-    await registrar(tarefa.id, "status_change", descricao, {
-      status_anterior: tarefa.status,
-      status_novo: novoStatus,
-    });
+    // Histórico de status_change é gravado pelo gatilho trg_tarefa_historico
     toast.success(descricao);
     void recarregar();
     onAtualizada?.();
@@ -231,9 +228,7 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
       setExecutandoAcao(false);
       return;
     }
-    await registrar(tarefa.id, "delegacao", `Delegou para ${nomeNovo}`, {
-      dados_extras: { novo_responsavel_id: novoUserId, novo_responsavel_nome: nomeNovo },
-    });
+    // Histórico de delegação é gravado pelo gatilho trg_tarefa_historico
     toast.success(`Tarefa delegada para ${nomeNovo}`);
     void recarregar();
     onAtualizada?.();

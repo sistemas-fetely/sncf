@@ -321,22 +321,19 @@ export function NovaTarefaDialog({ open, onOpenChange, onCriada, tarefaParaEdita
           colaborador_nome: colabRelacionado?.nome || null,
           tipo_processo: "manual",
           sistema_origem: "manual",
+          // area_destino nulo é aceito pelo banco apenas porque há responsável nomeado
           area_destino: null,
           responsavel_role: null,
           criado_por: user.id,
           status: "pendente",
         };
 
-        const { data: novaTarefa, error } = await supabase
+        const { error } = await supabase
           .from("sncf_tarefas")
-          .insert(payload)
-          .select("id")
-          .single();
+          .insert(payload);
 
         if (error) throw error;
-        if (novaTarefa?.id) {
-          await registrar(novaTarefa.id, "criacao", `Tarefa criada: ${titulo.trim()}`);
-        }
+        // Histórico de criação é gravado pelo gatilho trg_tarefa_historico
         toast.success("Tarefa criada");
       }
 
