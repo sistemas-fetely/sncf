@@ -381,11 +381,11 @@ export default function MinhasTarefas() {
   };
 
   const handleIniciar = async (t: Tarefa) => {
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ status: "em_andamento", iniciada_em: new Date().toISOString() })
-      .eq("id", t.id);
-    if (error) toast.error("Erro: " + humanizeError(error.message));
+    const { error } = await supabase.rpc("transicionar_tarefa", {
+      p_tarefa_id: t.id,
+      p_novo_status: "em_andamento",
+    });
+    if (error) toast.error("Erro: " + humanizeError(formatError(error)));
     else {
       toast.success("Tarefa iniciada! Agora aparece em 'Ativas' como 'Em andamento'.");
       void loadTarefas();
@@ -393,11 +393,11 @@ export default function MinhasTarefas() {
   };
 
   const handleAguardando = async (t: Tarefa) => {
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ status: "aguardando_terceiro" })
-      .eq("id", t.id);
-    if (error) toast.error("Erro: " + humanizeError(error.message));
+    const { error } = await supabase.rpc("transicionar_tarefa", {
+      p_tarefa_id: t.id,
+      p_novo_status: "aguardando_terceiro",
+    });
+    if (error) toast.error("Erro: " + humanizeError(formatError(error)));
     else {
       toast.success("Tarefa em espera.");
       void loadTarefas();
@@ -405,11 +405,11 @@ export default function MinhasTarefas() {
   };
 
   const handleRetomar = async (t: Tarefa) => {
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ status: "em_andamento" })
-      .eq("id", t.id);
-    if (error) toast.error("Erro: " + humanizeError(error.message));
+    const { error } = await supabase.rpc("transicionar_tarefa", {
+      p_tarefa_id: t.id,
+      p_novo_status: "em_andamento",
+    });
+    if (error) toast.error("Erro: " + humanizeError(formatError(error)));
     else {
       toast.success("Tarefa retomada!");
       void loadTarefas();
@@ -417,15 +417,16 @@ export default function MinhasTarefas() {
   };
 
   const confirmarCancelamento = async () => {
-    if (!cancelarTarefa) return;
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({ status: "cancelada" })
-      .eq("id", cancelarTarefa.id);
-    if (error) toast.error("Erro: " + humanizeError(error.message));
+    if (!cancelarTarefa || !motivoCancelamentoTarefa.trim()) return;
+    const { error } = await supabase.rpc("cancelar_tarefa", {
+      p_tarefa_id: cancelarTarefa.id,
+      p_motivo: motivoCancelamentoTarefa.trim(),
+    });
+    if (error) toast.error("Erro: " + humanizeError(formatError(error)));
     else {
       toast.success("Tarefa cancelada");
       setCancelarTarefa(null);
+      setMotivoCancelamentoTarefa("");
       void loadTarefas();
     }
   };
