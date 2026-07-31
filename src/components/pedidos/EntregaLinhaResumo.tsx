@@ -1,6 +1,8 @@
+import { Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { EntregaLinhaInfo } from "@/hooks/pedidos/usePedidoEntrega";
+import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 
 /** Estágios em que a linha da fila mostra o resumo de saída (data / transportadora / NF). */
 export const ESTAGIOS_COM_RESUMO_ENTREGA = ["entregue", "em_transporte", "faturado"] as const;
@@ -70,16 +72,19 @@ export function EntregaLinhaResumo({ info }: { info: EntregaLinhaInfo | undefine
       {info.nf_numero ? (
         <p className="text-[11px] text-muted-foreground">
           NF{" "}
-          {info.nf_pdf_url ? (
-            <a
-              href={info.nf_pdf_url}
-              target="_blank"
-              rel="noreferrer"
-              className="underline text-primary"
-              onClick={(e) => e.stopPropagation()}
+          {info.nf_id ? (
+            <button
+              type="button"
+              disabled={baixando}
+              className="underline text-primary disabled:opacity-60"
+              onClick={(e) => {
+                e.stopPropagation();
+                baixar({ nf_id: info.nf_id!, nome: `NF-${info.nf_numero}${info.nf_serie ? `-${info.nf_serie}` : ""}` });
+              }}
+              title="Baixar PDF da NF"
             >
-              {info.nf_numero}
-            </a>
+              {baixando ? <Loader2 className="inline h-3 w-3 animate-spin" /> : info.nf_numero}
+            </button>
           ) : (
             info.nf_numero
           )}
