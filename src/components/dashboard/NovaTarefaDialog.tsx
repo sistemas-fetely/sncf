@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRegistrarHistorico } from "@/hooks/useTarefaHistorico";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
-const AREAS = ["RH", "TI", "Gestão", "Financeiro", "Geral"] as const;
+const AREAS = ["RH", "TI", "Gestão", "Financeiro"] as const;
 type Area = (typeof AREAS)[number];
 
 const ROLE_BY_AREA: Record<Area, string | null> = {
@@ -32,7 +32,6 @@ const ROLE_BY_AREA: Record<Area, string | null> = {
   TI: "admin_ti",
   "Gestão": "gestor_direto",
   Financeiro: "financeiro",
-  Geral: null,
 };
 
 interface ProfileOption {
@@ -60,7 +59,7 @@ function defaultPrazo(): string {
 
 export function NovaTarefaDialog({ open, onOpenChange, onCreated }: NovaTarefaDialogProps) {
   const { user } = useAuth();
-  const { registrar } = useRegistrarHistorico();
+  
   const [saving, setSaving] = useState(false);
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
   const [colaboradores, setColaboradores] = useState<ColaboradorOption[]>([]);
@@ -162,15 +161,11 @@ export function NovaTarefaDialog({ open, onOpenChange, onCreated }: NovaTarefaDi
         status: "pendente",
       };
 
-      const { data: novaTarefa, error } = await supabase
+      const { error } = await supabase
         .from("sncf_tarefas")
-        .insert(payload)
-        .select("id")
-        .single();
+        .insert(payload);
       if (error) throw error;
-      if (novaTarefa?.id) {
-        await registrar(novaTarefa.id, "criacao", `Tarefa criada: ${titulo.trim()}`);
-      }
+      // Histórico de criação é gravado pelo gatilho trg_tarefa_historico
       toast.success("Tarefa criada");
       onCreated();
       onOpenChange(false);

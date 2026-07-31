@@ -31,7 +31,7 @@ import { SubmeterNFDialog } from "@/components/minhas-notas/SubmeterNFDialog";
 import { AprovarNFDialog } from "@/components/minhas-notas/AprovarNFDialog";
 import { NovaTarefaDialog } from "@/components/tarefas/NovaTarefaDialog";
 import { TarefaDetalheDrawer, type TarefaDrawer } from "@/components/tarefas/TarefaDetalheDrawer";
-import { useRegistrarHistorico } from "@/hooks/useTarefaHistorico";
+
 
 interface Tarefa {
   id: string;
@@ -100,8 +100,9 @@ export default function MinhasTarefas() {
   // Cancelar
   const [cancelarTarefa, setCancelarTarefa] = useState<Tarefa | null>(null);
 
-  // Excluir permanentemente (super_admin)
+  // Cancelar com motivo (super_admin)
   const [deleteTarget, setDeleteTarget] = useState<Tarefa | null>(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState("");
 
   // Submit NF (tarefa de emissao_nf)
   const [submeterNFTarefa, setSubmeterNFTarefa] = useState<Tarefa | null>(null);
@@ -116,8 +117,7 @@ export default function MinhasTarefas() {
   // Drawer de detalhe
   const [drawerTarefa, setDrawerTarefa] = useState<Tarefa | null>(null);
 
-  // Histórico
-  const { registrar } = useRegistrarHistorico();
+  // Histórico: gravado automaticamente pelo gatilho trg_tarefa_historico no banco
 
   // Quem vê a seção "Prioridades do Dia"
   const isGestorRH = (userRoles as string[]).includes("gestor_rh");
@@ -129,14 +129,8 @@ export default function MinhasTarefas() {
     if (!user) return;
     setLoading(true);
 
-    // Marcar atrasadas
-    const hoje = new Date().toISOString().split("T")[0];
-    await supabase
-      .from("sncf_tarefas")
-      .update({ status: "atrasada" })
-      .eq("responsavel_user_id", user.id)
-      .eq("status", "pendente")
-      .lt("prazo_data", hoje);
+    // Status "atrasada" é responsabilidade do job noturno tarefas-vencimento-diario
+
 
     // Buscar tarefas: minhas (responsavel ou role) + acompanhamento (accountable)
     const filters: string[] = [`responsavel_user_id.eq.${user.id}`, `accountable_user_id.eq.${user.id}`];
@@ -365,7 +359,7 @@ export default function MinhasTarefas() {
   const confirmarConclusao = async () => {
     if (!concluirTarefa) return;
     setSalvando(true);
-    const statusAnterior = concluirTarefa.status;
+    
     const { error } = await supabase
       .from("sncf_tarefas")
       .update({
@@ -379,12 +373,6 @@ export default function MinhasTarefas() {
 
     if (error) toast.error("Erro: " + humanizeError(error.message));
     else {
-      await registrar(
-        concluirTarefa.id,
-        "conclusao",
-        evidenciaTexto.trim() || "Tarefa concluída",
-        { status_anterior: statusAnterior, status_novo: "concluida" },
-      );
       toast.success("Tarefa concluída!");
       setConcluirTarefa(null);
       void loadTarefas();
@@ -399,9 +387,6 @@ export default function MinhasTarefas() {
       .eq("id", t.id);
     if (error) toast.error("Erro: " + humanizeError(error.message));
     else {
-      await registrar(t.id, "status_change", "Iniciou a tarefa", {
-        status_anterior: t.status, status_novo: "em_andamento",
-      });
       toast.success("Tarefa iniciada! Agora aparece em 'Ativas' como 'Em andamento'.");
       void loadTarefas();
     }
@@ -414,9 +399,6 @@ export default function MinhasTarefas() {
       .eq("id", t.id);
     if (error) toast.error("Erro: " + humanizeError(error.message));
     else {
-      await registrar(t.id, "status_change", "Moveu para aguardando terceiro", {
-        status_anterior: t.status, status_novo: "aguardando_terceiro",
-      });
       toast.success("Tarefa em espera.");
       void loadTarefas();
     }
@@ -429,9 +411,6 @@ export default function MinhasTarefas() {
       .eq("id", t.id);
     if (error) toast.error("Erro: " + humanizeError(error.message));
     else {
-      await registrar(t.id, "status_change", "Retomou a tarefa", {
-        status_anterior: t.status, status_novo: "em_andamento",
-      });
       toast.success("Tarefa retomada!");
       void loadTarefas();
     }
@@ -451,17 +430,19 @@ export default function MinhasTarefas() {
     }
   };
 
-  const handleDeleteTarefa = async () => {
-    if (!deleteTarget) return;
-    // Cascade: histórico primeiro (FK ON DELETE CASCADE, mas garantimos)
-    await supabase.from("sncf_tarefas_historico").delete().eq("tarefa_id", deleteTarget.id);
-    const { error } = await supabase.from("sncf_tarefas").delete().eq("id", deleteTarget.id);
-    if (error) toast.error("Erro ao excluir: " + humanizeError(error.message));
+  const handleCancelarComMotivo = async () => {
+    if (!deleteTarget || !motivoCancelamento.trim()) return;
+    const { error } = await supabase.rpc("cancelar_tarefa", {
+      p_tarefa_id: deleteTarget.id,
+      p_motivo: motivoCancelamento.trim(),
+    });
+    if (error) toast.error("Erro ao cancelar: " + humanizeError(error.message));
     else {
-      toast.success("Tarefa excluída permanentemente");
+      toast.success("Tarefa cancelada");
       void loadTarefas();
     }
     setDeleteTarget(null);
+    setMotivoCancelamento("");
   };
 
   // Agrupamento
@@ -731,7 +712,7 @@ export default function MinhasTarefas() {
                   className="gap-2 text-destructive focus:text-destructive"
                   onClick={() => setDeleteTarget(tarefa)}
                 >
-                  <Trash2 className="h-4 w-4" /> Excluir permanentemente
+                  <Trash2 className="h-4 w-4" /> Cancelar tarefa
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -1046,26 +1027,49 @@ export default function MinhasTarefas() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog de exclusão permanente (super_admin) */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+      {/* Dialog de cancelamento com motivo (super_admin) */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setMotivoCancelamento("");
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir tarefa permanentemente?</AlertDialogTitle>
+            <AlertDialogTitle>Cancelar tarefa</AlertDialogTitle>
             <AlertDialogDescription>
-              A tarefa "{deleteTarget?.titulo}" e todo seu histórico serão excluídos. Essa ação não pode ser desfeita.
+              A tarefa "{deleteTarget?.titulo}" será cancelada. O histórico é preservado.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="motivo-cancelamento">Motivo do cancelamento *</Label>
+            <Textarea
+              id="motivo-cancelamento"
+              value={motivoCancelamento}
+              onChange={(e) => setMotivoCancelamento(e.target.value)}
+              placeholder="Explique por que a tarefa está sendo cancelada"
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteTarefa}
+              disabled={!motivoCancelamento.trim()}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleCancelarComMotivo();
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Excluir
+              Cancelar tarefa
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       {/* Dialog de submissão de NF (tarefa emissao_nf) */}
       {submeterNFTarefa && (

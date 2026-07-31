@@ -134,14 +134,8 @@ export default function TarefasDoTime() {
       // 3) Buscar tarefas dos subordinados (somente quem tem user_id)
       const userIds = subs.map((s) => s.user_id).filter(Boolean) as string[];
       if (userIds.length > 0) {
-        const hoje = new Date().toISOString().split("T")[0];
-        // Marcar atrasadas
-        await supabase
-          .from("sncf_tarefas")
-          .update({ status: "atrasada" })
-          .in("responsavel_user_id", userIds)
-          .eq("status", "pendente")
-          .lt("prazo_data", hoje);
+        // Status "atrasada" é responsabilidade do job noturno tarefas-vencimento-diario
+
 
         const { data: tarefasData } = await supabase
           .from("sncf_tarefas")
