@@ -1079,3 +1079,40 @@ export const ROTULO_ESTADO: Record<string, string> = {
   fechado: "Fechado",
   cancelado: "Cancelado",
 };
+
+
+// ---------------------------------------------------------------------------
+// Parâmetros (tetos, prazos, canal de envio) — usados no template da planilha
+// ---------------------------------------------------------------------------
+
+export interface ParametroReembolso {
+  chave: string;
+  unidade: string;
+  descricao: string | null;
+  valor_numerico: number | null;
+  valor_texto: string | null;
+  vigencia_inicio: string;
+  vigencia_fim: string | null;
+}
+
+/** Parâmetros vigentes hoje, um por chave (o de vigência mais recente). */
+export function useReembolsoParametros() {
+  return useQuery({
+    queryKey: ["reembolso-parametros"],
+    queryFn: async (): Promise<Record<string, ParametroReembolso>> => {
+      const hojeIso = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("reembolso_parametros")
+        .select("chave,unidade,descricao,valor_numerico,valor_texto,vigencia_inicio,vigencia_fim")
+        .lte("vigencia_inicio", hojeIso)
+        .order("vigencia_inicio", { ascending: true });
+      if (error) throw error;
+      const mapa: Record<string, ParametroReembolso> = {};
+      for (const p of (data ?? []) as ParametroReembolso[]) {
+        if (p.vigencia_fim && p.vigencia_fim < hojeIso) continue;
+        mapa[p.chave] = p;
+      }
+      return mapa;
+    },
+  });
+}
