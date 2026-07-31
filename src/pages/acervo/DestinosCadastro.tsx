@@ -149,6 +149,33 @@ export default function DestinosCadastro() {
   const [grupos, setGrupos] = useState<string[] | null>(null); // por linha
   const [erro, setErro] = useState<string | null>(null);
   const [processando, setProcessando] = useState(false);
+  const [fiscal, setFiscal] = useState<Map<string, FiscalSncf> | null>(null);
+  const [fiscalErro, setFiscalErro] = useState<string | null>(null);
+  const [fiscalCarregando, setFiscalCarregando] = useState(false);
+  const [detalheAberto, setDetalheAberto] = useState(false);
+
+  const carregarFiscal = async () => {
+    setFiscalCarregando(true);
+    setFiscalErro(null);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("vw_bling_completar_fiscal")
+        .select(
+          "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean",
+        );
+      if (error) throw error;
+      const m = new Map<string, FiscalSncf>();
+      for (const r of (data ?? []) as FiscalSncf[]) {
+        if (r.sku) m.set(chaveSku(r.sku), r);
+      }
+      setFiscal(m);
+    } catch (e) {
+      setFiscal(null);
+      setFiscalErro(formatError(e));
+    } finally {
+      setFiscalCarregando(false);
+    }
+  };
 
   const idx = useMemo(() => {
     if (!parsed) return null;
@@ -167,6 +194,7 @@ export default function DestinosCadastro() {
     setGrupos(null);
     setErro(null);
     setArquivoNome(null);
+    setDetalheAberto(false);
   };
 
   const handleArquivo = async (file: File) => {
@@ -220,6 +248,7 @@ export default function DestinosCadastro() {
       setParsed(p);
       setGrupos(porLinha);
       toast.success(`${p.rows.length} produto(s) lido(s) · ${pares.size} par(es) NCM+Origem`);
+      await carregarFiscal();
     } catch (e) {
       const msg = formatError(e);
       setErro(msg);
@@ -230,6 +259,61 @@ export default function DestinosCadastro() {
       setProcessando(false);
     }
   };
+
+  /**
+   * Plano de completar: por linha, quais colunas vazias o SNCF preenche.
+   * Nunca sobrescreve célula com valor. Nunca toca em Origem.
+   */
+  const plano = useMemo(() => {
+    if (!parsed || !idx) return null;
+    const indices = new Map<string, number>();
+    for (const m of MAPA_FISCAL) {
+      const i = parsed.header.findIndex((h) => h === m.coluna);
+      if (i >= 0) indices.set(m.coluna, i);
+    }
+    const porLinha: { col: number; valor: string; rotulo: string }[][] = [];
+    const detalhes: { codigo: string; descricao: string; campos: string[] }[] = [];
+    let naoEncontrados = 0;
+
+    parsed.rows.forEach((r) => {
+      const preenche: { col: number; valor: string; rotulo: string }[] = [];
+      const codigoRaw = r[idx.codigo] ?? "";
+      const info = fiscal?.get(chaveSku(codigoRaw));
+      if (fiscal && !info) naoEncontrados++;
+      if (info) {
+        for (const m of MAPA_FISCAL) {
+          const col = indices.get(m.coluna);
+          if (col === undefined) continue;
+          if (!celulaVazia(r[col])) continue;
+          const valor = (info[m.campo] as string | null) ?? "";
+          if (valor.trim() === "") continue;
+          preenche.push({ col, valor, rotulo: m.rotulo });
+        }
+      }
+      porLinha.push(preenche);
+      if (preenche.length > 0) {
+        detalhes.push({
+          codigo: codigoRaw.replace(/\t/g, "").trim(),
+          descricao: idx.descricao >= 0 ? r[idx.descricao] ?? "" : info?.nome_comercial ?? "",
+          campos: preenche.map((p) => p.rotulo),
+        });
+      }
+    });
+
+    return { porLinha, detalhes, naoEncontrados };
+  }, [parsed, idx, fiscal]);
+
+  const resumo = useMemo(() => {
+    if (!parsed || !grupos || !idx) return null;
+    let jaPreenchido = 0;
+    let vaiMudar = 0;
+    parsed.rows.forEach((r, i) => {
+      const atual = (r[idx.grupo] ?? "").replace(/\t/g, "").trim();
+      if (atual !== "" && atual === grupos[i]) jaPreenchido++;
+      else vaiMudar++;
+    });
+    return { jaPreenchido, vaiMudar, completados: plano?.detalhes.length ?? 0 };
+  }, [parsed, grupos, idx, plano]);
 
   const contagem = useMemo(() => {
     if (!grupos) return [];
@@ -250,15 +334,21 @@ export default function DestinosCadastro() {
       }));
   }, [parsed, grupos, idx]);
 
+  // NCM vazio avaliado DEPOIS do completar pelo SNCF.
   const semNcm = useMemo(() => {
     if (!parsed || !idx) return [];
     return parsed.rows
-      .filter((r) => (r[idx.ncm] ?? "").trim() === "")
-      .map((r) => ({
+      .map((r, i) => ({ r, i }))
+      .filter(({ r, i }) => {
+        if (!celulaVazia(r[idx.ncm])) return false;
+        const completa = plano?.porLinha[i]?.some((p) => p.col === idx.ncm);
+        return !completa;
+      })
+      .map(({ r }) => ({
         codigo: r[idx.codigo] ?? "",
         descricao: idx.descricao >= 0 ? r[idx.descricao] ?? "" : "",
       }));
-  }, [parsed, idx]);
+  }, [parsed, idx, plano]);
 
   const baixar = () => {
     if (!parsed || !grupos || !idx) return;
@@ -267,6 +357,7 @@ export default function DestinosCadastro() {
         const copia = [...r];
         while (copia.length < parsed.header.length) copia.push("");
         copia[idx.grupo] = grupos[i];
+        for (const p of plano?.porLinha[i] ?? []) copia[p.col] = p.valor;
         return copia;
       });
       const blob = gerarCsv(parsed.header, rows);
@@ -282,6 +373,7 @@ export default function DestinosCadastro() {
       toast.error(formatError(e));
     }
   };
+
 
   return (
     <div className="p-6 space-y-6 max-w-5xl">
