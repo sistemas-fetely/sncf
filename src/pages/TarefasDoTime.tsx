@@ -47,6 +47,10 @@ interface TarefaTime {
   responsavel_user_id: string | null;
   colaborador_id: string | null;
   colaborador_tipo: string | null;
+  esta_aberta?: boolean | null;
+  esta_atrasada?: boolean | null;
+  dias_atraso?: number | null;
+  dias_restantes?: number | null;
 }
 
 type Ordenacao = "sobrecarga" | "atraso" | "alfabetico";
@@ -138,8 +142,8 @@ export default function TarefasDoTime() {
 
 
         const { data: tarefasData } = await supabase
-          .from("sncf_tarefas")
-          .select("id, titulo, descricao, prioridade, area_destino, prazo_data, status, bloqueante, tipo_processo, responsavel_user_id, colaborador_id, colaborador_tipo")
+          .from("vw_tarefas")
+          .select("id, titulo, descricao, prioridade, area_destino, prazo_data, status, bloqueante, tipo_processo, responsavel_user_id, colaborador_id, colaborador_tipo, esta_aberta, esta_atrasada, dias_atraso, dias_restantes")
           .in("responsavel_user_id", userIds)
           .order("prazo_data", { ascending: true, nullsFirst: false });
 
@@ -171,8 +175,8 @@ export default function TarefasDoTime() {
   }, [podeAcessar, carregar]);
 
   const stats = (s: Subordinado) => {
-    const ativas = s.tarefas.filter((t) => ["pendente", "atrasada", "em_andamento"].includes(t.status));
-    const atrasadas = s.tarefas.filter((t) => t.status === "atrasada");
+    const ativas = s.tarefas.filter((t) => t.esta_aberta);
+    const atrasadas = s.tarefas.filter((t) => t.esta_atrasada);
     const legaisAtrasadas = atrasadas.filter((t) => t.bloqueante);
     return { ativas, atrasadas, legaisAtrasadas };
   };
@@ -217,15 +221,10 @@ export default function TarefasDoTime() {
   }, [subordinados]);
 
   const handleConcluirRapido = async (t: TarefaTime) => {
-    const { error } = await supabase
-      .from("sncf_tarefas")
-      .update({
-        status: "concluida",
-        concluida_em: new Date().toISOString(),
-        concluida_por: user?.id,
-        evidencia_texto: "Concluída pelo gestor",
-      })
-      .eq("id", t.id);
+    const { error } = await supabase.rpc("concluir_tarefa", {
+      p_tarefa_id: t.id,
+      p_evidencia_texto: "Concluída pelo gestor",
+    });
     if (error) toast.error("Erro: " + error.message);
     else {
       toast.success("Tarefa concluída");
@@ -421,7 +420,7 @@ export default function TarefasDoTime() {
                           onClick={() => setDrawerTarefa(tarefa)}
                           className={cn(
                             "flex items-start gap-2 p-2.5 rounded-lg border text-sm cursor-pointer hover:bg-accent/40 transition-colors",
-                            tarefa.status === "atrasada"
+                            tarefa.esta_atrasada
                               ? "bg-destructive/5 border-destructive/30"
                               : tarefa.bloqueante
                               ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
@@ -434,8 +433,13 @@ export default function TarefasDoTime() {
                               {tarefa.bloqueante && (
                                 <Badge variant="destructive" className="text-[10px]">⚠ Legal</Badge>
                               )}
-                              {tarefa.status === "atrasada" && (
-                                <Badge variant="destructive" className="text-[10px]">Atrasada</Badge>
+                              {tarefa.status === "em_andamento" && (
+                                <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500/90">Em andamento</Badge>
+                              )}
+                              {tarefa.esta_atrasada && (
+                                <Badge variant="destructive" className="text-[10px]">
+                                  Atrasada{tarefa.dias_atraso ? ` há ${tarefa.dias_atraso}d` : ""}
+                                </Badge>
                               )}
                               {tarefa.tipo_processo !== "manual" && (
                                 <Badge variant="secondary" className="text-[10px]">{tarefa.tipo_processo}</Badge>
