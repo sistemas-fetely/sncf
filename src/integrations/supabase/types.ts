@@ -18963,6 +18963,13 @@ export type Database = {
             referencedRelation: "qualidade_regra"
             referencedColumns: ["slug"]
           },
+          {
+            foreignKeyName: "qualidade_medicao_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_qualidade_painel"
+            referencedColumns: ["slug"]
+          },
         ]
       }
       qualidade_regra: {
@@ -31171,14 +31178,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -32793,6 +32800,23 @@ export type Database = {
           rank_sug: number | null
           sku: string | null
           sugerido_manter: boolean | null
+        }
+        Relationships: []
+      }
+      vw_qualidade_painel: {
+        Row: {
+          contagem: number | null
+          erro: string | null
+          estado: string | null
+          link_acao: string | null
+          medido_em: string | null
+          modulo: string | null
+          o_que_significa: string | null
+          objeto: string | null
+          ordem: number | null
+          severidade: string | null
+          slug: string | null
+          titulo: string | null
         }
         Relationships: []
       }
