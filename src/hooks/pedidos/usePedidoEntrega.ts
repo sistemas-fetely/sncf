@@ -138,12 +138,17 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
       const m = new Map<string, EntregaLinhaInfo>();
       const put = (pid: string, patch: Partial<EntregaLinhaInfo>) => {
         const base: EntregaLinhaInfo = m.get(pid) ?? {
+          estagio: null,
           entregue_em: null,
           entregue_metodo: null,
           transportadora_nome: null,
           data_entrega_transportadora: null,
+          data_entrega_prevista: null,
           prazo_transportadora: null,
           entrega_ocorrencia_texto: null,
+          entrega_ocorrencia_codigo: null,
+          entrega_ocorrencia_classe: null,
+          entrega_ocorrencia_problema: null,
           nf_numero: null,
           nf_serie: null,
           nf_chave: null,
@@ -159,12 +164,17 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
       for (const r of (entregaRes.data || []) as any[]) {
         if (!r.pedido_id) continue;
         put(r.pedido_id, {
+          estagio: r.estagio ?? null,
           entregue_em: r.entregue_em ?? null,
           entregue_metodo: r.entregue_metodo ?? null,
           transportadora_nome: r.transportadora_nome ?? r.transportadora_razao ?? null,
           data_entrega_transportadora: r.data_entrega_transportadora ?? null,
+          data_entrega_prevista: r.data_entrega_prevista ?? null,
           prazo_transportadora: r.prazo_transportadora ?? null,
           entrega_ocorrencia_texto: r.entrega_ocorrencia_texto ?? null,
+          entrega_ocorrencia_codigo: r.entrega_ocorrencia_codigo ?? null,
+          entrega_ocorrencia_classe: r.entrega_ocorrencia_classe ?? null,
+          entrega_ocorrencia_problema: r.entrega_ocorrencia_problema ?? null,
         });
       }
       for (const [pid, nf] of nfMap.entries()) {
