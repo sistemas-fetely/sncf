@@ -40,11 +40,9 @@ export default tseslint.config(
     },
   },
   {
-    // ===== RATCHET (catraca) do ERRO CEGO =====
-    // Divida legada: os arquivos abaixo ainda usam o idioma proibido.
-    // A regra cai para "warn" aqui para nao poluir o lint com erro herdado.
-    // CODIGO NOVO nao entra nesta lista -> a regra e "error" para ele.
-    // A lista SO PODE ENCOLHER. Quando zerar, remova este bloco inteiro.
+    // ===== RATCHET do ERRO CEGO — divida legada, so pode encolher =====
+    // Codigo novo NAO entra nesta lista -> regra e "error" para ele.
+    // Quando zerar, remova este bloco inteiro.
     files: [
       "src/components/acervo/SincronizacaoEstoqueShopify.tsx",
       "src/components/compras/ImportarItensDialog.tsx",
