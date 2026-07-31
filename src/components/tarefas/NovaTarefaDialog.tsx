@@ -305,34 +305,46 @@ export function NovaTarefaDialog({ open, onOpenChange, onCriada, tarefaParaEdita
         await registrar(tarefaParaEditar.id, "edicao", "Editou os dados da tarefa");
         toast.success("Tarefa atualizada");
       } else {
-        // Criação — calcula prazo_data
-        const prazoData = new Date();
-        prazoData.setDate(prazoData.getDate() + prazoDias);
-
-        const payload = {
-          titulo: titulo.trim(),
-          descricao: descricao.trim() || null,
-          prazo_dias: prazoDias,
-          prazo_data: prazoData.toISOString().slice(0, 10),
-          prioridade,
-          responsavel_user_id: responsavelUserId,
-          colaborador_id: colabRelacionado?.id || null,
-          colaborador_tipo: colabRelacionado?.tipo || null,
-          colaborador_nome: colabRelacionado?.nome || null,
-          tipo_processo: "manual",
-          sistema_origem: "manual",
-          // area_destino nulo é aceito pelo banco apenas porque há responsável nomeado
-          area_destino: null,
-          responsavel_role: null,
-          criado_por: user.id,
-          status: "pendente",
+        // Criação via RPC criar_tarefa — o banco valida e deriva o que falta
+        const args: Record<string, unknown> = {
+          p_titulo: titulo.trim(),
+          p_tipo_processo: "manual",
+          p_sistema_origem: "manual",
+          p_descricao: descricao.trim() || undefined,
+          p_responsavel_user_id: responsavelUserId,
+          p_prioridade: prioridade,
         };
 
-        const { error } = await supabase
-          .from("sncf_tarefas")
-          .insert(payload);
+        // Só manda prazo quando o usuário informou — senão o banco deriva da dimensão
+        if (prazoDias && prazoDias > 0) {
+          const prazoData = new Date();
+          prazoData.setDate(prazoData.getDate() + prazoDias);
+          args.p_prazo_data = prazoData.toISOString().slice(0, 10);
+        }
 
-        if (error) throw error;
+        const { data: novoId, error } = await supabase.rpc("criar_tarefa", args as never);
+
+        if (error) {
+          toast.error("Erro ao criar tarefa: " + error.message);
+          setSalvando(false);
+          return;
+        }
+
+        // Vínculo com colaborador relacionado não é coberto pela RPC
+        if (novoId && colabRelacionado) {
+          const { error: errVinculo } = await supabase
+            .from("sncf_tarefas")
+            .update({
+              colaborador_id: colabRelacionado.id,
+              colaborador_tipo: colabRelacionado.tipo,
+              colaborador_nome: colabRelacionado.nome,
+            })
+            .eq("id", novoId as string);
+          if (errVinculo) {
+            toast.error("Tarefa criada, mas o vínculo com o colaborador falhou: " + errVinculo.message);
+          }
+        }
+
         // Histórico de criação é gravado pelo gatilho trg_tarefa_historico
         toast.success("Tarefa criada");
       }
