@@ -13,9 +13,12 @@ interface Props {
   valor_liquido: number;
   valor_bruto?: number;
   estagio: string | null | undefined;
-  /** "full" = botão largura total | "compact" = botão de tabela | "menuitem" = item de DropdownMenu */
-  variante?: "full" | "compact" | "menuitem";
+  /** "full" | "compact" | "menuitem" (só o item de menu) | "dialogo" (só o diálogo) */
+  variante?: "full" | "compact" | "menuitem" | "dialogo";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
+
 
 
 /**
