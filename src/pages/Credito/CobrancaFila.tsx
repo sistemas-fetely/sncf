@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
+import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -756,6 +758,7 @@ function PedidosCobrancaTab() {
   const [busca, setBusca] = useState("");
   const { data, isLoading } = useCobrancaFila({ busca: busca || undefined });
   const total = data?.length ?? 0;
+  const { data: linksFila } = useLinksPagamentoFila((data ?? []).map((p) => p.pedido_id));
 
   return (
     <div className="space-y-4">
@@ -807,9 +810,12 @@ function PedidosCobrancaTab() {
                 onClick={() => navigate(`/recebimento/cobranca/${p.pedido_id}`, { state: { from: "/recebimento/cobranca", fromLabel: "Fila de Cobrança" } })}
               >
                 <TableCell>
-                  <span className="font-mono text-xs font-semibold text-primary">
-                    {p.id_externo}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs font-semibold text-primary">
+                      {p.id_externo}
+                    </span>
+                    <BadgeLinkFila linha={linksFila?.[p.pedido_id]} />
+                  </div>
                 </TableCell>
                 <TableCell>
                   <p className="text-sm font-medium">{p.parceiro_nome}</p>
