@@ -89,23 +89,24 @@ export default function DesligamentoDetalhe() {
   const [evidenciaUrl, setEvidenciaUrl] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [motivoExclusao, setMotivoExclusao] = useState("");
 
   const handleDeleteDesligamento = async () => {
     if (!checklist) return;
-    const { data: tarefasIds } = await supabase
-      .from("sncf_tarefas")
-      .select("id")
-      .eq("processo_id", checklist.id);
-    const ids = (tarefasIds || []).map((t: any) => t.id);
-    if (ids.length > 0) {
-      await supabase.from("sncf_tarefas_historico").delete().in("tarefa_id", ids);
-    }
-    await supabase.from("sncf_tarefas").delete().eq("processo_id", checklist.id);
-    const { error } = await supabase.from("onboarding_checklists").delete().eq("id", checklist.id);
-    if (error) {
-      toast.error(humanizeError(error.message));
+    const motivo = motivoExclusao.trim();
+    if (!motivo) {
+      toast.error("Informe o motivo da exclusão");
       return;
     }
+    const { data, error } = await (supabase as any).rpc("excluir_checklist_processo", {
+      p_checklist_id: checklist.id,
+      p_motivo: motivo,
+    });
+    if (error) {
+      toast.error(formatError(error));
+      return;
+    }
+
     // Reverter status do colaborador
     if (checklist.colaborador_id) {
       if (checklist.colaborador_tipo === "clt") {
