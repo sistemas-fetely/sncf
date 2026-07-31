@@ -359,7 +359,7 @@ export default function MinhasTarefas() {
   const confirmarConclusao = async () => {
     if (!concluirTarefa) return;
     setSalvando(true);
-    const statusAnterior = concluirTarefa.status;
+    
     const { error } = await supabase
       .from("sncf_tarefas")
       .update({
@@ -712,7 +712,7 @@ export default function MinhasTarefas() {
                   className="gap-2 text-destructive focus:text-destructive"
                   onClick={() => setDeleteTarget(tarefa)}
                 >
-                  <Trash2 className="h-4 w-4" /> Excluir permanentemente
+                  <Trash2 className="h-4 w-4" /> Cancelar tarefa
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -1027,26 +1027,49 @@ export default function MinhasTarefas() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog de exclusão permanente (super_admin) */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+      {/* Dialog de cancelamento com motivo (super_admin) */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setMotivoCancelamento("");
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir tarefa permanentemente?</AlertDialogTitle>
+            <AlertDialogTitle>Cancelar tarefa</AlertDialogTitle>
             <AlertDialogDescription>
-              A tarefa "{deleteTarget?.titulo}" e todo seu histórico serão excluídos. Essa ação não pode ser desfeita.
+              A tarefa "{deleteTarget?.titulo}" será cancelada. O histórico é preservado.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="motivo-cancelamento">Motivo do cancelamento *</Label>
+            <Textarea
+              id="motivo-cancelamento"
+              value={motivoCancelamento}
+              onChange={(e) => setMotivoCancelamento(e.target.value)}
+              placeholder="Explique por que a tarefa está sendo cancelada"
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteTarefa}
+              disabled={!motivoCancelamento.trim()}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleCancelarComMotivo();
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Excluir
+              Cancelar tarefa
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       {/* Dialog de submissão de NF (tarefa emissao_nf) */}
       {submeterNFTarefa && (
