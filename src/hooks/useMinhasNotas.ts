@@ -160,16 +160,12 @@ export function useSubmeterNF() {
       if (errCls) throw errCls;
 
       if (input.tarefa_id) {
-        await supabase
-          .from("sncf_tarefas")
-          .update({
-            status: "concluida",
-            concluida_em: new Date().toISOString(),
-            concluida_por: user?.id,
-            evidencia_texto: `NF ${input.numero} submetida. Aguardando validação do RH.`,
-            evidencia_url: input.arquivo_url,
-          } as any)
-          .eq("id", input.tarefa_id);
+        const { error: errTarefa } = await supabase.rpc("concluir_tarefa", {
+          p_tarefa_id: input.tarefa_id,
+          p_evidencia_texto: `NF ${input.numero} submetida. Aguardando validação do RH.`,
+          p_evidencia_url: input.arquivo_url ?? null,
+        });
+        if (errTarefa) throw errTarefa;
       }
 
       return (nf as any).id;
