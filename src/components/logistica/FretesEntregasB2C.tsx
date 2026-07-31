@@ -23,8 +23,9 @@ interface EnvioB2C {
   municipio_destino: string | null;
   rastreio: string | null;
   documento_ref: string | null;
-  entregue: boolean | null;
-  devolucao: boolean | null;
+  estado_canonico: string | null;
+  estado_rotulo: string | null;
+  eh_problema: boolean | null;
   status_texto: string | null;
 }
 
