@@ -1962,6 +1962,7 @@ export default function PedidoDetalhe() {
                     pedido_id={pedido.id}
                     id_externo={pedido.id_externo}
                     estagio={estagio}
+                    cliente_nome={parceiro?.razao_social || pedido.cliente_nome_snapshot}
                   />
                 </div>
               )}
