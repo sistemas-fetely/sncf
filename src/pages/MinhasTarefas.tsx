@@ -1020,18 +1020,29 @@ export default function MinhasTarefas() {
       </AlertDialog>
 
       {/* Dialog de cancelamento */}
-      <AlertDialog open={!!cancelarTarefa} onOpenChange={(open) => { if (!open) setCancelarTarefa(null); }}>
+      <AlertDialog open={!!cancelarTarefa} onOpenChange={(open) => { if (!open) { setCancelarTarefa(null); setMotivoCancelamentoTarefa(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar tarefa?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja cancelar "{cancelarTarefa?.titulo}"? Esta ação pode ser revertida posteriormente.
+              Tem certeza que deseja cancelar "{cancelarTarefa?.titulo}"? O motivo fica registrado no histórico da tarefa.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-cancelar-tarefa">Motivo *</Label>
+            <Textarea
+              id="motivo-cancelar-tarefa"
+              value={motivoCancelamentoTarefa}
+              onChange={(e) => setMotivoCancelamentoTarefa(e.target.value)}
+              placeholder="Por que esta tarefa está sendo cancelada?"
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmarCancelamento}
+              disabled={!motivoCancelamentoTarefa.trim()}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Cancelar tarefa
