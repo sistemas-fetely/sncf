@@ -32,8 +32,11 @@ export function usePedidosFila(opts: Opts = {}) {
       }
 
       if (opts.apenasAtivos) {
-        q = q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
+        q = opts.incluirCancelados
+          ? q.not("estagio", "in", "(entregue)")
+          : q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
       }
+
 
       q = q.order("recebido_em", { ascending: false }).limit(500);
 
