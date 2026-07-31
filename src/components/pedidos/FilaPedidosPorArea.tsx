@@ -732,3 +732,169 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   );
 }
 
+/** Farol de risco — bolinha colorida + tooltip com faixa, score e motivos. */
+function FarolRisco({
+  faixa,
+  cor,
+  score,
+  motivos,
+  rotuloFaixa,
+}: {
+  faixa: string | null;
+  cor: string | null;
+  score: number | null;
+  motivos: { codigo: string; rotulo: string; pontos: number }[];
+  rotuloFaixa: string | null;
+}) {
+  if (!faixa && score == null) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+  const bg = RISCO_COR_TOKEN[cor ?? ""] ?? "bg-muted-foreground";
+  const label = rotuloFaixa || faixa || "Risco";
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex items-center gap-1.5 cursor-help"
+            aria-label={`Risco: ${label}`}
+          >
+            <span className={cn("h-2.5 w-2.5 rounded-full", bg)} />
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {score ?? "—"}
+            </span>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          <p className="text-xs font-semibold">{label}{score != null ? ` · ${score}` : ""}</p>
+          {motivos.length > 0 ? (
+            <ul className="mt-1 space-y-0.5 text-xs">
+              {motivos.map((m) => (
+                <li key={m.codigo} className="flex justify-between gap-3">
+                  <span className="opacity-80">{m.rotulo}</span>
+                  <span className="font-mono">+{m.pontos}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-xs opacity-80">Sem motivos registrados.</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+/** Coluna de ações: uma ação primária por estágio + resto no menu "⋯". */
+function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
+  const navigate = useNavigate();
+  const [cadastroOpen, setCadastroOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
+
+  return (
+    <div className="flex justify-end items-center gap-1.5">
+      {temMsg && (
+        <button
+          onClick={() => navigate(`/pedidos/${p.id}`)}
+          title="Mensagem do Comercial aguardando resposta"
+          className="inline-flex items-center gap-1 px-1.5 py-1 rounded border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 text-xs"
+        >
+          <MessageCircle className="h-3.5 w-3.5" />
+          <span className="font-medium">msg</span>
+        </button>
+      )}
+
+      {/* Ação primária do estágio */}
+      {p.estagio === "recebido" && (
+        <TriarPedidoDialog
+          pedido_id={p.id}
+          perfil_credito={null}
+          estagio_atual={p.estagio}
+          forma_solicitada={p.forma_solicitada}
+          triggerLabel="Triar"
+          triggerVariant="outline"
+        />
+      )}
+      {p.estagio === "cobranca" && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            navigate(`/recebimento/cobranca/${p.id}`, {
+              state: { from: "/pedidos", fromLabel: "Fila de Pedidos" },
+            })
+          }
+        >
+          <ExternalLink className="h-3 w-3 mr-1" />
+          Cobrança
+        </Button>
+      )}
+      {p.estagio === "aguardando_pagamento" && (
+        <ConfirmarPortaoPagoDialog pedido_id={p.id} />
+      )}
+      {p.estagio === "pre_separacao" && !p.bling_id_destino && (
+        <EnviarBlingDialog
+          pedido_id={p.id}
+          parceiro_id={p.parceiro_id}
+          id_externo={p.id_externo}
+          valor_liquido={p.valor_liquido}
+          forma_solicitada={p.forma_solicitada}
+        />
+      )}
+
+      {/* Secundárias */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Mais ações">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuItem onSelect={() => navigate(`/pedidos/${p.id}`)}>
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Abrir pedido
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setCadastroOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Tabela de cadastro
+          </DropdownMenuItem>
+          <BotaoSplitPedido
+            pedido_id={p.id}
+            id_externo={p.id_externo}
+            valor_liquido={p.valor_liquido}
+            estagio={p.estagio}
+            variante="menuitem"
+            open={splitOpen}
+            onOpenChange={setSplitOpen}
+          />
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Marcação continua acessível direto (popover próprio) */}
+      <MarcacaoPedido pedidoId={p.id} marcacao={p.marcacao} iconOnly />
+
+      {/* Diálogos ficam fora do menu — o conteúdo do menu desmonta ao fechar. */}
+      <TabelaCadastroDialog
+        pedido_id={p.id}
+        id_externo={p.id_externo}
+        parceiro_id={p.parceiro_id}
+        parceiro_nome={p.parceiro_razao}
+        open={cadastroOpen}
+        onOpenChange={setCadastroOpen}
+        hideTrigger
+      />
+      <BotaoSplitPedido
+        pedido_id={p.id}
+        id_externo={p.id_externo}
+        valor_liquido={p.valor_liquido}
+        estagio={p.estagio}
+        variante="dialogo"
+        open={splitOpen}
+        onOpenChange={setSplitOpen}
+      />
+    </div>
+  );
+}
+
+
