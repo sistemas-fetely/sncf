@@ -17,7 +17,6 @@ export function useEnviarEmailPedidoCobranca() {
       const exp = await fetchPedidoParaExportar(pedido_id);
       const pedido = exp.pedido;
       const parceiro = exp.parceiro;
-      const itensArr = exp.pdf.itens;
 
       // ── Link de pagamento: view vw_pedido_link_pagamento -> fallback antigo ──
       let link_pagamento: string | null = null;
