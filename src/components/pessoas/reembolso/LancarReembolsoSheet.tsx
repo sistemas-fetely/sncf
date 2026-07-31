@@ -163,7 +163,25 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
     setDataRecebimento(hoje());
     setThreadRef("");
     setItens([novoItem()]);
+    setProgresso(null);
   }
+
+  function escolherArquivo(uid: string, file: File | null) {
+    if (!file) {
+      atualizar(uid, { arquivo: null });
+      return;
+    }
+    if (!(MIMES_COMPROVANTE as readonly string[]).includes(file.type)) {
+      toast.error("Formato não aceito. Use PDF, PNG, JPEG ou WEBP.");
+      return;
+    }
+    if (file.size > LIMITE_COMPROVANTE_BYTES) {
+      toast.error("Arquivo acima de 10 MB.");
+      return;
+    }
+    atualizar(uid, { arquivo: file });
+  }
+
 
   async function enviar() {
     if (!vinculoId) {
