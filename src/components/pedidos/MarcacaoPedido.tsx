@@ -32,6 +32,11 @@ interface Props {
   pedidoId: string;
   marcacao: string | null;
   iconOnly?: boolean;
+  /** Abertura controlada pelo pai (uso: item dentro de DropdownMenu). */
+  open?: boolean;
+  onOpenChange?: (o: boolean) => void;
+  /** Esconde o botão próprio — o popover ancora num alvo invisível. */
+  semTrigger?: boolean;
 }
 
 export function MarcacaoBadge({ marcacao }: { marcacao: string | null }) {
