@@ -602,6 +602,9 @@ export function EntregasControle() {
         <Kpi label="Valor exposto" valor={formatBRL(kpis.exposto)} icon={Wallet} />
       </div>
 
+      {/* Bloco 2b — Saúde por transportadora */}
+      <SaudeTransportadora />
+
       {/* Bloco 3 — Grade completa */}
       <div className="rounded-lg border bg-card p-3 flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-2">
