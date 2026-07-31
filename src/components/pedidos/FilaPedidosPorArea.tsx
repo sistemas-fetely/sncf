@@ -27,10 +27,8 @@ import {
   EstagioBadge, FormatoIdade,
 } from "./BadgesPedido";
 import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
-import {
-  ESTAGIO_AREA, PIPELINE_PRINCIPAL,
-  ESTAGIOS_TERMINAIS, ESTAGIOS_RECUPERAVEIS,
-} from "@/types/pedido";
+import type { AreaPedido, EstagioPedido, PedidoFilaItem } from "@/types/pedido";
+
 import type { AreaPedido, EstagioPedido, PedidoFilaItem } from "@/types/pedido";
 
 type OrdenacaoFila = "cronologico" | "risco";
