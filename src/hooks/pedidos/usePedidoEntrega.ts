@@ -96,7 +96,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
         sb
           .from("vw_pedido_entrega")
           .select(
-            "pedido_id, entregue_em, entregue_metodo, transportadora_nome, transportadora_razao, data_entrega_transportadora, prazo_transportadora, entrega_ocorrencia_texto",
+            "pedido_id, estagio, entregue_em, entregue_metodo, transportadora_nome, transportadora_razao, data_entrega_transportadora, data_entrega_prevista, prazo_transportadora, entrega_ocorrencia_texto, entrega_ocorrencia_codigo, entrega_ocorrencia_classe, entrega_ocorrencia_problema",
           )
           .in("pedido_id", ids),
         sb
