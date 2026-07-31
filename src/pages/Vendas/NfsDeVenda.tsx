@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/select";
 import { useNfsEmitidas, type NfEmitida } from "@/hooks/vendas/useNfsEmitidas";
 import { useVendasProduto, type VendaProduto } from "@/hooks/vendas/useVendasProduto";
-import { FileText, ExternalLink, Search, RefreshCw, Download, AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { FileText, ExternalLink, Search, RefreshCw, Download, AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, Loader2 } from "lucide-react";
+import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,6 +123,7 @@ export default function NfsDeVenda() {
 // ============================================================
 function AbaNFs() {
   const navigate = useNavigate();
+  const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [busca, setBusca] = useState("");
@@ -372,15 +374,22 @@ function AbaNFs() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex items-center gap-1">
-                      {n.pdf_url && (
+                      {(n.pdf_url || n.bling_id) && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => window.open(n.pdf_url!, "_blank")}
-                          title="Abrir PDF"
+                          disabled={baixando && nfEmDownload === n.id}
+                          onClick={() =>
+                            baixar({ nf_id: n.id, nome: `NF-${n.numero ?? n.id}${n.serie ? `-${n.serie}` : ""}` })
+                          }
+                          title="Baixar PDF da NF"
                         >
-                          <FileText className="h-4 w-4" />
+                          {baixando && nfEmDownload === n.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileText className="h-4 w-4" />
+                          )}
                         </Button>
                       )}
                       {n.pedido_venda_id && (
