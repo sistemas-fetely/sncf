@@ -837,6 +837,10 @@ export default function MinhasTarefas() {
       )}
 
       {/* KPIs */}
+      <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+        Minhas tarefas
+      </h2>
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-4 text-center">
