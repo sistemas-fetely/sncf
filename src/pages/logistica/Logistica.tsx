@@ -3,7 +3,7 @@ import { Truck, Loader2, Plus, LayoutGrid, Package } from "lucide-react";
 import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { VisaoGeralLogistica } from "@/components/logistica/VisaoGeralLogistica";
-import { RastreioNf } from "@/components/logistica/RastreioNf";
+import { EntregasControle } from "@/components/logistica/EntregasControle";
 import { cn } from "@/lib/utils";
 
 export default function Logistica() {
