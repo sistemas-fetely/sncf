@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { TituloProposto } from "@/types/credito";
+import { rawMessage } from "@/lib/format-error";
 
 interface Args {
   pedidoId: string;
@@ -39,11 +40,13 @@ export function useMaterializarComHaver() {
       });
       navigate("/recebimento/cobranca");
     },
-    onError: (e: Error) => {
+    onError: (e: unknown) => {
       console.error("[materializar_cobranca_com_haver]", e);
+      // Mensagem do banco vai crua (inclui details/hint da trigger de guarda de haver).
+      // Sem retry, sem texto genérico: o operador precisa ler o motivo.
       toast({
         title: "Erro ao materializar com haver",
-        description: e.message,
+        description: rawMessage(e),
         variant: "destructive",
       });
     },
