@@ -8271,6 +8271,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -9928,6 +9935,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -10158,6 +10172,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
             referencedColumns: ["sku"]
           },
           {
@@ -10464,6 +10485,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
             referencedColumns: ["sku"]
           },
           {
@@ -10837,6 +10865,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
             referencedColumns: ["sku"]
           },
           {
@@ -13680,6 +13715,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      origem_fiscal: {
+        Row: {
+          codigo: string
+          importado: boolean
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          importado: boolean
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          importado?: boolean
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
       }
       pagamento_alocacao: {
         Row: {
@@ -26403,6 +26459,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -27845,6 +27908,45 @@ export type Database = {
           preco_varejo: number | null
           profundidade_cm: number | null
           sku: string | null
+        }
+        Relationships: []
+      }
+      vw_bling_completar_fiscal: {
+        Row: {
+          altura_br: string | null
+          cest_sncf: string | null
+          ean: string | null
+          largura_br: string | null
+          ncm_sncf: string | null
+          nome_comercial: string | null
+          origem_nao_exportar: string | null
+          peso_liquido_br: string | null
+          profundidade_br: string | null
+          sku: string | null
+        }
+        Insert: {
+          altura_br?: never
+          cest_sncf?: string | null
+          ean?: string | null
+          largura_br?: never
+          ncm_sncf?: string | null
+          nome_comercial?: string | null
+          origem_nao_exportar?: never
+          peso_liquido_br?: never
+          profundidade_br?: never
+          sku?: string | null
+        }
+        Update: {
+          altura_br?: never
+          cest_sncf?: string | null
+          ean?: string | null
+          largura_br?: never
+          ncm_sncf?: string | null
+          nome_comercial?: string | null
+          origem_nao_exportar?: never
+          peso_liquido_br?: never
+          profundidade_br?: never
+          sku?: string | null
         }
         Relationships: []
       }
@@ -29717,6 +29819,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -30012,6 +30121,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -30130,6 +30246,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
             referencedColumns: ["sku"]
           },
           {
@@ -30955,14 +31078,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -31325,14 +31448,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -33991,6 +34114,13 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_completar_fiscal"
             referencedColumns: ["sku"]
           },
           {
