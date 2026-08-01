@@ -29123,6 +29123,42 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_faturamento_pedido: {
+        Row: {
+          canal: string | null
+          cfops: string | null
+          chave: string | null
+          cidade: string | null
+          cliente: string | null
+          cliente_cnpj: string | null
+          cmv: number | null
+          custo_safra: string | null
+          divergencia_canal: boolean | null
+          icms: number | null
+          itens_sem_custo: number | null
+          margem: number | null
+          margem_pct: number | null
+          mes: string | null
+          multi_nf: boolean | null
+          nfs: number | null
+          nfs_lista: string | null
+          pedido_ref: string | null
+          pedido_venda_id: string | null
+          preco_medio_un: number | null
+          primeira_nf: string | null
+          receita_frete: number | null
+          receita_produto: number | null
+          receita_total: number | null
+          sem_canal: boolean | null
+          sem_pedido: boolean | null
+          uf: string | null
+          ultima_nf: string | null
+          unidades: number | null
+          valor_nao_receita: number | null
+          valor_nota: number | null
+        }
+        Relationships: []
+      }
       vw_faturamento_produto: {
         Row: {
           canal: string | null
@@ -31193,14 +31229,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
