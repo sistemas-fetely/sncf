@@ -389,6 +389,24 @@ export function FilaPedidosPorArea({
         </Select>
       </div>
 
+      {resumoBuscaGlobal && (() => {
+        const grupos: string[] = [];
+        if (resumoBuscaGlobal.entregues > 0)
+          grupos.push(`${resumoBuscaGlobal.entregues} ${resumoBuscaGlobal.entregues === 1 ? "entregue" : "entregues"}`);
+        if (resumoBuscaGlobal.cancelados > 0)
+          grupos.push(`${resumoBuscaGlobal.cancelados} ${resumoBuscaGlobal.cancelados === 1 ? "cancelado" : "cancelados"}`);
+        if (resumoBuscaGlobal.recuperacao > 0)
+          grupos.push(`${resumoBuscaGlobal.recuperacao} em recuperação`);
+        return (
+          <p className="text-xs text-foreground bg-muted/50 rounded-md px-2 py-1 inline-block">
+            Busca em todo o histórico · {resumoBuscaGlobal.total}{" "}
+            {resumoBuscaGlobal.total === 1 ? "resultado" : "resultados"}
+            {grupos.length > 0 && ` (${grupos.join(" · ")})`}
+          </p>
+        );
+      })()}
+
+
       {(ordenacao === "risco" || somenteRiscoAlto) && (
         <p className="text-xs text-muted-foreground">
           {ordenacao === "risco" && "Ordenado por risco (maior primeiro). "}
