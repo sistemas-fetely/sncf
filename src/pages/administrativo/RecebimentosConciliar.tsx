@@ -546,6 +546,22 @@ function RowCredito({
           {credito.conta_nome || "—"}
         </TableCell>
         <TableCell className="max-w-md truncate">{credito.descricao || "—"}</TableCell>
+        <TableCell className="text-xs">
+          {credito.referencia_pedido ? (
+            <Badge variant="outline" title="Identificador informado no QR/PIX — pista, não verdade">
+              {credito.referencia_pedido}
+            </Badge>
+          ) : credito.contraparte_nome ? (
+            <span className="text-muted-foreground">
+              {credito.contraparte_nome.length > 28
+                ? `${credito.contraparte_nome.slice(0, 28)}…`
+                : credito.contraparte_nome}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+
 
         <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
           {formatBRL(Number(credito.valor || 0))}
