@@ -21,9 +21,10 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import {
-  useFaturamentoMensal, useFaturamentoNf, useFaturamentoProduto,
-  type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto,
+  useFaturamentoMensal, useFaturamentoNf, useFaturamentoProduto, useFaturamentoPedido,
+  type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto, type FaturamentoPedido,
 } from "@/hooks/financas/useFaturamento";
+
 
 const CANAIS = ["B2B", "B2C", "SEM CANAL"] as const;
 
