@@ -1294,8 +1294,38 @@ function AbaB2C() {
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Recebíveis B2C");
+
+    const listaSel =
+      listaFvr === "faturado_sem_recebimento"
+        ? semRecebimento
+        : listaFvr === "recebido_sem_nf"
+          ? recebidoSemNf
+          : conciliados;
+    const linhasFvr = listaSel.map((r) => ({
+      Situação: r.situacao ?? "",
+      Pedido: r.pedido_ref ?? "",
+      Cliente: r.cliente ?? "",
+      NF: r.nf_refs ?? "",
+      Emissão: formatDateBR(String(r.data_emissao ?? "").slice(0, 10)),
+      Recebimento: formatDateBR(String(r.data_recebimento ?? "").slice(0, 10)),
+      Dias: diasDesde(r.data_emissao) ?? "",
+      Meio: r.tipo_meio ?? "",
+      Cidade: r.cidade ?? "",
+      UF: r.uf ?? "",
+      Faturado: Number(r.faturado ?? 0),
+      "Bruto Shopify": Number(r.bruto_shopify ?? 0),
+      Δ: Number(r.delta_bruto_vs_faturado ?? 0),
+      Líquido: Number(r.liquido_mp ?? 0),
+      Taxa: Number(r.taxa_mp ?? 0),
+    }));
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(linhasFvr),
+      "Faturado x Recebido"
+    );
     XLSX.writeFile(wb, `recebiveis-b2c-${periodoLabel}.xlsx`);
   };
+
 
   return (
     <div className="space-y-6">
