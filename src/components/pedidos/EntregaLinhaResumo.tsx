@@ -122,7 +122,7 @@ export function EntregaLinhaResumo({ info }: { info: EntregaLinhaInfo | undefine
   ) : null;
 
   return (
-    <div className="mt-1 space-y-0.5">
+    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
       {emRota ? (
         <ResumoEmRota info={info} />
       ) : (
