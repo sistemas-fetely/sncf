@@ -29,9 +29,9 @@ import {
 } from "@/components/ui/select";
 import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
+type StatusGestao = "pago" | "atrasado" | "em_aberto" | "cancelado";
 
 type RecebivelB2B = {
   id: string;
@@ -45,18 +45,27 @@ type RecebivelB2B = {
   data_compra: string | null;
   data_vencimento: string | null;
   valor: number | null;
-  status_gestao: "pago" | "atrasado" | "em_aberto" | "cancelado";
+  status_gestao: StatusGestao;
   data_liquidacao: string | null;
+  liquidacao_realizada: boolean | null;
   pago: boolean | null;
   liquidado: boolean | null;
   conciliado: boolean | null;
   liquidacao_confirmada_banco: boolean | null;
 };
 
-
 const PAGE_SIZE = 25;
 
-type CardKey = "totalReceber" | "vencido" | "vence7" | "recebidoMes" | "liquidar30";
+type DataBase = "vencimento" | "emissao" | "liquidacao";
+
+const SITUACOES: { key: StatusGestao; label: string }[] = [
+  { key: "pago", label: "Recebido" },
+  { key: "em_aberto", label: "Em aberto" },
+  { key: "atrasado", label: "Atrasado" },
+  { key: "cancelado", label: "Cancelado" },
+];
+
+const SEM_CAIXA = ["haver", "bonificacao", "devolucao", "sem_pagamento"];
 
 const capitalize = (s: string) =>
   s
@@ -66,17 +75,24 @@ const capitalize = (s: string) =>
 
 const formatMeio = (m: string | null) => (m ? capitalize(m.replace(/_/g, " ")) : "—");
 
+const rotuloStatus = (s: StatusGestao) =>
+  s === "pago" ? "Recebido" : s === "atrasado" ? "Atrasado" : s === "cancelado" ? "Cancelado" : "Em aberto";
+
 export default function ContasReceber() {
   const [busca, setBusca] = useState("");
+  const [dataBase, setDataBase] = useState<DataBase>("emissao");
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [filtroBanco, setFiltroBanco] = useState<string>("todos");
   const [filtroMeio, setFiltroMeio] = useState<string>("todos");
-  const [emissaoDe, setEmissaoDe] = useState("");
-  const [emissaoAte, setEmissaoAte] = useState("");
-  const [cardsAtivos, setCardsAtivos] = useState<Set<CardKey>>(new Set());
+  const [situacoes, setSituacoes] = useState<Set<StatusGestao>>(
+    new Set<StatusGestao>(["pago", "em_aberto", "atrasado"])
+  );
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
+    key: "data_compra",
+    dir: "desc",
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-b2b"],
@@ -96,71 +112,7 @@ export default function ContasReceber() {
     return d;
   }, []);
 
-  const em7 = useMemo(() => new Date(hoje.getTime() + 7 * 86400000), [hoje]);
   const em30 = useMemo(() => new Date(hoje.getTime() + 30 * 86400000), [hoje]);
-  const inicioMes = useMemo(() => new Date(hoje.getFullYear(), hoje.getMonth(), 1), [hoje]);
-  const fimMes = useMemo(() => new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59), [hoje]);
-
-  const predicados: Record<CardKey, (t: RecebivelB2B) => boolean> = useMemo(
-    () => ({
-      totalReceber: (t) => t.liquidado === false && t.status_gestao !== "cancelado" && !["haver","bonificacao","devolucao","sem_pagamento"].includes(t.meio_pagamento ?? ""),
-      vencido: (t) => t.status_gestao === "atrasado",
-      vence7: (t) => {
-        if (t.status_gestao !== "em_aberto" || !t.data_vencimento) return false;
-        const v = new Date(t.data_vencimento);
-        return v >= hoje && v <= em7;
-      },
-      recebidoMes: (t) => {
-        if (!t.liquidado || !t.data_liquidacao) return false;
-        const d = new Date(t.data_liquidacao);
-        return d >= inicioMes && d <= fimMes;
-      },
-      liquidar30: (t) => {
-        const ref = t.data_liquidacao ?? t.data_vencimento;
-        if (t.status_gestao !== "em_aberto" || !ref) return false;
-        const v = new Date(ref);
-        return v >= hoje && v <= em30;
-      },
-    }),
-    [hoje, em7, em30, inicioMes, fimMes]
-  );
-
-  const kpis = useMemo(() => {
-    const titulos = data ?? [];
-    let totalReceber = 0;
-    let vencido = 0;
-    let vence7 = 0;
-    let recebidoMes = 0;
-    let liquidar30 = 0;
-    for (const t of titulos) {
-      const v = t.valor ?? 0;
-      if (predicados.totalReceber(t)) totalReceber += v;
-      if (predicados.vencido(t)) vencido += v;
-      if (predicados.vence7(t)) vence7 += v;
-      if (predicados.recebidoMes(t)) recebidoMes += v;
-      if (predicados.liquidar30(t)) liquidar30 += v;
-    }
-    const inadimplencia = totalReceber > 0 ? (vencido / totalReceber) * 100 : 0;
-    return { totalReceber, vencido, vence7, recebidoMes, liquidar30, inadimplencia };
-  }, [data, predicados]);
-
-  const aging = useMemo(() => {
-    const titulos = data ?? [];
-    const faixas = { a_vencer: 0, f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
-    for (const t of titulos) {
-      if (t.status_gestao !== "em_aberto" && t.status_gestao !== "atrasado") continue;
-      if (!t.data_vencimento) continue;
-      const venc = new Date(t.data_vencimento);
-      const dias = Math.floor((hoje.getTime() - venc.getTime()) / 86400000);
-      const valor = t.valor ?? 0;
-      if (dias <= 0) faixas.a_vencer += valor;
-      else if (dias <= 7) faixas.f1_7 += valor;
-      else if (dias <= 30) faixas.f8_30 += valor;
-      else if (dias <= 60) faixas.f31_60 += valor;
-      else faixas.f60 += valor;
-    }
-    return faixas;
-  }, [data, hoje]);
 
   const bancosOpcoes = useMemo(() => {
     const set = new Set<string>();
@@ -174,48 +126,119 @@ export default function ContasReceber() {
     return Array.from(set).sort();
   }, [data]);
 
-  const filtrados = useMemo(() => {
+  /** Conjunto filtrado por tudo EXCETO situação — base dos KPIs e das contagens. */
+  const base = useMemo(() => {
     const titulos = data ?? [];
     const buscaLc = busca.trim().toLowerCase();
-    const dDe = dataDe ? new Date(dataDe) : null;
-    const dAte = dataAte ? new Date(dataAte) : null;
-    const eDe = emissaoDe ? new Date(emissaoDe) : null;
-    const eAte = emissaoAte ? new Date(emissaoAte) : null;
+    const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
+    const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
 
-    let arr = titulos.filter((t) => {
-      if (t.status_gestao === "cancelado") return false;
-      // Esconde titulos ja pagos pelo cliente da visao "a receber".
-      // Excecao: quando o card "Recebido no mes" esta ativo, o drill-down
-      // desse card precisa mostrar justamente os pagos-liquidados do mes.
-      if (t.pago === true && !cardsAtivos.has("recebidoMes")) return false;
-      for (const k of cardsAtivos) {
-        if (!predicados[k](t)) return false;
-      }
+    return titulos.filter((t) => {
       if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) return false;
       if (filtroMeio !== "todos" && t.meio_pagamento !== filtroMeio) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
         const cli = (t.cliente ?? "").toLowerCase();
-        if (!num.includes(buscaLc) && !cli.includes(buscaLc)) return false;
+        const nf = (t.nf_numero ?? "").toLowerCase();
+        if (!num.includes(buscaLc) && !cli.includes(buscaLc) && !nf.includes(buscaLc)) return false;
       }
 
       if (dDe || dAte) {
-        if (!t.data_vencimento) return false;
-        const venc = new Date(t.data_vencimento);
-        if (dDe && venc < dDe) return false;
-        if (dAte && venc > dAte) return false;
-      }
-
-      if (emissaoDe || emissaoAte) {
-        if (!t.data_compra) return false;
-        const emi = new Date(t.data_compra);
-        if (eDe && emi < eDe) return false;
-        if (eAte && emi > eAte) return false;
+        const ref =
+          dataBase === "vencimento"
+            ? t.data_vencimento
+            : dataBase === "emissao"
+            ? t.data_compra
+            : t.data_liquidacao;
+        if (!ref) return false;
+        const d = new Date(ref + "T12:00:00");
+        if (dDe && d < dDe) return false;
+        if (dAte && d > dAte) return false;
       }
       return true;
     });
+  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio]);
 
+  const contagens = useMemo(() => {
+    const c: Record<StatusGestao, number> = { pago: 0, em_aberto: 0, atrasado: 0, cancelado: 0 };
+    for (const t of base) c[t.status_gestao] = (c[t.status_gestao] ?? 0) + 1;
+    return c;
+  }, [base]);
+
+  const kpis = useMemo(() => {
+    let recebido = 0;
+    let recebidoQtd = 0;
+    let aberto = 0;
+    let abertoQtd = 0;
+    let vencido = 0;
+    let vence30 = 0;
+    for (const t of base) {
+      const v = t.valor ?? 0;
+      if (t.status_gestao === "cancelado") continue;
+      if (t.status_gestao === "pago") {
+        recebido += v;
+        recebidoQtd += 1;
+        continue;
+      }
+      aberto += v;
+      abertoQtd += 1;
+      if (t.status_gestao === "atrasado") vencido += v;
+      if (t.status_gestao === "em_aberto") {
+        const ref = t.data_liquidacao ?? t.data_vencimento;
+        if (ref) {
+          const d = new Date(ref + "T12:00:00");
+          if (d >= hoje && d <= em30) vence30 += v;
+        }
+      }
+    }
+    const inadimplencia = aberto > 0 ? (vencido / aberto) * 100 : 0;
+    return {
+      recebido,
+      recebidoQtd,
+      aberto,
+      abertoQtd,
+      vencido,
+      vence30,
+      inadimplencia,
+      total: recebido + aberto,
+      totalQtd: recebidoQtd + abertoQtd,
+    };
+  }, [base, hoje, em30]);
+
+  const aging = useMemo(() => {
+    const faixas = { f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
+    for (const t of base) {
+      if (t.status_gestao !== "em_aberto" && t.status_gestao !== "atrasado") continue;
+      if (!t.data_vencimento) continue;
+      const venc = new Date(t.data_vencimento + "T12:00:00");
+      const dias = Math.floor((hoje.getTime() - venc.getTime()) / 86400000);
+      const valor = t.valor ?? 0;
+      if (dias <= 0) continue;
+      else if (dias <= 7) faixas.f1_7 += valor;
+      else if (dias <= 30) faixas.f8_30 += valor;
+      else if (dias <= 60) faixas.f31_60 += valor;
+      else faixas.f60 += valor;
+    }
+    return faixas;
+  }, [base, hoje]);
+
+  const breakdownMeio = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const t of base) {
+      if (t.status_gestao === "cancelado" || t.status_gestao === "pago") continue;
+      if (SEM_CAIXA.includes(t.meio_pagamento ?? "")) continue;
+      const meio = t.meio_pagamento ?? "—";
+      mapa.set(meio, (mapa.get(meio) ?? 0) + (t.valor ?? 0));
+    }
+    return Array.from(mapa.entries())
+      .map(([meio, total]) => ({ meio, total }))
+      .filter((i) => i.total >= 1)
+      .sort((a, b) => b.total - a.total);
+  }, [base]);
+
+  const filtrados = useMemo(() => {
+    let arr = base.filter((t) => situacoes.has(t.status_gestao));
     if (sort) {
       arr = [...arr].sort((a, b) => {
         const va = (a as any)[sort.key] ?? "";
@@ -226,72 +249,18 @@ export default function ContasReceber() {
         if (typeof va === "number" && typeof vb === "number") {
           return sort.dir === "asc" ? va - vb : vb - va;
         }
-        return sort.dir === "asc" ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+        return sort.dir === "asc" ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
       });
     }
-
     return arr;
-  }, [data, cardsAtivos, predicados, filtroBanco, filtroMeio, busca, dataDe, dataAte, emissaoDe, emissaoAte, sort]);
-
-  const breakdownMeio = useMemo(() => {
-    const titulos = data ?? [];
-    const buscaLc = busca.trim().toLowerCase();
-    const dDe = dataDe ? new Date(dataDe) : null;
-    const dAte = dataAte ? new Date(dataAte) : null;
-    const eDe = emissaoDe ? new Date(emissaoDe) : null;
-    const eAte = emissaoAte ? new Date(emissaoAte) : null;
-
-    const mapa = new Map<string, number>();
-    for (const t of titulos) {
-      // só a receber (caixa)
-      if (t.liquidado !== false) continue;
-      if (t.status_gestao === "cancelado") continue;
-      if (["haver","bonificacao","devolucao","sem_pagamento"].includes(t.meio_pagamento ?? "")) continue;
-      // toggles de KPI
-      let ok = true;
-      for (const k of cardsAtivos) {
-        if (!predicados[k](t)) { ok = false; break; }
-      }
-      if (!ok) continue;
-      // banco (mas NÃO meio)
-      if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) continue;
-      // busca
-      if (buscaLc) {
-        const num = (t.numero_titulo ?? "").toLowerCase();
-        const cli = (t.cliente ?? "").toLowerCase();
-        if (!num.includes(buscaLc) && !cli.includes(buscaLc)) continue;
-      }
-      // vencimento
-      if (dDe || dAte) {
-        if (!t.data_vencimento) continue;
-        const venc = new Date(t.data_vencimento);
-        if (dDe && venc < dDe) continue;
-        if (dAte && venc > dAte) continue;
-      }
-      // emissão
-      if (eDe || eAte) {
-        if (!t.data_compra) continue;
-        const emi = new Date(t.data_compra);
-        if (eDe && emi < eDe) continue;
-        if (eAte && emi > eAte) continue;
-      }
-      const meio = t.meio_pagamento ?? "—";
-      mapa.set(meio, (mapa.get(meio) ?? 0) + (t.valor ?? 0));
-    }
-    const itens = Array.from(mapa.entries())
-      .map(([meio, total]) => ({ meio, total }))
-      .filter((i) => i.total >= 1)
-      .sort((a, b) => b.total - a.total);
-    const totalGeral = itens.reduce((s, i) => s + i.total, 0);
-    return { itens, totalGeral };
-  }, [data, busca, dataDe, dataAte, emissaoDe, emissaoAte, filtroBanco, cardsAtivos, predicados]);
+  }, [base, situacoes, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
   const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
-  const toggleCard = (k: CardKey) => {
-    setCardsAtivos((prev) => {
+  const toggleSituacao = (k: StatusGestao) => {
+    setSituacoes((prev) => {
       const next = new Set(prev);
       if (next.has(k)) next.delete(k);
       else next.add(k);
@@ -300,62 +269,32 @@ export default function ContasReceber() {
     setPage(1);
   };
 
-  const renderStatusBadge = (s: RecebivelB2B["status_gestao"]) => {
-    if (s === "pago") return <Badge className="bg-green-100 text-green-800 border-0">Pago</Badge>;
-    if (s === "atrasado")
-      return <Badge className="bg-red-100 text-red-800 border-0">Atrasado</Badge>;
+  const renderStatusBadge = (s: StatusGestao) => {
+    if (s === "pago")
+      return <Badge className="bg-emerald-100 text-emerald-800 border-0">Recebido</Badge>;
+    if (s === "atrasado") return <Badge variant="destructive">Atrasado</Badge>;
     if (s === "cancelado")
-      return <Badge className="bg-gray-100 text-gray-700 border-0">Cancelado</Badge>;
-    return <Badge className="bg-blue-100 text-blue-800 border-0">Em aberto</Badge>;
-  };
-
-  const kpiCard = (
-    key: CardKey,
-    label: string,
-    value: string,
-    colorClass: string,
-    ringClass: string
-  ) => {
-    const active = cardsAtivos.has(key);
-    return (
-      <Card
-        onClick={() => toggleCard(key)}
-        className={cn(
-          "cursor-pointer transition-all hover:shadow-md",
-          active && `ring-2 ${ringClass}`
-        )}
-      >
-        <CardHeader className="pb-2">
-          <CardTitle className={cn("text-sm", colorClass)}>{label}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className={cn("text-2xl font-semibold", colorClass)}>{value}</div>
-        </CardContent>
-      </Card>
-    );
+      return <Badge className="bg-muted text-muted-foreground border-0">Cancelado</Badge>;
+    return <Badge variant="outline">Em aberto</Badge>;
   };
 
   const handleExportXLSX = () => {
     const linhas = filtrados.map((t) => ({
-      "NF": t.nf_numero ?? "",
-      "Cliente": t.cliente ?? "",
+      NF: t.nf_numero ?? "",
+      Cliente: t.cliente ?? "",
       "Título / Parcela":
         (t.numero_titulo ?? "") +
         (t.numero_parcela != null && t.total_parcelas != null
           ? ` ${t.numero_parcela}/${t.total_parcelas}`
           : ""),
-      "Banco": t.banco_nome ?? "",
-      "Meio": formatMeio(t.meio_pagamento),
+      Banco: t.banco_nome ?? "",
+      Meio: formatMeio(t.meio_pagamento),
       "Data compra": formatDateBR(t.data_compra),
-      "Vencimento": formatDateBR(t.data_vencimento),
-      "Liquidação": formatDateBR(t.data_liquidacao),
-      "Valor": t.valor ?? 0,
-      "Status":
-        t.status_gestao === "pago"
-          ? "Pago"
-          : t.status_gestao === "atrasado"
-          ? "Atrasado"
-          : "Em aberto",
+      Vencimento: formatDateBR(t.data_vencimento),
+      Liquidação: formatDateBR(t.data_liquidacao),
+      "Recebido em": t.liquidacao_realizada ? formatDateBR(t.data_liquidacao) : "",
+      Valor: t.valor ?? 0,
+      Status: rotuloStatus(t.status_gestao),
     }));
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
@@ -370,7 +309,8 @@ export default function ContasReceber() {
         <div className="flex-1">
           <h1 className="text-2xl font-semibold">Contas a Receber</h1>
           <p className="text-sm text-muted-foreground">
-            Recebíveis B2B por parcela — somente títulos com NF. Visão de gestão (somente leitura).
+            Recebíveis B2B por parcela — somente títulos com NF. Recebidos, em aberto e vencidos na
+            mesma lista. Visão de gestão (somente leitura).
           </p>
         </div>
         <Button
@@ -384,25 +324,73 @@ export default function ContasReceber() {
         </Button>
       </div>
 
-
       {/* KPIs */}
       <div className="space-y-4">
-        {/* Linha 1 — Fluxo de caixa */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-          {kpiCard("recebidoMes", "Recebido no mês", formatBRL(kpis.recebidoMes), "text-green-700", "ring-green-500")}
-          {kpiCard("totalReceber", "Total a receber", formatBRL(kpis.totalReceber), "text-blue-700", "ring-blue-500")}
-          {kpiCard("liquidar30", "A vencer em 30 dias", formatBRL(kpis.liquidar30), "text-cyan-700", "ring-cyan-500")}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-green-700">Recebido</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-green-700">
+                {formatBRL(kpis.recebido)}
+              </div>
+              <p className="text-xs text-muted-foreground">{kpis.recebidoQtd} títulos</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-blue-700">Total a receber</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-blue-700">
+                {formatBRL(kpis.aberto)}
+              </div>
+              <p className="text-xs text-muted-foreground">{kpis.abertoQtd} títulos</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-cyan-700">A vencer em 30 dias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-cyan-700">
+                {formatBRL(kpis.vence30)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Total no período</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums">{formatBRL(kpis.total)}</div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.totalQtd} títulos · cancelados fora
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Linha 2 — Saúde da carteira + Aging */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          {kpiCard("vencido", "Vencido", formatBRL(kpis.vencido), "text-red-700", "ring-red-500")}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-red-700">Vencido</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-red-700">
+                {formatBRL(kpis.vencido)}
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-rose-700">Inadimplência</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold text-rose-700">{kpis.inadimplencia.toFixed(1)}%</div>
+              <div className="text-2xl font-semibold tabular-nums text-rose-700">
+                {kpis.inadimplencia.toFixed(1)}%
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -410,7 +398,9 @@ export default function ContasReceber() {
               <CardTitle className="text-sm text-amber-600">1–7 dias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold text-amber-600">{formatBRL(aging.f1_7)}</div>
+              <div className="text-2xl font-semibold tabular-nums text-amber-600">
+                {formatBRL(aging.f1_7)}
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -418,7 +408,9 @@ export default function ContasReceber() {
               <CardTitle className="text-sm text-orange-600">8–30 dias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold text-orange-600">{formatBRL(aging.f8_30)}</div>
+              <div className="text-2xl font-semibold tabular-nums text-orange-600">
+                {formatBRL(aging.f8_30)}
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -426,7 +418,9 @@ export default function ContasReceber() {
               <CardTitle className="text-sm text-red-600">31–60 dias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold text-red-600">{formatBRL(aging.f31_60)}</div>
+              <div className="text-2xl font-semibold tabular-nums text-red-600">
+                {formatBRL(aging.f31_60)}
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -434,16 +428,18 @@ export default function ContasReceber() {
               <CardTitle className="text-sm text-red-800">+60 dias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold text-red-800">{formatBRL(aging.f60)}</div>
+              <div className="text-2xl font-semibold tabular-nums text-red-800">
+                {formatBRL(aging.f60)}
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
       {/* Breakdown por meio */}
-      {breakdownMeio.itens.length > 0 && (
+      {breakdownMeio.length > 0 && (
         <div className="flex flex-wrap gap-3">
-          {breakdownMeio.itens.map((i) => (
+          {breakdownMeio.map((i) => (
             <Card key={i.meio} className="flex-1 min-w-[160px]">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs text-muted-foreground">
@@ -451,7 +447,7 @@ export default function ContasReceber() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-semibold">{formatBRL(i.total)}</div>
+                <div className="text-xl font-semibold tabular-nums">{formatBRL(i.total)}</div>
               </CardContent>
             </Card>
           ))}
@@ -460,109 +456,123 @@ export default function ContasReceber() {
 
       {/* Filtros */}
       <Card>
-        <CardContent className="grid grid-cols-1 gap-3 p-4 md:grid-cols-7">
+        <CardContent className="space-y-4 p-4">
           <div className="space-y-1">
-            <Label className="text-xs">Busca</Label>
-            <Input
-              placeholder="Título ou cliente"
-              value={busca}
-              onChange={(e) => {
-                setBusca(e.target.value);
-                setPage(1);
-              }}
-            />
+            <Label className="text-xs">Situação</Label>
+            <div className="flex flex-wrap gap-2">
+              {SITUACOES.map((s) => (
+                <Button
+                  key={s.key}
+                  size="sm"
+                  variant={situacoes.has(s.key) ? "default" : "outline"}
+                  onClick={() => toggleSituacao(s.key)}
+                >
+                  {s.label} ({contagens[s.key] ?? 0})
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Banco</Label>
-            <Select
-              value={filtroBanco}
-              onValueChange={(v) => {
-                setFiltroBanco(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {bancosOpcoes.map((b) => (
-                  <SelectItem key={b} value={b}>
-                    {b}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Meio de pagamento</Label>
-            <Select
-              value={filtroMeio}
-              onValueChange={(v) => {
-                setFiltroMeio(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {meiosOpcoes.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {formatMeio(m)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Vencimento de</Label>
-            <Input
-              type="date"
-              value={dataDe}
-              onChange={(e) => {
-                setDataDe(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Vencimento até</Label>
-            <Input
-              type="date"
-              value={dataAte}
-              onChange={(e) => {
-                setDataAte(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Emissão de</Label>
-            <Input
-              type="date"
-              value={emissaoDe}
-              onChange={(e) => {
-                setEmissaoDe(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Emissão até</Label>
-            <Input
-              type="date"
-              value={emissaoAte}
-              onChange={(e) => {
-                setEmissaoAte(e.target.value);
-                setPage(1);
-              }}
-            />
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+            <div className="space-y-1">
+              <Label className="text-xs">Busca</Label>
+              <Input
+                placeholder="Título, NF ou cliente"
+                value={busca}
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Banco</Label>
+              <Select
+                value={filtroBanco}
+                onValueChange={(v) => {
+                  setFiltroBanco(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {bancosOpcoes.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Meio de pagamento</Label>
+              <Select
+                value={filtroMeio}
+                onValueChange={(v) => {
+                  setFiltroMeio(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {meiosOpcoes.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {formatMeio(m)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Data base</Label>
+              <Select
+                value={dataBase}
+                onValueChange={(v) => {
+                  setDataBase(v as DataBase);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vencimento">Vencimento</SelectItem>
+                  <SelectItem value="emissao">Emissão (NF)</SelectItem>
+                  <SelectItem value="liquidacao">Liquidação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">De</Label>
+              <Input
+                type="date"
+                value={dataDe}
+                onChange={(e) => {
+                  setDataDe(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Até</Label>
+              <Input
+                type="date"
+                value={dataAte}
+                onChange={(e) => {
+                  setDataAte(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
-
 
       {/* Tabela */}
       <Card>
@@ -590,6 +600,7 @@ export default function ContasReceber() {
                   <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
                   <SortTh label="Vencimento" sortKey="data_vencimento" sort={sort} setSort={setSort} />
                   <SortTh label="Liquidação" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
+                  <SortTh label="Recebido em" sortKey="liquidacao_realizada" sort={sort} setSort={setSort} />
                   <SortTh label="Valor" sortKey="valor" sort={sort} setSort={setSort} align="right" />
                   <SortTh label="Status" sortKey="status_gestao" sort={sort} setSort={setSort} />
                 </TableRow>
@@ -618,7 +629,7 @@ export default function ContasReceber() {
                       <TableCell>{formatDateBR(t.data_vencimento)}</TableCell>
                       <TableCell>
                         {t.data_liquidacao ? (
-                          t.liquidado === true ? (
+                          t.liquidacao_realizada === true ? (
                             <span className="inline-flex items-center gap-2">
                               {formatDateBR(t.data_liquidacao)}
                               <Badge className="bg-green-100 text-green-700 border-0">REAL</Badge>
@@ -628,7 +639,9 @@ export default function ContasReceber() {
                               {formatDateBR(t.data_liquidacao)}
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">PREVISTO</Badge>
+                                  <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">
+                                    PREVISTO
+                                  </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>Previsão de liquidação pelo adquirente</p>
@@ -640,7 +653,16 @@ export default function ContasReceber() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">{formatBRL(t.valor ?? 0)}</TableCell>
+                      <TableCell>
+                        {t.liquidacao_realizada === true ? (
+                          formatDateBR(t.data_liquidacao)
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatBRL(t.valor ?? 0)}
+                      </TableCell>
                       <TableCell>{renderStatusBadge(t.status_gestao)}</TableCell>
                     </TableRow>
                   );
