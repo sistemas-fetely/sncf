@@ -699,23 +699,51 @@ export default function DestinosCadastro() {
                   </Table>
                 </div>
 
-                {semNcm.length > 0 && (
+                {semNcm.falhaCompletar.length > 0 && (
                   <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-3 space-y-2">
                     <p className="text-sm font-semibold text-destructive flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
-                      {semNcm.length} produto(s) com NCM vazio — essas linhas falham na emissão de
-                      NF no Bling
+                      {semNcm.falhaCompletar.length} produto(s) com NCM vazio e SKU existente no
+                      SNCF
+                    </p>
+                    <p className="text-xs text-destructive">
+                      O SNCF tem o NCM destes SKUs mas o preenchimento não ocorreu — reporte.
                     </p>
                     <div className="max-h-56 overflow-auto text-xs space-y-1">
-                      {semNcm.map((l, i) => (
+                      {semNcm.falhaCompletar.map((l, i) => (
                         <div key={`${l.codigo}-${i}`} className="flex gap-2">
-                          <span className="font-mono shrink-0">{l.codigo.trim()}</span>
+                          <span className="font-mono shrink-0">{l.codigo}</span>
                           <span className="text-muted-foreground truncate">{l.descricao}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+
+                {semNcm.ausenteSncf.length > 0 && (
+                  <div className="rounded-lg border border-amber-500/50 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-2">
+                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      {semNcm.ausenteSncf.length} produto(s) com NCM vazio e código ausente do SNCF
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      Estes códigos existem no Bling e não no SNCF. Como FOP/SNCF é a razão, ou o
+                      código do Bling está errado, ou falta cadastrar aqui. Exige decisão humana.
+                    </p>
+                    <div className="max-h-56 overflow-auto text-xs space-y-1">
+                      {semNcm.ausenteSncf.map((l, i) => (
+                        <div key={`${l.codigo}-${i}`} className="flex gap-2">
+                          <span className="font-mono shrink-0">{l.codigo}</span>
+                          <span className="text-muted-foreground truncate flex-1">
+                            {l.descricao}
+                          </span>
+                          <span className="font-mono shrink-0">{l.preco || "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
 
                 {paraRevisar.length > 0 && (
                   <div className="rounded-lg border border-amber-500/50 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-2">
