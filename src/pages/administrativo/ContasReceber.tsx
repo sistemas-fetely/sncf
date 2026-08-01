@@ -328,6 +328,11 @@ function AbaB2B() {
     [data]
   );
 
+  const qtdMeioDivergente = useMemo(
+    () => (data ?? []).filter((t) => t.meio_divergente === true).length,
+    [data]
+  );
+
 
   /** Conjunto filtrado por tudo EXCETO situação — base dos KPIs e das contagens. */
   const base = useMemo(() => {
