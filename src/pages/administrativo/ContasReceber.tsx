@@ -1241,7 +1241,14 @@ function AbaB2B() {
                         )}
                       </TableCell>
                       <TableCell>{t.banco_nome ?? "—"}</TableCell>
-                      <TableCell>{formatMeio(t.meio_pagamento)}</TableCell>
+                      <TableCell>
+                        <div>{formatMeio(t.meio_pagamento)}</div>
+                        {t.meio_divergente === true && (
+                          <div className="text-xs text-muted-foreground">
+                            pedido: {formatMeio(t.meio_pedido)}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>{formatDateBR(t.data_compra)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
