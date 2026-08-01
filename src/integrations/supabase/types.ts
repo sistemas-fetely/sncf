@@ -29195,6 +29195,26 @@ export type Database = {
           },
         ]
       }
+      vw_fin_competencia_mensal: {
+        Row: {
+          custo_mercadoria: number | null
+          desconto_medio_pct: number | null
+          despesa_financeira: number | null
+          despesa_nao_operacional: number | null
+          despesa_operacional: number | null
+          fora_do_eixo: number | null
+          impostos: number | null
+          investimento: number | null
+          mes: string | null
+          pedidos_faturados: number | null
+          qtd_lancamentos: number | null
+          qtd_nao_classificada: number | null
+          receita_faturada: number | null
+          resultado_competencia: number | null
+          ticket_medio: number | null
+        }
+        Relationships: []
+      }
       vw_fluxo_caixa_futuro: {
         Row: {
           mes_referencia: string | null
@@ -30867,14 +30887,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
