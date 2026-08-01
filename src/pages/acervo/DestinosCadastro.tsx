@@ -347,21 +347,58 @@ export default function DestinosCadastro() {
       }));
   }, [parsed, grupos, idx]);
 
-  // NCM vazio avaliado DEPOIS do completar pelo SNCF.
+  /**
+   * Plano de Situação: SKU presente no SNCF manda o valor sugerido.
+   * SKU AUSENTE da view não é tocado — ausência não autoriza inativar.
+   */
+  const planoSituacao = useMemo(() => {
+    if (!parsed || !idx || idx.situacao < 0 || !fiscal) return null;
+    const porLinha: (string | null)[] = [];
+    const mudancas: { codigo: string; descricao: string; de: string; para: string }[] = [];
+    parsed.rows.forEach((r) => {
+      const info = fiscal.get(chaveSku(r[idx.codigo] ?? ""));
+      const sugerida = (info?.situacao_sugerida ?? "").trim();
+      if (!info || sugerida === "") {
+        porLinha.push(null);
+        return;
+      }
+      porLinha.push(sugerida);
+      const atual = (r[idx.situacao] ?? "").replace(/\t/g, "").trim();
+      if (semAcento(atual) !== semAcento(sugerida)) {
+        mudancas.push({
+          codigo: (r[idx.codigo] ?? "").replace(/\t/g, "").trim(),
+          descricao: idx.descricao >= 0 ? r[idx.descricao] ?? "" : info.nome_comercial ?? "",
+          de: atual === "" ? "—" : atual,
+          para: sugerida,
+        });
+      }
+    });
+    const indoParaInativo = mudancas.filter((m) => semAcento(m.para) === "inativo").length;
+    return { porLinha, mudancas, indoParaInativo };
+  }, [parsed, idx, fiscal]);
+
+  // NCM vazio avaliado DEPOIS do completar pelo SNCF, separado por motivo.
   const semNcm = useMemo(() => {
-    if (!parsed || !idx) return [];
-    return parsed.rows
-      .map((r, i) => ({ r, i }))
-      .filter(({ r, i }) => {
-        if (!celulaVazia(r[idx.ncm])) return false;
-        const completa = plano?.porLinha[i]?.some((p) => p.col === idx.ncm);
-        return !completa;
-      })
-      .map(({ r }) => ({
-        codigo: r[idx.codigo] ?? "",
+    if (!parsed || !idx) return { falhaCompletar: [], ausenteSncf: [] } as {
+      falhaCompletar: { codigo: string; descricao: string; preco: string }[];
+      ausenteSncf: { codigo: string; descricao: string; preco: string }[];
+    };
+    const falhaCompletar: { codigo: string; descricao: string; preco: string }[] = [];
+    const ausenteSncf: { codigo: string; descricao: string; preco: string }[] = [];
+    parsed.rows.forEach((r, i) => {
+      if (!celulaVazia(r[idx.ncm])) return;
+      if (plano?.porLinha[i]?.some((p) => p.col === idx.ncm)) return;
+      const linha = {
+        codigo: (r[idx.codigo] ?? "").replace(/\t/g, "").trim(),
         descricao: idx.descricao >= 0 ? r[idx.descricao] ?? "" : "",
-      }));
-  }, [parsed, idx, plano]);
+        preco: idx.preco >= 0 ? (r[idx.preco] ?? "").trim() : "",
+      };
+      const existe = fiscal ? fiscal.has(chaveSku(r[idx.codigo] ?? "")) : true;
+      if (existe) falhaCompletar.push(linha);
+      else ausenteSncf.push(linha);
+    });
+    return { falhaCompletar, ausenteSncf };
+  }, [parsed, idx, plano, fiscal]);
 
   const baixar = () => {
     if (!parsed || !grupos || !idx) return;
@@ -371,6 +408,8 @@ export default function DestinosCadastro() {
         while (copia.length < parsed.header.length) copia.push("");
         copia[idx.grupo] = grupos[i];
         for (const p of plano?.porLinha[i] ?? []) copia[p.col] = p.valor;
+        const sit = planoSituacao?.porLinha[i];
+        if (sit && idx.situacao >= 0) copia[idx.situacao] = sit;
         return copia;
       });
       const blob = gerarCsv(parsed.header, rows);
@@ -386,6 +425,7 @@ export default function DestinosCadastro() {
       toast.error(formatError(e));
     }
   };
+
 
 
   return (
