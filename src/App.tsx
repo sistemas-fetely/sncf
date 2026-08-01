@@ -149,6 +149,7 @@ const Despesas = lazy(() => import("@/pages/administrativo/Despesas"));
 
 const AuditoriaFinanceira = lazy(() => import("@/pages/administrativo/AuditoriaFinanceira"));
 const PainelMargem = lazy(() => import("@/pages/administrativo/PainelMargem"));
+const FluxoCompetencia = lazy(() => import("@/pages/administrativo/FluxoCompetencia"));
 const AnaliseDespesas = lazy(() => import("@/pages/administrativo/AnaliseDespesas"));
 
 const CreditoIndex = lazy(() => import("@/pages/Credito/CreditoIndex"));
@@ -650,6 +651,7 @@ const App = () => (
                 <Route path="auditoria" element={<AuditoriaFinanceira />} />
                 <Route path="painel-margem" element={<PainelMargem />} />
                 <Route path="faturamento" element={<Faturamento />} />
+                <Route path="fluxo-competencia" element={<FluxoCompetencia />} />
 
                 <Route path="faturas-cartao" element={<FaturasCartao />} />
                 
