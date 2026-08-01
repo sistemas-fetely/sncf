@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,9 @@ interface Props {
   rotulo?: string;
   triggerLabel?: string;
   triggerClassName?: string;
+  /** "padrao" = botão com rótulo (default, preserva todos os consumidores atuais).
+   *  "discreta" = ícone ghost com tooltip, para uso em linha de tabela. */
+  variante?: "padrao" | "discreta";
 }
 
 export function ConfirmarPortaoPagoDialog({
@@ -27,7 +30,9 @@ export function ConfirmarPortaoPagoDialog({
   rotulo,
   triggerLabel = "Confirmar pagamento",
   triggerClassName,
+  variante = "padrao",
 }: Props) {
+
   const [open, setOpen] = useState(false);
   const [dataPagamento, setDataPagamento] = useState<string>(() =>
     new Date().toISOString().slice(0, 10),
