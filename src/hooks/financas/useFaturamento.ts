@@ -172,3 +172,21 @@ export function useFaturamentoProduto(mes: string) {
     },
   });
 }
+
+const COLS_PEDIDO =
+  "chave, pedido_ref, mes, sem_pedido, pedido_venda_id, nfs, nfs_lista, primeira_nf, ultima_nf, canal, cfops, divergencia_canal, sem_canal, cliente, cliente_cnpj, uf, cidade, unidades, receita_produto, receita_frete, receita_total, cmv, icms, margem, margem_pct, preco_medio_un, itens_sem_custo, valor_nao_receita, valor_nota, custo_safra, multi_nf";
+
+export function useFaturamentoPedido(mes: string) {
+  return useQuery({
+    queryKey: ["faturamento-pedido", mes],
+    enabled: !!mes,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_faturamento_pedido")
+        .select(COLS_PEDIDO)
+        .eq("mes", mes);
+      if (error) throw error;
+      return (data ?? []) as FaturamentoPedido[];
+    },
+  });
+}
