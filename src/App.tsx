@@ -14,6 +14,7 @@ import { PrimeiroAcessoOverlay } from "@/components/PrimeiroAcessoOverlay";
 import { AppLayout } from "@/components/AppLayout";
 import AdminFinanceiroLayout from "@/layouts/AdminFinanceiroLayout";
 const FinancasLayout = lazy(() => import("./layouts/FinancasLayout"));
+const Faturamento = lazy(() => import("@/pages/administrativo/Faturamento"));
 import AdministrativoLayout from "@/layouts/AdministrativoLayout";
 import TILayout from "@/layouts/TILayout";
 import AdminLayout from "@/layouts/AdminLayout";
@@ -648,6 +649,7 @@ const App = () => (
                 
                 <Route path="auditoria" element={<AuditoriaFinanceira />} />
                 <Route path="painel-margem" element={<PainelMargem />} />
+                <Route path="faturamento" element={<Faturamento />} />
 
                 <Route path="faturas-cartao" element={<FaturasCartao />} />
                 

@@ -1,4 +1,4 @@
-import { Wallet, AlertTriangle } from "lucide-react";
+import { Wallet, AlertTriangle, Receipt } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -21,8 +21,8 @@ import { iconeDe } from "@/lib/iconesNavegacao";
 export function FinancasContextSidebar() {
   const { grupos, isLoading, isError, refetch } = useSidebarApp("financas");
 
-  const itensDo = (g: GrupoSidebar) =>
-    g.itens.map((i) => (
+  const itensDo = (g: GrupoSidebar) => {
+    const nodes = g.itens.map((i) => (
       <FinancasSidebarItem
         key={i.chave}
         to={i.rota}
@@ -31,6 +31,23 @@ export function FinancasContextSidebar() {
         end={i.exato}
       />
     ));
+
+    // Faturamento vive no código (não está em sncf_navegacao): entra como
+    // segundo item do grupo Receitas, logo depois de Contas a Receber.
+    if (g.chave === "fin.receitas") {
+      const idx = g.itens.findIndex((i) => i.rota === "/administrativo/contas-receber");
+      nodes.splice(idx >= 0 ? idx + 1 : nodes.length, 0, (
+        <FinancasSidebarItem
+          key="fin.faturamento"
+          to="/administrativo/faturamento"
+          icon={Receipt}
+          label="Faturamento"
+        />
+      ));
+    }
+
+    return nodes;
+  };
 
   return (
     <Sidebar collapsible="icon">
