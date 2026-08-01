@@ -27700,6 +27700,7 @@ export type Database = {
       v_credito_resumo_financeiro: {
         Row: {
           a_vencer: number | null
+          apelido: string | null
           atraso_medio_dias: number | null
           cnpj: string | null
           em_aberto: number | null
@@ -32136,14 +32137,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -36046,6 +36047,10 @@ export type Database = {
       fn_num_safe: { Args: { p_txt: string }; Returns: number }
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }
+        Returns: string
+      }
+      fn_parceiro_apelido: {
+        Args: { p_fantasia: string; p_razao: string }
         Returns: string
       }
       fn_parse_condicao: {
