@@ -24,6 +24,8 @@ export default function CreditoClientesIndex() {
   const [criarHaverOpen, setCriarHaverOpen] = useState(false);
   const [tab, setTab] = useState<"todos" | "com_haver" | "com_vencidos">("todos");
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
+  const [busca, setBusca] = useState("");
+
 
   const resumosQ = useQuery({
     queryKey: ["credito-clientes-resumos"],
