@@ -521,10 +521,16 @@ export default function DestinosCadastro() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    Só o Grupo de Produtos e os campos fiscais vazios são alterados. A coluna{" "}
-                    <strong>Origem</strong> nunca é tocada. As demais colunas voltam idênticas.
+                    Esta tela pode alterar apenas estas colunas:{" "}
+                    <strong>
+                      Grupo de produtos, Situação, NCM, CEST, Peso líquido, Altura, Largura,
+                      Profundidade
+                    </strong>
+                    . Todas as demais voltam verbatim. A coluna <strong>Origem</strong> nunca é
+                    tocada.
                   </AlertDescription>
                 </Alert>
+
 
                 {fiscalCarregando && (
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
