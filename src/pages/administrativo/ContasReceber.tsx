@@ -839,8 +839,8 @@ function AbaB2B() {
           </CardContent>
         </Card>
         <p className="text-xs text-muted-foreground">
-          Competência é a data da NF. Caixa é a data em que o dinheiro liquidou. As duas não batem
-          por definição.
+          Competência é a data da NF. Caixa previsto é a régua. Caixa efetivo é quando o dinheiro
+          entrou de fato — banco sobrepõe registro humano.
         </p>
       </div>
 
