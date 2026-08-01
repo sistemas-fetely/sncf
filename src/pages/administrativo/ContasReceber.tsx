@@ -85,6 +85,10 @@ type RecebivelB2B = {
   fonte_data_recebimento: "banco" | "humano" | "sem_recebimento" | null;
   data_pagamento_banco: string | null;
   data_divergente: boolean | null;
+  /* meio do pedido (intenção comercial) vs meio do título */
+  meio_pedido: string | null;
+  meio_pedido_nome: string | null;
+  meio_divergente: boolean | null;
   mes_caixa_efetivo: string | null;
   /* estado único de gestão (por força de prova) */
   estado_gestao: EstadoGestao;
