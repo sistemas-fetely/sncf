@@ -338,8 +338,14 @@ function AbaB2B() {
     let abertoQtd = 0;
     let vencido = 0;
     let vence30 = 0;
+    let semProva = 0;
+    let semProvaQtd = 0;
     for (const t of base) {
       const v = efetivoDe(t);
+      if (t.fonte_data_recebimento === "humano") {
+        semProva += v;
+        semProvaQtd += 1;
+      }
       if (t.status_gestao === "cancelado") continue;
       if (t.status_gestao === "pago") {
         recebido += v;
@@ -366,10 +372,14 @@ function AbaB2B() {
       vencido,
       vence30,
       inadimplencia,
+      semProva,
+      semProvaQtd,
+      semProvaPct: recebido > 0 ? (semProva / recebido) * 100 : 0,
       total: recebido + aberto,
       totalQtd: recebidoQtd + abertoQtd,
     };
   }, [base, hoje, em30]);
+
 
   /** Comparação com o mês anterior quando o período selecionado é um mês fechado. */
   const comparativo = useMemo(() => {
