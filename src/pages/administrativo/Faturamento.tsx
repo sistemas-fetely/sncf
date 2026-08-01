@@ -778,7 +778,9 @@ function AbaProduto({
                         <div className="flex items-center gap-1.5">
                           {r.sku ?? "—"}
                           {avisos.length > 0 && (
-                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600" title={avisos.join(" · ")} />
+                            <span title={avisos.join(" · ")}>
+                              <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                            </span>
                           )}
                         </div>
                       </TableCell>
