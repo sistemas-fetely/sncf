@@ -40,11 +40,10 @@ export interface CicloTituloRow {
   mov_conciliado: boolean | null;
   mov_conta: string | null;
   mov_descricao: string | null;
-  haver_id: string | null;
-  haver_valor: number | null;
-  haver_com_lastro: boolean | null;
-  haver_origem_data: string | null;
-  haver_origem_valor: number | null;
+  quitado_por_haver: boolean | null;
+  haver_cliente_total: number | null;
+  haver_cliente_saldo: number | null;
+
   elo_caixa: string | null;
 }
 
