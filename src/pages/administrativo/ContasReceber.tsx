@@ -277,6 +277,17 @@ function AbaB2B() {
     [data]
   );
 
+  const qtdSemProva = useMemo(
+    () => (data ?? []).filter((t) => t.fonte_data_recebimento === "humano").length,
+    [data]
+  );
+
+  const qtdDivergentes = useMemo(
+    () => (data ?? []).filter((t) => t.data_divergente === true).length,
+    [data]
+  );
+
+
   /** Conjunto filtrado por tudo EXCETO situação — base dos KPIs e das contagens. */
   const base = useMemo(() => {
     const titulos = data ?? [];
