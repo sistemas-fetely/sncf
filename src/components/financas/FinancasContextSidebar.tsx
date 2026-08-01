@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { FinancasSidebarItem } from "./FinancasSidebarItem";
 import { FinancasSidebarSection } from "./FinancasSidebarSection";
-import { useSidebarApp, type GrupoSidebar } from "@/hooks/useSidebarApp";
+import { useSidebarApp, type BlocoSidebar } from "@/hooks/useSidebarApp";
 import { iconeDe } from "@/lib/iconesNavegacao";
 
 /**
@@ -19,10 +19,10 @@ import { iconeDe } from "@/lib/iconesNavegacao";
  * Cache de 5 min — recarregar a página traz a mudança na hora.
  */
 export function FinancasContextSidebar() {
-  const { grupos, isLoading, isError, refetch } = useSidebarApp("financas");
+  const { blocos, isLoading, isError, refetch } = useSidebarApp("financas");
 
-  const itensDo = (g: GrupoSidebar) =>
-    g.itens.map((i) => (
+  const itensDo = (b: BlocoSidebar) =>
+    b.itens.map((i) => (
       <FinancasSidebarItem
         key={i.chave}
         to={i.rota}
@@ -72,27 +72,45 @@ export function FinancasContextSidebar() {
           </div>
         )}
 
-        {grupos.map((g, idx) =>
-          idx === 0 ? (
-            // Primeiro grupo: rótulo simples, sem borda superior e sem colapsar.
-            <SidebarGroup key={g.chave} className="pb-3">
-              <SidebarGroupLabel className="px-3 py-2 text-[11px] uppercase tracking-[2px] text-muted-foreground h-auto">
-                {g.label}
-              </SidebarGroupLabel>
+        {blocos.map((b, idx) => {
+          // Bloco sem rótulo: itens direto no app, renderizam sem cabeçalho.
+          if (!b.label) {
+            return (
+              <SidebarGroup
+                key={b.chave}
+                className={idx === 0 ? "pb-3" : "border-t border-gold/10 py-3"}
+              >
+                <SidebarGroupContent>
+                  <SidebarMenu>{itensDo(b)}</SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            );
+          }
+
+          // Primeiro bloco com rótulo: rótulo simples, sem borda e sem colapsar.
+          if (idx === 0) {
+            return (
+              <SidebarGroup key={b.chave} className="pb-3">
+                <SidebarGroupLabel className="px-3 py-2 text-[11px] uppercase tracking-[2px] text-muted-foreground h-auto">
+                  {b.label}
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>{itensDo(b)}</SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            );
+          }
+
+          return (
+            <SidebarGroup key={b.chave} className="border-t border-gold/10 py-3">
               <SidebarGroupContent>
-                <SidebarMenu>{itensDo(g)}</SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ) : (
-            <SidebarGroup key={g.chave} className="border-t border-gold/10 py-3">
-              <SidebarGroupContent>
-                <FinancasSidebarSection title={g.label} variant="primary">
-                  {itensDo(g)}
+                <FinancasSidebarSection title={b.label} variant="primary">
+                  {itensDo(b)}
                 </FinancasSidebarSection>
               </SidebarGroupContent>
             </SidebarGroup>
-          )
-        )}
+          );
+        })}
       </SidebarContent>
     </Sidebar>
   );

@@ -20,24 +20,28 @@ export interface ItemSidebar extends LinhaSidebar {
   exato: boolean;
 }
 
-export interface GrupoSidebar {
+/**
+ * Bloco de sidebar. `label: null` = itens pendurados direto no app, sem grupo:
+ * renderizam sem cabeçalho.
+ */
+export interface BlocoSidebar {
   chave: string;
-  label: string;
+  label: string | null;
   ordem: number;
   itens: ItemSidebar[];
 }
 
 /**
  * Estrutura da sidebar de um app, direto da sncf_navegacao (MENU-VIA-TABELA).
- * Mover, renomear ou reordenar item de menu passa a ser UPDATE no banco.
- * Visibilidade NÃO é decidida aqui — cada FinancasSidebarItem pergunta ao
- * useTelasVisiveis, como já fazia.
+ * Mover, renomear ou reordenar item de menu é UPDATE no banco.
+ * Visibilidade NÃO é decidida aqui — cada item pergunta ao useTelasVisiveis.
  */
 export function useSidebarApp(app: string) {
   const query = useQuery({
     queryKey: ["sidebar-app", app],
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<LinhaSidebar[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc("listar_sidebar_app", {
         p_app: app,
       });
@@ -46,20 +50,43 @@ export function useSidebarApp(app: string) {
     },
   });
 
-  const grupos = useMemo<GrupoSidebar[]>(() => {
+  const blocos = useMemo<BlocoSidebar[]>(() => {
     const linhas = query.data ?? [];
     const itens = linhas.filter((l) => l.nivel !== "grupo" && l.rota);
     const rotas = itens.map((i) => i.rota as string);
 
     // `end` derivado da árvore: rota que é prefixo de outra rota do mesmo app
     // precisa de match exato, senão fica destacada junto com as filhas.
-    // Assim item novo não depende de alguém lembrar de marcar.
     const precisaExato = (rota: string) =>
       rotas.some((r) => r !== rota && r.startsWith(rota + "/"));
 
-    return linhas
-      .filter((l) => l.nivel === "grupo")
+    const comoItem = (i: LinhaSidebar): ItemSidebar => ({
+      ...i,
+      rota: i.rota as string,
+      exato: precisaExato(i.rota as string),
+    });
+
+    // Itens sem grupo: um bloco só, sem cabeçalho, posicionado pela menor ordem.
+    // (Se itens soltos ficarem de ambos os lados de um grupo, todos vêm juntos
+    // na posição do menor. Caso não existe hoje; se aparecer, cria-se um grupo.)
+    const soltos = itens
+      .filter((i) => i.pai_chave === app)
       .sort((a, b) => a.ordem - b.ordem)
+      .map(comoItem);
+
+    const blocoSoltos: BlocoSidebar[] = soltos.length
+      ? [
+          {
+            chave: `${app}::soltos`,
+            label: null,
+            ordem: soltos[0].ordem,
+            itens: soltos,
+          },
+        ]
+      : [];
+
+    const blocosGrupo: BlocoSidebar[] = linhas
+      .filter((l) => l.nivel === "grupo")
       .map((g) => ({
         chave: g.chave,
         label: g.label,
@@ -67,18 +94,17 @@ export function useSidebarApp(app: string) {
         itens: itens
           .filter((i) => i.pai_chave === g.chave)
           .sort((a, b) => a.ordem - b.ordem)
-          .map((i) => ({
-            ...i,
-            rota: i.rota as string,
-            exato: precisaExato(i.rota as string),
-          })),
-      }))
+          .map(comoItem),
+      }));
+
+    return [...blocoSoltos, ...blocosGrupo]
       // grupo sem item não vira cabeçalho órfão
-      .filter((g) => g.itens.length > 0);
-  }, [query.data]);
+      .filter((b) => b.itens.length > 0)
+      .sort((a, b) => a.ordem - b.ordem);
+  }, [query.data, app]);
 
   return {
-    grupos,
+    blocos,
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
