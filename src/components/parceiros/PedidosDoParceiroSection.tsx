@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
-import { formatarErro } from "@/lib/format-error";
+import { formatError } from "@/lib/format-error";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -61,7 +61,7 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
           <Skeleton className="h-40 w-full" />
         ) : isError ? (
           <div className="rounded-md border border-destructive/40 bg-destructive/10 text-destructive p-3 text-sm">
-            {formatarErro(error)}
+            {formatError(error)}
           </div>
         ) : pedidos.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum pedido registrado para este cliente.</p>
