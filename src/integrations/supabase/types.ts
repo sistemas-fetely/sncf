@@ -27464,6 +27464,7 @@ export type Database = {
       vw_bling_completar_fiscal: {
         Row: {
           altura_br: string | null
+          ativo_sncf: boolean | null
           cest_sncf: string | null
           ean: string | null
           largura_br: string | null
@@ -27472,10 +27473,12 @@ export type Database = {
           origem_nao_exportar: string | null
           peso_liquido_br: string | null
           profundidade_br: string | null
+          situacao_sugerida: string | null
           sku: string | null
         }
         Insert: {
           altura_br?: never
+          ativo_sncf?: boolean | null
           cest_sncf?: string | null
           ean?: string | null
           largura_br?: never
@@ -27484,10 +27487,12 @@ export type Database = {
           origem_nao_exportar?: never
           peso_liquido_br?: never
           profundidade_br?: never
+          situacao_sugerida?: never
           sku?: string | null
         }
         Update: {
           altura_br?: never
+          ativo_sncf?: boolean | null
           cest_sncf?: string | null
           ean?: string | null
           largura_br?: never
@@ -27496,6 +27501,7 @@ export type Database = {
           origem_nao_exportar?: never
           peso_liquido_br?: never
           profundidade_br?: never
+          situacao_sugerida?: never
           sku?: string | null
         }
         Relationships: []
@@ -30861,14 +30867,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]

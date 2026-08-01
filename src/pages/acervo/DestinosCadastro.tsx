@@ -47,6 +47,8 @@ interface FiscalSncf {
   largura_br: string | null;
   profundidade_br: string | null;
   ean: string | null;
+  ativo_sncf: boolean | null;
+  situacao_sugerida: string | null;
 }
 
 /** Normaliza só para COMPARAR: remove tabs de proteção e espaços. */
@@ -58,6 +60,11 @@ function chaveSku(v: string): string {
 function celulaVazia(v: string | undefined): boolean {
   return (v ?? "").replace(/\t/g, "").trim() === "";
 }
+
+function semAcento(v: string): string {
+  return v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
 
 interface ParsedCsv {
   header: string[];
@@ -161,7 +168,7 @@ export default function DestinosCadastro() {
       const { data, error } = await (supabase as any)
         .from("vw_bling_completar_fiscal")
         .select(
-          "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean",
+          "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean, ativo_sncf, situacao_sugerida",
         );
       if (error) throw error;
       const m = new Map<string, FiscalSncf>();
@@ -186,8 +193,14 @@ export default function DestinosCadastro() {
       codigo: find(COL_CODIGO),
       grupo: find(COL_GRUPO),
       descricao: parsed.header.findIndex((h) => h === "Descrição"),
+      situacao: parsed.header.findIndex((h) => semAcento(h) === "situacao"),
+      preco: parsed.header.findIndex((h) => {
+        const n = semAcento(h);
+        return n.includes("preco") && n.includes("venda");
+      }),
     };
   }, [parsed]);
+
 
   const resetar = () => {
     setParsed(null);
@@ -334,21 +347,58 @@ export default function DestinosCadastro() {
       }));
   }, [parsed, grupos, idx]);
 
-  // NCM vazio avaliado DEPOIS do completar pelo SNCF.
+  /**
+   * Plano de Situação: SKU presente no SNCF manda o valor sugerido.
+   * SKU AUSENTE da view não é tocado — ausência não autoriza inativar.
+   */
+  const planoSituacao = useMemo(() => {
+    if (!parsed || !idx || idx.situacao < 0 || !fiscal) return null;
+    const porLinha: (string | null)[] = [];
+    const mudancas: { codigo: string; descricao: string; de: string; para: string }[] = [];
+    parsed.rows.forEach((r) => {
+      const info = fiscal.get(chaveSku(r[idx.codigo] ?? ""));
+      const sugerida = (info?.situacao_sugerida ?? "").trim();
+      if (!info || sugerida === "") {
+        porLinha.push(null);
+        return;
+      }
+      porLinha.push(sugerida);
+      const atual = (r[idx.situacao] ?? "").replace(/\t/g, "").trim();
+      if (semAcento(atual) !== semAcento(sugerida)) {
+        mudancas.push({
+          codigo: (r[idx.codigo] ?? "").replace(/\t/g, "").trim(),
+          descricao: idx.descricao >= 0 ? r[idx.descricao] ?? "" : info.nome_comercial ?? "",
+          de: atual === "" ? "—" : atual,
+          para: sugerida,
+        });
+      }
+    });
+    const indoParaInativo = mudancas.filter((m) => semAcento(m.para) === "inativo").length;
+    return { porLinha, mudancas, indoParaInativo };
+  }, [parsed, idx, fiscal]);
+
+  // NCM vazio avaliado DEPOIS do completar pelo SNCF, separado por motivo.
   const semNcm = useMemo(() => {
-    if (!parsed || !idx) return [];
-    return parsed.rows
-      .map((r, i) => ({ r, i }))
-      .filter(({ r, i }) => {
-        if (!celulaVazia(r[idx.ncm])) return false;
-        const completa = plano?.porLinha[i]?.some((p) => p.col === idx.ncm);
-        return !completa;
-      })
-      .map(({ r }) => ({
-        codigo: r[idx.codigo] ?? "",
+    if (!parsed || !idx) return { falhaCompletar: [], ausenteSncf: [] } as {
+      falhaCompletar: { codigo: string; descricao: string; preco: string }[];
+      ausenteSncf: { codigo: string; descricao: string; preco: string }[];
+    };
+    const falhaCompletar: { codigo: string; descricao: string; preco: string }[] = [];
+    const ausenteSncf: { codigo: string; descricao: string; preco: string }[] = [];
+    parsed.rows.forEach((r, i) => {
+      if (!celulaVazia(r[idx.ncm])) return;
+      if (plano?.porLinha[i]?.some((p) => p.col === idx.ncm)) return;
+      const linha = {
+        codigo: (r[idx.codigo] ?? "").replace(/\t/g, "").trim(),
         descricao: idx.descricao >= 0 ? r[idx.descricao] ?? "" : "",
-      }));
-  }, [parsed, idx, plano]);
+        preco: idx.preco >= 0 ? (r[idx.preco] ?? "").trim() : "",
+      };
+      const existe = fiscal ? fiscal.has(chaveSku(r[idx.codigo] ?? "")) : true;
+      if (existe) falhaCompletar.push(linha);
+      else ausenteSncf.push(linha);
+    });
+    return { falhaCompletar, ausenteSncf };
+  }, [parsed, idx, plano, fiscal]);
 
   const baixar = () => {
     if (!parsed || !grupos || !idx) return;
@@ -358,6 +408,8 @@ export default function DestinosCadastro() {
         while (copia.length < parsed.header.length) copia.push("");
         copia[idx.grupo] = grupos[i];
         for (const p of plano?.porLinha[i] ?? []) copia[p.col] = p.valor;
+        const sit = planoSituacao?.porLinha[i];
+        if (sit && idx.situacao >= 0) copia[idx.situacao] = sit;
         return copia;
       });
       const blob = gerarCsv(parsed.header, rows);
@@ -373,6 +425,7 @@ export default function DestinosCadastro() {
       toast.error(formatError(e));
     }
   };
+
 
 
   return (
@@ -468,10 +521,16 @@ export default function DestinosCadastro() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    Só o Grupo de Produtos e os campos fiscais vazios são alterados. A coluna{" "}
-                    <strong>Origem</strong> nunca é tocada. As demais colunas voltam idênticas.
+                    Esta tela pode alterar apenas estas colunas:{" "}
+                    <strong>
+                      Grupo de produtos, Situação, NCM, CEST, Peso líquido, Altura, Largura,
+                      Profundidade
+                    </strong>
+                    . Todas as demais voltam verbatim. A coluna <strong>Origem</strong> nunca é
+                    tocada.
                   </AlertDescription>
                 </Alert>
+
 
                 {fiscalCarregando && (
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
@@ -503,7 +562,7 @@ export default function DestinosCadastro() {
                 )}
 
                 {resumo && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Já preenchido</p>
                       <p className="text-2xl font-bold">{resumo.jaPreenchido}</p>
@@ -516,8 +575,52 @@ export default function DestinosCadastro() {
                       <p className="text-xs text-muted-foreground">Completado pelo SNCF</p>
                       <p className="text-2xl font-bold">{resumo.completados}</p>
                     </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Situação a mudar</p>
+                      <p className="text-2xl font-bold">
+                        {planoSituacao ? planoSituacao.mudancas.length : "—"}
+                      </p>
+                    </div>
                   </div>
                 )}
+
+                {planoSituacao && planoSituacao.mudancas.length > 0 && (
+                  <div
+                    className={`rounded-lg border p-3 space-y-2 ${
+                      planoSituacao.indoParaInativo > 0
+                        ? "border-amber-500/50 bg-amber-50/60 dark:bg-amber-950/20"
+                        : ""
+                    }`}
+                  >
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      {planoSituacao.indoParaInativo > 0 && (
+                        <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+                      )}
+                      Situação a mudar: {planoSituacao.mudancas.length} linha
+                      {planoSituacao.mudancas.length > 1 ? "s" : ""}
+                    </p>
+                    {planoSituacao.indoParaInativo > 0 && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Estes produtos estão inativos no SNCF e ativos no Bling. A importação vai
+                        inativá-los.
+                      </p>
+                    )}
+                    <div className="max-h-56 overflow-auto text-xs space-y-1">
+                      {planoSituacao.mudancas.map((m, i) => (
+                        <div key={`${m.codigo}-${i}`} className="flex gap-2">
+                          <span className="font-mono shrink-0">{m.codigo}</span>
+                          <span className="text-muted-foreground truncate flex-1">
+                            {m.descricao}
+                          </span>
+                          <span className="shrink-0 font-mono">
+                            {m.de} → <strong>{m.para}</strong>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
 
                 {resumo?.vaiMudar === 0 && (
                   <Alert className="border-emerald-500/50 bg-emerald-50/60 dark:bg-emerald-950/20">
@@ -596,23 +699,51 @@ export default function DestinosCadastro() {
                   </Table>
                 </div>
 
-                {semNcm.length > 0 && (
+                {semNcm.falhaCompletar.length > 0 && (
                   <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-3 space-y-2">
                     <p className="text-sm font-semibold text-destructive flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
-                      {semNcm.length} produto(s) com NCM vazio — essas linhas falham na emissão de
-                      NF no Bling
+                      {semNcm.falhaCompletar.length} produto(s) com NCM vazio e SKU existente no
+                      SNCF
+                    </p>
+                    <p className="text-xs text-destructive">
+                      O SNCF tem o NCM destes SKUs mas o preenchimento não ocorreu — reporte.
                     </p>
                     <div className="max-h-56 overflow-auto text-xs space-y-1">
-                      {semNcm.map((l, i) => (
+                      {semNcm.falhaCompletar.map((l, i) => (
                         <div key={`${l.codigo}-${i}`} className="flex gap-2">
-                          <span className="font-mono shrink-0">{l.codigo.trim()}</span>
+                          <span className="font-mono shrink-0">{l.codigo}</span>
                           <span className="text-muted-foreground truncate">{l.descricao}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+
+                {semNcm.ausenteSncf.length > 0 && (
+                  <div className="rounded-lg border border-amber-500/50 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-2">
+                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      {semNcm.ausenteSncf.length} produto(s) com NCM vazio e código ausente do SNCF
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      Estes códigos existem no Bling e não no SNCF. Como FOP/SNCF é a razão, ou o
+                      código do Bling está errado, ou falta cadastrar aqui. Exige decisão humana.
+                    </p>
+                    <div className="max-h-56 overflow-auto text-xs space-y-1">
+                      {semNcm.ausenteSncf.map((l, i) => (
+                        <div key={`${l.codigo}-${i}`} className="flex gap-2">
+                          <span className="font-mono shrink-0">{l.codigo}</span>
+                          <span className="text-muted-foreground truncate flex-1">
+                            {l.descricao}
+                          </span>
+                          <span className="font-mono shrink-0">{l.preco || "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
 
                 {paraRevisar.length > 0 && (
                   <div className="rounded-lg border border-amber-500/50 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-2">
