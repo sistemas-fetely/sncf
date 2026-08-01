@@ -168,7 +168,7 @@ export default function DestinosCadastro() {
       const { data, error } = await (supabase as any)
         .from("vw_bling_completar_fiscal")
         .select(
-          "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean",
+          "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean, ativo_sncf, situacao_sugerida",
         );
       if (error) throw error;
       const m = new Map<string, FiscalSncf>();
@@ -193,8 +193,14 @@ export default function DestinosCadastro() {
       codigo: find(COL_CODIGO),
       grupo: find(COL_GRUPO),
       descricao: parsed.header.findIndex((h) => h === "Descrição"),
+      situacao: parsed.header.findIndex((h) => semAcento(h) === "situacao"),
+      preco: parsed.header.findIndex((h) => {
+        const n = semAcento(h);
+        return n.includes("preco") && n.includes("venda");
+      }),
     };
   }, [parsed]);
+
 
   const resetar = () => {
     setParsed(null);
