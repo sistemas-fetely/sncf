@@ -463,6 +463,9 @@ function AbaB2B() {
     [mensal]
   );
 
+  /** Mesmos dados, ordem crescente (mais antigo à esquerda). */
+  const mensalAsc = useMemo(() => [...mensal].reverse(), [mensal]);
+
   const aplicarMes = (mesKey: string) => {
     const [y, m] = mesKey.split("-").map(Number);
     const de = new Date(y, m - 1, 1);
