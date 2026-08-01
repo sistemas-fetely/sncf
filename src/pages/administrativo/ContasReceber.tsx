@@ -1101,10 +1101,46 @@ function AbaB2B() {
 
 /* ============================ B2C ============================ */
 
+type FatVsReceb = {
+  pedido_ref: string | null;
+  nfs: number | null;
+  nf_refs: string | null;
+  data_emissao: string | null;
+  mes_competencia: string | null;
+  cliente: string | null;
+  receita_produto: number | null;
+  receita_frete: number | null;
+  faturado: number | null;
+  data_recebimento: string | null;
+  mes_caixa: string | null;
+  bruto_shopify: number | null;
+  liquido_mp: number | null;
+  taxa_mp: number | null;
+  tipo_meio: string | null;
+  financial_status: string | null;
+  cidade: string | null;
+  uf: string | null;
+  movimentacoes: number | null;
+  tem_recebimento: boolean | null;
+  tem_nf: boolean | null;
+  situacao: string | null;
+  delta_bruto_vs_faturado: number | null;
+};
+
+function diasDesde(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const d = new Date(String(iso).slice(0, 10) + "T12:00:00");
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
 function AbaB2C() {
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [page, setPage] = useState(1);
+  const [listaFvr, setListaFvr] = useState<
+    "faturado_sem_recebimento" | "recebido_sem_nf" | "conciliado"
+  >("faturado_sem_recebimento");
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
     key: "data_transacao",
     dir: "desc",
@@ -1122,6 +1158,17 @@ function AbaB2C() {
     },
   });
 
+  const { data: fvrData } = useQuery({
+    queryKey: ["b2c-faturado-vs-recebido"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_b2c_faturado_vs_recebido")
+        .select("*");
+      if (error) throw error;
+      return (data ?? []) as FatVsReceb[];
+    },
+  });
+
   const base = useMemo(() => {
     const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
     const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
@@ -1134,6 +1181,50 @@ function AbaB2C() {
       return true;
     });
   }, [data, dataDe, dataAte]);
+
+  const fvrBase = useMemo(() => {
+    const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
+    const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
+    return (fvrData ?? []).filter((r) => {
+      if (!dDe && !dAte) return true;
+      if (!r.data_emissao) return false;
+      const d = new Date(String(r.data_emissao).slice(0, 10) + "T12:00:00");
+      if (dDe && d < dDe) return false;
+      if (dAte && d > dAte) return false;
+      return true;
+    });
+  }, [fvrData, dataDe, dataAte]);
+
+  const semRecebimento = useMemo(
+    () =>
+      fvrBase
+        .filter((r) => r.situacao === "faturado_sem_recebimento")
+        .sort((a, b) => (diasDesde(b.data_emissao) ?? 0) - (diasDesde(a.data_emissao) ?? 0)),
+    [fvrBase]
+  );
+  const recebidoSemNf = useMemo(
+    () => (fvrData ?? []).filter((r) => r.situacao === "recebido_sem_nf"),
+    [fvrData]
+  );
+  const conciliados = useMemo(
+    () =>
+      fvrBase
+        .filter((r) => r.situacao === "conciliado")
+        .sort(
+          (a, b) =>
+            Math.abs(Number(b.delta_bruto_vs_faturado ?? 0)) -
+            Math.abs(Number(a.delta_bruto_vs_faturado ?? 0))
+        ),
+    [fvrBase]
+  );
+
+  const kpiFuro = useMemo(() => {
+    const total = semRecebimento.reduce((s, r) => s + Number(r.faturado ?? 0), 0);
+    const dias = semRecebimento
+      .map((r) => diasDesde(r.data_emissao))
+      .filter((d): d is number => d !== null);
+    return { total, n: semRecebimento.length, maisAntigo: dias.length ? Math.max(...dias) : null };
+  }, [semRecebimento]);
 
   const kpis = useMemo(() => {
     let bruto = 0;
@@ -1203,15 +1294,46 @@ function AbaB2C() {
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Recebíveis B2C");
+
+    const listaSel =
+      listaFvr === "faturado_sem_recebimento"
+        ? semRecebimento
+        : listaFvr === "recebido_sem_nf"
+          ? recebidoSemNf
+          : conciliados;
+    const linhasFvr = listaSel.map((r) => ({
+      Situação: r.situacao ?? "",
+      Pedido: r.pedido_ref ?? "",
+      Cliente: r.cliente ?? "",
+      NF: r.nf_refs ?? "",
+      Emissão: formatDateBR(String(r.data_emissao ?? "").slice(0, 10)),
+      Recebimento: formatDateBR(String(r.data_recebimento ?? "").slice(0, 10)),
+      Dias: diasDesde(r.data_emissao) ?? "",
+      Meio: r.tipo_meio ?? "",
+      Cidade: r.cidade ?? "",
+      UF: r.uf ?? "",
+      Faturado: Number(r.faturado ?? 0),
+      "Bruto Shopify": Number(r.bruto_shopify ?? 0),
+      Δ: Number(r.delta_bruto_vs_faturado ?? 0),
+      Líquido: Number(r.liquido_mp ?? 0),
+      Taxa: Number(r.taxa_mp ?? 0),
+    }));
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(linhasFvr),
+      "Faturado x Recebido"
+    );
     XLSX.writeFile(wb, `recebiveis-b2c-${periodoLabel}.xlsx`);
   };
+
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-3xl text-xs text-muted-foreground">
           B2C não usa título — o recebível nasce liquidado, por pedido. Não existe aberto nem futuro
-          aqui, e estes valores não somam com os do B2B.
+          aqui, e estes valores não somam com os do B2B. Mercado Pago liquida em D+14: venda recente
+          ainda não caiu.
         </p>
         <Button
           variant="outline"
@@ -1224,7 +1346,7 @@ function AbaB2C() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Bruto Shopify</CardTitle>
@@ -1257,7 +1379,22 @@ function AbaB2C() {
             </div>
           </CardContent>
         </Card>
+        <Card className="border-amber-500/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Faturado sem recebimento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold tabular-nums text-amber-700">
+              {formatBRL(kpiFuro.total)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {kpiFuro.n} pedidos
+              {kpiFuro.maisAntigo !== null ? ` · mais antigo há ${kpiFuro.maisAntigo} dias` : ""}
+            </p>
+          </CardContent>
+        </Card>
       </div>
+
 
       <Card>
         <CardHeader className="pb-2">
@@ -1299,6 +1436,210 @@ function AbaB2C() {
           </Table>
         </CardContent>
       </Card>
+
+      <div className="space-y-1">
+        <Card className="border-amber-500/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Faturado × Recebido</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 p-4 pt-0">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={listaFvr === "faturado_sem_recebimento" ? "default" : "outline"}
+                onClick={() => setListaFvr("faturado_sem_recebimento")}
+              >
+                Faturado sem recebimento ({semRecebimento.length})
+              </Button>
+              <Button
+                size="sm"
+                variant={listaFvr === "recebido_sem_nf" ? "default" : "outline"}
+                onClick={() => setListaFvr("recebido_sem_nf")}
+              >
+                Recebido sem NF ({recebidoSemNf.length})
+              </Button>
+              <Button
+                size="sm"
+                variant={listaFvr === "conciliado" ? "default" : "outline"}
+                onClick={() => setListaFvr("conciliado")}
+              >
+                Conciliados ({conciliados.length})
+              </Button>
+            </div>
+
+            {listaFvr === "faturado_sem_recebimento" && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>NF</TableHead>
+                    <TableHead>Emissão</TableHead>
+                    <TableHead className="text-right">Dias</TableHead>
+                    <TableHead className="text-right">Faturado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {semRecebimento.map((r) => {
+                    const d = diasDesde(r.data_emissao);
+                    const cor =
+                      d !== null && d > 20
+                        ? "text-destructive"
+                        : d !== null && d >= 14
+                          ? "text-amber-700"
+                          : "";
+                    return (
+                      <TableRow key={r.pedido_ref ?? Math.random()}>
+                        <TableCell className="font-mono text-xs">{r.pedido_ref ?? "—"}</TableCell>
+                        <TableCell className="max-w-[220px] truncate">{r.cliente ?? "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.nf_refs ?? "—"}</TableCell>
+                        <TableCell>{formatDateBR(String(r.data_emissao ?? "").slice(0, 10))}</TableCell>
+                        <TableCell className={`text-right tabular-nums ${cor}`}>{d ?? "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(Number(r.faturado ?? 0))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {semRecebimento.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="p-6 text-center text-muted-foreground">
+                        Nada faturado sem recebimento no período.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <TableRow className="font-semibold">
+                      <TableCell colSpan={5}>Total</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatBRL(kpiFuro.total)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+
+            {listaFvr === "recebido_sem_nf" && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Recebimento</TableHead>
+                    <TableHead>Meio</TableHead>
+                    <TableHead>Cidade/UF</TableHead>
+                    <TableHead className="text-right">Bruto</TableHead>
+                    <TableHead className="text-right">Líquido</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recebidoSemNf.map((r) => (
+                    <TableRow key={r.pedido_ref ?? Math.random()}>
+                      <TableCell className="font-mono text-xs">{r.pedido_ref ?? "—"}</TableCell>
+                      <TableCell>
+                        {formatDateBR(String(r.data_recebimento ?? "").slice(0, 10))}
+                      </TableCell>
+                      <TableCell>{formatMeio(r.tipo_meio)}</TableCell>
+                      <TableCell className="max-w-[180px] truncate">
+                        {r.cidade ?? "—"}
+                        {r.uf ? `/${r.uf}` : ""}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatBRL(Number(r.bruto_shopify ?? 0))}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-green-700">
+                        {formatBRL(Number(r.liquido_mp ?? 0))}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {recebidoSemNf.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="p-6 text-center text-muted-foreground">
+                        Nada recebido sem NF.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+
+            {listaFvr === "conciliado" && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Emissão</TableHead>
+                    <TableHead>Recebimento</TableHead>
+                    <TableHead className="text-right">Faturado</TableHead>
+                    <TableHead className="text-right">Bruto Shopify</TableHead>
+                    <TableHead className="text-right">Δ</TableHead>
+                    <TableHead className="text-right">Líquido</TableHead>
+                    <TableHead className="text-right">Taxa</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {conciliados.map((r) => {
+                    const delta = Number(r.delta_bruto_vs_faturado ?? 0);
+                    return (
+                      <TableRow key={r.pedido_ref ?? Math.random()}>
+                        <TableCell className="font-mono text-xs">{r.pedido_ref ?? "—"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{r.cliente ?? "—"}</TableCell>
+                        <TableCell>{formatDateBR(String(r.data_emissao ?? "").slice(0, 10))}</TableCell>
+                        <TableCell>
+                          {formatDateBR(String(r.data_recebimento ?? "").slice(0, 10))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(Number(r.faturado ?? 0))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(Number(r.bruto_shopify ?? 0))}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right tabular-nums ${delta < 0 ? "text-destructive" : ""}`}
+                        >
+                          {formatBRL(delta)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-green-700">
+                          {formatBRL(Number(r.liquido_mp ?? 0))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(Number(r.taxa_mp ?? 0))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {conciliados.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="p-6 text-center text-muted-foreground">
+                        Sem conciliados no período.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <TableRow className="font-semibold">
+                      <TableCell colSpan={6}>Total</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatBRL(
+                          conciliados.reduce(
+                            (s, r) => s + Number(r.delta_bruto_vs_faturado ?? 0),
+                            0
+                          )
+                        )}
+                      </TableCell>
+                      <TableCell colSpan={2} />
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+        <p className="text-xs text-muted-foreground">
+          Acima de 20 dias sem liquidação não é mais atraso de D+14 — é furo. Δ é o bruto do Shopify
+          menos o faturado na NF: a diferença costuma ser frete cobrado e não destacado.
+        </p>
+      </div>
+
+
 
       <Card>
         <CardContent className="space-y-4 p-4">
