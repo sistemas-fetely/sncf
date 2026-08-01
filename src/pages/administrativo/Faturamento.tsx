@@ -87,9 +87,11 @@ function sortNums<T>(list: T[], get: (r: T) => number | string | null, dir: Sort
   });
 }
 
-function KpiCard({ label, value, sub, alerta }: { label: string; value: string; sub?: string; alerta?: boolean }) {
+function KpiCard({ label, value, sub, alerta, className }: {
+  label: string; value: string; sub?: string; alerta?: boolean; className?: string;
+}) {
   return (
-    <Card className={cn(alerta && "border-destructive/40")}>
+    <Card className={cn(alerta && "border-destructive/40", className)}>
       <CardHeader className="pb-2">
         <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
@@ -100,6 +102,105 @@ function KpiCard({ label, value, sub, alerta }: { label: string; value: string; 
     </Card>
   );
 }
+
+// ════════════════════════════════════════════════
+// Cascata da margem
+// ════════════════════════════════════════════════
+interface CascataAgg {
+  receita_produto: number;
+  receita_frete: number;
+  receita_total: number;
+  cmv: number;
+  icms: number;
+  custo_frete_pago: number;
+  faturamento: number;
+  margemBruta: number;
+  resultado: number;
+}
+
+type CascataLinha = {
+  label: string;
+  valor: number;
+  tipo: "linha" | "deducao" | "subtotal" | "resultado";
+};
+
+function CascataCard({ agg, componente }: { agg: CascataAgg; componente: Componente }) {
+  const base = agg.faturamento;
+  const linhas: CascataLinha[] =
+    componente === "tudo"
+      ? [
+        { label: "Receita de produto", valor: agg.receita_produto, tipo: "linha" },
+        { label: "Receita de frete", valor: agg.receita_frete, tipo: "linha" },
+        { label: "= Receita total", valor: agg.receita_total, tipo: "subtotal" },
+        { label: "(−) CMV", valor: agg.cmv, tipo: "deducao" },
+        { label: "= Margem bruta", valor: agg.margemBruta, tipo: "subtotal" },
+        { label: "(−) ICMS", valor: agg.icms, tipo: "deducao" },
+        { label: "(−) Frete pago", valor: agg.custo_frete_pago, tipo: "deducao" },
+        { label: "= Resultado", valor: agg.resultado, tipo: "resultado" },
+      ]
+      : componente === "produto"
+        ? [
+          { label: "= Receita de produto", valor: agg.receita_produto, tipo: "subtotal" },
+          { label: "(−) CMV", valor: agg.cmv, tipo: "deducao" },
+          { label: "= Margem bruta", valor: agg.margemBruta, tipo: "subtotal" },
+          { label: "(−) ICMS", valor: agg.icms, tipo: "deducao" },
+          { label: "= Resultado", valor: agg.resultado, tipo: "resultado" },
+        ]
+        : [
+          { label: "= Receita de frete", valor: agg.receita_frete, tipo: "subtotal" },
+          { label: "(−) Frete pago", valor: agg.custo_frete_pago, tipo: "deducao" },
+          { label: "= Resultado", valor: agg.resultado, tipo: "resultado" },
+        ];
+
+  const pct = (v: number) => (base > 0 ? fmtPct(v / base) : "—");
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Cascata da margem</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Descrição</TableHead>
+              <TableHead className="text-right">R$</TableHead>
+              <TableHead className="text-right">% da receita</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {linhas.map((l) => {
+              const negativo = l.tipo === "resultado" && l.valor < 0;
+              return (
+                <TableRow
+                  key={l.label}
+                  className={cn(
+                    (l.tipo === "subtotal" || l.tipo === "resultado") && "bg-muted/40 font-semibold",
+                    l.tipo === "resultado" && "font-bold text-base",
+                    negativo && "text-destructive",
+                  )}
+                >
+                  <TableCell className={cn(l.tipo === "deducao" && "text-muted-foreground")}>{l.label}</TableCell>
+                  <TableCell
+                    className={cn("text-right tabular-nums", l.tipo === "deducao" && "text-muted-foreground")}
+                  >
+                    {l.tipo === "deducao" ? `(${fmtBRL(l.valor)})` : fmtBRL(l.valor)}
+                  </TableCell>
+                  <TableCell
+                    className={cn("text-right tabular-nums", l.tipo === "deducao" && "text-muted-foreground")}
+                  >
+                    {l.tipo === "deducao" ? `(${pct(l.valor)})` : pct(l.valor)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 export default function Faturamento() {
   const navigate = useNavigate();
