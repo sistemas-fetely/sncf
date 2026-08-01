@@ -1281,6 +1281,22 @@ function AbaB2C() {
     return Array.from(mapa.values()).sort((a, b) => (a.mes < b.mes ? 1 : -1));
   }, [base]);
 
+  /** Mesmos dados, ordem crescente (mais antigo à esquerda). */
+  const mensalAsc = useMemo(() => [...mensal].reverse(), [mensal]);
+
+  const totalMensalB2c = useMemo(
+    () =>
+      mensal.reduce(
+        (acc, l) => ({
+          pedidos: acc.pedidos + l.pedidos,
+          bruto: acc.bruto + l.bruto,
+          liquido: acc.liquido + l.liquido,
+        }),
+        { pedidos: 0, bruto: 0, liquido: 0 }
+      ),
+    [mensal]
+  );
+
   const ordenados = useMemo(() => {
     if (!sort) return base;
     return [...base].sort((a, b) => {
