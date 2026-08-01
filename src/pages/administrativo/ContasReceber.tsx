@@ -694,65 +694,81 @@ function AbaB2B() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mês</TableHead>
-                  <TableHead className="text-right">Títulos</TableHead>
-                  <TableHead className="text-right">Recebido</TableHead>
-                  <TableHead className="text-right">Em aberto</TableHead>
-                  <TableHead className="text-right">Atrasado</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mensal.map((l) => (
-                  <TableRow
-                    key={l.mes}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => aplicarMes(l.mes)}
-                  >
-                    <TableCell className="font-medium">{rotuloMes(l.mes)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{l.titulos}</TableCell>
-                    <TableCell className="text-right tabular-nums text-green-700">
-                      {formatBRL(l.recebido)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatBRL(l.aberto)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-destructive">
-                      {formatBRL(l.atrasado)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
-                      {formatBRL(l.total)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {mensal.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="p-6 text-center text-muted-foreground">
-                      Sem dados nesta base.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {mensal.length > 0 && (
-                  <TableRow className="border-t-2 font-semibold">
-                    <TableCell>Total</TableCell>
-                    <TableCell className="text-right tabular-nums">{totalMensal.titulos}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatBRL(totalMensal.recebido)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatBRL(totalMensal.aberto)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatBRL(totalMensal.atrasado)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatBRL(totalMensal.total)}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            {mensal.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">Sem dados nesta base.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky left-0 bg-background z-10">Métrica</TableHead>
+                      {mensalAsc.map((l) => (
+                        <TableHead
+                          key={l.mes}
+                          className="text-right cursor-pointer hover:text-foreground"
+                          onClick={() => aplicarMes(l.mes)}
+                        >
+                          {rotuloMesCurto(l.mes)}
+                        </TableHead>
+                      ))}
+                      <TableHead className="text-right font-semibold">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(
+                      [
+                        { rotulo: "Títulos", campo: "titulos", moeda: false, cor: "" },
+                        { rotulo: "Recebido", campo: "recebido", moeda: true, cor: "text-green-700" },
+                        { rotulo: "Em aberto", campo: "aberto", moeda: true, cor: "" },
+                        { rotulo: "Atrasado", campo: "atrasado", moeda: true, cor: "text-destructive" },
+                        { rotulo: "Total", campo: "total", moeda: true, cor: "" },
+                      ] as const
+                    ).map((linha) => {
+                      const isTotal = linha.campo === "total";
+                      return (
+                        <TableRow
+                          key={linha.campo}
+                          className={isTotal ? "font-semibold bg-muted/40" : undefined}
+                        >
+                          <TableCell
+                            className={`sticky left-0 bg-background z-10 font-medium ${
+                              isTotal ? "font-semibold" : ""
+                            }`}
+                          >
+                            {linha.rotulo}
+                          </TableCell>
+                          {mensalAsc.map((l) => {
+                            const v = l[linha.campo] as number;
+                            return (
+                              <TableCell
+                                key={l.mes}
+                                className={`text-right tabular-nums ${
+                                  v > 0 ? linha.cor : "text-muted-foreground"
+                                }`}
+                              >
+                                {linha.moeda
+                                  ? v > 0
+                                    ? formatBRL(v)
+                                    : "—"
+                                  : v}
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-right tabular-nums font-semibold">
+                            {linha.moeda
+                              ? (totalMensal[linha.campo] as number) > 0
+                                ? formatBRL(totalMensal[linha.campo] as number)
+                                : "—"
+                              : totalMensal[linha.campo]}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
           </CardContent>
         </Card>
         <p className="text-xs text-muted-foreground">
