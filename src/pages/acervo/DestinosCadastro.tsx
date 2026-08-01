@@ -47,6 +47,8 @@ interface FiscalSncf {
   largura_br: string | null;
   profundidade_br: string | null;
   ean: string | null;
+  ativo_sncf: boolean | null;
+  situacao_sugerida: string | null;
 }
 
 /** Normaliza só para COMPARAR: remove tabs de proteção e espaços. */
@@ -58,6 +60,11 @@ function chaveSku(v: string): string {
 function celulaVazia(v: string | undefined): boolean {
   return (v ?? "").replace(/\t/g, "").trim() === "";
 }
+
+function semAcento(v: string): string {
+  return v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
 
 interface ParsedCsv {
   header: string[];
