@@ -1,4 +1,4 @@
-import { Wallet, AlertTriangle } from "lucide-react";
+import { Wallet, AlertTriangle, Receipt } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
