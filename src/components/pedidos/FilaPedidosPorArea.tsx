@@ -80,6 +80,7 @@ export function FilaPedidosPorArea({
   somenteRiscoAlto = false,
 }: Props) {
   const [busca, setBusca] = useState("");
+  const [buscaDebounced, setBuscaDebounced] = useState("");
   const [estagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
 
   const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
