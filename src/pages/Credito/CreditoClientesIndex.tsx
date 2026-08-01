@@ -143,6 +143,11 @@ export default function CreditoClientesIndex() {
     let arr = [...clientes];
     if (tab === "com_haver") arr = arr.filter((c: any) => c.haver_disponivel > 0);
     if (tab === "com_vencidos") arr = arr.filter((c: any) => c.vencidos > 0);
+    if (busca.trim()) {
+      arr = arr.filter((c: any) =>
+        parceiroCombina(busca, c.razao_social ?? c.cliente, c.nome_fantasia, c.cnpj)
+      );
+    }
     if (sort) {
       arr.sort((a: any, b: any) => {
         const va = a[sort.key] ?? 0;
@@ -154,7 +159,7 @@ export default function CreditoClientesIndex() {
       });
     }
     return arr;
-  }, [clientes, tab, sort]);
+  }, [clientes, tab, sort, busca]);
 
   const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosAllQ.isLoading;
 
