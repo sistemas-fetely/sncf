@@ -67,7 +67,14 @@ type RecebivelB2B = {
   mes_competencia: string | null;
   gera_caixa: boolean | null;
   tem_prova_bancaria: boolean | null;
+  /* hierarquia da verdade da data de recebimento */
+  data_recebimento_efetiva: string | null;
+  fonte_data_recebimento: "banco" | "humano" | "sem_recebimento" | null;
+  data_pagamento_banco: string | null;
+  data_divergente: boolean | null;
+  mes_caixa_efetivo: string | null;
 };
+
 
 type RecebivelB2C = {
   movimentacao_id: string;
