@@ -412,7 +412,9 @@ export default function Faturamento() {
       <Tabs defaultValue="nfs">
         <TabsList>
           <TabsTrigger value="nfs">NFs consideradas</TabsTrigger>
+          {componente !== "frete" && <TabsTrigger value="pedido">Por pedido</TabsTrigger>}
           {componente !== "frete" && <TabsTrigger value="produto">Rentabilidade por produto</TabsTrigger>}
+
         </TabsList>
 
         <TabsContent value="nfs" className="mt-4">
