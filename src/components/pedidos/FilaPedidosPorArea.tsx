@@ -40,7 +40,7 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
-const ROW_HEIGHT = 80; // px aprox (linhas com 2 linhas de texto)
+const ROW_HEIGHT = 64; // px aprox (linha de 2 alturas de texto após a fusão de colunas)
 const FOOTER_RESERVE = 80;
 
 
@@ -418,28 +418,26 @@ export function FilaPedidosPorArea({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[60px]">Risco</TableHead>
-              <TableHead className="w-[185px]">ID Externo</TableHead>
-              <TableHead>Cliente</TableHead>
+              <TableHead className="w-[56px]">Risco</TableHead>
+              <TableHead>Pedido</TableHead>
               <TableHead className="w-[180px]">Valor</TableHead>
               <TableHead>Estágio</TableHead>
-              <TableHead className="w-[76px]">Idade</TableHead>
-              <TableHead className="w-[110px] text-[11px] font-normal text-muted-foreground">Próxima ação</TableHead>
-              <TableHead className="w-[60px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
+              <TableHead className="w-[70px]">Idade</TableHead>
+              <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Carregando…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && (!linhas || linhas.length === 0) && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Nenhum pedido neste filtro.
                 </TableCell>
               </TableRow>
@@ -463,10 +461,6 @@ export function FilaPedidosPorArea({
                       }
                     />
                   </TableCell>
-
-                  <TableCell className="whitespace-nowrap">
-                    <span className="font-mono text-xs">{p.id_externo}</span>
-                  </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     {p.parceiro_id ? (
                       <button
@@ -479,7 +473,10 @@ export function FilaPedidosPorArea({
                     ) : (
                       <p className="font-medium text-sm">{p.parceiro_razao}</p>
                     )}
-                    <p className="text-[11px] text-muted-foreground font-mono">{p.parceiro_cnpj}</p>
+                    <p className="text-[11px] text-muted-foreground font-mono">
+                      {p.id_externo}
+                      {p.parceiro_cnpj ? ` · ${p.parceiro_cnpj}` : ""}
+                    </p>
                   </TableCell>
                   <TableCell>
                     <ValorComPagamento p={p} />
@@ -534,6 +531,9 @@ export function FilaPedidosPorArea({
                         );
                       })()}
                       <MarcacaoBadge marcacao={p.marcacao} />
+                      {p.proxima_acao && (
+                        <span className="text-[11px] text-muted-foreground">· {p.proxima_acao}</span>
+                      )}
                     </div>
                     {(ESTAGIOS_COM_RESUMO_ENTREGA as readonly string[]).includes(p.estagio) &&
                       (entregaErro ? (
@@ -547,9 +547,6 @@ export function FilaPedidosPorArea({
 
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     <FormatoIdade minutos={p.idade_minutos} />
-                  </TableCell>
-                  <TableCell className="text-[11px] text-muted-foreground leading-tight">
-                    {p.proxima_acao || <span className="opacity-40">—</span>}
                   </TableCell>
 
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -684,24 +681,26 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   if (situacao === "vencido") {
     return (
       <>
-        {valorLine}
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          {valorLine}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
+                    {rotulo || `Vencido ${diasAtraso}d`}
+                  </Badge>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">
+                  {fmtBRL.format(valorVencido)} vencido{refNota}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         {condLine}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-block mt-1">
-                <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
-                  {rotulo || `Vencido ${diasAtraso}d`}
-                </Badge>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">
-                {fmtBRL.format(valorVencido)} vencido{refNota}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </>
     );
   }
@@ -709,22 +708,25 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   if (situacao === "quitado") {
     return (
       <>
-        {valorLine}
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          {valorLine}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  {/* Rótulo do banco ignorado de propósito: ele repete o valor exibido ao lado. */}
+                  <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-0 text-[10px] py-0 px-1.5">
+                    Quitado
+                  </Badge>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Pagamento quitado{refNota}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         {condLine}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-block mt-1">
-                <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-0 text-[10px] py-0 px-1.5">
-                  {rotulo || "Quitado"}
-                </Badge>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Pagamento quitado{refNota}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </>
     );
   }
@@ -735,13 +737,15 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
         <Tooltip>
           <TooltipTrigger asChild>
             <div>
-              {valorLine}
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                {valorLine}
+                <span className="inline-block">
+                  <Badge className="bg-sky-100 text-sky-900 hover:bg-sky-100 border-0 text-[10px] py-0 px-1.5">
+                    {rotulo || "Parcial pago"}
+                  </Badge>
+                </span>
+              </div>
               {condLine}
-              <span className="inline-block mt-1">
-                <Badge className="bg-sky-100 text-sky-900 hover:bg-sky-100 border-0 text-[10px] py-0 px-1.5">
-                  {rotulo || "Parcial pago"}
-                </Badge>
-              </span>
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -757,24 +761,27 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   if (situacao === "sem_recebivel") {
     return (
       <>
-        {valorLine}
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          {valorLine}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  {/* Rótulo do banco ignorado de propósito: ele repete o valor exibido ao lado. */}
+                  <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 border-0 text-[10px] py-0 px-1.5">
+                    a faturar
+                  </Badge>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">
+                  Pedido sem título a receber próprio · falta faturar: {fmtBRL.format(p.valor_liquido)}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         {condLine}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-block mt-1">
-                <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 border-0 text-[10px] py-0 px-1.5">
-                  {rotulo || "Sem recebível"}
-                </Badge>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">
-                Pedido sem título a receber próprio · falta faturar: {fmtBRL.format(p.valor_liquido)}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </>
     );
   }
@@ -782,13 +789,15 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   if (situacao === "anulado") {
     return (
       <>
-        {valorLine}
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          {valorLine}
+          <span className="inline-block">
+            <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+              {rotulo || "Anulado"}
+            </Badge>
+          </span>
+        </div>
         {condLine}
-        <span className="inline-block mt-1">
-          <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-            {rotulo || "Anulado"}
-          </Badge>
-        </span>
       </>
     );
   }
@@ -801,6 +810,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     </>
   );
 }
+
 
 /** Farol de risco — bolinha colorida + tooltip com faixa, score e motivos. */
 function FarolRisco({
