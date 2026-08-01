@@ -670,21 +670,22 @@ function AbaNfs({
 // ════════════════════════════════════════════════
 type ProdCol =
   | "sku" | "produto" | "colecao" | "unidades" | "preco_medio_un" | "custo_unit"
-  | "receita_produto" | "cmv" | "margem" | "margem_pct";
+  | "receita" | "cmv_pct" | "margem_bruta_pct" | "resultado" | "resultado_pct";
 
 function AbaProduto({
-  rows, isLoading, isError, error, canalOk, mes,
+  rows, isLoading, isError, error, canalOk, componente, mes,
 }: {
   rows: FaturamentoProduto[];
   isLoading: boolean;
   isError: boolean;
   error: unknown;
   canalOk: (c: string | null | undefined) => boolean;
+  componente: Componente;
   mes: string;
 }) {
   const [busca, setBusca] = useState("");
   const [colecao, setColecao] = useState("todas");
-  const [sortCol, setSortCol] = useState<ProdCol>("margem");
+  const [sortCol, setSortCol] = useState<ProdCol>("resultado");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   function toggle(c: ProdCol) {
@@ -708,11 +709,29 @@ function AbaProduto({
       }
       return true;
     });
-    return sortNums(base, (r) => r[sortCol] as number | string | null, sortDir);
-  }, [rows, busca, colecao, canalOk, sortCol, sortDir]);
+    const derivadas = base.map((r) => ({ r, d: derivarLinha(r, componente) }));
+    const get = (x: { r: FaturamentoProduto; d: LinhaDerivada }): number | string | null => {
+      switch (sortCol) {
+        case "sku": return x.r.sku;
+        case "produto": return x.r.produto;
+        case "colecao": return x.r.colecao;
+        case "unidades": return n(x.r.unidades);
+        case "preco_medio_un": return n(x.r.preco_medio_un);
+        case "custo_unit": return n(x.r.custo_unit);
+        case "receita": return x.d.receita;
+        case "cmv_pct": return x.d.cmv_pct;
+        case "margem_bruta_pct": return x.d.margem_bruta_pct;
+        case "resultado": return x.d.resultado;
+        case "resultado_pct": return x.d.resultado_pct;
+      }
+    };
+    return sortNums(derivadas, get, sortDir);
+  }, [rows, busca, colecao, canalOk, componente, sortCol, sortDir]);
+
+  const total = useMemo(() => somarLinhas(lista.map((x) => x.r), componente), [lista, componente]);
 
   function exportar() {
-    const linhas = lista.map((r) => ({
+    const linhas = lista.map(({ r, d }) => ({
       SKU: r.sku ?? "",
       Produto: r.produto ?? "",
       Coleção: r.colecao ?? "",
@@ -720,10 +739,17 @@ function AbaProduto({
       Unidades: n(r.unidades),
       "Preço médio un.": n(r.preco_medio_un),
       "Custo un.": n(r.custo_unit),
-      Receita: n(r.receita_produto),
+      "Receita produto": n(r.receita_produto),
+      "Receita frete": n(r.receita_frete),
+      Receita: d.receita,
       CMV: n(r.cmv),
-      "Margem R$": n(r.margem),
-      "Margem %": r.margem_pct == null ? "" : Number(r.margem_pct),
+      ICMS: n(r.icms),
+      "Margem bruta R$": d.margem_bruta,
+      "Resultado R$": d.resultado,
+      "CMV %": d.cmv_pct ?? "",
+      "ICMS %": d.icms_pct ?? "",
+      "Margem bruta %": d.margem_bruta_pct ?? "",
+      "Resultado %": d.resultado_pct ?? "",
     }));
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
@@ -763,6 +789,7 @@ function AbaProduto({
             <Download className="h-4 w-4 mr-1.5" /> Exportar XLSX
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground">{NOTA_HONESTIDADE}</p>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -782,18 +809,19 @@ function AbaProduto({
                   <SortHead col="unidades" label="Unidades" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                   <SortHead col="preco_medio_un" label="Preço médio un." sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                   <SortHead col="custo_unit" label="Custo un." sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="receita_produto" label="Receita" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="cmv" label="CMV" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="margem" label="Margem R$" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="margem_pct" label="Margem %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="receita" label="Receita" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="cmv_pct" label="CMV %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="margem_bruta_pct" label="Margem bruta %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="resultado" label="Resultado" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="resultado_pct" label="Resultado %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lista.map((r, i) => {
+                {lista.map(({ r, d }, i) => {
                   const avisos: string[] = [];
                   if (r.sku_sem_cadastro) avisos.push("SKU sem cadastro");
                   if (r.sem_custo) avisos.push("Sem custo");
-                  const baixa = r.margem_pct != null && Number(r.margem_pct) < 0.2;
+                  const baixa = d.resultado_pct != null && d.resultado_pct < 0.2;
                   return (
                     <TableRow key={`${r.sku ?? "sem-sku"}-${r.canal ?? ""}-${i}`}>
                       <TableCell className="font-mono text-xs">
@@ -813,17 +841,31 @@ function AbaProduto({
                       <TableCell className="text-right text-xs tabular-nums">{fmtInt(r.unidades)}</TableCell>
                       <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.preco_medio_un)}</TableCell>
                       <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.custo_unit)}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.receita_produto)}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.cmv)}</TableCell>
-                      <TableCell className={cn("text-right text-xs tabular-nums", n(r.margem) < 0 && "text-destructive")}>
-                        {fmtBRL(r.margem)}
+                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(d.receita)}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{fmtPct(d.cmv_pct)}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{fmtPct(d.margem_bruta_pct)}</TableCell>
+                      <TableCell className={cn("text-right text-xs tabular-nums", d.resultado < 0 && "text-destructive")}>
+                        {fmtBRL(d.resultado)}
                       </TableCell>
                       <TableCell className={cn("text-right text-xs tabular-nums", baixa && "text-destructive font-medium")}>
-                        {fmtPct(r.margem_pct)}
+                        {fmtPct(d.resultado_pct)}
                       </TableCell>
                     </TableRow>
                   );
                 })}
+                <TableRow className="font-semibold bg-muted/40">
+                  <TableCell colSpan={3}>Total</TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtInt(total.unidades)}</TableCell>
+                  <TableCell />
+                  <TableCell />
+                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.receita)}</TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.cmv_pct)}</TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.margem_bruta_pct)}</TableCell>
+                  <TableCell className={cn("text-right text-xs tabular-nums", total.resultado < 0 && "text-destructive")}>
+                    {fmtBRL(total.resultado)}
+                  </TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.resultado_pct)}</TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </div>
@@ -832,3 +874,4 @@ function AbaProduto({
     </Card>
   );
 }
+
