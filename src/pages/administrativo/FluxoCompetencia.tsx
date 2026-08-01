@@ -280,17 +280,19 @@ export default function FluxoCompetencia() {
     });
   }, [filtrados, sortKey, sortDir]);
 
-  const totaisTitulos = useMemo(
-    () =>
-      titulos.reduce(
-        (acc, r) => ({
-          valor: acc.valor + Number(r.valor_atual ?? 0),
-          mov: acc.mov + (r.movimentacao_id ? Number(r.mov_valor ?? 0) : 0),
-        }),
-        { valor: 0, mov: 0 },
-      ),
-    [titulos],
-  );
+  const totaisTitulos = useMemo(() => {
+    const valor = titulos.reduce((a, r) => a + Number(r.valor_atual ?? 0), 0);
+    // Movimentação: deduplicada por movimentacao_id (uma mov pode liquidar N parcelas).
+    const vistas = new Map<string, number>();
+    for (const r of titulos) {
+      if (!r.movimentacao_id || vistas.has(r.movimentacao_id)) continue;
+      vistas.set(r.movimentacao_id, Number(r.mov_valor ?? 0));
+    }
+    let mov = 0;
+    for (const v of vistas.values()) mov += v;
+    return { valor, mov };
+  }, [titulos]);
+
 
   function toggleSort(k: SortKey) {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
