@@ -639,6 +639,19 @@ function AbaB2B() {
               </div>
             </CardContent>
           </Card>
+          <Card className="border-amber-500/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-amber-700">Recebido sem prova bancária</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-amber-700">
+                {formatBRL(kpis.semProva)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.semProvaQtd} títulos · {kpis.semProvaPct.toFixed(1)}% do recebido
+              </p>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Total no período</CardTitle>
