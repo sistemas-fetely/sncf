@@ -24,6 +24,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowDownToLine,
   Inbox,
@@ -45,6 +54,23 @@ type Credito = {
   valor: number;
   conta_bancaria_id: string | null;
   conta_nome: string | null;
+  mes_caixa?: string | null;
+  referencia_pedido?: string | null;
+  contraparte_nome?: string | null;
+};
+
+type Classificado = {
+  movimentacao_id: string;
+  data_transacao: string;
+  descricao: string | null;
+  valor: number;
+  conta: string | null;
+  mes_caixa: string | null;
+  classe_nome: string | null;
+  destino: string;
+  nf_refs: string | null;
+  pedidos_refs: string | null;
+  pedido_id: string | null;
 };
 
 
@@ -67,9 +93,11 @@ function detectarMeio(descricao: string | null): Meio {
   const d = (descricao || "").toUpperCase().trim();
   if (d.startsWith("PIX")) return "pix";
   if (d.startsWith("RESUMO VENDAS CARTAO")) return "cartao";
+  if (d.startsWith("SAFRAPAY")) return "cartao";
   if (d.startsWith("CREDITO COBRANCA")) return "cobranca";
   return "outro";
 }
+
 
 const MEIO_BADGE: Record<Meio, { label: string; className: string }> = {
   pix: { label: "PIX", className: "bg-blue-100 text-blue-800 hover:bg-blue-100" },
@@ -131,31 +159,75 @@ const GRUPO_BADGE: Record<StatusGrupo, string> = {
 };
 
 const QUERY_KEY = ["recebimentos-conciliar-creditos"];
+const QUERY_KEY_CLASSIFICADOS = ["recebimentos-classificados"];
+
+const DESTINO_LABEL: Record<string, string> = {
+  terminal: "Terminal",
+  resolvida_manual: "Resolvida manual",
+  conciliada_titulo: "Conciliada a título",
+};
+
+function labelMes(mes: string | null | undefined): string {
+  if (!mes) return "—";
+  const iso = mes.length === 7 ? `${mes}-01` : mes.slice(0, 10);
+  const d = new Date(`${iso}T00:00:00`);
+  if (isNaN(d.getTime())) return mes;
+  return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(" de ", "/");
+}
+
+function chaveMes(mes: string | null | undefined): string | null {
+  if (!mes) return null;
+  return String(mes).slice(0, 7);
+}
 
 export default function RecebimentosConciliar() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [naoRecebivelCredito, setNaoRecebivelCredito] = useState<Credito | null>(null);
+  const [mesFiltro, setMesFiltro] = useState<string>("todos");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: QUERY_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes_bancarias")
-        .select("id, data_transacao, descricao, valor, conta_bancaria_id, contas_bancarias(nome_exibicao)")
-        .eq("tipo", "credito")
-        .eq("conciliado", false)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_movimentacao_destino")
+        .select(
+          "movimentacao_id, data_transacao, mes_caixa, tipo, valor, conta, conta_bancaria_id, descricao, contraparte_nome, contraparte_documento, referencia_pedido, classe, classe_nome, classe_terminal, eh_caixa_operacional, conciliado, titulos, valor_titulos, titulos_refs, nf_refs, pedidos_refs, pedido_id, mes_competencia, mes_pedido, destino"
+        )
+        .eq("destino", "fila_recebivel")
         .order("data_transacao", { ascending: false });
       if (error) throw error;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return ((data || []) as any[]).map((r) => ({
-        id: r.id,
+        id: r.movimentacao_id,
         data_transacao: r.data_transacao,
         descricao: r.descricao,
         valor: r.valor,
         conta_bancaria_id: r.conta_bancaria_id,
-        conta_nome: r.contas_bancarias?.nome_exibicao ?? null,
+        conta_nome: r.conta ?? null,
+        mes_caixa: r.mes_caixa ?? null,
+        referencia_pedido: r.referencia_pedido ?? null,
+        contraparte_nome: r.contraparte_nome ?? null,
       })) as Credito[];
+    },
+  });
+
+  const { data: classificadosRaw, isLoading: loadingClass, isError: errorClass } = useQuery({
+    queryKey: QUERY_KEY_CLASSIFICADOS,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_movimentacao_destino")
+        .select(
+          "movimentacao_id, data_transacao, mes_caixa, valor, conta, descricao, classe_nome, destino, nf_refs, pedidos_refs, pedido_id"
+        )
+        .eq("tipo", "credito")
+        .in("destino", ["terminal", "resolvida_manual", "conciliada_titulo"])
+        .order("data_transacao", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Classificado[];
     },
   });
 
@@ -173,12 +245,39 @@ export default function RecebimentosConciliar() {
     },
   });
 
+  const todosCreditos = data || [];
+  const todosClassificados = classificadosRaw || [];
 
-  const creditos = data || [];
+  const mesesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    todosCreditos.forEach((c) => {
+      const k = chaveMes(c.mes_caixa);
+      if (k) set.add(k);
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [todosCreditos]);
+
+  const creditos = useMemo(
+    () =>
+      mesFiltro === "todos"
+        ? todosCreditos
+        : todosCreditos.filter((c) => chaveMes(c.mes_caixa) === mesFiltro),
+    [todosCreditos, mesFiltro]
+  );
+
+  const classificados = useMemo(
+    () =>
+      mesFiltro === "todos"
+        ? todosClassificados
+        : todosClassificados.filter((c) => chaveMes(c.mes_caixa) === mesFiltro),
+    [todosClassificados, mesFiltro]
+  );
+
   const totalValor = creditos.reduce((s, c) => s + Number(c.valor || 0), 0);
 
   async function invalidar() {
     await qc.invalidateQueries({ queryKey: QUERY_KEY });
+    await qc.invalidateQueries({ queryKey: QUERY_KEY_CLASSIFICADOS });
     await qc.invalidateQueries({ queryKey: ["cobranca-divergencias"] });
     await qc.invalidateQueries({ queryKey: ["baixas-manuais-aguardando-batimento"] });
     await qc.invalidateQueries({ queryKey: ["pagos-manuais-para-credito"] });
@@ -187,23 +286,44 @@ export default function RecebimentosConciliar() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <ArrowDownToLine className="h-6 w-6 text-admin" />
-          Recebimentos a conciliar
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Créditos do extrato bancário ainda não vinculados a um título a receber.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <ArrowDownToLine className="h-6 w-6 text-admin" />
+            Recebimentos a conciliar
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Créditos do extrato bancário ainda não vinculados a um título a receber.
+          </p>
+        </div>
+        <div className="space-y-1">
+          <span className="text-xs text-muted-foreground">Mês do crédito</span>
+          <Select value={mesFiltro} onValueChange={setMesFiltro}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os meses</SelectItem>
+              {mesesDisponiveis.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {labelMes(m)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-normal text-muted-foreground">Créditos não conciliados</CardTitle>
+            <CardTitle className="text-sm font-normal text-muted-foreground">Créditos na fila</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{creditos.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {classificados.length} já classificados fora da fila
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -226,64 +346,155 @@ export default function RecebimentosConciliar() {
         </Card>
       </div>
 
+      <Tabs defaultValue="fila" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="fila">Fila</TabsTrigger>
+          <TabsTrigger value="classificado">Já classificado</TabsTrigger>
+        </TabsList>
 
-      <DivergenciasCobrancaSection />
+        <TabsContent value="fila" className="space-y-6">
+          <DivergenciasCobrancaSection />
 
-      <Card>
-        <CardContent className="pt-6">
-          {isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : isError ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              Não foi possível carregar os créditos. Tente novamente em instantes.
-            </div>
-          ) : creditos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-admin-muted">
-                <Inbox className="h-8 w-8 text-admin" />
-              </div>
-              <p className="text-lg font-semibold">Nenhum crédito aguardando conciliação.</p>
-            </div>
-          ) : (
-            <div className="border rounded-md overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8" />
-                    <TableHead>Data</TableHead>
-                    <TableHead>Meio</TableHead>
-                    <TableHead>Conta</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="w-64" />
-                  </TableRow>
+          <Card>
+            <CardContent className="pt-6">
+              {isLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : isError ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  Não foi possível carregar os créditos. Tente novamente em instantes.
+                </div>
+              ) : creditos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-admin-muted">
+                    <Inbox className="h-8 w-8 text-admin" />
+                  </div>
+                  <p className="text-lg font-semibold">Nenhum crédito aguardando conciliação.</p>
+                </div>
+              ) : (
+                <div className="border rounded-md overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-8" />
+                        <TableHead>Data</TableHead>
+                        <TableHead>Meio</TableHead>
+                        <TableHead>Conta</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Pista de origem</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="w-64" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {creditos.map((c) => {
+                        const open = expandedId === c.id;
+                        return (
+                          <RowCredito
+                            key={c.id}
+                            credito={c}
+                            open={open}
+                            onToggle={() => setExpandedId(open ? null : c.id)}
+                            onNaoRecebivel={() => setNaoRecebivelCredito(c)}
+                            invalidar={invalidar}
+                            onDone={() => setExpandedId(null)}
+                          />
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                </TableHeader>
-                <TableBody>
-                  {creditos.map((c) => {
-                    const open = expandedId === c.id;
-                    return (
-                      <RowCredito
-                        key={c.id}
-                        credito={c}
-                        open={open}
-                        onToggle={() => setExpandedId(open ? null : c.id)}
-                        onNaoRecebivel={() => setNaoRecebivelCredito(c)}
-                        invalidar={invalidar}
-                        onDone={() => setExpandedId(null)}
-                      />
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="classificado">
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              {loadingClass ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : errorClass ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  Não foi possível carregar os créditos já classificados.
+                </div>
+              ) : (
+                <>
+                  <div className="border rounded-md overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Classe</TableHead>
+                          <TableHead>Conta</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead>Destino</TableHead>
+                          <TableHead>NF</TableHead>
+                          <TableHead>Pedido</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {classificados.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                              Nenhum crédito classificado neste recorte.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          classificados.map((c) => (
+                            <TableRow key={c.movimentacao_id}>
+                              <TableCell className="whitespace-nowrap">{formatDateBR(c.data_transacao)}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{c.classe_nome || "—"}</Badge>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                                {c.conta || "—"}
+                              </TableCell>
+                              <TableCell className="max-w-md truncate">{c.descricao || "—"}</TableCell>
+                              <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
+                                {formatBRL(Number(c.valor || 0))}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary">{DESTINO_LABEL[c.destino] ?? c.destino}</Badge>
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">{c.nf_refs || "—"}</TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {c.pedido_id ? (
+                                  <Button
+                                    variant="link"
+                                    className="h-auto p-0 font-mono text-xs"
+                                    onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                                  >
+                                    {c.pedidos_refs || "ver pedido"}
+                                  </Button>
+                                ) : (
+                                  c.pedidos_refs || "—"
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Estes créditos já têm destino e por isso saíram da fila. Aporte de investidor, movimento interno,
+                    rendimento e transferência interna não são recebíveis: não existe título para casar.
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <NaoRecebivelDialog
         credito={naoRecebivelCredito}
@@ -296,6 +507,7 @@ export default function RecebimentosConciliar() {
     </div>
   );
 }
+
 
 function RowCredito({
   credito,
@@ -334,6 +546,22 @@ function RowCredito({
           {credito.conta_nome || "—"}
         </TableCell>
         <TableCell className="max-w-md truncate">{credito.descricao || "—"}</TableCell>
+        <TableCell className="text-xs">
+          {credito.referencia_pedido ? (
+            <Badge variant="outline" title="Identificador informado no QR/PIX — pista, não verdade">
+              {credito.referencia_pedido}
+            </Badge>
+          ) : credito.contraparte_nome ? (
+            <span className="text-muted-foreground">
+              {credito.contraparte_nome.length > 28
+                ? `${credito.contraparte_nome.slice(0, 28)}…`
+                : credito.contraparte_nome}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+
 
         <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
           {formatBRL(Number(credito.valor || 0))}
@@ -365,7 +593,7 @@ function RowCredito({
       </TableRow>
       {open && canExpand && (
         <TableRow>
-          <TableCell colSpan={7} className="bg-muted/30 p-4">
+          <TableCell colSpan={8} className="bg-muted/30 p-4">
             {meio === "cartao" ? (
               <PainelCesta credito={credito} invalidar={invalidar} onDone={onDone} />
             ) : meio === "cobranca" ? (
