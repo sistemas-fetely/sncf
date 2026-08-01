@@ -111,15 +111,7 @@ export function usePedidosFila(opts: Opts = {}) {
         });
       }
 
-      if (opts.busca) {
-        const t = opts.busca.toLowerCase();
-        result = result.filter(
-          (p) =>
-            (p.parceiro_razao || "").toLowerCase().includes(t) ||
-            (p.parceiro_cnpj || "").includes(t) ||
-            (p.id_externo || "").toLowerCase().includes(t)
-        );
-      }
+
 
       return result;
     },
