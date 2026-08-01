@@ -606,7 +606,7 @@ function AbaB2B() {
 
       {/* KPIs */}
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-green-700">Recebido</CardTitle>
