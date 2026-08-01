@@ -461,10 +461,6 @@ export function FilaPedidosPorArea({
                       }
                     />
                   </TableCell>
-
-                  <TableCell className="whitespace-nowrap">
-                    <span className="font-mono text-xs">{p.id_externo}</span>
-                  </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     {p.parceiro_id ? (
                       <button
@@ -477,7 +473,10 @@ export function FilaPedidosPorArea({
                     ) : (
                       <p className="font-medium text-sm">{p.parceiro_razao}</p>
                     )}
-                    <p className="text-[11px] text-muted-foreground font-mono">{p.parceiro_cnpj}</p>
+                    <p className="text-[11px] text-muted-foreground font-mono">
+                      {p.id_externo}
+                      {p.parceiro_cnpj ? ` · ${p.parceiro_cnpj}` : ""}
+                    </p>
                   </TableCell>
                   <TableCell>
                     <ValorComPagamento p={p} />
