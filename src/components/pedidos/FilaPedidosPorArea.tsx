@@ -548,9 +548,10 @@ export function FilaPedidosPorArea({
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     <FormatoIdade minutos={p.idade_minutos} />
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {p.proxima_acao || <span className="opacity-50">—</span>}
+                  <TableCell className="text-[11px] text-muted-foreground leading-tight">
+                    {p.proxima_acao || <span className="opacity-40">—</span>}
                   </TableCell>
+
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <AcoesLinha p={p} temMsg={pedidosComMsg.has(p.id)} />
                   </TableCell>
