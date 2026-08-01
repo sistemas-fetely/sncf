@@ -7,8 +7,10 @@ import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { GerenciarHaverDialog } from "@/components/credito/GerenciarHaverDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
+import { apelidoParceiro, parceiroCombina } from "@/lib/parceiros/nome";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
