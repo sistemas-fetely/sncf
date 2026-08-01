@@ -14,6 +14,7 @@ import { TimelineClienteVisual } from "@/components/credito/TimelineClienteVisua
 import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/ErguerBandeiraVermelhaDialog";
 import { BaixarBandeiraVermelhaDialog } from "@/components/credito/dialogs/BaixarBandeiraVermelhaDialog";
 import { GerenciarHaverDialog } from "@/components/credito/GerenciarHaverDialog";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) =>
