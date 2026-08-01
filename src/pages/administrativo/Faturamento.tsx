@@ -21,8 +21,9 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import {
-  useFaturamentoMensal, useFaturamentoNf, useFaturamentoProduto, useFaturamentoPedido,
-  type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto, type FaturamentoPedido,
+  useFaturamentoMensal, useFaturamentoNf, useFaturamentoProduto,
+  type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto,
+
 } from "@/hooks/financas/useFaturamento";
 
 
