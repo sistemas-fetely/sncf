@@ -1043,7 +1043,8 @@ function BlocoSobra({
     queryKey: ["parceiro-do-titulo", tituloId],
     enabled: !!tituloId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("titulo_a_receber")
         .select("id, conta:conta_id(parceiro_id)")
         .eq("id", tituloId as string)
