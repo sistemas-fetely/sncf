@@ -1444,39 +1444,72 @@ function AbaB2C() {
           <CardTitle className="text-base">Mês a mês (recebimento)</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mês</TableHead>
-                <TableHead className="text-right">Pedidos</TableHead>
-                <TableHead className="text-right">Bruto</TableHead>
-                <TableHead className="text-right">Líquido</TableHead>
-                <TableHead className="text-right">Taxa</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mensal.map((l) => (
-                <TableRow key={l.mes}>
-                  <TableCell className="font-medium">{rotuloMes(l.mes)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{l.pedidos}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatBRL(l.bruto)}</TableCell>
-                  <TableCell className="text-right tabular-nums text-green-700">
-                    {formatBRL(l.liquido)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatBRL(l.bruto - l.liquido)}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {mensal.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="p-6 text-center text-muted-foreground">
-                    Sem dados no período.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          {mensal.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground">Sem dados no período.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-background z-10">Métrica</TableHead>
+                    {mensalAsc.map((l) => (
+                      <TableHead key={l.mes} className="text-right">
+                        {rotuloMesCurto(l.mes)}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right font-semibold">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(
+                    [
+                      { rotulo: "Pedidos", moeda: false, cor: "" },
+                      { rotulo: "Bruto", moeda: true, cor: "" },
+                      { rotulo: "Líquido", moeda: true, cor: "text-green-700" },
+                      { rotulo: "Taxa", moeda: true, cor: "" },
+                    ] as const
+                  ).map((linha) => {
+                    const valorDe = (l: { pedidos: number; bruto: number; liquido: number }) =>
+                      linha.rotulo === "Pedidos"
+                        ? l.pedidos
+                        : linha.rotulo === "Bruto"
+                          ? l.bruto
+                          : linha.rotulo === "Líquido"
+                            ? l.liquido
+                            : l.bruto - l.liquido;
+                    return (
+                      <TableRow key={linha.rotulo}>
+                        <TableCell className="sticky left-0 bg-background z-10 font-medium">
+                          {linha.rotulo}
+                        </TableCell>
+                        {mensalAsc.map((l) => {
+                          const v = valorDe(l);
+                          return (
+                            <TableCell
+                              key={l.mes}
+                              className={`text-right tabular-nums ${
+                                v > 0 ? linha.cor : "text-muted-foreground"
+                              }`}
+                            >
+                              {linha.moeda ? (v > 0 ? formatBRL(v) : "—") : v}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-right tabular-nums font-semibold">
+                          {linha.moeda
+                            ? valorDe(totalMensalB2c) > 0
+                              ? formatBRL(valorDe(totalMensalB2c))
+                              : "—"
+                            : valorDe(totalMensalB2c)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
         </CardContent>
       </Card>
 
