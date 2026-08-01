@@ -418,14 +418,15 @@ export function FilaPedidosPorArea({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">Risco</TableHead>
-              <TableHead>ID Externo</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Valor</TableHead>
+              <TableHead className="w-[60px]">Risco</TableHead>
+              <TableHead className="w-[150px]">ID Externo</TableHead>
+              <TableHead className="w-[210px]">Cliente</TableHead>
+              <TableHead className="w-[180px]">Valor</TableHead>
               <TableHead>Estágio</TableHead>
-              <TableHead>Idade</TableHead>
-              <TableHead>Próxima ação</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="w-[76px]">Idade</TableHead>
+              <TableHead className="w-[120px] text-[11px] font-normal text-muted-foreground">Próxima ação</TableHead>
+              <TableHead className="w-[60px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
+
             </TableRow>
           </TableHeader>
           <TableBody>
