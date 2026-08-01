@@ -14,6 +14,8 @@ interface Opts {
    * inclusive entregue/cancelado/recuperacao_venda.
    */
   busca?: string;
+  /** Restringe a um cliente específico (histórico do parceiro). */
+  parceiroId?: string;
   apenasAtivos?: boolean;
   /** Quando true, cancelados/recuperação entram na consulta (só `entregue` fica de fora). */
   incluirCancelados?: boolean;
@@ -29,6 +31,8 @@ export function usePedidosFila(opts: Opts = {}) {
       let q = (supabase as any).from("v_pedidos_fila").select("*");
 
       if (opts.area && opts.area !== "todas") q = q.eq("area_atual", opts.area);
+
+      if (opts.parceiroId) q = q.eq("parceiro_id", opts.parceiroId);
 
       const termo = (opts.busca || "").trim();
       const temBusca = termo.length > 0;

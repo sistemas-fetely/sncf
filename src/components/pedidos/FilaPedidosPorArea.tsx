@@ -466,8 +466,18 @@ export function FilaPedidosPorArea({
                   <TableCell>
                     <span className="font-mono text-xs">{p.id_externo}</span>
                   </TableCell>
-                  <TableCell>
-                    <p className="font-medium text-sm">{p.parceiro_razao}</p>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {p.parceiro_id ? (
+                      <button
+                        type="button"
+                        className="font-medium text-sm text-left hover:underline"
+                        onClick={() => navigate(`/parceiros/${p.parceiro_id}`, { state: { from: "/pedidos" } })}
+                      >
+                        {p.parceiro_razao}
+                      </button>
+                    ) : (
+                      <p className="font-medium text-sm">{p.parceiro_razao}</p>
+                    )}
                     <p className="text-[11px] text-muted-foreground font-mono">{p.parceiro_cnpj}</p>
                   </TableCell>
                   <TableCell>

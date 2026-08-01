@@ -10,6 +10,7 @@ import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline"
 import { useEnriquecerParceiro } from "@/hooks/credito/useEnriquecerParceiro";
 import { validateCNPJ } from "@/lib/cnpj";
 import { descricaoNaturezaJuridica } from "@/lib/natureza-juridica";
+import { PedidosDoParceiroSection } from "@/components/parceiros/PedidosDoParceiroSection";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -189,6 +190,8 @@ export default function ParceiroDetalhe() {
           </CardContent>
         </Card>
       </div>
+
+      <PedidosDoParceiroSection parceiroId={parceiro.id} />
 
       {/* Grid 2 cards: Cadastro + Classificação */}
       <div className="grid gap-4 md:grid-cols-2">
