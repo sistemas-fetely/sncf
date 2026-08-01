@@ -87,11 +87,24 @@ export function EnviarBlingDialog({
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!enviar.isPending) setOpen(v); }}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5">
-          <Send className="h-4 w-4" />
-          Enviar pro Bling
-        </Button>
+        {variante === "discreta" ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            title="Enviar pro Bling"
+            aria-label="Enviar pro Bling"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button size="sm" className="gap-1.5">
+            <Send className="h-4 w-4" />
+            Enviar pro Bling
+          </Button>
+        )}
       </DialogTrigger>
+
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Enviar pedido pro Bling</DialogTitle>
