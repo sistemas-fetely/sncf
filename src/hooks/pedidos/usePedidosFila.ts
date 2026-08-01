@@ -8,6 +8,11 @@ interface Opts {
   estagio?: EstagioPedido | "todos";
   /** Filtro de MÚLTIPLOS estágios (tem prioridade sobre `estagio`) */
   estagios?: EstagioPedido[];
+  /**
+   * Termo de busca (razão social, CNPJ ou id externo). Aplicado no servidor.
+   * Sem recorte explícito de estágio, a busca varre todo o histórico —
+   * inclusive entregue/cancelado/recuperacao_venda.
+   */
   busca?: string;
   apenasAtivos?: boolean;
   /** Quando true, cancelados/recuperação entram na consulta (só `entregue` fica de fora). */
@@ -25,18 +30,45 @@ export function usePedidosFila(opts: Opts = {}) {
 
       if (opts.area && opts.area !== "todas") q = q.eq("area_atual", opts.area);
 
+      const termo = (opts.busca || "").trim();
+      const temBusca = termo.length > 0;
+
+      const filtroEstagioExplicito =
+        (opts.estagios && opts.estagios.length > 0) ||
+        (!!opts.estagio && opts.estagio !== "todos");
+
+      // BUSCA-ESCAPA-A-FILA: termo digitado sem recorte explícito de estágio varre
+      // todo o histórico (entregue, cancelado, recuperacao_venda). Clique num card
+      // do pipeline continua sendo recorte explícito e prevalece sobre a busca.
+      const buscaGlobal = temBusca && !filtroEstagioExplicito;
+
       if (opts.estagios && opts.estagios.length > 0) {
         q = q.in("estagio", opts.estagios);
       } else if (opts.estagio && opts.estagio !== "todos") {
         q = q.eq("estagio", opts.estagio);
       }
 
-      if (opts.apenasAtivos) {
+      if (opts.apenasAtivos && !buscaGlobal) {
         q = opts.incluirCancelados
           ? q.not("estagio", "in", "(entregue)")
           : q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
       }
 
+      if (temBusca) {
+        // Sanitiza: vírgula e parêntese quebram a sintaxe do .or() do PostgREST.
+        const t = termo.replace(/[,()%]/g, " ").trim();
+        const digitos = t.replace(/\D/g, "");
+        const clausulas = [
+          `parceiro_razao.ilike.%${t}%`,
+          `parceiro_cnpj.ilike.%${t}%`,
+          `id_externo.ilike.%${t}%`,
+        ];
+        // CNPJ é armazenado só com dígitos: quem digita com pontuação também acha.
+        if (digitos.length >= 3 && digitos !== t) {
+          clausulas.push(`parceiro_cnpj.ilike.%${digitos}%`);
+        }
+        q = q.or(clausulas.join(","));
+      }
 
       q = q.order("recebido_em", { ascending: false }).limit(500);
 
@@ -44,6 +76,7 @@ export function usePedidosFila(opts: Opts = {}) {
       if (error) throw error;
 
       let result = (data || []) as PedidoFilaItem[];
+
 
       // Merge de situação financeira (fonte única: vw_pedido_situacao_financeira,
       // derivada apenas de titulo_a_receber). Substitui a leitura de portão como
@@ -78,15 +111,7 @@ export function usePedidosFila(opts: Opts = {}) {
         });
       }
 
-      if (opts.busca) {
-        const t = opts.busca.toLowerCase();
-        result = result.filter(
-          (p) =>
-            (p.parceiro_razao || "").toLowerCase().includes(t) ||
-            (p.parceiro_cnpj || "").includes(t) ||
-            (p.id_externo || "").toLowerCase().includes(t)
-        );
-      }
+
 
       return result;
     },

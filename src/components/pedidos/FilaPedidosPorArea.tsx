@@ -80,6 +80,7 @@ export function FilaPedidosPorArea({
   somenteRiscoAlto = false,
 }: Props) {
   const [busca, setBusca] = useState("");
+  const [buscaDebounced, setBuscaDebounced] = useState("");
   const [estagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
 
   const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
@@ -109,8 +110,13 @@ export function FilaPedidosPorArea({
   }, []);
 
   useEffect(() => {
+    const t = setTimeout(() => setBuscaDebounced(busca), 300);
+    return () => clearTimeout(t);
+  }, [busca]);
+
+  useEffect(() => {
     setPagina(1);
-  }, [busca, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, ordenacao, estagios, area]);
+  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, ordenacao, estagios, area]);
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
 
@@ -127,7 +133,7 @@ export function FilaPedidosPorArea({
     area,
     estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
     estagios: usarEstagiosMultiplos ? estagios : undefined,
-    busca: busca || undefined,
+    busca: buscaDebounced || undefined,
     apenasAtivos: apenasAtivos && !estagioEspecificoSelecionado,
     incluirCancelados,
   });
@@ -167,6 +173,19 @@ export function FilaPedidosPorArea({
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
   }, [data, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
+
+  const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
+
+  const resumoBuscaGlobal = useMemo(() => {
+    if (!buscaGlobalAtiva) return null;
+    let entregues = 0, cancelados = 0, recuperacao = 0;
+    (linhas || []).forEach((p) => {
+      if (p.estagio === "entregue") entregues++;
+      else if (p.estagio === "cancelado") cancelados++;
+      else if (p.estagio === "recuperacao_venda") recuperacao++;
+    });
+    return { entregues, cancelados, recuperacao, total: linhas?.length ?? 0 };
+  }, [buscaGlobalAtiva, linhas]);
 
 
   const formasPgtoDisponiveis = useMemo(() => {
@@ -369,6 +388,24 @@ export function FilaPedidosPorArea({
           </SelectContent>
         </Select>
       </div>
+
+      {resumoBuscaGlobal && (() => {
+        const grupos: string[] = [];
+        if (resumoBuscaGlobal.entregues > 0)
+          grupos.push(`${resumoBuscaGlobal.entregues} ${resumoBuscaGlobal.entregues === 1 ? "entregue" : "entregues"}`);
+        if (resumoBuscaGlobal.cancelados > 0)
+          grupos.push(`${resumoBuscaGlobal.cancelados} ${resumoBuscaGlobal.cancelados === 1 ? "cancelado" : "cancelados"}`);
+        if (resumoBuscaGlobal.recuperacao > 0)
+          grupos.push(`${resumoBuscaGlobal.recuperacao} em recuperação`);
+        return (
+          <p className="text-xs text-foreground bg-muted/50 rounded-md px-2 py-1 inline-block">
+            Busca em todo o histórico · {resumoBuscaGlobal.total}{" "}
+            {resumoBuscaGlobal.total === 1 ? "resultado" : "resultados"}
+            {grupos.length > 0 && ` (${grupos.join(" · ")})`}
+          </p>
+        );
+      })()}
+
 
       {(ordenacao === "risco" || somenteRiscoAlto) && (
         <p className="text-xs text-muted-foreground">

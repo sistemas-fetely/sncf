@@ -221,14 +221,15 @@ export function PipelineHorizontal({
         <button
           type="button"
           onClick={() => onLimparFiltro?.()}
+          title="Pedidos em andamento. Não inclui entregues. Cancelados e recuperação de venda entram só com o toggle ao lado. Para ver histórico completo, use a busca."
           className={cn(
-            "group relative flex flex-col items-center justify-center rounded-md border py-2 px-3 transition-all duration-200 min-w-[64px]",
+            "group relative flex flex-col items-center justify-center rounded-md border py-2 px-3 transition-all duration-200 min-w-[76px]",
             "gold-border-hover focus-visible:outline-none",
             !estagioAtivo ? "gold-border bg-gold-soft shadow-sm" : "border-border bg-card"
           )}
         >
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-            Todos
+            Fila ativa
           </span>
           <span className="text-lg font-semibold tabular-nums">
             {totalQtd}
