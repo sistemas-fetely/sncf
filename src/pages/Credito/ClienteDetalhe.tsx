@@ -55,7 +55,7 @@ export default function ClienteDetalhe() {
         title={parceiro?.razao_social || "Cliente sem razão"}
         subtitle={[
           parceiro?.cnpj && `CNPJ ${parceiro.cnpj}`,
-          parceiro?.nome_fantasia,
+          apelidoParceiro(parceiro?.razao_social, parceiro?.nome_fantasia),
           parceiro?.cidade && parceiro?.uf && `${parceiro.cidade}/${parceiro.uf}`,
         ].filter(Boolean).join(" · ")}
         actions={
