@@ -174,6 +174,19 @@ export function FilaPedidosPorArea({
     });
   }, [data, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
 
+  const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
+
+  const resumoBuscaGlobal = useMemo(() => {
+    if (!buscaGlobalAtiva) return null;
+    let entregues = 0, cancelados = 0, recuperacao = 0;
+    (linhas || []).forEach((p) => {
+      if (p.estagio === "entregue") entregues++;
+      else if (p.estagio === "cancelado") cancelados++;
+      else if (p.estagio === "recuperacao_venda") recuperacao++;
+    });
+    return { entregues, cancelados, recuperacao, total: linhas?.length ?? 0 };
+  }, [buscaGlobalAtiva, linhas]);
+
 
   const formasPgtoDisponiveis = useMemo(() => {
     const set = new Set<string>();
