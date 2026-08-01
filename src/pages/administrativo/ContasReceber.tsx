@@ -1050,7 +1050,19 @@ function AbaB2B() {
                     setPage(1);
                   }}
                 >
-                  Só divergentes ({qtdDivergentes})
+                  Data divergente ({qtdDivergentes})
+                </Button>
+              )}
+              {qtdMeioDivergente > 0 && (
+                <Button
+                  size="sm"
+                  variant={soMeioDivergente ? "default" : "outline"}
+                  onClick={() => {
+                    setSoMeioDivergente((v) => !v);
+                    setPage(1);
+                  }}
+                >
+                  Meio ≠ pedido ({qtdMeioDivergente})
                 </Button>
               )}
             </div>
