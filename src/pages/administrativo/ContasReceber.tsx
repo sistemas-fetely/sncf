@@ -35,6 +35,18 @@ import * as XLSX from "xlsx";
 
 type StatusGestao = "pago" | "atrasado" | "em_aberto" | "cancelado";
 
+type EstadoGestao =
+  | "conciliado"
+  | "confirmado_banco"
+  | "baixa_manual"
+  | "vencido"
+  | "registrado"
+  | "devolvido"
+  | "cancelado";
+
+type EstadoCor = "emerald" | "sky" | "amber" | "destructive" | "outline" | "muted";
+
+
 type RecebivelB2B = {
   id: string;
   numero_titulo: string | null;
@@ -74,7 +86,16 @@ type RecebivelB2B = {
   data_pagamento_banco: string | null;
   data_divergente: boolean | null;
   mes_caixa_efetivo: string | null;
+  /* estado único de gestão (por força de prova) */
+  estado_gestao: EstadoGestao;
+  estado_rotulo: string | null;
+  estado_ordem: number | null;
+  estado_cor: EstadoCor | null;
+  estado_descricao: string | null;
+  estado_terminal: boolean | null;
+  estado_em_aberto: boolean | null;
 };
+
 
 
 type RecebivelB2C = {
@@ -99,12 +120,20 @@ const PAGE_SIZE = 25;
 type DataBase = "vencimento" | "emissao" | "liquidacao";
 type BaseMensal = "competencia" | "caixa_previsto" | "caixa_efetivo";
 
-const SITUACOES: { key: StatusGestao; label: string }[] = [
-  { key: "pago", label: "Recebido" },
-  { key: "em_aberto", label: "Em aberto" },
-  { key: "atrasado", label: "Atrasado" },
-  { key: "cancelado", label: "Cancelado" },
+const ESTADOS: { key: EstadoGestao; label: string; ordem: number }[] = [
+  { key: "conciliado", label: "Conciliado", ordem: 1 },
+  { key: "confirmado_banco", label: "Confirmado no banco", ordem: 2 },
+  { key: "baixa_manual", label: "Baixa manual", ordem: 3 },
+  { key: "vencido", label: "Vencido", ordem: 4 },
+  { key: "registrado", label: "Registrado", ordem: 5 },
+  { key: "devolvido", label: "Devolvido", ordem: 6 },
+  { key: "cancelado", label: "Cancelado", ordem: 7 },
 ];
+
+const ESTADOS_RECEBIDOS: EstadoGestao[] = ["conciliado", "confirmado_banco", "baixa_manual"];
+const ESTADOS_PROVADOS: EstadoGestao[] = ["conciliado", "confirmado_banco"];
+const ESTADOS_FORA_KPI: EstadoGestao[] = ["devolvido", "cancelado"];
+
 
 const SEM_CAIXA = ["haver", "bonificacao", "devolucao", "sem_pagamento"];
 
@@ -116,8 +145,6 @@ const capitalize = (s: string) =>
 
 const formatMeio = (m: string | null) => (m ? capitalize(m.replace(/_/g, " ")) : "—");
 
-const rotuloStatus = (s: StatusGestao) =>
-  s === "pago" ? "Recebido" : s === "atrasado" ? "Atrasado" : s === "cancelado" ? "Cancelado" : "Em aberto";
 
 const efetivoDe = (t: RecebivelB2B) => Number(t.valor_efetivo ?? t.valor ?? 0);
 
@@ -233,9 +260,16 @@ function AbaB2B() {
   const [soSemProva, setSoSemProva] = useState(false);
   const [soDivergentes, setSoDivergentes] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
-  const [situacoes, setSituacoes] = useState<Set<StatusGestao>>(
-    new Set<StatusGestao>(["pago", "em_aberto", "atrasado"])
+  const [situacoes, setSituacoes] = useState<Set<EstadoGestao>>(
+    new Set<EstadoGestao>([
+      "conciliado",
+      "confirmado_banco",
+      "baixa_manual",
+      "vencido",
+      "registrado",
+    ])
   );
+
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
     key: "data_compra",
@@ -328,8 +362,9 @@ function AbaB2B() {
   }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes]);
 
   const contagens = useMemo(() => {
-    const c: Record<StatusGestao, number> = { pago: 0, em_aberto: 0, atrasado: 0, cancelado: 0 };
-    for (const t of base) c[t.status_gestao] = (c[t.status_gestao] ?? 0) + 1;
+    const c = {} as Record<EstadoGestao, number>;
+    for (const e of ESTADOS) c[e.key] = 0;
+    for (const t of base) if (t.estado_gestao) c[t.estado_gestao] = (c[t.estado_gestao] ?? 0) + 1;
     return c;
   }, [base]);
 
@@ -342,22 +377,30 @@ function AbaB2B() {
     let vence30 = 0;
     let semProva = 0;
     let semProvaQtd = 0;
+    let provado = 0;
+    let provadoQtd = 0;
     for (const t of base) {
       const v = efetivoDe(t);
-      if (t.fonte_data_recebimento === "humano") {
+      const e = t.estado_gestao;
+      if (ESTADOS_FORA_KPI.includes(e)) continue;
+      if (ESTADOS_RECEBIDOS.includes(e)) {
+        recebido += v;
+        recebidoQtd += 1;
+      }
+      if (ESTADOS_PROVADOS.includes(e)) {
+        provado += v;
+        provadoQtd += 1;
+      }
+      if (e === "baixa_manual") {
         semProva += v;
         semProvaQtd += 1;
       }
-      if (t.status_gestao === "cancelado") continue;
-      if (t.status_gestao === "pago") {
-        recebido += v;
-        recebidoQtd += 1;
-        continue;
+      if (t.estado_em_aberto === true) {
+        aberto += v;
+        abertoQtd += 1;
       }
-      aberto += v;
-      abertoQtd += 1;
-      if (t.status_gestao === "atrasado") vencido += v;
-      if (t.status_gestao === "em_aberto") {
+      if (e === "vencido") vencido += v;
+      if (e === "registrado") {
         const ref = t.data_liquidacao ?? t.data_vencimento;
         if (ref) {
           const d = new Date(ref + "T12:00:00");
@@ -377,10 +420,14 @@ function AbaB2B() {
       semProva,
       semProvaQtd,
       semProvaPct: recebido > 0 ? (semProva / recebido) * 100 : 0,
+      provado,
+      provadoQtd,
+      provadoPct: recebido > 0 ? (provado / recebido) * 100 : 0,
       total: recebido + aberto,
       totalQtd: recebidoQtd + abertoQtd,
     };
   }, [base, hoje, em30]);
+
 
 
   /** Comparação com o mês anterior quando o período selecionado é um mês fechado. */
@@ -515,7 +562,7 @@ function AbaB2B() {
   };
 
   const filtrados = useMemo(() => {
-    let arr = base.filter((t) => situacoes.has(t.status_gestao));
+    let arr = base.filter((t) => situacoes.has(t.estado_gestao));
     if (sort) {
       arr = [...arr].sort((a, b) => {
         const va = (a as any)[sort.key] ?? "";
@@ -536,7 +583,7 @@ function AbaB2B() {
   const pageSafe = Math.min(page, totalPages);
   const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
-  const toggleSituacao = (k: StatusGestao) => {
+  const toggleSituacao = (k: EstadoGestao) => {
     setSituacoes((prev) => {
       const next = new Set(prev);
       if (next.has(k)) next.delete(k);
@@ -546,14 +593,37 @@ function AbaB2B() {
     setPage(1);
   };
 
-  const renderStatusBadge = (s: StatusGestao) => {
-    if (s === "pago")
-      return <Badge className="bg-emerald-100 text-emerald-800 border-0">Recebido</Badge>;
-    if (s === "atrasado") return <Badge variant="destructive">Atrasado</Badge>;
-    if (s === "cancelado")
-      return <Badge className="bg-muted text-muted-foreground border-0">Cancelado</Badge>;
-    return <Badge variant="outline">Em aberto</Badge>;
+  const renderEstadoBadge = (t: RecebivelB2B) => {
+    const rotulo = t.estado_rotulo ?? t.estado_gestao ?? "—";
+    const cor = t.estado_cor ?? "outline";
+    const titulo = t.estado_descricao ?? undefined;
+    if (cor === "destructive")
+      return (
+        <Badge variant="destructive" title={titulo}>
+          {rotulo}
+        </Badge>
+      );
+    if (cor === "outline")
+      return (
+        <Badge variant="outline" title={titulo}>
+          {rotulo}
+        </Badge>
+      );
+    const classe =
+      cor === "emerald"
+        ? "bg-emerald-100 text-emerald-800 border-0"
+        : cor === "sky"
+        ? "bg-sky-100 text-sky-800 border-0"
+        : cor === "amber"
+        ? "bg-amber-100 text-amber-800 border-0"
+        : "bg-muted text-muted-foreground border-0";
+    return (
+      <Badge className={classe} title={titulo}>
+        {rotulo}
+      </Badge>
+    );
   };
+
 
   const periodoLabel = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
 
@@ -587,7 +657,9 @@ function AbaB2B() {
       "Valor efetivo": efetivoDe(t),
       "Gera caixa": t.gera_caixa ? "Sim" : "Não",
       "Prova bancária": t.tem_prova_bancaria ? "Sim" : "Não",
-      Status: rotuloStatus(t.status_gestao),
+      Status: t.estado_rotulo ?? "",
+      "Estado (código)": t.estado_gestao ?? "",
+
     }));
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
@@ -611,7 +683,7 @@ function AbaB2B() {
 
       {/* KPIs */}
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-green-700">Recebido</CardTitle>
@@ -657,6 +729,17 @@ function AbaB2B() {
               </p>
             </CardContent>
           </Card>
+          <Card className="border-gold/40">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Provado no banco</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums">{formatBRL(kpis.provado)}</div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.provadoPct.toFixed(1)}% do recebido
+              </p>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Total no período</CardTitle>
@@ -664,11 +747,18 @@ function AbaB2B() {
             <CardContent>
               <div className="text-2xl font-semibold tabular-nums">{formatBRL(kpis.total)}</div>
               <p className="text-xs text-muted-foreground">
-                {kpis.totalQtd} títulos · cancelados fora
+                {kpis.totalQtd} títulos · devolvidos e cancelados fora
               </p>
             </CardContent>
           </Card>
         </div>
+
+        <p className="text-xs text-muted-foreground">
+          Estado por força de prova: conciliado tem o crédito do extrato amarrado; confirmado no
+          banco tem o retorno CNAB mas a linha do extrato não foi vinculada; baixa manual não tem
+          prova bancária nenhuma. Devolvido e cancelado ficam fora dos totais.
+        </p>
+
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Card>
@@ -905,7 +995,7 @@ function AbaB2B() {
           <div className="space-y-1">
             <Label className="text-xs">Situação</Label>
             <div className="flex flex-wrap gap-2">
-              {SITUACOES.map((s) => (
+              {ESTADOS.map((s) => (
                 <Button
                   key={s.key}
                   size="sm"
@@ -915,7 +1005,10 @@ function AbaB2B() {
                   {s.label} ({contagens[s.key] ?? 0})
                 </Button>
               ))}
+            </div>
+            <div className="flex flex-wrap gap-2 pt-1">
               <Button
+
                 size="sm"
                 variant={soRenegociados ? "default" : "outline"}
                 onClick={() => {
@@ -1079,7 +1172,7 @@ function AbaB2B() {
                   <SortTh label="Previsto" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
                   <SortTh label="Recebido em" sortKey="data_recebimento_efetiva" sort={sort} setSort={setSort} />
                   <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
-                  <SortTh label="Status" sortKey="status_gestao" sort={sort} setSort={setSort} />
+                  <SortTh label="Status" sortKey="estado_ordem" sort={sort} setSort={setSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1144,22 +1237,17 @@ function AbaB2B() {
                       </TableCell>
                       <TableCell>
                         {t.data_liquidacao ? (
-                          <span className="inline-flex items-center gap-2">
-                            {formatDateBR(t.data_liquidacao)}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">
-                                  PREVISTO
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  Previsão pela régua de recebimento. Para boleto é o próprio
-                                  vencimento.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">{formatDateBR(t.data_liquidacao)}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                Previsão pela régua de recebimento. Para boleto é o próprio
+                                vencimento.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -1167,33 +1255,7 @@ function AbaB2B() {
                       <TableCell>
                         {t.data_recebimento_efetiva ? (
                           <>
-                            <span className="inline-flex items-center gap-2">
-                              {formatDateBR(t.data_recebimento_efetiva)}
-                              {t.fonte_data_recebimento === "banco" && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge className="bg-emerald-100 text-emerald-800 border-0 cursor-help">
-                                      BANCO
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Confirmado no extrato ou no retorno CNAB.</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                              {t.fonte_data_recebimento === "humano" && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">
-                                      HUMANO
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Baixa registrada no sistema, sem confirmação bancária.</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </span>
+                            <span>{formatDateBR(t.data_recebimento_efetiva)}</span>
                             {t.data_divergente === true && (
                               <div className="text-xs text-destructive">
                                 humano {formatDateBR(t.data_pagamento)}
@@ -1204,6 +1266,7 @@ function AbaB2B() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
+
                       <TableCell className="text-right tabular-nums">
                         <div>{formatBRL(efetivoDe(t))}</div>
                         {(juros > 0 || desconto > 0) && (
@@ -1218,7 +1281,7 @@ function AbaB2B() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>{renderStatusBadge(t.status_gestao)}</TableCell>
+                      <TableCell>{renderEstadoBadge(t)}</TableCell>
                     </TableRow>
                   );
                 })}
