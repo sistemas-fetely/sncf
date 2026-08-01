@@ -133,7 +133,7 @@ export function FilaPedidosPorArea({
     area,
     estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
     estagios: usarEstagiosMultiplos ? estagios : undefined,
-    busca: busca || undefined,
+    busca: buscaDebounced || undefined,
     apenasAtivos: apenasAtivos && !estagioEspecificoSelecionado,
     incluirCancelados,
   });
