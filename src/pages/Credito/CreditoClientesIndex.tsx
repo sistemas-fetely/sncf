@@ -210,6 +210,15 @@ export default function CreditoClientesIndex() {
         </TabsList>
 
         <TabsContent value={tab}>
+          <div className="relative mb-3 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por razão social, nome fantasia ou CNPJ"
+              className="pl-9"
+            />
+          </div>
           <Card>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
