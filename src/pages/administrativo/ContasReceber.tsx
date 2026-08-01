@@ -323,7 +323,7 @@ function AbaB2B() {
       }
       return true;
     });
-  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados]);
+  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes]);
 
   const contagens = useMemo(() => {
     const c: Record<StatusGestao, number> = { pago: 0, em_aberto: 0, atrasado: 0, cancelado: 0 };
