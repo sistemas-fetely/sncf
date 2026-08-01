@@ -127,6 +127,14 @@ const rotuloMes = (key: string) => {
   return `${nomes[Number(m) - 1] ?? m}/${y}`;
 };
 
+/** Rótulo curto de mês: "jun/26". */
+const rotuloMesCurto = (key: string) => {
+  const [y, m] = key.split("-");
+  const nomes = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  return `${nomes[Number(m) - 1] ?? m}/${y.slice(2)}`;
+};
+
+
 /** Atalhos de período: retornam [de, ate] em ISO. */
 function atalhoPeriodo(tipo: "atual" | "anterior" | "tres" | "todo"): [string, string] {
   const hoje = new Date();
