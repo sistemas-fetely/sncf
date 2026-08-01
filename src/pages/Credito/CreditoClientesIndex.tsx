@@ -7,8 +7,10 @@ import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { GerenciarHaverDialog } from "@/components/credito/GerenciarHaverDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
+import { apelidoParceiro, parceiroCombina } from "@/lib/parceiros/nome";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -22,6 +24,8 @@ export default function CreditoClientesIndex() {
   const [criarHaverOpen, setCriarHaverOpen] = useState(false);
   const [tab, setTab] = useState<"todos" | "com_haver" | "com_vencidos">("todos");
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
+  const [busca, setBusca] = useState("");
+
 
   const resumosQ = useQuery({
     queryKey: ["credito-clientes-resumos"],
@@ -59,7 +63,7 @@ export default function CreditoClientesIndex() {
       if (ids.length === 0) return [];
       const { data, error } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("id, razao_social, cnpj")
+        .select("id, razao_social, nome_fantasia, cnpj")
         .in("id", ids);
       if (error) throw error;
       return (data ?? []) as any[];
@@ -70,19 +74,20 @@ export default function CreditoClientesIndex() {
     const resumos = resumosQ.data ?? [];
     const haveres = haveresQ.data ?? [];
 
-    const parceirosMap: Record<string, { razao_social: string; cnpj: string }> = {};
+    const parceirosMap: Record<string, { razao_social: string; nome_fantasia: string | null; cnpj: string }> = {};
     (parceirosAllQ.data ?? []).forEach((p: any) => {
-      parceirosMap[p.id] = { razao_social: p.razao_social, cnpj: p.cnpj };
+      parceirosMap[p.id] = { razao_social: p.razao_social, nome_fantasia: p.nome_fantasia ?? null, cnpj: p.cnpj };
     });
 
     // Agrupar haveres por parceiro com nome
-    const haverPorParceiro: Record<string, { total: number; razao_social: string | null; cnpj: string | null }> = {};
+    const haverPorParceiro: Record<string, { total: number; razao_social: string | null; nome_fantasia: string | null; cnpj: string | null }> = {};
     haveres.forEach((h: any) => {
       const pid = h.parceiro_id;
       if (!haverPorParceiro[pid]) {
         haverPorParceiro[pid] = {
           total: 0,
           razao_social: parceirosMap[pid]?.razao_social ?? null,
+          nome_fantasia: parceirosMap[pid]?.nome_fantasia ?? null,
           cnpj: parceirosMap[pid]?.cnpj ?? null,
         };
       }
@@ -94,6 +99,7 @@ export default function CreditoClientesIndex() {
     const resumosComHaver = resumos.map((r: any) => ({
       ...r,
       razao_social: parceirosMap[r.parceiro_id]?.razao_social ?? r.cliente ?? r.razao_social,
+      nome_fantasia: parceirosMap[r.parceiro_id]?.nome_fantasia ?? null,
       cnpj:         parceirosMap[r.parceiro_id]?.cnpj ?? null,
       em_aberto:    Number(r.total_a_receber ?? 0),
       vencidos:     Number(r.total_vencido   ?? 0),
@@ -107,6 +113,7 @@ export default function CreditoClientesIndex() {
       .map(([pid, info]) => ({
         parceiro_id: pid,
         razao_social: info.razao_social,
+        nome_fantasia: info.nome_fantasia,
         cnpj: info.cnpj,
         cliente: info.razao_social,
         total_a_receber: 0,
@@ -136,6 +143,11 @@ export default function CreditoClientesIndex() {
     let arr = [...clientes];
     if (tab === "com_haver") arr = arr.filter((c: any) => c.haver_disponivel > 0);
     if (tab === "com_vencidos") arr = arr.filter((c: any) => c.vencidos > 0);
+    if (busca.trim()) {
+      arr = arr.filter((c: any) =>
+        parceiroCombina(busca, c.razao_social ?? c.cliente, c.nome_fantasia, c.cnpj)
+      );
+    }
     if (sort) {
       arr.sort((a: any, b: any) => {
         const va = a[sort.key] ?? 0;
@@ -147,7 +159,7 @@ export default function CreditoClientesIndex() {
       });
     }
     return arr;
-  }, [clientes, tab, sort]);
+  }, [clientes, tab, sort, busca]);
 
   const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosAllQ.isLoading;
 
@@ -198,6 +210,15 @@ export default function CreditoClientesIndex() {
         </TabsList>
 
         <TabsContent value={tab}>
+          <div className="relative mb-3 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por razão social, nome fantasia ou CNPJ"
+              className="pl-9"
+            />
+          </div>
           <Card>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -233,7 +254,11 @@ export default function CreditoClientesIndex() {
                       >
                       <td className="px-4 py-2">
                         <p className="font-medium truncate text-sm">{c.razao_social ?? c.cliente ?? "—"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{c.cnpj ?? ""}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {[apelidoParceiro(c.razao_social, c.nome_fantasia), c.cnpj || null]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
                       </td>
                         <td className="px-4 py-2 text-right">
                           {c.haver_disponivel > 0 ? (
