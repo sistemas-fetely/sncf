@@ -1071,8 +1071,8 @@ function AbaB2B() {
                   <SortTh label="Meio" sortKey="meio_pagamento" sort={sort} setSort={setSort} />
                   <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
                   <SortTh label="Vencimento" sortKey="data_vencimento" sort={sort} setSort={setSort} />
-                  <SortTh label="Liquidação" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
-                  <SortTh label="Recebido em" sortKey="liquidacao_realizada" sort={sort} setSort={setSort} />
+                  <SortTh label="Previsto" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
+                  <SortTh label="Recebido em" sortKey="data_recebimento_efetiva" sort={sort} setSort={setSort} />
                   <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
                   <SortTh label="Status" sortKey="status_gestao" sort={sort} setSort={setSort} />
                 </TableRow>
