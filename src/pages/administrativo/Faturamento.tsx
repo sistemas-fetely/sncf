@@ -225,8 +225,8 @@ export default function Faturamento() {
     useFaturamentoNf(mesEfetivo);
   const { data: produtos = [], isLoading: loadingProd, isError: errProd, error: errorProd } =
     useFaturamentoProduto(mesEfetivo);
-  const { data: pedidos = [], isLoading: loadingPed, isError: errPed, error: errorPed } =
-    useFaturamentoPedido(mesEfetivo);
+
+
 
 
   const safra = useMemo(() => {
