@@ -60,8 +60,21 @@ export function ConfirmarPortaoPagoDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button className={triggerClassName}>{triggerLabel}</Button>
+        {variante === "discreta" ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            title={triggerLabel}
+            aria-label={triggerLabel}
+          >
+            <CheckCircle2 className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button className={triggerClassName}>{triggerLabel}</Button>
+        )}
       </DialogTrigger>
+
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Confirmar pagamento do portão</DialogTitle>
