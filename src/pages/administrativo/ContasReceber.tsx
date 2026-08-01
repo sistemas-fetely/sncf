@@ -464,7 +464,11 @@ function AbaB2B() {
       if (t.status_gestao === "cancelado") continue;
       let key: string | null = null;
       if (baseMensal === "competencia") key = mesKeyDe(t.mes_competencia ?? t.data_compra);
-      else if (t.liquidacao_realizada === true) key = mesKeyDe(t.data_liquidacao);
+      else if (baseMensal === "caixa_previsto") {
+        if (t.liquidacao_realizada === true) key = mesKeyDe(t.data_liquidacao);
+      } else if (t.data_recebimento_efetiva) {
+        key = mesKeyDe(t.mes_caixa_efetivo ?? t.data_recebimento_efetiva);
+      }
       if (!key) continue;
       const linha =
         mapa.get(key) ??
