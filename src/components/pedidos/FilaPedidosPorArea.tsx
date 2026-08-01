@@ -865,7 +865,7 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
   const [marcacaoOpen, setMarcacaoOpen] = useState(false);
 
   return (
-    <div className="flex justify-end items-center gap-1.5">
+    <div className="flex justify-end items-center gap-0.5">
       {/* Ação primária do estágio */}
       {p.estagio === "recebido" && (
         <TriarPedidoDialog
@@ -874,25 +874,27 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
           estagio_atual={p.estagio}
           forma_solicitada={p.forma_solicitada}
           triggerLabel="Triar"
-          triggerVariant="outline"
+          triggerVariant="ghost"
         />
       )}
       {p.estagio === "cobranca" && (
         <Button
-          variant="outline"
-          size="sm"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          title="Abrir cobrança"
+          aria-label="Abrir cobrança"
           onClick={() =>
             navigate(`/recebimento/cobranca/${p.id}`, {
               state: { from: "/pedidos", fromLabel: "Fila de Pedidos" },
             })
           }
         >
-          <ExternalLink className="h-3 w-3 mr-1" />
-          Cobrança
+          <ExternalLink className="h-4 w-4" />
         </Button>
       )}
       {p.estagio === "aguardando_pagamento" && (
-        <ConfirmarPortaoPagoDialog pedido_id={p.id} />
+        <ConfirmarPortaoPagoDialog pedido_id={p.id} variante="discreta" />
       )}
       {p.estagio === "pre_separacao" && !p.bling_id_destino && (
         <EnviarBlingDialog
@@ -901,8 +903,10 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
           id_externo={p.id_externo}
           valor_liquido={p.valor_liquido}
           forma_solicitada={p.forma_solicitada}
+          variante="discreta"
         />
       )}
+
 
       {/* Secundárias */}
       <DropdownMenu>
