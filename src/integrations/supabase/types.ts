@@ -28948,6 +28948,7 @@ export type Database = {
       }
       vw_dash_pedidos_concentracao: {
         Row: {
+          apelido: string | null
           cliente: string | null
           cnpj: string | null
           pedidos_ativos: number | null
@@ -29729,6 +29730,7 @@ export type Database = {
           alvo_em_dias_uteis: boolean | null
           alvo_mensuravel: boolean | null
           amostra_suficiente: boolean | null
+          apelido: string | null
           cliente: string | null
           dentro_do_alvo: boolean | null
           dias_contados: number | null
@@ -31824,14 +31826,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -31862,6 +31864,7 @@ export type Database = {
       vw_oportunidades_comercial: {
         Row: {
           alerta_operacional: string | null
+          apelido: string | null
           cliente: string | null
           cnpj: string | null
           condicao_solicitada: string | null

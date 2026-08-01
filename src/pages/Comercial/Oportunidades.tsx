@@ -45,6 +45,8 @@ interface OportunidadeRow {
   pai_id_externo: string | null;
   parceiro_id: string | null;
   cliente: string | null;
+  apelido: string | null;
+
   cnpj: string | null;
   telefone: string | null;
   email: string | null;
@@ -126,7 +128,7 @@ export default function Oportunidades() {
     let base = origem === "todas" ? data : data.filter((r) => r.origem === origem);
     if (q) {
       base = base.filter((r) =>
-        [r.id_externo, r.cliente, r.cnpj, r.vendedor]
+        [r.id_externo, r.cliente, r.apelido, r.cnpj, r.vendedor]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q)),
       );
@@ -190,7 +192,7 @@ export default function Oportunidades() {
           <div className="relative w-full md:w-96 md:ml-auto">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por pedido, cliente, CNPJ, vendedor…"
+              placeholder="Buscar por pedido, cliente, nome fantasia, CNPJ, vendedor…"
               className="pl-8 h-9"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
@@ -268,6 +270,12 @@ export default function Oportunidades() {
                         </TableCell>
                         <TableCell className="max-w-[240px]">
                           <div className="truncate font-medium">{r.cliente || "—"}</div>
+                          {r.apelido && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              {r.apelido}
+                            </div>
+                          )}
+
                           {r.cnpj && (
                             <div className="text-[11px] text-muted-foreground truncate">
                               {r.cnpj}
