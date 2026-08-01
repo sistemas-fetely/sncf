@@ -45,6 +45,23 @@ type Credito = {
   valor: number;
   conta_bancaria_id: string | null;
   conta_nome: string | null;
+  mes_caixa?: string | null;
+  referencia_pedido?: string | null;
+  contraparte_nome?: string | null;
+};
+
+type Classificado = {
+  movimentacao_id: string;
+  data_transacao: string;
+  descricao: string | null;
+  valor: number;
+  conta: string | null;
+  mes_caixa: string | null;
+  classe_nome: string | null;
+  destino: string;
+  nf_refs: string | null;
+  pedidos_refs: string | null;
+  pedido_id: string | null;
 };
 
 
@@ -67,9 +84,11 @@ function detectarMeio(descricao: string | null): Meio {
   const d = (descricao || "").toUpperCase().trim();
   if (d.startsWith("PIX")) return "pix";
   if (d.startsWith("RESUMO VENDAS CARTAO")) return "cartao";
+  if (d.startsWith("SAFRAPAY")) return "cartao";
   if (d.startsWith("CREDITO COBRANCA")) return "cobranca";
   return "outro";
 }
+
 
 const MEIO_BADGE: Record<Meio, { label: string; className: string }> = {
   pix: { label: "PIX", className: "bg-blue-100 text-blue-800 hover:bg-blue-100" },
