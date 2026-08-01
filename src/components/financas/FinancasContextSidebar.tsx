@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { FinancasSidebarItem } from "./FinancasSidebarItem";
 import { FinancasSidebarSection } from "./FinancasSidebarSection";
-import { useSidebarApp, type GrupoSidebar } from "@/hooks/useSidebarApp";
+import { useSidebarApp, type BlocoSidebar } from "@/hooks/useSidebarApp";
 import { iconeDe } from "@/lib/iconesNavegacao";
 
 /**
@@ -19,10 +19,10 @@ import { iconeDe } from "@/lib/iconesNavegacao";
  * Cache de 5 min — recarregar a página traz a mudança na hora.
  */
 export function FinancasContextSidebar() {
-  const { grupos, isLoading, isError, refetch } = useSidebarApp("financas");
+  const { blocos, isLoading, isError, refetch } = useSidebarApp("financas");
 
-  const itensDo = (g: GrupoSidebar) =>
-    g.itens.map((i) => (
+  const itensDo = (b: BlocoSidebar) =>
+    b.itens.map((i) => (
       <FinancasSidebarItem
         key={i.chave}
         to={i.rota}
