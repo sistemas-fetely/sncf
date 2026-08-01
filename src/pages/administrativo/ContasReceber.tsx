@@ -1101,10 +1101,46 @@ function AbaB2B() {
 
 /* ============================ B2C ============================ */
 
+type FatVsReceb = {
+  pedido_ref: string | null;
+  nfs: number | null;
+  nf_refs: string | null;
+  data_emissao: string | null;
+  mes_competencia: string | null;
+  cliente: string | null;
+  receita_produto: number | null;
+  receita_frete: number | null;
+  faturado: number | null;
+  data_recebimento: string | null;
+  mes_caixa: string | null;
+  bruto_shopify: number | null;
+  liquido_mp: number | null;
+  taxa_mp: number | null;
+  tipo_meio: string | null;
+  financial_status: string | null;
+  cidade: string | null;
+  uf: string | null;
+  movimentacoes: number | null;
+  tem_recebimento: boolean | null;
+  tem_nf: boolean | null;
+  situacao: string | null;
+  delta_bruto_vs_faturado: number | null;
+};
+
+function diasDesde(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const d = new Date(String(iso).slice(0, 10) + "T12:00:00");
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
 function AbaB2C() {
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [page, setPage] = useState(1);
+  const [listaFvr, setListaFvr] = useState<
+    "faturado_sem_recebimento" | "recebido_sem_nf" | "conciliado"
+  >("faturado_sem_recebimento");
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
     key: "data_transacao",
     dir: "desc",
@@ -1122,6 +1158,17 @@ function AbaB2C() {
     },
   });
 
+  const { data: fvrData } = useQuery({
+    queryKey: ["b2c-faturado-vs-recebido"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_b2c_faturado_vs_recebido")
+        .select("*");
+      if (error) throw error;
+      return (data ?? []) as FatVsReceb[];
+    },
+  });
+
   const base = useMemo(() => {
     const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
     const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
@@ -1134,6 +1181,50 @@ function AbaB2C() {
       return true;
     });
   }, [data, dataDe, dataAte]);
+
+  const fvrBase = useMemo(() => {
+    const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
+    const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
+    return (fvrData ?? []).filter((r) => {
+      if (!dDe && !dAte) return true;
+      if (!r.data_emissao) return false;
+      const d = new Date(String(r.data_emissao).slice(0, 10) + "T12:00:00");
+      if (dDe && d < dDe) return false;
+      if (dAte && d > dAte) return false;
+      return true;
+    });
+  }, [fvrData, dataDe, dataAte]);
+
+  const semRecebimento = useMemo(
+    () =>
+      fvrBase
+        .filter((r) => r.situacao === "faturado_sem_recebimento")
+        .sort((a, b) => (diasDesde(b.data_emissao) ?? 0) - (diasDesde(a.data_emissao) ?? 0)),
+    [fvrBase]
+  );
+  const recebidoSemNf = useMemo(
+    () => (fvrData ?? []).filter((r) => r.situacao === "recebido_sem_nf"),
+    [fvrData]
+  );
+  const conciliados = useMemo(
+    () =>
+      fvrBase
+        .filter((r) => r.situacao === "conciliado")
+        .sort(
+          (a, b) =>
+            Math.abs(Number(b.delta_bruto_vs_faturado ?? 0)) -
+            Math.abs(Number(a.delta_bruto_vs_faturado ?? 0))
+        ),
+    [fvrBase]
+  );
+
+  const kpiFuro = useMemo(() => {
+    const total = semRecebimento.reduce((s, r) => s + Number(r.faturado ?? 0), 0);
+    const dias = semRecebimento
+      .map((r) => diasDesde(r.data_emissao))
+      .filter((d): d is number => d !== null);
+    return { total, n: semRecebimento.length, maisAntigo: dias.length ? Math.max(...dias) : null };
+  }, [semRecebimento]);
 
   const kpis = useMemo(() => {
     let bruto = 0;
