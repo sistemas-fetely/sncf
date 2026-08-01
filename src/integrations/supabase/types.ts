@@ -32204,14 +32204,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -33485,7 +33485,10 @@ export type Database = {
           liquidacao_confirmada_banco: boolean | null
           liquidacao_realizada: boolean | null
           liquidado: boolean | null
+          meio_divergente: boolean | null
           meio_pagamento: string | null
+          meio_pedido: string | null
+          meio_pedido_nome: string | null
           mes_caixa_efetivo: string | null
           mes_competencia: string | null
           nf_id: string | null

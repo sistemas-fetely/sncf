@@ -85,6 +85,10 @@ type RecebivelB2B = {
   fonte_data_recebimento: "banco" | "humano" | "sem_recebimento" | null;
   data_pagamento_banco: string | null;
   data_divergente: boolean | null;
+  /* meio do pedido (intenção comercial) vs meio do título */
+  meio_pedido: string | null;
+  meio_pedido_nome: string | null;
+  meio_divergente: boolean | null;
   mes_caixa_efetivo: string | null;
   /* estado único de gestão (por força de prova) */
   estado_gestao: EstadoGestao;
@@ -259,6 +263,7 @@ function AbaB2B() {
   const [soRenegociados, setSoRenegociados] = useState(false);
   const [soSemProva, setSoSemProva] = useState(false);
   const [soDivergentes, setSoDivergentes] = useState(false);
+  const [soMeioDivergente, setSoMeioDivergente] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [situacoes, setSituacoes] = useState<Set<EstadoGestao>>(
     new Set<EstadoGestao>([
@@ -323,6 +328,11 @@ function AbaB2B() {
     [data]
   );
 
+  const qtdMeioDivergente = useMemo(
+    () => (data ?? []).filter((t) => t.meio_divergente === true).length,
+    [data]
+  );
+
 
   /** Conjunto filtrado por tudo EXCETO situação — base dos KPIs e das contagens. */
   const base = useMemo(() => {
@@ -337,6 +347,7 @@ function AbaB2B() {
       if (soRenegociados && t.venc_renegociado !== true) return false;
       if (soSemProva && t.fonte_data_recebimento !== "humano") return false;
       if (soDivergentes && t.data_divergente !== true) return false;
+      if (soMeioDivergente && t.meio_divergente !== true) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
@@ -359,7 +370,7 @@ function AbaB2B() {
       }
       return true;
     });
-  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes]);
+  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente]);
 
   const contagens = useMemo(() => {
     const c = {} as Record<EstadoGestao, number>;
@@ -639,6 +650,8 @@ function AbaB2B() {
           : ""),
       Banco: t.banco_nome ?? "",
       Meio: formatMeio(t.meio_pagamento),
+      "Meio (pedido)": t.meio_pedido_nome ?? "",
+      "Meio divergente": t.meio_divergente ? "Sim" : "Não",
       "Data compra": formatDateBR(t.data_compra),
       "Mês competência": mesKeyDe(t.mes_competencia) ?? "",
       Vencimento: formatDateBR(t.data_vencimento),
@@ -1037,7 +1050,19 @@ function AbaB2B() {
                     setPage(1);
                   }}
                 >
-                  Só divergentes ({qtdDivergentes})
+                  Data divergente ({qtdDivergentes})
+                </Button>
+              )}
+              {qtdMeioDivergente > 0 && (
+                <Button
+                  size="sm"
+                  variant={soMeioDivergente ? "default" : "outline"}
+                  onClick={() => {
+                    setSoMeioDivergente((v) => !v);
+                    setPage(1);
+                  }}
+                >
+                  Meio ≠ pedido ({qtdMeioDivergente})
                 </Button>
               )}
             </div>
@@ -1216,7 +1241,14 @@ function AbaB2B() {
                         )}
                       </TableCell>
                       <TableCell>{t.banco_nome ?? "—"}</TableCell>
-                      <TableCell>{formatMeio(t.meio_pagamento)}</TableCell>
+                      <TableCell>
+                        <div>{formatMeio(t.meio_pagamento)}</div>
+                        {t.meio_divergente === true && (
+                          <div className="text-xs text-muted-foreground">
+                            pedido: {formatMeio(t.meio_pedido)}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>{formatDateBR(t.data_compra)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
