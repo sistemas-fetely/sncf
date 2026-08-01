@@ -18,13 +18,18 @@ interface Props {
   id_externo: string;
   valor_liquido: number;
   forma_solicitada: string;
+  /** "padrao" = botão com rótulo (default, preserva todos os consumidores atuais).
+   *  "discreta" = ícone ghost com tooltip, para uso em linha de tabela. */
+  variante?: "padrao" | "discreta";
 }
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export function EnviarBlingDialog({
   pedido_id, parceiro_id, id_externo, valor_liquido, forma_solicitada,
+  variante = "padrao",
 }: Props) {
+
   const [open, setOpen] = useState(false);
   const enviar = useEnviarBling();
   const sync = useSyncContato();
