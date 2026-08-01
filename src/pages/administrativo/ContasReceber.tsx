@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -221,6 +222,7 @@ export default function ContasReceber() {
 /* ============================ B2B ============================ */
 
 function AbaB2B() {
+  const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [dataBase, setDataBase] = useState<DataBase>("emissao");
   const [dataDe, setDataDe] = useState("");
@@ -1069,7 +1071,7 @@ function AbaB2B() {
                 <TableRow>
                   <SortTh label="NF" sortKey="nf_numero" sort={sort} setSort={setSort} />
                   <SortTh label="Cliente" sortKey="cliente" sort={sort} setSort={setSort} />
-                  <SortTh label="Título / Parcela" sortKey="numero_titulo" sort={sort} setSort={setSort} />
+                  <SortTh label="Pedido / Título" sortKey="numero_titulo" sort={sort} setSort={setSort} />
                   <SortTh label="Banco" sortKey="banco_nome" sort={sort} setSort={setSort} />
                   <SortTh label="Meio" sortKey="meio_pagamento" sort={sort} setSort={setSort} />
                   <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
@@ -1092,6 +1094,26 @@ function AbaB2B() {
                         {t.cliente ?? "—"}
                       </TableCell>
                       <TableCell className="text-sm">
+                        {t.pedido_ref && (
+                          <div>
+                            {t.pedido_id ? (
+                              <Button
+                                variant="link"
+                                className="h-auto p-0 font-mono text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/pedidos/${t.pedido_id}`);
+                                }}
+                              >
+                                {t.pedido_ref}
+                              </Button>
+                            ) : (
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {t.pedido_ref}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <span className="font-mono">{t.numero_titulo ?? "—"}</span>
                         {t.numero_parcela != null && t.total_parcelas != null && (
                           <span className="text-muted-foreground">
