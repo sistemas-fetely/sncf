@@ -1119,33 +1119,62 @@ function AbaB2B() {
                       </TableCell>
                       <TableCell>
                         {t.data_liquidacao ? (
-                          t.liquidacao_realizada === true ? (
-                            <span className="inline-flex items-center gap-2">
-                              {formatDateBR(t.data_liquidacao)}
-                              <Badge className="bg-green-100 text-green-700 border-0">REAL</Badge>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-2">
-                              {formatDateBR(t.data_liquidacao)}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">
-                                    PREVISTO
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Previsão de liquidação pelo adquirente</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </span>
-                          )
+                          <span className="inline-flex items-center gap-2">
+                            {formatDateBR(t.data_liquidacao)}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">
+                                  PREVISTO
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  Previsão pela régua de recebimento. Para boleto é o próprio
+                                  vencimento.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {t.liquidacao_realizada === true ? (
-                          formatDateBR(t.data_liquidacao)
+                        {t.data_recebimento_efetiva ? (
+                          <>
+                            <span className="inline-flex items-center gap-2">
+                              {formatDateBR(t.data_recebimento_efetiva)}
+                              {t.fonte_data_recebimento === "banco" && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge className="bg-emerald-100 text-emerald-800 border-0 cursor-help">
+                                      BANCO
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Confirmado no extrato ou no retorno CNAB.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {t.fonte_data_recebimento === "humano" && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">
+                                      HUMANO
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Baixa registrada no sistema, sem confirmação bancária.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </span>
+                            {t.data_divergente === true && (
+                              <div className="text-xs text-destructive">
+                                humano {formatDateBR(t.data_pagamento)}
+                              </div>
+                            )}
+                          </>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
