@@ -418,28 +418,26 @@ export function FilaPedidosPorArea({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[60px]">Risco</TableHead>
-              <TableHead className="w-[185px]">ID Externo</TableHead>
-              <TableHead>Cliente</TableHead>
+              <TableHead className="w-[56px]">Risco</TableHead>
+              <TableHead>Pedido</TableHead>
               <TableHead className="w-[180px]">Valor</TableHead>
               <TableHead>Estágio</TableHead>
-              <TableHead className="w-[76px]">Idade</TableHead>
-              <TableHead className="w-[110px] text-[11px] font-normal text-muted-foreground">Próxima ação</TableHead>
-              <TableHead className="w-[60px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
+              <TableHead className="w-[70px]">Idade</TableHead>
+              <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Carregando…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && (!linhas || linhas.length === 0) && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Nenhum pedido neste filtro.
                 </TableCell>
               </TableRow>
