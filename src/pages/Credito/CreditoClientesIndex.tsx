@@ -74,19 +74,20 @@ export default function CreditoClientesIndex() {
     const resumos = resumosQ.data ?? [];
     const haveres = haveresQ.data ?? [];
 
-    const parceirosMap: Record<string, { razao_social: string; cnpj: string }> = {};
+    const parceirosMap: Record<string, { razao_social: string; nome_fantasia: string | null; cnpj: string }> = {};
     (parceirosAllQ.data ?? []).forEach((p: any) => {
-      parceirosMap[p.id] = { razao_social: p.razao_social, cnpj: p.cnpj };
+      parceirosMap[p.id] = { razao_social: p.razao_social, nome_fantasia: p.nome_fantasia ?? null, cnpj: p.cnpj };
     });
 
     // Agrupar haveres por parceiro com nome
-    const haverPorParceiro: Record<string, { total: number; razao_social: string | null; cnpj: string | null }> = {};
+    const haverPorParceiro: Record<string, { total: number; razao_social: string | null; nome_fantasia: string | null; cnpj: string | null }> = {};
     haveres.forEach((h: any) => {
       const pid = h.parceiro_id;
       if (!haverPorParceiro[pid]) {
         haverPorParceiro[pid] = {
           total: 0,
           razao_social: parceirosMap[pid]?.razao_social ?? null,
+          nome_fantasia: parceirosMap[pid]?.nome_fantasia ?? null,
           cnpj: parceirosMap[pid]?.cnpj ?? null,
         };
       }
@@ -98,6 +99,7 @@ export default function CreditoClientesIndex() {
     const resumosComHaver = resumos.map((r: any) => ({
       ...r,
       razao_social: parceirosMap[r.parceiro_id]?.razao_social ?? r.cliente ?? r.razao_social,
+      nome_fantasia: parceirosMap[r.parceiro_id]?.nome_fantasia ?? null,
       cnpj:         parceirosMap[r.parceiro_id]?.cnpj ?? null,
       em_aberto:    Number(r.total_a_receber ?? 0),
       vencidos:     Number(r.total_vencido   ?? 0),
@@ -111,6 +113,7 @@ export default function CreditoClientesIndex() {
       .map(([pid, info]) => ({
         parceiro_id: pid,
         razao_social: info.razao_social,
+        nome_fantasia: info.nome_fantasia,
         cnpj: info.cnpj,
         cliente: info.razao_social,
         total_a_receber: 0,
