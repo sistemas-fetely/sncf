@@ -8,6 +8,11 @@ interface Opts {
   estagio?: EstagioPedido | "todos";
   /** Filtro de MÚLTIPLOS estágios (tem prioridade sobre `estagio`) */
   estagios?: EstagioPedido[];
+  /**
+   * Termo de busca (razão social, CNPJ ou id externo). Aplicado no servidor.
+   * Sem recorte explícito de estágio, a busca varre todo o histórico —
+   * inclusive entregue/cancelado/recuperacao_venda.
+   */
   busca?: string;
   apenasAtivos?: boolean;
   /** Quando true, cancelados/recuperação entram na consulta (só `entregue` fica de fora). */
