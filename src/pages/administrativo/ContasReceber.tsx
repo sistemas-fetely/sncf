@@ -650,6 +650,8 @@ function AbaB2B() {
           : ""),
       Banco: t.banco_nome ?? "",
       Meio: formatMeio(t.meio_pagamento),
+      "Meio (pedido)": t.meio_pedido_nome ?? "",
+      "Meio divergente": t.meio_divergente ? "Sim" : "Não",
       "Data compra": formatDateBR(t.data_compra),
       "Mês competência": mesKeyDe(t.mes_competencia) ?? "",
       Vencimento: formatDateBR(t.data_vencimento),
