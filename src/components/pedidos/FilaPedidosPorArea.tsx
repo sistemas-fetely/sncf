@@ -40,7 +40,7 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
-const ROW_HEIGHT = 80; // px aprox (linhas com 2 linhas de texto)
+const ROW_HEIGHT = 64; // px aprox (linha de 2 alturas de texto após a fusão de colunas)
 const FOOTER_RESERVE = 80;
 
 
