@@ -391,6 +391,8 @@ type ProblemaRow = {
   pedido_id: string;
   id_externo: string | null;
   cliente: string | null;
+  apelido: string | null;
+
   estagio: string | null;
   valor_liquido: number | null;
   dias_na_fase: number | null;
@@ -488,7 +490,15 @@ function LinhaProblemas() {
                           <TableCell className="font-mono text-xs">
                             {r.id_externo ?? r.pedido_id.slice(0, 8)}
                           </TableCell>
-                          <TableCell>{r.cliente ?? "—"}</TableCell>
+                          <TableCell>
+                            <div>{r.cliente ?? "—"}</div>
+                            {r.apelido && (
+                              <div className="text-xs text-muted-foreground truncate">
+                                {r.apelido}
+                              </div>
+                            )}
+                          </TableCell>
+
                           <TableCell>{r.estagio ?? "—"}</TableCell>
                           <TableCell>{BRL.format(Number(r.valor_liquido ?? 0))}</TableCell>
                           <TableCell>{r.dias_na_fase ?? "—"}</TableCell>
@@ -526,6 +536,8 @@ type CondicaoRow = {
 };
 type ConcentracaoRow = {
   cliente: string | null;
+  apelido: string | null;
+
   pedidos_ativos: number | null;
   valor_em_aberto: number | null;
 };
@@ -722,7 +734,13 @@ function BlocoConcentracao() {
             <TableBody>
               {top10.map((r, i) => (
                 <TableRow key={(r.cliente ?? "") + i}>
-                  <TableCell className="truncate max-w-[200px]">{r.cliente ?? "—"}</TableCell>
+                  <TableCell className="truncate max-w-[200px]">
+                    <div className="truncate">{r.cliente ?? "—"}</div>
+                    {r.apelido && (
+                      <div className="text-xs text-muted-foreground truncate">{r.apelido}</div>
+                    )}
+                  </TableCell>
+
                   <TableCell className="text-right">{r.pedidos_ativos ?? 0}</TableCell>
                   <TableCell className="text-right">
                     {BRL.format(Number(r.valor_em_aberto ?? 0))}
