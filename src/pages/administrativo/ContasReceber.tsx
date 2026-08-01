@@ -745,10 +745,17 @@ function AbaB2B() {
                 </Button>
                 <Button
                   size="sm"
-                  variant={baseMensal === "caixa" ? "default" : "outline"}
-                  onClick={() => setBaseMensal("caixa")}
+                  variant={baseMensal === "caixa_previsto" ? "default" : "outline"}
+                  onClick={() => setBaseMensal("caixa_previsto")}
                 >
-                  Caixa (liquidação)
+                  Caixa previsto
+                </Button>
+                <Button
+                  size="sm"
+                  variant={baseMensal === "caixa_efetivo" ? "default" : "outline"}
+                  onClick={() => setBaseMensal("caixa_efetivo")}
+                >
+                  Caixa efetivo
                 </Button>
               </div>
             </div>
