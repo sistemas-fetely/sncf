@@ -96,7 +96,7 @@ type RecebivelB2C = {
 const PAGE_SIZE = 25;
 
 type DataBase = "vencimento" | "emissao" | "liquidacao";
-type BaseMensal = "competencia" | "caixa";
+type BaseMensal = "competencia" | "caixa_previsto" | "caixa_efetivo";
 
 const SITUACOES: { key: StatusGestao; label: string }[] = [
   { key: "pago", label: "Recebido" },
