@@ -920,6 +920,28 @@ function AbaB2B() {
               >
                 Só renegociados ({qtdRenegociados})
               </Button>
+              <Button
+                size="sm"
+                variant={soSemProva ? "default" : "outline"}
+                onClick={() => {
+                  setSoSemProva((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só sem prova bancária ({qtdSemProva})
+              </Button>
+              {qtdDivergentes > 0 && (
+                <Button
+                  size="sm"
+                  variant={soDivergentes ? "default" : "outline"}
+                  onClick={() => {
+                    setSoDivergentes((v) => !v);
+                    setPage(1);
+                  }}
+                >
+                  Só divergentes ({qtdDivergentes})
+                </Button>
+              )}
             </div>
           </div>
 
