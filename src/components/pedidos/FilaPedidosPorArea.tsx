@@ -684,24 +684,26 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   if (situacao === "vencido") {
     return (
       <>
-        {valorLine}
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          {valorLine}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
+                    {rotulo || `Vencido ${diasAtraso}d`}
+                  </Badge>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">
+                  {fmtBRL.format(valorVencido)} vencido{refNota}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         {condLine}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-block mt-1">
-                <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
-                  {rotulo || `Vencido ${diasAtraso}d`}
-                </Badge>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">
-                {fmtBRL.format(valorVencido)} vencido{refNota}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </>
     );
   }
@@ -709,22 +711,25 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   if (situacao === "quitado") {
     return (
       <>
-        {valorLine}
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          {valorLine}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  {/* Rótulo do banco ignorado de propósito: ele repete o valor exibido ao lado. */}
+                  <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-0 text-[10px] py-0 px-1.5">
+                    Quitado
+                  </Badge>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Pagamento quitado{refNota}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         {condLine}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-block mt-1">
-                <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-0 text-[10px] py-0 px-1.5">
-                  {rotulo || "Quitado"}
-                </Badge>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Pagamento quitado{refNota}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </>
     );
   }
@@ -735,13 +740,15 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
         <Tooltip>
           <TooltipTrigger asChild>
             <div>
-              {valorLine}
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                {valorLine}
+                <span className="inline-block">
+                  <Badge className="bg-sky-100 text-sky-900 hover:bg-sky-100 border-0 text-[10px] py-0 px-1.5">
+                    {rotulo || "Parcial pago"}
+                  </Badge>
+                </span>
+              </div>
               {condLine}
-              <span className="inline-block mt-1">
-                <Badge className="bg-sky-100 text-sky-900 hover:bg-sky-100 border-0 text-[10px] py-0 px-1.5">
-                  {rotulo || "Parcial pago"}
-                </Badge>
-              </span>
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -757,24 +764,27 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   if (situacao === "sem_recebivel") {
     return (
       <>
-        {valorLine}
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          {valorLine}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  {/* Rótulo do banco ignorado de propósito: ele repete o valor exibido ao lado. */}
+                  <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 border-0 text-[10px] py-0 px-1.5">
+                    a faturar
+                  </Badge>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">
+                  Pedido sem título a receber próprio · falta faturar: {fmtBRL.format(p.valor_liquido)}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         {condLine}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-block mt-1">
-                <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 border-0 text-[10px] py-0 px-1.5">
-                  {rotulo || "Sem recebível"}
-                </Badge>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">
-                Pedido sem título a receber próprio · falta faturar: {fmtBRL.format(p.valor_liquido)}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </>
     );
   }
@@ -782,13 +792,15 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   if (situacao === "anulado") {
     return (
       <>
-        {valorLine}
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          {valorLine}
+          <span className="inline-block">
+            <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+              {rotulo || "Anulado"}
+            </Badge>
+          </span>
+        </div>
         {condLine}
-        <span className="inline-block mt-1">
-          <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-            {rotulo || "Anulado"}
-          </Badge>
-        </span>
       </>
     );
   }
@@ -801,6 +813,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     </>
   );
 }
+
 
 /** Farol de risco — bolinha colorida + tooltip com faixa, score e motivos. */
 function FarolRisco({
