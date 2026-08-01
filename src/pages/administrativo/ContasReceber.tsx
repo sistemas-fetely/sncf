@@ -299,6 +299,8 @@ function AbaB2B() {
       if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) return false;
       if (filtroMeio !== "todos" && t.meio_pagamento !== filtroMeio) return false;
       if (soRenegociados && t.venc_renegociado !== true) return false;
+      if (soSemProva && t.fonte_data_recebimento !== "humano") return false;
+      if (soDivergentes && t.data_divergente !== true) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
