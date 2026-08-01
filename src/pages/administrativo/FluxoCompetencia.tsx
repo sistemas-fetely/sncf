@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import {
@@ -425,8 +425,10 @@ export default function FluxoCompetencia() {
     const lista = Array.from(map.values());
     const mult = sortPedidoDir === "asc" ? 1 : -1;
     return lista.sort((a, b) => {
-      const va = sortPedido === "titulos" ? a.titulos.length : a[sortPedido];
-      const vb = sortPedido === "titulos" ? b.titulos.length : b[sortPedido];
+      const num = (x: PedidoAgregado) =>
+        sortPedido === "titulos" ? x.titulos.length : Number(x[sortPedido]);
+      const va = num(a);
+      const vb = num(b);
       return (va - vb) * mult;
     });
   }, [filtrados, hoje, sortPedido, sortPedidoDir]);
@@ -876,9 +878,8 @@ export default function FluxoCompetencia() {
                     const chave = p.pedido_id ?? p.pedido_ref ?? "sem-pedido";
                     const aberto = expandido === chave;
                     return (
-                      <>
+                      <Fragment key={chave}>
                         <TableRow
-                          key={chave}
                           className="cursor-pointer"
                           onClick={() => setExpandido(aberto ? null : chave)}
                         >
@@ -918,7 +919,7 @@ export default function FluxoCompetencia() {
                           <TableCell className="text-right font-semibold tabular-nums">{fmtBRL(p.total)}</TableCell>
                         </TableRow>
                         {aberto && (
-                          <TableRow key={`${chave}-exp`}>
+                          <TableRow>
                             <TableCell colSpan={10} className="bg-muted/30 p-3">
                               <Table>
                                 <TableHeader>
@@ -992,7 +993,7 @@ export default function FluxoCompetencia() {
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </TableBody>
