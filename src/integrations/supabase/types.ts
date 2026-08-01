@@ -34951,6 +34951,21 @@ export type Database = {
           tela_slug: string
         }[]
       }
+      listar_sidebar_app: {
+        Args: { p_app: string }
+        Returns: {
+          apenas_super_admin: boolean
+          chave: string
+          icone: string
+          label: string
+          nivel: string
+          ordem: number
+          pai_chave: string
+          rota: string
+          status: string
+          tela_slug: string
+        }[]
+      }
       marcar_atencao_pedido: {
         Args: { p_motivo: string; p_nivel: string; p_pedido_id: string }
         Returns: Json
