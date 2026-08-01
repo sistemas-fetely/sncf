@@ -85,40 +85,6 @@ export interface FaturamentoProduto {
   clientes: number | null;
 }
 
-export interface FaturamentoPedido {
-  chave: string;
-  pedido_ref: string | null;
-  mes: string;
-  sem_pedido: boolean | null;
-  pedido_venda_id: string | null;
-  nfs: number | null;
-  nfs_lista: string | null;
-  primeira_nf: string | null;
-  ultima_nf: string | null;
-  canal: string | null;
-  cfops: string | null;
-  divergencia_canal: boolean | null;
-  sem_canal: boolean | null;
-  cliente: string | null;
-  cliente_cnpj: string | null;
-  uf: string | null;
-  cidade: string | null;
-  unidades: number | null;
-  receita_produto: number | null;
-  receita_frete: number | null;
-  receita_total: number | null;
-  cmv: number | null;
-  icms: number | null;
-  margem: number | null;
-  margem_pct: number | null;
-  preco_medio_un: number | null;
-  itens_sem_custo: number | null;
-  valor_nao_receita: number | null;
-  valor_nota: number | null;
-  custo_safra: string | null;
-  multi_nf: boolean | null;
-}
-
 const COLS_MENSAL =
   "mes, canal, nfs, itens, unidades, receita_produto, receita_frete, receita_total, cmv, icms, margem_produto, custo_frete_pago, resultado_frete, margem_sem_frete_pago, margem_com_frete_pago, ticket_medio, valor_nao_receita, nfs_divergencia_canal, nfs_sem_pedido, itens_sem_custo, itens_cfop_orfao, lancamentos_frete, somente_frete";
 
@@ -169,24 +135,6 @@ export function useFaturamentoProduto(mes: string) {
         .eq("mes", mes);
       if (error) throw error;
       return (data ?? []) as FaturamentoProduto[];
-    },
-  });
-}
-
-const COLS_PEDIDO =
-  "chave, pedido_ref, mes, sem_pedido, pedido_venda_id, nfs, nfs_lista, primeira_nf, ultima_nf, canal, cfops, divergencia_canal, sem_canal, cliente, cliente_cnpj, uf, cidade, unidades, receita_produto, receita_frete, receita_total, cmv, icms, margem, margem_pct, preco_medio_un, itens_sem_custo, valor_nao_receita, valor_nota, custo_safra, multi_nf";
-
-export function useFaturamentoPedido(mes: string) {
-  return useQuery({
-    queryKey: ["faturamento-pedido", mes],
-    enabled: !!mes,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_faturamento_pedido")
-        .select(COLS_PEDIDO)
-        .eq("mes", mes);
-      if (error) throw error;
-      return (data ?? []) as FaturamentoPedido[];
     },
   });
 }

@@ -21,8 +21,9 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import {
-  useFaturamentoMensal, useFaturamentoNf, useFaturamentoProduto, useFaturamentoPedido,
-  type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto, type FaturamentoPedido,
+  useFaturamentoMensal, useFaturamentoNf, useFaturamentoProduto,
+  type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto,
+
 } from "@/hooks/financas/useFaturamento";
 
 
@@ -87,9 +88,11 @@ function sortNums<T>(list: T[], get: (r: T) => number | string | null, dir: Sort
   });
 }
 
-function KpiCard({ label, value, sub, alerta }: { label: string; value: string; sub?: string; alerta?: boolean }) {
+function KpiCard({ label, value, sub, alerta, className }: {
+  label: string; value: string; sub?: string; alerta?: boolean; className?: string;
+}) {
   return (
-    <Card className={cn(alerta && "border-destructive/40")}>
+    <Card className={cn(alerta && "border-destructive/40", className)}>
       <CardHeader className="pb-2">
         <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
@@ -100,6 +103,105 @@ function KpiCard({ label, value, sub, alerta }: { label: string; value: string; 
     </Card>
   );
 }
+
+// ════════════════════════════════════════════════
+// Cascata da margem
+// ════════════════════════════════════════════════
+interface CascataAgg {
+  receita_produto: number;
+  receita_frete: number;
+  receita_total: number;
+  cmv: number;
+  icms: number;
+  custo_frete_pago: number;
+  faturamento: number;
+  margemBruta: number;
+  resultado: number;
+}
+
+type CascataLinha = {
+  label: string;
+  valor: number;
+  tipo: "linha" | "deducao" | "subtotal" | "resultado";
+};
+
+function CascataCard({ agg, componente }: { agg: CascataAgg; componente: Componente }) {
+  const base = agg.faturamento;
+  const linhas: CascataLinha[] =
+    componente === "tudo"
+      ? [
+        { label: "Receita de produto", valor: agg.receita_produto, tipo: "linha" },
+        { label: "Receita de frete", valor: agg.receita_frete, tipo: "linha" },
+        { label: "= Receita total", valor: agg.receita_total, tipo: "subtotal" },
+        { label: "(−) CMV", valor: agg.cmv, tipo: "deducao" },
+        { label: "= Margem bruta", valor: agg.margemBruta, tipo: "subtotal" },
+        { label: "(−) ICMS", valor: agg.icms, tipo: "deducao" },
+        { label: "(−) Frete pago", valor: agg.custo_frete_pago, tipo: "deducao" },
+        { label: "= Resultado", valor: agg.resultado, tipo: "resultado" },
+      ]
+      : componente === "produto"
+        ? [
+          { label: "= Receita de produto", valor: agg.receita_produto, tipo: "subtotal" },
+          { label: "(−) CMV", valor: agg.cmv, tipo: "deducao" },
+          { label: "= Margem bruta", valor: agg.margemBruta, tipo: "subtotal" },
+          { label: "(−) ICMS", valor: agg.icms, tipo: "deducao" },
+          { label: "= Resultado", valor: agg.resultado, tipo: "resultado" },
+        ]
+        : [
+          { label: "= Receita de frete", valor: agg.receita_frete, tipo: "subtotal" },
+          { label: "(−) Frete pago", valor: agg.custo_frete_pago, tipo: "deducao" },
+          { label: "= Resultado", valor: agg.resultado, tipo: "resultado" },
+        ];
+
+  const pct = (v: number) => (base > 0 ? fmtPct(v / base) : "—");
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Cascata da margem</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Descrição</TableHead>
+              <TableHead className="text-right">R$</TableHead>
+              <TableHead className="text-right">% da receita</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {linhas.map((l) => {
+              const negativo = l.tipo === "resultado" && l.valor < 0;
+              return (
+                <TableRow
+                  key={l.label}
+                  className={cn(
+                    (l.tipo === "subtotal" || l.tipo === "resultado") && "bg-muted/40 font-semibold",
+                    l.tipo === "resultado" && "font-bold text-base",
+                    negativo && "text-destructive",
+                  )}
+                >
+                  <TableCell className={cn(l.tipo === "deducao" && "text-muted-foreground")}>{l.label}</TableCell>
+                  <TableCell
+                    className={cn("text-right tabular-nums", l.tipo === "deducao" && "text-muted-foreground")}
+                  >
+                    {l.tipo === "deducao" ? `(${fmtBRL(l.valor)})` : fmtBRL(l.valor)}
+                  </TableCell>
+                  <TableCell
+                    className={cn("text-right tabular-nums", l.tipo === "deducao" && "text-muted-foreground")}
+                  >
+                    {l.tipo === "deducao" ? `(${pct(l.valor)})` : pct(l.valor)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 export default function Faturamento() {
   const navigate = useNavigate();
@@ -124,8 +226,8 @@ export default function Faturamento() {
     useFaturamentoNf(mesEfetivo);
   const { data: produtos = [], isLoading: loadingProd, isError: errProd, error: errorProd } =
     useFaturamentoProduto(mesEfetivo);
-  const { data: pedidos = [], isLoading: loadingPed, isError: errPed, error: errorPed } =
-    useFaturamentoPedido(mesEfetivo);
+
+
 
 
   const safra = useMemo(() => {
@@ -159,14 +261,21 @@ export default function Faturamento() {
     const faturamento =
       componente === "produto" ? receita_produto : componente === "frete" ? receita_frete : receita_total;
     const margem = componente === "produto" ? margem_produto : margem_com_frete;
+    const margemBruta = componente === "produto" ? receita_produto - cmv : receita_total - cmv;
+    const resultado =
+      componente === "produto" ? margem_produto
+        : componente === "frete" ? resultado_frete
+          : margem_com_frete;
+    const pct = (v: number) => (faturamento > 0 ? v / faturamento : null);
 
     return {
       receita_produto, receita_frete, receita_total, cmv, icms, margem_produto,
       margem_com_frete, custo_frete_pago, resultado_frete, nfsQtd, unidades,
-      lancamentos_frete, faturamento, margem,
+      lancamentos_frete, faturamento, margem, margemBruta, resultado, pct,
       ticket: nfsQtd > 0 ? faturamento / nfsQtd : null,
       margem_pct: faturamento > 0 ? margem / faturamento : null,
     };
+
   }, [mesRows, componente]);
 
   const resolver = useMemo(() => {
@@ -310,22 +419,34 @@ export default function Faturamento() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-4">
-          <KpiCard label="Faturamento" value={fmtBRL(agg.faturamento)} sub={`${fmtInt(agg.unidades)} unidades`} />
-          <KpiCard label="Nº de NFs" value={fmtInt(agg.nfsQtd)} />
-          <KpiCard label="Ticket médio" value={fmtBRL(agg.ticket)} />
-          <KpiCard label="CMV" value={fmtBRL(agg.cmv)} sub={`ICMS ${fmtBRL(agg.icms)}`} />
           <KpiCard
-            label={componente === "produto" ? "Margem do produto" : "Margem com frete pago"}
-            value={`${fmtBRL(agg.margem)} · ${fmtPct(agg.margem_pct)}`}
-            alerta={agg.margem < 0}
+            label="Receita total"
+            value={fmtBRL(agg.faturamento)}
+            sub={`${fmtInt(agg.nfsQtd)} NFs · ticket ${fmtBRL(agg.ticket)}`}
+          />
+          <KpiCard
+            label="Margem bruta"
+            value={fmtBRL(agg.margemBruta)}
+            sub={`${fmtPct(agg.pct(agg.margemBruta))} da receita`}
+          />
+          <KpiCard
+            label="Resultado"
+            value={fmtBRL(agg.resultado)}
+            sub={`${fmtPct(agg.pct(agg.resultado))} da receita`}
+            className={agg.resultado < 0 ? "border-destructive/40" : "border-gold/40"}
+            alerta={agg.resultado < 0}
           />
           <KpiCard
             label="Resultado do frete"
             value={fmtBRL(agg.resultado_frete)}
+            sub={`${fmtPct(agg.pct(agg.resultado_frete))} da receita`}
             alerta={agg.resultado_frete < 0}
           />
         </div>
       )}
+
+      {!loadingMensal && <CascataCard agg={agg} componente={componente} />}
+
 
       {/* Gráfico */}
       <Card>
@@ -412,9 +533,7 @@ export default function Faturamento() {
       <Tabs defaultValue="nfs">
         <TabsList>
           <TabsTrigger value="nfs">NFs consideradas</TabsTrigger>
-          {componente !== "frete" && <TabsTrigger value="pedido">Por pedido</TabsTrigger>}
           {componente !== "frete" && <TabsTrigger value="produto">Rentabilidade por produto</TabsTrigger>}
-
         </TabsList>
 
         <TabsContent value="nfs" className="mt-4">
@@ -431,22 +550,6 @@ export default function Faturamento() {
         </TabsContent>
 
         {componente !== "frete" && (
-          <TabsContent value="pedido" className="mt-4">
-            <AbaPedido
-              rows={pedidos}
-              isLoading={loadingPed}
-              isError={errPed}
-              error={errorPed}
-              canalOk={canalOk}
-              componente={componente}
-              mes={mesEfetivo}
-              onPedido={(id) => navigate(`/pedidos/${id}`)}
-            />
-          </TabsContent>
-        )}
-
-        {componente !== "frete" && (
-
           <TabsContent value="produto" className="mt-4">
             <AbaProduto
               rows={produtos}
@@ -454,21 +557,80 @@ export default function Faturamento() {
               isError={errProd}
               error={errorProd}
               canalOk={canalOk}
+              componente={componente}
               mes={mesEfetivo}
             />
           </TabsContent>
         )}
       </Tabs>
+
     </div>
   );
+}
+
+// ════════════════════════════════════════════════
+// Derivação por linha (NF ou SKU)
+// ════════════════════════════════════════════════
+const NOTA_HONESTIDADE =
+  "Resultado por linha é antes do custo de frete pago — ele não resolve por NF. O número com frete está na cascata.";
+
+interface LinhaBase {
+  unidades: number | null;
+  receita_produto: number | null;
+  receita_frete: number | null;
+  cmv: number | null;
+  icms: number | null;
+  margem: number | null;
+}
+
+interface LinhaDerivada {
+  receita: number;
+  margem_bruta: number;
+  resultado: number;
+  cmv_pct: number | null;
+  icms_pct: number | null;
+  margem_bruta_pct: number | null;
+  resultado_pct: number | null;
+}
+
+function derivarLinha(r: LinhaBase, componente: Componente): LinhaDerivada {
+  const receita = componente === "produto"
+    ? n(r.receita_produto)
+    : n(r.receita_produto) + n(r.receita_frete);
+  const cmv = n(r.cmv);
+  const icms = n(r.icms);
+  const margem_bruta = receita - cmv;
+  const resultado = n(r.margem);
+  const pct = (v: number) => (receita > 0 ? v / receita : null);
+  return {
+    receita, margem_bruta, resultado,
+    cmv_pct: pct(cmv),
+    icms_pct: pct(icms),
+    margem_bruta_pct: pct(margem_bruta),
+    resultado_pct: pct(resultado),
+  };
+}
+
+function somarLinhas(rows: LinhaBase[], componente: Componente) {
+  const unidades = rows.reduce((s, r) => s + n(r.unidades), 0);
+  const receita_produto = rows.reduce((s, r) => s + n(r.receita_produto), 0);
+  const receita_frete = rows.reduce((s, r) => s + n(r.receita_frete), 0);
+  const cmv = rows.reduce((s, r) => s + n(r.cmv), 0);
+  const icms = rows.reduce((s, r) => s + n(r.icms), 0);
+  const margem = rows.reduce((s, r) => s + n(r.margem), 0);
+  const d = derivarLinha(
+    { unidades, receita_produto, receita_frete, cmv, icms, margem },
+    componente,
+  );
+  return { unidades, receita_produto, receita_frete, cmv, icms, ...d };
 }
 
 // ════════════════════════════════════════════════
 // Aba NFs consideradas
 // ════════════════════════════════════════════════
 type NfCol =
-  | "nf_ref" | "data_emissao" | "cliente" | "unidades" | "receita_produto" | "receita_frete"
-  | "cmv" | "icms" | "margem" | "margem_pct";
+  | "nf_ref" | "data_emissao" | "cliente" | "unidades" | "receita"
+  | "cmv_pct" | "icms_pct" | "margem_bruta_pct" | "resultado" | "resultado_pct";
 
 function AbaNfs({
   rows, isLoading, isError, error, canalOk, componente, mes, onPedido,
@@ -482,32 +644,38 @@ function AbaNfs({
   mes: string;
   onPedido: (id: string) => void;
 }) {
-  const [sortCol, setSortCol] = useState<NfCol | null>(null);
+  const [sortCol, setSortCol] = useState<NfCol>("resultado");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   function toggle(c: NfCol) {
     if (sortCol !== c) { setSortCol(c); setSortDir("desc"); }
-    else if (sortDir === "desc") setSortDir("asc");
-    else setSortCol(null);
+    else setSortDir(sortDir === "desc" ? "asc" : "desc");
   }
 
   const lista = useMemo(() => {
     const base = rows.filter((r) => canalOk(r.canal));
-    if (!sortCol) return base;
-    return sortNums(base, (r) => r[sortCol] as number | string | null, sortDir);
-  }, [rows, canalOk, sortCol, sortDir]);
+    const derivadas = base.map((r) => ({ r, d: derivarLinha(r, componente) }));
+    const get = (x: { r: FaturamentoNf; d: LinhaDerivada }): number | string | null => {
+      switch (sortCol) {
+        case "nf_ref": return x.r.nf_ref;
+        case "data_emissao": return x.r.data_emissao;
+        case "cliente": return x.r.cliente;
+        case "unidades": return n(x.r.unidades);
+        case "receita": return x.d.receita;
+        case "cmv_pct": return x.d.cmv_pct;
+        case "icms_pct": return x.d.icms_pct;
+        case "margem_bruta_pct": return x.d.margem_bruta_pct;
+        case "resultado": return x.d.resultado;
+        case "resultado_pct": return x.d.resultado_pct;
+      }
+    };
+    return sortNums(derivadas, get, sortDir);
+  }, [rows, canalOk, componente, sortCol, sortDir]);
 
-  const total = useMemo(() => ({
-    unidades: lista.reduce((s, r) => s + n(r.unidades), 0),
-    receita_produto: lista.reduce((s, r) => s + n(r.receita_produto), 0),
-    receita_frete: lista.reduce((s, r) => s + n(r.receita_frete), 0),
-    cmv: lista.reduce((s, r) => s + n(r.cmv), 0),
-    icms: lista.reduce((s, r) => s + n(r.icms), 0),
-    margem: lista.reduce((s, r) => s + n(r.margem), 0),
-  }), [lista]);
+  const total = useMemo(() => somarLinhas(lista.map((x) => x.r), componente), [lista, componente]);
 
   function exportar() {
-    const linhas = lista.map((r) => ({
+    const linhas = lista.map(({ r, d }) => ({
       NF: r.nf_ref ?? "",
       Data: dataLabel(r.data_emissao),
       Pedido: r.pedido_ref ?? "",
@@ -518,10 +686,15 @@ function AbaNfs({
       Unidades: n(r.unidades),
       "Receita produto": n(r.receita_produto),
       "Receita frete": n(r.receita_frete),
+      Receita: d.receita,
       CMV: n(r.cmv),
       ICMS: n(r.icms),
-      "Margem R$": n(r.margem),
-      "Margem %": r.margem_pct == null ? "" : Number(r.margem_pct),
+      "Margem bruta R$": d.margem_bruta,
+      "Resultado R$": d.resultado,
+      "CMV %": d.cmv_pct ?? "",
+      "ICMS %": d.icms_pct ?? "",
+      "Margem bruta %": d.margem_bruta_pct ?? "",
+      "Resultado %": d.resultado_pct ?? "",
     }));
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
@@ -541,11 +714,14 @@ function AbaNfs({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle className="text-base">NFs consideradas · {lista.length}</CardTitle>
-        <Button variant="outline" size="sm" disabled={lista.length === 0} onClick={exportar}>
-          <Download className="h-4 w-4 mr-1.5" /> Exportar XLSX
-        </Button>
+      <CardHeader>
+        <div className="flex flex-row items-center justify-between gap-3">
+          <CardTitle className="text-base">NFs consideradas · {lista.length}</CardTitle>
+          <Button variant="outline" size="sm" disabled={lista.length === 0} onClick={exportar}>
+            <Download className="h-4 w-4 mr-1.5" /> Exportar XLSX
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{NOTA_HONESTIDADE}</p>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -567,22 +743,21 @@ function AbaNfs({
                   <TableHead>Canal</TableHead>
                   <TableHead>CFOP</TableHead>
                   <SortHead col="unidades" label="Unidades" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  {componente !== "frete" && (
-                    <SortHead col="receita_produto" label="Receita produto" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  )}
-                  <SortHead col="receita_frete" label="Receita frete" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="cmv" label="CMV" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="icms" label="ICMS" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="margem" label="Margem R$" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="margem_pct" label="Margem %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="receita" label="Receita" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="cmv_pct" label="CMV %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="icms_pct" label="ICMS %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="margem_bruta_pct" label="Margem bruta %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="resultado" label="Resultado" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="resultado_pct" label="Resultado %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lista.map((r) => {
+                {lista.map(({ r, d }) => {
                   const avisos: string[] = [];
                   if (r.divergencia_canal) avisos.push("Canal divergente do CFOP");
                   if (r.sem_canal) avisos.push("NF sem canal");
                   if (n(r.itens_sem_custo) > 0) avisos.push(`${n(r.itens_sem_custo)} item(ns) sem custo`);
+                  const baixa = d.resultado_pct != null && d.resultado_pct < 0.2;
                   return (
                     <TableRow key={r.nf_id}>
                       <TableCell className="font-mono text-xs">
@@ -627,34 +802,30 @@ function AbaNfs({
                         {r.cfops ?? "—"}
                       </TableCell>
                       <TableCell className="text-right text-xs tabular-nums">{fmtInt(r.unidades)}</TableCell>
-                      {componente !== "frete" && (
-                        <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.receita_produto)}</TableCell>
-                      )}
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.receita_frete)}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.cmv)}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.icms)}</TableCell>
-                      <TableCell className={cn("text-right text-xs tabular-nums", n(r.margem) < 0 && "text-destructive")}>
-                        {fmtBRL(r.margem)}
+                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(d.receita)}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{fmtPct(d.cmv_pct)}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{fmtPct(d.icms_pct)}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{fmtPct(d.margem_bruta_pct)}</TableCell>
+                      <TableCell className={cn("text-right text-xs tabular-nums", d.resultado < 0 && "text-destructive")}>
+                        {fmtBRL(d.resultado)}
                       </TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtPct(r.margem_pct)}</TableCell>
+                      <TableCell className={cn("text-right text-xs tabular-nums", baixa && "text-destructive font-medium")}>
+                        {fmtPct(d.resultado_pct)}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
                 <TableRow className="font-semibold bg-muted/40">
                   <TableCell colSpan={7}>Total</TableCell>
                   <TableCell className="text-right text-xs tabular-nums">{fmtInt(total.unidades)}</TableCell>
-                  {componente !== "frete" && (
-                    <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.receita_produto)}</TableCell>
-                  )}
-                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.receita_frete)}</TableCell>
-                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.cmv)}</TableCell>
-                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.icms)}</TableCell>
-                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.margem)}</TableCell>
-                  <TableCell className="text-right text-xs tabular-nums">
-                    {total.receita_produto + total.receita_frete > 0
-                      ? fmtPct(total.margem / (total.receita_produto + total.receita_frete))
-                      : "—"}
+                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.receita)}</TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.cmv_pct)}</TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.icms_pct)}</TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.margem_bruta_pct)}</TableCell>
+                  <TableCell className={cn("text-right text-xs tabular-nums", total.resultado < 0 && "text-destructive")}>
+                    {fmtBRL(total.resultado)}
                   </TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.resultado_pct)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -665,26 +836,28 @@ function AbaNfs({
   );
 }
 
+
 // ════════════════════════════════════════════════
 // Aba Rentabilidade por produto
 // ════════════════════════════════════════════════
 type ProdCol =
   | "sku" | "produto" | "colecao" | "unidades" | "preco_medio_un" | "custo_unit"
-  | "receita_produto" | "cmv" | "margem" | "margem_pct";
+  | "receita" | "cmv_pct" | "margem_bruta_pct" | "resultado" | "resultado_pct";
 
 function AbaProduto({
-  rows, isLoading, isError, error, canalOk, mes,
+  rows, isLoading, isError, error, canalOk, componente, mes,
 }: {
   rows: FaturamentoProduto[];
   isLoading: boolean;
   isError: boolean;
   error: unknown;
   canalOk: (c: string | null | undefined) => boolean;
+  componente: Componente;
   mes: string;
 }) {
   const [busca, setBusca] = useState("");
   const [colecao, setColecao] = useState("todas");
-  const [sortCol, setSortCol] = useState<ProdCol>("margem");
+  const [sortCol, setSortCol] = useState<ProdCol>("resultado");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   function toggle(c: ProdCol) {
@@ -708,11 +881,29 @@ function AbaProduto({
       }
       return true;
     });
-    return sortNums(base, (r) => r[sortCol] as number | string | null, sortDir);
-  }, [rows, busca, colecao, canalOk, sortCol, sortDir]);
+    const derivadas = base.map((r) => ({ r, d: derivarLinha(r, componente) }));
+    const get = (x: { r: FaturamentoProduto; d: LinhaDerivada }): number | string | null => {
+      switch (sortCol) {
+        case "sku": return x.r.sku;
+        case "produto": return x.r.produto;
+        case "colecao": return x.r.colecao;
+        case "unidades": return n(x.r.unidades);
+        case "preco_medio_un": return n(x.r.preco_medio_un);
+        case "custo_unit": return n(x.r.custo_unit);
+        case "receita": return x.d.receita;
+        case "cmv_pct": return x.d.cmv_pct;
+        case "margem_bruta_pct": return x.d.margem_bruta_pct;
+        case "resultado": return x.d.resultado;
+        case "resultado_pct": return x.d.resultado_pct;
+      }
+    };
+    return sortNums(derivadas, get, sortDir);
+  }, [rows, busca, colecao, canalOk, componente, sortCol, sortDir]);
+
+  const total = useMemo(() => somarLinhas(lista.map((x) => x.r), componente), [lista, componente]);
 
   function exportar() {
-    const linhas = lista.map((r) => ({
+    const linhas = lista.map(({ r, d }) => ({
       SKU: r.sku ?? "",
       Produto: r.produto ?? "",
       Coleção: r.colecao ?? "",
@@ -720,10 +911,17 @@ function AbaProduto({
       Unidades: n(r.unidades),
       "Preço médio un.": n(r.preco_medio_un),
       "Custo un.": n(r.custo_unit),
-      Receita: n(r.receita_produto),
+      "Receita produto": n(r.receita_produto),
+      "Receita frete": n(r.receita_frete),
+      Receita: d.receita,
       CMV: n(r.cmv),
-      "Margem R$": n(r.margem),
-      "Margem %": r.margem_pct == null ? "" : Number(r.margem_pct),
+      ICMS: n(r.icms),
+      "Margem bruta R$": d.margem_bruta,
+      "Resultado R$": d.resultado,
+      "CMV %": d.cmv_pct ?? "",
+      "ICMS %": d.icms_pct ?? "",
+      "Margem bruta %": d.margem_bruta_pct ?? "",
+      "Resultado %": d.resultado_pct ?? "",
     }));
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
@@ -763,6 +961,7 @@ function AbaProduto({
             <Download className="h-4 w-4 mr-1.5" /> Exportar XLSX
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground">{NOTA_HONESTIDADE}</p>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -782,18 +981,19 @@ function AbaProduto({
                   <SortHead col="unidades" label="Unidades" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                   <SortHead col="preco_medio_un" label="Preço médio un." sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                   <SortHead col="custo_unit" label="Custo un." sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="receita_produto" label="Receita" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="cmv" label="CMV" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="margem" label="Margem R$" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="margem_pct" label="Margem %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="receita" label="Receita" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="cmv_pct" label="CMV %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="margem_bruta_pct" label="Margem bruta %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="resultado" label="Resultado" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
+                  <SortHead col="resultado_pct" label="Resultado %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lista.map((r, i) => {
+                {lista.map(({ r, d }, i) => {
                   const avisos: string[] = [];
                   if (r.sku_sem_cadastro) avisos.push("SKU sem cadastro");
                   if (r.sem_custo) avisos.push("Sem custo");
-                  const baixa = r.margem_pct != null && Number(r.margem_pct) < 0.2;
+                  const baixa = d.resultado_pct != null && d.resultado_pct < 0.2;
                   return (
                     <TableRow key={`${r.sku ?? "sem-sku"}-${r.canal ?? ""}-${i}`}>
                       <TableCell className="font-mono text-xs">
@@ -813,231 +1013,30 @@ function AbaProduto({
                       <TableCell className="text-right text-xs tabular-nums">{fmtInt(r.unidades)}</TableCell>
                       <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.preco_medio_un)}</TableCell>
                       <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.custo_unit)}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.receita_produto)}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.cmv)}</TableCell>
-                      <TableCell className={cn("text-right text-xs tabular-nums", n(r.margem) < 0 && "text-destructive")}>
-                        {fmtBRL(r.margem)}
+                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(d.receita)}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{fmtPct(d.cmv_pct)}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{fmtPct(d.margem_bruta_pct)}</TableCell>
+                      <TableCell className={cn("text-right text-xs tabular-nums", d.resultado < 0 && "text-destructive")}>
+                        {fmtBRL(d.resultado)}
                       </TableCell>
                       <TableCell className={cn("text-right text-xs tabular-nums", baixa && "text-destructive font-medium")}>
-                        {fmtPct(r.margem_pct)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// ════════════════════════════════════════════════
-// Aba Por pedido
-// ════════════════════════════════════════════════
-type PedCol =
-  | "unidades" | "receita_produto" | "receita_frete" | "cmv" | "icms" | "margem" | "margem_pct";
-
-function AbaPedido({
-  rows, isLoading, isError, error, canalOk, componente, mes, onPedido,
-}: {
-  rows: FaturamentoPedido[];
-  isLoading: boolean;
-  isError: boolean;
-  error: unknown;
-  canalOk: (c: string | null | undefined) => boolean;
-  componente: Componente;
-  mes: string;
-  onPedido: (id: string) => void;
-}) {
-  const [sortCol, setSortCol] = useState<PedCol>("margem");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
-
-  function toggle(c: PedCol) {
-    if (sortCol !== c) { setSortCol(c); setSortDir("desc"); }
-    else setSortDir(sortDir === "desc" ? "asc" : "desc");
-  }
-
-  const lista = useMemo(() => {
-    const base = rows.filter((r) => canalOk(r.canal));
-    return sortNums(base, (r) => r[sortCol] as number | string | null, sortDir);
-  }, [rows, canalOk, sortCol, sortDir]);
-
-  const total = useMemo(() => ({
-    unidades: lista.reduce((s, r) => s + n(r.unidades), 0),
-    receita_produto: lista.reduce((s, r) => s + n(r.receita_produto), 0),
-    receita_frete: lista.reduce((s, r) => s + n(r.receita_frete), 0),
-    cmv: lista.reduce((s, r) => s + n(r.cmv), 0),
-    icms: lista.reduce((s, r) => s + n(r.icms), 0),
-    margem: lista.reduce((s, r) => s + n(r.margem), 0),
-  }), [lista]);
-
-  function exportar() {
-    const linhas = lista.map((r) => ({
-      Pedido: r.pedido_ref ?? r.chave,
-      NFs: r.nfs_lista ?? "",
-      "Primeira NF": dataLabel(r.primeira_nf),
-      "Última NF": dataLabel(r.ultima_nf),
-      Cliente: r.cliente ?? "",
-      CNPJ: r.cliente_cnpj ?? "",
-      UF: r.uf ?? "",
-      Cidade: r.cidade ?? "",
-      Canal: r.canal ?? "",
-      CFOP: r.cfops ?? "",
-      Unidades: n(r.unidades),
-      "Receita produto": n(r.receita_produto),
-      "Receita frete": n(r.receita_frete),
-      CMV: n(r.cmv),
-      ICMS: n(r.icms),
-      "Margem R$": n(r.margem),
-      "Margem %": r.margem_pct == null ? "" : Number(r.margem_pct),
-    }));
-    const ws = XLSX.utils.json_to_sheet(linhas);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Pedidos");
-    XLSX.writeFile(wb, `faturamento-pedidos-${mes}.xlsx`);
-  }
-
-  if (isError) {
-    return (
-      <Card className="border-destructive/50">
-        <CardContent className="py-6 text-sm text-destructive">
-          Falha ao carregar o faturamento por pedido: {(error as any)?.message ?? String(error)}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle className="text-base">Por pedido · {lista.length}</CardTitle>
-        <Button variant="outline" size="sm" disabled={lista.length === 0} onClick={exportar}>
-          <Download className="h-4 w-4 mr-1.5" /> Exportar XLSX
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-gold" />
-          </div>
-        ) : lista.length === 0 ? (
-          <div className="text-center py-12 text-sm text-muted-foreground">Nenhum pedido no período.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pedido</TableHead>
-                  <TableHead>NFs</TableHead>
-                  <TableHead>Período</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>UF</TableHead>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>CFOP</TableHead>
-                  <SortHead col="unidades" label="Unidades" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  {componente !== "frete" && (
-                    <SortHead col="receita_produto" label="Receita produto" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  )}
-                  <SortHead col="receita_frete" label="Receita frete" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="cmv" label="CMV" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="icms" label="ICMS" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="margem" label="Margem R$" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                  <SortHead col="margem_pct" label="Margem %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lista.map((r) => {
-                  const avisos: string[] = [];
-                  if (r.divergencia_canal) avisos.push("Canal divergente do CFOP");
-                  if (r.sem_canal) avisos.push("Sem pedido/canal");
-                  if (n(r.itens_sem_custo) > 0) avisos.push(`${n(r.itens_sem_custo)} item(ns) sem custo`);
-                  if (r.multi_nf) avisos.push("Pedido faturado em mais de uma NF");
-                  const baixa = r.margem_pct != null && Number(r.margem_pct) < 0.2;
-                  const periodo =
-                    r.primeira_nf === r.ultima_nf
-                      ? dataLabel(r.primeira_nf)
-                      : `${dataLabel(r.primeira_nf)} → ${dataLabel(r.ultima_nf)}`;
-                  return (
-                    <TableRow key={r.chave}>
-                      <TableCell className="font-mono text-xs">
-                        <div className="flex items-center gap-1.5">
-                          {r.sem_pedido ? (
-                            <span className="text-muted-foreground">{r.chave}</span>
-                          ) : r.pedido_venda_id ? (
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto p-0 font-mono text-xs"
-                              onClick={() => onPedido(r.pedido_venda_id!)}
-                            >
-                              {r.pedido_ref ?? r.chave}
-                            </Button>
-                          ) : (
-                            <span>{r.pedido_ref ?? r.chave}</span>
-                          )}
-                          {avisos.length > 0 && (
-                            <Badge
-                              variant="outline"
-                              className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 px-1"
-                              title={avisos.join(" · ")}
-                            >
-                              <AlertTriangle className="h-3 w-3" />
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs max-w-[180px] truncate" title={r.nfs_lista ?? undefined}>
-                        <span className="inline-flex items-center gap-1.5">
-                          {r.multi_nf && (
-                            <Badge variant="outline" className="font-normal text-xs px-1">{fmtInt(r.nfs)}</Badge>
-                          )}
-                          {r.nfs_lista ?? "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{periodo}</TableCell>
-                      <TableCell className="text-xs max-w-[220px] truncate" title={r.cliente ?? undefined}>
-                        {r.cliente ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-xs">{r.uf ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-normal text-xs">{r.canal ?? "SEM CANAL"}</Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs max-w-[120px] truncate" title={r.cfops ?? undefined}>
-                        {r.cfops ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtInt(r.unidades)}</TableCell>
-                      {componente !== "frete" && (
-                        <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.receita_produto)}</TableCell>
-                      )}
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.receita_frete)}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.cmv)}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{fmtBRL(r.icms)}</TableCell>
-                      <TableCell className={cn("text-right text-xs tabular-nums", n(r.margem) < 0 && "text-destructive")}>
-                        {fmtBRL(r.margem)}
-                      </TableCell>
-                      <TableCell className={cn("text-right text-xs tabular-nums", baixa && "text-destructive font-medium")}>
-                        {fmtPct(r.margem_pct)}
+                        {fmtPct(d.resultado_pct)}
                       </TableCell>
                     </TableRow>
                   );
                 })}
                 <TableRow className="font-semibold bg-muted/40">
-                  <TableCell colSpan={7}>Total</TableCell>
+                  <TableCell colSpan={3}>Total</TableCell>
                   <TableCell className="text-right text-xs tabular-nums">{fmtInt(total.unidades)}</TableCell>
-                  {componente !== "frete" && (
-                    <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.receita_produto)}</TableCell>
-                  )}
-                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.receita_frete)}</TableCell>
-                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.cmv)}</TableCell>
-                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.icms)}</TableCell>
-                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.margem)}</TableCell>
-                  <TableCell className="text-right text-xs tabular-nums">
-                    {total.receita_produto + total.receita_frete > 0
-                      ? fmtPct(total.margem / (total.receita_produto + total.receita_frete))
-                      : "—"}
+                  <TableCell />
+                  <TableCell />
+                  <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.receita)}</TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.cmv_pct)}</TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.margem_bruta_pct)}</TableCell>
+                  <TableCell className={cn("text-right text-xs tabular-nums", total.resultado < 0 && "text-destructive")}>
+                    {fmtBRL(total.resultado)}
                   </TableCell>
+                  <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.resultado_pct)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -1047,3 +1046,4 @@ function AbaPedido({
     </Card>
   );
 }
+
