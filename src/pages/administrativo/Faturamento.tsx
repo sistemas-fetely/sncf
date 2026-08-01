@@ -431,6 +431,22 @@ export default function Faturamento() {
         </TabsContent>
 
         {componente !== "frete" && (
+          <TabsContent value="pedido" className="mt-4">
+            <AbaPedido
+              rows={pedidos}
+              isLoading={loadingPed}
+              isError={errPed}
+              error={errorPed}
+              canalOk={canalOk}
+              componente={componente}
+              mes={mesEfetivo}
+              onPedido={(id) => navigate(`/pedidos/${id}`)}
+            />
+          </TabsContent>
+        )}
+
+        {componente !== "frete" && (
+
           <TabsContent value="produto" className="mt-4">
             <AbaProduto
               rows={produtos}
