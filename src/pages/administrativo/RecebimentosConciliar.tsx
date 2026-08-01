@@ -42,7 +42,11 @@ import {
   AlertTriangle,
   RefreshCw,
   Upload,
+  Loader2,
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { formatError } from "@/lib/format-error";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { toast } from "sonner";
 import { ImportarExtratoDialog } from "@/components/financeiro/ImportarExtratoDialog";
