@@ -158,6 +158,9 @@ export default function FluxoCompetencia() {
   const foraDoDefault = mes !== "todos" || tipo !== "todos" || elo !== "todos" || busca !== "";
 
   // ── KPIs ────────────────────────────────────────────────
+  // Base única de medida: os três cards comparáveis (Competência, Caixa
+  // confirmado, Sem prova de caixa) usam valor_atual — valor do título.
+  // mov_valor é crédito no banco e divergiria por MDR, juros e liquidação parcial.
   const kpis = useMemo(() => {
     const hoje = hojeISO();
     let competencia = 0, comNf = 0, caixa = 0, previsto = 0, semProva = 0, safrapay = 0;
@@ -166,7 +169,7 @@ export default function FluxoCompetencia() {
     for (const r of filtrados) {
       const va = Number(r.valor_atual ?? 0);
       if (r.nf_id) { competencia += va; comNf++; }
-      if (r.movimentacao_id) caixa += Number(r.mov_valor ?? 0);
+      if (r.elo_caixa === "caixa_confirmado") caixa += va;
       if (r.haver_com_lastro) caixa += Number(r.haver_valor ?? 0);
       if (!r.data_pagamento && r.status !== "cancelado" && r.data_liquidacao_prevista && r.data_liquidacao_prevista >= hoje) {
         previsto += va;
@@ -175,6 +178,23 @@ export default function FluxoCompetencia() {
       if (r.elo_caixa === "aguarda_safrapay") { temSafrapay = true; safrapay += va; }
     }
     return { competencia, comNf, caixa, previsto, semProva, safrapay, temSafrapay };
+  }, [filtrados]);
+
+  /**
+   * Movimentações distintas do conjunto filtrado.
+   * Uma movimentação pode liquidar duas parcelas — somar por linha de título
+   * contaria o mesmo crédito duas vezes.
+   */
+  const movsDistintas = useMemo(() => {
+    const map = new Map<string, { mes_caixa: string | null; mov_valor: number }>();
+    for (const r of filtrados) {
+      if (!r.movimentacao_id || map.has(r.movimentacao_id)) continue;
+      map.set(r.movimentacao_id, {
+        mes_caixa: r.mes_caixa,
+        mov_valor: Number(r.mov_valor ?? 0),
+      });
+    }
+    return map;
   }, [filtrados]);
 
   // ── Bloco 2: mês a mês ──────────────────────────────────
@@ -190,11 +210,12 @@ export default function FluxoCompetencia() {
     for (const r of filtrados) {
       const va = Number(r.valor_atual ?? 0);
       if (r.nf_id) add(comp, r.mes_competencia, va);
-      if (r.movimentacao_id) add(cx, r.mes_caixa, Number(r.mov_valor ?? 0));
       if (!r.data_pagamento && r.status !== "cancelado") {
         add(prev, chaveMes(r.data_liquidacao_prevista), va);
       }
     }
+    // Caixa: dinheiro que entrou na conta, por movimentação distinta.
+    for (const mv of movsDistintas.values()) add(cx, mv.mes_caixa, mv.mov_valor);
 
     const chaves = Array.from(new Set([...comp.keys(), ...cx.keys(), ...prev.keys()])).sort();
     return chaves.map((k) => ({
@@ -204,7 +225,7 @@ export default function FluxoCompetencia() {
       caixa: cx.get(k) ?? 0,
       previsto: prev.get(k) ?? 0,
     }));
-  }, [filtrados]);
+  }, [filtrados, movsDistintas]);
 
   const totaisMensal = useMemo(
     () =>
@@ -218,6 +239,7 @@ export default function FluxoCompetencia() {
       ),
     [mensal],
   );
+
 
   // ── Bloco 3: pills por elo ──────────────────────────────
   const pills = useMemo(() => {
@@ -258,17 +280,19 @@ export default function FluxoCompetencia() {
     });
   }, [filtrados, sortKey, sortDir]);
 
-  const totaisTitulos = useMemo(
-    () =>
-      titulos.reduce(
-        (acc, r) => ({
-          valor: acc.valor + Number(r.valor_atual ?? 0),
-          mov: acc.mov + (r.movimentacao_id ? Number(r.mov_valor ?? 0) : 0),
-        }),
-        { valor: 0, mov: 0 },
-      ),
-    [titulos],
-  );
+  const totaisTitulos = useMemo(() => {
+    const valor = titulos.reduce((a, r) => a + Number(r.valor_atual ?? 0), 0);
+    // Movimentação: deduplicada por movimentacao_id (uma mov pode liquidar N parcelas).
+    const vistas = new Map<string, number>();
+    for (const r of titulos) {
+      if (!r.movimentacao_id || vistas.has(r.movimentacao_id)) continue;
+      vistas.set(r.movimentacao_id, Number(r.mov_valor ?? 0));
+    }
+    let mov = 0;
+    for (const v of vistas.values()) mov += v;
+    return { valor, mov };
+  }, [titulos]);
+
 
   function toggleSort(k: SortKey) {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -432,7 +456,7 @@ export default function FluxoCompetencia() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold tabular-nums">{fmtBRL(kpis.caixa)}</p>
-            <p className="text-xs text-muted-foreground">movimentação bancária + haver com lastro</p>
+            <p className="text-xs text-muted-foreground">título com lastro provado — banco ou haver</p>
           </CardContent>
         </Card>
 
@@ -496,9 +520,9 @@ export default function FluxoCompetencia() {
                 />
                 <Tooltip formatter={(v: number) => fmtBRL(v)} contentStyle={{ borderRadius: 8, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="competencia" name="Competência" fill="#1A4A3A" />
-                <Bar dataKey="caixa" name="Caixa" fill="#8FB87A" />
-                <Line dataKey="previsto" name="Previsto" type="monotone" stroke="#0284c7" strokeWidth={2} dot />
+                <Bar dataKey="competencia" name="Competência" fill="hsl(var(--primary))" />
+                <Bar dataKey="caixa" name="Caixa" fill="hsl(var(--primary) / 0.55)" />
+                <Line dataKey="previsto" name="Previsto" type="monotone" stroke="hsl(var(--info, var(--primary)))" strokeWidth={2} dot />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -562,7 +586,9 @@ export default function FluxoCompetencia() {
 
           <p className="text-xs text-muted-foreground">
             Competência e caixa não batem por definição — a NF é fato fiscal, a movimentação é fato
-            financeiro.
+            financeiro. A coluna Caixa é dinheiro que entrou na conta, por movimentação distinta; o
+            KPI Caixa confirmado é o valor do título com lastro. As duas divergem por MDR de cartão,
+            juros e liquidação parcial.
           </p>
         </CardContent>
       </Card>
