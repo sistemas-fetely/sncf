@@ -63,7 +63,7 @@ export default function CreditoClientesIndex() {
       if (ids.length === 0) return [];
       const { data, error } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("id, razao_social, cnpj")
+        .select("id, razao_social, nome_fantasia, cnpj")
         .in("id", ids);
       if (error) throw error;
       return (data ?? []) as any[];
