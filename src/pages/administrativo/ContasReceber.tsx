@@ -67,7 +67,14 @@ type RecebivelB2B = {
   mes_competencia: string | null;
   gera_caixa: boolean | null;
   tem_prova_bancaria: boolean | null;
+  /* hierarquia da verdade da data de recebimento */
+  data_recebimento_efetiva: string | null;
+  fonte_data_recebimento: "banco" | "humano" | "sem_recebimento" | null;
+  data_pagamento_banco: string | null;
+  data_divergente: boolean | null;
+  mes_caixa_efetivo: string | null;
 };
+
 
 type RecebivelB2C = {
   movimentacao_id: string;
@@ -89,7 +96,7 @@ type RecebivelB2C = {
 const PAGE_SIZE = 25;
 
 type DataBase = "vencimento" | "emissao" | "liquidacao";
-type BaseMensal = "competencia" | "caixa";
+type BaseMensal = "competencia" | "caixa_previsto" | "caixa_efetivo";
 
 const SITUACOES: { key: StatusGestao; label: string }[] = [
   { key: "pago", label: "Recebido" },
@@ -221,6 +228,8 @@ function AbaB2B() {
   const [filtroBanco, setFiltroBanco] = useState<string>("todos");
   const [filtroMeio, setFiltroMeio] = useState<string>("todos");
   const [soRenegociados, setSoRenegociados] = useState(false);
+  const [soSemProva, setSoSemProva] = useState(false);
+  const [soDivergentes, setSoDivergentes] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [situacoes, setSituacoes] = useState<Set<StatusGestao>>(
     new Set<StatusGestao>(["pago", "em_aberto", "atrasado"])
@@ -268,6 +277,17 @@ function AbaB2B() {
     [data]
   );
 
+  const qtdSemProva = useMemo(
+    () => (data ?? []).filter((t) => t.fonte_data_recebimento === "humano").length,
+    [data]
+  );
+
+  const qtdDivergentes = useMemo(
+    () => (data ?? []).filter((t) => t.data_divergente === true).length,
+    [data]
+  );
+
+
   /** Conjunto filtrado por tudo EXCETO situação — base dos KPIs e das contagens. */
   const base = useMemo(() => {
     const titulos = data ?? [];
@@ -279,6 +299,8 @@ function AbaB2B() {
       if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) return false;
       if (filtroMeio !== "todos" && t.meio_pagamento !== filtroMeio) return false;
       if (soRenegociados && t.venc_renegociado !== true) return false;
+      if (soSemProva && t.fonte_data_recebimento !== "humano") return false;
+      if (soDivergentes && t.data_divergente !== true) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
@@ -301,7 +323,7 @@ function AbaB2B() {
       }
       return true;
     });
-  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados]);
+  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes]);
 
   const contagens = useMemo(() => {
     const c: Record<StatusGestao, number> = { pago: 0, em_aberto: 0, atrasado: 0, cancelado: 0 };
@@ -316,8 +338,14 @@ function AbaB2B() {
     let abertoQtd = 0;
     let vencido = 0;
     let vence30 = 0;
+    let semProva = 0;
+    let semProvaQtd = 0;
     for (const t of base) {
       const v = efetivoDe(t);
+      if (t.fonte_data_recebimento === "humano") {
+        semProva += v;
+        semProvaQtd += 1;
+      }
       if (t.status_gestao === "cancelado") continue;
       if (t.status_gestao === "pago") {
         recebido += v;
@@ -344,10 +372,14 @@ function AbaB2B() {
       vencido,
       vence30,
       inadimplencia,
+      semProva,
+      semProvaQtd,
+      semProvaPct: recebido > 0 ? (semProva / recebido) * 100 : 0,
       total: recebido + aberto,
       totalQtd: recebidoQtd + abertoQtd,
     };
   }, [base, hoje, em30]);
+
 
   /** Comparação com o mês anterior quando o período selecionado é um mês fechado. */
   const comparativo = useMemo(() => {
@@ -432,7 +464,11 @@ function AbaB2B() {
       if (t.status_gestao === "cancelado") continue;
       let key: string | null = null;
       if (baseMensal === "competencia") key = mesKeyDe(t.mes_competencia ?? t.data_compra);
-      else if (t.liquidacao_realizada === true) key = mesKeyDe(t.data_liquidacao);
+      else if (baseMensal === "caixa_previsto") {
+        if (t.liquidacao_realizada === true) key = mesKeyDe(t.data_liquidacao);
+      } else if (t.data_recebimento_efetiva) {
+        key = mesKeyDe(t.mes_caixa_efetivo ?? t.data_recebimento_efetiva);
+      }
       if (!key) continue;
       const linha =
         mapa.get(key) ??
@@ -537,9 +573,12 @@ function AbaB2B() {
       "Vencimento original": formatDateBR(t.data_vencimento_original),
       Renegociado: t.venc_renegociado ? "Sim" : "Não",
       "Dias prorrogado": t.dias_prorrogado ?? 0,
-      Liquidação: formatDateBR(t.data_liquidacao),
-      "Recebido em": t.liquidacao_realizada ? formatDateBR(t.data_liquidacao) : "",
-      "Pago em": formatDateBR(t.data_pagamento),
+      Previsto: formatDateBR(t.data_liquidacao),
+      "Recebido em": t.data_recebimento_efetiva ? formatDateBR(t.data_recebimento_efetiva) : "",
+      Fonte: t.fonte_data_recebimento ?? "",
+      "Data banco": formatDateBR(t.data_pagamento_banco),
+      "Data humano": formatDateBR(t.data_pagamento),
+      Divergente: t.data_divergente ? "Sim" : "Não",
       "Valor face": t.valor ?? 0,
       Juros: t.valor_juros ?? 0,
       Desconto: t.valor_desconto ?? 0,
@@ -570,7 +609,7 @@ function AbaB2B() {
 
       {/* KPIs */}
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-green-700">Recebido</CardTitle>
@@ -601,6 +640,19 @@ function AbaB2B() {
               <div className="text-2xl font-semibold tabular-nums text-cyan-700">
                 {formatBRL(kpis.vence30)}
               </div>
+            </CardContent>
+          </Card>
+          <Card className="border-amber-500/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-amber-700">Recebido sem prova bancária</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-amber-700">
+                {formatBRL(kpis.semProva)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.semProvaQtd} títulos · {kpis.semProvaPct.toFixed(1)}% do recebido
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -696,10 +748,17 @@ function AbaB2B() {
                 </Button>
                 <Button
                   size="sm"
-                  variant={baseMensal === "caixa" ? "default" : "outline"}
-                  onClick={() => setBaseMensal("caixa")}
+                  variant={baseMensal === "caixa_previsto" ? "default" : "outline"}
+                  onClick={() => setBaseMensal("caixa_previsto")}
                 >
-                  Caixa (liquidação)
+                  Caixa previsto
+                </Button>
+                <Button
+                  size="sm"
+                  variant={baseMensal === "caixa_efetivo" ? "default" : "outline"}
+                  onClick={() => setBaseMensal("caixa_efetivo")}
+                >
+                  Caixa efetivo
                 </Button>
               </div>
             </div>
@@ -783,8 +842,8 @@ function AbaB2B() {
           </CardContent>
         </Card>
         <p className="text-xs text-muted-foreground">
-          Competência é a data da NF. Caixa é a data em que o dinheiro liquidou. As duas não batem
-          por definição.
+          Competência é a data da NF. Caixa previsto é a régua. Caixa efetivo é quando o dinheiro
+          entrou de fato — banco sobrepõe registro humano.
         </p>
       </div>
 
@@ -864,6 +923,28 @@ function AbaB2B() {
               >
                 Só renegociados ({qtdRenegociados})
               </Button>
+              <Button
+                size="sm"
+                variant={soSemProva ? "default" : "outline"}
+                onClick={() => {
+                  setSoSemProva((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só sem prova bancária ({qtdSemProva})
+              </Button>
+              {qtdDivergentes > 0 && (
+                <Button
+                  size="sm"
+                  variant={soDivergentes ? "default" : "outline"}
+                  onClick={() => {
+                    setSoDivergentes((v) => !v);
+                    setPage(1);
+                  }}
+                >
+                  Só divergentes ({qtdDivergentes})
+                </Button>
+              )}
             </div>
           </div>
 
@@ -993,8 +1074,8 @@ function AbaB2B() {
                   <SortTh label="Meio" sortKey="meio_pagamento" sort={sort} setSort={setSort} />
                   <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
                   <SortTh label="Vencimento" sortKey="data_vencimento" sort={sort} setSort={setSort} />
-                  <SortTh label="Liquidação" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
-                  <SortTh label="Recebido em" sortKey="liquidacao_realizada" sort={sort} setSort={setSort} />
+                  <SortTh label="Previsto" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
+                  <SortTh label="Recebido em" sortKey="data_recebimento_efetiva" sort={sort} setSort={setSort} />
                   <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
                   <SortTh label="Status" sortKey="status_gestao" sort={sort} setSort={setSort} />
                 </TableRow>
@@ -1041,33 +1122,62 @@ function AbaB2B() {
                       </TableCell>
                       <TableCell>
                         {t.data_liquidacao ? (
-                          t.liquidacao_realizada === true ? (
-                            <span className="inline-flex items-center gap-2">
-                              {formatDateBR(t.data_liquidacao)}
-                              <Badge className="bg-green-100 text-green-700 border-0">REAL</Badge>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-2">
-                              {formatDateBR(t.data_liquidacao)}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">
-                                    PREVISTO
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Previsão de liquidação pelo adquirente</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </span>
-                          )
+                          <span className="inline-flex items-center gap-2">
+                            {formatDateBR(t.data_liquidacao)}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">
+                                  PREVISTO
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  Previsão pela régua de recebimento. Para boleto é o próprio
+                                  vencimento.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {t.liquidacao_realizada === true ? (
-                          formatDateBR(t.data_liquidacao)
+                        {t.data_recebimento_efetiva ? (
+                          <>
+                            <span className="inline-flex items-center gap-2">
+                              {formatDateBR(t.data_recebimento_efetiva)}
+                              {t.fonte_data_recebimento === "banco" && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge className="bg-emerald-100 text-emerald-800 border-0 cursor-help">
+                                      BANCO
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Confirmado no extrato ou no retorno CNAB.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {t.fonte_data_recebimento === "humano" && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge className="bg-amber-100 text-amber-700 border-0 cursor-help">
+                                      HUMANO
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Baixa registrada no sistema, sem confirmação bancária.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </span>
+                            {t.data_divergente === true && (
+                              <div className="text-xs text-destructive">
+                                humano {formatDateBR(t.data_pagamento)}
+                              </div>
+                            )}
+                          </>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}

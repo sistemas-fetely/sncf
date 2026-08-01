@@ -33425,17 +33425,22 @@ export type Database = {
           conciliado: boolean | null
           conta_id: string | null
           data_compra: string | null
+          data_divergente: boolean | null
           data_liquidacao: string | null
           data_pagamento: string | null
+          data_pagamento_banco: string | null
+          data_recebimento_efetiva: string | null
           data_vencimento: string | null
           data_vencimento_original: string | null
           dias_prorrogado: number | null
+          fonte_data_recebimento: string | null
           gera_caixa: boolean | null
           id: string | null
           liquidacao_confirmada_banco: boolean | null
           liquidacao_realizada: boolean | null
           liquidado: boolean | null
           meio_pagamento: string | null
+          mes_caixa_efetivo: string | null
           mes_competencia: string | null
           nf_id: string | null
           nf_numero: string | null
