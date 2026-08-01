@@ -159,14 +159,21 @@ export default function Faturamento() {
     const faturamento =
       componente === "produto" ? receita_produto : componente === "frete" ? receita_frete : receita_total;
     const margem = componente === "produto" ? margem_produto : margem_com_frete;
+    const margemBruta = componente === "produto" ? receita_produto - cmv : receita_total - cmv;
+    const resultado =
+      componente === "produto" ? margem_produto
+        : componente === "frete" ? resultado_frete
+          : margem_com_frete;
+    const pct = (v: number) => (faturamento > 0 ? v / faturamento : null);
 
     return {
       receita_produto, receita_frete, receita_total, cmv, icms, margem_produto,
       margem_com_frete, custo_frete_pago, resultado_frete, nfsQtd, unidades,
-      lancamentos_frete, faturamento, margem,
+      lancamentos_frete, faturamento, margem, margemBruta, resultado, pct,
       ticket: nfsQtd > 0 ? faturamento / nfsQtd : null,
       margem_pct: faturamento > 0 ? margem / faturamento : null,
     };
+
   }, [mesRows, componente]);
 
   const resolver = useMemo(() => {
