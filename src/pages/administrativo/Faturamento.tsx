@@ -317,22 +317,34 @@ export default function Faturamento() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-4">
-          <KpiCard label="Faturamento" value={fmtBRL(agg.faturamento)} sub={`${fmtInt(agg.unidades)} unidades`} />
-          <KpiCard label="Nº de NFs" value={fmtInt(agg.nfsQtd)} />
-          <KpiCard label="Ticket médio" value={fmtBRL(agg.ticket)} />
-          <KpiCard label="CMV" value={fmtBRL(agg.cmv)} sub={`ICMS ${fmtBRL(agg.icms)}`} />
           <KpiCard
-            label={componente === "produto" ? "Margem do produto" : "Margem com frete pago"}
-            value={`${fmtBRL(agg.margem)} · ${fmtPct(agg.margem_pct)}`}
-            alerta={agg.margem < 0}
+            label="Receita total"
+            value={fmtBRL(agg.faturamento)}
+            sub={`${fmtInt(agg.nfsQtd)} NFs · ticket ${fmtBRL(agg.ticket)}`}
+          />
+          <KpiCard
+            label="Margem bruta"
+            value={fmtBRL(agg.margemBruta)}
+            sub={`${fmtPct(agg.pct(agg.margemBruta))} da receita`}
+          />
+          <KpiCard
+            label="Resultado"
+            value={fmtBRL(agg.resultado)}
+            sub={`${fmtPct(agg.pct(agg.resultado))} da receita`}
+            className={agg.resultado < 0 ? "border-destructive/40" : "border-gold/40"}
+            alerta={agg.resultado < 0}
           />
           <KpiCard
             label="Resultado do frete"
             value={fmtBRL(agg.resultado_frete)}
+            sub={`${fmtPct(agg.pct(agg.resultado_frete))} da receita`}
             alerta={agg.resultado_frete < 0}
           />
         </div>
       )}
+
+      {!loadingMensal && <CascataCard agg={agg} componente={componente} />}
+
 
       {/* Gráfico */}
       <Card>
