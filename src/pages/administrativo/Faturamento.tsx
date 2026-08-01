@@ -412,9 +412,7 @@ export default function Faturamento() {
       <Tabs defaultValue="nfs">
         <TabsList>
           <TabsTrigger value="nfs">NFs consideradas</TabsTrigger>
-          {componente !== "frete" && <TabsTrigger value="pedido">Por pedido</TabsTrigger>}
           {componente !== "frete" && <TabsTrigger value="produto">Rentabilidade por produto</TabsTrigger>}
-
         </TabsList>
 
         <TabsContent value="nfs" className="mt-4">
@@ -431,22 +429,6 @@ export default function Faturamento() {
         </TabsContent>
 
         {componente !== "frete" && (
-          <TabsContent value="pedido" className="mt-4">
-            <AbaPedido
-              rows={pedidos}
-              isLoading={loadingPed}
-              isError={errPed}
-              error={errorPed}
-              canalOk={canalOk}
-              componente={componente}
-              mes={mesEfetivo}
-              onPedido={(id) => navigate(`/pedidos/${id}`)}
-            />
-          </TabsContent>
-        )}
-
-        {componente !== "frete" && (
-
           <TabsContent value="produto" className="mt-4">
             <AbaProduto
               rows={produtos}
@@ -454,11 +436,13 @@ export default function Faturamento() {
               isError={errProd}
               error={errorProd}
               canalOk={canalOk}
+              componente={componente}
               mes={mesEfetivo}
             />
           </TabsContent>
         )}
       </Tabs>
+
     </div>
   );
 }
