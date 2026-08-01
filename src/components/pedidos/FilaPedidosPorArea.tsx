@@ -419,12 +419,12 @@ export function FilaPedidosPorArea({
           <TableHeader>
             <TableRow>
               <TableHead className="w-[60px]">Risco</TableHead>
-              <TableHead className="w-[150px]">ID Externo</TableHead>
-              <TableHead className="w-[210px]">Cliente</TableHead>
+              <TableHead className="w-[185px]">ID Externo</TableHead>
+              <TableHead>Cliente</TableHead>
               <TableHead className="w-[180px]">Valor</TableHead>
               <TableHead>Estágio</TableHead>
               <TableHead className="w-[76px]">Idade</TableHead>
-              <TableHead className="w-[120px] text-[11px] font-normal text-muted-foreground">Próxima ação</TableHead>
+              <TableHead className="w-[110px] text-[11px] font-normal text-muted-foreground">Próxima ação</TableHead>
               <TableHead className="w-[60px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
@@ -464,7 +464,7 @@ export function FilaPedidosPorArea({
                     />
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <span className="font-mono text-xs">{p.id_externo}</span>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
