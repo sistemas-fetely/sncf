@@ -347,6 +347,7 @@ function AbaB2B() {
       if (soRenegociados && t.venc_renegociado !== true) return false;
       if (soSemProva && t.fonte_data_recebimento !== "humano") return false;
       if (soDivergentes && t.data_divergente !== true) return false;
+      if (soMeioDivergente && t.meio_divergente !== true) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
