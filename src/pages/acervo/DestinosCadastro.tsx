@@ -562,7 +562,7 @@ export default function DestinosCadastro() {
                 )}
 
                 {resumo && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Já preenchido</p>
                       <p className="text-2xl font-bold">{resumo.jaPreenchido}</p>
@@ -575,8 +575,52 @@ export default function DestinosCadastro() {
                       <p className="text-xs text-muted-foreground">Completado pelo SNCF</p>
                       <p className="text-2xl font-bold">{resumo.completados}</p>
                     </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Situação a mudar</p>
+                      <p className="text-2xl font-bold">
+                        {planoSituacao ? planoSituacao.mudancas.length : "—"}
+                      </p>
+                    </div>
                   </div>
                 )}
+
+                {planoSituacao && planoSituacao.mudancas.length > 0 && (
+                  <div
+                    className={`rounded-lg border p-3 space-y-2 ${
+                      planoSituacao.indoParaInativo > 0
+                        ? "border-amber-500/50 bg-amber-50/60 dark:bg-amber-950/20"
+                        : ""
+                    }`}
+                  >
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      {planoSituacao.indoParaInativo > 0 && (
+                        <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+                      )}
+                      Situação a mudar: {planoSituacao.mudancas.length} linha
+                      {planoSituacao.mudancas.length > 1 ? "s" : ""}
+                    </p>
+                    {planoSituacao.indoParaInativo > 0 && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Estes produtos estão inativos no SNCF e ativos no Bling. A importação vai
+                        inativá-los.
+                      </p>
+                    )}
+                    <div className="max-h-56 overflow-auto text-xs space-y-1">
+                      {planoSituacao.mudancas.map((m, i) => (
+                        <div key={`${m.codigo}-${i}`} className="flex gap-2">
+                          <span className="font-mono shrink-0">{m.codigo}</span>
+                          <span className="text-muted-foreground truncate flex-1">
+                            {m.descricao}
+                          </span>
+                          <span className="shrink-0 font-mono">
+                            {m.de} → <strong>{m.para}</strong>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
 
                 {resumo?.vaiMudar === 0 && (
                   <Alert className="border-emerald-500/50 bg-emerald-50/60 dark:bg-emerald-950/20">
