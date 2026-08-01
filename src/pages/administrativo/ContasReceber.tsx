@@ -1391,6 +1391,210 @@ function AbaB2C() {
         </CardContent>
       </Card>
 
+      <div className="space-y-1">
+        <Card className="border-amber-500/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Faturado × Recebido</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 p-4 pt-0">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={listaFvr === "faturado_sem_recebimento" ? "default" : "outline"}
+                onClick={() => setListaFvr("faturado_sem_recebimento")}
+              >
+                Faturado sem recebimento ({semRecebimento.length})
+              </Button>
+              <Button
+                size="sm"
+                variant={listaFvr === "recebido_sem_nf" ? "default" : "outline"}
+                onClick={() => setListaFvr("recebido_sem_nf")}
+              >
+                Recebido sem NF ({recebidoSemNf.length})
+              </Button>
+              <Button
+                size="sm"
+                variant={listaFvr === "conciliado" ? "default" : "outline"}
+                onClick={() => setListaFvr("conciliado")}
+              >
+                Conciliados ({conciliados.length})
+              </Button>
+            </div>
+
+            {listaFvr === "faturado_sem_recebimento" && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>NF</TableHead>
+                    <TableHead>Emissão</TableHead>
+                    <TableHead className="text-right">Dias</TableHead>
+                    <TableHead className="text-right">Faturado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {semRecebimento.map((r) => {
+                    const d = diasDesde(r.data_emissao);
+                    const cor =
+                      d !== null && d > 20
+                        ? "text-destructive"
+                        : d !== null && d >= 14
+                          ? "text-amber-700"
+                          : "";
+                    return (
+                      <TableRow key={r.pedido_ref ?? Math.random()}>
+                        <TableCell className="font-mono text-xs">{r.pedido_ref ?? "—"}</TableCell>
+                        <TableCell className="max-w-[220px] truncate">{r.cliente ?? "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.nf_refs ?? "—"}</TableCell>
+                        <TableCell>{formatDateBR(String(r.data_emissao ?? "").slice(0, 10))}</TableCell>
+                        <TableCell className={`text-right tabular-nums ${cor}`}>{d ?? "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(Number(r.faturado ?? 0))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {semRecebimento.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="p-6 text-center text-muted-foreground">
+                        Nada faturado sem recebimento no período.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <TableRow className="font-semibold">
+                      <TableCell colSpan={5}>Total</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatBRL(kpiFuro.total)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+
+            {listaFvr === "recebido_sem_nf" && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Recebimento</TableHead>
+                    <TableHead>Meio</TableHead>
+                    <TableHead>Cidade/UF</TableHead>
+                    <TableHead className="text-right">Bruto</TableHead>
+                    <TableHead className="text-right">Líquido</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recebidoSemNf.map((r) => (
+                    <TableRow key={r.pedido_ref ?? Math.random()}>
+                      <TableCell className="font-mono text-xs">{r.pedido_ref ?? "—"}</TableCell>
+                      <TableCell>
+                        {formatDateBR(String(r.data_recebimento ?? "").slice(0, 10))}
+                      </TableCell>
+                      <TableCell>{formatMeio(r.tipo_meio)}</TableCell>
+                      <TableCell className="max-w-[180px] truncate">
+                        {r.cidade ?? "—"}
+                        {r.uf ? `/${r.uf}` : ""}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatBRL(Number(r.bruto_shopify ?? 0))}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-green-700">
+                        {formatBRL(Number(r.liquido_mp ?? 0))}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {recebidoSemNf.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="p-6 text-center text-muted-foreground">
+                        Nada recebido sem NF.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+
+            {listaFvr === "conciliado" && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Emissão</TableHead>
+                    <TableHead>Recebimento</TableHead>
+                    <TableHead className="text-right">Faturado</TableHead>
+                    <TableHead className="text-right">Bruto Shopify</TableHead>
+                    <TableHead className="text-right">Δ</TableHead>
+                    <TableHead className="text-right">Líquido</TableHead>
+                    <TableHead className="text-right">Taxa</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {conciliados.map((r) => {
+                    const delta = Number(r.delta_bruto_vs_faturado ?? 0);
+                    return (
+                      <TableRow key={r.pedido_ref ?? Math.random()}>
+                        <TableCell className="font-mono text-xs">{r.pedido_ref ?? "—"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{r.cliente ?? "—"}</TableCell>
+                        <TableCell>{formatDateBR(String(r.data_emissao ?? "").slice(0, 10))}</TableCell>
+                        <TableCell>
+                          {formatDateBR(String(r.data_recebimento ?? "").slice(0, 10))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(Number(r.faturado ?? 0))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(Number(r.bruto_shopify ?? 0))}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right tabular-nums ${delta < 0 ? "text-destructive" : ""}`}
+                        >
+                          {formatBRL(delta)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-green-700">
+                          {formatBRL(Number(r.liquido_mp ?? 0))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(Number(r.taxa_mp ?? 0))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {conciliados.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="p-6 text-center text-muted-foreground">
+                        Sem conciliados no período.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <TableRow className="font-semibold">
+                      <TableCell colSpan={6}>Total</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatBRL(
+                          conciliados.reduce(
+                            (s, r) => s + Number(r.delta_bruto_vs_faturado ?? 0),
+                            0
+                          )
+                        )}
+                      </TableCell>
+                      <TableCell colSpan={2} />
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+        <p className="text-xs text-muted-foreground">
+          Acima de 20 dias sem liquidação não é mais atraso de D+14 — é furo. Δ é o bruto do Shopify
+          menos o faturado na NF: a diferença costuma ser frete cobrado e não destacado.
+        </p>
+      </div>
+
+
+
       <Card>
         <CardContent className="space-y-4 p-4">
           <AtalhosPeriodo
