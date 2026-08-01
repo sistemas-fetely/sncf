@@ -42,7 +42,11 @@ import {
   AlertTriangle,
   RefreshCw,
   Upload,
+  Loader2,
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { formatError } from "@/lib/format-error";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { toast } from "sonner";
 import { ImportarExtratoDialog } from "@/components/financeiro/ImportarExtratoDialog";
@@ -964,7 +968,301 @@ function PainelUnico({
           )}
         </div>
       )}
+
+      <BlocoSobra
+        credito={credito}
+        sugestoes={sugestoes || []}
+        invalidar={invalidar}
+        onDone={onDone}
+      />
     </div>
+  );
+}
+
+const STATUS_PAGO = ["pago", "pago_com_atraso", "pago_judicial"];
+
+type HaverElegivel = {
+  id: string;
+  valor: number;
+  saldo: number;
+  origem_descricao: string | null;
+};
+
+function BlocoSobra({
+  credito,
+  sugestoes,
+  invalidar,
+  onDone,
+}: {
+  credito: Credito;
+  sugestoes: Sugestao[];
+  invalidar: () => Promise<void>;
+  onDone: () => void;
+}) {
+  const valorCredito = Number(credito.valor || 0);
+
+  // Ids sem status conhecido na lista de sugestões — busca de apoio no banco.
+  const idsSemStatus = useMemo(
+    () => sugestoes.filter((s) => !s.status).map((s) => s.titulo_id),
+    [sugestoes],
+  );
+
+  const { data: statusExtra } = useQuery({
+    queryKey: ["status-titulos-sugeridos", credito.id, idsSemStatus.join(",")],
+    enabled: idsSemStatus.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("titulo_a_receber")
+        .select("id,status")
+        .in("id", idsSemStatus);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const r of (data || []) as any[]) map[r.id as string] = r.status as string;
+      return map;
+    },
+  });
+
+  const candidatos = useMemo(() => {
+    return sugestoes.filter((s) => {
+      const st = s.status || statusExtra?.[s.titulo_id] || "";
+      if (!STATUS_PAGO.includes(st)) return false;
+      const vt = Number(s.valor_atual || 0);
+      return valorCredito - vt > 0.01;
+    });
+  }, [sugestoes, statusExtra, valorCredito]);
+
+  const [tituloId, setTituloId] = useState<string | null>(null);
+  const [destino, setDestino] = useState<"haver_novo" | "haver_existente">("haver_existente");
+  const [haverId, setHaverId] = useState<string | null>(null);
+  const [nota, setNota] = useState("");
+  const [gravando, setGravando] = useState(false);
+
+  const selecionado = candidatos.find((c) => c.titulo_id === tituloId) || null;
+  const valorTitulo = selecionado ? Number(selecionado.valor_atual || 0) : 0;
+  const sobra = selecionado ? valorCredito - valorTitulo : 0;
+
+  // Parceiro do título selecionado (para buscar haveres do cliente).
+  const { data: parceiroId } = useQuery({
+    queryKey: ["parceiro-do-titulo", tituloId],
+    enabled: !!tituloId,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("titulo_a_receber")
+        .select("id, conta:conta_id(parceiro_id)")
+        .eq("id", tituloId as string)
+        .maybeSingle();
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((data as any)?.conta?.parceiro_id ?? null) as string | null;
+    },
+  });
+
+  const { data: haveres } = useQuery({
+    queryKey: ["haveres-elegiveis-sobra", parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async (): Promise<HaverElegivel[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("haver_cliente")
+        .select("id,valor,saldo,status,origem_descricao,movimentacao_origem_id")
+        .eq("parceiro_id", parceiroId)
+        .eq("status", "disponivel")
+        .is("movimentacao_origem_id", null);
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return ((data || []) as any[]).map((r) => ({
+        id: r.id as string,
+        valor: Number(r.valor || 0),
+        saldo: Number(r.saldo || 0),
+        origem_descricao: (r.origem_descricao ?? null) as string | null,
+      }));
+    },
+  });
+
+  const haveresElegiveis = useMemo(
+    () => (haveres || []).filter((h) => Math.abs(h.valor - sobra) <= 0.01),
+    [haveres, sobra],
+  );
+
+  if (candidatos.length === 0) return null;
+
+  const semHaver = haveresElegiveis.length === 0;
+  const destinoEfetivo = semHaver && destino === "haver_existente" ? "haver_novo" : destino;
+  const podeGravar =
+    !!tituloId &&
+    nota.trim().length >= 5 &&
+    (destinoEfetivo === "haver_novo" || !!haverId) &&
+    !gravando;
+
+  async function gravar() {
+    setGravando(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("conciliar_credito_com_sobra", {
+        p_movimentacao_id: credito.id,
+        p_titulo_id: tituloId,
+        p_destino_sobra: destinoEfetivo,
+        p_haver_id_existente: destinoEfetivo === "haver_existente" ? haverId : null,
+        p_nota: nota.trim(),
+      });
+      if (error) throw error;
+      const r = data as {
+        ok?: boolean;
+        numero_titulo?: string;
+        valor_sobra?: number;
+        error?: string;
+      } | null;
+      if (!r || r.ok !== true) throw new Error(r?.error || "resposta inesperada");
+      toast.success(
+        `Título ${r.numero_titulo || selecionado?.numero_titulo || ""} quitado. Sobra de ${formatBRL(
+          Number(r.valor_sobra || sobra),
+        )} destinada.`,
+      );
+      await invalidar();
+      onDone();
+    } catch (e) {
+      toast.error(formatError(e), { duration: 12000 });
+    } finally {
+      setGravando(false);
+    }
+  }
+
+  return (
+    <Card className="border-amber-500/50">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          Crédito maior que o título
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm">
+          Este crédito é maior que o título. Quite o título e escolha o destino da sobra.
+        </p>
+
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold text-muted-foreground">Título a quitar</Label>
+          <RadioGroup value={tituloId ?? ""} onValueChange={(v) => setTituloId(v)}>
+            {candidatos.map((c) => {
+              const s = valorCredito - Number(c.valor_atual || 0);
+              return (
+                <label
+                  key={c.titulo_id}
+                  className="flex items-center gap-3 rounded-md border p-2 cursor-pointer"
+                >
+                  <RadioGroupItem value={c.titulo_id} id={`sobra-${c.titulo_id}`} />
+                  <span className="font-mono text-xs">{c.numero_titulo || "—"}</span>
+                  <span className="text-sm text-muted-foreground">{c.cliente || "—"}</span>
+                  <span className="ml-auto text-sm tabular-nums">
+                    {formatBRL(Number(c.valor_atual || 0))}
+                  </span>
+                  <span className="text-sm tabular-nums text-amber-700">sobra {formatBRL(s)}</span>
+                </label>
+              );
+            })}
+          </RadioGroup>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <div className="text-xs text-muted-foreground">Crédito no banco</div>
+            <div className="text-lg font-semibold tabular-nums">{formatBRL(valorCredito)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Título a quitar</div>
+            <div className="text-lg font-semibold tabular-nums">{formatBRL(valorTitulo)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Sobra a destinar</div>
+            <div className="text-lg font-semibold tabular-nums text-amber-700">
+              {formatBRL(sobra)}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold text-muted-foreground">Destino da sobra</Label>
+          <RadioGroup
+            value={destinoEfetivo}
+            onValueChange={(v) => setDestino(v as "haver_novo" | "haver_existente")}
+          >
+            <div className="space-y-1">
+              <div
+                className="flex items-center gap-3"
+                title={semHaver ? "Nenhum haver disponível bate com o valor da sobra" : undefined}
+              >
+                <RadioGroupItem
+                  value="haver_existente"
+                  id="destino-existente"
+                  disabled={semHaver}
+                />
+                <Label htmlFor="destino-existente" className="text-sm">
+                  Haver existente do cliente
+                </Label>
+              </div>
+              {destinoEfetivo === "haver_existente" && (
+                <div className="pl-7">
+                  <Select value={haverId ?? ""} onValueChange={(v) => setHaverId(v)}>
+                    <SelectTrigger className="w-[420px]">
+                      <SelectValue placeholder="Escolha o haver" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {haveresElegiveis.map((h) => (
+                        <SelectItem key={h.id} value={h.id}>
+                          {formatBRL(h.valor)} · {(h.origem_descricao || "sem descrição").slice(0, 50)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <p className="pl-7 text-xs text-muted-foreground">
+                Quando a sobra já foi registrada à mão, escolha o haver existente. Criar um novo
+                geraria duplicata.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <RadioGroupItem value="haver_novo" id="destino-novo" />
+                <Label htmlFor="destino-novo" className="text-sm">
+                  Criar novo haver para o cliente
+                </Label>
+              </div>
+              <p className="pl-7 text-xs text-muted-foreground">
+                Criar haver novo exige perfil super_admin — restrição do domínio de recebíveis.
+              </p>
+            </div>
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs font-semibold text-muted-foreground">Nota (obrigatória)</Label>
+          <Textarea
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            placeholder="Descreva a decisão: de onde veio o crédito, por que a sobra vai para este destino."
+            rows={3}
+          />
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>mínimo 5 caracteres</span>
+            <span className="tabular-nums">{nota.trim().length} caracteres</span>
+          </div>
+        </div>
+
+        <Button disabled={!podeGravar} onClick={gravar}>
+          {gravando ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Gravando...
+            </>
+          ) : (
+            "Quitar título e destinar a sobra"
+          )}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
