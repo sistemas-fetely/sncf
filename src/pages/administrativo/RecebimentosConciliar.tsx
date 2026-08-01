@@ -593,7 +593,7 @@ function RowCredito({
       </TableRow>
       {open && canExpand && (
         <TableRow>
-          <TableCell colSpan={7} className="bg-muted/30 p-4">
+          <TableCell colSpan={8} className="bg-muted/30 p-4">
             {meio === "cartao" ? (
               <PainelCesta credito={credito} invalidar={invalidar} onDone={onDone} />
             ) : meio === "cobranca" ? (
