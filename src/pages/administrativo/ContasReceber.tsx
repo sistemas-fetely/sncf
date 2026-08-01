@@ -145,8 +145,6 @@ const capitalize = (s: string) =>
 
 const formatMeio = (m: string | null) => (m ? capitalize(m.replace(/_/g, " ")) : "—");
 
-const rotuloStatus = (s: StatusGestao) =>
-  s === "pago" ? "Recebido" : s === "atrasado" ? "Atrasado" : s === "cancelado" ? "Cancelado" : "Em aberto";
 
 const efetivoDe = (t: RecebivelB2B) => Number(t.valor_efetivo ?? t.valor ?? 0);
 
@@ -685,7 +683,7 @@ function AbaB2B() {
 
       {/* KPIs */}
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-green-700">Recebido</CardTitle>
