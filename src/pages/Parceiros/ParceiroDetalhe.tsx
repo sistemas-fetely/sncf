@@ -181,12 +181,18 @@ export default function ParceiroDetalhe() {
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Em aberto</p>
             <p className="text-2xl font-bold mt-1">{pedidos_em_aberto}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">nao terminais</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Valor total</p>
             <p className="text-2xl font-bold mt-1">{fmtBRL.format(valor_total)}</p>
+            {valor_cancelado > 0 && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                exclui {fmtBRL.format(valor_cancelado)} cancelado
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
