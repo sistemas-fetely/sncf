@@ -228,6 +228,8 @@ function AbaB2B() {
   const [filtroBanco, setFiltroBanco] = useState<string>("todos");
   const [filtroMeio, setFiltroMeio] = useState<string>("todos");
   const [soRenegociados, setSoRenegociados] = useState(false);
+  const [soSemProva, setSoSemProva] = useState(false);
+  const [soDivergentes, setSoDivergentes] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [situacoes, setSituacoes] = useState<Set<StatusGestao>>(
     new Set<StatusGestao>(["pago", "em_aberto", "atrasado"])
