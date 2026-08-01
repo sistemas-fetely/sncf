@@ -158,6 +158,9 @@ export default function FluxoCompetencia() {
   const foraDoDefault = mes !== "todos" || tipo !== "todos" || elo !== "todos" || busca !== "";
 
   // ── KPIs ────────────────────────────────────────────────
+  // Base única de medida: os três cards comparáveis (Competência, Caixa
+  // confirmado, Sem prova de caixa) usam valor_atual — valor do título.
+  // mov_valor é crédito no banco e divergiria por MDR, juros e liquidação parcial.
   const kpis = useMemo(() => {
     const hoje = hojeISO();
     let competencia = 0, comNf = 0, caixa = 0, previsto = 0, semProva = 0, safrapay = 0;
@@ -166,7 +169,7 @@ export default function FluxoCompetencia() {
     for (const r of filtrados) {
       const va = Number(r.valor_atual ?? 0);
       if (r.nf_id) { competencia += va; comNf++; }
-      if (r.movimentacao_id) caixa += Number(r.mov_valor ?? 0);
+      if (r.elo_caixa === "caixa_confirmado") caixa += va;
       if (r.haver_com_lastro) caixa += Number(r.haver_valor ?? 0);
       if (!r.data_pagamento && r.status !== "cancelado" && r.data_liquidacao_prevista && r.data_liquidacao_prevista >= hoje) {
         previsto += va;
@@ -175,6 +178,23 @@ export default function FluxoCompetencia() {
       if (r.elo_caixa === "aguarda_safrapay") { temSafrapay = true; safrapay += va; }
     }
     return { competencia, comNf, caixa, previsto, semProva, safrapay, temSafrapay };
+  }, [filtrados]);
+
+  /**
+   * Movimentações distintas do conjunto filtrado.
+   * Uma movimentação pode liquidar duas parcelas — somar por linha de título
+   * contaria o mesmo crédito duas vezes.
+   */
+  const movsDistintas = useMemo(() => {
+    const map = new Map<string, { mes_caixa: string | null; mov_valor: number }>();
+    for (const r of filtrados) {
+      if (!r.movimentacao_id || map.has(r.movimentacao_id)) continue;
+      map.set(r.movimentacao_id, {
+        mes_caixa: r.mes_caixa,
+        mov_valor: Number(r.mov_valor ?? 0),
+      });
+    }
+    return map;
   }, [filtrados]);
 
   // ── Bloco 2: mês a mês ──────────────────────────────────
@@ -190,11 +210,12 @@ export default function FluxoCompetencia() {
     for (const r of filtrados) {
       const va = Number(r.valor_atual ?? 0);
       if (r.nf_id) add(comp, r.mes_competencia, va);
-      if (r.movimentacao_id) add(cx, r.mes_caixa, Number(r.mov_valor ?? 0));
       if (!r.data_pagamento && r.status !== "cancelado") {
         add(prev, chaveMes(r.data_liquidacao_prevista), va);
       }
     }
+    // Caixa: dinheiro que entrou na conta, por movimentação distinta.
+    for (const mv of movsDistintas.values()) add(cx, mv.mes_caixa, mv.mov_valor);
 
     const chaves = Array.from(new Set([...comp.keys(), ...cx.keys(), ...prev.keys()])).sort();
     return chaves.map((k) => ({
@@ -204,7 +225,7 @@ export default function FluxoCompetencia() {
       caixa: cx.get(k) ?? 0,
       previsto: prev.get(k) ?? 0,
     }));
-  }, [filtrados]);
+  }, [filtrados, movsDistintas]);
 
   const totaisMensal = useMemo(
     () =>
@@ -218,6 +239,7 @@ export default function FluxoCompetencia() {
       ),
     [mensal],
   );
+
 
   // ── Bloco 3: pills por elo ──────────────────────────────
   const pills = useMemo(() => {
