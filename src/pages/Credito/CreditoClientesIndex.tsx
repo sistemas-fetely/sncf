@@ -245,7 +245,11 @@ export default function CreditoClientesIndex() {
                       >
                       <td className="px-4 py-2">
                         <p className="font-medium truncate text-sm">{c.razao_social ?? c.cliente ?? "—"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{c.cnpj ?? ""}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {[apelidoParceiro(c.razao_social, c.nome_fantasia), c.cnpj || null]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
                       </td>
                         <td className="px-4 py-2 text-right">
                           {c.haver_disponivel > 0 ? (
