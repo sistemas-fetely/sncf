@@ -12,7 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useNfsEmitidas, type NfEmitida } from "@/hooks/vendas/useNfsEmitidas";
-import { FileText, ExternalLink, Search, RefreshCw, Download, AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, Loader2 } from "lucide-react";
+import { FileText, ExternalLink, Search, RefreshCw, Download, Loader2 } from "lucide-react";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
