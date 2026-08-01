@@ -1302,7 +1302,8 @@ function AbaB2C() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-3xl text-xs text-muted-foreground">
           B2C não usa título — o recebível nasce liquidado, por pedido. Não existe aberto nem futuro
-          aqui, e estes valores não somam com os do B2B.
+          aqui, e estes valores não somam com os do B2B. Mercado Pago liquida em D+14: venda recente
+          ainda não caiu.
         </p>
         <Button
           variant="outline"
@@ -1315,7 +1316,7 @@ function AbaB2C() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Bruto Shopify</CardTitle>
@@ -1348,7 +1349,22 @@ function AbaB2C() {
             </div>
           </CardContent>
         </Card>
+        <Card className="border-amber-500/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Faturado sem recebimento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold tabular-nums text-amber-700">
+              {formatBRL(kpiFuro.total)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {kpiFuro.n} pedidos
+              {kpiFuro.maisAntigo !== null ? ` · mais antigo há ${kpiFuro.maisAntigo} dias` : ""}
+            </p>
+          </CardContent>
+        </Card>
       </div>
+
 
       <Card>
         <CardHeader className="pb-2">
