@@ -456,7 +456,7 @@ export default function FluxoCompetencia() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold tabular-nums">{fmtBRL(kpis.caixa)}</p>
-            <p className="text-xs text-muted-foreground">movimentação bancária + haver com lastro</p>
+            <p className="text-xs text-muted-foreground">título com lastro provado — banco ou haver</p>
           </CardContent>
         </Card>
 
@@ -520,9 +520,9 @@ export default function FluxoCompetencia() {
                 />
                 <Tooltip formatter={(v: number) => fmtBRL(v)} contentStyle={{ borderRadius: 8, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="competencia" name="Competência" fill="#1A4A3A" />
-                <Bar dataKey="caixa" name="Caixa" fill="#8FB87A" />
-                <Line dataKey="previsto" name="Previsto" type="monotone" stroke="#0284c7" strokeWidth={2} dot />
+                <Bar dataKey="competencia" name="Competência" fill="hsl(var(--primary))" />
+                <Bar dataKey="caixa" name="Caixa" fill="hsl(var(--primary) / 0.55)" />
+                <Line dataKey="previsto" name="Previsto" type="monotone" stroke="hsl(var(--info, var(--primary)))" strokeWidth={2} dot />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -586,7 +586,9 @@ export default function FluxoCompetencia() {
 
           <p className="text-xs text-muted-foreground">
             Competência e caixa não batem por definição — a NF é fato fiscal, a movimentação é fato
-            financeiro.
+            financeiro. A coluna Caixa é dinheiro que entrou na conta, por movimentação distinta; o
+            KPI Caixa confirmado é o valor do título com lastro. As duas divergem por MDR de cartão,
+            juros e liquidação parcial.
           </p>
         </CardContent>
       </Card>
