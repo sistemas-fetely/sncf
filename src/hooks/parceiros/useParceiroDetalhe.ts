@@ -34,14 +34,21 @@ export function useParceiroDetalhe(id: string | undefined) {
         .select("valor_liquido, estagio")
         .eq("parceiro_id", id);
 
+      // Cancelado não é faturamento — não entra no valor total.
       const valor_total = (pedidos_agg || []).reduce(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (acc: number, p: any) => acc + Number(p.valor_liquido || 0),
+        (acc: number, p: any) =>
+          p.estagio === "cancelado" ? acc : acc + Number(p.valor_liquido || 0),
         0
       );
+
+      // "Em aberto" = não-terminal. Mesmo critério da Fila ativa da Casa dos Pedidos:
+      // entregue, cancelado e recuperacao_venda são terminais; `faturado` NÃO é
+      // (NF emitida e não recebida continua aberta).
+      const TERMINAIS = ["entregue", "cancelado", "recuperacao_venda"];
       const pedidos_em_aberto = (pedidos_agg || []).filter(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (p: any) => !["faturado", "entregue", "cancelado"].includes(p.estagio)
+        (p: any) => !TERMINAIS.includes(p.estagio)
       ).length;
 
       return {
@@ -50,6 +57,12 @@ export function useParceiroDetalhe(id: string | undefined) {
         total_pedidos: total_pedidos || 0,
         valor_total,
         pedidos_em_aberto,
+        valor_cancelado: (pedidos_agg || []).reduce(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (acc: number, p: any) =>
+            p.estagio === "cancelado" ? acc + Number(p.valor_liquido || 0) : acc,
+          0
+        ),
       };
     },
   });
