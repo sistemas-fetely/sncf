@@ -56,45 +56,15 @@ import { BadgePrazo, BadgeProva } from "@/lib/financeiro/eixos-estado";
 
 type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca";
 
-const STATUS_LABEL: Record<StatusGestao, string> = {
-  a_vencer: "A vencer",
-  vence_hoje: "Vence hoje",
-  atrasado: "Atrasado",
-  pago: "Pago",
-  pago_com_atraso: "Pago c/ atraso",
-  pago_judicial: "Pago judicial",
-  cancelado: "Cancelado",
-};
+type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca_mercadoria";
 
-const STATUS_BADGE: Record<StatusGestao, string> = {
-  a_vencer: "bg-muted text-muted-foreground border border-border",
-  vence_hoje: "bg-amber-50 text-amber-700 border border-amber-200",
-  atrasado: "bg-red-50 text-red-700 border border-red-200",
-  pago: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  pago_com_atraso: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  pago_judicial: "bg-slate-100 text-slate-700 border border-slate-300",
-  cancelado: "bg-muted text-muted-foreground line-through",
-};
-
-
-function BadgeStatusGestao({ status }: { status: StatusGestao }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-        STATUS_BADGE[status],
-      )}
-    >
-      {STATUS_LABEL[status]}
-    </span>
-  );
-}
-
-const SUBESTADO_LABEL: Record<Exclude<SubestadoAtraso, null | "em_dia">, string> = {
+const SUBESTADO_LABEL: Record<string, string> = {
   lembrete_amistoso: "Lembrete amistoso",
   cobranca_ativa: "Cobrança ativa",
-  cobranca_dura: "Cobrança dura",
+  cobranca_formal: "Cobrança formal",
   pre_juridico: "Pré-jurídico",
+  notificacao_extrajudicial: "Notificação extrajudicial",
+  protesto_solicitado: "Protesto solicitado",
   juridico: "Jurídico",
 };
 
@@ -102,10 +72,11 @@ function BadgeSubestado({ sub }: { sub: SubestadoAtraso }) {
   if (!sub || sub === "em_dia") return null;
   return (
     <Badge variant="outline" className="text-[10px]">
-      {SUBESTADO_LABEL[sub]}
+      {SUBESTADO_LABEL[sub] ?? sub}
     </Badge>
   );
 }
+
 
 function HistoricoReguaSection({ tituloId }: { tituloId: string }) {
   const { data = [], isLoading } = useHistoricoReguaTitulo(tituloId, 5);
