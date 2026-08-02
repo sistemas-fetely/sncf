@@ -54,7 +54,7 @@ type Titulo = {
   linha_digitavel: string | null;
   link_pagamento: string | null;
   email_cobranca_enviado_em: string | null;
-  conta: { parceiro: { razao_social: string | null } | null } | null;
+  conta: { parceiro: { razao_social: string | null; nome_fantasia: string | null } | null } | null;
 };
 
 type GrupoStatus = "a_receber" | "vencido" | "pago" | "cancelado";
