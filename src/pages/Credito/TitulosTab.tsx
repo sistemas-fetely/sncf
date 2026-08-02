@@ -4,8 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useTitulosCobranca,
   calcularKpis,
+  tituloEntraNoKpi,
   type TituloCobranca,
-  type StatusGestao,
 } from "@/hooks/credito/useTitulosCobranca";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
