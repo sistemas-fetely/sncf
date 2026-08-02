@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 
 // ─────────────────────────────────────────────────────────────
 // Tipos

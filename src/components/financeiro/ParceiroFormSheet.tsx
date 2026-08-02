@@ -32,6 +32,7 @@ import { GrupoEmpresarialCombobox } from "@/components/financeiro/GrupoEmpresari
 import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { useCanaisVenda } from "@/hooks/financeiro/useCanaisVenda";
 import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 
 export type Parceiro = {
   id: string;

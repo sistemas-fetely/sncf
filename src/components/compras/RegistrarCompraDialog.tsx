@@ -52,6 +52,7 @@ import { NovoFornecedorRapidoDialog } from "./NovoFornecedorRapidoDialog";
 import { LinhasCompraEditor } from "./LinhasCompraEditor";
 import { useRegistrarCompraPedido } from "@/hooks/compras/useRegistrarCompraPedido";
 import { useAnexosCompraRegistrada } from "@/hooks/compras/useAnexosCompraRegistrada";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import type {
   PedidoCompraFull,
   LinhaCompra,

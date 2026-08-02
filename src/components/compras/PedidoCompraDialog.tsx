@@ -45,6 +45,7 @@ import { useDepartamentoUnidadeUsuario } from "@/hooks/compras/useDepartamentoUn
 import { useCriarPedidoCompra } from "@/hooks/compras/useCriarPedidoCompra";
 import { useEnviarPedidoCompra } from "@/hooks/compras/useEnviarPedidoCompra";
 import { useAtualizarPedidoCompra } from "@/hooks/compras/useAtualizarPedidoCompra";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 import type {
   ItemEdit,
   PedidoCompraAnexoRow,
