@@ -823,8 +823,10 @@ function AbaB2B() {
       Desconto: t.valor_desconto ?? 0,
       "Gera caixa": t.gera_caixa ? "Sim" : "Não",
       "Prova bancária": t.tem_prova_bancaria ? "Sim" : "Não",
-      Status: t.estado_rotulo ?? "",
-      "Estado (código)": t.estado_gestao ?? "",
+      Prova: PROVA_META[t.eixo_prova]?.label ?? "",
+      Prazo: PRAZO_META[t.eixo_prazo]?.label ?? "",
+      "Compensado por": t.compensado_por ?? "",
+      Inadimplente: t.eh_inadimplencia ? "Sim" : "Não",
 
     }));
     const ws = XLSX.utils.json_to_sheet(linhas);
