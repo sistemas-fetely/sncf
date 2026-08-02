@@ -509,6 +509,17 @@ export default function ContasReceberSops() {
                         </TableCell>
                         <TableCell className="max-w-[160px] truncate">
                           {t.conta?.parceiro?.razao_social ?? "—"}
+                          {apelidoParceiro(
+                            t.conta?.parceiro?.razao_social,
+                            t.conta?.parceiro?.nome_fantasia,
+                          ) && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {apelidoParceiro(
+                                t.conta?.parceiro?.razao_social,
+                                t.conta?.parceiro?.nome_fantasia,
+                              )}
+                            </p>
+                          )}
                         </TableCell>
                         <TableCell>
                           {t.numero_parcela ?? "—"}/{t.total_parcelas ?? "—"}
