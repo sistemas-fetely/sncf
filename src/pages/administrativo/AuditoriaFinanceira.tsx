@@ -110,16 +110,7 @@ const FONTE_LABEL: Record<string, string> = {
   recebivel_sem_titulo: "Recebível sem título",
 };
 
-const MEIO_LABEL: Record<string, string> = {
-  boleto: "Boleto",
-  pix: "PIX",
-  cartao: "Cartão",
-  haver: "Haver",
-  misto: "Misto",
-  sem_titulo: "Sem título",
-};
-const labelMeio = (m: string | null | undefined) => (m && MEIO_LABEL[m]) || m || "—";
-const MEIO_ORDEM = ["cartao", "pix", "boleto", "misto", "haver", "sem_titulo"];
+// Rótulos/ordem/critério de meio vivem em src/lib/auditoria/filtro-meio.ts
 
 
 const SITUACAO_META: Record<Situacao, { label: string; className: string }> = {
