@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
 import { publicUrl, PUBLIC_APP_URL } from "@/lib/urls";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -2799,6 +2800,14 @@ function TesteTecnico({
     enabled: !!candidatoId && !!vagaId,
   });
 
+  // Entrega guardada no bucket privado: leitura via URL assinada.
+  const entregaEhArquivo = /\/storage\/v1\/object\//.test(formResultado?.link_entrega ?? "")
+    || (formResultado?.link_entrega ?? "").includes("supabase");
+  const { url: urlEntregaAssinada, carregando: carregandoEntrega } = useUrlAssinada(
+    "documentos-cadastro",
+    entregaEhArquivo ? formResultado.link_entrega : null,
+  );
+
   useEffect(() => {
     if (teste) {
       setFormDesafio({
@@ -3220,15 +3229,23 @@ function TesteTecnico({
                       hour: "2-digit", minute: "2-digit"
                     })}
                     {formResultado.link_entrega && (
-                      <> · {formResultado.link_entrega.includes("supabase") ? "📎 Arquivo enviado" : extrairDominio(formResultado.link_entrega)}</>
+                      <> · {entregaEhArquivo ? "📎 Arquivo enviado" : extrairDominio(formResultado.link_entrega)}</>
                     )}
                   </p>
                 </div>
                 {formResultado.link_entrega && (
                   <Button variant="outline" size="sm" className="h-7 text-xs gap-1"
-                    onClick={() => window.open(formResultado.link_entrega, "_blank")}>
+                    disabled={entregaEhArquivo && (carregandoEntrega || !urlEntregaAssinada)}
+                    onClick={() => {
+                      const destino = entregaEhArquivo ? urlEntregaAssinada : formResultado.link_entrega;
+                      if (!destino) {
+                        toast.error("Não foi possível gerar o link do arquivo da entrega.");
+                        return;
+                      }
+                      window.open(destino, "_blank");
+                    }}>
                     <ExternalLink className="h-3 w-3" />
-                    {formResultado.link_entrega.includes("supabase") ? "Abrir arquivo" : "Abrir entrega"}
+                    {entregaEhArquivo ? (carregandoEntrega ? "Gerando link..." : "Abrir arquivo") : "Abrir entrega"}
                   </Button>
                 )}
               </div>

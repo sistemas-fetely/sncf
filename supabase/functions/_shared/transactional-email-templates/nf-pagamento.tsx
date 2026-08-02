@@ -5,6 +5,7 @@ import {
 import type { TemplateEntry } from './registry.ts'
 
 const SITE_NAME = "Fetely People"
+const APP_URL = "https://sncf.lovable.app"
 
 interface NFPagamentoProps {
   nomeColaborador?: string
@@ -12,10 +13,10 @@ interface NFPagamentoProps {
   numeroNF?: string
   valor?: string
   dataVencimento?: string
-  arquivoUrl?: string
+  notaFiscalId?: string
 }
 
-const NFPagamentoEmail = ({ nomeColaborador, nomeFantasia, numeroNF, valor, dataVencimento, arquivoUrl }: NFPagamentoProps) => (
+const NFPagamentoEmail = ({ nomeColaborador, nomeFantasia, numeroNF, valor, dataVencimento, notaFiscalId }: NFPagamentoProps) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
     <Preview>Nota Fiscal para pagamento - NF {numeroNF || ''}</Preview>
@@ -41,13 +42,17 @@ const NFPagamentoEmail = ({ nomeColaborador, nomeFantasia, numeroNF, valor, data
         <Text style={detailItem}>
           <strong>Prestador:</strong> {nomeColaborador || '—'}
         </Text>
-        {arquivoUrl && (
+        {notaFiscalId && (
           <Section style={buttonSection}>
-            <Button style={downloadButton} href={arquivoUrl}>
-              📄 Baixar Nota Fiscal (PDF)
+            <Button style={downloadButton} href={`${APP_URL}/notas-fiscais/${notaFiscalId}`}>
+              Abrir a NF no sistema
             </Button>
           </Section>
         )}
+        <Text style={text}>
+          O arquivo da nota fiscal fica disponível na tela da NF no sistema (é necessário estar logado).
+        </Text>
+
         <Text style={text}>
           Após o pagamento, favor enviar o comprovante para rh.corp@fetelycorp.com.br
         </Text>
@@ -74,7 +79,7 @@ export const template = {
     numeroNF: '12345',
     valor: 'R$ 5.000,00',
     dataVencimento: '15/01/2025',
-    arquivoUrl: 'https://example.com/nf.pdf',
+    notaFiscalId: '00000000-0000-0000-0000-000000000000',
   },
 } satisfies TemplateEntry
 

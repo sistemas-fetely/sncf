@@ -114,7 +114,13 @@ export function StepUploadDocumentos({ tipo, folderKey, uploadedFiles, onFilesCh
     const ext = file.name.split(".").pop() || "jpg";
     const filePath = `${folderKey}/${key}.${ext}`;
 
-    await supabase.storage.from("documentos-cadastro").remove([filePath]);
+    const { error } = await supabase.storage.from("documentos-cadastro").remove([filePath]);
+
+    if (error) {
+      // FAIL-LOUD: o arquivo continua no bucket, então não sai da lista.
+      toast.error("Erro ao remover arquivo: " + error.message);
+      return;
+    }
 
     setPreviews((prev) => {
       if (prev[key]) URL.revokeObjectURL(prev[key]);

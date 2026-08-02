@@ -95,7 +95,7 @@ export function AprovarNFDialog({ open, onOpenChange, tarefaId, notaId }: Props)
               numeroNF: detalhe.nota.numero,
               valor: `R$ ${Number(detalhe.nota.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
               dataVencimento: detalhe.nota.data_vencimento || detalhe.nota.data_emissao,
-              arquivoUrl: detalhe.pdfUrl,
+              notaFiscalId: notaId,
             },
           },
         });
