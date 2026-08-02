@@ -65,7 +65,7 @@ const DISABLED_REASON: Partial<Record<Status, string>> = {
   sem_candidato: "Nenhuma liquidação SafraPay deste dia bate com o crédito — importe o SafraPay Tipo 2 do período.",
 };
 
-export default function ConciliacaoCartao() {
+function AbaConciliarExtrato() {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [processando, setProcessando] = useState<string | null>(null);
@@ -124,16 +124,12 @@ export default function ConciliacaoCartao() {
 
   return (
     <TooltipProvider>
-      <div className="p-6 space-y-6 max-w-[1400px]">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CreditCard className="h-6 w-6 text-admin" />
-            Conciliação de Cartão
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Créditos de cartão no OFX vs. lotes de parcelas SafraPay. Confirme para conciliar o crédito com as parcelas correspondentes.
-          </p>
-        </div>
+      <div className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          Créditos de cartão no OFX vs. lotes de parcelas SafraPay. Confirme para conciliar o crédito com as parcelas correspondentes.
+        </p>
+
+
 
         {/* KPIs */}
         <div className="flex flex-wrap gap-2 text-sm">
