@@ -567,7 +567,7 @@ export default function AuditoriaFinanceira() {
         </div>
       </div>
 
-      {/* Lista agrupada por classe */}
+      {/* Lista */}
       {isLoading ? (
         <div className="text-sm text-muted-foreground p-8 text-center">Carregando…</div>
       ) : filtrados.length === 0 ? (
@@ -580,7 +580,7 @@ export default function AuditoriaFinanceira() {
             </div>
           </CardContent>
         </Card>
-      ) : (
+      ) : visao === "classe" ? (
         <div className="space-y-6">
           {grupos.map((g) => (
             <Card key={g.classe} className="overflow-hidden">
@@ -607,75 +607,65 @@ export default function AuditoriaFinanceira() {
                 </div>
               </div>
               <div className="divide-y">
-                {g.itens.map((a) => {
-                  const sev = (a.severidade ?? 3) as 1 | 2 | 3;
-                  const sevMeta = SEV_META[sev] ?? SEV_META[3];
-                  const sitKey = (a.situacao ?? "aberto") as Situacao;
-                  const sitMeta = SITUACAO_META[sitKey] ?? SITUACAO_META.aberto;
-                  return (
-                    <div key={a.id} className="px-5 py-4 grid grid-cols-12 gap-3 items-start">
-                      <div className="col-span-12 md:col-span-2 space-y-1">
-                        <Badge variant="outline" className={cn("flex-shrink-0", sevMeta.badge)}>
-                          Sev {sev}
-                        </Badge>
-                        {a.estagio && <EstagioBadge estagio={a.estagio as EstagioPedido} />}
-                      </div>
-                      <div className="col-span-12 md:col-span-3 text-sm">
-                        <div className="truncate" title={a.cliente ?? ""}>
-                          {a.cliente || "—"}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          <span className="tabular-nums">{a.id_externo || "—"}</span>
-                          {a.pedido_id && (
-                            <button
-                              onClick={() => navigate(`/pedidos/${a.pedido_id}`)}
-                              className="inline-flex items-center gap-1 text-primary hover:underline"
-                            >
-                              abrir <ExternalLink className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                        <div className="text-sm font-medium tabular-nums mt-1">
-                          {formatBRL(Number(a.valor || 0))}
-                        </div>
-                      </div>
-                      <div className="col-span-12 md:col-span-4 space-y-2 text-sm">
-                        <div className="text-muted-foreground">{a.detalhe || "—"}</div>
-                        {a.acao && (
-                          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-                            <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-0.5">
-                              Ação
-                            </div>
-                            <div className="leading-snug text-foreground">{a.acao}</div>
-                          </div>
-                        )}
-                        {a.nota && (
-                          <div className="text-xs text-muted-foreground italic border-l-2 pl-2 border-border">
-                            Nota: {a.nota}
-                          </div>
-                        )}
-                      </div>
-                      <div className="col-span-12 md:col-span-3 flex flex-col gap-2 items-start md:items-end">
-                        <Badge variant="outline" className={cn("border", sitMeta.className)}>
-                          {sitMeta.label}
-                        </Badge>
-                        <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
-                          Tratar
-                        </Button>
-                        {a.tratado_em && (
-                          <div className="text-[10px] text-muted-foreground">
-                            Tratado em {formatDataHora(a.tratado_em)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {g.itens.map((a) => renderAchado(a))}
               </div>
             </Card>
           ))}
         </div>
+      ) : (
+        <div className="space-y-6">
+          {gruposPedido.map((g, idx) => {
+            const multiplos = g.achadosNoPedido >= 3;
+            return (
+              <Card
+                key={g.pedido_id ?? g.id_externo ?? idx}
+                className={cn("overflow-hidden", multiplos && "border-amber-500/50")}
+              >
+                <div className="px-5 py-3 border-b bg-muted/40 space-y-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-wrap">
+                      {g.pedido_id ? (
+                        <button
+                          onClick={() => navigate(`/pedidos/${g.pedido_id}`)}
+                          className="font-semibold tabular-nums text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          {g.id_externo || "—"} <ExternalLink className="h-3 w-3" />
+                        </button>
+                      ) : (
+                        <span className="font-semibold tabular-nums">{g.id_externo || "—"}</span>
+                      )}
+                      <span className="text-sm text-muted-foreground truncate" title={g.cliente ?? ""}>
+                        {g.cliente || "—"}
+                      </span>
+                      <Badge variant="outline" className="flex-shrink-0">
+                        {g.achadosNoPedido} {g.achadosNoPedido === 1 ? "achado" : "achados"}
+                      </Badge>
+                      <Badge variant="secondary" className="flex-shrink-0">
+                        {labelMeio(g.meio)}
+                      </Badge>
+                    </div>
+                    <div className="text-sm font-semibold tabular-nums flex-shrink-0">
+                      {formatBRL(g.total)}
+                    </div>
+                  </div>
+                  {multiplos && (
+                    <div className="text-xs text-muted-foreground">
+                      Vários detectores apontando o mesmo pedido — pode ser um problema só visto de ângulos diferentes.
+                    </div>
+                  )}
+                </div>
+                <div className="divide-y">
+                  {g.itens
+                    .slice()
+                    .sort((x, y) => (x.severidade ?? 99) - (y.severidade ?? 99))
+                    .map((a) => renderAchado(a, true))}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       )}
+
 
       {/* Dialog de tratamento */}
       <Dialog open={!!tratar} onOpenChange={(o) => { if (!o) { setTratar(null); setNota(""); } }}>
