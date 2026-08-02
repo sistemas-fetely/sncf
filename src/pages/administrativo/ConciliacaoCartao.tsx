@@ -278,6 +278,391 @@ function AbaConciliarExtrato() {
   );
 }
 
+export default function ConciliacaoCartao() {
+  return (
+    <div className="p-6 space-y-6 max-w-[1400px]">
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <CreditCard className="h-6 w-6 text-admin" />
+          Conciliação de Cartão
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          SafraPay × OFX × títulos. Vincule a venda ao pedido e concilie o extrato.
+        </p>
+      </div>
+
+      <Tabs defaultValue="vincular">
+        <TabsList>
+          <TabsTrigger value="vincular">Vincular vendas</TabsTrigger>
+          <TabsTrigger value="extrato">Conciliar extrato</TabsTrigger>
+        </TabsList>
+        <TabsContent value="vincular" className="mt-6">
+          <AbaVincularVendas />
+        </TabsContent>
+        <TabsContent value="extrato" className="mt-6">
+          <AbaConciliarExtrato />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/* ============================ PERNA 1 — Vincular vendas ============================ */
+
+type Forca = "exato" | "aproximado" | "fraco";
+
+type VendaSugestao = {
+  nsu: string;
+  data_venda: string;
+  produto: string | null;
+  modalidade: string | null;
+  parcelas_safrapay: number;
+  valor_bruto: number;
+  valor_liquido: number;
+  mdr: number;
+  pedido_id: string;
+  pedido_ref: string;
+  cliente: string | null;
+  nf_data: string | null;
+  parcelas_no_sistema: number | null;
+  parcelas_titulo: number | null;
+  total_titulos: number | null;
+  ja_tem_nsu: boolean;
+  nsu_atual: string | null;
+  delta_valor: number | null;
+  delta_pct: number | null;
+  dias_nf_venda: number | null;
+  divergencia_parcelas: boolean;
+  forca: Forca;
+};
+
+const FORCA_RANK: Record<Forca, number> = { exato: 0, aproximado: 1, fraco: 2 };
+
+const FORCA_LABEL: Record<Forca, string> = {
+  exato: "Exata",
+  aproximado: "Aproximada",
+  fraco: "Fraca",
+};
+
+const FORCA_CLASS: Record<Forca, string> = {
+  exato: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  aproximado: "bg-amber-100 text-amber-800 border-amber-300",
+  fraco: "bg-muted text-muted-foreground border-border",
+};
+
+function AbaVincularVendas() {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [alvo, setAlvo] = useState<VendaSugestao | null>(null);
+  const [nota, setNota] = useState("");
+
+  const { data: pares = [], isLoading, isError, error } = useQuery({
+    queryKey: ["conciliacao-cartao-vendas"],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("vw_safrapay_venda_pedido_sugestao")
+        .select("*");
+      if (error) throw error;
+      return (data || []) as VendaSugestao[];
+    },
+  });
+
+  const vendas = useMemo(() => {
+    const mapa = new Map<string, VendaSugestao[]>();
+    for (const p of pares) {
+      const arr = mapa.get(p.nsu) || [];
+      arr.push(p);
+      mapa.set(p.nsu, arr);
+    }
+    const lista = Array.from(mapa.entries()).map(([nsu, candidatos]) => {
+      const ordenados = [...candidatos].sort((a, b) => FORCA_RANK[a.forca] - FORCA_RANK[b.forca]);
+      const forca = ordenados[0].forca;
+      return { nsu, forca, venda: ordenados[0], candidatos: ordenados };
+    });
+    lista.sort((a, b) =>
+      FORCA_RANK[a.forca] - FORCA_RANK[b.forca] ||
+      Number(b.venda.valor_bruto) - Number(a.venda.valor_bruto)
+    );
+    return lista;
+  }, [pares]);
+
+  const kpi = useMemo(() => {
+    let exatas = 0, aproximadas = 0, comDivergencia = 0;
+    for (const v of vendas) {
+      if (v.forca === "exato") exatas++;
+      else if (v.forca === "aproximado") aproximadas++;
+      if (v.candidatos.some((c) => c.divergencia_parcelas)) comDivergencia++;
+    }
+    return { exatas, aproximadas, comDivergencia };
+  }, [vendas]);
+
+  const vincular = useMutation({
+    mutationFn: async ({ c, obs }: { c: VendaSugestao; obs: string }) => {
+      const { data, error } = await sb.rpc("vincular_venda_cartao_pedido", {
+        p_nsu: c.nsu,
+        p_pedido_id: c.pedido_id,
+        p_nota: obs,
+      });
+      if (error) throw error;
+      const resp = (data ?? {}) as { ok?: boolean; error?: string; parcelas_carimbadas?: number };
+      if (resp.ok === false) throw new Error(resp.error || "Falha ao vincular venda");
+      return resp;
+    },
+    onSuccess: (resp, vars) => {
+      toast.success(
+        `NSU ${vars.c.nsu} vinculado ao ${vars.c.pedido_ref} · ${resp.parcelas_carimbadas ?? 0} parcelas carimbadas`
+      );
+      setAlvo(null);
+      setNota("");
+      qc.invalidateQueries({ queryKey: ["conciliacao-cartao-vendas"] });
+      qc.invalidateQueries({ queryKey: ["conciliacao-cartao-sugestoes"] });
+    },
+    onError: (e: unknown) => {
+      toast.error(e instanceof Error ? e.message : String(e));
+    },
+  });
+
+  const notaOk = nota.trim().length >= 5;
+
+  return (
+    <TooltipProvider>
+      <div className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          Vendas SafraPay sem NSU carimbado × pedidos candidatos. Vincular carimba o NSU nos títulos do pedido.
+        </p>
+
+        <div className="flex flex-wrap gap-2 text-sm">
+          <Badge variant="outline" className={cn(FORCA_CLASS.exato, "font-medium")}>
+            {kpi.exatas} exata{kpi.exatas === 1 ? "" : "s"}
+          </Badge>
+          <Badge variant="outline" className={cn(FORCA_CLASS.aproximado, "font-medium")}>
+            {kpi.aproximadas} aproximada{kpi.aproximadas === 1 ? "" : "s"}
+          </Badge>
+          <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 font-medium">
+            {kpi.comDivergencia} com divergência de parcelas
+          </Badge>
+        </div>
+
+        {isError && (
+          <Card className="border-destructive">
+            <CardContent className="p-4 text-sm text-destructive">
+              Erro ao carregar sugestões de venda: {error instanceof Error ? error.message : String(error)}
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8" />
+                  <TableHead>NSU</TableHead>
+                  <TableHead>Data da venda</TableHead>
+                  <TableHead>Bandeira</TableHead>
+                  <TableHead>Parcelas SafraPay</TableHead>
+                  <TableHead>Valor bruto</TableHead>
+                  <TableHead>Valor líquido</TableHead>
+                  <TableHead>Força</TableHead>
+                  <TableHead>Candidatos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8">
+                      <Loader2 className="h-4 w-4 animate-spin inline" />
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoading && !isError && vendas.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                      Nenhuma venda SafraPay pendente de vínculo com pedido.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {vendas.map((v) => {
+                  const isOpen = !!expanded[v.nsu];
+                  return (
+                    <Fragment key={v.nsu}>
+                      <TableRow className="cursor-pointer" onClick={() => setExpanded((e) => ({ ...e, [v.nsu]: !e[v.nsu] }))}>
+                        <TableCell>
+                          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs whitespace-nowrap">{v.nsu}</TableCell>
+                        <TableCell className="text-sm whitespace-nowrap">{formatDateBR(v.venda.data_venda)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">{v.venda.produto || "—"}</Badge>
+                          {v.venda.modalidade && (
+                            <div className="text-xs text-muted-foreground mt-1">{v.venda.modalidade}</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm tabular-nums">{v.venda.parcelas_safrapay}x</TableCell>
+                        <TableCell className="font-mono font-semibold tabular-nums whitespace-nowrap">
+                          {formatBRL(Number(v.venda.valor_bruto))}
+                        </TableCell>
+                        <TableCell className="tabular-nums whitespace-nowrap">
+                          {formatBRL(Number(v.venda.valor_liquido))}
+                          <div className="text-xs text-muted-foreground">MDR {formatBRL(Number(v.venda.mdr))}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={cn(FORCA_CLASS[v.forca], "text-xs font-medium")}>
+                            {FORCA_LABEL[v.forca]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {v.candidatos.length} candidato{v.candidatos.length === 1 ? "" : "s"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                      {isOpen && (
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell />
+                          <TableCell colSpan={8} className="py-2">
+                            <div className="space-y-2">
+                              {v.candidatos.map((c) => {
+                                const pct = Number(c.delta_pct ?? 0);
+                                const bloqueado = c.divergencia_parcelas || c.ja_tem_nsu;
+                                const motivo = c.divergencia_parcelas
+                                  ? "Corrija o número de parcelas do título antes de vincular — carimbar o NSU aqui esconderia o furo."
+                                  : c.ja_tem_nsu
+                                    ? "Pedido já vinculado a este NSU."
+                                    : null;
+                                const btn = (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1"
+                                    disabled={bloqueado || vincular.isPending}
+                                    onClick={() => { setAlvo(c); setNota(""); }}
+                                  >
+                                    <Link2 className="h-3.5 w-3.5" />
+                                    Vincular
+                                  </Button>
+                                );
+                                return (
+                                  <div key={c.pedido_id} className="flex flex-wrap items-center justify-between gap-3 text-xs py-2 border-b border-border/40 last:border-0">
+                                    <div className="flex flex-wrap items-center gap-3 min-w-0">
+                                      <Button
+                                        variant="link"
+                                        className="h-auto p-0 font-mono text-xs"
+                                        onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                                      >
+                                        {c.pedido_ref}
+                                      </Button>
+                                      <span className="truncate max-w-[240px]">{c.cliente || "—"}</span>
+                                      <span className="text-muted-foreground whitespace-nowrap">
+                                        NF {formatDateBR(c.nf_data)} · {c.dias_nf_venda ?? "—"} dias
+                                      </span>
+                                      <span className="tabular-nums whitespace-nowrap">
+                                        {c.parcelas_no_sistema ?? "—"}x no sistema
+                                      </span>
+                                      <span className="font-mono tabular-nums whitespace-nowrap">
+                                        títulos {formatBRL(Number(c.total_titulos ?? 0))}
+                                      </span>
+                                      <span className={cn("tabular-nums whitespace-nowrap", Math.abs(pct) > 3 && "text-destructive")}>
+                                        Δ {formatBRL(Number(c.delta_valor ?? 0))} ({pct.toFixed(2)}%)
+                                      </span>
+                                      {c.divergencia_parcelas && (
+                                        <Badge variant="destructive" className="text-xs">
+                                          Parcelas: sistema {c.parcelas_no_sistema ?? "—"} × SafraPay {c.parcelas_safrapay}
+                                        </Badge>
+                                      )}
+                                      {c.ja_tem_nsu && (
+                                        <Badge variant="outline" className="text-xs font-mono">NSU {c.nsu_atual}</Badge>
+                                      )}
+                                    </div>
+                                    {motivo ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
+                                        <TooltipContent><p className="max-w-xs">{motivo}</p></TooltipContent>
+                                      </Tooltip>
+                                    ) : btn}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <p className="text-xs text-muted-foreground">
+          Três pernas: vincular a venda ao pedido carimba o NSU nos títulos; conciliar o extrato casa o crédito do OFX com as liquidações SafraPay; com NSU nos dois lados, a parcela casa com o título sem ambiguidade. Sistema sugere, humano confirma — força exata não dispensa conferência.
+        </p>
+
+        <AlertDialog open={!!alvo} onOpenChange={(v) => { if (!v && !vincular.isPending) { setAlvo(null); setNota(""); } }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Vincular venda ao pedido</AlertDialogTitle>
+              <AlertDialogDescription>
+                O NSU será carimbado em todas as parcelas deste pedido e a previsão de liquidação passa a contar da data da venda.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            {alvo && (
+              <div className="grid grid-cols-2 gap-4 text-sm py-2">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Venda SafraPay</p>
+                  <p className="font-mono text-xs">{alvo.nsu}</p>
+                  <p>{formatDateBR(alvo.data_venda)}</p>
+                  <p className="font-mono tabular-nums font-semibold">{formatBRL(Number(alvo.valor_bruto))}</p>
+                  <p className="tabular-nums">{alvo.parcelas_safrapay}x</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Pedido</p>
+                  <p className="font-mono text-xs">{alvo.pedido_ref}</p>
+                  <p className="truncate">{alvo.cliente || "—"}</p>
+                  <p className="font-mono tabular-nums font-semibold">{formatBRL(Number(alvo.total_titulos ?? 0))}</p>
+                  <p className="tabular-nums">{alvo.parcelas_no_sistema ?? "—"}x</p>
+                </div>
+                <div className={cn("col-span-2 text-xs tabular-nums", Math.abs(Number(alvo.delta_pct ?? 0)) > 3 && "text-destructive")}>
+                  Δ {formatBRL(Number(alvo.delta_valor ?? 0))} ({Number(alvo.delta_pct ?? 0).toFixed(2)}%)
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <Textarea
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+                placeholder="Nota obrigatória: por que este pedido é esta venda?"
+                disabled={vincular.isPending}
+              />
+              <p className={cn("text-xs", notaOk ? "text-muted-foreground" : "text-destructive")}>
+                {nota.trim().length}/5 caracteres mínimos
+              </p>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={vincular.isPending}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!notaOk || vincular.isPending}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (alvo && notaOk) vincular.mutate({ c: alvo, obs: nota.trim() });
+                }}
+              >
+                {vincular.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Vincular
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </TooltipProvider>
+  );
+}
+
 function ParcelasRow({ ofxId, parcelaIds }: { ofxId: string; parcelaIds: string[] }) {
   const { data: parcelas = [], isLoading } = useQuery({
     queryKey: ["conciliacao-cartao-parcelas", ofxId],
