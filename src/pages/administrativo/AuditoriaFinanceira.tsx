@@ -69,6 +69,16 @@ type Achado = {
   nota: string | null;
   tratado_em: string | null;
   tratado_por: string | null;
+  // vw_auditoria_lote_enriquecido
+  meio_pagamento: string | null;
+  meios_detalhe: string | null;
+  rota_solucao: string | null;
+  rotulo_acao: string | null;
+  tela_solucao: string | null;
+  rota_observacao: string | null;
+  achados_no_pedido: number | null;
+  pior_severidade_pedido: number | null;
+  falso_positivo_sem_caixa: boolean | null;
 };
 
 const CLASSE_LABEL: Record<string, string> = {
@@ -90,6 +100,18 @@ const FONTE_LABEL: Record<string, string> = {
   integridade_financeira: "Integridade financeira",
   recebivel_sem_titulo: "Recebível sem título",
 };
+
+const MEIO_LABEL: Record<string, string> = {
+  boleto: "Boleto",
+  pix: "PIX",
+  cartao: "Cartão",
+  haver: "Haver",
+  misto: "Misto",
+  sem_titulo: "Sem título",
+};
+const labelMeio = (m: string | null | undefined) => (m && MEIO_LABEL[m]) || m || "—";
+const MEIO_ORDEM = ["cartao", "pix", "boleto", "misto", "haver", "sem_titulo"];
+
 
 const SITUACAO_META: Record<Situacao, { label: string; className: string }> = {
   aberto:       { label: "Aberto",       className: "bg-muted text-foreground border-border" },
