@@ -262,21 +262,16 @@ export default function AuditoriaFinanceira() {
     return map;
   };
 
-  // Meio: universo = meios presentes no lote visível; contagem no recorte atual.
+  // Meio: universo = chips presentes no lote; contagem no recorte atual.
+  // Critério = flags do título (não o rótulo colapsado). Um achado misto conta
+  // em mais de um chip, então a soma dos chips excede o total — é esperado.
   const contadoresMeio = useMemo(() => {
-    const universo = new Set<string>();
-    for (const a of lote) universo.add(a.meio_pagamento ?? "—");
-    const cont = contar("meio", (a) => a.meio_pagamento ?? "—");
-    return Array.from(universo)
-      .map((m) => [m, cont.get(m) ?? 0] as [string, number])
-      .sort((a, b) => {
-        const ia = MEIO_ORDEM.indexOf(a[0]);
-        const ib = MEIO_ORDEM.indexOf(b[0]);
-        if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-        return b[1] - a[1];
-      });
+    const universo = meiosNoLote(lote);
+    const recorte = lote.filter((a) => passa(a, "meio"));
+    return contarMeios(recorte, universo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lote, passa]);
+
 
   const ordenarPorContagem = (map: Map<string, number>, label: (k: string) => string) =>
     Array.from(map.entries()).sort((a, b) => {
