@@ -142,6 +142,34 @@ export function FilaPedidosPorArea({
   const { data: riscoMap } = usePedidoRisco();
   const { data: faixas } = usePedidoRiscoFaixas();
 
+  // NOME-CANONICO-COM-APELIDO: v_pedidos_fila não traz apelido. Uma consulta
+  // batelada em vw_parceiro_nome cobre a lista inteira (nunca por linha).
+  const parceiroIdsLista = useMemo(() => {
+    const set = new Set<string>();
+    (data || []).forEach((p) => { if (p.parceiro_id) set.add(p.parceiro_id); });
+    return Array.from(set).sort();
+  }, [data]);
+
+  const { data: apelidoMap } = useQuery({
+    queryKey: ["fila-apelidos", parceiroIdsLista],
+    enabled: parceiroIdsLista.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<Record<string, string | null>> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error } = await (supabase as any)
+        .from("vw_parceiro_nome")
+        .select("parceiro_id, apelido")
+        .in("parceiro_id", parceiroIdsLista);
+      if (error) throw error;
+      const map: Record<string, string | null> = {};
+      (rows || []).forEach((r: { parceiro_id: string; apelido: string | null }) => {
+        map[r.parceiro_id] = r.apelido ?? null;
+      });
+      return map;
+    },
+  });
+
+
   const linhas = useMemo(() => {
     let base: PedidoFilaItem[] = data || [];
     if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
