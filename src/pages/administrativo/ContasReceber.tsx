@@ -854,31 +854,31 @@ function AbaB2B() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-green-700">Recebido</CardTitle>
+              <CardTitle className="text-sm text-emerald-700">Conciliado</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-green-700">
-                {formatBRL(kpis.recebido)}
+              <div className="text-2xl font-semibold tabular-nums text-emerald-700">
+                {formatBRL(kpis.conciliado)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {kpis.recebidoQtd} títulos · com prova bancária
+                {kpis.conciliadoQtd} títulos · dinheiro na conta e vinculado
               </p>
             </CardContent>
           </Card>
           <Card className="border-amber-500/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-amber-700">Baixa manual a conciliar</CardTitle>
+              <CardTitle className="text-sm text-amber-700">Compensado a conciliar</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold tabular-nums text-amber-700">
-                {formatBRL(kpis.baixaManual)}
+                {formatBRL(kpis.compensado)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {kpis.baixaManualQtd} títulos · fila da controladoria
+                {kpis.compensadoQtd} títulos · quitado, sem prova na conta
               </p>
-              {kpis.meiosBaixaManual.length > 0 && (
+              {kpis.meiosCompensado.length > 0 && (
                 <div className="mt-2 space-y-0.5">
-                  {kpis.meiosBaixaManual.map((i) => (
+                  {kpis.meiosCompensado.map((i) => (
                     <div
                       key={i.meio}
                       className="flex justify-between gap-2 text-xs text-muted-foreground"
@@ -893,15 +893,31 @@ function AbaB2B() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-blue-700">Total a receber</CardTitle>
+              <CardTitle className="text-sm">Registrado</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-blue-700">
-                {formatBRL(kpis.aberto)}
+              <div className="text-2xl font-semibold tabular-nums">
+                {formatBRL(kpis.registrado)}
               </div>
-              <p className="text-xs text-muted-foreground">{kpis.abertoQtd} títulos</p>
+              <p className="text-xs text-muted-foreground">
+                {kpis.registradoQtd} títulos · ninguém quitou
+              </p>
             </CardContent>
           </Card>
+          <Card className="border-destructive/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-destructive">Inadimplência</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-destructive">
+                {formatBRL(kpis.inadimplencia)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.inadimplenciaQtd} títulos · {kpis.inadimplenciaPct.toFixed(1)}% do registrado
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-cyan-700">A vencer em 30 dias</CardTitle>
