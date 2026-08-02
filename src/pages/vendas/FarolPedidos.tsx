@@ -194,7 +194,7 @@ function AbaB2B() {
         }
       }
       if (q) {
-        const hay = `${r.id_externo ?? ""} ${r.cliente ?? ""}`.toLowerCase();
+        const hay = `${r.id_externo ?? ""} ${r.cliente ?? ""} ${r.parceiro_apelido ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -251,7 +251,7 @@ function AbaB2B() {
       if (!r.bloqueio) return false;
       if (filtroPrazo !== "todos" && (r.prazo ?? "") !== filtroPrazo) return false;
       if (q) {
-        const hay = `${r.id_externo ?? ""} ${r.cliente ?? ""}`.toLowerCase();
+        const hay = `${r.id_externo ?? ""} ${r.cliente ?? ""} ${r.parceiro_apelido ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -419,7 +419,7 @@ function AbaB2B() {
 
       <div className="flex flex-wrap gap-2 items-center">
         <Input
-          placeholder="buscar por número ou cliente…"
+          placeholder="buscar por número, cliente ou nome fantasia…"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           className="max-w-sm"
@@ -520,6 +520,9 @@ function AbaB2B() {
                     <TableRow key={r.pedido_id}>
                       <TableCell className="max-w-[260px]">
                         <div className="truncate">{r.cliente || "—"}</div>
+                        {r.parceiro_apelido ? (
+                          <div className="truncate text-xs text-muted-foreground">{r.parceiro_apelido}</div>
+                        ) : null}
                         <div className="text-[11px] text-muted-foreground font-mono truncate">{r.id_externo ?? "—"}</div>
                       </TableCell>
                       <TableCell>
