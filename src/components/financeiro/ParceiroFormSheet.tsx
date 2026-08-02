@@ -32,6 +32,7 @@ import { GrupoEmpresarialCombobox } from "@/components/financeiro/GrupoEmpresari
 import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { useCanaisVenda } from "@/hooks/financeiro/useCanaisVenda";
 import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 
 export type Parceiro = {
   id: string;
@@ -822,7 +823,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
               <div className="space-y-1">
                 {irmaos.map((p: any) => (
                   <div key={p.id} className="flex items-center justify-between text-sm px-2 py-1.5 rounded bg-muted/40">
-                    <span className="font-medium">{p.nome_fantasia || p.razao_social}</span>
+                    <span className="font-medium">{nomeExibicao(p.razao_social, p.nome_fantasia)}</span>
                     <span className="text-xs text-muted-foreground font-mono">{p.cnpj}</span>
                   </div>
                 ))}

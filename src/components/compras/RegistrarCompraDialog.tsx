@@ -52,6 +52,7 @@ import { NovoFornecedorRapidoDialog } from "./NovoFornecedorRapidoDialog";
 import { LinhasCompraEditor } from "./LinhasCompraEditor";
 import { useRegistrarCompraPedido } from "@/hooks/compras/useRegistrarCompraPedido";
 import { useAnexosCompraRegistrada } from "@/hooks/compras/useAnexosCompraRegistrada";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import type {
   PedidoCompraFull,
   LinhaCompra,
@@ -499,7 +500,9 @@ const valorTotalCalculado = useMemo(
                               <div className="flex flex-col">
                                 <span className="text-sm">{p.razao_social}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {p.nome_fantasia || "—"} · {p.cnpj || "sem CNPJ"}
+                                  {apelidoParceiro(p.razao_social, p.nome_fantasia)
+                                    ? `${apelidoParceiro(p.razao_social, p.nome_fantasia)} · ${p.cnpj || "sem CNPJ"}`
+                                    : (p.cnpj || "sem CNPJ")}
                                 </span>
                               </div>
                             </CommandItem>

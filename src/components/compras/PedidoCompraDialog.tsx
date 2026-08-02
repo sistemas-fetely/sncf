@@ -45,6 +45,7 @@ import { useDepartamentoUnidadeUsuario } from "@/hooks/compras/useDepartamentoUn
 import { useCriarPedidoCompra } from "@/hooks/compras/useCriarPedidoCompra";
 import { useEnviarPedidoCompra } from "@/hooks/compras/useEnviarPedidoCompra";
 import { useAtualizarPedidoCompra } from "@/hooks/compras/useAtualizarPedidoCompra";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 import type {
   ItemEdit,
   PedidoCompraAnexoRow,
@@ -486,7 +487,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             <SelectContent>
               <SelectItem value="none">—</SelectItem>
               {parceiros.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.nome_fantasia || p.razao_social}</SelectItem>
+                <SelectItem key={p.id} value={p.id}>{nomeExibicao(p.razao_social, p.nome_fantasia)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
