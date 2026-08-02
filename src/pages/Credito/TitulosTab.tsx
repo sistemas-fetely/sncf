@@ -438,7 +438,7 @@ export default function TitulosTab() {
   return (
     <div className="space-y-4">
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <KpiCard
           label="A vencer"
           qtd={kpis.aVencer.qtd}
@@ -463,6 +463,14 @@ export default function TitulosTab() {
           tone="danger"
         />
         <KpiCard
+          label="Aguarda liq."
+          qtd={kpis.aguardaLiquidacao.qtd}
+          valor={kpis.aguardaLiquidacao.valor}
+          ativo={cardsAtivos.has("aguarda_liquidacao")}
+          onClick={() => toggleCard("aguarda_liquidacao")}
+          labelTooltip="Vencido, mas em forma garantida (cartão) — o dinheiro vem, não é cobrança."
+        />
+        <KpiCard
           label="Pago no mês"
           qtd={kpis.pagoNoMes.qtd}
           valor={kpis.pagoNoMes.valor}
@@ -480,7 +488,7 @@ export default function TitulosTab() {
 
       {/* Filtros secundários */}
       <div className="flex flex-wrap items-center gap-3">
-        {(["todos", "boleto", "pix", "cartao", "haver", "troca"] as TipoFiltro[]).map((f) => (
+        {TIPOS_FILTRO.map((f) => (
           <button
             key={f}
             type="button"
@@ -492,7 +500,7 @@ export default function TitulosTab() {
                 : "bg-background text-muted-foreground border-border hover:border-foreground/40",
             )}
           >
-            {f === "todos" ? "Todos" : tipoLabel(f)}
+            {f === "todos" ? "Todos" : tipoLabel(f)} · {contagemTipos[f] ?? 0}
           </button>
         ))}
       </div>
