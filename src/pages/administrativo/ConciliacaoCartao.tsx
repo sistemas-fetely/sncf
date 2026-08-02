@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import VendasSemPedido from "@/components/conciliacao-cartao/VendasSemPedido";
+import ConciliacaoAutomatica from "@/components/conciliacao-cartao/ConciliacaoAutomatica";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -296,11 +297,15 @@ export default function ConciliacaoCartao() {
       <Tabs defaultValue="vincular">
         <TabsList>
           <TabsTrigger value="vincular">Vincular vendas</TabsTrigger>
+          <TabsTrigger value="automatica">Conciliação automática</TabsTrigger>
           <TabsTrigger value="extrato">Conciliar extrato</TabsTrigger>
         </TabsList>
         <TabsContent value="vincular" className="mt-6 space-y-6">
           <VendasSemPedido />
           <AbaVincularVendas />
+        </TabsContent>
+        <TabsContent value="automatica" className="mt-6">
+          <ConciliacaoAutomatica />
         </TabsContent>
         <TabsContent value="extrato" className="mt-6">
           <AbaConciliarExtrato />
