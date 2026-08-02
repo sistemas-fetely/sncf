@@ -1660,7 +1660,12 @@ function AbaB2B() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>{renderEstadoBadge(t)}</TableCell>
+                      <TableCell>
+                        <BadgeProva eixo={t.eixo_prova} compensadoPor={t.compensado_por} />
+                      </TableCell>
+                      <TableCell>
+                        <BadgePrazo eixo={t.eixo_prazo} inadimplente={t.eh_inadimplencia === true} />
+                      </TableCell>
                     </TableRow>
                   );
                 })}
