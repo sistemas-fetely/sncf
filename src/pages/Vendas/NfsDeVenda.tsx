@@ -190,7 +190,8 @@ function AbaNFs() {
       if (!q) return true;
       const nfText = `${n.serie ?? ""}-${n.numero ?? ""}`.toLowerCase();
       const parceiroText = n.parceiro?.razao_social?.toLowerCase() ?? "";
-      return nfText.includes(q) || parceiroText.includes(q);
+      const fantasiaText = n.parceiro?.nome_fantasia?.toLowerCase() ?? "";
+      return nfText.includes(q) || parceiroText.includes(q) || fantasiaText.includes(q);
     });
     return [...filtered].sort((a, b) => {
       const na = parseInt(a.numero ?? "", 10);
