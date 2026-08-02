@@ -95,6 +95,7 @@ export interface KpisTitulos {
   aVencer: { qtd: number; valor: number };
   venceHoje: { qtd: number; valor: number };
   atrasado: { qtd: number; valor: number };
+  aguardaLiquidacao: { qtd: number; valor: number };
   pagoNoMes: { qtd: number; valor: number };
   total: { qtd: number; valor: number };
 }
@@ -104,24 +105,47 @@ function inicioDoMes(): string {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
 }
 
+const FORA_DO_KPI = new Set<EixoProva>(PROVA_FORA_KPI);
+const STATUS_PAGOS: StatusGestao[] = ["pago", "pago_com_atraso", "pago_judicial"];
+
+/**
+ * Encerramento (devolvido/cancelado) não entra em KPI de cobrança.
+ * Regra declarada em PROVA_FORA_KPI e já respeitada por ContasReceber —
+ * este hook era o único consumidor fora da linha.
+ */
+export function tituloEntraNoKpi(t: TituloCobranca): boolean {
+  return !(t.eixo_prova && FORA_DO_KPI.has(t.eixo_prova));
+}
+
 export function calcularKpis(titulos: TituloCobranca[]): KpisTitulos {
   const mes = inicioDoMes();
   const zero = () => ({ qtd: 0, valor: 0 });
   const k: KpisTitulos = {
-    aVencer: zero(), venceHoje: zero(), atrasado: zero(), pagoNoMes: zero(), total: zero(),
+    aVencer: zero(), venceHoje: zero(), atrasado: zero(),
+    aguardaLiquidacao: zero(), pagoNoMes: zero(), total: zero(),
   };
   for (const t of titulos) {
-    if (t.status_gestao === "cancelado") continue;
-    k.total.qtd++; k.total.valor += t.valor_efetivo;
-    if (t.status_gestao === "a_vencer")  { k.aVencer.qtd++;  k.aVencer.valor  += t.valor_efetivo; }
-    if (t.status_gestao === "vence_hoje"){ k.venceHoje.qtd++; k.venceHoje.valor += t.valor_efetivo; }
-    if (t.status_gestao === "atrasado")  { k.atrasado.qtd++; k.atrasado.valor += t.valor_efetivo; }
-    if (t.status_gestao === "pago" && (t.data_liquidacao_real ?? "") >= mes) {
-      k.pagoNoMes.qtd++; k.pagoNoMes.valor += t.valor_efetivo;
+    if (!tituloEntraNoKpi(t)) continue;
+    const v = t.valor_efetivo ?? 0;
+    k.total.qtd++; k.total.valor += v;
+    if (t.status_gestao === "a_vencer")   { k.aVencer.qtd++;   k.aVencer.valor   += v; }
+    if (t.status_gestao === "vence_hoje") { k.venceHoje.qtd++; k.venceHoje.valor += v; }
+    // Atraso = inadimplência real (vencido + ninguém quitou + forma não garantida).
+    // Quem decide é a view, não a data: devolução não é atraso.
+    if (t.eh_inadimplencia === true) { k.atrasado.qtd++; k.atrasado.valor += v; }
+    // Vencido com forma garantida (cartão): o dinheiro vem, não é cobrança.
+    if (t.status_gestao === "aguarda_liquidacao") {
+      k.aguardaLiquidacao.qtd++; k.aguardaLiquidacao.valor += v;
+    }
+    // Pago no mês conta as três formas de pago, não só a pontual.
+    if (STATUS_PAGOS.includes(t.status_gestao) && (t.data_liquidacao_real ?? "") >= mes) {
+      k.pagoNoMes.qtd++; k.pagoNoMes.valor += v;
     }
   }
   return k;
 }
+
+const LIMITE_TITULOS = 5000;
 
 export function useTitulosCobranca() {
   return useQuery({
@@ -131,9 +155,15 @@ export function useTitulosCobranca() {
         .from("vw_titulos_cobranca")
         .select("*")
         .order("data_vencimento_atual", { ascending: true })
-        .limit(1000);
+        .limit(LIMITE_TITULOS);
       if (error) throw error;
-      return (data ?? []) as TituloCobranca[];
+      const linhas = (data ?? []) as TituloCobranca[];
+      if (linhas.length >= LIMITE_TITULOS) {
+        throw new Error(
+          `Teto de ${LIMITE_TITULOS} títulos atingido — a tela mostraria um recorte silencioso. Pagine antes de usar.`,
+        );
+      }
+      return linhas;
     },
     staleTime: 30_000,
   });
