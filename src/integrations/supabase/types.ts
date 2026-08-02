@@ -585,6 +585,42 @@ export type Database = {
         }
         Relationships: []
       }
+      auditoria_classe_rota: {
+        Row: {
+          ativo: boolean
+          classe: string
+          id: string
+          meio: string | null
+          observacao: string | null
+          ordem: number
+          rota: string
+          rotulo_acao: string
+          tela: string
+        }
+        Insert: {
+          ativo?: boolean
+          classe: string
+          id?: string
+          meio?: string | null
+          observacao?: string | null
+          ordem?: number
+          rota: string
+          rotulo_acao: string
+          tela: string
+        }
+        Update: {
+          ativo?: boolean
+          classe?: string
+          id?: string
+          meio?: string | null
+          observacao?: string | null
+          ordem?: number
+          rota?: string
+          rotulo_acao?: string
+          tela?: string
+        }
+        Relationships: []
+      }
       auditoria_duplicidade_suspeita: {
         Row: {
           compromisso_existente_id: string | null
@@ -28274,6 +28310,39 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_auditoria_lote_enriquecido: {
+        Row: {
+          acao: string | null
+          achados_no_pedido: number | null
+          chave: string | null
+          classe: string | null
+          cliente: string | null
+          detalhe: string | null
+          estagio: string | null
+          falso_positivo_sem_caixa: boolean | null
+          fonte: string | null
+          gerado_em: string | null
+          id: string | null
+          id_externo: string | null
+          lote_id: string | null
+          meio_pagamento: string | null
+          meios_detalhe: string | null
+          nota: string | null
+          pedido_id: string | null
+          pior_severidade_pedido: number | null
+          rota_observacao: string | null
+          rota_solucao: string | null
+          rotulo_acao: string | null
+          severidade: number | null
+          situacao: string | null
+          so_forma_sem_caixa: boolean | null
+          tela_solucao: string | null
+          tratado_em: string | null
+          tratado_por: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_b2c_faturado_vs_recebido: {
         Row: {
           bruto_shopify: number | null
@@ -31978,14 +32047,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -32357,14 +32426,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
