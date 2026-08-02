@@ -1054,10 +1054,11 @@ export default function TitulosTab() {
                   const estagio = detalhe.pedido_estagio ?? "";
                   const posNF = estagio === "faturado" || estagio === "em_transporte" || estagio === "entregue";
                   const preNF = !!estagio && !posNF;
-                  const isTerminal = detalhe.status_gestao === "pago"
-                    || detalhe.status_gestao === "pago_com_atraso"
-                    || detalhe.status_gestao === "pago_judicial"
-                    || detalhe.status_gestao === "cancelado";
+                  const isTerminal = detalhe.eixo_status === "pago"
+                    || detalhe.eixo_status === "compensado"
+                    || detalhe.eixo_status === "devolvido"
+                    || detalhe.eixo_status === "cancelado";
+
                   const podeRenegociar = !isTerminal;
                   const podePerda = !isTerminal;
 
