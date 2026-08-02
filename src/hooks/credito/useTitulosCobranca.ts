@@ -1,10 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  STATUS_FORA_KPI,
-  type EixoProva,
-  type EixoStatus,
-} from "@/lib/financeiro/eixos-estado";
+import type { EixoProva, EixoStatus } from "@/lib/financeiro/eixos-estado";
+
+export type StatusGestao =
+  | "a_vencer"
+  | "vence_hoje"
+  | "atrasado"
+  | "aguarda_liquidacao"
+  | "pago"
+  | "pago_com_atraso"
+  | "pago_judicial"
+  | "cancelado";
+
+
 
 
 /** Espelha titulo_a_receber_subestado_atraso_check. Não inventar valor aqui. */
