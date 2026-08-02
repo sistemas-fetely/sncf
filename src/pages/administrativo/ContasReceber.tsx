@@ -1498,7 +1498,8 @@ function AbaB2B() {
                     </TooltipContent>
                   </Tooltip>
                   <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
-                  <SortTh label="Status" sortKey="estado_ordem" sort={sort} setSort={setSort} />
+                  <SortTh label="Prova" sortKey="eixo_prova" sort={sort} setSort={setSort} />
+                  <SortTh label="Prazo" sortKey="eixo_prazo" sort={sort} setSort={setSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
