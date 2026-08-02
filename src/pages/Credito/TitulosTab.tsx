@@ -257,12 +257,14 @@ function KpiCard({
       )}
     >
       {labelTooltip ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="text-xs text-muted-foreground cursor-help">{label}</div>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs">{labelTooltip}</TooltipContent>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-xs text-muted-foreground cursor-help">{label}</div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">{labelTooltip}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       ) : (
         <div className="text-xs text-muted-foreground">{label}</div>
       )}
