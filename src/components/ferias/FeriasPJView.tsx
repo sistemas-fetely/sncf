@@ -26,6 +26,7 @@ import {
   type PeriodoPJComContrato,
 } from "@/hooks/useFerias";
 import type { Tables } from "@/integrations/supabase/types";
+import { nomePessoaPJ } from "@/lib/parceiros/nome";
 
 const STATUS_PERIODO: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   em_aberto: { label: "Em Aberto", variant: "outline" },
@@ -223,7 +224,7 @@ export function FeriasPJView({ canManage, isAdmin }: Props) {
                 return (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium">{p.contrato?.contato_nome}</TableCell>
-                    <TableCell>{p.contrato?.nome_fantasia || p.contrato?.razao_social}</TableCell>
+                    <TableCell>{nomePessoaPJ(p.contrato?.contato_nome, p.contrato?.razao_social)}</TableCell>
                     <TableCell className="text-sm">
                       {format(new Date(p.periodo_inicio), "dd/MM/yyyy")} — {format(new Date(p.periodo_fim), "dd/MM/yyyy")}
                     </TableCell>

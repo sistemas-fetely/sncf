@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { nomePessoaPJ } from "@/lib/parceiros/nome";
 
 export interface GestorDisponivel {
   /** profile.id do gestor — valor a ser salvo em gestor_direto_id */
@@ -34,7 +35,7 @@ export function useGestoresDisponiveis() {
           .not("user_id", "is", null),
         supabase
           .from("contratos_pj")
-          .select("id, user_id, contato_nome, nome_fantasia, tipo_servico, departamento, foto_url, status")
+          .select("id, user_id, contato_nome, nome_fantasia, razao_social, tipo_servico, departamento, foto_url, status")
           .eq("status", "ativo")
           .not("user_id", "is", null),
         supabase.from("profiles").select("id, user_id"),
@@ -68,7 +69,7 @@ export function useGestoresDisponiveis() {
         lista.push({
           profile_id: profileId,
           user_id: p.user_id,
-          nome: p.nome_fantasia || p.contato_nome,
+          nome: nomePessoaPJ(p.contato_nome, p.razao_social, ""),
           cargo: p.tipo_servico || "PJ",
           departamento: p.departamento,
           foto_url: p.foto_url,

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { PosicaoRaw, PosicaoNode, ColaboradorVinculado, ContratoPJVinculado } from "@/types/organograma";
+import { nomePessoaPJ } from "@/lib/parceiros/nome";
 
 function buildTree(posicoes: PosicaoRaw[], colaboradores: ColaboradorVinculado[], contratos: ContratoPJVinculado[]): PosicaoNode[] {
   const colabMap = new Map(colaboradores.map(c => [c.id, c]));
@@ -28,7 +29,7 @@ function buildTree(posicoes: PosicaoRaw[], colaboradores: ColaboradorVinculado[]
       children: [],
       subordinados_diretos: 0,
       subordinados_totais: 0,
-      nome_display: colab ? colab.nome_completo : contrato ? (contrato.nome_fantasia || contrato.contato_nome) : "",
+      nome_display: colab ? colab.nome_completo : contrato ? nomePessoaPJ(contrato.contato_nome, contrato.razao_social, "") : "",
       foto_url: colab?.foto_url || contrato?.foto_url || null,
       vinculo: colab ? "CLT" : contrato ? "PJ" : null,
       status_pessoal: colab ? colab.status : contrato ? contrato.status : null,
@@ -100,7 +101,7 @@ function buildTree(posicoes: PosicaoRaw[], colaboradores: ColaboradorVinculado[]
       children: [],
       subordinados_diretos: 0,
       subordinados_totais: 0,
-      nome_display: cp.nome_fantasia || cp.contato_nome,
+      nome_display: nomePessoaPJ(cp.contato_nome, cp.razao_social, ""),
       foto_url: cp.foto_url || null,
       vinculo: "PJ",
       status_pessoal: cp.status,
