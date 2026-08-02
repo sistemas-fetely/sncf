@@ -343,6 +343,7 @@ type VendaFila = {
   delta_pct: number | null;
   dias_nf_venda: number | null;
   divergencia_parcelas: boolean;
+  candidato_viavel: boolean | null;
   forca: Forca;
   rn: number;
   candidatos: number;
