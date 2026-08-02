@@ -1363,15 +1363,32 @@ function AbaB2B() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {t.data_liquidacao ? (
+                        {t.data_liquidacao_prevista ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="cursor-help">{formatDateBR(t.data_liquidacao)}</span>
+                              <div className="cursor-help">
+                                <span>{formatDateBR(t.data_liquidacao_prevista)}</span>
+                                {t.desvio_previsao_dias != null && (
+                                  <div
+                                    className={`text-xs tabular-nums ${
+                                      Number(t.desvio_previsao_dias) > 0
+                                        ? "text-destructive"
+                                        : "text-emerald-700"
+                                    }`}
+                                  >
+                                    {Number(t.desvio_previsao_dias) === 0
+                                      ? "no dia"
+                                      : `${Number(t.desvio_previsao_dias) > 0 ? "+" : ""}${
+                                          t.desvio_previsao_dias
+                                        }d`}
+                                  </div>
+                                )}
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
-                                Previsão pela régua de recebimento. Para boleto é o próprio
-                                vencimento.
+                                Previsão da régua de recebimento. O desvio compara com a data
+                                confirmada pelo banco — só existe quando há prova bancária.
                               </p>
                             </TooltipContent>
                           </Tooltip>
