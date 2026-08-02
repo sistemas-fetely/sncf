@@ -98,9 +98,10 @@ type RecebivelB2B = {
   faturado: boolean | null;
   data_liquidacao_prevista: string | null;
   desvio_previsao_dias: number | null;
-  /* dois eixos independentes: prova (onde está o dinheiro) e prazo (onde está o cliente) */
+  /* dois eixos: prova (a venda foi validada no banco) e status (onde está o dinheiro desta parcela) */
   eixo_prova: EixoProva;
-  eixo_prazo: EixoPrazo;
+  eixo_status: EixoStatus;
+
   compensado_por: "banco" | "manual" | null;
   eh_inadimplencia: boolean | null;
 };
