@@ -598,9 +598,10 @@ function AbaB2B() {
       const v = efetivoDe(t);
       linha.titulos += 1;
       linha.total += v;
-      if (t.eixo_prova === "conciliado" || t.eixo_prova === "compensado") linha.recebido += v;
-      else if (t.eixo_prazo === "vencido") linha.atrasado += v;
+      if (t.eixo_status === "compensado" || t.eixo_status === "pago") linha.recebido += v;
+      else if (t.eh_inadimplencia === true) linha.atrasado += v;
       else linha.aberto += v;
+
       mapa.set(key, linha);
     }
     return Array.from(mapa.values()).sort((a, b) => (a.mes < b.mes ? 1 : -1));
