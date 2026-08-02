@@ -142,13 +142,48 @@ export function FilaPedidosPorArea({
   const { data: riscoMap } = usePedidoRisco();
   const { data: faixas } = usePedidoRiscoFaixas();
 
+  const termoBusca = buscaDebounced.trim();
+
+  // Busca por nome fantasia: a busca da fila é server-side em razão social/CNPJ/nº,
+  // então quem digita o apelido precisa desta perna extra — resolve os parceiros
+  // pelo apelido em vw_parceiro_nome e traz os pedidos deles para o mesmo conjunto.
+  const { data: pedidosPorApelido } = useQuery({
+    queryKey: ["fila-por-apelido", termoBusca],
+    enabled: termoBusca.length >= 2,
+    staleTime: 30 * 1000,
+    queryFn: async (): Promise<PedidoFilaItem[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      const t = termoBusca.replace(/[,()%]/g, " ").trim();
+      const { data: nomes, error: nErr } = await sb
+        .from("vw_parceiro_nome")
+        .select("parceiro_id, apelido")
+        .ilike("apelido", `%${t}%`)
+        .limit(100);
+      if (nErr) throw nErr;
+      const ids = (nomes || [])
+        .map((r: { parceiro_id: string }) => r.parceiro_id)
+        .filter(Boolean);
+      if (ids.length === 0) return [];
+      const { data: rows, error } = await sb
+        .from("v_pedidos_fila")
+        .select("*")
+        .in("parceiro_id", ids)
+        .order("recebido_em", { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return (rows || []) as PedidoFilaItem[];
+    },
+  });
+
   // NOME-CANONICO-COM-APELIDO: v_pedidos_fila não traz apelido. Uma consulta
   // batelada em vw_parceiro_nome cobre a lista inteira (nunca por linha).
   const parceiroIdsLista = useMemo(() => {
     const set = new Set<string>();
     (data || []).forEach((p) => { if (p.parceiro_id) set.add(p.parceiro_id); });
+    (pedidosPorApelido || []).forEach((p) => { if (p.parceiro_id) set.add(p.parceiro_id); });
     return Array.from(set).sort();
-  }, [data]);
+  }, [data, pedidosPorApelido]);
 
   const { data: apelidoMap } = useQuery({
     queryKey: ["fila-apelidos", parceiroIdsLista],
@@ -168,6 +203,7 @@ export function FilaPedidosPorArea({
       return map;
     },
   });
+
 
   // Busca por nome fantasia: a busca da fila é server-side em razão social/CNPJ/nº,
   // então quem digita o apelido precisa desta perna extra — resolve os parceiros
