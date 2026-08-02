@@ -97,15 +97,13 @@ type RecebivelB2B = {
   faturado: boolean | null;
   data_liquidacao_prevista: string | null;
   desvio_previsao_dias: number | null;
-  /* estado único de gestão (por força de prova) */
-  estado_gestao: EstadoGestao;
-  estado_rotulo: string | null;
-  estado_ordem: number | null;
-  estado_cor: EstadoCor | null;
-  estado_descricao: string | null;
-  estado_terminal: boolean | null;
-  estado_em_aberto: boolean | null;
+  /* dois eixos independentes: prova (onde está o dinheiro) e prazo (onde está o cliente) */
+  eixo_prova: EixoProva;
+  eixo_prazo: EixoPrazo;
+  compensado_por: "banco" | "manual" | null;
+  eh_inadimplencia: boolean | null;
 };
+
 
 
 
