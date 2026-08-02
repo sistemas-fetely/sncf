@@ -42,9 +42,11 @@ import { Label } from "@/components/ui/label";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import DossieAchado from "@/components/auditoria/DossieAchado";
 import {
   AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2, CheckCircle2,
-  ArrowUpRight,
+  ArrowUpRight, ChevronDown,
 } from "lucide-react";
 
 type Situacao = "aberto" | "em_analise" | "resolvido" | "explicado" | "reaparecido";
@@ -169,6 +171,16 @@ export default function AuditoriaFinanceira() {
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("aberto");
   const [mostrarFalsoPositivo, setMostrarFalsoPositivo] = useState(false);
   const [visao, setVisao] = useState<"classe" | "pedido">("classe");
+
+  // Contexto expansível: só os achados abertos disparam as views caras.
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const alternarExpandido = (id: string, aberto: boolean) =>
+    setExpandidos((cur) => {
+      const next = new Set(cur);
+      if (aberto) next.add(id);
+      else next.delete(id);
+      return next;
+    });
 
   const [tratar, setTratar] = useState<Achado | null>(null);
   const [novaSituacao, setNovaSituacao] = useState<"em_analise" | "resolvido" | "explicado">("em_analise");
@@ -493,11 +505,17 @@ export default function AuditoriaFinanceira() {
       : [];
     const outraTela = irmaos.find((o) => o.tela_solucao && o.tela_solucao !== a.tela_solucao);
 
+    const expandido = expandidos.has(a.id);
+
     return (
-      <div
+      <Collapsible
         key={a.id}
-        className={cn("px-5 py-4 grid grid-cols-12 gap-3 items-start", falsoPositivo && "opacity-60")}
+        open={expandido}
+        onOpenChange={(o) => alternarExpandido(a.id, o)}
+        className={cn(falsoPositivo && "opacity-60")}
       >
+        <div className="px-5 py-4 grid grid-cols-12 gap-3 items-start">
+
         <div className="col-span-12 md:col-span-2 space-y-1">
           <Badge variant="outline" className={cn("flex-shrink-0", sevMeta.badge)}>
             Sev {sev}
@@ -595,16 +613,39 @@ export default function AuditoriaFinanceira() {
           <Badge variant="outline" className={cn("border", sitMeta.className)}>
             {sitMeta.label}
           </Badge>
-          <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
-            Tratar
-          </Button>
+          <div className="flex items-center gap-2">
+            {a.pedido_id && (
+              <CollapsibleTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground"
+                  aria-label={expandido ? "Recolher contexto" : "Ver contexto do pedido"}
+                >
+                  Contexto
+                  <ChevronDown
+                    className={cn("h-4 w-4 ml-1 transition-transform", expandido && "rotate-180")}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+            )}
+            <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
+              Tratar
+            </Button>
+          </div>
           {a.tratado_em && (
             <div className="text-[10px] text-muted-foreground">
               Tratado em {formatDataHora(a.tratado_em)}
             </div>
           )}
         </div>
-      </div>
+        </div>
+        {a.pedido_id && (
+          <CollapsibleContent className="px-5 pb-4">
+            <DossieAchado pedidoId={a.pedido_id} aberto={expandido} />
+          </CollapsibleContent>
+        )}
+      </Collapsible>
     );
   };
 
