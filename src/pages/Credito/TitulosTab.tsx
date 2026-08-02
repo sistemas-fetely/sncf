@@ -330,26 +330,19 @@ function matchData(t: TituloCobranca, vencDe: string, vencAte: string): boolean 
   return true;
 }
 
-function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): boolean {
-  if (cards.has("todos")) {
-    // "Todos" LISTA tudo, inclusive encerrados (devolvido/cancelado),
-    // que continuam fora dos números dos cards.
-    return true;
-  }
-  const passa =
-    (cards.has("a_vencer") && t.status_gestao === "a_vencer") ||
-    (cards.has("vence_hoje") && t.status_gestao === "vence_hoje") ||
-    (cards.has("atrasado") && t.eh_inadimplencia === true) ||
-    (cards.has("aguarda_liquidacao") && t.status_gestao === "aguarda_liquidacao") ||
-    (cards.has("pago_no_mes") &&
-      (t.status_gestao === "pago" ||
-        t.status_gestao === "pago_com_atraso" ||
-        t.status_gestao === "pago_judicial") &&
-      (t.data_liquidacao_real ?? "").slice(0, 7) === mesAtual);
-  if (!passa) return false;
-  // fora de "todos", encerrado não aparece
-  return tituloEntraNoKpi(t);
+/** Recorte pelos dois eixos + inadimplência. Set vazio = eixo não recorta. */
+function matchEixos(
+  t: TituloCobranca,
+  prova: Set<EixoProva>,
+  status: Set<EixoStatus>,
+  soInadimplentes: boolean,
+): boolean {
+  if (soInadimplentes && t.eh_inadimplencia !== true) return false;
+  if (prova.size > 0 && !prova.has(t.eixo_prova)) return false;
+  if (status.size > 0 && !status.has(t.eixo_status)) return false;
+  return true;
 }
+
 
 export default function TitulosTab() {
   const navigate = useNavigate();
