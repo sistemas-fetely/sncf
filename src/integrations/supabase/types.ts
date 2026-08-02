@@ -21690,6 +21690,7 @@ export type Database = {
           autorizacao: string | null
           data_venda: string
           ec: string | null
+          eh_teste: boolean
           hora: string | null
           importado_em: string
           mdr: number | null
@@ -21698,6 +21699,7 @@ export type Database = {
           parcelas: number
           produto: string | null
           terminal: string | null
+          teste_motivo: string | null
           valor_bruto: number
           valor_liquido: number
         }
@@ -21707,6 +21709,7 @@ export type Database = {
           autorizacao?: string | null
           data_venda: string
           ec?: string | null
+          eh_teste?: boolean
           hora?: string | null
           importado_em?: string
           mdr?: number | null
@@ -21715,6 +21718,7 @@ export type Database = {
           parcelas: number
           produto?: string | null
           terminal?: string | null
+          teste_motivo?: string | null
           valor_bruto: number
           valor_liquido: number
         }
@@ -21724,6 +21728,7 @@ export type Database = {
           autorizacao?: string | null
           data_venda?: string
           ec?: string | null
+          eh_teste?: boolean
           hora?: string | null
           importado_em?: string
           mdr?: number | null
@@ -21732,6 +21737,7 @@ export type Database = {
           parcelas?: number
           produto?: string | null
           terminal?: string | null
+          teste_motivo?: string | null
           valor_bruto?: number
           valor_liquido?: number
         }
@@ -28802,6 +28808,21 @@ export type Database = {
           },
         ]
       }
+      vw_auditoria_cartao_sem_pedido: {
+        Row: {
+          acao: string | null
+          classe: string | null
+          cliente: string | null
+          detalhe: string | null
+          estagio: string | null
+          id_externo: string | null
+          nsu: string | null
+          pedido_id: string | null
+          severidade: number | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_auditoria_integridade_financeira: {
         Row: {
           acao: string | null
@@ -29098,6 +29119,7 @@ export type Database = {
           data_venda: string | null
           delta_observado_vs_previsto: number | null
           delta_previsto_vs_mdr: number | null
+          eh_teste: boolean | null
           mdr: number | null
           mdr_pct: number | null
           modalidade: string | null
@@ -29109,6 +29131,7 @@ export type Database = {
           situacao: string | null
           taxa_observada: number | null
           taxa_prevista: number | null
+          teste_motivo: string | null
           titulos: number | null
           titulos_bruto: number | null
           venda_bruto: number | null
@@ -32790,14 +32813,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -33462,6 +33485,7 @@ export type Database = {
           faturado_em: string | null
           id_externo: string | null
           meta: string | null
+          parceiro_apelido: string | null
           parceiro_id: string | null
           pedido_id: string | null
           pre_faturado_em: string | null
@@ -34073,6 +34097,7 @@ export type Database = {
           id_externo: string | null
           meta: string | null
           pago_apos_expedicao: boolean | null
+          parceiro_apelido: string | null
           parceiro_id: string | null
           pedido_id: string | null
           prazo: string | null
