@@ -1151,7 +1151,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                     <TableBody>
                       {reservas.map((r, i) => {
                         const cli = r.pedidos?.parceiros_comerciais;
-                        const cliente = cli?.nome_fantasia ?? cli?.razao_social ?? "—";
+                        const cliente = nomeExibicao(cli?.razao_social, cli?.nome_fantasia, "—");
                         return (
                           <TableRow key={i}>
                             <TableCell className="text-xs py-1.5 font-mono">{r.pedidos?.id_externo ?? "—"}</TableCell>
