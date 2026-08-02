@@ -354,7 +354,7 @@ export default function CadastroPedidoCompra() {
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_detalhe")
         .select(
-          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, etd, eta, fornecedor, centro, status, linhas, kits, custo_total, fase_xpm",
+          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total, fase_xpm",
         );
       if (error) throw error;
       return (data ?? []) as PedidoListaRow[];
