@@ -992,7 +992,12 @@ export default function PedidoDetalhe() {
 
       <div className="px-6 pt-2 pb-4">
         <div className="space-y-1 min-w-0">
-          <h1 className="text-xl font-bold truncate">{parceiro?.razao_social || pedido.cliente_nome_snapshot || "Cliente"}</h1>
+          <h1 className="text-xl font-bold truncate">{nomeCanonico(parceiro?.razao_social, "Cliente")}</h1>
+          {apelidoParceiro(parceiro?.razao_social, parceiro?.nome_fantasia) && (
+            <p className="text-sm text-muted-foreground truncate">
+              {apelidoParceiro(parceiro?.razao_social, parceiro?.nome_fantasia)}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground font-mono">CNPJ {parceiro?.cnpj} · Pedido {pedido.id_externo}</p>
           {parceiro?.email && (
             <a href={`mailto:${parceiro.email}`} className="text-xs text-primary hover:underline truncate block">
