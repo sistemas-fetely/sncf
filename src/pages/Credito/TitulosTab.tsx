@@ -230,7 +230,7 @@ function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
 }
 
 function KpiCard({
-  label, qtd, valor, ativo, onClick, tone,
+  label, qtd, valor, ativo, onClick, tone, labelTooltip,
 }: {
   label: string;
   qtd: number;
@@ -238,6 +238,7 @@ function KpiCard({
   ativo: boolean;
   onClick: () => void;
   tone?: "default" | "danger" | "warn";
+  labelTooltip?: string;
 }) {
   const toneCls =
     tone === "danger"
@@ -255,7 +256,16 @@ function KpiCard({
         ativo && "ring-2 ring-foreground/40 bg-muted",
       )}
     >
-      <div className="text-xs text-muted-foreground">{label}</div>
+      {labelTooltip ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-xs text-muted-foreground cursor-help">{label}</div>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">{labelTooltip}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <div className="text-xs text-muted-foreground">{label}</div>
+      )}
       <div className="text-lg font-semibold mt-1">{qtd}</div>
       <div className="text-xs text-muted-foreground mt-0.5">{formatBRL(valor)}</div>
     </button>
