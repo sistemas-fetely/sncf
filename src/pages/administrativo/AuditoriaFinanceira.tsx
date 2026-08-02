@@ -42,9 +42,11 @@ import { Label } from "@/components/ui/label";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import DossieAchado from "@/components/auditoria/DossieAchado";
 import {
   AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2, CheckCircle2,
-  ArrowUpRight,
+  ArrowUpRight, ChevronDown,
 } from "lucide-react";
 
 type Situacao = "aberto" | "em_analise" | "resolvido" | "explicado" | "reaparecido";
