@@ -51,6 +51,7 @@ import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
 import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
+import { BadgePrazo, BadgeProva } from "@/lib/financeiro/eixos-estado";
 
 
 type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca";
