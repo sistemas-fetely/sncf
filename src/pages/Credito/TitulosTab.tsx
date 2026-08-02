@@ -575,100 +575,46 @@ export default function TitulosTab() {
                 </TableCell>
               </TableRow>
             )}
-            {filtrados.map((t) => {
-              const liquid = t.data_liquidacao_real
-                ? formatDateBR(t.data_liquidacao_real)
-                : t.data_liquidacao_prevista
-                ? `prev. ${formatDateBR(t.data_liquidacao_prevista)}`
-                : "—";
+            {!isLoading && agrupado && grupos.map((g) => {
+              if (grupoEhUnitario(g)) {
+                return (
+                  <LinhaTitulo
+                    key={g.chave}
+                    t={g.titulos[0]}
+                    onAbrir={setDetalhe}
+                    onPedido={(id) => navigate(`/pedidos/${id}`)}
+                  />
+                );
+              }
+              const aberto = abertos.has(g.chave);
               return (
-                <TableRow
-                  key={t.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => setDetalhe(t)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs">{t.numero_titulo}</span>
-                      {t.eh_entrada && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                          Entrada
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      parcela {t.numero_parcela}/{t.total_parcelas}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <p className="text-sm font-medium">{t.parceiro_razao_social ?? "—"}</p>
-                    {apelidoParceiro(t.parceiro_razao_social, t.parceiro_nome_fantasia) && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {apelidoParceiro(t.parceiro_razao_social, t.parceiro_nome_fantasia)}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {t.parceiro_cnpj ? formatCNPJ(t.parceiro_cnpj) : ""}
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    {t.pedido_id_externo ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/pedidos/${t.pedido_id}`);
-                        }}
-                        className="font-mono text-xs text-primary hover:underline"
-                      >
-                        {t.pedido_id_externo}
-                      </button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm">{t.nf_numero ?? "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {tipoLabel(t.tipo_pagamento)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      "text-sm",
-                      t.dias_atraso > 0 && "text-red-700 font-medium",
-                    )}
-                  >
-                    {formatDateBR(t.data_vencimento_atual)}
-                    {t.dias_atraso > 0 && (
-                      <div className="text-xs text-red-600">há {t.dias_atraso}d</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{liquid}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatBRL(t.valor_efetivo)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1 items-start">
-                      <BadgeProva eixo={t.eixo_prova} />
-                      {t.tipo_pagamento === "boleto" && t.boleto_status && (
-                        <BadgeBoletoStatus
-                          status={t.boleto_status}
-                          codigoRejeicao={t.boleto_codigo_rejeicao}
-                        />
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <BadgeStatus
-                      eixo={t.eixo_status}
-                      compensadoPor={t.compensado_por}
-                      inadimplente={t.eh_inadimplencia === true}
+                <Fragment key={g.chave}>
+                  <LinhaGrupo
+                    g={g}
+                    aberto={aberto}
+                    onToggle={() => toggleGrupo(g.chave)}
+                    onPedido={(id) => navigate(`/pedidos/${id}`)}
+                  />
+                  {aberto && g.titulos.map((t) => (
+                    <LinhaTitulo
+                      key={t.id}
+                      t={t}
+                      aninhada
+                      onAbrir={setDetalhe}
+                      onPedido={(id) => navigate(`/pedidos/${id}`)}
                     />
-
-                  </TableCell>
-                </TableRow>
+                  ))}
+                </Fragment>
               );
             })}
+            {!isLoading && !agrupado && filtrados.map((t) => (
+              <LinhaTitulo
+                key={t.id}
+                t={t}
+                onAbrir={setDetalhe}
+                onPedido={(id) => navigate(`/pedidos/${id}`)}
+              />
+            ))}
           </TableBody>
         </Table>
       </div>
