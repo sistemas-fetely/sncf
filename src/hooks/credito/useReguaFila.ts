@@ -45,6 +45,10 @@ function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Régua só cobra título vivo. Encerramento (devolvido/cancelado) nunca entra na fila. */
+const PROVAS_COBRAVEIS: EixoProva[] = PROVAS.filter((p) => !PROVA_FORA_KPI.includes(p));
+
+
 export function useReguaEtapas() {
   return useQuery({
     queryKey: ["regua-etapas"],
