@@ -94,8 +94,7 @@ type RecebivelB2B = {
   /* data de fluxo de caixa: banco quando existe, régua enquanto não existe */
   data_caixa_projetada: string | null;
   mes_caixa_projetado: string | null;
-  /* eixo faturamento (separado do estado de gestão) */
-  faturado: boolean | null;
+  /* eixo faturamento removido: a view só traz título faturado (com NF) */
   data_liquidacao_prevista: string | null;
   desvio_previsao_dias: number | null;
   /* dois eixos: prova (a venda foi validada no banco) e status (onde está o dinheiro desta parcela) */
@@ -223,8 +222,9 @@ export default function ContasReceber() {
         <div className="flex-1">
           <h1 className="text-2xl font-semibold">Recebíveis</h1>
           <p className="text-sm text-muted-foreground">
-            Recebíveis B2B por parcela (títulos com NF) e B2C por pedido. Valor efetivo inclui juros
-            e desconto. Somente leitura.
+            Recebíveis B2B por parcela — somente títulos faturados, com NF emitida. Para todos os
+            títulos, ver Cobrança em Controladoria. Valor efetivo inclui juros e desconto. Somente
+            leitura.
           </p>
         </div>
       </div>
@@ -259,7 +259,7 @@ function AbaB2B() {
   const [soSemProva, setSoSemProva] = useState(false);
   const [soDivergentes, setSoDivergentes] = useState(false);
   const [soMeioDivergente, setSoMeioDivergente] = useState(false);
-  const [soSemNf, setSoSemNf] = useState(false);
+  
   const [soInadimplentes, setSoInadimplentes] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [provasAtivas, setProvasAtivas] = useState<Set<EixoProva>>(
@@ -329,10 +329,6 @@ function AbaB2B() {
     [data]
   );
 
-  const qtdSemNf = useMemo(
-    () => (data ?? []).filter((t) => t.faturado === false).length,
-    [data]
-  );
 
   const qtdInadimplentes = useMemo(
     () => (data ?? []).filter((t) => t.eh_inadimplencia === true).length,
@@ -354,7 +350,7 @@ function AbaB2B() {
       if (soSemProva && t.fonte_data_recebimento !== "marcado_humano") return false;
       if (soDivergentes && t.data_divergente !== true) return false;
       if (soMeioDivergente && t.meio_divergente !== true) return false;
-      if (soSemNf && t.faturado !== false) return false;
+      
       if (soInadimplentes && t.eh_inadimplencia !== true) return false;
 
       if (buscaLc) {
@@ -378,7 +374,7 @@ function AbaB2B() {
       }
       return true;
     });
-  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente, soSemNf, soInadimplentes]);
+  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente, soInadimplentes]);
 
   const contagensProva = useMemo(() => {
     const c = {} as Record<EixoProva, number>;
@@ -414,8 +410,6 @@ function AbaB2B() {
     let aberto = 0;
     let abertoQtd = 0;
     let vence30 = 0;
-    let recebidoSemNf = 0;
-    let recebidoSemNfQtd = 0;
     const meiosCompensadoMapa = new Map<string, number>();
     for (const t of base) {
       const v = efetivoDe(t);
@@ -451,10 +445,6 @@ function AbaB2B() {
         inadimplencia += v;
         inadimplenciaQtd += 1;
       }
-      if (t.faturado === false && (s === "pago" || s === "compensado")) {
-        recebidoSemNf += v;
-        recebidoSemNfQtd += 1;
-      }
     }
     const inadimplenciaPct = aVencer + pago > 0 ? (inadimplencia / (aVencer + pago)) * 100 : 0;
     const meiosCompensado = Array.from(meiosCompensadoMapa.entries())
@@ -476,8 +466,6 @@ function AbaB2B() {
       aberto,
       abertoQtd,
       vence30,
-      recebidoSemNf,
-      recebidoSemNfQtd,
       total: aVencer + pago + compensado,
       totalQtd: aVencerQtd + pagoQtd + compensadoQtd,
     };
@@ -705,7 +693,7 @@ function AbaB2B() {
       Renegociado: t.venc_renegociado ? "Sim" : "Não",
       "Dias prorrogado": t.dias_prorrogado ?? 0,
       Previsto: formatDateBR(t.data_liquidacao),
-      Faturado: t.faturado === false ? "Não" : "Sim",
+      
       "Previsto (régua)": formatDateBR(t.data_liquidacao_prevista),
       "Desvio (dias)": t.desvio_previsao_dias ?? "",
       "Recebido em": t.data_recebimento_efetiva ? formatDateBR(t.data_recebimento_efetiva) : "",
@@ -838,19 +826,6 @@ function AbaB2B() {
               </p>
             </CardContent>
           </Card>
-          <Card className="border-amber-500/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-amber-700">Recebido sem NF</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-amber-700">
-                {formatBRL(kpis.recebidoSemNf)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {kpis.recebidoSemNfQtd} títulos · dinheiro entrou antes da nota
-              </p>
-            </CardContent>
-          </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Desvio médio da régua</CardTitle>
@@ -892,7 +867,8 @@ function AbaB2B() {
           Dois eixos independentes. Prova é onde está o dinheiro: registrado (nada caiu), compensado
           (o pagador quitou, mas ainda não há prova na nossa conta — em cartão está no adquirente) e
           conciliado (dinheiro na conta, linha do extrato vinculada). Prazo é onde está o cliente em
-          relação ao vencimento. Devolvido e cancelado ficam fora dos totais.
+          relação ao vencimento. Devolvido e cancelado ficam fora dos totais. Esta tela é venda real
+          faturada. Título sem NF é gerenciado na Cobrança.
         </p>
 
 
@@ -1209,16 +1185,6 @@ function AbaB2B() {
                   Meio ≠ pedido ({qtdMeioDivergente})
                 </Button>
               )}
-              <Button
-                size="sm"
-                variant={soSemNf ? "default" : "outline"}
-                onClick={() => {
-                  setSoSemNf((v) => !v);
-                  setPage(1);
-                }}
-              >
-                Sem NF ({qtdSemNf})
-              </Button>
             </div>
           </div>
 
@@ -1412,23 +1378,7 @@ function AbaB2B() {
                   return (
                     <TableRow key={t.id} className={atrasado ? "bg-red-50/40" : undefined}>
                       <TableCell className="font-mono text-xs">
-                        {t.faturado === false ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                className="cursor-help border-amber-500/60 text-amber-700"
-                              >
-                                Sem NF
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Título existe sem nota fiscal emitida.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          (t.nf_numero ?? "—")
-                        )}
+                        {t.nf_numero ?? "—"}
                       </TableCell>
                       <TableCell className="max-w-[180px] truncate" title={t.cliente ?? ""}>
                         {t.cliente ?? "—"}
