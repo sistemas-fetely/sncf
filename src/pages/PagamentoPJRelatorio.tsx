@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SalarioMasked } from "@/components/SalarioMasked";
+import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
@@ -81,7 +82,8 @@ export default function PagamentoPJRelatorio() {
     }));
   }, [pagamentos]);
 
-  const nome = contrato?.nome_fantasia || contrato?.razao_social || "—";
+  const nome = nomeCanonico(contrato?.razao_social, "—");
+  const apelido = apelidoParceiro(contrato?.razao_social, contrato?.nome_fantasia);
 
   if (loading) {
     return (
@@ -99,6 +101,9 @@ export default function PagamentoPJRelatorio() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">Relatório de Pagamentos</h1>
           <p className="text-muted-foreground text-sm mt-0.5">{nome} — CNPJ: {contrato?.cnpj || "—"}</p>
+          {apelido && (
+            <p className="text-muted-foreground text-xs mt-0.5">{apelido}</p>
+          )}
         </div>
         <Button variant="outline" onClick={() => navigate(`/contratos-pj/${contratoId}`)}>
           <FileText className="h-4 w-4 mr-2" /> Ver Contrato

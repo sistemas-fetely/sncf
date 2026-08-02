@@ -34,6 +34,7 @@ import { format, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, end
 import { ptBR as dateFnsPtBR } from "date-fns/locale";
 import ImportNFDialog from "@/components/notas-fiscais/ImportNFDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 
 const periodOptions: { value: string; label: string }[] = [
   { value: "todos", label: "Todo Período" },
@@ -141,14 +142,14 @@ export default function NotasFiscais() {
       const pag = pagMap.get(n.id);
       return {
         ...n,
-        contrato_nome: c ? (c.nome_fantasia || c.razao_social) : "—",
+        contrato_nome: nomeExibicao(c?.razao_social, c?.nome_fantasia, "—"),
         contrato_cnpj: c?.cnpj || "—",
         pagamento_data_prevista: pag?.data_prevista || null,
         pagamento_forma: pag?.forma_pagamento || null,
       };
     });
     setNotas(mapped);
-    setContratos((cps || []).map((c) => ({ id: c.id, label: c.nome_fantasia || c.razao_social, cnpj: c.cnpj })));
+    setContratos((cps || []).map((c) => ({ id: c.id, label: nomeExibicao(c.razao_social, c.nome_fantasia), cnpj: c.cnpj })));
     setLoading(false);
   };
 

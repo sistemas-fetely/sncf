@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 import { format, parseISO } from "date-fns";
 
 const formatCompetencia = (c: string) => {
@@ -79,10 +80,10 @@ export default function PagamentosPJ() {
     const contratoMap = new Map((cps || []).map((c) => [c.id, c]));
     const mapped: PagamentoComContrato[] = (pags || []).map((p: any) => {
       const c = contratoMap.get(p.contrato_id);
-      return { ...p, contrato_nome: c ? (c.nome_fantasia || c.razao_social) : "—", nf_numero: p.notas_fiscais_pj?.numero || null };
+      return { ...p, contrato_nome: nomeExibicao(c?.razao_social, c?.nome_fantasia, "—"), nf_numero: p.notas_fiscais_pj?.numero || null };
     });
     setPagamentos(mapped);
-    setContratos((cps || []).map((c) => ({ id: c.id, label: c.nome_fantasia || c.razao_social })));
+    setContratos((cps || []).map((c) => ({ id: c.id, label: nomeExibicao(c.razao_social, c.nome_fantasia) })));
     setLoading(false);
   };
 
