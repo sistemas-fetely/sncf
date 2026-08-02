@@ -205,39 +205,6 @@ export function FilaPedidosPorArea({
   });
 
 
-  // Busca por nome fantasia: a busca da fila é server-side em razão social/CNPJ/nº,
-  // então quem digita o apelido precisa desta perna extra — resolve os parceiros
-  // pelo apelido em vw_parceiro_nome e traz os pedidos deles para o mesmo conjunto.
-  const termoBusca = buscaDebounced.trim();
-  const { data: pedidosPorApelido } = useQuery({
-    queryKey: ["fila-por-apelido", termoBusca],
-    enabled: termoBusca.length >= 2,
-    staleTime: 30 * 1000,
-    queryFn: async (): Promise<PedidoFilaItem[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sb = supabase as any;
-      const t = termoBusca.replace(/[,()%]/g, " ").trim();
-      const { data: nomes, error: nErr } = await sb
-        .from("vw_parceiro_nome")
-        .select("parceiro_id, apelido")
-        .ilike("apelido", `%${t}%`)
-        .limit(100);
-      if (nErr) throw nErr;
-      const ids = (nomes || [])
-        .map((r: { parceiro_id: string }) => r.parceiro_id)
-        .filter(Boolean);
-      if (ids.length === 0) return [];
-      const { data: rows, error } = await sb
-        .from("v_pedidos_fila")
-        .select("*")
-        .in("parceiro_id", ids)
-        .order("recebido_em", { ascending: false })
-        .limit(300);
-      if (error) throw error;
-      return (rows || []) as PedidoFilaItem[];
-    },
-  });
-
   const linhas = useMemo(() => {
     let base: PedidoFilaItem[] = data || [];
     if (termoBusca.length >= 2 && pedidosPorApelido && pedidosPorApelido.length > 0) {
