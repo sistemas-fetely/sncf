@@ -33,18 +33,20 @@ import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download } fro
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 
+import {
+  BadgePrazo,
+  BadgeProva,
+  PRAZOS,
+  PRAZO_META,
+  PROVAS,
+  PROVA_FORA_KPI,
+  PROVA_META,
+  type EixoPrazo,
+  type EixoProva,
+} from "@/lib/financeiro/eixos-estado";
+
 type StatusGestao = "pago" | "atrasado" | "em_aberto" | "cancelado";
 
-type EstadoGestao =
-  | "conciliado"
-  | "confirmado_banco"
-  | "baixa_manual"
-  | "vencido"
-  | "registrado"
-  | "devolvido"
-  | "cancelado";
-
-type EstadoCor = "emerald" | "sky" | "amber" | "destructive" | "outline" | "muted";
 
 
 type RecebivelB2B = {
@@ -97,15 +99,13 @@ type RecebivelB2B = {
   faturado: boolean | null;
   data_liquidacao_prevista: string | null;
   desvio_previsao_dias: number | null;
-  /* estado único de gestão (por força de prova) */
-  estado_gestao: EstadoGestao;
-  estado_rotulo: string | null;
-  estado_ordem: number | null;
-  estado_cor: EstadoCor | null;
-  estado_descricao: string | null;
-  estado_terminal: boolean | null;
-  estado_em_aberto: boolean | null;
+  /* dois eixos independentes: prova (onde está o dinheiro) e prazo (onde está o cliente) */
+  eixo_prova: EixoProva;
+  eixo_prazo: EixoPrazo;
+  compensado_por: "banco" | "manual" | null;
+  eh_inadimplencia: boolean | null;
 };
+
 
 
 
@@ -131,19 +131,7 @@ const PAGE_SIZE = 25;
 type DataBase = "vencimento" | "emissao" | "liquidacao";
 type BaseMensal = "competencia" | "caixa_projetado" | "caixa_confirmado";
 
-const ESTADOS: { key: EstadoGestao; label: string; ordem: number }[] = [
-  { key: "conciliado", label: "Conciliado", ordem: 1 },
-  { key: "confirmado_banco", label: "Confirmado no banco", ordem: 2 },
-  { key: "baixa_manual", label: "Baixa manual", ordem: 3 },
-  { key: "vencido", label: "Vencido", ordem: 4 },
-  { key: "registrado", label: "Registrado", ordem: 5 },
-  { key: "devolvido", label: "Devolvido", ordem: 6 },
-  { key: "cancelado", label: "Cancelado", ordem: 7 },
-];
 
-const ESTADOS_RECEBIDOS: EstadoGestao[] = ["conciliado", "confirmado_banco", "baixa_manual"];
-const ESTADOS_PROVADOS: EstadoGestao[] = ["conciliado", "confirmado_banco"];
-const ESTADOS_FORA_KPI: EstadoGestao[] = ["devolvido", "cancelado"];
 
 
 const SEM_CAIXA = ["haver", "bonificacao", "devolucao", "sem_pagamento"];
@@ -272,16 +260,15 @@ function AbaB2B() {
   const [soDivergentes, setSoDivergentes] = useState(false);
   const [soMeioDivergente, setSoMeioDivergente] = useState(false);
   const [soSemNf, setSoSemNf] = useState(false);
+  const [soInadimplentes, setSoInadimplentes] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
-  const [situacoes, setSituacoes] = useState<Set<EstadoGestao>>(
-    new Set<EstadoGestao>([
-      "conciliado",
-      "confirmado_banco",
-      "baixa_manual",
-      "vencido",
-      "registrado",
-    ])
+  const [provasAtivas, setProvasAtivas] = useState<Set<EixoProva>>(
+    new Set<EixoProva>(["registrado", "compensado", "conciliado"])
   );
+  const [prazosAtivos, setPrazosAtivos] = useState<Set<EixoPrazo>>(
+    new Set<EixoPrazo>(["a_vencer", "vence_hoje", "vencido"])
+  );
+
 
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
@@ -346,8 +333,13 @@ function AbaB2B() {
     [data]
   );
 
+  const qtdInadimplentes = useMemo(
+    () => (data ?? []).filter((t) => t.eh_inadimplencia === true).length,
+    [data]
+  );
 
-  /** Conjunto filtrado por tudo EXCETO situação — base dos KPIs e das contagens. */
+
+  /** Conjunto filtrado por tudo EXCETO os dois eixos — base dos KPIs e das contagens. */
   const base = useMemo(() => {
     const titulos = data ?? [];
     const buscaLc = busca.trim().toLowerCase();
@@ -362,6 +354,7 @@ function AbaB2B() {
       if (soDivergentes && t.data_divergente !== true) return false;
       if (soMeioDivergente && t.meio_divergente !== true) return false;
       if (soSemNf && t.faturado !== false) return false;
+      if (soInadimplentes && t.eh_inadimplencia !== true) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
@@ -384,80 +377,99 @@ function AbaB2B() {
       }
       return true;
     });
-  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente, soSemNf]);
+  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente, soSemNf, soInadimplentes]);
 
-  const contagens = useMemo(() => {
-    const c = {} as Record<EstadoGestao, number>;
-    for (const e of ESTADOS) c[e.key] = 0;
-    for (const t of base) if (t.estado_gestao) c[t.estado_gestao] = (c[t.estado_gestao] ?? 0) + 1;
+  const contagensProva = useMemo(() => {
+    const c = {} as Record<EixoProva, number>;
+    for (const p of PROVAS) c[p] = 0;
+    for (const t of base) if (t.eixo_prova) c[t.eixo_prova] = (c[t.eixo_prova] ?? 0) + 1;
+    return c;
+  }, [base]);
+
+  const contagensPrazo = useMemo(() => {
+    const c = {} as Record<EixoPrazo, number>;
+    for (const p of PRAZOS) c[p] = 0;
+    for (const t of base) if (t.eixo_prazo) c[t.eixo_prazo] = (c[t.eixo_prazo] ?? 0) + 1;
     return c;
   }, [base]);
 
   const kpis = useMemo(() => {
-    /** "Recebido" só conta o que tem prova bancária. */
-    let recebido = 0;
-    let recebidoQtd = 0;
+    /** Eixo prova: conciliado é dinheiro provado; compensado é quitação sem prova. */
+    let conciliado = 0;
+    let conciliadoQtd = 0;
+    let compensado = 0;
+    let compensadoQtd = 0;
+    let registrado = 0;
+    let registradoQtd = 0;
+    let inadimplencia = 0;
+    let inadimplenciaQtd = 0;
     let aberto = 0;
     let abertoQtd = 0;
-    let vencido = 0;
     let vence30 = 0;
     let recebidoSemNf = 0;
     let recebidoSemNfQtd = 0;
-    let baixaManual = 0;
-    let baixaManualQtd = 0;
-    const meiosBaixaManualMapa = new Map<string, number>();
+    const meiosCompensadoMapa = new Map<string, number>();
     for (const t of base) {
       const v = efetivoDe(t);
-      const e = t.estado_gestao;
-      if (ESTADOS_FORA_KPI.includes(e)) continue;
-      if (ESTADOS_PROVADOS.includes(e)) {
-        recebido += v;
-        recebidoQtd += 1;
+      const e = t.eixo_prova;
+      if (PROVA_FORA_KPI.includes(e)) continue;
+      if (e === "conciliado") {
+        conciliado += v;
+        conciliadoQtd += 1;
       }
-      if (e === "baixa_manual") {
-        baixaManual += v;
-        baixaManualQtd += 1;
+      if (e === "compensado") {
+        compensado += v;
+        compensadoQtd += 1;
         const meio = t.meio_pagamento ?? "—";
-        meiosBaixaManualMapa.set(meio, (meiosBaixaManualMapa.get(meio) ?? 0) + v);
+        meiosCompensadoMapa.set(meio, (meiosCompensadoMapa.get(meio) ?? 0) + v);
       }
-      if (t.estado_em_aberto === true) {
-        aberto += v;
-        abertoQtd += 1;
-      }
-      if (e === "vencido") vencido += v;
       if (e === "registrado") {
+        registrado += v;
+        registradoQtd += 1;
         const ref = t.data_liquidacao ?? t.data_vencimento;
         if (ref) {
           const d = new Date(ref + "T12:00:00");
           if (d >= hoje && d <= em30) vence30 += v;
         }
       }
-      if (t.faturado === false && ESTADOS_RECEBIDOS.includes(e)) {
+      if (e === "registrado" || e === "compensado") {
+        aberto += v;
+        abertoQtd += 1;
+      }
+      if (t.eh_inadimplencia === true) {
+        inadimplencia += v;
+        inadimplenciaQtd += 1;
+      }
+      if (t.faturado === false && (e === "conciliado" || e === "compensado")) {
         recebidoSemNf += v;
         recebidoSemNfQtd += 1;
       }
     }
-    const inadimplencia = aberto > 0 ? (vencido / aberto) * 100 : 0;
-    const meiosBaixaManual = Array.from(meiosBaixaManualMapa.entries())
+    const inadimplenciaPct = registrado > 0 ? (inadimplencia / registrado) * 100 : 0;
+    const meiosCompensado = Array.from(meiosCompensadoMapa.entries())
       .map(([meio, total]) => ({ meio, total }))
       .sort((a, b) => b.total - a.total);
     return {
-      recebido,
-      recebidoQtd,
+      conciliado,
+      conciliadoQtd,
+      compensado,
+      compensadoQtd,
+      registrado,
+      registradoQtd,
+      inadimplencia,
+      inadimplenciaQtd,
+      inadimplenciaPct,
+      meiosCompensado,
       aberto,
       abertoQtd,
-      vencido,
       vence30,
-      inadimplencia,
-      baixaManual,
-      baixaManualQtd,
-      meiosBaixaManual,
       recebidoSemNf,
       recebidoSemNfQtd,
-      total: recebido + baixaManual + aberto,
-      totalQtd: recebidoQtd + baixaManualQtd + abertoQtd,
+      total: conciliado + compensado + registrado,
+      totalQtd: conciliadoQtd + compensadoQtd + registradoQtd,
     };
   }, [base, hoje, em30]);
+
 
   /** Acurácia da régua: desvio só existe quando há prova bancária. */
   const desvioRegua = useMemo(() => {
@@ -507,7 +519,7 @@ function AbaB2B() {
         const d = new Date(ref + "T12:00:00");
         if (d < ini || d > fim) continue;
         houve = true;
-        if (t.status_gestao === "pago") s += efetivoDe(t);
+        if (t.eixo_prova === "conciliado") s += efetivoDe(t);
       }
       return houve ? s : null;
     };
@@ -522,7 +534,7 @@ function AbaB2B() {
   const aging = useMemo(() => {
     const faixas = { f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
     for (const t of base) {
-      if (t.status_gestao !== "em_aberto" && t.status_gestao !== "atrasado") continue;
+      if (t.eixo_prova !== "registrado") continue;
       if (!t.data_vencimento) continue;
       const venc = new Date(t.data_vencimento + "T12:00:00");
       const dias = Math.floor((hoje.getTime() - venc.getTime()) / 86400000);
@@ -539,7 +551,7 @@ function AbaB2B() {
   const breakdownMeio = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const t of base) {
-      if (t.status_gestao === "cancelado" || t.status_gestao === "pago") continue;
+      if (t.eixo_prova !== "registrado" && t.eixo_prova !== "compensado") continue;
       if (SEM_CAIXA.includes(t.meio_pagamento ?? "")) continue;
       const meio = t.meio_pagamento ?? "—";
       mapa.set(meio, (mapa.get(meio) ?? 0) + efetivoDe(t));
@@ -557,7 +569,7 @@ function AbaB2B() {
       { mes: string; titulos: number; recebido: number; aberto: number; atrasado: number; total: number }
     >();
     for (const t of data ?? []) {
-      if (t.status_gestao === "cancelado") continue;
+      if (t.eixo_prova === "cancelado" || t.eixo_prova === "devolvido") continue;
       let key: string | null = null;
       if (baseMensal === "competencia") key = mesKeyDe(t.mes_competencia ?? t.data_compra);
       else if (baseMensal === "caixa_projetado") {
@@ -572,8 +584,8 @@ function AbaB2B() {
       const v = efetivoDe(t);
       linha.titulos += 1;
       linha.total += v;
-      if (t.status_gestao === "pago") linha.recebido += v;
-      else if (t.status_gestao === "atrasado") linha.atrasado += v;
+      if (t.eixo_prova === "conciliado" || t.eixo_prova === "compensado") linha.recebido += v;
+      else if (t.eixo_prazo === "vencido") linha.atrasado += v;
       else linha.aberto += v;
       mapa.set(key, linha);
     }
@@ -609,7 +621,9 @@ function AbaB2B() {
   };
 
   const filtrados = useMemo(() => {
-    let arr = base.filter((t) => situacoes.has(t.estado_gestao));
+    let arr = base.filter(
+      (t) => provasAtivas.has(t.eixo_prova) && prazosAtivos.has(t.eixo_prazo)
+    );
     if (sort) {
       arr = [...arr].sort((a, b) => {
         const va = (a as any)[sort.key] ?? "";
@@ -624,14 +638,14 @@ function AbaB2B() {
       });
     }
     return arr;
-  }, [base, situacoes, sort]);
+  }, [base, provasAtivas, prazosAtivos, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
   const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
-  const toggleSituacao = (k: EstadoGestao) => {
-    setSituacoes((prev) => {
+  const toggleProva = (k: EixoProva) => {
+    setProvasAtivas((prev) => {
       const next = new Set(prev);
       if (next.has(k)) next.delete(k);
       else next.add(k);
@@ -640,36 +654,16 @@ function AbaB2B() {
     setPage(1);
   };
 
-  const renderEstadoBadge = (t: RecebivelB2B) => {
-    const rotulo = t.estado_rotulo ?? t.estado_gestao ?? "—";
-    const cor = t.estado_cor ?? "outline";
-    const titulo = t.estado_descricao ?? undefined;
-    if (cor === "destructive")
-      return (
-        <Badge variant="destructive" title={titulo}>
-          {rotulo}
-        </Badge>
-      );
-    if (cor === "outline")
-      return (
-        <Badge variant="outline" title={titulo}>
-          {rotulo}
-        </Badge>
-      );
-    const classe =
-      cor === "emerald"
-        ? "bg-emerald-100 text-emerald-800 border-0"
-        : cor === "sky"
-        ? "bg-sky-100 text-sky-800 border-0"
-        : cor === "amber"
-        ? "bg-amber-100 text-amber-800 border-0"
-        : "bg-muted text-muted-foreground border-0";
-    return (
-      <Badge className={classe} title={titulo}>
-        {rotulo}
-      </Badge>
-    );
+  const togglePrazo = (k: EixoPrazo) => {
+    setPrazosAtivos((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+    setPage(1);
   };
+
 
 
   const periodoLabel = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
@@ -711,8 +705,10 @@ function AbaB2B() {
       Desconto: t.valor_desconto ?? 0,
       "Gera caixa": t.gera_caixa ? "Sim" : "Não",
       "Prova bancária": t.tem_prova_bancaria ? "Sim" : "Não",
-      Status: t.estado_rotulo ?? "",
-      "Estado (código)": t.estado_gestao ?? "",
+      Prova: PROVA_META[t.eixo_prova]?.label ?? "",
+      Prazo: PRAZO_META[t.eixo_prazo]?.label ?? "",
+      "Compensado por": t.compensado_por ?? "",
+      Inadimplente: t.eh_inadimplencia ? "Sim" : "Não",
 
     }));
     const ws = XLSX.utils.json_to_sheet(linhas);
@@ -740,31 +736,31 @@ function AbaB2B() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-green-700">Recebido</CardTitle>
+              <CardTitle className="text-sm text-emerald-700">Conciliado</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-green-700">
-                {formatBRL(kpis.recebido)}
+              <div className="text-2xl font-semibold tabular-nums text-emerald-700">
+                {formatBRL(kpis.conciliado)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {kpis.recebidoQtd} títulos · com prova bancária
+                {kpis.conciliadoQtd} títulos · dinheiro na conta e vinculado
               </p>
             </CardContent>
           </Card>
           <Card className="border-amber-500/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-amber-700">Baixa manual a conciliar</CardTitle>
+              <CardTitle className="text-sm text-amber-700">Compensado a conciliar</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold tabular-nums text-amber-700">
-                {formatBRL(kpis.baixaManual)}
+                {formatBRL(kpis.compensado)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {kpis.baixaManualQtd} títulos · fila da controladoria
+                {kpis.compensadoQtd} títulos · quitado, sem prova na conta
               </p>
-              {kpis.meiosBaixaManual.length > 0 && (
+              {kpis.meiosCompensado.length > 0 && (
                 <div className="mt-2 space-y-0.5">
-                  {kpis.meiosBaixaManual.map((i) => (
+                  {kpis.meiosCompensado.map((i) => (
                     <div
                       key={i.meio}
                       className="flex justify-between gap-2 text-xs text-muted-foreground"
@@ -779,15 +775,31 @@ function AbaB2B() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-blue-700">Total a receber</CardTitle>
+              <CardTitle className="text-sm">Registrado</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-blue-700">
-                {formatBRL(kpis.aberto)}
+              <div className="text-2xl font-semibold tabular-nums">
+                {formatBRL(kpis.registrado)}
               </div>
-              <p className="text-xs text-muted-foreground">{kpis.abertoQtd} títulos</p>
+              <p className="text-xs text-muted-foreground">
+                {kpis.registradoQtd} títulos · ninguém quitou
+              </p>
             </CardContent>
           </Card>
+          <Card className="border-destructive/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-destructive">Inadimplência</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-destructive">
+                {formatBRL(kpis.inadimplencia)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.inadimplenciaQtd} títulos · {kpis.inadimplenciaPct.toFixed(1)}% do registrado
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-cyan-700">A vencer em 30 dias</CardTitle>
@@ -860,33 +872,28 @@ function AbaB2B() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Recebimento exige prova bancária. Baixa manual é estado legítimo — o humano dá a baixa para
-          o pedido andar e a controladoria concilia depois; até lá a data que vale para caixa é a da
-          régua por banco e forma. Devolvido e cancelado ficam fora dos totais.
+          Dois eixos independentes. Prova é onde está o dinheiro: registrado (nada caiu), compensado
+          (o pagador quitou, mas ainda não há prova na nossa conta — em cartão está no adquirente) e
+          conciliado (dinheiro na conta, linha do extrato vinculada). Prazo é onde está o cliente em
+          relação ao vencimento. Devolvido e cancelado ficam fora dos totais.
         </p>
 
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-red-700">Vencido</CardTitle>
+              <CardTitle className="text-sm text-blue-700">Total a receber</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-red-700">
-                {formatBRL(kpis.vencido)}
+              <div className="text-2xl font-semibold tabular-nums text-blue-700">
+                {formatBRL(kpis.aberto)}
               </div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.abertoQtd} títulos · registrado + compensado
+              </p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-rose-700">Inadimplência</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-rose-700">
-                {kpis.inadimplencia.toFixed(1)}%
-              </div>
-            </CardContent>
-          </Card>
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-amber-600">1–7 dias</CardTitle>
@@ -1099,19 +1106,45 @@ function AbaB2B() {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Situação</Label>
+            <Label className="text-xs">Prova — onde está o dinheiro</Label>
             <div className="flex flex-wrap gap-2">
-              {ESTADOS.map((s) => (
+              {PROVAS.map((p) => (
                 <Button
-                  key={s.key}
+                  key={p}
                   size="sm"
-                  variant={situacoes.has(s.key) ? "default" : "outline"}
-                  onClick={() => toggleSituacao(s.key)}
+                  variant={provasAtivas.has(p) ? "default" : "outline"}
+                  onClick={() => toggleProva(p)}
                 >
-                  {s.label} ({contagens[s.key] ?? 0})
+                  {PROVA_META[p].label} ({contagensProva[p] ?? 0})
                 </Button>
               ))}
             </div>
+            <Label className="text-xs pt-2 block">Prazo — onde está o cliente</Label>
+            <div className="flex flex-wrap gap-2">
+              {PRAZOS.map((p) => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={prazosAtivos.has(p) ? "default" : "outline"}
+                  onClick={() => togglePrazo(p)}
+                >
+                  {PRAZO_META[p].label} ({contagensPrazo[p] ?? 0})
+                </Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                size="sm"
+                variant={soInadimplentes ? "default" : "outline"}
+                onClick={() => {
+                  setSoInadimplentes((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só inadimplentes ({qtdInadimplentes})
+              </Button>
+            </div>
+
             <div className="flex flex-wrap gap-2 pt-1">
               <Button
 
@@ -1347,7 +1380,8 @@ function AbaB2B() {
                     </TooltipContent>
                   </Tooltip>
                   <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
-                  <SortTh label="Status" sortKey="estado_ordem" sort={sort} setSort={setSort} />
+                  <SortTh label="Prova" sortKey="eixo_prova" sort={sort} setSort={setSort} />
+                  <SortTh label="Prazo" sortKey="eixo_prazo" sort={sort} setSort={setSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1508,7 +1542,12 @@ function AbaB2B() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>{renderEstadoBadge(t)}</TableCell>
+                      <TableCell>
+                        <BadgeProva eixo={t.eixo_prova} compensadoPor={t.compensado_por} />
+                      </TableCell>
+                      <TableCell>
+                        <BadgePrazo eixo={t.eixo_prazo} inadimplente={t.eh_inadimplencia === true} />
+                      </TableCell>
                     </TableRow>
                   );
                 })}

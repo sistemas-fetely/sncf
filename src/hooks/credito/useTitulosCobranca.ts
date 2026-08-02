@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { EixoPrazo, EixoProva } from "@/lib/financeiro/eixos-estado";
 
 export type StatusGestao =
   | "a_vencer"
@@ -78,6 +79,11 @@ export interface TituloCobranca {
   parceiro_email?: string | null;
   parceiro_email_cobranca?: string | null;
   link_pagamento?: string | null;
+  /* dois eixos independentes: prova (onde está o dinheiro) e prazo (onde está o cliente) */
+  eixo_prova: EixoProva;
+  eixo_prazo: EixoPrazo;
+  compensado_por: "banco" | "manual" | null;
+  eh_inadimplencia: boolean | null;
 }
 
 
