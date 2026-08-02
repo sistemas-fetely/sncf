@@ -82,7 +82,7 @@ type RecebivelB2B = {
   tem_prova_bancaria: boolean | null;
   /* hierarquia da verdade da data de recebimento */
   data_recebimento_efetiva: string | null;
-  fonte_data_recebimento: "banco" | "humano" | "sem_recebimento" | null;
+  fonte_data_recebimento: "banco" | "marcado_humano" | "sem_recebimento" | null;
   data_pagamento_banco: string | null;
   data_divergente: boolean | null;
   /* meio do pedido (intenção comercial) vs meio do título */
@@ -90,6 +90,9 @@ type RecebivelB2B = {
   meio_pedido_nome: string | null;
   meio_divergente: boolean | null;
   mes_caixa_efetivo: string | null;
+  /* data de fluxo de caixa: banco quando existe, régua enquanto não existe */
+  data_caixa_projetada: string | null;
+  mes_caixa_projetado: string | null;
   /* eixo faturamento (separado do estado de gestão) */
   faturado: boolean | null;
   data_liquidacao_prevista: string | null;
@@ -126,7 +129,7 @@ type RecebivelB2C = {
 const PAGE_SIZE = 25;
 
 type DataBase = "vencimento" | "emissao" | "liquidacao";
-type BaseMensal = "competencia" | "caixa_previsto" | "caixa_efetivo";
+type BaseMensal = "competencia" | "caixa_projetado" | "caixa_confirmado";
 
 const ESTADOS: { key: EstadoGestao; label: string; ordem: number }[] = [
   { key: "conciliado", label: "Conciliado", ordem: 1 },
@@ -324,7 +327,7 @@ function AbaB2B() {
   );
 
   const qtdSemProva = useMemo(
-    () => (data ?? []).filter((t) => t.fonte_data_recebimento === "humano").length,
+    () => (data ?? []).filter((t) => t.fonte_data_recebimento === "marcado_humano").length,
     [data]
   );
 
@@ -355,7 +358,7 @@ function AbaB2B() {
       if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) return false;
       if (filtroMeio !== "todos" && t.meio_pagamento !== filtroMeio) return false;
       if (soRenegociados && t.venc_renegociado !== true) return false;
-      if (soSemProva && t.fonte_data_recebimento !== "humano") return false;
+      if (soSemProva && t.fonte_data_recebimento !== "marcado_humano") return false;
       if (soDivergentes && t.data_divergente !== true) return false;
       if (soMeioDivergente && t.meio_divergente !== true) return false;
       if (soSemNf && t.faturado !== false) return false;
@@ -391,6 +394,7 @@ function AbaB2B() {
   }, [base]);
 
   const kpis = useMemo(() => {
+    /** "Recebido" só conta o que tem prova bancária. */
     let recebido = 0;
     let recebidoQtd = 0;
     let aberto = 0;
@@ -399,25 +403,22 @@ function AbaB2B() {
     let vence30 = 0;
     let recebidoSemNf = 0;
     let recebidoSemNfQtd = 0;
-    let semProva = 0;
-    let semProvaQtd = 0;
-    let provado = 0;
-    let provadoQtd = 0;
+    let baixaManual = 0;
+    let baixaManualQtd = 0;
+    const meiosBaixaManualMapa = new Map<string, number>();
     for (const t of base) {
       const v = efetivoDe(t);
       const e = t.estado_gestao;
       if (ESTADOS_FORA_KPI.includes(e)) continue;
-      if (ESTADOS_RECEBIDOS.includes(e)) {
+      if (ESTADOS_PROVADOS.includes(e)) {
         recebido += v;
         recebidoQtd += 1;
       }
-      if (ESTADOS_PROVADOS.includes(e)) {
-        provado += v;
-        provadoQtd += 1;
-      }
       if (e === "baixa_manual") {
-        semProva += v;
-        semProvaQtd += 1;
+        baixaManual += v;
+        baixaManualQtd += 1;
+        const meio = t.meio_pagamento ?? "—";
+        meiosBaixaManualMapa.set(meio, (meiosBaixaManualMapa.get(meio) ?? 0) + v);
       }
       if (t.estado_em_aberto === true) {
         aberto += v;
@@ -437,6 +438,9 @@ function AbaB2B() {
       }
     }
     const inadimplencia = aberto > 0 ? (vencido / aberto) * 100 : 0;
+    const meiosBaixaManual = Array.from(meiosBaixaManualMapa.entries())
+      .map(([meio, total]) => ({ meio, total }))
+      .sort((a, b) => b.total - a.total);
     return {
       recebido,
       recebidoQtd,
@@ -445,16 +449,13 @@ function AbaB2B() {
       vencido,
       vence30,
       inadimplencia,
-      semProva,
-      semProvaQtd,
-      semProvaPct: recebido > 0 ? (semProva / recebido) * 100 : 0,
-      provado,
-      provadoQtd,
-      provadoPct: recebido > 0 ? (provado / recebido) * 100 : 0,
+      baixaManual,
+      baixaManualQtd,
+      meiosBaixaManual,
       recebidoSemNf,
       recebidoSemNfQtd,
-      total: recebido + aberto,
-      totalQtd: recebidoQtd + abertoQtd,
+      total: recebido + baixaManual + aberto,
+      totalQtd: recebidoQtd + baixaManualQtd + abertoQtd,
     };
   }, [base, hoje, em30]);
 
@@ -559,8 +560,8 @@ function AbaB2B() {
       if (t.status_gestao === "cancelado") continue;
       let key: string | null = null;
       if (baseMensal === "competencia") key = mesKeyDe(t.mes_competencia ?? t.data_compra);
-      else if (baseMensal === "caixa_previsto") {
-        if (t.liquidacao_realizada === true) key = mesKeyDe(t.data_liquidacao);
+      else if (baseMensal === "caixa_projetado") {
+        key = mesKeyDe(t.mes_caixa_projetado ?? t.data_caixa_projetada);
       } else if (t.data_recebimento_efetiva) {
         key = mesKeyDe(t.mes_caixa_efetivo ?? t.data_recebimento_efetiva);
       }
@@ -698,7 +699,9 @@ function AbaB2B() {
       "Previsto (régua)": formatDateBR(t.data_liquidacao_prevista),
       "Desvio (dias)": t.desvio_previsao_dias ?? "",
       "Recebido em": t.data_recebimento_efetiva ? formatDateBR(t.data_recebimento_efetiva) : "",
+      "Marcado em": t.data_pagamento ? formatDateBR(t.data_pagamento) : "",
       Fonte: t.fonte_data_recebimento ?? "",
+      "Caixa projetado": t.data_caixa_projetada ? formatDateBR(t.data_caixa_projetada) : "",
       "Data banco": formatDateBR(t.data_pagamento_banco),
       "Data humano": formatDateBR(t.data_pagamento),
       Divergente: t.data_divergente ? "Sim" : "Não",
@@ -743,7 +746,35 @@ function AbaB2B() {
               <div className="text-2xl font-semibold tabular-nums text-green-700">
                 {formatBRL(kpis.recebido)}
               </div>
-              <p className="text-xs text-muted-foreground">{kpis.recebidoQtd} títulos</p>
+              <p className="text-xs text-muted-foreground">
+                {kpis.recebidoQtd} títulos · com prova bancária
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-amber-500/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-amber-700">Baixa manual a conciliar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-amber-700">
+                {formatBRL(kpis.baixaManual)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.baixaManualQtd} títulos · fila da controladoria
+              </p>
+              {kpis.meiosBaixaManual.length > 0 && (
+                <div className="mt-2 space-y-0.5">
+                  {kpis.meiosBaixaManual.map((i) => (
+                    <div
+                      key={i.meio}
+                      className="flex justify-between gap-2 text-xs text-muted-foreground"
+                    >
+                      <span>{i.meio}</span>
+                      <span className="tabular-nums">{formatBRL(i.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -765,30 +796,6 @@ function AbaB2B() {
               <div className="text-2xl font-semibold tabular-nums text-cyan-700">
                 {formatBRL(kpis.vence30)}
               </div>
-            </CardContent>
-          </Card>
-          <Card className="border-amber-500/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-amber-700">Recebido sem prova bancária</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-amber-700">
-                {formatBRL(kpis.semProva)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {kpis.semProvaQtd} títulos · {kpis.semProvaPct.toFixed(1)}% do recebido
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-gold/40">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Provado no banco</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold tabular-nums">{formatBRL(kpis.provado)}</div>
-              <p className="text-xs text-muted-foreground">
-                {kpis.provadoPct.toFixed(1)}% do recebido
-              </p>
             </CardContent>
           </Card>
           <Card>
@@ -853,11 +860,9 @@ function AbaB2B() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Estado por força de prova: conciliado tem o crédito do extrato amarrado; confirmado no
-          banco tem o retorno CNAB mas a linha do extrato não foi vinculada; baixa manual não tem
-          prova bancária nenhuma. Devolvido e cancelado ficam fora dos totais. Títulos sem NF também
-          são recebíveis e agora entram nos totais. O desvio da régua só é calculado contra data
-          confirmada pelo banco.
+          Recebimento exige prova bancária. Baixa manual é estado legítimo — o humano dá a baixa para
+          o pedido andar e a controladoria concilia depois; até lá a data que vale para caixa é a da
+          régua por banco e forma. Devolvido e cancelado ficam fora dos totais.
         </p>
 
 
@@ -941,17 +946,17 @@ function AbaB2B() {
                 </Button>
                 <Button
                   size="sm"
-                  variant={baseMensal === "caixa_previsto" ? "default" : "outline"}
-                  onClick={() => setBaseMensal("caixa_previsto")}
+                  variant={baseMensal === "caixa_projetado" ? "default" : "outline"}
+                  onClick={() => setBaseMensal("caixa_projetado")}
                 >
-                  Caixa previsto
+                  Caixa projetado
                 </Button>
                 <Button
                   size="sm"
-                  variant={baseMensal === "caixa_efetivo" ? "default" : "outline"}
-                  onClick={() => setBaseMensal("caixa_efetivo")}
+                  variant={baseMensal === "caixa_confirmado" ? "default" : "outline"}
+                  onClick={() => setBaseMensal("caixa_confirmado")}
                 >
-                  Caixa efetivo
+                  Caixa confirmado
                 </Button>
               </div>
             </div>
@@ -1035,8 +1040,8 @@ function AbaB2B() {
           </CardContent>
         </Card>
         <p className="text-xs text-muted-foreground">
-          Competência é a data da NF. Caixa previsto é a régua. Caixa efetivo é quando o dinheiro
-          entrou de fato — banco sobrepõe registro humano.
+          Competência é a data da NF. Caixa projetado usa a régua por banco e forma enquanto não há
+          prova bancária. Caixa confirmado é só o que o banco confirmou.
         </p>
       </div>
 
@@ -1325,7 +1330,22 @@ function AbaB2B() {
                       )}
                     </span>
                   </TableHead>
-                  <SortTh label="Recebido em" sortKey="data_recebimento_efetiva" sort={sort} setSort={setSort} />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SortTh
+                        label="Recebido em"
+                        sortKey="data_recebimento_efetiva"
+                        sort={sort}
+                        setSort={setSort}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Data confirmada pelo banco. Baixa registrada no sistema sem confirmação
+                        bancária não é recebimento — aparece como "marcado em".
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                   <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
                   <SortTh label="Status" sortKey="estado_ordem" sort={sort} setSort={setSort} />
                 </TableRow>
@@ -1452,15 +1472,24 @@ function AbaB2B() {
                       <TableCell>
                         {t.data_recebimento_efetiva ? (
                           <>
-                            <span>{formatDateBR(t.data_recebimento_efetiva)}</span>
+                            <span className="tabular-nums">
+                              {formatDateBR(t.data_recebimento_efetiva)}
+                            </span>
                             {t.data_divergente === true && (
-                              <div className="text-xs text-destructive">
+                              <div className="text-xs text-destructive tabular-nums">
                                 humano {formatDateBR(t.data_pagamento)}
                               </div>
                             )}
                           </>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <>
+                            <span className="text-muted-foreground">—</span>
+                            {t.fonte_data_recebimento === "marcado_humano" && (
+                              <div className="text-xs text-muted-foreground tabular-nums">
+                                marcado em {formatDateBR(t.data_pagamento)}
+                              </div>
+                            )}
+                          </>
                         )}
                       </TableCell>
 
