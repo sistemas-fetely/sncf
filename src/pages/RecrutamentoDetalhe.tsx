@@ -2799,6 +2799,14 @@ function TesteTecnico({
     enabled: !!candidatoId && !!vagaId,
   });
 
+  // Entrega guardada no bucket privado: leitura via URL assinada.
+  const entregaEhArquivo = /\/storage\/v1\/object\//.test(formResultado?.link_entrega ?? "")
+    || (formResultado?.link_entrega ?? "").includes("supabase");
+  const { url: urlEntregaAssinada, carregando: carregandoEntrega } = useUrlAssinada(
+    "documentos-cadastro",
+    entregaEhArquivo ? formResultado.link_entrega : null,
+  );
+
   useEffect(() => {
     if (teste) {
       setFormDesafio({
