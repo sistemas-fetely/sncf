@@ -527,6 +527,23 @@ export default function AuditoriaFinanceira() {
         })}
       </div>
 
+      {/* Contagem por meio de pagamento — clicável */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">
+          Meio de pagamento
+        </span>
+        {contadoresMeio.map(([m, n]) => (
+          <Badge
+            key={m}
+            variant={meioFiltro === m ? "default" : "outline"}
+            className="cursor-pointer tabular-nums"
+            onClick={() => setMeioFiltro((cur) => (cur === m ? "todos" : m))}
+          >
+            {labelMeio(m)} ({n})
+          </Badge>
+        ))}
+      </div>
+
       {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-start sm:items-center">
         <Input
@@ -553,6 +570,15 @@ export default function AuditoriaFinanceira() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={meioFiltro} onValueChange={setMeioFiltro}>
+          <SelectTrigger className="w-[190px]"><SelectValue placeholder="Meio" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os meios</SelectItem>
+            {contadoresMeio.map(([m, n]) => (
+              <SelectItem key={m} value={m}>{labelMeio(m)} ({n})</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={situacaoFiltro} onValueChange={setSituacaoFiltro}>
           <SelectTrigger className="w-[180px]"><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
@@ -562,10 +588,42 @@ export default function AuditoriaFinanceira() {
             ))}
           </SelectContent>
         </Select>
-        <div className="text-sm text-muted-foreground sm:ml-auto">
+        <div className="text-sm text-muted-foreground sm:ml-auto tabular-nums">
           {filtrados.length} de {lote.length} achados
         </div>
       </div>
+
+      {/* Visão e falsos positivos */}
+      <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">Agrupar</span>
+          <Button
+            size="sm"
+            variant={visao === "classe" ? "default" : "outline"}
+            onClick={() => setVisao("classe")}
+          >
+            Por classe
+          </Button>
+          <Button
+            size="sm"
+            variant={visao === "pedido" ? "default" : "outline"}
+            onClick={() => setVisao("pedido")}
+          >
+            Por pedido
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="mostrar-falso-positivo"
+            checked={mostrarFalsoPositivo}
+            onCheckedChange={setMostrarFalsoPositivo}
+          />
+          <Label htmlFor="mostrar-falso-positivo" className="text-sm text-muted-foreground cursor-pointer">
+            Mostrar falsos positivos ({totalFalsoPositivo})
+          </Label>
+        </div>
+      </div>
+
 
       {/* Lista */}
       {isLoading ? (
