@@ -678,6 +678,74 @@ export type Database = {
           },
         ]
       }
+      auditoria_hipotese_regra: {
+        Row: {
+          acao: string
+          ativo: boolean
+          classe_alvo: string[]
+          codigo: string
+          confianca: string
+          created_at: string
+          descricao: string | null
+          evidencia_template: string | null
+          grao: string
+          id: string
+          meio: string | null
+          ordem: number
+          permite_lote: boolean
+          rota: string | null
+          rotulo: string
+          tela: string | null
+          updated_at: string
+        }
+        Insert: {
+          acao: string
+          ativo?: boolean
+          classe_alvo?: string[]
+          codigo: string
+          confianca: string
+          created_at?: string
+          descricao?: string | null
+          evidencia_template?: string | null
+          grao?: string
+          id?: string
+          meio?: string | null
+          ordem: number
+          permite_lote?: boolean
+          rota?: string | null
+          rotulo: string
+          tela?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acao?: string
+          ativo?: boolean
+          classe_alvo?: string[]
+          codigo?: string
+          confianca?: string
+          created_at?: string
+          descricao?: string | null
+          evidencia_template?: string | null
+          grao?: string
+          id?: string
+          meio?: string | null
+          ordem?: number
+          permite_lote?: boolean
+          rota?: string | null
+          rotulo?: string
+          tela?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_hipotese_regra_confianca_fkey"
+            columns: ["confianca"]
+            isOneToOne: false
+            referencedRelation: "hipotese_confianca"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       auditoria_resumo_nfe_falhas: {
         Row: {
           contexto: Json | null
@@ -9734,6 +9802,30 @@ export type Database = {
             referencedColumns: ["movimentacao_id"]
           },
         ]
+      }
+      hipotese_confianca: {
+        Row: {
+          codigo: string
+          cor: string
+          descricao: string | null
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          cor: string
+          descricao?: string | null
+          ordem: number
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          cor?: string
+          descricao?: string | null
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
       }
       holerites: {
         Row: {
@@ -32250,14 +32342,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -33160,6 +33252,39 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+        ]
+      }
+      vw_pedido_hipotese: {
+        Row: {
+          acao: string | null
+          cliente: string | null
+          confianca: string | null
+          confianca_cor: string | null
+          confianca_ordem: number | null
+          confianca_rotulo: string | null
+          estagio: string | null
+          evidencia: Json | null
+          evidencia_texto: string | null
+          grao: string | null
+          meio: string | null
+          pedido_id: string | null
+          pedido_ref: string | null
+          permite_lote: boolean | null
+          regra_codigo: string | null
+          regra_ordem: number | null
+          regra_rotulo: string | null
+          rota: string | null
+          tela: string | null
+          valor_em_jogo: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_hipotese_regra_confianca_fkey"
+            columns: ["confianca"]
+            isOneToOne: false
+            referencedRelation: "hipotese_confianca"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -34534,6 +34659,7 @@ export type Database = {
           eh_melhor_candidato: boolean | null
           elegivel_lote: boolean | null
           exatos: number | null
+          exatos_limpos: number | null
           fila: string | null
           forca: string | null
           ja_tem_nsu: boolean | null
@@ -34551,6 +34677,7 @@ export type Database = {
           pedido_ref: string | null
           produto: string | null
           rn: number | null
+          tem_candidato_util: boolean | null
           tem_divergencia: boolean | null
           total_titulos: number | null
           valor_bruto: number | null
