@@ -1,7 +1,10 @@
 /**
  * Auditoria Financeira — trabalho sobre o lote congelado mais recente.
- * Fonte: `vw_auditoria_lote_atual`. Ações: RPC `tratar_achado_auditoria`
+ * Fonte: `vw_auditoria_lote_enriquecido`. Ações: RPC `tratar_achado_auditoria`
  * (por linha) e `gerar_snapshot_auditoria` (novo lote).
+ *
+ * Doutrina: a Auditoria DETECTA e ROTEIA. A tela especializada RESOLVE.
+ * Não existe botão de "resolver" aqui — existe rota para a tela que resolve.
  *
  * IMPORTANTE: os valores das classes NÃO são somáveis entre si —
  * naturezas diferentes de dinheiro. Somar dentro de uma classe é ok;
