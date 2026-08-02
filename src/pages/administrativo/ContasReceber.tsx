@@ -358,6 +358,7 @@ function AbaB2B() {
       if (soSemProva && t.fonte_data_recebimento !== "humano") return false;
       if (soDivergentes && t.data_divergente !== true) return false;
       if (soMeioDivergente && t.meio_divergente !== true) return false;
+      if (soSemNf && t.faturado !== false) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
