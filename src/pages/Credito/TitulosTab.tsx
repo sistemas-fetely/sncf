@@ -514,7 +514,7 @@ export default function TitulosTab() {
         <div className="relative max-w-sm flex-1 min-w-[240px]">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por cliente, CNPJ, pedido ou título..."
+            placeholder="Buscar por cliente, nome fantasia, CNPJ, pedido ou título..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="pl-10"
