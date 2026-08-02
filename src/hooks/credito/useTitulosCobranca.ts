@@ -26,7 +26,9 @@ export interface TituloCobranca {
   total_parcelas: number;
   eh_entrada: boolean;
   created_at: string;
+  status_real: string;
   tipo_pagamento: string;
+
   boleto_status: string | null;
   boleto_codigo_rejeicao: string | null;
   /** @deprecated vocabulário antigo — use eixo_prova / eixo_status. Ainda lido por telas legadas. */
