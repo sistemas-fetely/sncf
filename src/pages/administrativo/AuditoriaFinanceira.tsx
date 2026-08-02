@@ -172,6 +172,16 @@ export default function AuditoriaFinanceira() {
   const [mostrarFalsoPositivo, setMostrarFalsoPositivo] = useState(false);
   const [visao, setVisao] = useState<"classe" | "pedido">("classe");
 
+  // Contexto expansível: só os achados abertos disparam as views caras.
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const alternarExpandido = (id: string, aberto: boolean) =>
+    setExpandidos((cur) => {
+      const next = new Set(cur);
+      if (aberto) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
   const [tratar, setTratar] = useState<Achado | null>(null);
   const [novaSituacao, setNovaSituacao] = useState<"em_analise" | "resolvido" | "explicado">("em_analise");
   const [nota, setNota] = useState("");
