@@ -310,6 +310,11 @@ function AbaNFs() {
                   <TableCell className="text-sm">{formatDate(n.data_emissao)}</TableCell>
                   <TableCell className="text-sm max-w-xs truncate" title={n.parceiro?.razao_social ?? undefined}>
                     {n.parceiro?.razao_social ?? "—"}
+                    {apelidoParceiro(n.parceiro?.razao_social, n.parceiro?.nome_fantasia) && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {apelidoParceiro(n.parceiro?.razao_social, n.parceiro?.nome_fantasia)}
+                      </p>
+                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-sm">
                     {formatCurrency(n.valor_nota)}
