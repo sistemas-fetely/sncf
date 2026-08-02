@@ -183,7 +183,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
   };
 
   const isPending = registrarForaMutation.isPending || enviandoEmail;
-  const clienteNome = titulo.parceiro_nome_fantasia || titulo.parceiro_razao_social || "—";
+  const clienteNome = nomeExibicao(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia, "—");
   const vencCurto = titulo.data_vencimento_atual
     ? formatDateBR(titulo.data_vencimento_atual).slice(0, 5)
     : "—";
