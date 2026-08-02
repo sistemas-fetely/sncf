@@ -396,13 +396,19 @@ function AbaB2B() {
 
 
   const kpis = useMemo(() => {
-    /** Eixo prova: conciliado é dinheiro provado; compensado é quitação sem prova. */
-    let conciliado = 0;
-    let conciliadoQtd = 0;
+    /**
+     * Eixo status: onde está o dinheiro DESTA parcela (a_vencer, pago, compensado).
+     * Eixo prova: a VENDA foi validada no banco (conciliado).
+     * Encerramento (devolvido/cancelado) fica fora de tudo.
+     */
+    let aVencer = 0;
+    let aVencerQtd = 0;
+    let pago = 0;
+    let pagoQtd = 0;
     let compensado = 0;
     let compensadoQtd = 0;
-    let registrado = 0;
-    let registradoQtd = 0;
+    let conciliado = 0;
+    let conciliadoQtd = 0;
     let inadimplencia = 0;
     let inadimplenciaQtd = 0;
     let aberto = 0;
@@ -413,51 +419,56 @@ function AbaB2B() {
     const meiosCompensadoMapa = new Map<string, number>();
     for (const t of base) {
       const v = efetivoDe(t);
-      const e = t.eixo_prova;
-      if (PROVA_FORA_KPI.includes(e)) continue;
-      if (e === "conciliado") {
-        conciliado += v;
-        conciliadoQtd += 1;
-      }
-      if (e === "compensado") {
-        compensado += v;
-        compensadoQtd += 1;
-        const meio = t.meio_pagamento ?? "—";
-        meiosCompensadoMapa.set(meio, (meiosCompensadoMapa.get(meio) ?? 0) + v);
-      }
-      if (e === "registrado") {
-        registrado += v;
-        registradoQtd += 1;
+      const s = t.eixo_status;
+      if (STATUS_FORA_KPI.includes(s)) continue;
+      if (PROVA_FORA_KPI.includes(t.eixo_prova)) continue;
+      if (s === "a_vencer") {
+        aVencer += v;
+        aVencerQtd += 1;
+        aberto += v;
+        abertoQtd += 1;
         const ref = t.data_liquidacao ?? t.data_vencimento;
         if (ref) {
           const d = new Date(ref + "T12:00:00");
           if (d >= hoje && d <= em30) vence30 += v;
         }
       }
-      if (e === "registrado" || e === "compensado") {
-        aberto += v;
-        abertoQtd += 1;
+      if (s === "pago") {
+        pago += v;
+        pagoQtd += 1;
+      }
+      if (s === "compensado") {
+        compensado += v;
+        compensadoQtd += 1;
+        const meio = t.meio_pagamento ?? "—";
+        meiosCompensadoMapa.set(meio, (meiosCompensadoMapa.get(meio) ?? 0) + v);
+      }
+      if (t.eixo_prova === "conciliado") {
+        conciliado += v;
+        conciliadoQtd += 1;
       }
       if (t.eh_inadimplencia === true) {
         inadimplencia += v;
         inadimplenciaQtd += 1;
       }
-      if (t.faturado === false && (e === "conciliado" || e === "compensado")) {
+      if (t.faturado === false && (s === "pago" || s === "compensado")) {
         recebidoSemNf += v;
         recebidoSemNfQtd += 1;
       }
     }
-    const inadimplenciaPct = registrado > 0 ? (inadimplencia / registrado) * 100 : 0;
+    const inadimplenciaPct = aVencer + pago > 0 ? (inadimplencia / (aVencer + pago)) * 100 : 0;
     const meiosCompensado = Array.from(meiosCompensadoMapa.entries())
       .map(([meio, total]) => ({ meio, total }))
       .sort((a, b) => b.total - a.total);
     return {
-      conciliado,
-      conciliadoQtd,
+      aVencer,
+      aVencerQtd,
+      pago,
+      pagoQtd,
       compensado,
       compensadoQtd,
-      registrado,
-      registradoQtd,
+      conciliado,
+      conciliadoQtd,
       inadimplencia,
       inadimplenciaQtd,
       inadimplenciaPct,
@@ -467,10 +478,11 @@ function AbaB2B() {
       vence30,
       recebidoSemNf,
       recebidoSemNfQtd,
-      total: conciliado + compensado + registrado,
-      totalQtd: conciliadoQtd + compensadoQtd + registradoQtd,
+      total: aVencer + pago + compensado,
+      totalQtd: aVencerQtd + pagoQtd + compensadoQtd,
     };
   }, [base, hoje, em30]);
+
 
 
   /** Acurácia da régua: desvio só existe quando há prova bancária. */
