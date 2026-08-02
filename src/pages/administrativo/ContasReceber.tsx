@@ -1399,12 +1399,13 @@ function AbaB2B() {
                   </Tooltip>
                   <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
                   <SortTh label="Prova" sortKey="eixo_prova" sort={sort} setSort={setSort} />
-                  <SortTh label="Prazo" sortKey="eixo_prazo" sort={sort} setSort={setSort} />
+                  <SortTh label="Status" sortKey="eixo_status" sort={sort} setSort={setSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginados.map((t) => {
-                  const atrasado = t.status_gestao === "atrasado";
+                  const atrasado = t.eh_inadimplencia === true;
+
                   const juros = Number(t.valor_juros ?? 0);
                   const desconto = Number(t.valor_desconto ?? 0);
                   const bruto = Number(t.valor_bruto ?? t.valor ?? 0);
