@@ -30,6 +30,7 @@ import { PedidoStepper } from "@/components/pedidos/PedidoStepper";
 import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
 import { PedidoTarefasTab } from "@/components/pedidos/PedidoTarefasTab";
 import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
+import { MarcacaoPedido } from "@/components/pedidos/MarcacaoPedido";
 import { EstagioBadge, FormatoIdade } from "@/components/pedidos/BadgesPedido";
 import { CardEntrega } from "@/components/pedidos/CardEntrega";
 import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
@@ -1003,6 +1004,7 @@ export default function PedidoDetalhe() {
             {priorizado && <BadgePriorizacao score={priorizado.score_total} breakdown={priorizado.score_breakdown} compact />}
             <span className="text-xs text-muted-foreground"><FormatoIdade minutos={idade_minutos} /></span>
             {sla_estourado && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertCircle className="h-3 w-3" />SLA estourado</Badge>}
+            <MarcacaoPedido pedidoId={pedido.id} marcacao={pedido.marcacao ?? null} />
           </div>
           {!estagioFinal && pedido.proxima_acao && (
             <p className="text-sm text-muted-foreground italic pt-1.5">

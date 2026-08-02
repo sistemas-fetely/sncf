@@ -960,11 +960,12 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Popover de marcação controlado pelo menu (trigger invisível). */}
+      {/* Diálogo de marcação controlado pelo menu — Dialog, não Popover:
+          o DropdownMenu devolve o foco ao trigger ao fechar e derrubava o popover. */}
       <MarcacaoPedido
         pedidoId={p.id}
         marcacao={p.marcacao}
-        semTrigger
+        hideTrigger
         open={marcacaoOpen}
         onOpenChange={setMarcacaoOpen}
       />
