@@ -33,13 +33,19 @@ import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download } fro
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 
+import {
+  BadgePrazo,
+  BadgeProva,
+  PRAZOS,
+  PRAZO_META,
+  PROVAS,
+  PROVA_FORA_KPI,
+  PROVA_META,
+  type EixoPrazo,
+  type EixoProva,
+} from "@/lib/financeiro/eixos-estado";
+
 type StatusGestao = "pago" | "atrasado" | "em_aberto" | "cancelado";
-
-/** Eixo prova: onde está o DINHEIRO. */
-type EixoProva = "registrado" | "compensado" | "conciliado" | "devolvido" | "cancelado";
-
-/** Eixo prazo: onde está o CLIENTE em relação ao vencimento. */
-type EixoPrazo = "a_vencer" | "vence_hoje" | "vencido";
 
 
 
