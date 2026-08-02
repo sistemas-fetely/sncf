@@ -637,7 +637,7 @@ function AbaB2B() {
 
   const filtrados = useMemo(() => {
     let arr = base.filter(
-      (t) => provasAtivas.has(t.eixo_prova) && prazosAtivos.has(t.eixo_prazo)
+      (t) => provasAtivas.has(t.eixo_prova) && statusAtivos.has(t.eixo_status)
     );
     if (sort) {
       arr = [...arr].sort((a, b) => {
