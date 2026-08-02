@@ -241,7 +241,9 @@ export default function ContasReceberSops() {
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
         const cli = (t.conta?.parceiro?.razao_social ?? "").toLowerCase();
-        if (!num.includes(buscaLc) && !cli.includes(buscaLc)) return false;
+        const fant = (t.conta?.parceiro?.nome_fantasia ?? "").toLowerCase();
+        if (!num.includes(buscaLc) && !cli.includes(buscaLc) && !fant.includes(buscaLc))
+          return false;
       }
 
       if (dDe || dAte) {
