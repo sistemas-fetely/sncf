@@ -164,7 +164,7 @@ export default function AuditoriaFinanceira() {
   const qc = useQueryClient();
 
   const [busca, setBusca] = useState("");
-  const [sevFiltro, setSevFiltro] = useState<string>("1");
+  const [sevFiltro, setSevFiltro] = useState<string>("todas");
   const [classeFiltro, setClasseFiltro] = useState<string>("todas");
   const [fonteFiltro, setFonteFiltro] = useState<string>("todas");
   const [meioFiltro, setMeioFiltro] = useState<string>("todos");
