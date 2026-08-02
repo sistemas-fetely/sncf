@@ -687,7 +687,7 @@ function AbaB2B() {
       { mes: string; titulos: number; recebido: number; aberto: number; atrasado: number; total: number }
     >();
     for (const t of data ?? []) {
-      if (t.status_gestao === "cancelado") continue;
+      if (t.eixo_prova === "cancelado" || t.eixo_prova === "devolvido") continue;
       let key: string | null = null;
       if (baseMensal === "competencia") key = mesKeyDe(t.mes_competencia ?? t.data_compra);
       else if (baseMensal === "caixa_projetado") {
@@ -702,8 +702,8 @@ function AbaB2B() {
       const v = efetivoDe(t);
       linha.titulos += 1;
       linha.total += v;
-      if (t.status_gestao === "pago") linha.recebido += v;
-      else if (t.status_gestao === "atrasado") linha.atrasado += v;
+      if (t.eixo_prova === "conciliado" || t.eixo_prova === "compensado") linha.recebido += v;
+      else if (t.eixo_prazo === "vencido") linha.atrasado += v;
       else linha.aberto += v;
       mapa.set(key, linha);
     }
