@@ -80,7 +80,6 @@ export const template = {
   previewData: {
     nome_candidato: "Maria Silva",
     cargo: "Analista de Design Jr",
-    link_entrega: "https://drive.google.com/exemplo",
-    link_sistema: "https://sncf.lovable.app/recrutamento",
+    vaga_id: "00000000-0000-0000-0000-000000000000",
   },
 }
