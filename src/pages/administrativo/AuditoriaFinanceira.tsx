@@ -201,6 +201,9 @@ export default function AuditoriaFinanceira() {
 
   const geradoEm = loteBruto[0]?.gerado_em ?? null;
 
+  // Hipóteses: view barata, buscada inteira uma vez e virada em mapa.
+  const { principal: hipPrincipal } = useHipoteseMap();
+
   const totalFalsoPositivo = useMemo(
     () => loteBruto.filter((a) => a.falso_positivo_sem_caixa === true).length,
     [loteBruto]
