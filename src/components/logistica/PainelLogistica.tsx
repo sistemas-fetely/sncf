@@ -16,6 +16,7 @@ import { useLogisticaCustoTransportadora } from "@/hooks/logistica/useLogisticaC
 import { useTranspFretesUf } from "@/hooks/logistica/useTranspFretesUf";
 import { useLogisticaPrazoEntrega } from "@/hooks/logistica/useLogisticaPrazoEntrega";
 import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const NUM = new Intl.NumberFormat("pt-BR");
@@ -107,7 +108,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
   // Nome resolver por id
   const nomePorId = useMemo(() => {
     const m = new Map<string, string>();
-    for (const p of parceiros) m.set(p.id, p.nome_fantasia ?? p.razao_social ?? "");
+    for (const p of parceiros) m.set(p.id, nomeExibicao(p.razao_social, p.nome_fantasia, ""));
     return m;
   }, [parceiros]);
 

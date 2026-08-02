@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Building2, Upload, Truck } from "lucide-react";
@@ -22,7 +23,7 @@ function fmtCnpj(cnpj: string | null): string {
 }
 
 export function AbaTransportadora({ transportadora }: { transportadora: TransportadoraLogistica }) {
-  const nome = transportadora.nome_fantasia ?? transportadora.razao_social;
+  const nome = nomeExibicao(transportadora.razao_social, transportadora.nome_fantasia);
   const nomeUpper = (transportadora.razao_social || "").toUpperCase() + " " + (transportadora.nome_fantasia || "").toUpperCase();
   const ehBraspress = nomeUpper.includes("BRASPRESS");
   const ehCorreios = nomeUpper.includes("CORREIOS") || nomeUpper.includes("EMPRESA BRASILEIRA DE CORREIOS");

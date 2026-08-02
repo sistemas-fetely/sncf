@@ -5,6 +5,7 @@ import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { VisaoGeralLogistica } from "@/components/logistica/VisaoGeralLogistica";
 import { EntregasControle } from "@/components/logistica/EntregasControle";
 import { cn } from "@/lib/utils";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 
 export default function Logistica() {
   const { data: transportadoras = [], isLoading } = useTransportadorasLogistica();
@@ -51,7 +52,7 @@ export default function Logistica() {
               <Package className="h-3.5 w-3.5" /> Entregas
             </button>
             {transportadoras.map((t) => {
-              const nome = t.nome_fantasia ?? t.razao_social;
+              const nome = nomeExibicao(t.razao_social, t.nome_fantasia);
               const ativo = t.id === ativaId;
               return (
                 <button
