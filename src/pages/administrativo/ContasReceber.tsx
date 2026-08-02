@@ -1302,7 +1302,25 @@ function AbaB2B() {
                   const desconto = Number(t.valor_desconto ?? 0);
                   return (
                     <TableRow key={t.id} className={atrasado ? "bg-red-50/40" : undefined}>
-                      <TableCell className="font-mono text-xs">{t.nf_numero ?? "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {t.faturado === false ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className="cursor-help border-amber-500/60 text-amber-700"
+                              >
+                                Sem NF
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Título existe sem nota fiscal emitida.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          (t.nf_numero ?? "—")
+                        )}
+                      </TableCell>
                       <TableCell className="max-w-[180px] truncate" title={t.cliente ?? ""}>
                         {t.cliente ?? "—"}
                       </TableCell>
