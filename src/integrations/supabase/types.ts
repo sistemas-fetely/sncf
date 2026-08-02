@@ -29330,6 +29330,7 @@ export type Database = {
       }
       vw_devolucao_retorno_pendente: {
         Row: {
+          apelido: string | null
           cliente: string | null
           cliente_documento: string | null
           devolvido_em: string | null
@@ -30536,6 +30537,7 @@ export type Database = {
       }
       vw_fornecedor_produto: {
         Row: {
+          apelido: string | null
           ativo: boolean | null
           codigo_fornecedor: string | null
           criado_em: string | null
@@ -31080,6 +31082,7 @@ export type Database = {
       }
       vw_importacao_pedido_detalhe: {
         Row: {
+          apelido: string | null
           cbm_total: number | null
           centro: string | null
           centro_id: string | null
@@ -31840,14 +31843,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -31856,6 +31859,7 @@ export type Database = {
       }
       vw_nfs_stage_mercadoria_pendente: {
         Row: {
+          apelido: string | null
           classificacao: string | null
           fornecedor: string | null
           fornecedor_cnpj: string | null

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
 import { formatError } from "@/lib/format-error";
 import { gerarTemplatePedidoMercadoria } from "@/lib/compras/templatePedidoMercadoria";
 import ImportarLinhasMercadoriaDialog from "@/components/compras/ImportarLinhasMercadoriaDialog";
@@ -94,6 +95,7 @@ interface PedidoListaRow {
   etd: string | null;
   eta: string | null;
   fornecedor: string | null;
+  apelido: string | null;
   centro: string | null;
   status: string | null;
   linhas: number | null;
@@ -228,7 +230,9 @@ function FornecedorCombobox({
 }) {
   const [open, setOpen] = useState(false);
   const sel = parceiros.find((p) => p.id === value);
-  const label = sel ? sel.nome_fantasia || sel.razao_social || "—" : "Selecione o fornecedor";
+  const label = sel
+    ? nomeExibicao(sel.razao_social, sel.nome_fantasia)
+    : "Selecione o fornecedor";
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -257,9 +261,11 @@ function FornecedorCombobox({
                   }}
                 >
                   <div className="flex flex-col">
-                    <span>{p.nome_fantasia || p.razao_social}</span>
-                    {p.nome_fantasia && p.razao_social && (
-                      <span className="text-xs text-muted-foreground">{p.razao_social}</span>
+                    <span>{nomeCanonico(p.razao_social, p.nome_fantasia ?? "—")}</span>
+                    {apelidoParceiro(p.razao_social, p.nome_fantasia) && (
+                      <span className="text-xs text-muted-foreground">
+                        {apelidoParceiro(p.razao_social, p.nome_fantasia)}
+                      </span>
                     )}
                   </div>
                 </CommandItem>
@@ -348,7 +354,7 @@ export default function CadastroPedidoCompra() {
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_detalhe")
         .select(
-          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, etd, eta, fornecedor, centro, status, linhas, kits, custo_total, fase_xpm",
+          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total, fase_xpm",
         );
       if (error) throw error;
       return (data ?? []) as PedidoListaRow[];
@@ -561,7 +567,12 @@ export default function CadastroPedidoCompra() {
                       <TableCell className="font-medium">{p.numero_pedido}</TableCell>
                       <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
                       <TableCell>{p.modalidade ?? "—"}</TableCell>
-                      <TableCell>{p.fornecedor ?? "—"}</TableCell>
+                      <TableCell>
+                        <div>{p.fornecedor ?? "—"}</div>
+                        {p.apelido && (
+                          <div className="text-xs text-muted-foreground">{p.apelido}</div>
+                        )}
+                      </TableCell>
                       <TableCell>{p.centro ?? "—"}</TableCell>
                       <TableCell>{p.status ?? "—"}</TableCell>
                       <TableCell>{fmtDate(p.data_pedido)}</TableCell>

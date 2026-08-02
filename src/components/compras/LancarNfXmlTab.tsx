@@ -27,6 +27,7 @@ interface StageRow {
   fornecedor_razao_social: string | null;
   fornecedor_id: string | null;
   fornecedor: string | null;
+  apelido: string | null;
   valor_no_xml: number | null;
   itens: number | null;
   ja_lancada: boolean | null;

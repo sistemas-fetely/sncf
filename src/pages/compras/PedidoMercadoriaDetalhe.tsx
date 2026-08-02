@@ -57,6 +57,7 @@ interface PedidoDetalhe {
   cbm_total: number | null;
   fornecedor_id: string | null;
   fornecedor: string | null;
+  apelido: string | null;
   fabrica: string | null;
   centro: string | null;
   status: string | null;
@@ -452,11 +453,16 @@ export default function PedidoMercadoriaDetalhe() {
             </div>
 
             <div className="text-sm text-muted-foreground">
-              {pedido.fornecedor ?? "Fornecedor não informado"}
-              {pedido.fabrica ? ` · ${pedido.fabrica}` : ""}
-              {pedido.modalidade ? ` · ${pedido.modalidade}` : ""}
-              {pedido.moeda ? ` · ${pedido.moeda}` : ""}
-              {pedido.centro ? ` · ${pedido.centro}` : ""}
+              <div>
+                {pedido.fornecedor ?? "Fornecedor não informado"}
+                {pedido.fabrica ? ` · ${pedido.fabrica}` : ""}
+                {pedido.modalidade ? ` · ${pedido.modalidade}` : ""}
+                {pedido.moeda ? ` · ${pedido.moeda}` : ""}
+                {pedido.centro ? ` · ${pedido.centro}` : ""}
+              </div>
+              {pedido.apelido && (
+                <div className="text-xs text-muted-foreground">{pedido.apelido}</div>
+              )}
             </div>
           </div>
 
