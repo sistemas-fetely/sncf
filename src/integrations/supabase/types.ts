@@ -24403,33 +24403,6 @@ export type Database = {
         }
         Relationships: []
       }
-      titulo_eixo_prazo: {
-        Row: {
-          codigo: string
-          cor: string
-          descricao: string
-          ordem: number
-          passou_vencimento: boolean
-          rotulo: string
-        }
-        Insert: {
-          codigo: string
-          cor: string
-          descricao: string
-          ordem: number
-          passou_vencimento: boolean
-          rotulo: string
-        }
-        Update: {
-          codigo?: string
-          cor?: string
-          descricao?: string
-          ordem?: number
-          passou_vencimento?: boolean
-          rotulo?: string
-        }
-        Relationships: []
-      }
       titulo_eixo_prova: {
         Row: {
           codigo: string
@@ -24456,6 +24429,33 @@ export type Database = {
           dinheiro_na_conta?: boolean
           ordem?: number
           pagador_quitou?: boolean
+          rotulo?: string
+        }
+        Relationships: []
+      }
+      titulo_eixo_status: {
+        Row: {
+          codigo: string
+          cor: string
+          descricao: string
+          dinheiro_no_banco: boolean
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          cor: string
+          descricao: string
+          dinheiro_no_banco: boolean
+          ordem: number
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          cor?: string
+          descricao?: string
+          dinheiro_no_banco?: boolean
+          ordem?: number
           rotulo?: string
         }
         Relationships: []
@@ -32303,14 +32303,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
