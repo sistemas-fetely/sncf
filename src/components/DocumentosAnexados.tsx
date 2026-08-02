@@ -158,16 +158,19 @@ export function DocumentosAnexados({ colaboradorId, contratoPjId, currentFotoUrl
       .from("documentos-cadastro")
       .getPublicUrl(filePath);
 
+    const signedUrl = await getUrlAssinada("documentos-cadastro", filePath);
+
     setFiles((prev) => [
       ...prev,
       {
         name: safeName,
         url: urlData.publicUrl,
-        signedUrl: await getUrlAssinada("documentos-cadastro", filePath),
+        signedUrl,
         isImage: isImageFile(safeName),
         folder: directFolder,
       },
     ]);
+
     toast.success("Documento enviado com sucesso!");
     setUploading(false);
   };
