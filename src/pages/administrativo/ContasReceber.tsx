@@ -268,6 +268,7 @@ function AbaB2B() {
   const [soSemProva, setSoSemProva] = useState(false);
   const [soDivergentes, setSoDivergentes] = useState(false);
   const [soMeioDivergente, setSoMeioDivergente] = useState(false);
+  const [soSemNf, setSoSemNf] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [situacoes, setSituacoes] = useState<Set<EstadoGestao>>(
     new Set<EstadoGestao>([
