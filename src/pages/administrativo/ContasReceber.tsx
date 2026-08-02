@@ -705,10 +705,10 @@ function AbaB2B() {
       "Data banco": formatDateBR(t.data_pagamento_banco),
       "Data humano": formatDateBR(t.data_pagamento),
       Divergente: t.data_divergente ? "Sim" : "Não",
-      "Valor face": t.valor ?? 0,
+      Valor: efetivoDe(t),
+      "Valor bruto": t.valor_bruto ?? 0,
       Juros: t.valor_juros ?? 0,
       Desconto: t.valor_desconto ?? 0,
-      "Valor efetivo": efetivoDe(t),
       "Gera caixa": t.gera_caixa ? "Sim" : "Não",
       "Prova bancária": t.tem_prova_bancaria ? "Sim" : "Não",
       Status: t.estado_rotulo ?? "",
@@ -1355,6 +1355,7 @@ function AbaB2B() {
                   const atrasado = t.status_gestao === "atrasado";
                   const juros = Number(t.valor_juros ?? 0);
                   const desconto = Number(t.valor_desconto ?? 0);
+                  const bruto = Number(t.valor_bruto ?? t.valor ?? 0);
                   return (
                     <TableRow key={t.id} className={atrasado ? "bg-red-50/40" : undefined}>
                       <TableCell className="font-mono text-xs">
@@ -1495,9 +1496,9 @@ function AbaB2B() {
 
                       <TableCell className="text-right tabular-nums">
                         <div>{formatBRL(efetivoDe(t))}</div>
-                        {(juros > 0 || desconto > 0) && (
-                          <div className="text-xs text-muted-foreground">
-                            face {formatBRL(t.valor ?? 0)}
+                        {(juros > 0 || desconto > 0 || efetivoDe(t) !== bruto) && (
+                          <div className="text-xs text-muted-foreground tabular-nums">
+                            bruto {formatBRL(bruto)}
                             {juros > 0 && (
                               <span className="text-emerald-700"> · juros +{formatBRL(juros)}</span>
                             )}
