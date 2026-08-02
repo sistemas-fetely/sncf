@@ -44,6 +44,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import DossieAchado from "@/components/auditoria/DossieAchado";
+import HipoteseResumo from "@/components/auditoria/HipoteseResumo";
+import { useHipoteseMap } from "@/hooks/useHipoteseMap";
 import {
   AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2, CheckCircle2,
   ArrowUpRight, ChevronDown,
