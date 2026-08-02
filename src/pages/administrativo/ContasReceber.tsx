@@ -799,12 +799,62 @@ function AbaB2B() {
               </p>
             </CardContent>
           </Card>
+          <Card className="border-amber-500/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-amber-700">Recebido sem NF</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-amber-700">
+                {formatBRL(kpis.recebidoSemNf)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.recebidoSemNfQtd} títulos · dinheiro entrou antes da nota
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Desvio médio da régua</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {desvioRegua ? (
+                <>
+                  <div
+                    className={`text-2xl font-semibold tabular-nums ${
+                      Math.abs(desvioRegua.media) > 5
+                        ? "text-destructive"
+                        : Math.abs(desvioRegua.media) > 2
+                        ? "text-amber-700"
+                        : ""
+                    }`}
+                  >
+                    {desvioRegua.media >= 0 ? "+" : "−"}
+                    {Math.abs(desvioRegua.media).toLocaleString("pt-BR", {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })}{" "}
+                    dias
+                  </div>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {desvioRegua.qtd} títulos com prova bancária · de{" "}
+                    {desvioRegua.min < 0 ? "−" : ""}
+                    {Math.abs(desvioRegua.min)}d a {desvioRegua.max >= 0 ? "+" : "−"}
+                    {Math.abs(desvioRegua.max)}d
+                  </p>
+                </>
+              ) : (
+                <div className="text-2xl font-semibold text-muted-foreground">—</div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <p className="text-xs text-muted-foreground">
           Estado por força de prova: conciliado tem o crédito do extrato amarrado; confirmado no
           banco tem o retorno CNAB mas a linha do extrato não foi vinculada; baixa manual não tem
-          prova bancária nenhuma. Devolvido e cancelado ficam fora dos totais.
+          prova bancária nenhuma. Devolvido e cancelado ficam fora dos totais. Títulos sem NF também
+          são recebíveis e agora entram nos totais. O desvio da régua só é calculado contra data
+          confirmada pelo banco.
         </p>
 
 
