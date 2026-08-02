@@ -18356,39 +18356,60 @@ export type Database = {
         Row: {
           ancora: string
           ativo: boolean
+          baixa_humana_liquida: boolean
           banco_id: string
+          chave_conciliacao: string
           created_at: string
+          credito_liquido: boolean
+          fonte_prova: string
           forma_pagamento_id: string | null
           id: string
+          liquida_por_parcela: boolean
           meio_pagamento: string
           offset_entre_parcelas_dias: number | null
           offset_primeira_dias: number | null
+          tem_vencimento: boolean
+          tolerancia_taxa_pct: number
           updated_at: string
           usa_vencimento: boolean
         }
         Insert: {
           ancora: string
           ativo?: boolean
+          baixa_humana_liquida: boolean
           banco_id: string
+          chave_conciliacao: string
           created_at?: string
+          credito_liquido: boolean
+          fonte_prova: string
           forma_pagamento_id?: string | null
           id?: string
+          liquida_por_parcela: boolean
           meio_pagamento: string
           offset_entre_parcelas_dias?: number | null
           offset_primeira_dias?: number | null
+          tem_vencimento: boolean
+          tolerancia_taxa_pct: number
           updated_at?: string
           usa_vencimento?: boolean
         }
         Update: {
           ancora?: string
           ativo?: boolean
+          baixa_humana_liquida?: boolean
           banco_id?: string
+          chave_conciliacao?: string
           created_at?: string
+          credito_liquido?: boolean
+          fonte_prova?: string
           forma_pagamento_id?: string | null
           id?: string
+          liquida_por_parcela?: boolean
           meio_pagamento?: string
           offset_entre_parcelas_dias?: number | null
           offset_primeira_dias?: number | null
+          tem_vencimento?: boolean
+          tolerancia_taxa_pct?: number
           updated_at?: string
           usa_vencimento?: boolean
         }
@@ -23754,6 +23775,7 @@ export type Database = {
           valor_desconto: number
           valor_juros: number
           valor_multa: number
+          valor_taxa_adquirente: number | null
           vip_relacionamento: boolean
         }
         Insert: {
@@ -23818,6 +23840,7 @@ export type Database = {
           valor_desconto?: number
           valor_juros?: number
           valor_multa?: number
+          valor_taxa_adquirente?: number | null
           vip_relacionamento?: boolean
         }
         Update: {
@@ -23882,6 +23905,7 @@ export type Database = {
           valor_desconto?: number
           valor_juros?: number
           valor_multa?: number
+          valor_taxa_adquirente?: number | null
           vip_relacionamento?: boolean
         }
         Relationships: [
@@ -31843,14 +31867,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -35257,6 +35281,14 @@ export type Database = {
       clonar_pedido_cancelado: { Args: { p_pedido_id: string }; Returns: Json }
       comentar_pedido: {
         Args: { p_conteudo: string; p_pedido_id: string }
+        Returns: Json
+      }
+      conciliar_cartao_por_nsu: {
+        Args: {
+          p_movimentacao_id: string
+          p_nota?: string
+          p_titulo_id: string
+        }
         Returns: Json
       }
       conciliar_credito_cesta: {
