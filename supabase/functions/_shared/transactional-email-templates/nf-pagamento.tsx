@@ -79,7 +79,7 @@ export const template = {
     numeroNF: '12345',
     valor: 'R$ 5.000,00',
     dataVencimento: '15/01/2025',
-    arquivoUrl: 'https://example.com/nf.pdf',
+    notaFiscalId: '00000000-0000-0000-0000-000000000000',
   },
 } satisfies TemplateEntry
 
