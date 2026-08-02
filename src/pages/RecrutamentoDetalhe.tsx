@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
 import { publicUrl, PUBLIC_APP_URL } from "@/lib/urls";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
