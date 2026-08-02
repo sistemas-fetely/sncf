@@ -54,6 +54,7 @@ type FarolRow = {
   pedido_id: string;
   id_externo: string | null;
   cliente: string | null;
+  parceiro_apelido: string | null;
   valor_liquido: number | null;
   estagio: string | null;
   status_label: string | null;
