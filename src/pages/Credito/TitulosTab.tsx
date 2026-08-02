@@ -380,18 +380,19 @@ export default function TitulosTab() {
   const mesAtual = new Date().toISOString().slice(0, 7);
   const q = busca.trim().toLowerCase();
 
-  function toggleCard(key: string) {
-    setCardsAtivos((prev) => {
-      // "Todos" é modo exclusivo: liga sozinho e apaga o anel dos outros.
-      if (key === "todos") {
-        return prev.has("todos") ? new Set<string>() : new Set<string>(["todos"]);
-      }
-      if (prev.has("todos")) return new Set<string>([key]);
+  function toggleSet<T>(setter: React.Dispatch<React.SetStateAction<Set<T>>>, key: T) {
+    setter((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
+  }
+
+  function verTudo() {
+    setProvaFiltro(new Set());
+    setStatusFiltro(new Set());
+    setSoInadimplentes(false);
   }
 
   /* Estágio 1: tipo + busca + data. Base dos KPIs — cards refletem o chip. */
@@ -408,27 +409,43 @@ export default function TitulosTab() {
 
   const kpis = useMemo(() => calcularKpis(baseSemCards), [baseSemCards]);
 
-  /* Estágio 2: recorte dos cards sobre a base. */
+  /* Estágio 2: recorte dos dois eixos sobre a base. */
   const filtrados = useMemo(
-    () => baseSemCards.filter((t) => matchCards(t, cardsAtivos, mesAtual)),
-    [baseSemCards, cardsAtivos, mesAtual],
+    () => baseSemCards.filter((t) => matchEixos(t, provaFiltro, statusFiltro, soInadimplentes)),
+    [baseSemCards, provaFiltro, statusFiltro, soInadimplentes],
   );
 
-  /* Contagem dos chips: busca + data + cards, MAS NÃO tipo (anti-circular). */
+  /* Contagem dos chips: busca + data + eixos, MAS NÃO tipo (anti-circular). */
   const contagemTipos = useMemo(() => {
     const base = titulos.filter(
       (t) =>
         matchBusca(t, q) &&
         matchData(t, vencDe, vencAte) &&
-        matchCards(t, cardsAtivos, mesAtual) &&
-        tituloEntraNoKpi(t),
+        matchEixos(t, provaFiltro, statusFiltro, soInadimplentes),
     );
     const c: Record<string, number> = {};
     for (const f of TIPOS_FILTRO) {
       c[f] = base.filter((t) => matchTipo(f, t.tipo_pagamento)).length;
     }
     return c;
-  }, [titulos, q, vencDe, vencAte, cardsAtivos, mesAtual]);
+  }, [titulos, q, vencDe, vencAte, provaFiltro, statusFiltro, soInadimplentes]);
+
+  /* Contagem dos toggles de eixo, sobre a base de tipo/busca/data. */
+  const contagemProva = useMemo(() => {
+    const c = {} as Record<EixoProva, number>;
+    for (const p of PROVAS) c[p] = baseSemCards.filter((t) => t.eixo_prova === p).length;
+    return c;
+  }, [baseSemCards]);
+
+  const contagemStatus = useMemo(() => {
+    const c = {} as Record<EixoStatus, number>;
+    for (const s of STATUS_EIXOS) c[s] = baseSemCards.filter((t) => t.eixo_status === s).length;
+    return c;
+  }, [baseSemCards]);
+
+  const mostrandoEncerrados =
+    statusFiltro.size === 0 || statusFiltro.has("devolvido") || statusFiltro.has("cancelado");
+
 
   const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
 
