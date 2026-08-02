@@ -400,6 +400,7 @@ function AbaVincularVendas() {
   const [alvo, setAlvo] = useState<VendaFila | null>(null);
   const [nota, setNota] = useState("");
   const [desmarcados, setDesmarcados] = useState<Record<string, boolean>>({});
+  const [descartados, setDescartados] = useState<Record<string, boolean>>({});
   const [erros, setErros] = useState<Record<string, string>>({});
   const [loteAberto, setLoteAberto] = useState(false);
   const [obsLote, setObsLote] = useState("");
