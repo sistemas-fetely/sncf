@@ -669,8 +669,9 @@ function AbaB2B() {
     setPage(1);
   };
 
-  const togglePrazo = (k: EixoPrazo) => {
-    setPrazosAtivos((prev) => {
+  const toggleStatus = (k: EixoStatus) => {
+    setStatusAtivos((prev) => {
+
       const next = new Set(prev);
       if (next.has(k)) next.delete(k);
       else next.add(k);
