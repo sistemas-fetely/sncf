@@ -21172,6 +21172,60 @@ export type Database = {
         }
         Relationships: []
       }
+      safrapay_venda: {
+        Row: {
+          anomes: string | null
+          arquivo_origem: string | null
+          autorizacao: string | null
+          data_venda: string
+          ec: string | null
+          hora: string | null
+          importado_em: string
+          mdr: number | null
+          modalidade: string | null
+          nsu: string
+          parcelas: number
+          produto: string | null
+          terminal: string | null
+          valor_bruto: number
+          valor_liquido: number
+        }
+        Insert: {
+          anomes?: string | null
+          arquivo_origem?: string | null
+          autorizacao?: string | null
+          data_venda: string
+          ec?: string | null
+          hora?: string | null
+          importado_em?: string
+          mdr?: number | null
+          modalidade?: string | null
+          nsu: string
+          parcelas: number
+          produto?: string | null
+          terminal?: string | null
+          valor_bruto: number
+          valor_liquido: number
+        }
+        Update: {
+          anomes?: string | null
+          arquivo_origem?: string | null
+          autorizacao?: string | null
+          data_venda?: string
+          ec?: string | null
+          hora?: string | null
+          importado_em?: string
+          mdr?: number | null
+          modalidade?: string | null
+          nsu?: string
+          parcelas?: number
+          produto?: string | null
+          terminal?: string | null
+          valor_bruto?: number
+          valor_liquido?: number
+        }
+        Relationships: []
+      }
       semente_thomer: {
         Row: {
           cc_codigo: string | null
@@ -31924,14 +31978,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -34160,6 +34214,146 @@ export type Database = {
           sku: string | null
         }
         Relationships: []
+      }
+      vw_safrapay_venda_pedido_sugestao: {
+        Row: {
+          cliente: string | null
+          data_venda: string | null
+          delta_pct: number | null
+          delta_valor: number | null
+          dias_nf_venda: number | null
+          divergencia_parcelas: boolean | null
+          forca: string | null
+          ja_tem_nsu: boolean | null
+          mdr: number | null
+          modalidade: string | null
+          nf_data: string | null
+          nsu: string | null
+          nsu_atual: string | null
+          parcelas_no_sistema: number | null
+          parcelas_safrapay: number | null
+          parcelas_titulo: number | null
+          pedido_id: string | null
+          pedido_ref: string | null
+          produto: string | null
+          total_titulos: number | null
+          valor_bruto: number | null
+          valor_liquido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_aguardando_pagamento"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_cobranca_materializar"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_aguardando_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_base"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_destino_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_entrega"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_risco"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_situacao_financeira"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
+        ]
       }
       vw_shopify_espelho_saude: {
         Row: {
@@ -37631,6 +37825,10 @@ export type Database = {
         Returns: Json
       }
       vincular_titulos_nf: { Args: never; Returns: number }
+      vincular_venda_cartao_pedido: {
+        Args: { p_nota?: string; p_nsu: string; p_pedido_id: string }
+        Returns: Json
+      }
       zz_aposentado_fn_job_entregue_por_eta_20260730: {
         Args: never
         Returns: number
