@@ -540,6 +540,11 @@ export function FilaPedidosPorArea({
                     ) : (
                       <p className="font-medium text-sm">{p.parceiro_razao}</p>
                     )}
+                    {p.parceiro_id && apelidoMap?.[p.parceiro_id] && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {apelidoMap[p.parceiro_id]}
+                      </p>
+                    )}
                     <p className="text-[11px] text-muted-foreground font-mono">
                       {p.id_externo}
                       {p.parceiro_cnpj ? ` · ${p.parceiro_cnpj}` : ""}
