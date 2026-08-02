@@ -10,7 +10,7 @@
  * naturezas diferentes de dinheiro. Somar dentro de uma classe é ok;
  * somar entre classes é proibido.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -216,48 +216,126 @@ export default function AuditoriaFinanceira() {
     return c;
   }, [lote]);
 
-  const contadoresMeio = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const a of loteBruto) {
-      const m = a.meio_pagamento ?? "—";
-      map.set(m, (map.get(m) ?? 0) + 1);
-    }
-    return Array.from(map.entries()).sort((a, b) => {
-      const ia = MEIO_ORDEM.indexOf(a[0]);
-      const ib = MEIO_ORDEM.indexOf(b[0]);
-      if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-      return b[1] - a[1];
-    });
-  }, [loteBruto]);
-
-  const classesDisponiveis = useMemo(() => {
-    const s = new Set<string>();
-    for (const a of lote) if (a.classe) s.add(a.classe);
-    return Array.from(s).sort();
-  }, [lote]);
-
-  const fontesDisponiveis = useMemo(() => {
-    const s = new Set<string>();
-    for (const a of lote) if (a.fonte) s.add(String(a.fonte));
-    return Array.from(s).sort();
-  }, [lote]);
-
-  const filtrados = useMemo(() => {
+  /**
+   * Cascata de filtros: as opções de cada filtro são calculadas sobre o
+   * conjunto filtrado por TODOS os outros filtros, exceto ele mesmo.
+   * Assim o operador nunca fica preso num recorte vazio.
+   */
+  const passa = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return lote.filter((a) => {
+    return (a: Achado, ignorar?: "classe" | "fonte" | "meio" | "situacao") => {
       if (sevFiltro !== "todas" && String(a.severidade ?? "") !== sevFiltro) return false;
-      if (classeFiltro !== "todas" && (a.classe ?? "") !== classeFiltro) return false;
-      if (fonteFiltro !== "todas" && String(a.fonte ?? "") !== fonteFiltro) return false;
-      if (meioFiltro !== "todos" && (a.meio_pagamento ?? "—") !== meioFiltro) return false;
-      if (situacaoFiltro !== "todas" && (a.situacao ?? "aberto") !== situacaoFiltro) return false;
+      if (ignorar !== "classe" && classeFiltro !== "todas" && (a.classe ?? "") !== classeFiltro) return false;
+      if (ignorar !== "fonte" && fonteFiltro !== "todas" && String(a.fonte ?? "") !== fonteFiltro) return false;
+      if (ignorar !== "meio" && meioFiltro !== "todos" && (a.meio_pagamento ?? "—") !== meioFiltro) return false;
+      if (ignorar !== "situacao" && situacaoFiltro !== "todas" && (a.situacao ?? "aberto") !== situacaoFiltro) return false;
       if (!q) return true;
       return (
         (a.id_externo || "").toLowerCase().includes(q) ||
         (a.cliente || "").toLowerCase().includes(q) ||
         (a.detalhe || "").toLowerCase().includes(q)
       );
+    };
+  }, [busca, sevFiltro, classeFiltro, fonteFiltro, meioFiltro, situacaoFiltro]);
+
+  const contar = (ignorar: "classe" | "fonte" | "meio" | "situacao", chave: (a: Achado) => string | null) => {
+    const map = new Map<string, number>();
+    for (const a of lote) {
+      if (!passa(a, ignorar)) continue;
+      const k = chave(a);
+      if (!k) continue;
+      map.set(k, (map.get(k) ?? 0) + 1);
+    }
+    return map;
+  };
+
+  // Meio: universo = meios presentes no lote visível; contagem no recorte atual.
+  const contadoresMeio = useMemo(() => {
+    const universo = new Set<string>();
+    for (const a of lote) universo.add(a.meio_pagamento ?? "—");
+    const cont = contar("meio", (a) => a.meio_pagamento ?? "—");
+    return Array.from(universo)
+      .map((m) => [m, cont.get(m) ?? 0] as [string, number])
+      .sort((a, b) => {
+        const ia = MEIO_ORDEM.indexOf(a[0]);
+        const ib = MEIO_ORDEM.indexOf(b[0]);
+        if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+        return b[1] - a[1];
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lote, passa]);
+
+  const ordenarPorContagem = (map: Map<string, number>, label: (k: string) => string) =>
+    Array.from(map.entries()).sort((a, b) => {
+      if (a[1] !== b[1]) return b[1] - a[1];
+      return label(a[0]).localeCompare(label(b[0]), "pt-BR");
     });
-  }, [lote, busca, sevFiltro, classeFiltro, fonteFiltro, meioFiltro, situacaoFiltro]);
+
+  const classesDisponiveis = useMemo(
+    () => ordenarPorContagem(contar("classe", (a) => a.classe), labelClasse),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lote, passa]
+  );
+
+  const fontesDisponiveis = useMemo(
+    () => ordenarPorContagem(contar("fonte", (a) => (a.fonte ? String(a.fonte) : null)), (f) => FONTE_LABEL[f] ?? f),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lote, passa]
+  );
+
+  const situacoesDisponiveis = useMemo(() => {
+    const cont = contar("situacao", (a) => String(a.situacao ?? "aberto"));
+    return (["aberto", "em_analise", "resolvido", "explicado", "reaparecido"] as const)
+      .map((s) => [s, cont.get(s) ?? 0] as [Situacao, number])
+      .filter(([, n]) => n > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lote, passa]);
+
+  // Auto-limpeza: filtro que deixou de existir nas opções volta ao default.
+  useEffect(() => {
+    if (classeFiltro !== "todas" && !classesDisponiveis.some(([c]) => c === classeFiltro)) {
+      setClasseFiltro("todas");
+      toast.info(`Filtro de classe limpo: não há achados de ${labelClasse(classeFiltro)} em ${labelMeio(meioFiltro)}.`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classesDisponiveis]);
+
+  useEffect(() => {
+    if (fonteFiltro !== "todas" && !fontesDisponiveis.some(([f]) => f === fonteFiltro)) {
+      setFonteFiltro("todas");
+      toast.info(`Filtro de fonte limpo: não há achados de ${FONTE_LABEL[fonteFiltro] ?? fonteFiltro} em ${labelMeio(meioFiltro)}.`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fontesDisponiveis]);
+
+  useEffect(() => {
+    if (situacaoFiltro !== "todas" && !situacoesDisponiveis.some(([s]) => s === situacaoFiltro)) {
+      setSituacaoFiltro("todas");
+      toast.info(`Filtro de situação limpo: não há achados de ${SITUACAO_META[situacaoFiltro as Situacao]?.label ?? situacaoFiltro} em ${labelMeio(meioFiltro)}.`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [situacoesDisponiveis]);
+
+  const filtrosSujos =
+    busca.trim() !== "" ||
+    classeFiltro !== "todas" ||
+    fonteFiltro !== "todas" ||
+    meioFiltro !== "todos" ||
+    situacaoFiltro !== "aberto";
+
+  const limparFiltros = () => {
+    setBusca("");
+    setClasseFiltro("todas");
+    setFonteFiltro("todas");
+    setMeioFiltro("todos");
+    setSituacaoFiltro("aberto");
+  };
+
+  const filtrados = useMemo(
+    () => lote.filter((a) => passa(a)),
+    [lote, passa]
+  );
+
 
   const grupos = useMemo(() => {
     const map = new Map<string, { classe: string; severidade: number; itens: Achado[]; total: number }>();
@@ -670,8 +748,11 @@ export default function AuditoriaFinanceira() {
           <Badge
             key={m}
             variant={meioFiltro === m ? "default" : "outline"}
-            className="cursor-pointer tabular-nums"
-            onClick={() => setMeioFiltro((cur) => (cur === m ? "todos" : m))}
+            className={cn("tabular-nums", n === 0 ? "opacity-40 cursor-not-allowed" : "cursor-pointer")}
+            onClick={() => {
+              if (n === 0) return;
+              setMeioFiltro((cur) => (cur === m ? "todos" : m));
+            }}
           >
             {labelMeio(m)} ({n})
           </Badge>
@@ -687,20 +768,20 @@ export default function AuditoriaFinanceira() {
           className="max-w-sm"
         />
         <Select value={classeFiltro} onValueChange={setClasseFiltro}>
-          <SelectTrigger className="w-[220px]"><SelectValue placeholder="Classe" /></SelectTrigger>
+          <SelectTrigger className="w-[260px]"><SelectValue placeholder="Classe" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas as classes</SelectItem>
-            {classesDisponiveis.map((c) => (
-              <SelectItem key={c} value={c}>{labelClasse(c)}</SelectItem>
+            {classesDisponiveis.map(([c, n]) => (
+              <SelectItem key={c} value={c}>{labelClasse(c)} ({n})</SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={fonteFiltro} onValueChange={setFonteFiltro}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Fonte" /></SelectTrigger>
+          <SelectTrigger className="w-[220px]"><SelectValue placeholder="Fonte" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas as fontes</SelectItem>
-            {fontesDisponiveis.map((f) => (
-              <SelectItem key={f} value={f}>{FONTE_LABEL[f] ?? f}</SelectItem>
+            {fontesDisponiveis.map(([f, n]) => (
+              <SelectItem key={f} value={f}>{(FONTE_LABEL[f] ?? f)} ({n})</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -709,22 +790,30 @@ export default function AuditoriaFinanceira() {
           <SelectContent>
             <SelectItem value="todos">Todos os meios</SelectItem>
             {contadoresMeio.map(([m, n]) => (
-              <SelectItem key={m} value={m}>{labelMeio(m)} ({n})</SelectItem>
+              <SelectItem key={m} value={m} disabled={n === 0}>{labelMeio(m)} ({n})</SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={situacaoFiltro} onValueChange={setSituacaoFiltro}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Situação" /></SelectTrigger>
+          <SelectTrigger className="w-[190px]"><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas situações</SelectItem>
-            {(["aberto", "em_analise", "resolvido", "explicado", "reaparecido"] as const).map((s) => (
-              <SelectItem key={s} value={s}>{SITUACAO_META[s].label}</SelectItem>
+            {situacoesDisponiveis.map(([s, n]) => (
+              <SelectItem key={s} value={s}>{SITUACAO_META[s].label} ({n})</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <div className="text-sm text-muted-foreground sm:ml-auto tabular-nums">
-          {filtrados.length} de {lote.length} achados
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <div className="text-sm text-muted-foreground tabular-nums">
+            {filtrados.length} de {lote.length} achados
+          </div>
+          {filtrosSujos && (
+            <Button variant="ghost" size="sm" onClick={limparFiltros}>
+              Limpar filtros
+            </Button>
+          )}
         </div>
+
       </div>
 
       {/* Visão e falsos positivos */}
