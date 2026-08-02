@@ -28752,6 +28752,27 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_cartao_taxa_reconciliacao: {
+        Row: {
+          data_venda: string | null
+          delta_taxa: number | null
+          fecha: boolean | null
+          mdr: number | null
+          mdr_pct: number | null
+          modalidade: string | null
+          nsu: string | null
+          parcelas_safrapay: number | null
+          pedido_ref: string | null
+          produto: string | null
+          situacao: string | null
+          taxa_registrada: number | null
+          titulos: number | null
+          titulos_bruto: number | null
+          venda_bruto: number | null
+          venda_liquido: number | null
+        }
+        Relationships: []
+      }
       vw_ciclo_pedido: {
         Row: {
           a_receber_futuro: number | null
@@ -37082,6 +37103,7 @@ export type Database = {
         }
         Returns: string
       }
+      fn_recalc_taxa_adquirente: { Args: { p_nsu: string }; Returns: number }
       fn_recalcular_tags_doc_cpr: {
         Args: { p_cpr_id: string }
         Returns: undefined
