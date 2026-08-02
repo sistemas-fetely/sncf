@@ -308,7 +308,13 @@ function matchTipo(filtro: TipoFiltro, tipo: string): boolean {
 
 function matchBusca(t: TituloCobranca, q: string): boolean {
   if (!q) return true;
-  const alvo = [t.parceiro_razao_social, t.parceiro_cnpj, t.pedido_id_externo, t.numero_titulo]
+  const alvo = [
+    t.parceiro_razao_social,
+    t.parceiro_nome_fantasia,
+    t.parceiro_cnpj,
+    t.pedido_id_externo,
+    t.numero_titulo,
+  ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
