@@ -753,9 +753,13 @@ function AbaVincularVendas() {
                             <div className="text-xs text-muted-foreground">MDR {formatBRL(Number(v.melhor.mdr))}</div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {Number(v.melhor.candidatos)} candidato{Number(v.melhor.candidatos) === 1 ? "" : "s"}
-                            </Badge>
+                            {semViavel ? (
+                              <Badge variant="destructive" className="text-xs">Sem candidato possível</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                {viaveis.length} candidato{viaveis.length === 1 ? "" : "s"}
+                              </Badge>
+                            )}
                           </TableCell>
                         </TableRow>
                         {isOpen && (
@@ -763,64 +767,84 @@ function AbaVincularVendas() {
                             <TableCell />
                             <TableCell colSpan={7} className="py-2">
                               <div className="space-y-2">
-                                {v.candidatos.map((c) => {
-                                  const bloqueado = c.divergencia_parcelas || c.ja_tem_nsu;
-                                  const motivo = c.divergencia_parcelas
-                                    ? "Corrija o número de parcelas do título antes de vincular — carimbar o NSU aqui esconderia o furo."
-                                    : c.ja_tem_nsu
-                                      ? "Pedido já vinculado a este NSU."
-                                      : null;
-                                  const btn = (
+                                {semViavel && (
+                                  <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertDescription className="text-xs">
+                                      Nenhum candidato possível: todos os pedidos compatíveis já estão vinculados a outras
+                                      vendas ou têm número de parcelas divergente. Caso de investigação, não de clique.
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+                                {viaveis.map((c) => (
+                                  <div key={c.pedido_id} className="flex flex-wrap items-center justify-between gap-3 text-xs py-2 border-b border-border/40 last:border-0">
+                                    <div className="flex flex-wrap items-center gap-3 min-w-0">
+                                      <Button
+                                        variant="link"
+                                        className="h-auto p-0 font-mono text-xs"
+                                        onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                                      >
+                                        {c.pedido_ref}
+                                      </Button>
+                                      <span className="truncate max-w-[240px]">{c.cliente || "—"}</span>
+                                      <span className="text-muted-foreground whitespace-nowrap">
+                                        NF {formatDateBR(c.nf_data)} · {c.dias_nf_venda ?? "—"} dias
+                                      </span>
+                                      <span className="tabular-nums whitespace-nowrap">
+                                        {c.parcelas_no_sistema ?? "—"}x no sistema
+                                      </span>
+                                      <span className="font-mono tabular-nums whitespace-nowrap">
+                                        títulos {formatBRL(Number(c.total_titulos ?? 0))}
+                                      </span>
+                                      <span>Δ <Delta c={c} /></span>
+                                    </div>
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       className="gap-1"
-                                      disabled={bloqueado || vincular.isPending}
+                                      disabled={vincular.isPending}
                                       onClick={() => { setAlvo(c); setNota(""); }}
                                     >
                                       <Link2 className="h-3.5 w-3.5" />
                                       Vincular
                                     </Button>
-                                  );
-                                  return (
-                                    <div key={c.pedido_id} className="flex flex-wrap items-center justify-between gap-3 text-xs py-2 border-b border-border/40 last:border-0">
-                                      <div className="flex flex-wrap items-center gap-3 min-w-0">
-                                        <Button
-                                          variant="link"
-                                          className="h-auto p-0 font-mono text-xs"
-                                          onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
-                                        >
-                                          {c.pedido_ref}
-                                        </Button>
-                                        <span className="truncate max-w-[240px]">{c.cliente || "—"}</span>
-                                        <span className="text-muted-foreground whitespace-nowrap">
-                                          NF {formatDateBR(c.nf_data)} · {c.dias_nf_venda ?? "—"} dias
-                                        </span>
-                                        <span className="tabular-nums whitespace-nowrap">
-                                          {c.parcelas_no_sistema ?? "—"}x no sistema
-                                        </span>
-                                        <span className="font-mono tabular-nums whitespace-nowrap">
-                                          títulos {formatBRL(Number(c.total_titulos ?? 0))}
-                                        </span>
-                                        <span>Δ <Delta c={c} /></span>
-                                        {c.divergencia_parcelas && (
-                                          <Badge variant="destructive" className="text-xs">
-                                            Parcelas: sistema {c.parcelas_no_sistema ?? "—"} × SafraPay {c.parcelas_safrapay}
-                                          </Badge>
-                                        )}
-                                        {c.ja_tem_nsu && (
-                                          <Badge variant="outline" className="text-xs font-mono">NSU {c.nsu_atual}</Badge>
-                                        )}
+                                  </div>
+                                ))}
+                                {inviaveis.length > 0 && (
+                                  <div className="pt-1">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs text-muted-foreground"
+                                      onClick={() => setDescartados((d) => ({ ...d, [v.nsu]: !d[v.nsu] }))}
+                                    >
+                                      {descartadosAbertos
+                                        ? `esconder ${inviaveis.length} descartado${inviaveis.length === 1 ? "" : "s"}`
+                                        : `ver ${inviaveis.length} descartado${inviaveis.length === 1 ? "" : "s"}`}
+                                    </Button>
+                                    {descartadosAbertos && (
+                                      <div className="mt-1 space-y-1">
+                                        {inviaveis.map((c) => (
+                                          <div key={c.pedido_id} className="flex flex-wrap items-center gap-3 text-xs py-1.5 border-b border-border/40 last:border-0 opacity-80">
+                                            <Button
+                                              variant="link"
+                                              className="h-auto p-0 font-mono text-xs"
+                                              onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                                            >
+                                              {c.pedido_ref}
+                                            </Button>
+                                            <span className="truncate max-w-[200px]">{c.cliente || "—"}</span>
+                                            <span className="font-mono tabular-nums whitespace-nowrap">
+                                              títulos {formatBRL(Number(c.total_titulos ?? 0))}
+                                            </span>
+                                            <span>Δ <Delta c={c} /></span>
+                                            <Badge variant="destructive" className="text-xs">{motivoInviavel(c)}</Badge>
+                                          </div>
+                                        ))}
                                       </div>
-                                      {motivo ? (
-                                        <Tooltip>
-                                          <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
-                                          <TooltipContent><p className="max-w-xs">{motivo}</p></TooltipContent>
-                                        </Tooltip>
-                                      ) : btn}
-                                    </div>
-                                  );
-                                })}
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
