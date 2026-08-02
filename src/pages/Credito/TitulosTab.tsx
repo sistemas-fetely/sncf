@@ -454,110 +454,47 @@ export default function TitulosTab() {
 
   return (
     <div className="space-y-4">
-      {/* KPIs — clicar aplica o recorte do eixo correspondente */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      {/* KPIs — clicar aplica o recorte */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KpiCard
           label="A vencer"
           qtd={kpis.aVencer.qtd}
           valor={kpis.aVencer.valor}
-          ativo={statusFiltro.has("a_vencer")}
-          onClick={() => toggleSet(setStatusFiltro, "a_vencer" as EixoStatus)}
-          labelTooltip={STATUS_META.a_vencer.tooltip ?? undefined}
+          ativo={cardsAtivos.has("a_vencer")}
+          onClick={() => toggleCard("a_vencer")}
         />
         <KpiCard
-          label="Pago"
-          qtd={kpis.pago.qtd}
-          valor={kpis.pago.valor}
-          ativo={statusFiltro.has("pago")}
-          onClick={() => toggleSet(setStatusFiltro, "pago" as EixoStatus)}
+          label="Vence hoje"
+          qtd={kpis.venceHoje.qtd}
+          valor={kpis.venceHoje.valor}
+          ativo={cardsAtivos.has("vence_hoje")}
+          onClick={() => toggleCard("vence_hoje")}
           tone="warn"
-          labelTooltip={STATUS_META.pago.tooltip ?? undefined}
         />
         <KpiCard
-          label="Compensado"
-          qtd={kpis.compensado.qtd}
-          valor={kpis.compensado.valor}
-          ativo={statusFiltro.has("compensado")}
-          onClick={() => toggleSet(setStatusFiltro, "compensado" as EixoStatus)}
-          labelTooltip={STATUS_META.compensado.tooltip ?? undefined}
-        />
-        <KpiCard
-          label="Conciliado"
-          qtd={kpis.conciliado.qtd}
-          valor={kpis.conciliado.valor}
-          ativo={provaFiltro.has("conciliado")}
-          onClick={() => toggleSet(setProvaFiltro, "conciliado" as EixoProva)}
-          labelTooltip={PROVA_META.conciliado.tooltip ?? undefined}
-        />
-        <KpiCard
-          label="Inadimplente"
-          qtd={kpis.inadimplente.qtd}
-          valor={kpis.inadimplente.valor}
-          ativo={soInadimplentes}
-          onClick={() => setSoInadimplentes((v) => !v)}
+          label="Atrasado"
+          qtd={kpis.atrasado.qtd}
+          valor={kpis.atrasado.valor}
+          ativo={cardsAtivos.has("atrasado")}
+          onClick={() => toggleCard("atrasado")}
           tone="danger"
-          labelTooltip="Sem baixa, vencimento no passado, e a forma não é garantida."
+        />
+        <KpiCard
+          label="Pago no mês"
+          qtd={kpis.pagoNoMes.qtd}
+          valor={kpis.pagoNoMes.valor}
+          ativo={cardsAtivos.has("pago_no_mes")}
+          onClick={() => toggleCard("pago_no_mes")}
         />
         <KpiCard
           label="Todos"
           qtd={kpis.total.qtd}
           valor={kpis.total.valor}
-          ativo={provaFiltro.size === 0 && statusFiltro.size === 0 && !soInadimplentes}
-          onClick={verTudo}
+          ativo={cardsAtivos.has("todos")}
+          onClick={() => toggleCard("todos")}
         />
       </div>
 
-      {/* Filtros dos dois eixos */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground w-14">Prova</span>
-          {PROVAS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => toggleSet(setProvaFiltro, p)}
-              className={cn(
-                "text-xs px-3 py-1.5 rounded-full border transition-colors tabular-nums",
-                provaFiltro.has(p)
-                  ? "bg-foreground text-background border-foreground"
-                  : "bg-background text-muted-foreground border-border hover:border-foreground/40",
-              )}
-            >
-              {PROVA_META[p].label} · {contagemProva[p] ?? 0}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground w-14">Status</span>
-          {STATUS_EIXOS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => toggleSet(setStatusFiltro, s)}
-              className={cn(
-                "text-xs px-3 py-1.5 rounded-full border transition-colors tabular-nums",
-                statusFiltro.has(s)
-                  ? "bg-foreground text-background border-foreground"
-                  : "bg-background text-muted-foreground border-border hover:border-foreground/40",
-              )}
-            >
-              {STATUS_META[s].label} · {contagemStatus[s] ?? 0}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setSoInadimplentes((v) => !v)}
-            className={cn(
-              "text-xs px-3 py-1.5 rounded-full border transition-colors",
-              soInadimplentes
-                ? "bg-destructive text-destructive-foreground border-destructive"
-                : "bg-background text-muted-foreground border-border hover:border-foreground/40",
-            )}
-          >
-            Só inadimplentes · {kpis.inadimplente.qtd}
-          </button>
-        </div>
-      </div>
 
       {/* Filtro por tipo de pagamento */}
       <div className="flex flex-wrap items-center gap-3">
