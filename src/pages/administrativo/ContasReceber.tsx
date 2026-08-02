@@ -722,7 +722,7 @@ function AbaB2B() {
       "Gera caixa": t.gera_caixa ? "Sim" : "Não",
       "Prova bancária": t.tem_prova_bancaria ? "Sim" : "Não",
       Prova: PROVA_META[t.eixo_prova]?.label ?? "",
-      Prazo: PRAZO_META[t.eixo_prazo]?.label ?? "",
+      Status: STATUS_META[t.eixo_status]?.label ?? "",
       "Compensado por": t.compensado_por ?? "",
       Inadimplente: t.eh_inadimplencia ? "Sim" : "Não",
 
