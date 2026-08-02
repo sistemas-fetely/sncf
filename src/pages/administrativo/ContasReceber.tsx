@@ -34,18 +34,18 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 
 import {
-  BadgePrazo,
   BadgeProva,
-  PRAZOS,
-  PRAZO_META,
+  BadgeStatus,
   PROVAS,
   PROVA_FORA_KPI,
   PROVA_META,
-  type EixoPrazo,
+  STATUS_EIXOS,
+  STATUS_FORA_KPI,
+  STATUS_META,
   type EixoProva,
+  type EixoStatus,
 } from "@/lib/financeiro/eixos-estado";
 
-type StatusGestao = "pago" | "atrasado" | "em_aberto" | "cancelado";
 
 
 
