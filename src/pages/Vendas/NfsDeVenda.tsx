@@ -15,6 +15,7 @@ import { useNfsEmitidas, type NfEmitida } from "@/hooks/vendas/useNfsEmitidas";
 import { FileText, ExternalLink, Search, RefreshCw, Download, Loader2 } from "lucide-react";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { cn } from "@/lib/utils";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
