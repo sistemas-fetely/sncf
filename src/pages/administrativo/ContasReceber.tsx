@@ -429,6 +429,10 @@ function AbaB2B() {
           if (d >= hoje && d <= em30) vence30 += v;
         }
       }
+      if (t.faturado === false && ESTADOS_RECEBIDOS.includes(e)) {
+        recebidoSemNf += v;
+        recebidoSemNfQtd += 1;
+      }
     }
     const inadimplencia = aberto > 0 ? (vencido / aberto) * 100 : 0;
     return {
@@ -445,10 +449,28 @@ function AbaB2B() {
       provado,
       provadoQtd,
       provadoPct: recebido > 0 ? (provado / recebido) * 100 : 0,
+      recebidoSemNf,
+      recebidoSemNfQtd,
       total: recebido + aberto,
       totalQtd: recebidoQtd + abertoQtd,
     };
   }, [base, hoje, em30]);
+
+  /** Acurácia da régua: desvio só existe quando há prova bancária. */
+  const desvioRegua = useMemo(() => {
+    const valores = base
+      .map((t) => t.desvio_previsao_dias)
+      .filter((d): d is number => d != null && Number.isFinite(Number(d)))
+      .map(Number);
+    if (valores.length === 0) return null;
+    const soma = valores.reduce((a, b) => a + b, 0);
+    return {
+      media: soma / valores.length,
+      qtd: valores.length,
+      min: Math.min(...valores),
+      max: Math.max(...valores),
+    };
+  }, [base]);
 
 
 
