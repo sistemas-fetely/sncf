@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -27,7 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle } from "lucide-react";
+import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -53,6 +53,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
 import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
 import { BadgeProva, BadgeStatus } from "@/lib/financeiro/eixos-estado";
+import { agruparPorPedido, grupoEhUnitario, resumoComposicao, type GrupoPedido } from "@/lib/financeiro/agrupar-titulos";
 
 
 
