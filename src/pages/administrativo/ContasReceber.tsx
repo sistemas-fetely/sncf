@@ -1289,7 +1289,39 @@ function AbaB2B() {
                   <SortTh label="Meio" sortKey="meio_pagamento" sort={sort} setSort={setSort} />
                   <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
                   <SortTh label="Vencimento" sortKey="data_vencimento" sort={sort} setSort={setSort} />
-                  <SortTh label="Previsto" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
+                  <TableHead
+                    className="cursor-pointer select-none transition-colors hover:text-foreground"
+                    onClick={() =>
+                      setSort((prev) => {
+                        if (prev?.key === "data_liquidacao_prevista")
+                          return prev.dir === "desc"
+                            ? { key: "data_liquidacao_prevista", dir: "asc" }
+                            : { key: "desvio_previsao_dias", dir: "desc" };
+                        if (prev?.key === "desvio_previsao_dias")
+                          return prev.dir === "desc"
+                            ? { key: "desvio_previsao_dias", dir: "asc" }
+                            : { key: "data_liquidacao_prevista", dir: "desc" };
+                        return { key: "data_liquidacao_prevista", dir: "desc" };
+                      })
+                    }
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Previsto
+                      {sort?.key === "desvio_previsao_dias" && (
+                        <span className="text-[10px] text-muted-foreground">desvio</span>
+                      )}
+                      {sort?.key === "data_liquidacao_prevista" ||
+                      sort?.key === "desvio_previsao_dias" ? (
+                        sort.dir === "asc" ? (
+                          <ArrowUp className="h-3 w-3 opacity-60" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3 opacity-60" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-60" />
+                      )}
+                    </span>
+                  </TableHead>
                   <SortTh label="Recebido em" sortKey="data_recebimento_efetiva" sort={sort} setSort={setSort} />
                   <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
                   <SortTh label="Status" sortKey="estado_ordem" sort={sort} setSort={setSort} />
