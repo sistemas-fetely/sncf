@@ -216,7 +216,7 @@ function AbaNFs() {
           <FilterInput
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por razão social ou número NF"
+            placeholder="Buscar por razão social, nome fantasia ou número NF"
             className="pl-9"
           />
         </div>
