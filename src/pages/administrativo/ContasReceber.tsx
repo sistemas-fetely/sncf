@@ -990,33 +990,28 @@ function AbaB2B() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Recebimento exige prova bancária. Baixa manual é estado legítimo — o humano dá a baixa para
-          o pedido andar e a controladoria concilia depois; até lá a data que vale para caixa é a da
-          régua por banco e forma. Devolvido e cancelado ficam fora dos totais.
+          Dois eixos independentes. Prova é onde está o dinheiro: registrado (nada caiu), compensado
+          (o pagador quitou, mas ainda não há prova na nossa conta — em cartão está no adquirente) e
+          conciliado (dinheiro na conta, linha do extrato vinculada). Prazo é onde está o cliente em
+          relação ao vencimento. Devolvido e cancelado ficam fora dos totais.
         </p>
 
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-red-700">Vencido</CardTitle>
+              <CardTitle className="text-sm text-blue-700">Total a receber</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-red-700">
-                {formatBRL(kpis.vencido)}
+              <div className="text-2xl font-semibold tabular-nums text-blue-700">
+                {formatBRL(kpis.aberto)}
               </div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.abertoQtd} títulos · registrado + compensado
+              </p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-rose-700">Inadimplência</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-rose-700">
-                {kpis.inadimplencia.toFixed(1)}%
-              </div>
-            </CardContent>
-          </Card>
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-amber-600">1–7 dias</CardTitle>
