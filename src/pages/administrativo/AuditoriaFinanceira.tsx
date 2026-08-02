@@ -515,7 +515,7 @@ export default function AuditoriaFinanceira() {
     const expandido = expandidos.has(a.id);
 
     // Precedência: a hipótese é do pedido específico; a classe é genérica.
-    const hip = hipPrincipal(a.pedido_id);
+    const hip = hipPrincipal(a.pedido_id, a.classe);
     const rotaFinal = hip?.rota || a.rota_solucao || null;
     const telaFinal = hip?.rota ? hip?.tela || null : a.tela_solucao || null;
 

@@ -32207,6 +32207,7 @@ export type Database = {
       }
       vw_logistica_custo_transportadora: {
         Row: {
+          apelido: string | null
           frete_medio: number | null
           frete_total: number | null
           pct_frete_nf_medio: number | null
@@ -32255,6 +32256,7 @@ export type Database = {
       }
       vw_logistica_custo_uf: {
         Row: {
+          apelido: string | null
           ctes: number | null
           custo_frete: number | null
           transportadora: string | null
@@ -32813,14 +32815,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -33223,14 +33225,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -33782,6 +33784,7 @@ export type Database = {
       vw_pedido_hipotese: {
         Row: {
           acao: string | null
+          classe_alvo: string[] | null
           cliente: string | null
           confianca: string | null
           confianca_cor: string | null
@@ -37467,6 +37470,7 @@ export type Database = {
           tipo_linha: string
         }[]
       }
+      fn_convite_cadastro_ativo: { Args: { p_token: string }; Returns: boolean }
       fn_criar_analise_desde_pedido: {
         Args: { p_pedido_id: string }
         Returns: string
