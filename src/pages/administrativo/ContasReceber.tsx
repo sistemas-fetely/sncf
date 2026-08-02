@@ -739,7 +739,9 @@ function AbaB2B() {
   };
 
   const filtrados = useMemo(() => {
-    let arr = base.filter((t) => situacoes.has(t.estado_gestao));
+    let arr = base.filter(
+      (t) => provasAtivas.has(t.eixo_prova) && prazosAtivos.has(t.eixo_prazo)
+    );
     if (sort) {
       arr = [...arr].sort((a, b) => {
         const va = (a as any)[sort.key] ?? "";
@@ -754,14 +756,14 @@ function AbaB2B() {
       });
     }
     return arr;
-  }, [base, situacoes, sort]);
+  }, [base, provasAtivas, prazosAtivos, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
   const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
-  const toggleSituacao = (k: EstadoGestao) => {
-    setSituacoes((prev) => {
+  const toggleProva = (k: EixoProva) => {
+    setProvasAtivas((prev) => {
       const next = new Set(prev);
       if (next.has(k)) next.delete(k);
       else next.add(k);
@@ -770,36 +772,16 @@ function AbaB2B() {
     setPage(1);
   };
 
-  const renderEstadoBadge = (t: RecebivelB2B) => {
-    const rotulo = t.estado_rotulo ?? t.estado_gestao ?? "—";
-    const cor = t.estado_cor ?? "outline";
-    const titulo = t.estado_descricao ?? undefined;
-    if (cor === "destructive")
-      return (
-        <Badge variant="destructive" title={titulo}>
-          {rotulo}
-        </Badge>
-      );
-    if (cor === "outline")
-      return (
-        <Badge variant="outline" title={titulo}>
-          {rotulo}
-        </Badge>
-      );
-    const classe =
-      cor === "emerald"
-        ? "bg-emerald-100 text-emerald-800 border-0"
-        : cor === "sky"
-        ? "bg-sky-100 text-sky-800 border-0"
-        : cor === "amber"
-        ? "bg-amber-100 text-amber-800 border-0"
-        : "bg-muted text-muted-foreground border-0";
-    return (
-      <Badge className={classe} title={titulo}>
-        {rotulo}
-      </Badge>
-    );
+  const togglePrazo = (k: EixoPrazo) => {
+    setPrazosAtivos((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+    setPage(1);
   };
+
 
 
   const periodoLabel = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
