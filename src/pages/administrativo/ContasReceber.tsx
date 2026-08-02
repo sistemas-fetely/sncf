@@ -652,7 +652,7 @@ function AbaB2B() {
   const aging = useMemo(() => {
     const faixas = { f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
     for (const t of base) {
-      if (t.status_gestao !== "em_aberto" && t.status_gestao !== "atrasado") continue;
+      if (t.eixo_prova !== "registrado") continue;
       if (!t.data_vencimento) continue;
       const venc = new Date(t.data_vencimento + "T12:00:00");
       const dias = Math.floor((hoje.getTime() - venc.getTime()) / 86400000);
