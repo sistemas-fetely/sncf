@@ -159,7 +159,7 @@ export default function ContasReceberSops() {
           tipo_pagamento, boleto_status, linha_digitavel,
           link_pagamento, email_cobranca_enviado_em,
           conta:contas_pagar_receber(
-            parceiro:parceiros_comerciais(razao_social)
+            parceiro:parceiros_comerciais(razao_social, nome_fantasia)
           )
         `
         )
