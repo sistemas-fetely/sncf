@@ -1181,8 +1181,7 @@ export default function TitulosTab() {
                 )}
                 {detalhe.tipo_pagamento === "boleto" &&
                   (detalhe.boleto_status === "vencido" || detalhe.boleto_status === "rejeitado") &&
-                  detalhe.status_gestao !== "pago" &&
-                  detalhe.status_gestao !== "cancelado" && (
+                  detalhe.eixo_status === "a_vencer" && (
                     <Button variant="outline" onClick={() => setReemitindo(detalhe)}>
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Reemitir boleto
@@ -1190,13 +1189,14 @@ export default function TitulosTab() {
                   )}
                 {detalhe.tipo_pagamento === "boleto" &&
                   detalhe.boleto_status === "registrado" &&
-                  (detalhe.status_gestao === "a_vencer" || detalhe.status_gestao === "vence_hoje") &&
+                  detalhe.eixo_status === "a_vencer" &&
                   detalhe.prorrogacao_nova_data === null && (
                     <Button variant="outline" onClick={() => setProrrogando(detalhe)}>
                       Prorrogar vencimento
                     </Button>
                   )}
-                {detalhe.status_gestao === "pago" && (
+                {(detalhe.eixo_status === "pago" || detalhe.eixo_status === "compensado") && (
+
                   <Button variant="outline" onClick={() => setConvertendo(detalhe)}>
                     Converter em crédito
                   </Button>
