@@ -3229,15 +3229,23 @@ function TesteTecnico({
                       hour: "2-digit", minute: "2-digit"
                     })}
                     {formResultado.link_entrega && (
-                      <> · {formResultado.link_entrega.includes("supabase") ? "📎 Arquivo enviado" : extrairDominio(formResultado.link_entrega)}</>
+                      <> · {entregaEhArquivo ? "📎 Arquivo enviado" : extrairDominio(formResultado.link_entrega)}</>
                     )}
                   </p>
                 </div>
                 {formResultado.link_entrega && (
                   <Button variant="outline" size="sm" className="h-7 text-xs gap-1"
-                    onClick={() => window.open(formResultado.link_entrega, "_blank")}>
+                    disabled={entregaEhArquivo && (carregandoEntrega || !urlEntregaAssinada)}
+                    onClick={() => {
+                      const destino = entregaEhArquivo ? urlEntregaAssinada : formResultado.link_entrega;
+                      if (!destino) {
+                        toast.error("Não foi possível gerar o link do arquivo da entrega.");
+                        return;
+                      }
+                      window.open(destino, "_blank");
+                    }}>
                     <ExternalLink className="h-3 w-3" />
-                    {formResultado.link_entrega.includes("supabase") ? "Abrir arquivo" : "Abrir entrega"}
+                    {entregaEhArquivo ? (carregandoEntrega ? "Gerando link..." : "Abrir arquivo") : "Abrir entrega"}
                   </Button>
                 )}
               </div>
