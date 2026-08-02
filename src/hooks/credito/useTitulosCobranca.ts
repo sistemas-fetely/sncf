@@ -98,35 +98,53 @@ export interface TituloCobranca {
 
 export interface KpisTitulos {
   aVencer: { qtd: number; valor: number };
-  pago: { qtd: number; valor: number };
-  compensado: { qtd: number; valor: number };
-  conciliado: { qtd: number; valor: number };
-  inadimplente: { qtd: number; valor: number };
+  venceHoje: { qtd: number; valor: number };
+  atrasado: { qtd: number; valor: number };
+  pagoNoMes: { qtd: number; valor: number };
   total: { qtd: number; valor: number };
 }
 
-const FORA_DO_KPI = new Set<EixoStatus>(STATUS_FORA_KPI);
+function inicioDoMes(): string {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+}
 
-/** Encerramento (devolvido/cancelado) não entra em KPI de cobrança. */
+/**
+ * Encerrado não entra em KPI de cobrança.
+ * Lê `status_real` (domínio do CHECK), não eixo derivado: blinda o KPI
+ * contra renomeação de vocabulário dos eixos.
+ */
+const STATUS_ENCERRADOS = new Set([
+  "cancelado",
+  "cancelado_recuperacao",
+  "devolvido",
+  "baixado_por_perda",
+  "renegociado",
+]);
+
+const STATUS_PAGOS: StatusGestao[] = ["pago", "pago_com_atraso", "pago_judicial"];
+
 export function tituloEntraNoKpi(t: TituloCobranca): boolean {
-  return !(t.eixo_status && FORA_DO_KPI.has(t.eixo_status));
+  return !STATUS_ENCERRADOS.has(t.status_real);
 }
 
 export function calcularKpis(titulos: TituloCobranca[]): KpisTitulos {
+  const mes = inicioDoMes();
   const zero = () => ({ qtd: 0, valor: 0 });
   const k: KpisTitulos = {
-    aVencer: zero(), pago: zero(), compensado: zero(),
-    conciliado: zero(), inadimplente: zero(), total: zero(),
+    aVencer: zero(), venceHoje: zero(), atrasado: zero(), pagoNoMes: zero(), total: zero(),
   };
   for (const t of titulos) {
     if (!tituloEntraNoKpi(t)) continue;
     const v = t.valor_efetivo ?? 0;
     k.total.qtd++; k.total.valor += v;
-    if (t.eixo_status === "a_vencer")   { k.aVencer.qtd++;    k.aVencer.valor    += v; }
-    if (t.eixo_status === "pago")       { k.pago.qtd++;       k.pago.valor       += v; }
-    if (t.eixo_status === "compensado") { k.compensado.qtd++; k.compensado.valor += v; }
-    if (t.eixo_prova === "conciliado")  { k.conciliado.qtd++; k.conciliado.valor += v; }
-    if (t.eh_inadimplencia === true)    { k.inadimplente.qtd++; k.inadimplente.valor += v; }
+    if (t.status_gestao === "a_vencer")   { k.aVencer.qtd++;   k.aVencer.valor   += v; }
+    if (t.status_gestao === "vence_hoje") { k.venceHoje.qtd++; k.venceHoje.valor += v; }
+    if (t.status_gestao === "atrasado")   { k.atrasado.qtd++;  k.atrasado.valor  += v; }
+    // Conta as três formas de pago, não só a pontual.
+    if (STATUS_PAGOS.includes(t.status_gestao) && (t.data_liquidacao_real ?? "") >= mes) {
+      k.pagoNoMes.qtd++; k.pagoNoMes.valor += v;
+    }
   }
   return k;
 }
