@@ -38,16 +38,18 @@ interface Props {
 }
 
 function interpolar(tpl: string, titulo: TituloCobranca): string {
-  const cliente = titulo.parceiro_nome_fantasia || titulo.parceiro_razao_social || "";
+  const cliente = nomeCanonico(titulo.parceiro_razao_social, "");
   const map: Record<string, string> = {
     "{cliente}": cliente,
+    "{apelido}": apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia) ?? "",
     "{valor}": formatBRL(titulo.valor_efetivo),
     "{vencimento}": formatDateBR(titulo.data_vencimento_atual),
     "{titulo}": titulo.numero_titulo ?? "",
     "{cnpj}": titulo.parceiro_cnpj ?? "",
   };
-  return (tpl ?? "").replace(/\{cliente\}|\{valor\}|\{vencimento\}|\{titulo\}|\{cnpj\}/g, (m) => map[m] ?? m);
+  return (tpl ?? "").replace(/\{cliente\}|\{apelido\}|\{valor\}|\{vencimento\}|\{titulo\}|\{cnpj\}/g, (m) => map[m] ?? m);
 }
+
 
 function formatDiasOffset(dias: number): string {
   if (dias === 0) return "D+0";
