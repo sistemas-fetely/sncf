@@ -76,6 +76,7 @@ export function useReguaFilaHoje() {
         .lte("data_proxima_acao_regua", hoje)
         .eq("pausa_regua_automatica", false)
         .in("status_gestao", ["atrasado", "vence_hoje", "a_vencer"])
+        .in("eixo_prova", PROVAS_COBRAVEIS)
         .order("dias_atraso", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -94,6 +95,7 @@ export function useReguaPausados() {
         .select("*")
         .eq("pausa_regua_automatica", true)
         .in("status_gestao", ["atrasado", "vence_hoje", "a_vencer"])
+        .in("eixo_prova", PROVAS_COBRAVEIS)
         .order("dias_atraso", { ascending: false })
         .limit(500);
       if (error) throw error;
