@@ -674,7 +674,8 @@ export default function TitulosTab() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {filtrados.length} título{filtrados.length !== 1 ? "s" : ""} · {formatBRL(totalFiltrado)}
+        {filtrados.length} título{filtrados.length !== 1 ? "s" : ""}
+        {agrupado ? ` em ${grupos.length} pedido${grupos.length !== 1 ? "s" : ""}` : ""} · {formatBRL(totalFiltrado)}
         {cardsAtivos.has("todos") && (
           <span className="ml-2">
             inclui encerrados (devolvido/cancelado), que não entram nos cards
