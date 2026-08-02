@@ -653,7 +653,7 @@ function AbaB2B() {
       });
     }
     return arr;
-  }, [base, provasAtivas, prazosAtivos, sort]);
+  }, [base, provasAtivas, statusAtivos, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
