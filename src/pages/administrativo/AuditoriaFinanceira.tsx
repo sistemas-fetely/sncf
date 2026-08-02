@@ -243,7 +243,7 @@ export default function AuditoriaFinanceira() {
       if (sevFiltro !== "todas" && String(a.severidade ?? "") !== sevFiltro) return false;
       if (ignorar !== "classe" && classeFiltro !== "todas" && (a.classe ?? "") !== classeFiltro) return false;
       if (ignorar !== "fonte" && fonteFiltro !== "todas" && String(a.fonte ?? "") !== fonteFiltro) return false;
-      if (ignorar !== "meio" && meioFiltro !== "todos" && (a.meio_pagamento ?? "—") !== meioFiltro) return false;
+      if (ignorar !== "meio" && meioFiltro !== "todos" && !achadoTemMeio(a, meioFiltro)) return false;
       if (ignorar !== "situacao" && situacaoFiltro !== "todas" && (a.situacao ?? "aberto") !== situacaoFiltro) return false;
       if (!q) return true;
       return (
