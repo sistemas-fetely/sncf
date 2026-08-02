@@ -1,5 +1,6 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { rotuloDestinoLiberacao } from "@/lib/pedidoLiberacaoEstoque";
+import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { useState, useEffect, useRef } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedidoDialog";
