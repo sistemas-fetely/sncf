@@ -748,8 +748,11 @@ export default function AuditoriaFinanceira() {
           <Badge
             key={m}
             variant={meioFiltro === m ? "default" : "outline"}
-            className="cursor-pointer tabular-nums"
-            onClick={() => setMeioFiltro((cur) => (cur === m ? "todos" : m))}
+            className={cn("tabular-nums", n === 0 ? "opacity-40 cursor-not-allowed" : "cursor-pointer")}
+            onClick={() => {
+              if (n === 0) return;
+              setMeioFiltro((cur) => (cur === m ? "todos" : m));
+            }}
           >
             {labelMeio(m)} ({n})
           </Badge>
@@ -765,20 +768,20 @@ export default function AuditoriaFinanceira() {
           className="max-w-sm"
         />
         <Select value={classeFiltro} onValueChange={setClasseFiltro}>
-          <SelectTrigger className="w-[220px]"><SelectValue placeholder="Classe" /></SelectTrigger>
+          <SelectTrigger className="w-[260px]"><SelectValue placeholder="Classe" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas as classes</SelectItem>
-            {classesDisponiveis.map((c) => (
-              <SelectItem key={c} value={c}>{labelClasse(c)}</SelectItem>
+            {classesDisponiveis.map(([c, n]) => (
+              <SelectItem key={c} value={c}>{labelClasse(c)} ({n})</SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={fonteFiltro} onValueChange={setFonteFiltro}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Fonte" /></SelectTrigger>
+          <SelectTrigger className="w-[220px]"><SelectValue placeholder="Fonte" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas as fontes</SelectItem>
-            {fontesDisponiveis.map((f) => (
-              <SelectItem key={f} value={f}>{FONTE_LABEL[f] ?? f}</SelectItem>
+            {fontesDisponiveis.map(([f, n]) => (
+              <SelectItem key={f} value={f}>{(FONTE_LABEL[f] ?? f)} ({n})</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -787,22 +790,30 @@ export default function AuditoriaFinanceira() {
           <SelectContent>
             <SelectItem value="todos">Todos os meios</SelectItem>
             {contadoresMeio.map(([m, n]) => (
-              <SelectItem key={m} value={m}>{labelMeio(m)} ({n})</SelectItem>
+              <SelectItem key={m} value={m} disabled={n === 0}>{labelMeio(m)} ({n})</SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={situacaoFiltro} onValueChange={setSituacaoFiltro}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Situação" /></SelectTrigger>
+          <SelectTrigger className="w-[190px]"><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas situações</SelectItem>
-            {(["aberto", "em_analise", "resolvido", "explicado", "reaparecido"] as const).map((s) => (
-              <SelectItem key={s} value={s}>{SITUACAO_META[s].label}</SelectItem>
+            {situacoesDisponiveis.map(([s, n]) => (
+              <SelectItem key={s} value={s}>{SITUACAO_META[s].label} ({n})</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <div className="text-sm text-muted-foreground sm:ml-auto tabular-nums">
-          {filtrados.length} de {lote.length} achados
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <div className="text-sm text-muted-foreground tabular-nums">
+            {filtrados.length} de {lote.length} achados
+          </div>
+          {filtrosSujos && (
+            <Button variant="ghost" size="sm" onClick={limparFiltros}>
+              Limpar filtros
+            </Button>
+          )}
         </div>
+
       </div>
 
       {/* Visão e falsos positivos */}
