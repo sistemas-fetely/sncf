@@ -554,7 +554,7 @@ function ConferirCodigosBloco({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const nome = (p: Parceiro) => p.nome_fantasia || p.razao_social || "(sem nome)";
+  const nome = (p: Parceiro) => nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)");
 
   return (
     <Card>
