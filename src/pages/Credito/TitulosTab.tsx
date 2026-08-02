@@ -630,7 +630,13 @@ export default function TitulosTab() {
               <SheetHeader>
                 <div className="flex items-center justify-between gap-3">
                   <SheetTitle className="font-mono text-base">{detalhe.numero_titulo}</SheetTitle>
-                  <BadgeStatusGestao status={detalhe.status_gestao} />
+                  <div className="flex items-center gap-2">
+                    <BadgeProva eixo={detalhe.eixo_prova} compensadoPor={detalhe.compensado_por} />
+                    <BadgePrazo
+                      eixo={detalhe.eixo_prazo}
+                      inadimplente={detalhe.eh_inadimplencia === true}
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-1 pt-1">
                   <BadgeSubestado sub={detalhe.subestado_atraso} />
