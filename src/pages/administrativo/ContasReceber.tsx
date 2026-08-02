@@ -1355,6 +1355,7 @@ function AbaB2B() {
                   const atrasado = t.status_gestao === "atrasado";
                   const juros = Number(t.valor_juros ?? 0);
                   const desconto = Number(t.valor_desconto ?? 0);
+                  const bruto = Number(t.valor_bruto ?? t.valor ?? 0);
                   return (
                     <TableRow key={t.id} className={atrasado ? "bg-red-50/40" : undefined}>
                       <TableCell className="font-mono text-xs">
