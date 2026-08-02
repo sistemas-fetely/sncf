@@ -165,28 +165,38 @@ export default function AuditoriaFinanceira() {
   const [sevFiltro, setSevFiltro] = useState<string>("1");
   const [classeFiltro, setClasseFiltro] = useState<string>("todas");
   const [fonteFiltro, setFonteFiltro] = useState<string>("todas");
+  const [meioFiltro, setMeioFiltro] = useState<string>("todos");
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("aberto");
+  const [mostrarFalsoPositivo, setMostrarFalsoPositivo] = useState(false);
+  const [visao, setVisao] = useState<"classe" | "pedido">("classe");
 
   const [tratar, setTratar] = useState<Achado | null>(null);
   const [novaSituacao, setNovaSituacao] = useState<"em_analise" | "resolvido" | "explicado">("em_analise");
   const [nota, setNota] = useState("");
 
-  const { data: lote = [], isLoading } = useQuery({
+  const { data: loteBruto = [], isLoading } = useQuery({
     queryKey: ["auditoria-lote-atual"],
     queryFn: async () => {
-      const { data, error } = await (supabase as unknown as {
-        from: (t: string) => {
-          select: (c: string) => Promise<{ data: Achado[] | null; error: Error | null }>;
-        };
-      })
-        .from("vw_auditoria_lote_atual")
+      const { data, error } = await (supabase as any)
+        .from("vw_auditoria_lote_enriquecido")
         .select("*");
       if (error) throw error;
       return (data ?? []) as Achado[];
     },
   });
 
-  const geradoEm = lote[0]?.gerado_em ?? null;
+  const geradoEm = loteBruto[0]?.gerado_em ?? null;
+
+  const totalFalsoPositivo = useMemo(
+    () => loteBruto.filter((a) => a.falso_positivo_sem_caixa === true).length,
+    [loteBruto]
+  );
+
+  // Falso positivo por natureza sai da fila por default.
+  const lote = useMemo(
+    () => (mostrarFalsoPositivo ? loteBruto : loteBruto.filter((a) => a.falso_positivo_sem_caixa !== true)),
+    [loteBruto, mostrarFalsoPositivo]
+  );
 
   const contadores = useMemo(() => {
     const c = { aberto: 0, em_analise: 0, resolvido: 0, explicado: 0, reaparecido: 0 } as Record<Situacao, number>;
@@ -206,6 +216,20 @@ export default function AuditoriaFinanceira() {
     return c;
   }, [lote]);
 
+  const contadoresMeio = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of loteBruto) {
+      const m = a.meio_pagamento ?? "—";
+      map.set(m, (map.get(m) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).sort((a, b) => {
+      const ia = MEIO_ORDEM.indexOf(a[0]);
+      const ib = MEIO_ORDEM.indexOf(b[0]);
+      if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+      return b[1] - a[1];
+    });
+  }, [loteBruto]);
+
   const classesDisponiveis = useMemo(() => {
     const s = new Set<string>();
     for (const a of lote) if (a.classe) s.add(a.classe);
@@ -224,6 +248,7 @@ export default function AuditoriaFinanceira() {
       if (sevFiltro !== "todas" && String(a.severidade ?? "") !== sevFiltro) return false;
       if (classeFiltro !== "todas" && (a.classe ?? "") !== classeFiltro) return false;
       if (fonteFiltro !== "todas" && String(a.fonte ?? "") !== fonteFiltro) return false;
+      if (meioFiltro !== "todos" && (a.meio_pagamento ?? "—") !== meioFiltro) return false;
       if (situacaoFiltro !== "todas" && (a.situacao ?? "aberto") !== situacaoFiltro) return false;
       if (!q) return true;
       return (
@@ -232,7 +257,7 @@ export default function AuditoriaFinanceira() {
         (a.detalhe || "").toLowerCase().includes(q)
       );
     });
-  }, [lote, busca, sevFiltro, classeFiltro, fonteFiltro, situacaoFiltro]);
+  }, [lote, busca, sevFiltro, classeFiltro, fonteFiltro, meioFiltro, situacaoFiltro]);
 
   const grupos = useMemo(() => {
     const map = new Map<string, { classe: string; severidade: number; itens: Achado[]; total: number }>();
@@ -254,6 +279,55 @@ export default function AuditoriaFinanceira() {
       return b.total - a.total;
     });
   }, [filtrados]);
+
+  const gruposPedido = useMemo(() => {
+    const map = new Map<string, {
+      pedido_id: string | null;
+      id_externo: string | null;
+      cliente: string | null;
+      meio: string | null;
+      achadosNoPedido: number;
+      piorSeveridade: number;
+      itens: Achado[];
+      total: number;
+    }>();
+    for (const a of filtrados) {
+      const key = a.pedido_id || a.id_externo || a.id;
+      const g = map.get(key) ?? {
+        pedido_id: a.pedido_id,
+        id_externo: a.id_externo,
+        cliente: a.cliente,
+        meio: a.meio_pagamento,
+        achadosNoPedido: a.achados_no_pedido ?? 0,
+        piorSeveridade: a.pior_severidade_pedido ?? a.severidade ?? 99,
+        itens: [] as Achado[],
+        total: 0,
+      };
+      g.itens.push(a);
+      g.total += Number(a.valor || 0);
+      g.achadosNoPedido = Math.max(g.achadosNoPedido, a.achados_no_pedido ?? 0);
+      g.piorSeveridade = Math.min(g.piorSeveridade, a.pior_severidade_pedido ?? a.severidade ?? 99);
+      map.set(key, g);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.achadosNoPedido !== b.achadosNoPedido) return b.achadosNoPedido - a.achadosNoPedido;
+      if (a.piorSeveridade !== b.piorSeveridade) return a.piorSeveridade - b.piorSeveridade;
+      return b.total - a.total;
+    });
+  }, [filtrados]);
+
+  // Achados vinculados: outros achados do MESMO pedido (base do lote visível).
+  const porPedido = useMemo(() => {
+    const map = new Map<string, Achado[]>();
+    for (const a of lote) {
+      if (!a.pedido_id) continue;
+      const arr = map.get(a.pedido_id) ?? [];
+      arr.push(a);
+      map.set(a.pedido_id, arr);
+    }
+    return map;
+  }, [lote]);
+
 
   const mTratar = useMutation({
     mutationFn: async (args: {
