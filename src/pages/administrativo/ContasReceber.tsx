@@ -397,6 +397,8 @@ function AbaB2B() {
     let abertoQtd = 0;
     let vencido = 0;
     let vence30 = 0;
+    let recebidoSemNf = 0;
+    let recebidoSemNfQtd = 0;
     let semProva = 0;
     let semProvaQtd = 0;
     let provado = 0;
