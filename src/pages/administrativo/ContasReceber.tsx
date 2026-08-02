@@ -791,17 +791,18 @@ function AbaB2B() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Registrado</CardTitle>
+              <CardTitle className="text-sm">A vencer</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold tabular-nums">
-                {formatBRL(kpis.registrado)}
+                {formatBRL(kpis.aVencer)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {kpis.registradoQtd} títulos · ninguém quitou
+                {kpis.aVencerQtd} títulos · ninguém quitou
               </p>
             </CardContent>
           </Card>
+
           <Card className="border-destructive/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-destructive">Inadimplência</CardTitle>
