@@ -561,7 +561,9 @@ export default function TitulosTab() {
             {!isLoading && filtrados.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  Nenhum título encontrado.
+                  {cardsAtivos.size === 0
+                    ? "Nenhum recorte selecionado — clique num card acima."
+                    : "Nenhum título encontrado."}
                 </TableCell>
               </TableRow>
             )}
