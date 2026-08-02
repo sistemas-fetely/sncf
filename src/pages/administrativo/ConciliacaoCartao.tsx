@@ -16,7 +16,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CreditCard, Loader2, CheckCircle2, ChevronDown, ChevronRight, Link2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CreditCard, Loader2, CheckCircle2, ChevronDown, ChevronRight, Link2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
