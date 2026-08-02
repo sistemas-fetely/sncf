@@ -4,8 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useTitulosCobranca,
   calcularKpis,
+  tituloEntraNoKpi,
   type TituloCobranca,
-  type StatusGestao,
 } from "@/hooks/credito/useTitulosCobranca";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
@@ -54,47 +54,16 @@ import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
 import { BadgePrazo, BadgeProva } from "@/lib/financeiro/eixos-estado";
 
 
-type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca";
 
-const STATUS_LABEL: Record<StatusGestao, string> = {
-  a_vencer: "A vencer",
-  vence_hoje: "Vence hoje",
-  atrasado: "Atrasado",
-  pago: "Pago",
-  pago_com_atraso: "Pago c/ atraso",
-  pago_judicial: "Pago judicial",
-  cancelado: "Cancelado",
-};
+type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca_mercadoria";
 
-const STATUS_BADGE: Record<StatusGestao, string> = {
-  a_vencer: "bg-muted text-muted-foreground border border-border",
-  vence_hoje: "bg-amber-50 text-amber-700 border border-amber-200",
-  atrasado: "bg-red-50 text-red-700 border border-red-200",
-  pago: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  pago_com_atraso: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  pago_judicial: "bg-slate-100 text-slate-700 border border-slate-300",
-  cancelado: "bg-muted text-muted-foreground line-through",
-};
-
-
-function BadgeStatusGestao({ status }: { status: StatusGestao }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-        STATUS_BADGE[status],
-      )}
-    >
-      {STATUS_LABEL[status]}
-    </span>
-  );
-}
-
-const SUBESTADO_LABEL: Record<Exclude<SubestadoAtraso, null | "em_dia">, string> = {
+const SUBESTADO_LABEL: Record<string, string> = {
   lembrete_amistoso: "Lembrete amistoso",
   cobranca_ativa: "Cobrança ativa",
-  cobranca_dura: "Cobrança dura",
+  cobranca_formal: "Cobrança formal",
   pre_juridico: "Pré-jurídico",
+  notificacao_extrajudicial: "Notificação extrajudicial",
+  protesto_solicitado: "Protesto solicitado",
   juridico: "Jurídico",
 };
 
@@ -102,10 +71,11 @@ function BadgeSubestado({ sub }: { sub: SubestadoAtraso }) {
   if (!sub || sub === "em_dia") return null;
   return (
     <Badge variant="outline" className="text-[10px]">
-      {SUBESTADO_LABEL[sub]}
+      {SUBESTADO_LABEL[sub] ?? sub}
     </Badge>
   );
 }
+
 
 function HistoricoReguaSection({ tituloId }: { tituloId: string }) {
   const { data = [], isLoading } = useHistoricoReguaTitulo(tituloId, 5);
@@ -260,7 +230,7 @@ function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
 }
 
 function KpiCard({
-  label, qtd, valor, ativo, onClick, tone,
+  label, qtd, valor, ativo, onClick, tone, labelTooltip,
 }: {
   label: string;
   qtd: number;
@@ -268,6 +238,7 @@ function KpiCard({
   ativo: boolean;
   onClick: () => void;
   tone?: "default" | "danger" | "warn";
+  labelTooltip?: string;
 }) {
   const toneCls =
     tone === "danger"
@@ -285,7 +256,18 @@ function KpiCard({
         ativo && "ring-2 ring-foreground/40 bg-muted",
       )}
     >
-      <div className="text-xs text-muted-foreground">{label}</div>
+      {labelTooltip ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-xs text-muted-foreground cursor-help">{label}</div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">{labelTooltip}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        <div className="text-xs text-muted-foreground">{label}</div>
+      )}
       <div className="text-lg font-semibold mt-1">{qtd}</div>
       <div className="text-xs text-muted-foreground mt-0.5">{formatBRL(valor)}</div>
     </button>
@@ -301,15 +283,62 @@ function tipoLabel(t: string): string {
     cartao_debito: "Cartão",
     cartao_sem_juros: "Cartão s/j",
     haver: "Haver",
-    troca: "Troca",
+    troca_mercadoria: "Troca",
   };
   return map[t] ?? t ?? "—";
 }
+
+const TIPOS_FILTRO: TipoFiltro[] = [
+  "todos",
+  "boleto",
+  "pix",
+  "cartao",
+  "haver",
+  "troca_mercadoria",
+];
 
 function matchTipo(filtro: TipoFiltro, tipo: string): boolean {
   if (filtro === "todos") return true;
   if (filtro === "cartao") return (tipo ?? "").startsWith("cartao");
   return tipo === filtro;
+}
+
+/* ── predicados puros: cada estágio do filtro usa exatamente estes ── */
+
+function matchBusca(t: TituloCobranca, q: string): boolean {
+  if (!q) return true;
+  const alvo = [t.parceiro_razao_social, t.parceiro_cnpj, t.pedido_id_externo, t.numero_titulo]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return alvo.includes(q);
+}
+
+function matchData(t: TituloCobranca, vencDe: string, vencAte: string): boolean {
+  if (vencDe && (t.data_vencimento_atual ?? "") < vencDe) return false;
+  if (vencAte && (t.data_vencimento_atual ?? "") > vencAte) return false;
+  return true;
+}
+
+function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): boolean {
+  if (cards.has("todos")) {
+    // "Todos" LISTA tudo, inclusive encerrados (devolvido/cancelado),
+    // que continuam fora dos números dos cards.
+    return true;
+  }
+  const passa =
+    (cards.has("a_vencer") && t.status_gestao === "a_vencer") ||
+    (cards.has("vence_hoje") && t.status_gestao === "vence_hoje") ||
+    (cards.has("atrasado") && t.eh_inadimplencia === true) ||
+    (cards.has("aguarda_liquidacao") && t.status_gestao === "aguarda_liquidacao") ||
+    (cards.has("pago_no_mes") &&
+      (t.status_gestao === "pago" ||
+        t.status_gestao === "pago_com_atraso" ||
+        t.status_gestao === "pago_judicial") &&
+      (t.data_liquidacao_real ?? "").slice(0, 7) === mesAtual);
+  if (!passa) return false;
+  // fora de "todos", encerrado não aparece
+  return tituloEntraNoKpi(t);
 }
 
 export default function TitulosTab() {
@@ -341,11 +370,16 @@ export default function TitulosTab() {
   const [baixandoPerda, setBaixandoPerda] = useState<TituloCobranca | null>(null);
   const [renegociando, setRenegociando] = useState<TituloCobranca | null>(null);
 
-  const kpis = useMemo(() => calcularKpis(titulos), [titulos]);
   const mesAtual = new Date().toISOString().slice(0, 7);
+  const q = busca.trim().toLowerCase();
 
   function toggleCard(key: string) {
     setCardsAtivos((prev) => {
+      // "Todos" é modo exclusivo: liga sozinho e apaga o anel dos outros.
+      if (key === "todos") {
+        return prev.has("todos") ? new Set<string>() : new Set<string>(["todos"]);
+      }
+      if (prev.has("todos")) return new Set<string>([key]);
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -353,46 +387,41 @@ export default function TitulosTab() {
     });
   }
 
-  const filtrados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return titulos.filter((t) => {
-      // Filtro por cards
-      if (cardsAtivos.has("todos")) {
-        // mostra tudo
-      } else {
-        const passa =
-          (cardsAtivos.has("a_vencer") && t.status_gestao === "a_vencer") ||
-          (cardsAtivos.has("vence_hoje") && t.status_gestao === "vence_hoje") ||
-          (cardsAtivos.has("atrasado") && t.status_gestao === "atrasado") ||
-          (cardsAtivos.has("pago_no_mes") &&
-            t.status_gestao === "pago" &&
-            (t.data_liquidacao_real ?? "").slice(0, 7) === mesAtual);
-        if (!passa) return false;
-        // cancelados só quando "todos"
-        if (t.status_gestao === "cancelado") return false;
-      }
+  /* Estágio 1: tipo + busca + data. Base dos KPIs — cards refletem o chip. */
+  const baseSemCards = useMemo(
+    () =>
+      titulos.filter(
+        (t) =>
+          matchTipo(tipoFiltro, t.tipo_pagamento) &&
+          matchBusca(t, q) &&
+          matchData(t, vencDe, vencAte),
+      ),
+    [titulos, tipoFiltro, q, vencDe, vencAte],
+  );
 
-      if (!matchTipo(tipoFiltro, t.tipo_pagamento)) return false;
+  const kpis = useMemo(() => calcularKpis(baseSemCards), [baseSemCards]);
 
-      if (q) {
-        const alvo = [
-          t.parceiro_razao_social,
-          t.parceiro_cnpj,
-          t.pedido_id_externo,
-          t.numero_titulo,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!alvo.includes(q)) return false;
-      }
+  /* Estágio 2: recorte dos cards sobre a base. */
+  const filtrados = useMemo(
+    () => baseSemCards.filter((t) => matchCards(t, cardsAtivos, mesAtual)),
+    [baseSemCards, cardsAtivos, mesAtual],
+  );
 
-      if (vencDe && (t.data_vencimento_atual ?? "") < vencDe) return false;
-      if (vencAte && (t.data_vencimento_atual ?? "") > vencAte) return false;
-
-      return true;
-    });
-  }, [titulos, cardsAtivos, tipoFiltro, busca, vencDe, vencAte, mesAtual]);
+  /* Contagem dos chips: busca + data + cards, MAS NÃO tipo (anti-circular). */
+  const contagemTipos = useMemo(() => {
+    const base = titulos.filter(
+      (t) =>
+        matchBusca(t, q) &&
+        matchData(t, vencDe, vencAte) &&
+        matchCards(t, cardsAtivos, mesAtual) &&
+        tituloEntraNoKpi(t),
+    );
+    const c: Record<string, number> = {};
+    for (const f of TIPOS_FILTRO) {
+      c[f] = base.filter((t) => matchTipo(f, t.tipo_pagamento)).length;
+    }
+    return c;
+  }, [titulos, q, vencDe, vencAte, cardsAtivos, mesAtual]);
 
   const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
 
@@ -411,7 +440,7 @@ export default function TitulosTab() {
   return (
     <div className="space-y-4">
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <KpiCard
           label="A vencer"
           qtd={kpis.aVencer.qtd}
@@ -436,6 +465,14 @@ export default function TitulosTab() {
           tone="danger"
         />
         <KpiCard
+          label="Aguarda liq."
+          qtd={kpis.aguardaLiquidacao.qtd}
+          valor={kpis.aguardaLiquidacao.valor}
+          ativo={cardsAtivos.has("aguarda_liquidacao")}
+          onClick={() => toggleCard("aguarda_liquidacao")}
+          labelTooltip="Vencido, mas em forma garantida (cartão) — o dinheiro vem, não é cobrança."
+        />
+        <KpiCard
           label="Pago no mês"
           qtd={kpis.pagoNoMes.qtd}
           valor={kpis.pagoNoMes.valor}
@@ -453,7 +490,7 @@ export default function TitulosTab() {
 
       {/* Filtros secundários */}
       <div className="flex flex-wrap items-center gap-3">
-        {(["todos", "boleto", "pix", "cartao", "haver", "troca"] as TipoFiltro[]).map((f) => (
+        {TIPOS_FILTRO.map((f) => (
           <button
             key={f}
             type="button"
@@ -465,7 +502,7 @@ export default function TitulosTab() {
                 : "bg-background text-muted-foreground border-border hover:border-foreground/40",
             )}
           >
-            {f === "todos" ? "Todos" : tipoLabel(f)}
+            {f === "todos" ? "Todos" : tipoLabel(f)} · {contagemTipos[f] ?? 0}
           </button>
         ))}
       </div>
@@ -526,7 +563,9 @@ export default function TitulosTab() {
             {!isLoading && filtrados.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  Nenhum título encontrado.
+                  {cardsAtivos.size === 0
+                    ? "Nenhum recorte selecionado — clique num card acima."
+                    : "Nenhum título encontrado."}
                 </TableCell>
               </TableRow>
             )}
@@ -620,6 +659,11 @@ export default function TitulosTab() {
 
       <p className="text-xs text-muted-foreground">
         {filtrados.length} título{filtrados.length !== 1 ? "s" : ""} · {formatBRL(totalFiltrado)}
+        {cardsAtivos.has("todos") && (
+          <span className="ml-2">
+            inclui encerrados (devolvido/cancelado), que não entram nos cards
+          </span>
+        )}
       </p>
 
       {/* Drawer detalhe */}

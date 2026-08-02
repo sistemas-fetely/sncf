@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
+import { PROVAS, PROVA_FORA_KPI, type EixoProva } from "@/lib/financeiro/eixos-estado";
 
 export type PerfilCadencia = "padrao" | "bandeira_amarela" | "vip";
 export type CanalRegua =
@@ -44,6 +45,10 @@ function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Régua só cobra título vivo. Encerramento (devolvido/cancelado) nunca entra na fila. */
+const PROVAS_COBRAVEIS: EixoProva[] = PROVAS.filter((p) => !PROVA_FORA_KPI.includes(p));
+
+
 export function useReguaEtapas() {
   return useQuery({
     queryKey: ["regua-etapas"],
@@ -71,6 +76,7 @@ export function useReguaFilaHoje() {
         .lte("data_proxima_acao_regua", hoje)
         .eq("pausa_regua_automatica", false)
         .in("status_gestao", ["atrasado", "vence_hoje", "a_vencer"])
+        .in("eixo_prova", PROVAS_COBRAVEIS)
         .order("dias_atraso", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -89,6 +95,7 @@ export function useReguaPausados() {
         .select("*")
         .eq("pausa_regua_automatica", true)
         .in("status_gestao", ["atrasado", "vence_hoje", "a_vencer"])
+        .in("eixo_prova", PROVAS_COBRAVEIS)
         .order("dias_atraso", { ascending: false })
         .limit(500);
       if (error) throw error;
