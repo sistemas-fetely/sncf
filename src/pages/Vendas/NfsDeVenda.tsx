@@ -151,6 +151,7 @@ function AbaNFs() {
         "NF": n.serie && n.numero ? `${n.serie}-${n.numero}` : (n.numero ?? ""),
         "Data": dataStr,
         "Parceiro": n.parceiro?.razao_social ?? "",
+        "Nome fantasia": apelidoParceiro(n.parceiro?.razao_social, n.parceiro?.nome_fantasia) ?? "",
         "CNPJ": n.parceiro?.cnpj ?? "",
         "Valor": Number(n.valor_nota ?? 0),
         "Frete": Number(n.valor_frete ?? 0),
