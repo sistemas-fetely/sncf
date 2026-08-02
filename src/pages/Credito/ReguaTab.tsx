@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
+import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
@@ -75,12 +76,14 @@ function CardTitulo({
   onPausar: () => void;
   onRenegociar: () => void;
 }) {
-  const nome = titulo.parceiro_nome_fantasia || titulo.parceiro_razao_social || "—";
+  const razao = nomeCanonico(titulo.parceiro_razao_social, "—");
+  const apelido = apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
   return (
     <div className="rounded-md border bg-card p-3 space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-medium truncate">{nome}</p>
+          <p className="text-sm font-medium truncate">{razao}</p>
+          {apelido && <p className="text-xs text-muted-foreground truncate">{apelido}</p>}
           <p className="text-xs text-muted-foreground">
             {titulo.parceiro_cnpj ? formatCNPJ(titulo.parceiro_cnpj) : ""}
           </p>

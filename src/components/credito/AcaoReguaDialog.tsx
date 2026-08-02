@@ -17,6 +17,8 @@ import {
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa, CanalRegua } from "@/hooks/credito/useReguaFila";
+import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
+
 
 const CANAIS: { value: CanalRegua; label: string }[] = [
   { value: "email", label: "E-mail" },
@@ -38,16 +40,18 @@ interface Props {
 }
 
 function interpolar(tpl: string, titulo: TituloCobranca): string {
-  const cliente = titulo.parceiro_nome_fantasia || titulo.parceiro_razao_social || "";
+  const cliente = nomeCanonico(titulo.parceiro_razao_social, "");
   const map: Record<string, string> = {
     "{cliente}": cliente,
+    "{apelido}": apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia) ?? "",
     "{valor}": formatBRL(titulo.valor_efetivo),
     "{vencimento}": formatDateBR(titulo.data_vencimento_atual),
     "{titulo}": titulo.numero_titulo ?? "",
     "{cnpj}": titulo.parceiro_cnpj ?? "",
   };
-  return (tpl ?? "").replace(/\{cliente\}|\{valor\}|\{vencimento\}|\{titulo\}|\{cnpj\}/g, (m) => map[m] ?? m);
+  return (tpl ?? "").replace(/\{cliente\}|\{apelido\}|\{valor\}|\{vencimento\}|\{titulo\}|\{cnpj\}/g, (m) => map[m] ?? m);
 }
+
 
 function formatDiasOffset(dias: number): string {
   if (dias === 0) return "D+0";
@@ -179,7 +183,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
   };
 
   const isPending = registrarForaMutation.isPending || enviandoEmail;
-  const clienteNome = titulo.parceiro_nome_fantasia || titulo.parceiro_razao_social || "—";
+  const clienteNome = nomeExibicao(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia, "—");
   const vencCurto = titulo.data_vencimento_atual
     ? formatDateBR(titulo.data_vencimento_atual).slice(0, 5)
     : "—";
