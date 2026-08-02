@@ -28062,6 +28062,20 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_auditoria_integridade_fiscal: {
+        Row: {
+          acao: string | null
+          classe: string | null
+          cliente: string | null
+          detalhe: string | null
+          estagio: string | null
+          id_externo: string | null
+          pedido_id: string | null
+          severidade: number | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_auditoria_lote_atual: {
         Row: {
           acao: string | null
@@ -31826,14 +31840,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -33466,11 +33480,13 @@ export type Database = {
           data_compra: string | null
           data_divergente: boolean | null
           data_liquidacao: string | null
+          data_liquidacao_prevista: string | null
           data_pagamento: string | null
           data_pagamento_banco: string | null
           data_recebimento_efetiva: string | null
           data_vencimento: string | null
           data_vencimento_original: string | null
+          desvio_previsao_dias: number | null
           dias_prorrogado: number | null
           estado_cor: string | null
           estado_descricao: string | null
@@ -33479,6 +33495,7 @@ export type Database = {
           estado_ordem: number | null
           estado_rotulo: string | null
           estado_terminal: boolean | null
+          faturado: boolean | null
           fonte_data_recebimento: string | null
           gera_caixa: boolean | null
           id: string | null
