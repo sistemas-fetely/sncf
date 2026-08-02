@@ -32320,6 +32320,7 @@ export type Database = {
         Row: {
           cidade: string | null
           cliente: string | null
+          cliente_apelido: string | null
           diagnostico: string | null
           dias_desde_faturamento: number | null
           dias_sem_movimento: number | null
@@ -32330,6 +32331,7 @@ export type Database = {
           pedido_id: string | null
           severidade: number | null
           transportadora: string | null
+          transportadora_apelido: string | null
           uf: string | null
           ultima_ocorrencia: string | null
           ultima_ocorrencia_codigo: string | null
@@ -32436,6 +32438,7 @@ export type Database = {
           receita_frete: number | null
           receita_sem_custo: boolean | null
           transportadora: string | null
+          transportadora_apelido: string | null
         }
         Relationships: []
       }
@@ -32455,6 +32458,7 @@ export type Database = {
           canal_contratacao: string | null
           classe_rastreio: string | null
           cliente: string | null
+          cliente_apelido: string | null
           data_entrega: string | null
           devolucao: boolean | null
           dias_sem_movimento: number | null
@@ -32477,6 +32481,7 @@ export type Database = {
           previsao_entrega: string | null
           status_texto: string | null
           transportadora: string | null
+          transportadora_apelido: string | null
           transportadora_id: string | null
           uf_destino: string | null
           valor: number | null
@@ -32504,6 +32509,7 @@ export type Database = {
           remessas: number | null
           sem_estado: number | null
           transportadora: string | null
+          transportadora_apelido: string | null
           ultima_importacao: string | null
           ultima_ocorrencia: string | null
           valor_em_transito: number | null
@@ -32815,14 +32821,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -33225,14 +33231,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -33735,6 +33741,7 @@ export type Database = {
           peso_real: number | null
           peso_taxado: number | null
           prazo_transportadora: string | null
+          transportadora_apelido: string | null
           transportadora_cnpj: string | null
           transportadora_id: string | null
           transportadora_nome: string | null
