@@ -90,6 +90,10 @@ type RecebivelB2B = {
   meio_pedido_nome: string | null;
   meio_divergente: boolean | null;
   mes_caixa_efetivo: string | null;
+  /* eixo faturamento (separado do estado de gestão) */
+  faturado: boolean | null;
+  data_liquidacao_prevista: string | null;
+  desvio_previsao_dias: number | null;
   /* estado único de gestão (por força de prova) */
   estado_gestao: EstadoGestao;
   estado_rotulo: string | null;
