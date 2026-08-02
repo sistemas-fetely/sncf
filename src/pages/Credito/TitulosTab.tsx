@@ -728,7 +728,12 @@ export default function TitulosTab() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <BadgePrazo eixo={t.eixo_prazo} inadimplente={t.eh_inadimplencia === true} />
+                    <BadgeStatus
+                      eixo={t.eixo_status}
+                      compensadoPor={t.compensado_por}
+                      inadimplente={t.eh_inadimplencia === true}
+                    />
+
                   </TableCell>
                 </TableRow>
               );
