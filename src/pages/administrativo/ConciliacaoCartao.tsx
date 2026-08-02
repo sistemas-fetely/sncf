@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import VendasSemPedido from "@/components/conciliacao-cartao/VendasSemPedido";
+import ConciliacaoAutomatica from "@/components/conciliacao-cartao/ConciliacaoAutomatica";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
