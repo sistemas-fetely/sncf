@@ -598,7 +598,7 @@ export default function TitulosTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1 items-start">
-                      <BadgeStatusGestao status={t.status_gestao} />
+                      <BadgeProva eixo={t.eixo_prova} compensadoPor={t.compensado_por} />
                       {t.tipo_pagamento === "boleto" && t.boleto_status && (
                         <BadgeBoletoStatus
                           status={t.boleto_status}
@@ -606,6 +606,9 @@ export default function TitulosTab() {
                         />
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <BadgePrazo eixo={t.eixo_prazo} inadimplente={t.eh_inadimplencia === true} />
                   </TableCell>
                 </TableRow>
               );
