@@ -368,11 +368,16 @@ export default function TitulosTab() {
   const [baixandoPerda, setBaixandoPerda] = useState<TituloCobranca | null>(null);
   const [renegociando, setRenegociando] = useState<TituloCobranca | null>(null);
 
-  const kpis = useMemo(() => calcularKpis(titulos), [titulos]);
   const mesAtual = new Date().toISOString().slice(0, 7);
+  const q = busca.trim().toLowerCase();
 
   function toggleCard(key: string) {
     setCardsAtivos((prev) => {
+      // "Todos" é modo exclusivo: liga sozinho e apaga o anel dos outros.
+      if (key === "todos") {
+        return prev.has("todos") ? new Set<string>() : new Set<string>(["todos"]);
+      }
+      if (prev.has("todos")) return new Set<string>([key]);
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -380,46 +385,41 @@ export default function TitulosTab() {
     });
   }
 
-  const filtrados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return titulos.filter((t) => {
-      // Filtro por cards
-      if (cardsAtivos.has("todos")) {
-        // mostra tudo
-      } else {
-        const passa =
-          (cardsAtivos.has("a_vencer") && t.status_gestao === "a_vencer") ||
-          (cardsAtivos.has("vence_hoje") && t.status_gestao === "vence_hoje") ||
-          (cardsAtivos.has("atrasado") && t.status_gestao === "atrasado") ||
-          (cardsAtivos.has("pago_no_mes") &&
-            t.status_gestao === "pago" &&
-            (t.data_liquidacao_real ?? "").slice(0, 7) === mesAtual);
-        if (!passa) return false;
-        // cancelados só quando "todos"
-        if (t.status_gestao === "cancelado") return false;
-      }
+  /* Estágio 1: tipo + busca + data. Base dos KPIs — cards refletem o chip. */
+  const baseSemCards = useMemo(
+    () =>
+      titulos.filter(
+        (t) =>
+          matchTipo(tipoFiltro, t.tipo_pagamento) &&
+          matchBusca(t, q) &&
+          matchData(t, vencDe, vencAte),
+      ),
+    [titulos, tipoFiltro, q, vencDe, vencAte],
+  );
 
-      if (!matchTipo(tipoFiltro, t.tipo_pagamento)) return false;
+  const kpis = useMemo(() => calcularKpis(baseSemCards), [baseSemCards]);
 
-      if (q) {
-        const alvo = [
-          t.parceiro_razao_social,
-          t.parceiro_cnpj,
-          t.pedido_id_externo,
-          t.numero_titulo,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!alvo.includes(q)) return false;
-      }
+  /* Estágio 2: recorte dos cards sobre a base. */
+  const filtrados = useMemo(
+    () => baseSemCards.filter((t) => matchCards(t, cardsAtivos, mesAtual)),
+    [baseSemCards, cardsAtivos, mesAtual],
+  );
 
-      if (vencDe && (t.data_vencimento_atual ?? "") < vencDe) return false;
-      if (vencAte && (t.data_vencimento_atual ?? "") > vencAte) return false;
-
-      return true;
-    });
-  }, [titulos, cardsAtivos, tipoFiltro, busca, vencDe, vencAte, mesAtual]);
+  /* Contagem dos chips: busca + data + cards, MAS NÃO tipo (anti-circular). */
+  const contagemTipos = useMemo(() => {
+    const base = titulos.filter(
+      (t) =>
+        matchBusca(t, q) &&
+        matchData(t, vencDe, vencAte) &&
+        matchCards(t, cardsAtivos, mesAtual) &&
+        tituloEntraNoKpi(t),
+    );
+    const c: Record<string, number> = {};
+    for (const f of TIPOS_FILTRO) {
+      c[f] = base.filter((t) => matchTipo(f, t.tipo_pagamento)).length;
+    }
+    return c;
+  }, [titulos, q, vencDe, vencAte, cardsAtivos, mesAtual]);
 
   const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
 
