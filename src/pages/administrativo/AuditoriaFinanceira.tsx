@@ -47,6 +47,9 @@ import DossieAchado from "@/components/auditoria/DossieAchado";
 import HipoteseResumo from "@/components/auditoria/HipoteseResumo";
 import { useHipoteseMap } from "@/hooks/useHipoteseMap";
 import {
+  achadoTemMeio, contarMeios, labelMeio, meiosNoLote,
+} from "@/lib/auditoria/filtro-meio";
+import {
   AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2, CheckCircle2,
   ArrowUpRight, ChevronDown,
 } from "lucide-react";
