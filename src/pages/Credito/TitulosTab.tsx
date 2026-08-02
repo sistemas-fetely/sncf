@@ -51,16 +51,7 @@ import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
 import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
-import {
-  BadgeProva,
-  BadgeStatus,
-  PROVAS,
-  PROVA_META,
-  STATUS_EIXOS,
-  STATUS_META,
-  type EixoProva,
-  type EixoStatus,
-} from "@/lib/financeiro/eixos-estado";
+import { BadgeProva, BadgeStatus } from "@/lib/financeiro/eixos-estado";
 
 
 
@@ -330,18 +321,22 @@ function matchData(t: TituloCobranca, vencDe: string, vencAte: string): boolean 
   return true;
 }
 
-/** Recorte pelos dois eixos + inadimplência. Set vazio = eixo não recorta. */
-function matchEixos(
-  t: TituloCobranca,
-  prova: Set<EixoProva>,
-  status: Set<EixoStatus>,
-  soInadimplentes: boolean,
-): boolean {
-  if (soInadimplentes && t.eh_inadimplencia !== true) return false;
-  if (prova.size > 0 && !prova.has(t.eixo_prova)) return false;
-  if (status.size > 0 && !status.has(t.eixo_status)) return false;
-  return true;
+/** "Todos" LISTA tudo, inclusive encerrados, que seguem fora dos números dos cards. */
+function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): boolean {
+  if (cards.has("todos")) return true;
+  const passa =
+    (cards.has("a_vencer") && t.status_gestao === "a_vencer") ||
+    (cards.has("vence_hoje") && t.status_gestao === "vence_hoje") ||
+    (cards.has("atrasado") && t.status_gestao === "atrasado") ||
+    (cards.has("pago_no_mes") &&
+      (t.status_gestao === "pago" ||
+        t.status_gestao === "pago_com_atraso" ||
+        t.status_gestao === "pago_judicial") &&
+      (t.data_liquidacao_real ?? "").slice(0, 7) === mesAtual);
+  if (!passa) return false;
+  return tituloEntraNoKpi(t);
 }
+
 
 
 export default function TitulosTab() {
@@ -354,12 +349,10 @@ export default function TitulosTab() {
   const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);
   const [confirmarEnvioPix, setConfirmarEnvioPix] = useState<TituloCobranca | null>(null);
 
-  /* Eixo status é o recorte default: encerrados (devolvido/cancelado) ficam fora. */
-  const [provaFiltro, setProvaFiltro] = useState<Set<EixoProva>>(new Set());
-  const [statusFiltro, setStatusFiltro] = useState<Set<EixoStatus>>(
-    new Set<EixoStatus>(["a_vencer", "pago", "compensado"]),
+  const [cardsAtivos, setCardsAtivos] = useState<Set<string>>(
+    new Set(["a_vencer", "vence_hoje", "atrasado"]),
   );
-  const [soInadimplentes, setSoInadimplentes] = useState(false);
+
 
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("todos");
   const [busca, setBusca] = useState("");
@@ -380,8 +373,13 @@ export default function TitulosTab() {
   const mesAtual = new Date().toISOString().slice(0, 7);
   const q = busca.trim().toLowerCase();
 
-  function toggleSet<T>(setter: React.Dispatch<React.SetStateAction<Set<T>>>, key: T) {
-    setter((prev) => {
+  function toggleCard(key: string) {
+    setCardsAtivos((prev) => {
+      // "Todos" é modo exclusivo: liga sozinho e apaga o anel dos outros.
+      if (key === "todos") {
+        return prev.has("todos") ? new Set<string>() : new Set<string>(["todos"]);
+      }
+      if (prev.has("todos")) return new Set<string>([key]);
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -389,11 +387,6 @@ export default function TitulosTab() {
     });
   }
 
-  function verTudo() {
-    setProvaFiltro(new Set());
-    setStatusFiltro(new Set());
-    setSoInadimplentes(false);
-  }
 
   /* Estágio 1: tipo + busca + data. Base dos KPIs — cards refletem o chip. */
   const baseSemCards = useMemo(
@@ -409,42 +402,28 @@ export default function TitulosTab() {
 
   const kpis = useMemo(() => calcularKpis(baseSemCards), [baseSemCards]);
 
-  /* Estágio 2: recorte dos dois eixos sobre a base. */
+  /* Estágio 2: recorte dos cards sobre a base. */
   const filtrados = useMemo(
-    () => baseSemCards.filter((t) => matchEixos(t, provaFiltro, statusFiltro, soInadimplentes)),
-    [baseSemCards, provaFiltro, statusFiltro, soInadimplentes],
+    () => baseSemCards.filter((t) => matchCards(t, cardsAtivos, mesAtual)),
+    [baseSemCards, cardsAtivos, mesAtual],
   );
 
-  /* Contagem dos chips: busca + data + eixos, MAS NÃO tipo (anti-circular). */
+  /* Contagem dos chips: busca + data + cards, MAS NÃO tipo (anti-circular). */
   const contagemTipos = useMemo(() => {
     const base = titulos.filter(
       (t) =>
         matchBusca(t, q) &&
         matchData(t, vencDe, vencAte) &&
-        matchEixos(t, provaFiltro, statusFiltro, soInadimplentes),
+        tituloEntraNoKpi(t) &&
+        matchCards(t, cardsAtivos, mesAtual),
     );
     const c: Record<string, number> = {};
     for (const f of TIPOS_FILTRO) {
       c[f] = base.filter((t) => matchTipo(f, t.tipo_pagamento)).length;
     }
     return c;
-  }, [titulos, q, vencDe, vencAte, provaFiltro, statusFiltro, soInadimplentes]);
+  }, [titulos, q, vencDe, vencAte, cardsAtivos, mesAtual]);
 
-  /* Contagem dos toggles de eixo, sobre a base de tipo/busca/data. */
-  const contagemProva = useMemo(() => {
-    const c = {} as Record<EixoProva, number>;
-    for (const p of PROVAS) c[p] = baseSemCards.filter((t) => t.eixo_prova === p).length;
-    return c;
-  }, [baseSemCards]);
-
-  const contagemStatus = useMemo(() => {
-    const c = {} as Record<EixoStatus, number>;
-    for (const s of STATUS_EIXOS) c[s] = baseSemCards.filter((t) => t.eixo_status === s).length;
-    return c;
-  }, [baseSemCards]);
-
-  const mostrandoEncerrados =
-    statusFiltro.size === 0 || statusFiltro.has("devolvido") || statusFiltro.has("cancelado");
 
 
   const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
@@ -463,110 +442,47 @@ export default function TitulosTab() {
 
   return (
     <div className="space-y-4">
-      {/* KPIs — clicar aplica o recorte do eixo correspondente */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      {/* KPIs — clicar aplica o recorte */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KpiCard
           label="A vencer"
           qtd={kpis.aVencer.qtd}
           valor={kpis.aVencer.valor}
-          ativo={statusFiltro.has("a_vencer")}
-          onClick={() => toggleSet(setStatusFiltro, "a_vencer" as EixoStatus)}
-          labelTooltip={STATUS_META.a_vencer.tooltip ?? undefined}
+          ativo={cardsAtivos.has("a_vencer")}
+          onClick={() => toggleCard("a_vencer")}
         />
         <KpiCard
-          label="Pago"
-          qtd={kpis.pago.qtd}
-          valor={kpis.pago.valor}
-          ativo={statusFiltro.has("pago")}
-          onClick={() => toggleSet(setStatusFiltro, "pago" as EixoStatus)}
+          label="Vence hoje"
+          qtd={kpis.venceHoje.qtd}
+          valor={kpis.venceHoje.valor}
+          ativo={cardsAtivos.has("vence_hoje")}
+          onClick={() => toggleCard("vence_hoje")}
           tone="warn"
-          labelTooltip={STATUS_META.pago.tooltip ?? undefined}
         />
         <KpiCard
-          label="Compensado"
-          qtd={kpis.compensado.qtd}
-          valor={kpis.compensado.valor}
-          ativo={statusFiltro.has("compensado")}
-          onClick={() => toggleSet(setStatusFiltro, "compensado" as EixoStatus)}
-          labelTooltip={STATUS_META.compensado.tooltip ?? undefined}
-        />
-        <KpiCard
-          label="Conciliado"
-          qtd={kpis.conciliado.qtd}
-          valor={kpis.conciliado.valor}
-          ativo={provaFiltro.has("conciliado")}
-          onClick={() => toggleSet(setProvaFiltro, "conciliado" as EixoProva)}
-          labelTooltip={PROVA_META.conciliado.tooltip ?? undefined}
-        />
-        <KpiCard
-          label="Inadimplente"
-          qtd={kpis.inadimplente.qtd}
-          valor={kpis.inadimplente.valor}
-          ativo={soInadimplentes}
-          onClick={() => setSoInadimplentes((v) => !v)}
+          label="Atrasado"
+          qtd={kpis.atrasado.qtd}
+          valor={kpis.atrasado.valor}
+          ativo={cardsAtivos.has("atrasado")}
+          onClick={() => toggleCard("atrasado")}
           tone="danger"
-          labelTooltip="Sem baixa, vencimento no passado, e a forma não é garantida."
+        />
+        <KpiCard
+          label="Pago no mês"
+          qtd={kpis.pagoNoMes.qtd}
+          valor={kpis.pagoNoMes.valor}
+          ativo={cardsAtivos.has("pago_no_mes")}
+          onClick={() => toggleCard("pago_no_mes")}
         />
         <KpiCard
           label="Todos"
           qtd={kpis.total.qtd}
           valor={kpis.total.valor}
-          ativo={provaFiltro.size === 0 && statusFiltro.size === 0 && !soInadimplentes}
-          onClick={verTudo}
+          ativo={cardsAtivos.has("todos")}
+          onClick={() => toggleCard("todos")}
         />
       </div>
 
-      {/* Filtros dos dois eixos */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground w-14">Prova</span>
-          {PROVAS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => toggleSet(setProvaFiltro, p)}
-              className={cn(
-                "text-xs px-3 py-1.5 rounded-full border transition-colors tabular-nums",
-                provaFiltro.has(p)
-                  ? "bg-foreground text-background border-foreground"
-                  : "bg-background text-muted-foreground border-border hover:border-foreground/40",
-              )}
-            >
-              {PROVA_META[p].label} · {contagemProva[p] ?? 0}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground w-14">Status</span>
-          {STATUS_EIXOS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => toggleSet(setStatusFiltro, s)}
-              className={cn(
-                "text-xs px-3 py-1.5 rounded-full border transition-colors tabular-nums",
-                statusFiltro.has(s)
-                  ? "bg-foreground text-background border-foreground"
-                  : "bg-background text-muted-foreground border-border hover:border-foreground/40",
-              )}
-            >
-              {STATUS_META[s].label} · {contagemStatus[s] ?? 0}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setSoInadimplentes((v) => !v)}
-            className={cn(
-              "text-xs px-3 py-1.5 rounded-full border transition-colors",
-              soInadimplentes
-                ? "bg-destructive text-destructive-foreground border-destructive"
-                : "bg-background text-muted-foreground border-border hover:border-foreground/40",
-            )}
-          >
-            Só inadimplentes · {kpis.inadimplente.qtd}
-          </button>
-        </div>
-      </div>
 
       {/* Filtro por tipo de pagamento */}
       <div className="flex flex-wrap items-center gap-3">
@@ -644,7 +560,9 @@ export default function TitulosTab() {
             {!isLoading && filtrados.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  Nenhum título encontrado.
+                  {cardsAtivos.size === 0
+                    ? "Nenhum recorte selecionado — clique num card acima."
+                    : "Nenhum título encontrado."}
 
                 </TableCell>
               </TableRow>
@@ -744,7 +662,7 @@ export default function TitulosTab() {
 
       <p className="text-xs text-muted-foreground">
         {filtrados.length} título{filtrados.length !== 1 ? "s" : ""} · {formatBRL(totalFiltrado)}
-        {mostrandoEncerrados && (
+        {cardsAtivos.has("todos") && (
           <span className="ml-2">
             inclui encerrados (devolvido/cancelado), que não entram nos cards
           </span>
