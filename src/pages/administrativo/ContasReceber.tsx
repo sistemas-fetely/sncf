@@ -61,7 +61,7 @@ type RecebivelB2B = {
   data_compra: string | null;
   data_vencimento: string | null;
   valor: number | null;
-  status_gestao: StatusGestao;
+  data_liquidacao: string | null;
   data_liquidacao: string | null;
   liquidacao_realizada: boolean | null;
   pago: boolean | null;
