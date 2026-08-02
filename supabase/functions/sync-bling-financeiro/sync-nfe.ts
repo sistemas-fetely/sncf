@@ -23,13 +23,14 @@ for (const nf of items) {
 
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw")
+      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie")
       .eq("bling_id", blingId)
       .maybeSingle();
 
     const semValor = !existing || !existing.valor_nota || Number(existing.valor_nota) === 0;
     const semFrete = !existing?.valor_frete || Number(existing.valor_frete) === 0;
     const semPedido = !existing?.pedido_venda_id; const semTransporte = !existing?.transporte_raw;
+    const semSerie = !existing?.serie;
 
     // Busca detalhe apenas quando falta valor ou frete — evita rate limit do Bling.
     // Pedido linkage tenta junto quando já estamos no detalhe, mas não aciona sozinho.
@@ -37,8 +38,9 @@ for (const nf of items) {
     let numeroPedidoLojaRaw: string | null = null;
     let pedidoVendaNumeroRaw: string | null = null;
     let pedidoVendaBlingIdRaw: string | null = null;
+    let serieDetalhe: string | null = null;
 
-    if (semValor || semFrete || semPedido || semTransporte) {
+    if (semValor || semFrete || semPedido || semTransporte || semSerie) {
       try {
         await sleep(120); // respeita rate limit do Bling (~3 req/s)
         const det = await client.get(`/nfe/${nf.id}`);
@@ -53,6 +55,7 @@ for (const nf of items) {
           numeroPedidoLojaRaw = d.numeroPedidoLoja != null ? String(d.numeroPedidoLoja) : null;
           pedidoVendaNumeroRaw = d.pedidoVenda?.numero != null ? String(d.pedidoVenda.numero) : null;
           pedidoVendaBlingIdRaw = d.pedidoVenda?.id != null ? String(d.pedidoVenda.id) : null;
+          serieDetalhe = d.serie != null ? String(d.serie) : null;
 
 
 
@@ -132,7 +135,7 @@ for (const nf of items) {
     const registro: any = {
       bling_id:            blingId,
       numero:              nf.numero != null ? String(nf.numero) : null,
-      serie:               nf.serie  != null ? String(nf.serie)  : null,
+      serie:               serieDetalhe ?? (nf.serie != null ? String(nf.serie) : null) ?? existing?.serie ?? null,
       chave_acesso:        nf.chaveAcesso || null,
       tipo:                nf.tipo === 0 ? "entrada" : "saida",
       situacao:            situacaoDetalhe ?? SITUACAO_MAP[Number(sitNum)] ?? String(sitNum || ""),
