@@ -347,6 +347,182 @@ function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): bo
 
 
 
+function LinhaTitulo({
+  t, aninhada, onAbrir, onPedido,
+}: {
+  t: TituloCobranca;
+  aninhada?: boolean;
+  onAbrir: (t: TituloCobranca) => void;
+  onPedido: (pedidoId: string) => void;
+}) {
+  const liquid = t.data_liquidacao_real
+    ? formatDateBR(t.data_liquidacao_real)
+    : t.data_liquidacao_prevista
+    ? `prev. ${formatDateBR(t.data_liquidacao_prevista)}`
+    : "—";
+  const encerrada = t.eixo_status === "cancelado" || t.eixo_status === "devolvido";
+  return (
+    <TableRow
+      className={cn(
+        "cursor-pointer hover:bg-muted/50",
+        aninhada && "bg-muted/10",
+        encerrada && "opacity-60",
+      )}
+      onClick={() => onAbrir(t)}
+    >
+      <TableCell className={cn(aninhada && "pl-10")}>
+        <div className="flex items-center gap-2">
+          <span className={cn("font-mono text-xs", encerrada && "line-through")}>
+            {t.numero_titulo}
+          </span>
+          {t.eh_entrada && (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Entrada</Badge>
+          )}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          parcela {t.numero_parcela}/{t.total_parcelas}
+        </div>
+      </TableCell>
+      <TableCell>
+        {!aninhada && (
+          <>
+            <p className="text-sm font-medium">{t.parceiro_razao_social ?? "—"}</p>
+            {apelidoParceiro(t.parceiro_razao_social, t.parceiro_nome_fantasia) && (
+              <p className="text-xs text-muted-foreground truncate">
+                {apelidoParceiro(t.parceiro_razao_social, t.parceiro_nome_fantasia)}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {t.parceiro_cnpj ? formatCNPJ(t.parceiro_cnpj) : ""}
+            </p>
+          </>
+        )}
+      </TableCell>
+      <TableCell>
+        {aninhada ? null : t.pedido_id_externo ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); onPedido(t.pedido_id); }}
+            className="font-mono text-xs text-primary hover:underline"
+          >
+            {t.pedido_id_externo}
+          </button>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="text-sm">{t.nf_numero ?? "—"}</TableCell>
+      <TableCell>
+        <Badge variant="outline" className="text-xs">{tipoLabel(t.tipo_pagamento)}</Badge>
+      </TableCell>
+      <TableCell className={cn("text-sm", t.dias_atraso > 0 && "text-red-700 font-medium")}>
+        {formatDateBR(t.data_vencimento_atual)}
+        {t.dias_atraso > 0 && <div className="text-xs text-red-600">há {t.dias_atraso}d</div>}
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">{liquid}</TableCell>
+      <TableCell className="text-right font-medium">{formatBRL(t.valor_efetivo)}</TableCell>
+      <TableCell>
+        <div className="flex flex-col gap-1 items-start">
+          <BadgeProva eixo={t.eixo_prova} />
+          {t.tipo_pagamento === "boleto" && t.boleto_status && (
+            <BadgeBoletoStatus status={t.boleto_status} codigoRejeicao={t.boleto_codigo_rejeicao} />
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <BadgeStatus
+          eixo={t.eixo_status}
+          compensadoPor={t.compensado_por}
+          inadimplente={t.eh_inadimplencia === true}
+        />
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function LinhaGrupo({
+  g, aberto, onToggle, onPedido,
+}: {
+  g: GrupoPedido;
+  aberto: boolean;
+  onToggle: () => void;
+  onPedido: (pedidoId: string) => void;
+}) {
+  const c = g.cabeca;
+  const regerado = g.totalParcelasDeclarado > 0 && g.titulos.length > g.totalParcelasDeclarado;
+  return (
+    <TableRow className="cursor-pointer bg-muted/40 hover:bg-muted/60" onClick={onToggle}>
+      <TableCell>
+        <div className="flex items-center gap-1.5">
+          {aberto
+            ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+          <span className="text-xs font-medium">
+            {g.titulos.length} parcela{g.titulos.length !== 1 ? "s" : ""}
+            {g.totalParcelasDeclarado > 0 ? ` de ${g.totalParcelasDeclarado}` : ""}
+          </span>
+        </div>
+        {regerado && (
+          <div className="text-[10px] text-amber-700 pl-5">título regerado</div>
+        )}
+      </TableCell>
+      <TableCell>
+        <p className="text-sm font-medium">{c.parceiro_razao_social ?? "—"}</p>
+        {apelidoParceiro(c.parceiro_razao_social, c.parceiro_nome_fantasia) && (
+          <p className="text-xs text-muted-foreground truncate">
+            {apelidoParceiro(c.parceiro_razao_social, c.parceiro_nome_fantasia)}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {c.parceiro_cnpj ? formatCNPJ(c.parceiro_cnpj) : ""}
+        </p>
+      </TableCell>
+      <TableCell>
+        {g.pedidoRef && g.pedidoId ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); onPedido(g.pedidoId!); }}
+            className="font-mono text-xs text-primary hover:underline"
+          >
+            {g.pedidoRef}
+          </button>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="text-sm">{g.nfs.length > 0 ? g.nfs.join(", ") : "—"}</TableCell>
+      <TableCell>
+        <div className="flex flex-wrap gap-1">
+          {g.formas.map((f) => (
+            <Badge key={f} variant="outline" className="text-xs">{tipoLabel(f)}</Badge>
+          ))}
+        </div>
+      </TableCell>
+      <TableCell className={cn("text-sm", g.atrasoMax > 0 && "text-red-700 font-medium")}>
+        {g.proximoVencimento ? formatDateBR(g.proximoVencimento) : "—"}
+        {g.atrasoMax > 0 && <div className="text-xs text-red-600">há {g.atrasoMax}d</div>}
+        {!g.proximoVencimento && (
+          <div className="text-[10px] text-muted-foreground">nada em aberto</div>
+        )}
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">—</TableCell>
+      <TableCell className="text-right">
+        <div className="font-semibold">{formatBRL(g.totalVisivel)}</div>
+        <div className="text-[10px] text-muted-foreground">
+          {g.ocultos > 0 ? `+${g.ocultos} fora do filtro` : "visível"}
+          {g.encerradosVisiveis > 0
+            ? ` · ${g.encerradosVisiveis} encerrada${g.encerradosVisiveis !== 1 ? "s" : ""} fora do total`
+            : ""}
+        </div>
+      </TableCell>
+      <TableCell>
+        {g.provaUnanime
+          ? <BadgeProva eixo={g.provaUnanime} />
+          : <span className="text-xs text-muted-foreground">misto</span>}
+      </TableCell>
+      <TableCell><span className="text-xs">{resumoComposicao(g)}</span></TableCell>
+    </TableRow>
+  );
+}
+
 export default function TitulosTab() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -377,6 +553,18 @@ export default function TitulosTab() {
   const [devolvendoParcial, setDevolvendoParcial] = useState<TituloCobranca | null>(null);
   const [baixandoPerda, setBaixandoPerda] = useState<TituloCobranca | null>(null);
   const [renegociando, setRenegociando] = useState<TituloCobranca | null>(null);
+
+  const [agrupado, setAgrupado] = useState(true);
+  const [abertos, setAbertos] = useState<Set<string>>(new Set());
+
+  function toggleGrupo(chave: string) {
+    setAbertos((prev) => {
+      const next = new Set(prev);
+      if (next.has(chave)) next.delete(chave);
+      else next.add(chave);
+      return next;
+    });
+  }
 
   const mesAtual = new Date().toISOString().slice(0, 7);
   const q = busca.trim().toLowerCase();
@@ -435,6 +623,9 @@ export default function TitulosTab() {
 
 
   const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
+
+  /* Estágio 3: agrupamento por pedido. `titulos` entra como universo só para contar os ocultos. */
+  const grupos = useMemo(() => agruparPorPedido(filtrados, titulos), [filtrados, titulos]);
 
   async function copiar(txt: string) {
     try {
@@ -509,6 +700,23 @@ export default function TitulosTab() {
             {f === "todos" ? "Todos" : tipoLabel(f)} · {contagemTipos[f] ?? 0}
           </button>
         ))}
+        <div className="ml-auto flex items-center gap-1">
+          {([true, false] as const).map((modo) => (
+            <button
+              key={String(modo)}
+              type="button"
+              onClick={() => setAgrupado(modo)}
+              className={cn(
+                "text-xs px-3 py-1.5 rounded-full border transition-colors",
+                agrupado === modo
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-background text-muted-foreground border-border hover:border-foreground/40",
+              )}
+            >
+              {modo ? "Agrupado por pedido" : "Lista plana"}
+            </button>
+          ))}
+        </div>
       </div>
 
 
@@ -560,14 +768,14 @@ export default function TitulosTab() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={9} className="py-6">
+                <TableCell colSpan={10} className="py-6">
                   <Skeleton className="h-10 w-full" />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && filtrados.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                   {cardsAtivos.size === 0
                     ? "Nenhum recorte selecionado — clique num card acima."
                     : "Nenhum título encontrado."}
