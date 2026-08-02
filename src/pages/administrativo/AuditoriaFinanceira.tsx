@@ -495,11 +495,17 @@ export default function AuditoriaFinanceira() {
       : [];
     const outraTela = irmaos.find((o) => o.tela_solucao && o.tela_solucao !== a.tela_solucao);
 
+    const expandido = expandidos.has(a.id);
+
     return (
-      <div
+      <Collapsible
         key={a.id}
-        className={cn("px-5 py-4 grid grid-cols-12 gap-3 items-start", falsoPositivo && "opacity-60")}
+        open={expandido}
+        onOpenChange={(o) => alternarExpandido(a.id, o)}
+        className={cn(falsoPositivo && "opacity-60")}
       >
+        <div className="px-5 py-4 grid grid-cols-12 gap-3 items-start">
+
         <div className="col-span-12 md:col-span-2 space-y-1">
           <Badge variant="outline" className={cn("flex-shrink-0", sevMeta.badge)}>
             Sev {sev}
