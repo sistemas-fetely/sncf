@@ -24403,6 +24403,63 @@ export type Database = {
         }
         Relationships: []
       }
+      titulo_eixo_prazo: {
+        Row: {
+          codigo: string
+          cor: string
+          descricao: string
+          ordem: number
+          passou_vencimento: boolean
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          cor: string
+          descricao: string
+          ordem: number
+          passou_vencimento: boolean
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          cor?: string
+          descricao?: string
+          ordem?: number
+          passou_vencimento?: boolean
+          rotulo?: string
+        }
+        Relationships: []
+      }
+      titulo_eixo_prova: {
+        Row: {
+          codigo: string
+          cor: string
+          descricao: string
+          dinheiro_na_conta: boolean
+          ordem: number
+          pagador_quitou: boolean
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          cor: string
+          descricao: string
+          dinheiro_na_conta: boolean
+          ordem: number
+          pagador_quitou: boolean
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          cor?: string
+          descricao?: string
+          dinheiro_na_conta?: boolean
+          ordem?: number
+          pagador_quitou?: boolean
+          rotulo?: string
+        }
+        Relationships: []
+      }
       titulo_estado_gestao: {
         Row: {
           codigo: string
@@ -31867,14 +31924,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -32246,14 +32303,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -33503,6 +33560,7 @@ export type Database = {
           banco_nome: string | null
           banco_recebimento_id: string | null
           cliente: string | null
+          compensado_por: string | null
           conciliado: boolean | null
           conta_id: string | null
           data_caixa_projetada: string | null
@@ -33517,6 +33575,9 @@ export type Database = {
           data_vencimento_original: string | null
           desvio_previsao_dias: number | null
           dias_prorrogado: number | null
+          eh_inadimplencia: boolean | null
+          eixo_prazo: string | null
+          eixo_prova: string | null
           estado_cor: string | null
           estado_descricao: string | null
           estado_em_aberto: boolean | null
@@ -34278,6 +34339,7 @@ export type Database = {
           boleto_codigo_rejeicao: string | null
           boleto_enviado_em: string | null
           boleto_status: string | null
+          compensado_por: string | null
           conta_id: string | null
           created_at: string | null
           data_liquidacao_prevista: string | null
@@ -34289,6 +34351,9 @@ export type Database = {
           data_vencimento_original: string | null
           dias_atraso: number | null
           eh_entrada: boolean | null
+          eh_inadimplencia: boolean | null
+          eixo_prazo: string | null
+          eixo_prova: string | null
           email_cobranca_enviado_em: string | null
           flag_bandeira_amarela: boolean | null
           flag_grupo_economico_inadimplente: boolean | null
