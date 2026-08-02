@@ -35,16 +35,12 @@ import * as XLSX from "xlsx";
 
 type StatusGestao = "pago" | "atrasado" | "em_aberto" | "cancelado";
 
-type EstadoGestao =
-  | "conciliado"
-  | "confirmado_banco"
-  | "baixa_manual"
-  | "vencido"
-  | "registrado"
-  | "devolvido"
-  | "cancelado";
+/** Eixo prova: onde está o DINHEIRO. */
+type EixoProva = "registrado" | "compensado" | "conciliado" | "devolvido" | "cancelado";
 
-type EstadoCor = "emerald" | "sky" | "amber" | "destructive" | "outline" | "muted";
+/** Eixo prazo: onde está o CLIENTE em relação ao vencimento. */
+type EixoPrazo = "a_vencer" | "vence_hoje" | "vencido";
+
 
 
 type RecebivelB2B = {
