@@ -600,6 +600,11 @@ export default function TitulosTab() {
                   </TableCell>
                   <TableCell>
                     <p className="text-sm font-medium">{t.parceiro_razao_social ?? "—"}</p>
+                    {apelidoParceiro(t.parceiro_razao_social, t.parceiro_nome_fantasia) && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {apelidoParceiro(t.parceiro_razao_social, t.parceiro_nome_fantasia)}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       {t.parceiro_cnpj ? formatCNPJ(t.parceiro_cnpj) : ""}
                     </p>
