@@ -1150,6 +1150,16 @@ function AbaB2B() {
                   Meio ≠ pedido ({qtdMeioDivergente})
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant={soSemNf ? "default" : "outline"}
+                onClick={() => {
+                  setSoSemNf((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Sem NF ({qtdSemNf})
+              </Button>
             </div>
           </div>
 
