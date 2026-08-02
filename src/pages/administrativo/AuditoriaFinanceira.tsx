@@ -10,7 +10,7 @@
  * naturezas diferentes de dinheiro. Somar dentro de uma classe é ok;
  * somar entre classes é proibido.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
