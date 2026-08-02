@@ -37,8 +37,14 @@ import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import type { EstagioPedido } from "@/types/pedido";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2, CheckCircle2,
+  ArrowUpRight,
 } from "lucide-react";
 
 type Situacao = "aberto" | "em_analise" | "resolvido" | "explicado" | "reaparecido";
