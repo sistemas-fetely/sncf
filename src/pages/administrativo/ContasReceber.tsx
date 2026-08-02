@@ -1136,19 +1136,20 @@ function AbaB2B() {
                 </Button>
               ))}
             </div>
-            <Label className="text-xs pt-2 block">Prazo — onde está o cliente</Label>
+            <Label className="text-xs pt-2 block">Status — onde está o dinheiro desta parcela</Label>
             <div className="flex flex-wrap gap-2">
-              {PRAZOS.map((p) => (
+              {STATUS_EIXOS.map((s) => (
                 <Button
-                  key={p}
+                  key={s}
                   size="sm"
-                  variant={prazosAtivos.has(p) ? "default" : "outline"}
-                  onClick={() => togglePrazo(p)}
+                  variant={statusAtivos.has(s) ? "default" : "outline"}
+                  onClick={() => toggleStatus(s)}
                 >
-                  {PRAZO_META[p].label} ({contagensPrazo[p] ?? 0})
+                  {STATUS_META[s].label} ({contagensStatus[s] ?? 0})
                 </Button>
               ))}
             </div>
+
             <div className="flex flex-wrap gap-2 pt-1">
               <Button
                 size="sm"
