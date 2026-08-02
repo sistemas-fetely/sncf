@@ -263,11 +263,12 @@ function AbaB2B() {
   const [soInadimplentes, setSoInadimplentes] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [provasAtivas, setProvasAtivas] = useState<Set<EixoProva>>(
-    new Set<EixoProva>(["registrado", "compensado", "conciliado"])
+    new Set<EixoProva>(["registrado", "conciliado"])
   );
-  const [prazosAtivos, setPrazosAtivos] = useState<Set<EixoPrazo>>(
-    new Set<EixoPrazo>(["a_vencer", "vence_hoje", "vencido"])
+  const [statusAtivos, setStatusAtivos] = useState<Set<EixoStatus>>(
+    new Set<EixoStatus>(["a_vencer", "pago", "compensado"])
   );
+
 
 
   const [page, setPage] = useState(1);
