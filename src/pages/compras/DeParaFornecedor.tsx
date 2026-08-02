@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +78,7 @@ interface VwFornecedorProduto {
   id: string;
   fornecedor_id: string;
   fornecedor: string | null;
+  apelido: string | null;
   codigo_fornecedor: string;
   descricao_fornecedor: string | null;
   tipo_linha: TipoLinha;
@@ -191,7 +193,8 @@ export default function DeParaFornecedor() {
     return map;
   }, [parceirosQ.data]);
 
-  const nomeParceiro = (p: Parceiro) => p.nome_fantasia || p.razao_social || "(sem nome)";
+  const nomeParceiro = (p: Parceiro) =>
+    nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)");
 
   // Opções do select de filtro: fornecedores com de-para + fallback "todos"
   const fornecedoresComDePara = useMemo(() => {
@@ -219,7 +222,9 @@ export default function DeParaFornecedor() {
           r.codigo_fornecedor.toLowerCase().includes(q) ||
           (r.descricao_fornecedor || "").toLowerCase().includes(q) ||
           (r.sku || "").toLowerCase().includes(q) ||
-          (r.produto || "").toLowerCase().includes(q),
+          (r.produto || "").toLowerCase().includes(q) ||
+          (r.fornecedor || "").toLowerCase().includes(q) ||
+          (r.apelido || "").toLowerCase().includes(q),
       );
     }
     return arr;
@@ -405,7 +410,12 @@ export default function DeParaFornecedor() {
               <TableBody>
                 {linhasFiltradas.map((r) => (
                   <TableRow key={r.id} className="hover:bg-muted/50">
-                    <TableCell>{r.fornecedor || "—"}</TableCell>
+                    <TableCell>
+                      <div>{r.fornecedor || "—"}</div>
+                      {r.apelido && (
+                        <div className="text-xs text-muted-foreground">{r.apelido}</div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-mono text-xs">{r.codigo_fornecedor}</TableCell>
                     <TableCell className="max-w-[280px] truncate" title={r.descricao_fornecedor || ""}>
                       {r.descricao_fornecedor || "—"}
