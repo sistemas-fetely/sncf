@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
@@ -308,7 +309,13 @@ function matchTipo(filtro: TipoFiltro, tipo: string): boolean {
 
 function matchBusca(t: TituloCobranca, q: string): boolean {
   if (!q) return true;
-  const alvo = [t.parceiro_razao_social, t.parceiro_cnpj, t.pedido_id_externo, t.numero_titulo]
+  const alvo = [
+    t.parceiro_razao_social,
+    t.parceiro_nome_fantasia,
+    t.parceiro_cnpj,
+    t.pedido_id_externo,
+    t.numero_titulo,
+  ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -508,7 +515,7 @@ export default function TitulosTab() {
         <div className="relative max-w-sm flex-1 min-w-[240px]">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por cliente, CNPJ, pedido ou título..."
+            placeholder="Buscar por cliente, nome fantasia, CNPJ, pedido ou título..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="pl-10"
@@ -594,6 +601,11 @@ export default function TitulosTab() {
                   </TableCell>
                   <TableCell>
                     <p className="text-sm font-medium">{t.parceiro_razao_social ?? "—"}</p>
+                    {apelidoParceiro(t.parceiro_razao_social, t.parceiro_nome_fantasia) && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {apelidoParceiro(t.parceiro_razao_social, t.parceiro_nome_fantasia)}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       {t.parceiro_cnpj ? formatCNPJ(t.parceiro_cnpj) : ""}
                     </p>
@@ -745,6 +757,11 @@ export default function TitulosTab() {
                     Cliente
                   </h4>
                   <p className="font-medium">{detalhe.parceiro_razao_social ?? "—"}</p>
+                  {apelidoParceiro(detalhe.parceiro_razao_social, detalhe.parceiro_nome_fantasia) && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {apelidoParceiro(detalhe.parceiro_razao_social, detalhe.parceiro_nome_fantasia)}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {detalhe.parceiro_cnpj ? formatCNPJ(detalhe.parceiro_cnpj) : ""}
                   </p>

@@ -15,6 +15,7 @@ import { useNfsEmitidas, type NfEmitida } from "@/hooks/vendas/useNfsEmitidas";
 import { FileText, ExternalLink, Search, RefreshCw, Download, Loader2 } from "lucide-react";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { cn } from "@/lib/utils";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -151,6 +152,7 @@ function AbaNFs() {
         "NF": n.serie && n.numero ? `${n.serie}-${n.numero}` : (n.numero ?? ""),
         "Data": dataStr,
         "Parceiro": n.parceiro?.razao_social ?? "",
+        "Nome fantasia": apelidoParceiro(n.parceiro?.razao_social, n.parceiro?.nome_fantasia) ?? "",
         "CNPJ": n.parceiro?.cnpj ?? "",
         "Valor": Number(n.valor_nota ?? 0),
         "Frete": Number(n.valor_frete ?? 0),
@@ -188,7 +190,8 @@ function AbaNFs() {
       if (!q) return true;
       const nfText = `${n.serie ?? ""}-${n.numero ?? ""}`.toLowerCase();
       const parceiroText = n.parceiro?.razao_social?.toLowerCase() ?? "";
-      return nfText.includes(q) || parceiroText.includes(q);
+      const fantasiaText = n.parceiro?.nome_fantasia?.toLowerCase() ?? "";
+      return nfText.includes(q) || parceiroText.includes(q) || fantasiaText.includes(q);
     });
     return [...filtered].sort((a, b) => {
       const na = parseInt(a.numero ?? "", 10);
@@ -213,7 +216,7 @@ function AbaNFs() {
           <FilterInput
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por razão social ou número NF"
+            placeholder="Buscar por razão social, nome fantasia ou número NF"
             className="pl-9"
           />
         </div>
@@ -307,6 +310,11 @@ function AbaNFs() {
                   <TableCell className="text-sm">{formatDate(n.data_emissao)}</TableCell>
                   <TableCell className="text-sm max-w-xs truncate" title={n.parceiro?.razao_social ?? undefined}>
                     {n.parceiro?.razao_social ?? "—"}
+                    {apelidoParceiro(n.parceiro?.razao_social, n.parceiro?.nome_fantasia) && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {apelidoParceiro(n.parceiro?.razao_social, n.parceiro?.nome_fantasia)}
+                      </p>
+                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-sm">
                     {formatCurrency(n.valor_nota)}

@@ -142,8 +142,75 @@ export function FilaPedidosPorArea({
   const { data: riscoMap } = usePedidoRisco();
   const { data: faixas } = usePedidoRiscoFaixas();
 
+  const termoBusca = buscaDebounced.trim();
+
+  // Busca por nome fantasia: a busca da fila é server-side em razão social/CNPJ/nº,
+  // então quem digita o apelido precisa desta perna extra — resolve os parceiros
+  // pelo apelido em vw_parceiro_nome e traz os pedidos deles para o mesmo conjunto.
+  const { data: pedidosPorApelido } = useQuery({
+    queryKey: ["fila-por-apelido", termoBusca],
+    enabled: termoBusca.length >= 2,
+    staleTime: 30 * 1000,
+    queryFn: async (): Promise<PedidoFilaItem[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      const t = termoBusca.replace(/[,()%]/g, " ").trim();
+      const { data: nomes, error: nErr } = await sb
+        .from("vw_parceiro_nome")
+        .select("parceiro_id, apelido")
+        .ilike("apelido", `%${t}%`)
+        .limit(100);
+      if (nErr) throw nErr;
+      const ids = (nomes || [])
+        .map((r: { parceiro_id: string }) => r.parceiro_id)
+        .filter(Boolean);
+      if (ids.length === 0) return [];
+      const { data: rows, error } = await sb
+        .from("v_pedidos_fila")
+        .select("*")
+        .in("parceiro_id", ids)
+        .order("recebido_em", { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return (rows || []) as PedidoFilaItem[];
+    },
+  });
+
+  // NOME-CANONICO-COM-APELIDO: v_pedidos_fila não traz apelido. Uma consulta
+  // batelada em vw_parceiro_nome cobre a lista inteira (nunca por linha).
+  const parceiroIdsLista = useMemo(() => {
+    const set = new Set<string>();
+    (data || []).forEach((p) => { if (p.parceiro_id) set.add(p.parceiro_id); });
+    (pedidosPorApelido || []).forEach((p) => { if (p.parceiro_id) set.add(p.parceiro_id); });
+    return Array.from(set).sort();
+  }, [data, pedidosPorApelido]);
+
+  const { data: apelidoMap } = useQuery({
+    queryKey: ["fila-apelidos", parceiroIdsLista],
+    enabled: parceiroIdsLista.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<Record<string, string | null>> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error } = await (supabase as any)
+        .from("vw_parceiro_nome")
+        .select("parceiro_id, apelido")
+        .in("parceiro_id", parceiroIdsLista);
+      if (error) throw error;
+      const map: Record<string, string | null> = {};
+      (rows || []).forEach((r: { parceiro_id: string; apelido: string | null }) => {
+        map[r.parceiro_id] = r.apelido ?? null;
+      });
+      return map;
+    },
+  });
+
+
   const linhas = useMemo(() => {
     let base: PedidoFilaItem[] = data || [];
+    if (termoBusca.length >= 2 && pedidosPorApelido && pedidosPorApelido.length > 0) {
+      const vistos = new Set(base.map((p) => p.id));
+      base = [...base, ...pedidosPorApelido.filter((p) => !vistos.has(p.id))];
+    }
     if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
     else if (marcacaoFilter === "com") base = base.filter((p) => !!p.marcacao);
     else if (marcacaoFilter !== "todas") base = base.filter((p) => p.marcacao === marcacaoFilter);
@@ -172,7 +239,7 @@ export function FilaPedidosPorArea({
       if (db !== da) return db - da;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
+  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
 
   const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
 
@@ -328,7 +395,7 @@ export function FilaPedidosPorArea({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por cliente, CNPJ ou nº do pedido…"
+            placeholder="Buscar por cliente, nome fantasia, CNPJ ou nº do pedido…"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="pl-10"
@@ -472,6 +539,11 @@ export function FilaPedidosPorArea({
                       </button>
                     ) : (
                       <p className="font-medium text-sm">{p.parceiro_razao}</p>
+                    )}
+                    {p.parceiro_id && apelidoMap?.[p.parceiro_id] && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {apelidoMap[p.parceiro_id]}
+                      </p>
                     )}
                     <p className="text-[11px] text-muted-foreground font-mono">
                       {p.id_externo}

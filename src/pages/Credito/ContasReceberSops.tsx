@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,7 @@ type Titulo = {
   linha_digitavel: string | null;
   link_pagamento: string | null;
   email_cobranca_enviado_em: string | null;
-  conta: { parceiro: { razao_social: string | null } | null } | null;
+  conta: { parceiro: { razao_social: string | null; nome_fantasia: string | null } | null } | null;
 };
 
 type GrupoStatus = "a_receber" | "vencido" | "pago" | "cancelado";
@@ -159,7 +160,7 @@ export default function ContasReceberSops() {
           tipo_pagamento, boleto_status, linha_digitavel,
           link_pagamento, email_cobranca_enviado_em,
           conta:contas_pagar_receber(
-            parceiro:parceiros_comerciais(razao_social)
+            parceiro:parceiros_comerciais(razao_social, nome_fantasia)
           )
         `
         )
@@ -241,7 +242,9 @@ export default function ContasReceberSops() {
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
         const cli = (t.conta?.parceiro?.razao_social ?? "").toLowerCase();
-        if (!num.includes(buscaLc) && !cli.includes(buscaLc)) return false;
+        const fant = (t.conta?.parceiro?.nome_fantasia ?? "").toLowerCase();
+        if (!num.includes(buscaLc) && !cli.includes(buscaLc) && !fant.includes(buscaLc))
+          return false;
       }
 
       if (dDe || dAte) {
@@ -412,7 +415,7 @@ export default function ContasReceberSops() {
           <div className="space-y-1">
             <Label className="text-xs">Busca</Label>
             <Input
-              placeholder="Título ou cliente"
+              placeholder="Título, cliente ou nome fantasia"
               value={busca}
               onChange={(e) => {
                 setBusca(e.target.value);
@@ -507,6 +510,17 @@ export default function ContasReceberSops() {
                         </TableCell>
                         <TableCell className="max-w-[160px] truncate">
                           {t.conta?.parceiro?.razao_social ?? "—"}
+                          {apelidoParceiro(
+                            t.conta?.parceiro?.razao_social,
+                            t.conta?.parceiro?.nome_fantasia,
+                          ) && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {apelidoParceiro(
+                                t.conta?.parceiro?.razao_social,
+                                t.conta?.parceiro?.nome_fantasia,
+                              )}
+                            </p>
+                          )}
                         </TableCell>
                         <TableCell>
                           {t.numero_parcela ?? "—"}/{t.total_parcelas ?? "—"}
