@@ -637,7 +637,7 @@ function AbaB2B() {
         const d = new Date(ref + "T12:00:00");
         if (d < ini || d > fim) continue;
         houve = true;
-        if (t.status_gestao === "pago") s += efetivoDe(t);
+        if (t.eixo_prova === "conciliado") s += efetivoDe(t);
       }
       return houve ? s : null;
     };
