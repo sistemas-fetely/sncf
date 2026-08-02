@@ -9,6 +9,8 @@ const APP_URL = "https://sncf.lovable.app"
 
 interface NFPagamentoProps {
   nomeColaborador?: string
+  nomeEmpresa?: string
+  /** legado: chave antiga, mantida por seguranca para itens em fila */
   nomeFantasia?: string
   numeroNF?: string
   valor?: string
@@ -16,7 +18,9 @@ interface NFPagamentoProps {
   notaFiscalId?: string
 }
 
-const NFPagamentoEmail = ({ nomeColaborador, nomeFantasia, numeroNF, valor, dataVencimento, notaFiscalId }: NFPagamentoProps) => (
+const NFPagamentoEmail = ({ nomeColaborador, nomeEmpresa, nomeFantasia, numeroNF, valor, dataVencimento, notaFiscalId }: NFPagamentoProps) => {
+  const empresa = nomeEmpresa ?? nomeFantasia
+  return (
   <Html lang="pt-BR" dir="ltr">
     <Head />
     <Preview>Nota Fiscal para pagamento - NF {numeroNF || ''}</Preview>
@@ -27,7 +31,7 @@ const NFPagamentoEmail = ({ nomeColaborador, nomeFantasia, numeroNF, valor, data
           Prezado(a),
         </Text>
         <Text style={text}>
-          Segue abaixo a nota fiscal referente aos serviços prestados{nomeColaborador ? ` por ${nomeColaborador}` : ''}{nomeFantasia ? ` (${nomeFantasia})` : ''} para processamento de pagamento.
+          Segue abaixo a nota fiscal referente aos serviços prestados{nomeColaborador ? ` por ${nomeColaborador}` : ''}{empresa ? ` (${empresa})` : ''} para processamento de pagamento.
         </Text>
         <Text style={detailsTitle}>Dados da Nota Fiscal:</Text>
         <Text style={detailItem}>
@@ -71,11 +75,11 @@ const NFPagamentoEmail = ({ nomeColaborador, nomeFantasia, numeroNF, valor, data
 
 export const template = {
   component: NFPagamentoEmail,
-  subject: (data: Record<string, any>) => `[Fetely] - NF para pagamento${data.nomeFantasia ? ` - ${data.nomeFantasia}` : ''}`,
+  subject: (data: Record<string, any>) => `[Fetely] - NF para pagamento${(data.nomeEmpresa ?? data.nomeFantasia) ? ` - ${data.nomeEmpresa ?? data.nomeFantasia}` : ''}`,
   displayName: 'NF para Pagamento',
   previewData: {
     nomeColaborador: 'João Silva',
-    nomeFantasia: 'Empresa XYZ',
+    nomeEmpresa: 'EMPRESA EXEMPLO LTDA',
     numeroNF: '12345',
     valor: 'R$ 5.000,00',
     dataVencimento: '15/01/2025',
