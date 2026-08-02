@@ -16,7 +16,7 @@ export interface NfEmitida {
   pdf_url: string | null;
   xml_url: string | null;
   tipo: string | null;
-  parceiro: { razao_social: string; cnpj: string } | null;
+  parceiro: { razao_social: string; nome_fantasia: string | null; cnpj: string } | null;
   numero_pedido_loja: string | null;
   bling_pedido_venda_numero: string | null;
   bling_pedido_venda_id: string | null;
