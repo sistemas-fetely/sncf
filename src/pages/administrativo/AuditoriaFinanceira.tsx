@@ -47,6 +47,9 @@ import DossieAchado from "@/components/auditoria/DossieAchado";
 import HipoteseResumo from "@/components/auditoria/HipoteseResumo";
 import { useHipoteseMap } from "@/hooks/useHipoteseMap";
 import {
+  achadoTemMeio, contarMeios, labelMeio, meiosNoLote,
+} from "@/lib/auditoria/filtro-meio";
+import {
   AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2, CheckCircle2,
   ArrowUpRight, ChevronDown,
 } from "lucide-react";
@@ -74,8 +77,13 @@ type Achado = {
   tratado_em: string | null;
   tratado_por: string | null;
   // vw_auditoria_lote_enriquecido
+  // `meio_pagamento` é rótulo COLAPSADO — só para exibir. Filtro usa as flags.
   meio_pagamento: string | null;
   meios_detalhe: string | null;
+  tem_cartao: boolean | null;
+  tem_boleto: boolean | null;
+  tem_pix: boolean | null;
+  tem_haver: boolean | null;
   rota_solucao: string | null;
   rotulo_acao: string | null;
   tela_solucao: string | null;
@@ -105,16 +113,7 @@ const FONTE_LABEL: Record<string, string> = {
   recebivel_sem_titulo: "Recebível sem título",
 };
 
-const MEIO_LABEL: Record<string, string> = {
-  boleto: "Boleto",
-  pix: "PIX",
-  cartao: "Cartão",
-  haver: "Haver",
-  misto: "Misto",
-  sem_titulo: "Sem título",
-};
-const labelMeio = (m: string | null | undefined) => (m && MEIO_LABEL[m]) || m || "—";
-const MEIO_ORDEM = ["cartao", "pix", "boleto", "misto", "haver", "sem_titulo"];
+// Rótulos/ordem/critério de meio vivem em src/lib/auditoria/filtro-meio.ts
 
 
 const SITUACAO_META: Record<Situacao, { label: string; className: string }> = {
@@ -244,7 +243,7 @@ export default function AuditoriaFinanceira() {
       if (sevFiltro !== "todas" && String(a.severidade ?? "") !== sevFiltro) return false;
       if (ignorar !== "classe" && classeFiltro !== "todas" && (a.classe ?? "") !== classeFiltro) return false;
       if (ignorar !== "fonte" && fonteFiltro !== "todas" && String(a.fonte ?? "") !== fonteFiltro) return false;
-      if (ignorar !== "meio" && meioFiltro !== "todos" && (a.meio_pagamento ?? "—") !== meioFiltro) return false;
+      if (ignorar !== "meio" && meioFiltro !== "todos" && !achadoTemMeio(a, meioFiltro)) return false;
       if (ignorar !== "situacao" && situacaoFiltro !== "todas" && (a.situacao ?? "aberto") !== situacaoFiltro) return false;
       if (!q) return true;
       return (
@@ -266,21 +265,16 @@ export default function AuditoriaFinanceira() {
     return map;
   };
 
-  // Meio: universo = meios presentes no lote visível; contagem no recorte atual.
+  // Meio: universo = chips presentes no lote; contagem no recorte atual.
+  // Critério = flags do título (não o rótulo colapsado). Um achado misto conta
+  // em mais de um chip, então a soma dos chips excede o total — é esperado.
   const contadoresMeio = useMemo(() => {
-    const universo = new Set<string>();
-    for (const a of lote) universo.add(a.meio_pagamento ?? "—");
-    const cont = contar("meio", (a) => a.meio_pagamento ?? "—");
-    return Array.from(universo)
-      .map((m) => [m, cont.get(m) ?? 0] as [string, number])
-      .sort((a, b) => {
-        const ia = MEIO_ORDEM.indexOf(a[0]);
-        const ib = MEIO_ORDEM.indexOf(b[0]);
-        if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-        return b[1] - a[1];
-      });
+    const universo = meiosNoLote(lote);
+    const recorte = lote.filter((a) => passa(a, "meio"));
+    return contarMeios(recorte, universo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lote, passa]);
+
 
   const ordenarPorContagem = (map: Map<string, number>, label: (k: string) => string) =>
     Array.from(map.entries()).sort((a, b) => {
