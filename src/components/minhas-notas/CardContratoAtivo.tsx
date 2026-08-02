@@ -2,6 +2,7 @@ import { Briefcase, DollarSign, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { MeuContratoPJ } from "@/hooks/useMinhasNotas";
+import { nomeCanonico, apelidoParceiro } from "@/lib/parceiros/nome";
 
 export function CardContratoAtivo({ contrato }: { contrato: MeuContratoPJ | null }) {
   if (!contrato) {
@@ -20,9 +21,16 @@ export function CardContratoAtivo({ contrato }: { contrato: MeuContratoPJ | null
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2">
               <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
-              <p className="font-semibold truncate">
-                {contrato.nome_fantasia || contrato.razao_social}
-              </p>
+              <div className="min-w-0">
+                <p className="font-semibold truncate">
+                  {nomeCanonico(contrato.razao_social, "—")}
+                </p>
+                {apelidoParceiro(contrato.razao_social, contrato.nome_fantasia) && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {apelidoParceiro(contrato.razao_social, contrato.nome_fantasia)}
+                  </p>
+                )}
+              </div>
             </div>
             <p className="text-xs text-muted-foreground">CNPJ: {contrato.cnpj}</p>
           </div>

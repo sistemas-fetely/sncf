@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { SalarioMasked } from "@/components/SalarioMasked";
+import { nomePessoaPJ } from "@/lib/parceiros/nome";
 
 const statusMap: Record<string, string> = {
   rascunho: "Rascunho",
@@ -593,9 +594,9 @@ export default function ContratosPJ() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium text-sm">{c.nome_fantasia || c.razao_social}</p>
-                            {c.nome_fantasia && (
-                              <p className="text-xs text-muted-foreground">{c.razao_social}</p>
+                            <p className="font-medium text-sm">{nomePessoaPJ(c.contato_nome, c.razao_social)}</p>
+                            {c.razao_social && c.razao_social !== nomePessoaPJ(c.contato_nome, c.razao_social) && (
+                              <p className="text-xs text-muted-foreground truncate">{c.razao_social}</p>
                             )}
                           </div>
                         </div>
@@ -677,7 +678,7 @@ export default function ContratosPJ() {
       <Dialog open={!!viewContrato} onOpenChange={(open) => !open && setViewContrato(null)}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{viewContrato?.nome_fantasia || viewContrato?.razao_social}</DialogTitle>
+            <DialogTitle>{nomePessoaPJ(viewContrato?.contato_nome, viewContrato?.razao_social)}</DialogTitle>
           </DialogHeader>
           {viewContrato && (
             <div className="space-y-6 py-2">
