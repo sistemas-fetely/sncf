@@ -1,16 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { PROVA_FORA_KPI, type EixoPrazo, type EixoProva } from "@/lib/financeiro/eixos-estado";
+import {
+  STATUS_FORA_KPI,
+  type EixoProva,
+  type EixoStatus,
+} from "@/lib/financeiro/eixos-estado";
 
-export type StatusGestao =
-  | "a_vencer"
-  | "vence_hoje"
-  | "atrasado"
-  | "aguarda_liquidacao"
-  | "pago"
-  | "pago_com_atraso"
-  | "pago_judicial"
-  | "cancelado";
 
 /** Espelha titulo_a_receber_subestado_atraso_check. Não inventar valor aqui. */
 export type SubestadoAtraso =
@@ -33,9 +28,12 @@ export interface TituloCobranca {
   created_at: string;
   status_real: string;
   tipo_pagamento: string;
+
   boleto_status: string | null;
   boleto_codigo_rejeicao: string | null;
-  status_gestao: StatusGestao;
+  /** @deprecated vocabulário antigo — use eixo_prova / eixo_status. Ainda lido por telas legadas. */
+  status_gestao: string;
+
   dias_atraso: number;
   valor_bruto: number;
   valor_efetivo: number;
@@ -83,9 +81,9 @@ export interface TituloCobranca {
   parceiro_email?: string | null;
   parceiro_email_cobranca?: string | null;
   link_pagamento?: string | null;
-  /* dois eixos independentes: prova (onde está o dinheiro) e prazo (onde está o cliente) */
+  /* dois eixos: prova (a venda foi validada no banco) e status (onde está o dinheiro desta parcela) */
   eixo_prova: EixoProva;
-  eixo_prazo: EixoPrazo;
+  eixo_status: EixoStatus;
   compensado_por: "banco" | "manual" | null;
   eh_inadimplencia: boolean | null;
 }
@@ -93,57 +91,39 @@ export interface TituloCobranca {
 
 export interface KpisTitulos {
   aVencer: { qtd: number; valor: number };
-  venceHoje: { qtd: number; valor: number };
-  atrasado: { qtd: number; valor: number };
-  aguardaLiquidacao: { qtd: number; valor: number };
-  pagoNoMes: { qtd: number; valor: number };
+  pago: { qtd: number; valor: number };
+  compensado: { qtd: number; valor: number };
+  conciliado: { qtd: number; valor: number };
+  inadimplente: { qtd: number; valor: number };
   total: { qtd: number; valor: number };
 }
 
-function inicioDoMes(): string {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-}
+const FORA_DO_KPI = new Set<EixoStatus>(STATUS_FORA_KPI);
 
-const FORA_DO_KPI = new Set<EixoProva>(PROVA_FORA_KPI);
-const STATUS_PAGOS: StatusGestao[] = ["pago", "pago_com_atraso", "pago_judicial"];
-
-/**
- * Encerramento (devolvido/cancelado) não entra em KPI de cobrança.
- * Regra declarada em PROVA_FORA_KPI e já respeitada por ContasReceber —
- * este hook era o único consumidor fora da linha.
- */
+/** Encerramento (devolvido/cancelado) não entra em KPI de cobrança. */
 export function tituloEntraNoKpi(t: TituloCobranca): boolean {
-  return !(t.eixo_prova && FORA_DO_KPI.has(t.eixo_prova));
+  return !(t.eixo_status && FORA_DO_KPI.has(t.eixo_status));
 }
 
 export function calcularKpis(titulos: TituloCobranca[]): KpisTitulos {
-  const mes = inicioDoMes();
   const zero = () => ({ qtd: 0, valor: 0 });
   const k: KpisTitulos = {
-    aVencer: zero(), venceHoje: zero(), atrasado: zero(),
-    aguardaLiquidacao: zero(), pagoNoMes: zero(), total: zero(),
+    aVencer: zero(), pago: zero(), compensado: zero(),
+    conciliado: zero(), inadimplente: zero(), total: zero(),
   };
   for (const t of titulos) {
     if (!tituloEntraNoKpi(t)) continue;
     const v = t.valor_efetivo ?? 0;
     k.total.qtd++; k.total.valor += v;
-    if (t.status_gestao === "a_vencer")   { k.aVencer.qtd++;   k.aVencer.valor   += v; }
-    if (t.status_gestao === "vence_hoje") { k.venceHoje.qtd++; k.venceHoje.valor += v; }
-    // Atraso = inadimplência real (vencido + ninguém quitou + forma não garantida).
-    // Quem decide é a view, não a data: devolução não é atraso.
-    if (t.eh_inadimplencia === true) { k.atrasado.qtd++; k.atrasado.valor += v; }
-    // Vencido com forma garantida (cartão): o dinheiro vem, não é cobrança.
-    if (t.status_gestao === "aguarda_liquidacao") {
-      k.aguardaLiquidacao.qtd++; k.aguardaLiquidacao.valor += v;
-    }
-    // Pago no mês conta as três formas de pago, não só a pontual.
-    if (STATUS_PAGOS.includes(t.status_gestao) && (t.data_liquidacao_real ?? "") >= mes) {
-      k.pagoNoMes.qtd++; k.pagoNoMes.valor += v;
-    }
+    if (t.eixo_status === "a_vencer")   { k.aVencer.qtd++;    k.aVencer.valor    += v; }
+    if (t.eixo_status === "pago")       { k.pago.qtd++;       k.pago.valor       += v; }
+    if (t.eixo_status === "compensado") { k.compensado.qtd++; k.compensado.valor += v; }
+    if (t.eixo_prova === "conciliado")  { k.conciliado.qtd++; k.conciliado.valor += v; }
+    if (t.eh_inadimplencia === true)    { k.inadimplente.qtd++; k.inadimplente.valor += v; }
   }
   return k;
 }
+
 
 const LIMITE_TITULOS = 5000;
 

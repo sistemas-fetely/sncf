@@ -1,11 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-/** Eixo prova: onde está o DINHEIRO. */
-export type EixoProva = "registrado" | "compensado" | "conciliado" | "devolvido" | "cancelado";
+/** Eixo prova: a VENDA foi validada no banco? */
+export type EixoProva = "registrado" | "conciliado" | "devolvido" | "cancelado";
 
-/** Eixo prazo: onde está o CLIENTE em relação ao vencimento. */
-export type EixoPrazo = "a_vencer" | "vence_hoje" | "vencido";
+/** Eixo status: onde está o dinheiro DESTA parcela. */
+export type EixoStatus = "a_vencer" | "pago" | "compensado" | "devolvido" | "cancelado";
 
 export const PROVA_META: Record<
   EixoProva,
@@ -15,20 +15,51 @@ export const PROVA_META: Record<
     label: "Registrado",
     ordem: 1,
     classe: null,
-    tooltip: "Título existe, ninguém quitou, nada caiu.",
-  },
-  compensado: {
-    label: "Compensado",
-    ordem: 2,
-    classe: "bg-amber-100 text-amber-800 border-0",
-    tooltip:
-      "O pagador quitou. O dinheiro ainda não está provado na nossa conta — em cartão está no adquirente.",
+    tooltip: "Materializado do pedido. A venda não foi validada no banco.",
   },
   conciliado: {
     label: "Conciliado",
+    ordem: 2,
+    classe: "bg-emerald-100 text-emerald-800 border-0",
+    tooltip:
+      "A venda foi validada no banco pelo mecanismo de conciliação. Em cartão, um NSU casado vale para todas as parcelas.",
+  },
+  devolvido: {
+    label: "Devolvido",
+    ordem: 3,
+    classe: "bg-muted text-muted-foreground border-0",
+    tooltip: null,
+  },
+  cancelado: {
+    label: "Cancelado",
+    ordem: 4,
+    classe: "bg-muted text-muted-foreground border-0",
+    tooltip: null,
+  },
+};
+
+export const STATUS_META: Record<
+  EixoStatus,
+  { label: string; ordem: number; classe: string | null; tooltip: string | null }
+> = {
+  a_vencer: {
+    label: "A vencer",
+    ordem: 1,
+    classe: null,
+    tooltip: "Ainda não houve baixa.",
+  },
+  pago: {
+    label: "Pago",
+    ordem: 2,
+    classe: "bg-amber-100 text-amber-800 border-0",
+    tooltip:
+      "Baixa dada, sem confirmação bancária desta parcela. O pagador quitou; o dinheiro pode estar no adquirente.",
+  },
+  compensado: {
+    label: "Compensado",
     ordem: 3,
     classe: "bg-emerald-100 text-emerald-800 border-0",
-    tooltip: "O dinheiro está na conta e a linha do extrato está vinculada ao título.",
+    tooltip: "O dinheiro desta parcela está no banco, confirmado.",
   },
   devolvido: {
     label: "Devolvido",
@@ -44,33 +75,24 @@ export const PROVA_META: Record<
   },
 };
 
-export const PRAZO_META: Record<EixoPrazo, { label: string; ordem: number; classe: string | null }> =
-  {
-    a_vencer: { label: "A vencer", ordem: 1, classe: null },
-    vence_hoje: { label: "Vence hoje", ordem: 2, classe: "bg-sky-100 text-sky-800 border-0" },
-    vencido: { label: "Vencido", ordem: 3, classe: "bg-amber-100 text-amber-800 border-0" },
-  };
-
-export const PROVAS: EixoProva[] = [
-  "registrado",
+export const PROVAS: EixoProva[] = ["registrado", "conciliado", "devolvido", "cancelado"];
+export const STATUS_EIXOS: EixoStatus[] = [
+  "a_vencer",
+  "pago",
   "compensado",
-  "conciliado",
   "devolvido",
   "cancelado",
 ];
-export const PRAZOS: EixoPrazo[] = ["a_vencer", "vence_hoje", "vencido"];
-export const PROVA_FORA_KPI: EixoProva[] = ["devolvido", "cancelado"];
 
-/** Badge do eixo prova, com o qualificador "por banco"/"por baixa manual". */
-export function BadgeProva({
-  eixo,
-  compensadoPor,
+/** Encerramento não entra em KPI. */
+export const PROVA_FORA_KPI: EixoProva[] = ["devolvido", "cancelado"];
+export const STATUS_FORA_KPI: EixoStatus[] = ["devolvido", "cancelado"];
+
+function BadgeComMeta({
+  meta,
 }: {
-  eixo: EixoProva | null;
-  compensadoPor?: "banco" | "manual" | null;
+  meta: { label: string; classe: string | null; tooltip: string | null };
 }) {
-  const meta = eixo ? PROVA_META[eixo] : null;
-  if (!meta) return <span className="text-muted-foreground">—</span>;
   const badge = meta.classe ? (
     <Badge className={`${meta.classe} ${meta.tooltip ? "cursor-help" : ""}`}>{meta.label}</Badge>
   ) : (
@@ -78,62 +100,62 @@ export function BadgeProva({
       {meta.label}
     </Badge>
   );
+  if (!meta.tooltip) return badge;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">{badge}</span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="max-w-xs">{meta.tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Badge do eixo prova: a venda foi validada no banco? */
+export function BadgeProva({ eixo }: { eixo: EixoProva | null }) {
+  const meta = eixo ? PROVA_META[eixo] : null;
+  if (!meta) return <span className="text-muted-foreground">—</span>;
+  return <BadgeComMeta meta={meta} />;
+}
+
+/** Badge do eixo status: onde está o dinheiro desta parcela. */
+export function BadgeStatus({
+  eixo,
+  compensadoPor,
+  inadimplente,
+}: {
+  eixo: EixoStatus | null;
+  compensadoPor?: "banco" | "manual" | null;
+  inadimplente?: boolean;
+}) {
+  const meta = eixo ? STATUS_META[eixo] : null;
   return (
     <div>
-      {meta.tooltip ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="inline-flex">{badge}</span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="max-w-xs">{meta.tooltip}</p>
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        badge
-      )}
+      <div className="flex flex-wrap items-center gap-1">
+        {meta ? <BadgeComMeta meta={meta} /> : <span className="text-muted-foreground">—</span>}
+        {inadimplente && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Badge variant="destructive" className="cursor-help">
+                  Inadimplente
+                </Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">
+                Sem baixa, vencimento no passado, e a forma não é garantida.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
       {eixo === "compensado" && compensadoPor && (
         <div className="text-xs text-muted-foreground">
           {compensadoPor === "banco" ? "por banco" : "por baixa manual"}
         </div>
-      )}
-    </div>
-  );
-}
-
-/** Badge do eixo prazo, com marca de inadimplência quando aplicável. */
-export function BadgePrazo({
-  eixo,
-  inadimplente,
-}: {
-  eixo: EixoPrazo | null;
-  inadimplente?: boolean;
-}) {
-  const meta = eixo ? PRAZO_META[eixo] : null;
-  return (
-    <div className="flex flex-wrap items-center gap-1">
-      {meta ? (
-        meta.classe ? (
-          <Badge className={meta.classe}>{meta.label}</Badge>
-        ) : (
-          <Badge variant="outline">{meta.label}</Badge>
-        )
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      )}
-      {inadimplente && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="inline-flex">
-              <Badge variant="destructive" className="cursor-help">
-                Inadimplente
-              </Badge>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="max-w-xs">Vencido, ninguém quitou, e a forma não é garantida.</p>
-          </TooltipContent>
-        </Tooltip>
       )}
     </div>
   );
