@@ -387,12 +387,13 @@ function AbaB2B() {
     return c;
   }, [base]);
 
-  const contagensPrazo = useMemo(() => {
-    const c = {} as Record<EixoPrazo, number>;
-    for (const p of PRAZOS) c[p] = 0;
-    for (const t of base) if (t.eixo_prazo) c[t.eixo_prazo] = (c[t.eixo_prazo] ?? 0) + 1;
+  const contagensStatus = useMemo(() => {
+    const c = {} as Record<EixoStatus, number>;
+    for (const s of STATUS_EIXOS) c[s] = 0;
+    for (const t of base) if (t.eixo_status) c[t.eixo_status] = (c[t.eixo_status] ?? 0) + 1;
     return c;
   }, [base]);
+
 
   const kpis = useMemo(() => {
     /** Eixo prova: conciliado é dinheiro provado; compensado é quitação sem prova. */
