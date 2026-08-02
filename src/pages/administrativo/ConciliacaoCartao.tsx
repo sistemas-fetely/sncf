@@ -382,6 +382,17 @@ function Delta({ c }: { c: VendaFila }) {
   );
 }
 
+// candidato_viavel vem da view: (nsu_atual IS NULL OR nsu_atual = nsu) AND NOT divergencia_parcelas.
+// Cobre só essas duas recusas da RPC; as demais guardas continuam sendo julgadas pelo banco.
+const ehViavel = (c: VendaFila) => c.candidato_viavel === true;
+
+function motivoInviavel(c: VendaFila): string {
+  if (c.nsu_atual && c.nsu_atual !== c.nsu) return `pedido já vinculado ao NSU ${c.nsu_atual}`;
+  if (c.divergencia_parcelas)
+    return `parcelas divergem: venda ${c.parcelas_safrapay}x, título ${c.parcelas_titulo ?? "—"}x`;
+  return "descartado pela fila";
+}
+
 function AbaVincularVendas() {
   const qc = useQueryClient();
   const navigate = useNavigate();
