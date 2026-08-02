@@ -757,6 +757,11 @@ export default function TitulosTab() {
                     Cliente
                   </h4>
                   <p className="font-medium">{detalhe.parceiro_razao_social ?? "—"}</p>
+                  {apelidoParceiro(detalhe.parceiro_razao_social, detalhe.parceiro_nome_fantasia) && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {apelidoParceiro(detalhe.parceiro_razao_social, detalhe.parceiro_nome_fantasia)}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {detalhe.parceiro_cnpj ? formatCNPJ(detalhe.parceiro_cnpj) : ""}
                   </p>
