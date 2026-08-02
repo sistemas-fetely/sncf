@@ -1,7 +1,10 @@
 /**
  * Auditoria Financeira — trabalho sobre o lote congelado mais recente.
- * Fonte: `vw_auditoria_lote_atual`. Ações: RPC `tratar_achado_auditoria`
+ * Fonte: `vw_auditoria_lote_enriquecido`. Ações: RPC `tratar_achado_auditoria`
  * (por linha) e `gerar_snapshot_auditoria` (novo lote).
+ *
+ * Doutrina: a Auditoria DETECTA e ROTEIA. A tela especializada RESOLVE.
+ * Não existe botão de "resolver" aqui — existe rota para a tela que resolve.
  *
  * IMPORTANTE: os valores das classes NÃO são somáveis entre si —
  * naturezas diferentes de dinheiro. Somar dentro de uma classe é ok;
@@ -34,8 +37,14 @@ import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import type { EstagioPedido } from "@/types/pedido";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertTriangle, ShieldAlert, Info, RefreshCw, ExternalLink, Loader2, CheckCircle2,
+  ArrowUpRight,
 } from "lucide-react";
 
 type Situacao = "aberto" | "em_analise" | "resolvido" | "explicado" | "reaparecido";
@@ -60,6 +69,16 @@ type Achado = {
   nota: string | null;
   tratado_em: string | null;
   tratado_por: string | null;
+  // vw_auditoria_lote_enriquecido
+  meio_pagamento: string | null;
+  meios_detalhe: string | null;
+  rota_solucao: string | null;
+  rotulo_acao: string | null;
+  tela_solucao: string | null;
+  rota_observacao: string | null;
+  achados_no_pedido: number | null;
+  pior_severidade_pedido: number | null;
+  falso_positivo_sem_caixa: boolean | null;
 };
 
 const CLASSE_LABEL: Record<string, string> = {
@@ -81,6 +100,18 @@ const FONTE_LABEL: Record<string, string> = {
   integridade_financeira: "Integridade financeira",
   recebivel_sem_titulo: "Recebível sem título",
 };
+
+const MEIO_LABEL: Record<string, string> = {
+  boleto: "Boleto",
+  pix: "PIX",
+  cartao: "Cartão",
+  haver: "Haver",
+  misto: "Misto",
+  sem_titulo: "Sem título",
+};
+const labelMeio = (m: string | null | undefined) => (m && MEIO_LABEL[m]) || m || "—";
+const MEIO_ORDEM = ["cartao", "pix", "boleto", "misto", "haver", "sem_titulo"];
+
 
 const SITUACAO_META: Record<Situacao, { label: string; className: string }> = {
   aberto:       { label: "Aberto",       className: "bg-muted text-foreground border-border" },
@@ -134,28 +165,38 @@ export default function AuditoriaFinanceira() {
   const [sevFiltro, setSevFiltro] = useState<string>("1");
   const [classeFiltro, setClasseFiltro] = useState<string>("todas");
   const [fonteFiltro, setFonteFiltro] = useState<string>("todas");
+  const [meioFiltro, setMeioFiltro] = useState<string>("todos");
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("aberto");
+  const [mostrarFalsoPositivo, setMostrarFalsoPositivo] = useState(false);
+  const [visao, setVisao] = useState<"classe" | "pedido">("classe");
 
   const [tratar, setTratar] = useState<Achado | null>(null);
   const [novaSituacao, setNovaSituacao] = useState<"em_analise" | "resolvido" | "explicado">("em_analise");
   const [nota, setNota] = useState("");
 
-  const { data: lote = [], isLoading } = useQuery({
+  const { data: loteBruto = [], isLoading } = useQuery({
     queryKey: ["auditoria-lote-atual"],
     queryFn: async () => {
-      const { data, error } = await (supabase as unknown as {
-        from: (t: string) => {
-          select: (c: string) => Promise<{ data: Achado[] | null; error: Error | null }>;
-        };
-      })
-        .from("vw_auditoria_lote_atual")
+      const { data, error } = await (supabase as any)
+        .from("vw_auditoria_lote_enriquecido")
         .select("*");
       if (error) throw error;
       return (data ?? []) as Achado[];
     },
   });
 
-  const geradoEm = lote[0]?.gerado_em ?? null;
+  const geradoEm = loteBruto[0]?.gerado_em ?? null;
+
+  const totalFalsoPositivo = useMemo(
+    () => loteBruto.filter((a) => a.falso_positivo_sem_caixa === true).length,
+    [loteBruto]
+  );
+
+  // Falso positivo por natureza sai da fila por default.
+  const lote = useMemo(
+    () => (mostrarFalsoPositivo ? loteBruto : loteBruto.filter((a) => a.falso_positivo_sem_caixa !== true)),
+    [loteBruto, mostrarFalsoPositivo]
+  );
 
   const contadores = useMemo(() => {
     const c = { aberto: 0, em_analise: 0, resolvido: 0, explicado: 0, reaparecido: 0 } as Record<Situacao, number>;
@@ -175,6 +216,20 @@ export default function AuditoriaFinanceira() {
     return c;
   }, [lote]);
 
+  const contadoresMeio = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of loteBruto) {
+      const m = a.meio_pagamento ?? "—";
+      map.set(m, (map.get(m) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).sort((a, b) => {
+      const ia = MEIO_ORDEM.indexOf(a[0]);
+      const ib = MEIO_ORDEM.indexOf(b[0]);
+      if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+      return b[1] - a[1];
+    });
+  }, [loteBruto]);
+
   const classesDisponiveis = useMemo(() => {
     const s = new Set<string>();
     for (const a of lote) if (a.classe) s.add(a.classe);
@@ -193,6 +248,7 @@ export default function AuditoriaFinanceira() {
       if (sevFiltro !== "todas" && String(a.severidade ?? "") !== sevFiltro) return false;
       if (classeFiltro !== "todas" && (a.classe ?? "") !== classeFiltro) return false;
       if (fonteFiltro !== "todas" && String(a.fonte ?? "") !== fonteFiltro) return false;
+      if (meioFiltro !== "todos" && (a.meio_pagamento ?? "—") !== meioFiltro) return false;
       if (situacaoFiltro !== "todas" && (a.situacao ?? "aberto") !== situacaoFiltro) return false;
       if (!q) return true;
       return (
@@ -201,7 +257,7 @@ export default function AuditoriaFinanceira() {
         (a.detalhe || "").toLowerCase().includes(q)
       );
     });
-  }, [lote, busca, sevFiltro, classeFiltro, fonteFiltro, situacaoFiltro]);
+  }, [lote, busca, sevFiltro, classeFiltro, fonteFiltro, meioFiltro, situacaoFiltro]);
 
   const grupos = useMemo(() => {
     const map = new Map<string, { classe: string; severidade: number; itens: Achado[]; total: number }>();
@@ -223,6 +279,55 @@ export default function AuditoriaFinanceira() {
       return b.total - a.total;
     });
   }, [filtrados]);
+
+  const gruposPedido = useMemo(() => {
+    const map = new Map<string, {
+      pedido_id: string | null;
+      id_externo: string | null;
+      cliente: string | null;
+      meio: string | null;
+      achadosNoPedido: number;
+      piorSeveridade: number;
+      itens: Achado[];
+      total: number;
+    }>();
+    for (const a of filtrados) {
+      const key = a.pedido_id || a.id_externo || a.id;
+      const g = map.get(key) ?? {
+        pedido_id: a.pedido_id,
+        id_externo: a.id_externo,
+        cliente: a.cliente,
+        meio: a.meio_pagamento,
+        achadosNoPedido: a.achados_no_pedido ?? 0,
+        piorSeveridade: a.pior_severidade_pedido ?? a.severidade ?? 99,
+        itens: [] as Achado[],
+        total: 0,
+      };
+      g.itens.push(a);
+      g.total += Number(a.valor || 0);
+      g.achadosNoPedido = Math.max(g.achadosNoPedido, a.achados_no_pedido ?? 0);
+      g.piorSeveridade = Math.min(g.piorSeveridade, a.pior_severidade_pedido ?? a.severidade ?? 99);
+      map.set(key, g);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.achadosNoPedido !== b.achadosNoPedido) return b.achadosNoPedido - a.achadosNoPedido;
+      if (a.piorSeveridade !== b.piorSeveridade) return a.piorSeveridade - b.piorSeveridade;
+      return b.total - a.total;
+    });
+  }, [filtrados]);
+
+  // Achados vinculados: outros achados do MESMO pedido (base do lote visível).
+  const porPedido = useMemo(() => {
+    const map = new Map<string, Achado[]>();
+    for (const a of lote) {
+      if (!a.pedido_id) continue;
+      const arr = map.get(a.pedido_id) ?? [];
+      arr.push(a);
+      map.set(a.pedido_id, arr);
+    }
+    return map;
+  }, [lote]);
+
 
   const mTratar = useMutation({
     mutationFn: async (args: {
@@ -291,6 +396,140 @@ export default function AuditoriaFinanceira() {
     !!tratar &&
     !mTratar.isPending &&
     (!notaObrigatoria || nota.trim().length > 0);
+
+  /**
+   * Linha de achado. `dentroDoPedido` esconde o cliente/pedido repetido
+   * quando a visão já é agrupada por pedido.
+   */
+  const renderAchado = (a: Achado, dentroDoPedido = false) => {
+    const sev = (a.severidade ?? 3) as 1 | 2 | 3;
+    const sevMeta = SEV_META[sev] ?? SEV_META[3];
+    const sitKey = (a.situacao ?? "aberto") as Situacao;
+    const sitMeta = SITUACAO_META[sitKey] ?? SITUACAO_META.aberto;
+    const falsoPositivo = a.falso_positivo_sem_caixa === true;
+
+    // Achados vinculados no mesmo pedido
+    const irmaos = (a.pedido_id ? porPedido.get(a.pedido_id) ?? [] : []).filter((o) => o.id !== a.id);
+    const mesmaTela = a.tela_solucao
+      ? irmaos.filter((o) => o.tela_solucao === a.tela_solucao)
+      : [];
+    const outraTela = irmaos.find((o) => o.tela_solucao && o.tela_solucao !== a.tela_solucao);
+
+    return (
+      <div
+        key={a.id}
+        className={cn("px-5 py-4 grid grid-cols-12 gap-3 items-start", falsoPositivo && "opacity-60")}
+      >
+        <div className="col-span-12 md:col-span-2 space-y-1">
+          <Badge variant="outline" className={cn("flex-shrink-0", sevMeta.badge)}>
+            Sev {sev}
+          </Badge>
+          {dentroDoPedido && a.classe && (
+            <div className="text-xs font-medium leading-snug">{labelClasse(a.classe)}</div>
+          )}
+          {a.estagio && <EstagioBadge estagio={a.estagio as EstagioPedido} />}
+          {falsoPositivo && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="cursor-help">Sem caixa por natureza</Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  Forma de pagamento que não gera movimento bancário — nunca terá prova. Está na fila
+                  por limitação do detector.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+        <div className="col-span-12 md:col-span-3 text-sm">
+          {!dentroDoPedido && (
+            <>
+              <div className="truncate" title={a.cliente ?? ""}>
+                {a.cliente || "—"}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                <span className="tabular-nums">{a.id_externo || "—"}</span>
+                {a.pedido_id && (
+                  <button
+                    onClick={() => navigate(`/pedidos/${a.pedido_id}`)}
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    abrir <ExternalLink className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+          <div className="text-sm font-medium tabular-nums mt-1">
+            {formatBRL(Number(a.valor || 0))}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1" title={a.meios_detalhe ?? ""}>
+            {labelMeio(a.meio_pagamento)}
+          </div>
+        </div>
+        <div className="col-span-12 md:col-span-4 space-y-2 text-sm">
+          <div className="text-muted-foreground">{a.detalhe || "—"}</div>
+          {a.acao && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-0.5">
+                Ação
+              </div>
+              <div className="leading-snug text-foreground">{a.acao}</div>
+            </div>
+          )}
+          {a.rota_solucao ? (
+            <div className="space-y-1">
+              <Button size="sm" variant="outline" onClick={() => navigate(a.rota_solucao as string)}>
+                {a.rotulo_acao || "Abrir tela de resolução"}
+                <ArrowUpRight className="h-3.5 w-3.5 ml-1.5" />
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                Resolve em: {a.tela_solucao || "—"}
+              </div>
+              {a.rota_observacao && (
+                <div className="text-xs text-muted-foreground">{a.rota_observacao}</div>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              Sem tela de resolução mapeada — tratar manualmente.
+            </div>
+          )}
+          {mesmaTela.length > 0 && (
+            <div className="text-xs text-emerald-700">
+              Resolver aqui deve fechar também:{" "}
+              {mesmaTela.map((o) => labelClasse(o.classe)).join(", ")}
+            </div>
+          )}
+          {outraTela && (
+            <div className="text-xs text-amber-700">
+              Este pedido tem outro achado que se resolve em {outraTela.tela_solucao}
+            </div>
+          )}
+          {a.nota && (
+            <div className="text-xs text-muted-foreground italic border-l-2 pl-2 border-border">
+              Nota: {a.nota}
+            </div>
+          )}
+        </div>
+        <div className="col-span-12 md:col-span-3 flex flex-col gap-2 items-start md:items-end">
+          <Badge variant="outline" className={cn("border", sitMeta.className)}>
+            {sitMeta.label}
+          </Badge>
+          <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
+            Tratar
+          </Button>
+          {a.tratado_em && (
+            <div className="text-[10px] text-muted-foreground">
+              Tratado em {formatDataHora(a.tratado_em)}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -422,6 +661,23 @@ export default function AuditoriaFinanceira() {
         })}
       </div>
 
+      {/* Contagem por meio de pagamento — clicável */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">
+          Meio de pagamento
+        </span>
+        {contadoresMeio.map(([m, n]) => (
+          <Badge
+            key={m}
+            variant={meioFiltro === m ? "default" : "outline"}
+            className="cursor-pointer tabular-nums"
+            onClick={() => setMeioFiltro((cur) => (cur === m ? "todos" : m))}
+          >
+            {labelMeio(m)} ({n})
+          </Badge>
+        ))}
+      </div>
+
       {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-start sm:items-center">
         <Input
@@ -448,6 +704,15 @@ export default function AuditoriaFinanceira() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={meioFiltro} onValueChange={setMeioFiltro}>
+          <SelectTrigger className="w-[190px]"><SelectValue placeholder="Meio" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os meios</SelectItem>
+            {contadoresMeio.map(([m, n]) => (
+              <SelectItem key={m} value={m}>{labelMeio(m)} ({n})</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={situacaoFiltro} onValueChange={setSituacaoFiltro}>
           <SelectTrigger className="w-[180px]"><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
@@ -457,12 +722,44 @@ export default function AuditoriaFinanceira() {
             ))}
           </SelectContent>
         </Select>
-        <div className="text-sm text-muted-foreground sm:ml-auto">
+        <div className="text-sm text-muted-foreground sm:ml-auto tabular-nums">
           {filtrados.length} de {lote.length} achados
         </div>
       </div>
 
-      {/* Lista agrupada por classe */}
+      {/* Visão e falsos positivos */}
+      <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">Agrupar</span>
+          <Button
+            size="sm"
+            variant={visao === "classe" ? "default" : "outline"}
+            onClick={() => setVisao("classe")}
+          >
+            Por classe
+          </Button>
+          <Button
+            size="sm"
+            variant={visao === "pedido" ? "default" : "outline"}
+            onClick={() => setVisao("pedido")}
+          >
+            Por pedido
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="mostrar-falso-positivo"
+            checked={mostrarFalsoPositivo}
+            onCheckedChange={setMostrarFalsoPositivo}
+          />
+          <Label htmlFor="mostrar-falso-positivo" className="text-sm text-muted-foreground cursor-pointer">
+            Mostrar falsos positivos ({totalFalsoPositivo})
+          </Label>
+        </div>
+      </div>
+
+
+      {/* Lista */}
       {isLoading ? (
         <div className="text-sm text-muted-foreground p-8 text-center">Carregando…</div>
       ) : filtrados.length === 0 ? (
@@ -475,7 +772,7 @@ export default function AuditoriaFinanceira() {
             </div>
           </CardContent>
         </Card>
-      ) : (
+      ) : visao === "classe" ? (
         <div className="space-y-6">
           {grupos.map((g) => (
             <Card key={g.classe} className="overflow-hidden">
@@ -502,75 +799,65 @@ export default function AuditoriaFinanceira() {
                 </div>
               </div>
               <div className="divide-y">
-                {g.itens.map((a) => {
-                  const sev = (a.severidade ?? 3) as 1 | 2 | 3;
-                  const sevMeta = SEV_META[sev] ?? SEV_META[3];
-                  const sitKey = (a.situacao ?? "aberto") as Situacao;
-                  const sitMeta = SITUACAO_META[sitKey] ?? SITUACAO_META.aberto;
-                  return (
-                    <div key={a.id} className="px-5 py-4 grid grid-cols-12 gap-3 items-start">
-                      <div className="col-span-12 md:col-span-2 space-y-1">
-                        <Badge variant="outline" className={cn("flex-shrink-0", sevMeta.badge)}>
-                          Sev {sev}
-                        </Badge>
-                        {a.estagio && <EstagioBadge estagio={a.estagio as EstagioPedido} />}
-                      </div>
-                      <div className="col-span-12 md:col-span-3 text-sm">
-                        <div className="truncate" title={a.cliente ?? ""}>
-                          {a.cliente || "—"}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          <span className="tabular-nums">{a.id_externo || "—"}</span>
-                          {a.pedido_id && (
-                            <button
-                              onClick={() => navigate(`/pedidos/${a.pedido_id}`)}
-                              className="inline-flex items-center gap-1 text-primary hover:underline"
-                            >
-                              abrir <ExternalLink className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                        <div className="text-sm font-medium tabular-nums mt-1">
-                          {formatBRL(Number(a.valor || 0))}
-                        </div>
-                      </div>
-                      <div className="col-span-12 md:col-span-4 space-y-2 text-sm">
-                        <div className="text-muted-foreground">{a.detalhe || "—"}</div>
-                        {a.acao && (
-                          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-                            <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-0.5">
-                              Ação
-                            </div>
-                            <div className="leading-snug text-foreground">{a.acao}</div>
-                          </div>
-                        )}
-                        {a.nota && (
-                          <div className="text-xs text-muted-foreground italic border-l-2 pl-2 border-border">
-                            Nota: {a.nota}
-                          </div>
-                        )}
-                      </div>
-                      <div className="col-span-12 md:col-span-3 flex flex-col gap-2 items-start md:items-end">
-                        <Badge variant="outline" className={cn("border", sitMeta.className)}>
-                          {sitMeta.label}
-                        </Badge>
-                        <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
-                          Tratar
-                        </Button>
-                        {a.tratado_em && (
-                          <div className="text-[10px] text-muted-foreground">
-                            Tratado em {formatDataHora(a.tratado_em)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {g.itens.map((a) => renderAchado(a))}
               </div>
             </Card>
           ))}
         </div>
+      ) : (
+        <div className="space-y-6">
+          {gruposPedido.map((g, idx) => {
+            const multiplos = g.achadosNoPedido >= 3;
+            return (
+              <Card
+                key={g.pedido_id ?? g.id_externo ?? idx}
+                className={cn("overflow-hidden", multiplos && "border-amber-500/50")}
+              >
+                <div className="px-5 py-3 border-b bg-muted/40 space-y-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-wrap">
+                      {g.pedido_id ? (
+                        <button
+                          onClick={() => navigate(`/pedidos/${g.pedido_id}`)}
+                          className="font-semibold tabular-nums text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          {g.id_externo || "—"} <ExternalLink className="h-3 w-3" />
+                        </button>
+                      ) : (
+                        <span className="font-semibold tabular-nums">{g.id_externo || "—"}</span>
+                      )}
+                      <span className="text-sm text-muted-foreground truncate" title={g.cliente ?? ""}>
+                        {g.cliente || "—"}
+                      </span>
+                      <Badge variant="outline" className="flex-shrink-0">
+                        {g.achadosNoPedido} {g.achadosNoPedido === 1 ? "achado" : "achados"}
+                      </Badge>
+                      <Badge variant="secondary" className="flex-shrink-0">
+                        {labelMeio(g.meio)}
+                      </Badge>
+                    </div>
+                    <div className="text-sm font-semibold tabular-nums flex-shrink-0">
+                      {formatBRL(g.total)}
+                    </div>
+                  </div>
+                  {multiplos && (
+                    <div className="text-xs text-muted-foreground">
+                      Vários detectores apontando o mesmo pedido — pode ser um problema só visto de ângulos diferentes.
+                    </div>
+                  )}
+                </div>
+                <div className="divide-y">
+                  {g.itens
+                    .slice()
+                    .sort((x, y) => (x.severidade ?? 99) - (y.severidade ?? 99))
+                    .map((a) => renderAchado(a, true))}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       )}
+
 
       {/* Dialog de tratamento */}
       <Dialog open={!!tratar} onOpenChange={(o) => { if (!o) { setTratar(null); setNota(""); } }}>
