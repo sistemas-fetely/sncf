@@ -486,7 +486,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
             <SelectContent>
               <SelectItem value="none">—</SelectItem>
               {parceiros.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.nome_fantasia || p.razao_social}</SelectItem>
+                <SelectItem key={p.id} value={p.id}>{nomeExibicao(p.razao_social, p.nome_fantasia)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
