@@ -585,7 +585,13 @@ export default function TIAtivoForm({ open, onOpenChange, ativoId, onSaved }: TI
               <div className="flex flex-wrap gap-3">
                 {(form.fotos || []).map((url, idx) => (
                   <div key={idx} className="relative group">
-                    <img src={url} alt={`Foto ${idx + 1}`} className="h-24 w-24 rounded-lg object-cover border" />
+                    <ImagemPrivada
+                      bucket="ti-ativos"
+                      valor={url}
+                      alt={`Foto ${idx + 1}`}
+                      className="h-24 w-24 rounded-lg object-cover border"
+                    />
+
                     <Button
                       type="button"
                       variant="destructive"
