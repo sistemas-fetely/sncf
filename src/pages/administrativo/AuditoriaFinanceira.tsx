@@ -597,16 +597,39 @@ export default function AuditoriaFinanceira() {
           <Badge variant="outline" className={cn("border", sitMeta.className)}>
             {sitMeta.label}
           </Badge>
-          <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
-            Tratar
-          </Button>
+          <div className="flex items-center gap-2">
+            {a.pedido_id && (
+              <CollapsibleTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground"
+                  aria-label={expandido ? "Recolher contexto" : "Ver contexto do pedido"}
+                >
+                  Contexto
+                  <ChevronDown
+                    className={cn("h-4 w-4 ml-1 transition-transform", expandido && "rotate-180")}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+            )}
+            <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
+              Tratar
+            </Button>
+          </div>
           {a.tratado_em && (
             <div className="text-[10px] text-muted-foreground">
               Tratado em {formatDataHora(a.tratado_em)}
             </div>
           )}
         </div>
-      </div>
+        </div>
+        {a.pedido_id && (
+          <CollapsibleContent className="px-5 pb-4">
+            <DossieAchado pedidoId={a.pedido_id} aberto={expandido} />
+          </CollapsibleContent>
+        )}
+      </Collapsible>
     );
   };
 
