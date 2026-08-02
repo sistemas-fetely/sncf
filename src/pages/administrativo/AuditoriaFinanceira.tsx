@@ -330,6 +330,7 @@ export default function AuditoriaFinanceira() {
 
   const filtrosSujos =
     busca.trim() !== "" ||
+    sevFiltro !== "todas" ||
     classeFiltro !== "todas" ||
     fonteFiltro !== "todas" ||
     meioFiltro !== "todos" ||
@@ -337,6 +338,7 @@ export default function AuditoriaFinanceira() {
 
   const limparFiltros = () => {
     setBusca("");
+    setSevFiltro("todas");
     setClasseFiltro("todas");
     setFonteFiltro("todas");
     setMeioFiltro("todos");
