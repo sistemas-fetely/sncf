@@ -1495,9 +1495,9 @@ function AbaB2B() {
 
                       <TableCell className="text-right tabular-nums">
                         <div>{formatBRL(efetivoDe(t))}</div>
-                        {(juros > 0 || desconto > 0) && (
-                          <div className="text-xs text-muted-foreground">
-                            face {formatBRL(t.valor ?? 0)}
+                        {(juros > 0 || desconto > 0 || efetivoDe(t) !== bruto) && (
+                          <div className="text-xs text-muted-foreground tabular-nums">
+                            bruto {formatBRL(bruto)}
                             {juros > 0 && (
                               <span className="text-emerald-700"> · juros +{formatBRL(juros)}</span>
                             )}
