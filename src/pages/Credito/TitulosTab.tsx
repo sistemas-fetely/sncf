@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
