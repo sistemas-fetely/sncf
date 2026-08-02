@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useParametros } from "@/hooks/useParametros";
 import { Sparkles, Loader2, Camera, X } from "lucide-react";
 import ManutencoesSection from "@/components/ti/ManutencoesSection";
+import { ImagemPrivada } from "@/components/storage/ImagemPrivada";
+
 
 interface TIAtivoFormProps {
   open: boolean;
