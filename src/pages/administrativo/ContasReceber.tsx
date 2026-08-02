@@ -338,6 +338,11 @@ function AbaB2B() {
     [data]
   );
 
+  const qtdSemNf = useMemo(
+    () => (data ?? []).filter((t) => t.faturado === false).length,
+    [data]
+  );
+
 
   /** Conjunto filtrado por tudo EXCETO situação — base dos KPIs e das contagens. */
   const base = useMemo(() => {
