@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, X, FileText, Loader2, CheckCircle2 } from "lucide-react";
@@ -42,6 +42,15 @@ const PJ_DOCUMENTS: DocumentSlot[] = [
 
 export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFilesChange }: StepUploadDocumentosProps) {
   const [uploading, setUploading] = useState<string | null>(null);
+  // Superfície anônima: pré-visualização vem do File local, nunca do storage.
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const previewsRef = useRef<Record<string, string>>({});
+  previewsRef.current = previews;
+  useEffect(() => {
+    return () => {
+      Object.values(previewsRef.current).forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, []);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const documents = tipo === "clt" ? CLT_DOCUMENTS : PJ_DOCUMENTS;
@@ -79,6 +88,14 @@ export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFil
       .from("documentos-cadastro")
       .getPublicUrl(filePath);
 
+    if (file.type.startsWith("image/")) {
+      const blobUrl = URL.createObjectURL(file);
+      setPreviews((prev) => {
+        if (prev[key]) URL.revokeObjectURL(prev[key]);
+        return { ...prev, [key]: blobUrl };
+      });
+    }
+
     const newFiles = uploadedFiles.filter(f => f.key !== key);
     newFiles.push({ key, name: file.name, url: urlData.publicUrl });
     onFilesChange(newFiles);
@@ -96,6 +113,12 @@ export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFil
     const filePath = `${token}/${key}.${ext}`;
 
     await supabase.storage.from("documentos-cadastro").remove([filePath]);
+
+    setPreviews((prev) => {
+      if (prev[key]) URL.revokeObjectURL(prev[key]);
+      const { [key]: _removido, ...resto } = prev;
+      return resto;
+    });
 
     onFilesChange(uploadedFiles.filter(f => f.key !== key));
     toast.success("Documento removido.");
@@ -120,6 +143,13 @@ export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFil
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
+                    {previews[doc.key] && (
+                      <img
+                        src={previews[doc.key]}
+                        alt={doc.label}
+                        className="h-10 w-10 rounded object-cover border shrink-0"
+                      />
+                    )}
                     {uploaded ? (
                       <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                     ) : (

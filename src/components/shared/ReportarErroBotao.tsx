@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageSquareWarning, Loader2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,15 @@ export function ReportarErroBotao() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const criar = useCriarReporte();
+
+  // revoga blob local ao desmontar
+  const previewRef = useRef<string | null>(null);
+  previewRef.current = previewUrl;
+  useEffect(() => {
+    return () => {
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    };
+  }, []);
 
   const { data: tipos } = useQuery({
     queryKey: ["parametros", "tipo_reporte"],

@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
 
 export interface Reporte {
   id: string;
@@ -63,6 +64,13 @@ export function useCriarReporte() {
       toast.error(err.message || "Erro ao enviar report");
     },
   });
+}
+
+/**
+ * Leitura da imagem de um report (bucket privado, tela autenticada).
+ */
+export function useImagemReporte(imagemUrl: string | null | undefined) {
+  return useUrlAssinada("sistema-reportes", imagemUrl);
 }
 
 export function useReportesInbox(filtroStatus?: string) {

@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { useParametros } from "@/hooks/useParametros";
@@ -833,6 +834,7 @@ export default function NotaFiscalDetalhe() {
 }
 
 function ArquivoNFCard({ nota, onArquivoUpdated, canEdit = true }: { nota: NotaFiscal; onArquivoUpdated: (url: string | null) => void; canEdit?: boolean }) {
+  const { url: urlLeitura } = useUrlAssinada("documentos-cadastro", nota.arquivo_url);
   const [uploading, setUploading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -915,7 +917,7 @@ function ArquivoNFCard({ nota, onArquivoUpdated, canEdit = true }: { nota: NotaF
                 <Eye className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Download">
-                <a href={nota.arquivo_url} target="_blank" rel="noopener noreferrer" download>
+                <a href={urlLeitura ?? undefined} target="_blank" rel="noopener noreferrer" download>
                   <Download className="h-4 w-4" />
                 </a>
               </Button>
@@ -969,9 +971,9 @@ function ArquivoNFCard({ nota, onArquivoUpdated, canEdit = true }: { nota: NotaF
               </div>
               <div className="flex items-center justify-center overflow-auto max-h-[70vh]">
                 {isPdf ? (
-                  <iframe src={nota.arquivo_url} className="w-full h-[65vh] border rounded" />
+                  <iframe src={urlLeitura ?? undefined} className="w-full h-[65vh] border rounded" />
                 ) : (
-                  <img src={nota.arquivo_url} alt={`NF ${nota.numero}`} className="max-w-full max-h-[65vh] object-contain rounded" />
+                  <img src={urlLeitura ?? undefined} alt={`NF ${nota.numero}`} className="max-w-full max-h-[65vh] object-contain rounded" />
                 )}
               </div>
             </div>

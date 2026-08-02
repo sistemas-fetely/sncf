@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Camera, Loader2, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
+import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
 
 interface FotoUploadProps {
   value: string | null | undefined;
@@ -15,6 +16,8 @@ interface FotoUploadProps {
 export function FotoUpload({ value, onChange, folder = "fotos" }: FotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  // Tela autenticada (StepDadosPessoais / StepDadosPessoaisPJ) — leitura assinada
+  const { url: urlLeitura } = useUrlAssinada("documentos-cadastro", value);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,7 +66,7 @@ export function FotoUpload({ value, onChange, folder = "fotos" }: FotoUploadProp
     <div className="flex flex-col items-center gap-3">
       <Label className="text-center">Foto</Label>
       <Avatar className="h-24 w-24 border-2 border-border">
-        <AvatarImage src={value || undefined} alt="Foto" className="object-cover" />
+        <AvatarImage src={urlLeitura || undefined} alt="Foto" className="object-cover" />
         <AvatarFallback className="bg-muted">
           <User className="h-10 w-10 text-muted-foreground" />
         </AvatarFallback>

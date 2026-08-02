@@ -5,10 +5,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getUrlAssinada } from "@/lib/storage/arquivoPrivado";
 
 interface StorageFile {
   name: string;
+  /** URL pública legada — usada apenas para GRAVAÇÃO em foto_url (formato não muda) */
   url: string;
+  /** URL assinada para leitura (bucket privado) */
+  signedUrl: string | null;
   isImage: boolean;
   folder: string;
 }
@@ -77,6 +81,7 @@ export function DocumentosAnexados({ colaboradorId, contratoPjId, currentFotoUrl
             allFiles.push({
               name: sf.name,
               url: urlData.publicUrl,
+              signedUrl: await getUrlAssinada("documentos-cadastro", `${convite.token}/${sf.name}`),
               isImage: isImageFile(sf.name),
               folder: convite.token,
             });
@@ -99,6 +104,7 @@ export function DocumentosAnexados({ colaboradorId, contratoPjId, currentFotoUrl
             allFiles.push({
               name: sf.name,
               url: urlData.publicUrl,
+              signedUrl: await getUrlAssinada("documentos-cadastro", `${directFolder}/${sf.name}`),
               isImage: isImageFile(sf.name),
               folder: directFolder,
             });
@@ -152,10 +158,19 @@ export function DocumentosAnexados({ colaboradorId, contratoPjId, currentFotoUrl
       .from("documentos-cadastro")
       .getPublicUrl(filePath);
 
+    const signedUrl = await getUrlAssinada("documentos-cadastro", filePath);
+
     setFiles((prev) => [
       ...prev,
-      { name: safeName, url: urlData.publicUrl, isImage: isImageFile(safeName), folder: directFolder },
+      {
+        name: safeName,
+        url: urlData.publicUrl,
+        signedUrl,
+        isImage: isImageFile(safeName),
+        folder: directFolder,
+      },
     ]);
+
     toast.success("Documento enviado com sucesso!");
     setUploading(false);
   };
@@ -262,11 +277,12 @@ export function DocumentosAnexados({ colaboradorId, contratoPjId, currentFotoUrl
                     </Button>
                   )}
                   <Button variant="ghost" size="icon" className="h-8 w-8" title="Visualizar"
-                    onClick={() => { setPreviewTitle(friendlyName(file.name)); setPreviewUrl(file.url); }}>
+                    disabled={!file.signedUrl}
+                    onClick={() => { setPreviewTitle(friendlyName(file.name)); setPreviewUrl(file.signedUrl); }}>
                     <Eye className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Download">
-                    <a href={file.url} target="_blank" rel="noopener noreferrer" download>
+                    <a href={file.signedUrl ?? undefined} target="_blank" rel="noopener noreferrer" download>
                       <Download className="h-4 w-4" />
                     </a>
                   </Button>
