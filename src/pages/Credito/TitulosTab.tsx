@@ -510,7 +510,8 @@ export default function TitulosTab() {
               <TableHead>Vencimento</TableHead>
               <TableHead>Liquidação</TableHead>
               <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Prova</TableHead>
+              <TableHead>Prazo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
