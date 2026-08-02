@@ -17,6 +17,8 @@ import {
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa, CanalRegua } from "@/hooks/credito/useReguaFila";
+import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
+
 
 const CANAIS: { value: CanalRegua; label: string }[] = [
   { value: "email", label: "E-mail" },
