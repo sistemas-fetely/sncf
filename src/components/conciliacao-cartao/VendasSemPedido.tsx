@@ -114,8 +114,8 @@ async function buscarCandidatos(termo: string): Promise<Candidato[]> {
     return {
       pedido_id: p.id,
       id_externo: p.id_externo,
-      cliente: nomeCanonico(p.parceiros_comerciais) || "—",
-      apelido: apelidoParceiro(p.parceiros_comerciais),
+      cliente: nomeCanonico(p.parceiros_comerciais?.razao_social),
+      apelido: apelidoParceiro(p.parceiros_comerciais?.razao_social, p.parceiros_comerciais?.nome_fantasia),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       total_titulos: titulos.reduce((s: number, t: any) => s + num(t.valor_atual ?? t.valor_bruto), 0),
     } as Candidato;
