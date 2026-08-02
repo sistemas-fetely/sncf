@@ -90,6 +90,10 @@ type RecebivelB2B = {
   meio_pedido_nome: string | null;
   meio_divergente: boolean | null;
   mes_caixa_efetivo: string | null;
+  /* eixo faturamento (separado do estado de gestão) */
+  faturado: boolean | null;
+  data_liquidacao_prevista: string | null;
+  desvio_previsao_dias: number | null;
   /* estado único de gestão (por força de prova) */
   estado_gestao: EstadoGestao;
   estado_rotulo: string | null;
@@ -264,6 +268,7 @@ function AbaB2B() {
   const [soSemProva, setSoSemProva] = useState(false);
   const [soDivergentes, setSoDivergentes] = useState(false);
   const [soMeioDivergente, setSoMeioDivergente] = useState(false);
+  const [soSemNf, setSoSemNf] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [situacoes, setSituacoes] = useState<Set<EstadoGestao>>(
     new Set<EstadoGestao>([
@@ -333,6 +338,11 @@ function AbaB2B() {
     [data]
   );
 
+  const qtdSemNf = useMemo(
+    () => (data ?? []).filter((t) => t.faturado === false).length,
+    [data]
+  );
+
 
   /** Conjunto filtrado por tudo EXCETO situação — base dos KPIs e das contagens. */
   const base = useMemo(() => {
@@ -348,6 +358,7 @@ function AbaB2B() {
       if (soSemProva && t.fonte_data_recebimento !== "humano") return false;
       if (soDivergentes && t.data_divergente !== true) return false;
       if (soMeioDivergente && t.meio_divergente !== true) return false;
+      if (soSemNf && t.faturado !== false) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
@@ -370,7 +381,7 @@ function AbaB2B() {
       }
       return true;
     });
-  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente]);
+  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente, soSemNf]);
 
   const contagens = useMemo(() => {
     const c = {} as Record<EstadoGestao, number>;
@@ -386,6 +397,8 @@ function AbaB2B() {
     let abertoQtd = 0;
     let vencido = 0;
     let vence30 = 0;
+    let recebidoSemNf = 0;
+    let recebidoSemNfQtd = 0;
     let semProva = 0;
     let semProvaQtd = 0;
     let provado = 0;
@@ -418,6 +431,10 @@ function AbaB2B() {
           if (d >= hoje && d <= em30) vence30 += v;
         }
       }
+      if (t.faturado === false && ESTADOS_RECEBIDOS.includes(e)) {
+        recebidoSemNf += v;
+        recebidoSemNfQtd += 1;
+      }
     }
     const inadimplencia = aberto > 0 ? (vencido / aberto) * 100 : 0;
     return {
@@ -434,10 +451,28 @@ function AbaB2B() {
       provado,
       provadoQtd,
       provadoPct: recebido > 0 ? (provado / recebido) * 100 : 0,
+      recebidoSemNf,
+      recebidoSemNfQtd,
       total: recebido + aberto,
       totalQtd: recebidoQtd + abertoQtd,
     };
   }, [base, hoje, em30]);
+
+  /** Acurácia da régua: desvio só existe quando há prova bancária. */
+  const desvioRegua = useMemo(() => {
+    const valores = base
+      .map((t) => t.desvio_previsao_dias)
+      .filter((d): d is number => d != null && Number.isFinite(Number(d)))
+      .map(Number);
+    if (valores.length === 0) return null;
+    const soma = valores.reduce((a, b) => a + b, 0);
+    return {
+      media: soma / valores.length,
+      qtd: valores.length,
+      min: Math.min(...valores),
+      max: Math.max(...valores),
+    };
+  }, [base]);
 
 
 
@@ -659,6 +694,9 @@ function AbaB2B() {
       Renegociado: t.venc_renegociado ? "Sim" : "Não",
       "Dias prorrogado": t.dias_prorrogado ?? 0,
       Previsto: formatDateBR(t.data_liquidacao),
+      Faturado: t.faturado === false ? "Não" : "Sim",
+      "Previsto (régua)": formatDateBR(t.data_liquidacao_prevista),
+      "Desvio (dias)": t.desvio_previsao_dias ?? "",
       "Recebido em": t.data_recebimento_efetiva ? formatDateBR(t.data_recebimento_efetiva) : "",
       Fonte: t.fonte_data_recebimento ?? "",
       "Data banco": formatDateBR(t.data_pagamento_banco),
@@ -764,12 +802,62 @@ function AbaB2B() {
               </p>
             </CardContent>
           </Card>
+          <Card className="border-amber-500/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-amber-700">Recebido sem NF</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tabular-nums text-amber-700">
+                {formatBRL(kpis.recebidoSemNf)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {kpis.recebidoSemNfQtd} títulos · dinheiro entrou antes da nota
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Desvio médio da régua</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {desvioRegua ? (
+                <>
+                  <div
+                    className={`text-2xl font-semibold tabular-nums ${
+                      Math.abs(desvioRegua.media) > 5
+                        ? "text-destructive"
+                        : Math.abs(desvioRegua.media) > 2
+                        ? "text-amber-700"
+                        : ""
+                    }`}
+                  >
+                    {desvioRegua.media >= 0 ? "+" : "−"}
+                    {Math.abs(desvioRegua.media).toLocaleString("pt-BR", {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })}{" "}
+                    dias
+                  </div>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {desvioRegua.qtd} títulos com prova bancária · de{" "}
+                    {desvioRegua.min < 0 ? "−" : ""}
+                    {Math.abs(desvioRegua.min)}d a {desvioRegua.max >= 0 ? "+" : "−"}
+                    {Math.abs(desvioRegua.max)}d
+                  </p>
+                </>
+              ) : (
+                <div className="text-2xl font-semibold text-muted-foreground">—</div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <p className="text-xs text-muted-foreground">
           Estado por força de prova: conciliado tem o crédito do extrato amarrado; confirmado no
           banco tem o retorno CNAB mas a linha do extrato não foi vinculada; baixa manual não tem
-          prova bancária nenhuma. Devolvido e cancelado ficam fora dos totais.
+          prova bancária nenhuma. Devolvido e cancelado ficam fora dos totais. Títulos sem NF também
+          são recebíveis e agora entram nos totais. O desvio da régua só é calculado contra data
+          confirmada pelo banco.
         </p>
 
 
@@ -1065,6 +1153,16 @@ function AbaB2B() {
                   Meio ≠ pedido ({qtdMeioDivergente})
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant={soSemNf ? "default" : "outline"}
+                onClick={() => {
+                  setSoSemNf((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Sem NF ({qtdSemNf})
+              </Button>
             </div>
           </div>
 
@@ -1194,7 +1292,39 @@ function AbaB2B() {
                   <SortTh label="Meio" sortKey="meio_pagamento" sort={sort} setSort={setSort} />
                   <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
                   <SortTh label="Vencimento" sortKey="data_vencimento" sort={sort} setSort={setSort} />
-                  <SortTh label="Previsto" sortKey="data_liquidacao" sort={sort} setSort={setSort} />
+                  <TableHead
+                    className="cursor-pointer select-none transition-colors hover:text-foreground"
+                    onClick={() =>
+                      setSort((prev) => {
+                        if (prev?.key === "data_liquidacao_prevista")
+                          return prev.dir === "desc"
+                            ? { key: "data_liquidacao_prevista", dir: "asc" }
+                            : { key: "desvio_previsao_dias", dir: "desc" };
+                        if (prev?.key === "desvio_previsao_dias")
+                          return prev.dir === "desc"
+                            ? { key: "desvio_previsao_dias", dir: "asc" }
+                            : { key: "data_liquidacao_prevista", dir: "desc" };
+                        return { key: "data_liquidacao_prevista", dir: "desc" };
+                      })
+                    }
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Previsto
+                      {sort?.key === "desvio_previsao_dias" && (
+                        <span className="text-[10px] text-muted-foreground">desvio</span>
+                      )}
+                      {sort?.key === "data_liquidacao_prevista" ||
+                      sort?.key === "desvio_previsao_dias" ? (
+                        sort.dir === "asc" ? (
+                          <ArrowUp className="h-3 w-3 opacity-60" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3 opacity-60" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-60" />
+                      )}
+                    </span>
+                  </TableHead>
                   <SortTh label="Recebido em" sortKey="data_recebimento_efetiva" sort={sort} setSort={setSort} />
                   <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
                   <SortTh label="Status" sortKey="estado_ordem" sort={sort} setSort={setSort} />
@@ -1207,7 +1337,25 @@ function AbaB2B() {
                   const desconto = Number(t.valor_desconto ?? 0);
                   return (
                     <TableRow key={t.id} className={atrasado ? "bg-red-50/40" : undefined}>
-                      <TableCell className="font-mono text-xs">{t.nf_numero ?? "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {t.faturado === false ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className="cursor-help border-amber-500/60 text-amber-700"
+                              >
+                                Sem NF
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Título existe sem nota fiscal emitida.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          (t.nf_numero ?? "—")
+                        )}
+                      </TableCell>
                       <TableCell className="max-w-[180px] truncate" title={t.cliente ?? ""}>
                         {t.cliente ?? "—"}
                       </TableCell>
@@ -1268,15 +1416,32 @@ function AbaB2B() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {t.data_liquidacao ? (
+                        {t.data_liquidacao_prevista ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="cursor-help">{formatDateBR(t.data_liquidacao)}</span>
+                              <div className="cursor-help">
+                                <span>{formatDateBR(t.data_liquidacao_prevista)}</span>
+                                {t.desvio_previsao_dias != null && (
+                                  <div
+                                    className={`text-xs tabular-nums ${
+                                      Number(t.desvio_previsao_dias) > 0
+                                        ? "text-destructive"
+                                        : "text-emerald-700"
+                                    }`}
+                                  >
+                                    {Number(t.desvio_previsao_dias) === 0
+                                      ? "no dia"
+                                      : `${Number(t.desvio_previsao_dias) > 0 ? "+" : ""}${
+                                          t.desvio_previsao_dias
+                                        }d`}
+                                  </div>
+                                )}
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
-                                Previsão pela régua de recebimento. Para boleto é o próprio
-                                vencimento.
+                                Previsão da régua de recebimento. O desvio compara com a data
+                                confirmada pelo banco — só existe quando há prova bancária.
                               </p>
                             </TooltipContent>
                           </Tooltip>
