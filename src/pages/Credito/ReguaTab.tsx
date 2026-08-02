@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
+import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
