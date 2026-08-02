@@ -20,6 +20,8 @@ export type HipoteseResumoRow = {
   permite_lote: boolean | null;
   evidencia_texto: string | null;
   valor_em_jogo: number | null;
+  confianca_ordem: number | null;
+  classe_alvo: string[] | null;
 };
 
 export function useHipoteseMap() {
@@ -45,14 +47,25 @@ export function useHipoteseMap() {
     return m;
   }, [q.data]);
 
-  /** Hipótese principal do pedido: a de maior confiança (alta > média > resto). */
-  const principal = (pedidoId: string | null | undefined): HipoteseResumoRow | null => {
-    if (!pedidoId) return null;
+  /**
+   * Hipótese principal do pedido para uma classe de achado.
+   * Só vale se `classe_alvo` contiver a classe do achado; ordena por
+   * `confianca_ordem` (menor primeiro) — cor é só estilo.
+   */
+  const principal = (
+    pedidoId: string | null | undefined,
+    classeDoAchado?: string | null,
+  ): HipoteseResumoRow | null => {
+    if (!pedidoId || !classeDoAchado) return null;
     const arr = mapa.get(pedidoId);
     if (!arr || arr.length === 0) return null;
-    const peso = (h: HipoteseResumoRow) =>
-      h.confianca_cor === "emerald" ? 0 : h.confianca_cor === "amber" ? 1 : 2;
-    return [...arr].sort((a, b) => peso(a) - peso(b))[0];
+    const aplicaveis = arr.filter(
+      (h) => Array.isArray(h.classe_alvo) && h.classe_alvo.includes(classeDoAchado),
+    );
+    if (aplicaveis.length === 0) return null;
+    return [...aplicaveis].sort(
+      (a, b) => (a.confianca_ordem ?? 999) - (b.confianca_ordem ?? 999),
+    )[0];
   };
 
   return { mapa, principal, isLoading: q.isLoading, isError: q.isError, error: q.error };
