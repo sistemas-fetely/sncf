@@ -568,22 +568,26 @@ export default function AuditoriaFinanceira() {
         </div>
         <div className="col-span-12 md:col-span-4 space-y-2 text-sm">
           <div className="text-muted-foreground">{a.detalhe || "—"}</div>
-          {a.acao && (
-            <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-0.5">
-                Ação
+          {hip ? (
+            <HipoteseResumo h={hip} />
+          ) : (
+            a.acao && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-0.5">
+                  Ação
+                </div>
+                <div className="leading-snug text-foreground">{a.acao}</div>
               </div>
-              <div className="leading-snug text-foreground">{a.acao}</div>
-            </div>
+            )
           )}
-          {a.rota_solucao ? (
+          {rotaFinal ? (
             <div className="space-y-1">
-              <Button size="sm" variant="outline" onClick={() => navigate(a.rota_solucao as string)}>
-                {a.rotulo_acao || "Abrir tela de resolução"}
+              <Button size="sm" variant="outline" onClick={() => navigate(rotaFinal)}>
+                {hip?.rota ? `Ir para ${telaFinal || "tela de resolução"}` : a.rotulo_acao || "Abrir tela de resolução"}
                 <ArrowUpRight className="h-3.5 w-3.5 ml-1.5" />
               </Button>
               <div className="text-xs text-muted-foreground">
-                Resolve em: {a.tela_solucao || "—"}
+                Resolve em: {telaFinal || "—"}
               </div>
               {a.rota_observacao && (
                 <div className="text-xs text-muted-foreground">{a.rota_observacao}</div>
