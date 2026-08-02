@@ -1224,19 +1224,45 @@ function AbaB2B() {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Situação</Label>
+            <Label className="text-xs">Prova — onde está o dinheiro</Label>
             <div className="flex flex-wrap gap-2">
-              {ESTADOS.map((s) => (
+              {PROVAS.map((p) => (
                 <Button
-                  key={s.key}
+                  key={p}
                   size="sm"
-                  variant={situacoes.has(s.key) ? "default" : "outline"}
-                  onClick={() => toggleSituacao(s.key)}
+                  variant={provasAtivas.has(p) ? "default" : "outline"}
+                  onClick={() => toggleProva(p)}
                 >
-                  {s.label} ({contagens[s.key] ?? 0})
+                  {PROVA_META[p].label} ({contagensProva[p] ?? 0})
                 </Button>
               ))}
             </div>
+            <Label className="text-xs pt-2 block">Prazo — onde está o cliente</Label>
+            <div className="flex flex-wrap gap-2">
+              {PRAZOS.map((p) => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={prazosAtivos.has(p) ? "default" : "outline"}
+                  onClick={() => togglePrazo(p)}
+                >
+                  {PRAZO_META[p].label} ({contagensPrazo[p] ?? 0})
+                </Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                size="sm"
+                variant={soInadimplentes ? "default" : "outline"}
+                onClick={() => {
+                  setSoInadimplentes((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só inadimplentes ({qtdInadimplentes})
+              </Button>
+            </div>
+
             <div className="flex flex-wrap gap-2 pt-1">
               <Button
 
