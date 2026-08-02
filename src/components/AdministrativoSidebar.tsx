@@ -9,7 +9,7 @@
  * sncf_documentacao slug "arquitetura-sistemas-fetely" v2 → seção 3 → Administrativo Fetely.
  */
 
-import { Building2, ShieldCheck, FileSignature, FolderArchive, ShoppingCart, ClipboardList, UsersRound, Landmark, Users, Upload, Layers, FileWarning } from "lucide-react";
+import { Building2, ShieldCheck, FileSignature, FolderArchive, ShoppingCart, ClipboardList, UsersRound, Landmark, Users, Upload, Layers, FileWarning, Filter } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
@@ -47,9 +47,12 @@ const parceirosItems: MenuItem[] = [];
 const vendasItems: MenuItem[] = [];
 
 // Grupo 4: Documentos (migrado de Finanças em 31/05/2026)
+// Ordem e rótulos espelham sncf_navegacao > grupo fin.entrada_docs.
+// Quando esta sidebar migrar para table-driven, este array sai — a fonte é a tabela.
 const documentosItems: MenuItem[] = [
-  { title: "Importar Dados", url: "/administrativo-fetely/importar", icon: Upload },
   { title: "NFs em Stage", url: "/administrativo-fetely/nfs-stage", icon: Layers },
+  { title: "Importar Dados", url: "/administrativo-fetely/importar", icon: Upload },
+  { title: "Motor de Classificação", url: "/administrativo-fetely/motor-classificacao", icon: Filter },
   { title: "Documentos Pendentes", url: "/administrativo-fetely/documentos-pendentes", icon: FileWarning },
 ];
 
