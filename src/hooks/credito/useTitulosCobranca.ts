@@ -39,8 +39,7 @@ export interface TituloCobranca {
 
   boleto_status: string | null;
   boleto_codigo_rejeicao: string | null;
-  /** @deprecated vocabulário antigo — use eixo_prova / eixo_status. Ainda lido por telas legadas. */
-  status_gestao: string;
+  status_gestao: StatusGestao;
 
   dias_atraso: number;
   valor_bruto: number;
