@@ -565,7 +565,7 @@ function AbaB2B() {
   const breakdownMeio = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const t of base) {
-      if (t.eixo_prova !== "registrado" && t.eixo_prova !== "compensado") continue;
+      if (t.eixo_status !== "a_vencer" && t.eixo_status !== "pago") continue;
       if (SEM_CAIXA.includes(t.meio_pagamento ?? "")) continue;
       const meio = t.meio_pagamento ?? "—";
       mapa.set(meio, (mapa.get(meio) ?? 0) + efetivoDe(t));
