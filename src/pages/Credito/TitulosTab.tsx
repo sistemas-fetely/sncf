@@ -1128,7 +1128,7 @@ export default function TitulosTab() {
                       )}
 
                       {/* Baixa manual — em qualquer estágio (registro de pagamento por fora) */}
-                      {detalhe.status_gestao !== "pago" && detalhe.status_gestao !== "cancelado" && (
+                      {detalhe.eixo_status === "a_vencer" && (
                         <div className="flex flex-col gap-1">
                           <Button variant="outline" onClick={() => setBaixando(detalhe)}>
                             Baixa manual — cliente pagou por fora
