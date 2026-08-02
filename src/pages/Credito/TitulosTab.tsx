@@ -281,15 +281,62 @@ function tipoLabel(t: string): string {
     cartao_debito: "Cartão",
     cartao_sem_juros: "Cartão s/j",
     haver: "Haver",
-    troca: "Troca",
+    troca_mercadoria: "Troca",
   };
   return map[t] ?? t ?? "—";
 }
+
+const TIPOS_FILTRO: TipoFiltro[] = [
+  "todos",
+  "boleto",
+  "pix",
+  "cartao",
+  "haver",
+  "troca_mercadoria",
+];
 
 function matchTipo(filtro: TipoFiltro, tipo: string): boolean {
   if (filtro === "todos") return true;
   if (filtro === "cartao") return (tipo ?? "").startsWith("cartao");
   return tipo === filtro;
+}
+
+/* ── predicados puros: cada estágio do filtro usa exatamente estes ── */
+
+function matchBusca(t: TituloCobranca, q: string): boolean {
+  if (!q) return true;
+  const alvo = [t.parceiro_razao_social, t.parceiro_cnpj, t.pedido_id_externo, t.numero_titulo]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return alvo.includes(q);
+}
+
+function matchData(t: TituloCobranca, vencDe: string, vencAte: string): boolean {
+  if (vencDe && (t.data_vencimento_atual ?? "") < vencDe) return false;
+  if (vencAte && (t.data_vencimento_atual ?? "") > vencAte) return false;
+  return true;
+}
+
+function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): boolean {
+  if (cards.has("todos")) {
+    // "Todos" LISTA tudo, inclusive encerrados (devolvido/cancelado),
+    // que continuam fora dos números dos cards.
+    return true;
+  }
+  const passa =
+    (cards.has("a_vencer") && t.status_gestao === "a_vencer") ||
+    (cards.has("vence_hoje") && t.status_gestao === "vence_hoje") ||
+    (cards.has("atrasado") && t.eh_inadimplencia === true) ||
+    (cards.has("aguarda_liquidacao") && t.status_gestao === "aguarda_liquidacao") ||
+    (cards.has("pago_no_mes") &&
+      (t.status_gestao === "pago" ||
+        t.status_gestao === "pago_com_atraso" ||
+        t.status_gestao === "pago_judicial") &&
+      (t.data_liquidacao_real ?? "").slice(0, 7) === mesAtual);
+  if (!passa) return false;
+  // fora de "todos", encerrado não aparece
+  return tituloEntraNoKpi(t);
 }
 
 export default function TitulosTab() {
