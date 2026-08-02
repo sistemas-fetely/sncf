@@ -71,7 +71,8 @@ const NFPagamentoEmail = ({ nomeColaborador, nomeEmpresa, nomeFantasia, numeroNF
       </Container>
     </Body>
   </Html>
-)
+  )
+}
 
 export const template = {
   component: NFPagamentoEmail,

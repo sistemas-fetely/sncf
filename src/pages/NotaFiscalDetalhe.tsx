@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
 import { toast } from "sonner";
+import { nomeCanonico } from "@/lib/parceiros/nome";
 import { format, parseISO } from "date-fns";
 import { useParametros } from "@/hooks/useParametros";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -542,7 +543,7 @@ export default function NotaFiscalDetalhe() {
                       metadata: { nota_fiscal_id: nota.id },
                       templateData: {
                         nomeColaborador: contrato?.contato_nome || '',
-                        nomeFantasia: contrato?.nome_fantasia || '',
+                        nomeEmpresa: nomeCanonico(contrato?.razao_social, ''),
                         numeroNF: nota.numero,
                         valor: formatCurrency(nota.valor),
                         dataVencimento: formatDate(nota.data_vencimento),
