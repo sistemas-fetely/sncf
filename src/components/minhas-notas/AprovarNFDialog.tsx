@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Props {
@@ -91,7 +92,7 @@ export function AprovarNFDialog({ open, onOpenChange, tarefaId, notaId }: Props)
             idempotencyKey: `nf-pag-${notaId}-${Date.now()}`,
             templateData: {
               nomeColaborador: contrato?.contato_nome,
-              nomeFantasia: contrato?.nome_fantasia || contrato?.razao_social,
+              nomeEmpresa: nomeCanonico(contrato?.razao_social, ""),
               numeroNF: detalhe.nota.numero,
               valor: `R$ ${Number(detalhe.nota.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
               dataVencimento: detalhe.nota.data_vencimento || detalhe.nota.data_emissao,
@@ -184,8 +185,13 @@ export function AprovarNFDialog({ open, onOpenChange, tarefaId, notaId }: Props)
                   <div>
                     <p className="font-medium text-sm">{contrato?.contato_nome}</p>
                     <p className="text-xs text-muted-foreground">
-                      {contrato?.nome_fantasia || contrato?.razao_social} · CNPJ {contrato?.cnpj}
+                      {nomeCanonico(contrato?.razao_social, "—")} · CNPJ {contrato?.cnpj}
                     </p>
+                    {apelidoParceiro(contrato?.razao_social, contrato?.nome_fantasia) && (
+                      <p className="text-xs text-muted-foreground">
+                        {apelidoParceiro(contrato?.razao_social, contrato?.nome_fantasia)}
+                      </p>
+                    )}
                   </div>
                   <Badge variant="outline">Comp. {nota.competencia}</Badge>
                 </div>
