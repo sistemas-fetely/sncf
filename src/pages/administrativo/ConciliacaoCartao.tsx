@@ -714,6 +714,10 @@ function AbaVincularVendas() {
                   )}
                   {decidir.map((v) => {
                     const isOpen = !!expanded[v.nsu];
+                    const viaveis = v.candidatos.filter(ehViavel);
+                    const inviaveis = v.candidatos.filter((c) => !ehViavel(c));
+                    const semViavel = viaveis.length === 0;
+                    const descartadosAbertos = !!descartados[v.nsu];
                     return (
                       <Fragment key={v.nsu}>
                         <TableRow className="cursor-pointer" onClick={() => setExpanded((e) => ({ ...e, [v.nsu]: !e[v.nsu] }))}>
