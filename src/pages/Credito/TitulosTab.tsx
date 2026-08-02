@@ -54,7 +54,6 @@ import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
 import { BadgePrazo, BadgeProva } from "@/lib/financeiro/eixos-estado";
 
 
-type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca";
 
 type TipoFiltro = "todos" | "boleto" | "pix" | "cartao" | "haver" | "troca_mercadoria";
 
