@@ -3,7 +3,8 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -311,7 +312,9 @@ export default function ConciliacaoCartao() {
 
 type Forca = "exato" | "aproximado" | "fraco";
 
-type VendaSugestao = {
+type Fila = "lote" | "decidir" | "travada" | "vinculada";
+
+type VendaFila = {
   nsu: string;
   data_venda: string;
   produto: string | null;
@@ -334,9 +337,21 @@ type VendaSugestao = {
   dias_nf_venda: number | null;
   divergencia_parcelas: boolean;
   forca: Forca;
+  rn: number;
+  candidatos: number;
+  exatos: number;
+  fila: Fila;
+  eh_melhor_candidato: boolean;
+  elegivel_lote: boolean;
+  nota_sugerida: string | null;
 };
 
-const FORCA_RANK: Record<Forca, number> = { exato: 0, aproximado: 1, fraco: 2 };
+type Venda = {
+  nsu: string;
+  fila: Fila;
+  melhor: VendaFila;
+  candidatos: VendaFila[];
+};
 
 const FORCA_LABEL: Record<Forca, string> = {
   exato: "Exata",
@@ -350,55 +365,70 @@ const FORCA_CLASS: Record<Forca, string> = {
   fraco: "bg-muted text-muted-foreground border-border",
 };
 
+function Delta({ c }: { c: VendaFila }) {
+  const pct = Number(c.delta_pct ?? 0);
+  return (
+    <span className={cn("tabular-nums whitespace-nowrap", Math.abs(pct) > 3 && "text-destructive")}>
+      {formatBRL(Number(c.delta_valor ?? 0))} ({pct.toFixed(2)}%)
+    </span>
+  );
+}
+
 function AbaVincularVendas() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [alvo, setAlvo] = useState<VendaSugestao | null>(null);
+  const [alvo, setAlvo] = useState<VendaFila | null>(null);
   const [nota, setNota] = useState("");
+  const [desmarcados, setDesmarcados] = useState<Record<string, boolean>>({});
+  const [erros, setErros] = useState<Record<string, string>>({});
+  const [loteAberto, setLoteAberto] = useState(false);
+  const [obsLote, setObsLote] = useState("");
+  const [progresso, setProgresso] = useState<{ i: number; n: number } | null>(null);
 
-  const { data: pares = [], isLoading, isError, error } = useQuery({
-    queryKey: ["conciliacao-cartao-vendas"],
+  const { data: linhas = [], isLoading, isError, error } = useQuery({
+    queryKey: ["conciliacao-cartao-fila"],
     queryFn: async () => {
       const { data, error } = await sb
-        .from("vw_safrapay_venda_pedido_sugestao")
-        .select("*");
+        .from("vw_safrapay_venda_fila")
+        .select("*")
+        .order("rn", { ascending: true });
       if (error) throw error;
-      return (data || []) as VendaSugestao[];
+      return (data || []) as VendaFila[];
     },
   });
 
-  const vendas = useMemo(() => {
-    const mapa = new Map<string, VendaSugestao[]>();
-    for (const p of pares) {
-      const arr = mapa.get(p.nsu) || [];
-      arr.push(p);
-      mapa.set(p.nsu, arr);
+  const { lote, decidir, travadas, jaVinculadas } = useMemo(() => {
+    const mapa = new Map<string, VendaFila[]>();
+    for (const l of linhas) {
+      const arr = mapa.get(l.nsu) || [];
+      arr.push(l);
+      mapa.set(l.nsu, arr);
     }
-    const lista = Array.from(mapa.entries()).map(([nsu, candidatos]) => {
-      const ordenados = [...candidatos].sort((a, b) => FORCA_RANK[a.forca] - FORCA_RANK[b.forca]);
-      const forca = ordenados[0].forca;
-      return { nsu, forca, venda: ordenados[0], candidatos: ordenados };
+    const vendas: Venda[] = Array.from(mapa.entries()).map(([nsu, cands]) => {
+      const candidatos = [...cands].sort((a, b) => Number(a.rn) - Number(b.rn));
+      const melhor = candidatos.find((c) => c.eh_melhor_candidato) || candidatos[0];
+      return { nsu, fila: melhor.fila, melhor, candidatos };
     });
-    lista.sort((a, b) =>
-      FORCA_RANK[a.forca] - FORCA_RANK[b.forca] ||
-      Number(b.venda.valor_bruto) - Number(a.venda.valor_bruto)
-    );
-    return lista;
-  }, [pares]);
+    const porValor = (a: Venda, b: Venda) => Number(b.melhor.valor_bruto) - Number(a.melhor.valor_bruto);
+    return {
+      lote: vendas.filter((v) => v.fila === "lote").sort(porValor),
+      decidir: vendas.filter((v) => v.fila === "decidir").sort(porValor),
+      travadas: vendas.filter((v) => v.fila === "travada").sort(porValor),
+      jaVinculadas: vendas.filter((v) => v.fila === "vinculada").length,
+    };
+  }, [linhas]);
 
-  const kpi = useMemo(() => {
-    let exatas = 0, aproximadas = 0, comDivergencia = 0;
-    for (const v of vendas) {
-      if (v.forca === "exato") exatas++;
-      else if (v.forca === "aproximado") aproximadas++;
-      if (v.candidatos.some((c) => c.divergencia_parcelas)) comDivergencia++;
-    }
-    return { exatas, aproximadas, comDivergencia };
-  }, [vendas]);
+  const soma = (vs: Venda[]) => vs.reduce((s, v) => s + Number(v.melhor.valor_bruto), 0);
+
+  const selecionadas = useMemo(
+    () => lote.filter((v) => !desmarcados[v.nsu]),
+    [lote, desmarcados]
+  );
+  const todasMarcadas = lote.length > 0 && selecionadas.length === lote.length;
 
   const vincular = useMutation({
-    mutationFn: async ({ c, obs }: { c: VendaSugestao; obs: string }) => {
+    mutationFn: async ({ c, obs }: { c: VendaFila; obs: string }) => {
       const { data, error } = await sb.rpc("vincular_venda_cartao_pedido", {
         p_nsu: c.nsu,
         p_pedido_id: c.pedido_id,
@@ -415,7 +445,7 @@ function AbaVincularVendas() {
       );
       setAlvo(null);
       setNota("");
-      qc.invalidateQueries({ queryKey: ["conciliacao-cartao-vendas"] });
+      qc.invalidateQueries({ queryKey: ["conciliacao-cartao-fila"] });
       qc.invalidateQueries({ queryKey: ["conciliacao-cartao-sugestoes"] });
     },
     onError: (e: unknown) => {
@@ -425,181 +455,473 @@ function AbaVincularVendas() {
 
   const notaOk = nota.trim().length >= 5;
 
+  async function executarLote() {
+    const alvos = selecionadas.map((v) => v.melhor);
+    const obs = obsLote.trim();
+    const falhas: Record<string, string> = {};
+    let ok = 0;
+    setProgresso({ i: 0, n: alvos.length });
+    for (let i = 0; i < alvos.length; i++) {
+      const c = alvos[i];
+      setProgresso({ i: i + 1, n: alvos.length });
+      try {
+        const notaFinal = `${c.nota_sugerida ?? ""}${obs ? " " + obs : ""}`.trim();
+        const { data, error } = await sb.rpc("vincular_venda_cartao_pedido", {
+          p_nsu: c.nsu,
+          p_pedido_id: c.pedido_id,
+          p_nota: notaFinal,
+        });
+        if (error) throw error;
+        const resp = (data ?? {}) as { ok?: boolean; error?: string };
+        if (resp.ok === false) throw new Error(resp.error || "Falha ao vincular venda");
+        ok++;
+      } catch (e) {
+        falhas[c.nsu] = e instanceof Error ? e.message : String(e);
+      }
+    }
+    const n = alvos.length;
+    const f = Object.keys(falhas).length;
+    setErros(falhas);
+    if (f > 0) {
+      setDesmarcados((d) => {
+        const next = { ...d };
+        for (const nsu of Object.keys(falhas)) next[nsu] = true;
+        return next;
+      });
+      toast.error(`${ok} de ${n} vinculadas · ${f} falharam`);
+    } else {
+      toast.success(`${ok} de ${n} vinculadas`);
+    }
+    setProgresso(null);
+    setLoteAberto(false);
+    setObsLote("");
+    qc.invalidateQueries({ queryKey: ["conciliacao-cartao-fila"] });
+    qc.invalidateQueries({ queryKey: ["conciliacao-cartao-sugestoes"] });
+  }
+
+  function OutrosCandidatos({ v }: { v: Venda }) {
+    const outros = v.candidatos.filter((c) => c !== v.melhor);
+    if (!outros.length) return null;
+    return (
+      <div className="space-y-1 py-1">
+        {outros.map((c) => (
+          <div key={c.pedido_id} className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <span className="font-mono">{c.pedido_ref}</span>
+            <span className="truncate max-w-[220px]">{c.cliente || "—"}</span>
+            <span className="tabular-nums">{c.parcelas_no_sistema ?? "—"}x no sistema</span>
+            <span className="font-mono tabular-nums">títulos {formatBRL(Number(c.total_titulos ?? 0))}</span>
+            <span>Δ <Delta c={c} /></span>
+            <Badge variant="outline" className={cn(FORCA_CLASS[c.forca], "text-xs")}>{FORCA_LABEL[c.forca]}</Badge>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <p className="text-sm text-muted-foreground">
-          Vendas SafraPay sem NSU carimbado × pedidos candidatos. Vincular carimba o NSU nos títulos do pedido.
-        </p>
-
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Badge variant="outline" className={cn(FORCA_CLASS.exato, "font-medium")}>
-            {kpi.exatas} exata{kpi.exatas === 1 ? "" : "s"}
-          </Badge>
-          <Badge variant="outline" className={cn(FORCA_CLASS.aproximado, "font-medium")}>
-            {kpi.aproximadas} aproximada{kpi.aproximadas === 1 ? "" : "s"}
-          </Badge>
-          <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 font-medium">
-            {kpi.comDivergencia} com divergência de parcelas
-          </Badge>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted-foreground flex-1 min-w-[280px]">
+            Vendas SafraPay sem NSU carimbado × pedidos candidatos. Vincular carimba o NSU nos títulos do pedido.
+          </p>
+          <Badge variant="outline" className="font-medium">{jaVinculadas} já vinculadas</Badge>
         </div>
 
         {isError && (
           <Card className="border-destructive">
             <CardContent className="p-4 text-sm text-destructive">
-              Erro ao carregar sugestões de venda: {error instanceof Error ? error.message : String(error)}
+              Erro ao carregar a fila de vendas: {error instanceof Error ? error.message : String(error)}
             </CardContent>
           </Card>
         )}
 
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8" />
-                  <TableHead>NSU</TableHead>
-                  <TableHead>Data da venda</TableHead>
-                  <TableHead>Bandeira</TableHead>
-                  <TableHead>Parcelas SafraPay</TableHead>
-                  <TableHead>Valor bruto</TableHead>
-                  <TableHead>Valor líquido</TableHead>
-                  <TableHead>Força</TableHead>
-                  <TableHead>Candidatos</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading && (
+        {isLoading && (
+          <div className="py-8 text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></div>
+        )}
+
+        {/* Seção A */}
+        {!isLoading && !isError && (
+          <Card className="border-emerald-500/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">
+                Prontas para vincular · {lote.length} vendas · {formatBRL(soma(lote))}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="flex flex-wrap items-center gap-3 px-4 pb-3 border-b">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={todasMarcadas}
+                    disabled={!lote.length || !!progresso}
+                    onCheckedChange={(v) => {
+                      if (v) setDesmarcados({});
+                      else setDesmarcados(Object.fromEntries(lote.map((l) => [l.nsu, true])));
+                    }}
+                  />
+                  Selecionar todas
+                </label>
+                <Button
+                  size="sm"
+                  className="gap-1"
+                  disabled={selecionadas.length === 0 || !!progresso}
+                  onClick={() => { setObsLote(""); setLoteAberto(true); }}
+                >
+                  {progresso ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+                  Vincular {selecionadas.length} selecionadas
+                </Button>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {progresso ? `${progresso.i}/${progresso.n}` : `${selecionadas.length} selecionada${selecionadas.length === 1 ? "" : "s"}`}
+                </span>
+              </div>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      <Loader2 className="h-4 w-4 animate-spin inline" />
-                    </TableCell>
+                    <TableHead className="w-8" />
+                    <TableHead>NSU</TableHead>
+                    <TableHead>Data da venda</TableHead>
+                    <TableHead>Bandeira</TableHead>
+                    <TableHead>Parcelas</TableHead>
+                    <TableHead>Valor bruto</TableHead>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Δ</TableHead>
+                    <TableHead />
                   </TableRow>
-                )}
-                {!isLoading && !isError && vendas.length === 0 && (
+                </TableHeader>
+                <TableBody>
+                  {lote.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                        Nenhuma venda pronta para vínculo em lote.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {lote.map((v) => {
+                    const c = v.melhor;
+                    const isOpen = !!expanded[v.nsu];
+                    return (
+                      <Fragment key={v.nsu}>
+                        <TableRow>
+                          <TableCell>
+                            <Checkbox
+                              checked={!desmarcados[v.nsu]}
+                              disabled={!!progresso}
+                              onCheckedChange={(val) =>
+                                setDesmarcados((d) => ({ ...d, [v.nsu]: !val }))
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="font-mono text-xs whitespace-nowrap">{v.nsu}</TableCell>
+                          <TableCell className="text-sm whitespace-nowrap">{formatDateBR(c.data_venda)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">{c.produto || "—"}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm tabular-nums">{c.parcelas_safrapay}x</TableCell>
+                          <TableCell className="font-mono font-semibold tabular-nums whitespace-nowrap">
+                            {formatBRL(Number(c.valor_bruto))}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="link"
+                              className="h-auto p-0 font-mono text-xs"
+                              onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                            >
+                              {c.pedido_ref}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[200px]">
+                            <span className="block truncate">{c.cliente || "—"}</span>
+                          </TableCell>
+                          <TableCell className="text-xs"><Delta c={c} /></TableCell>
+                          <TableCell>
+                            {Number(c.candidatos) > 1 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto py-1 text-xs text-muted-foreground gap-1"
+                                onClick={() => setExpanded((e) => ({ ...e, [v.nsu]: !e[v.nsu] }))}
+                              >
+                                {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                ver outros ({Number(c.candidatos) - 1})
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                        {erros[v.nsu] && (
+                          <TableRow className="hover:bg-transparent">
+                            <TableCell />
+                            <TableCell colSpan={9} className="pt-0 text-xs text-destructive">
+                              {erros[v.nsu]}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {isOpen && (
+                          <TableRow className="bg-muted/30 hover:bg-muted/30">
+                            <TableCell />
+                            <TableCell colSpan={9}><OutrosCandidatos v={v} /></TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Seção B */}
+        {!isLoading && !isError && (
+          <Card className="border-amber-500/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">
+                Precisam de decisão · {decidir.length} vendas · {formatBRL(soma(decidir))}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Nenhuma candidata bate no centavo. A diferença costuma ser desconto ou frete entre o pedido e o valor passado no cartão.
+              </p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                      Nenhuma venda SafraPay pendente de vínculo com pedido.
-                    </TableCell>
+                    <TableHead className="w-8" />
+                    <TableHead>NSU</TableHead>
+                    <TableHead>Data da venda</TableHead>
+                    <TableHead>Bandeira</TableHead>
+                    <TableHead>Parcelas</TableHead>
+                    <TableHead>Valor bruto</TableHead>
+                    <TableHead>Valor líquido</TableHead>
+                    <TableHead>Candidatos</TableHead>
                   </TableRow>
-                )}
-                {vendas.map((v) => {
-                  const isOpen = !!expanded[v.nsu];
-                  return (
-                    <Fragment key={v.nsu}>
-                      <TableRow className="cursor-pointer" onClick={() => setExpanded((e) => ({ ...e, [v.nsu]: !e[v.nsu] }))}>
-                        <TableCell>
-                          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                        </TableCell>
+                </TableHeader>
+                <TableBody>
+                  {decidir.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                        Nenhuma venda pendente de decisão.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {decidir.map((v) => {
+                    const isOpen = !!expanded[v.nsu];
+                    return (
+                      <Fragment key={v.nsu}>
+                        <TableRow className="cursor-pointer" onClick={() => setExpanded((e) => ({ ...e, [v.nsu]: !e[v.nsu] }))}>
+                          <TableCell>
+                            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs whitespace-nowrap">{v.nsu}</TableCell>
+                          <TableCell className="text-sm whitespace-nowrap">{formatDateBR(v.melhor.data_venda)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">{v.melhor.produto || "—"}</Badge>
+                            {v.melhor.modalidade && (
+                              <div className="text-xs text-muted-foreground mt-1">{v.melhor.modalidade}</div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm tabular-nums">{v.melhor.parcelas_safrapay}x</TableCell>
+                          <TableCell className="font-mono font-semibold tabular-nums whitespace-nowrap">
+                            {formatBRL(Number(v.melhor.valor_bruto))}
+                          </TableCell>
+                          <TableCell className="tabular-nums whitespace-nowrap">
+                            {formatBRL(Number(v.melhor.valor_liquido))}
+                            <div className="text-xs text-muted-foreground">MDR {formatBRL(Number(v.melhor.mdr))}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {Number(v.melhor.candidatos)} candidato{Number(v.melhor.candidatos) === 1 ? "" : "s"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                        {isOpen && (
+                          <TableRow className="bg-muted/30 hover:bg-muted/30">
+                            <TableCell />
+                            <TableCell colSpan={7} className="py-2">
+                              <div className="space-y-2">
+                                {v.candidatos.map((c) => {
+                                  const bloqueado = c.divergencia_parcelas || c.ja_tem_nsu;
+                                  const motivo = c.divergencia_parcelas
+                                    ? "Corrija o número de parcelas do título antes de vincular — carimbar o NSU aqui esconderia o furo."
+                                    : c.ja_tem_nsu
+                                      ? "Pedido já vinculado a este NSU."
+                                      : null;
+                                  const btn = (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="gap-1"
+                                      disabled={bloqueado || vincular.isPending}
+                                      onClick={() => { setAlvo(c); setNota(""); }}
+                                    >
+                                      <Link2 className="h-3.5 w-3.5" />
+                                      Vincular
+                                    </Button>
+                                  );
+                                  return (
+                                    <div key={c.pedido_id} className="flex flex-wrap items-center justify-between gap-3 text-xs py-2 border-b border-border/40 last:border-0">
+                                      <div className="flex flex-wrap items-center gap-3 min-w-0">
+                                        <Button
+                                          variant="link"
+                                          className="h-auto p-0 font-mono text-xs"
+                                          onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                                        >
+                                          {c.pedido_ref}
+                                        </Button>
+                                        <span className="truncate max-w-[240px]">{c.cliente || "—"}</span>
+                                        <span className="text-muted-foreground whitespace-nowrap">
+                                          NF {formatDateBR(c.nf_data)} · {c.dias_nf_venda ?? "—"} dias
+                                        </span>
+                                        <span className="tabular-nums whitespace-nowrap">
+                                          {c.parcelas_no_sistema ?? "—"}x no sistema
+                                        </span>
+                                        <span className="font-mono tabular-nums whitespace-nowrap">
+                                          títulos {formatBRL(Number(c.total_titulos ?? 0))}
+                                        </span>
+                                        <span>Δ <Delta c={c} /></span>
+                                        {c.divergencia_parcelas && (
+                                          <Badge variant="destructive" className="text-xs">
+                                            Parcelas: sistema {c.parcelas_no_sistema ?? "—"} × SafraPay {c.parcelas_safrapay}
+                                          </Badge>
+                                        )}
+                                        {c.ja_tem_nsu && (
+                                          <Badge variant="outline" className="text-xs font-mono">NSU {c.nsu_atual}</Badge>
+                                        )}
+                                      </div>
+                                      {motivo ? (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
+                                          <TooltipContent><p className="max-w-xs">{motivo}</p></TooltipContent>
+                                        </Tooltip>
+                                      ) : btn}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Seção C */}
+        {!isLoading && !isError && (
+          <Card className="border-destructive/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">
+                Travadas · {travadas.length} vendas · {formatBRL(soma(travadas))}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Corrija o número de parcelas do título antes de vincular. Carimbar o NSU aqui esconderia o furo.
+              </p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>NSU</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Parcelas</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {travadas.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        Nenhuma venda travada.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {travadas.map((v) => {
+                    const c = v.melhor;
+                    return (
+                      <TableRow key={v.nsu}>
                         <TableCell className="font-mono text-xs whitespace-nowrap">{v.nsu}</TableCell>
-                        <TableCell className="text-sm whitespace-nowrap">{formatDateBR(v.venda.data_venda)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">{v.venda.produto || "—"}</Badge>
-                          {v.venda.modalidade && (
-                            <div className="text-xs text-muted-foreground mt-1">{v.venda.modalidade}</div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm tabular-nums">{v.venda.parcelas_safrapay}x</TableCell>
+                        <TableCell className="text-sm whitespace-nowrap">{formatDateBR(c.data_venda)}</TableCell>
                         <TableCell className="font-mono font-semibold tabular-nums whitespace-nowrap">
-                          {formatBRL(Number(v.venda.valor_bruto))}
-                        </TableCell>
-                        <TableCell className="tabular-nums whitespace-nowrap">
-                          {formatBRL(Number(v.venda.valor_liquido))}
-                          <div className="text-xs text-muted-foreground">MDR {formatBRL(Number(v.venda.mdr))}</div>
+                          {formatBRL(Number(c.valor_bruto))}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={cn(FORCA_CLASS[v.forca], "text-xs font-medium")}>
-                            {FORCA_LABEL[v.forca]}
-                          </Badge>
+                          <Button
+                            variant="link"
+                            className="h-auto p-0 font-mono text-xs"
+                            onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                          >
+                            {c.pedido_ref}
+                          </Button>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {v.candidatos.length} candidato{v.candidatos.length === 1 ? "" : "s"}
+                          <Badge variant="destructive" className="text-xs">
+                            Parcelas: sistema {c.parcelas_no_sistema ?? "—"} × SafraPay {c.parcelas_safrapay}
                           </Badge>
                         </TableCell>
                       </TableRow>
-                      {isOpen && (
-                        <TableRow className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell />
-                          <TableCell colSpan={8} className="py-2">
-                            <div className="space-y-2">
-                              {v.candidatos.map((c) => {
-                                const pct = Number(c.delta_pct ?? 0);
-                                const bloqueado = c.divergencia_parcelas || c.ja_tem_nsu;
-                                const motivo = c.divergencia_parcelas
-                                  ? "Corrija o número de parcelas do título antes de vincular — carimbar o NSU aqui esconderia o furo."
-                                  : c.ja_tem_nsu
-                                    ? "Pedido já vinculado a este NSU."
-                                    : null;
-                                const btn = (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1"
-                                    disabled={bloqueado || vincular.isPending}
-                                    onClick={() => { setAlvo(c); setNota(""); }}
-                                  >
-                                    <Link2 className="h-3.5 w-3.5" />
-                                    Vincular
-                                  </Button>
-                                );
-                                return (
-                                  <div key={c.pedido_id} className="flex flex-wrap items-center justify-between gap-3 text-xs py-2 border-b border-border/40 last:border-0">
-                                    <div className="flex flex-wrap items-center gap-3 min-w-0">
-                                      <Button
-                                        variant="link"
-                                        className="h-auto p-0 font-mono text-xs"
-                                        onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
-                                      >
-                                        {c.pedido_ref}
-                                      </Button>
-                                      <span className="truncate max-w-[240px]">{c.cliente || "—"}</span>
-                                      <span className="text-muted-foreground whitespace-nowrap">
-                                        NF {formatDateBR(c.nf_data)} · {c.dias_nf_venda ?? "—"} dias
-                                      </span>
-                                      <span className="tabular-nums whitespace-nowrap">
-                                        {c.parcelas_no_sistema ?? "—"}x no sistema
-                                      </span>
-                                      <span className="font-mono tabular-nums whitespace-nowrap">
-                                        títulos {formatBRL(Number(c.total_titulos ?? 0))}
-                                      </span>
-                                      <span className={cn("tabular-nums whitespace-nowrap", Math.abs(pct) > 3 && "text-destructive")}>
-                                        Δ {formatBRL(Number(c.delta_valor ?? 0))} ({pct.toFixed(2)}%)
-                                      </span>
-                                      {c.divergencia_parcelas && (
-                                        <Badge variant="destructive" className="text-xs">
-                                          Parcelas: sistema {c.parcelas_no_sistema ?? "—"} × SafraPay {c.parcelas_safrapay}
-                                        </Badge>
-                                      )}
-                                      {c.ja_tem_nsu && (
-                                        <Badge variant="outline" className="text-xs font-mono">NSU {c.nsu_atual}</Badge>
-                                      )}
-                                    </div>
-                                    {motivo ? (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
-                                        <TooltipContent><p className="max-w-xs">{motivo}</p></TooltipContent>
-                                      </Tooltip>
-                                    ) : btn}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
         <p className="text-xs text-muted-foreground">
           Três pernas: vincular a venda ao pedido carimba o NSU nos títulos; conciliar o extrato casa o crédito do OFX com as liquidações SafraPay; com NSU nos dois lados, a parcela casa com o título sem ambiguidade. Sistema sugere, humano confirma — força exata não dispensa conferência.
         </p>
 
+        {/* Diálogo do lote */}
+        <AlertDialog open={loteAberto} onOpenChange={(v) => { if (!v && !progresso) { setLoteAberto(false); setObsLote(""); } }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Vincular {selecionadas.length} vendas</AlertDialogTitle>
+              <AlertDialogDescription>
+                Todas têm candidata exata e única. O NSU será carimbado em todas as parcelas de cada pedido e a previsão passa a contar da data da venda.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="max-h-56 overflow-y-auto rounded border border-border/60 p-2 space-y-1 text-xs">
+              {selecionadas.map((v) => (
+                <div key={v.nsu} className="flex flex-wrap items-center gap-2 tabular-nums">
+                  <span className="font-mono">{v.nsu}</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="font-mono">{v.melhor.pedido_ref}</span>
+                  <span>· {formatBRL(Number(v.melhor.valor_bruto))}</span>
+                  <span>· Δ {formatBRL(Number(v.melhor.delta_valor ?? 0))}</span>
+                </div>
+              ))}
+            </div>
+
+            <Textarea
+              value={obsLote}
+              onChange={(e) => setObsLote(e.target.value)}
+              placeholder="Observação (opcional) — a evidência de cada vínculo é registrada automaticamente."
+              disabled={!!progresso}
+            />
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={!!progresso}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!!progresso || selecionadas.length === 0}
+                onClick={(e) => { e.preventDefault(); void executarLote(); }}
+              >
+                {progresso ? (
+                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />{progresso.i}/{progresso.n}</>
+                ) : (
+                  <><Link2 className="h-4 w-4 mr-2" />Vincular {selecionadas.length} vendas</>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Diálogo individual (Seção B) */}
         <AlertDialog open={!!alvo} onOpenChange={(v) => { if (!v && !vincular.isPending) { setAlvo(null); setNota(""); } }}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -625,9 +947,7 @@ function AbaVincularVendas() {
                   <p className="font-mono tabular-nums font-semibold">{formatBRL(Number(alvo.total_titulos ?? 0))}</p>
                   <p className="tabular-nums">{alvo.parcelas_no_sistema ?? "—"}x</p>
                 </div>
-                <div className={cn("col-span-2 text-xs tabular-nums", Math.abs(Number(alvo.delta_pct ?? 0)) > 3 && "text-destructive")}>
-                  Δ {formatBRL(Number(alvo.delta_valor ?? 0))} ({Number(alvo.delta_pct ?? 0).toFixed(2)}%)
-                </div>
+                <div className="col-span-2 text-xs">Δ <Delta c={alvo} /></div>
               </div>
             )}
 
