@@ -2,19 +2,20 @@
 import * as React from 'npm:react@18.3.1'
 import { Body, Container, Head, Hr, Html, Preview, Section, Text, Button } from 'npm:@react-email/components@0.0.22'
 
+const APP_URL = "https://sncf.lovable.app"
+
 interface Props {
   nome_candidato?: string
   cargo?: string
-  link_entrega?: string
-  link_sistema?: string
+  vaga_id?: string
 }
 
 export function TesteTecnicoEntregue({
   nome_candidato = "Candidato",
   cargo = "a vaga",
-  link_entrega = "",
-  link_sistema = "",
+  vaga_id = "",
 }: Props) {
+  const link_sistema = vaga_id ? `${APP_URL}/recrutamento/${vaga_id}` : `${APP_URL}/recrutamento`
   return (
     <Html>
       <Head />
