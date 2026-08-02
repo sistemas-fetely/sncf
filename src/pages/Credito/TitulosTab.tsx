@@ -354,9 +354,13 @@ export default function TitulosTab() {
   const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);
   const [confirmarEnvioPix, setConfirmarEnvioPix] = useState<TituloCobranca | null>(null);
 
-  const [cardsAtivos, setCardsAtivos] = useState<Set<string>>(
-    new Set(["a_vencer", "vence_hoje", "atrasado"]),
+  /* Eixo status é o recorte default: encerrados (devolvido/cancelado) ficam fora. */
+  const [provaFiltro, setProvaFiltro] = useState<Set<EixoProva>>(new Set());
+  const [statusFiltro, setStatusFiltro] = useState<Set<EixoStatus>>(
+    new Set<EixoStatus>(["a_vencer", "pago", "compensado"]),
   );
+  const [soInadimplentes, setSoInadimplentes] = useState(false);
+
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("todos");
   const [busca, setBusca] = useState("");
   const [vencDe, setVencDe] = useState("");
