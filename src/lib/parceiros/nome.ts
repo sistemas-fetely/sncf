@@ -36,3 +36,20 @@ export function parceiroCombina(termo: string, razao?: string | null, fantasia?:
     (digitos.length > 0 && (cnpj ?? "").replace(/\D/g, "").includes(digitos))
   );
 }
+
+/**
+ * Nome de PESSOA em contrato PJ — uso exclusivo do modulo Pessoas.
+ * No modulo Pessoas o colaborador PJ e identificado pela PESSOA (contato_nome);
+ * a razao social e contexto secundario, e o nome fantasia da empresa NAO e
+ * usado para identificar pessoa. Fora do modulo Pessoas, use nomeCanonico/nomeExibicao.
+ */
+export function nomePessoaPJ(
+  contatoNome?: string | null,
+  razaoSocial?: string | null,
+  fallback = "—",
+): string {
+  const c = (contatoNome ?? "").trim();
+  if (c) return c;
+  const r = (razaoSocial ?? "").trim();
+  return r || fallback;
+}
