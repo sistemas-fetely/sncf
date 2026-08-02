@@ -718,7 +718,7 @@ export default function TitulosTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1 items-start">
-                      <BadgeProva eixo={t.eixo_prova} compensadoPor={t.compensado_por} />
+                      <BadgeProva eixo={t.eixo_prova} />
                       {t.tipo_pagamento === "boleto" && t.boleto_status && (
                         <BadgeBoletoStatus
                           status={t.boleto_status}
