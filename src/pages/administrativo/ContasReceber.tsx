@@ -378,16 +378,15 @@ function AbaB2B() {
   const [soDivergentes, setSoDivergentes] = useState(false);
   const [soMeioDivergente, setSoMeioDivergente] = useState(false);
   const [soSemNf, setSoSemNf] = useState(false);
+  const [soInadimplentes, setSoInadimplentes] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
-  const [situacoes, setSituacoes] = useState<Set<EstadoGestao>>(
-    new Set<EstadoGestao>([
-      "conciliado",
-      "confirmado_banco",
-      "baixa_manual",
-      "vencido",
-      "registrado",
-    ])
+  const [provasAtivas, setProvasAtivas] = useState<Set<EixoProva>>(
+    new Set<EixoProva>(["registrado", "compensado", "conciliado"])
   );
+  const [prazosAtivos, setPrazosAtivos] = useState<Set<EixoPrazo>>(
+    new Set<EixoPrazo>(["a_vencer", "vence_hoje", "vencido"])
+  );
+
 
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
