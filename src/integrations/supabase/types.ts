@@ -31924,14 +31924,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -33576,8 +33576,8 @@ export type Database = {
           desvio_previsao_dias: number | null
           dias_prorrogado: number | null
           eh_inadimplencia: boolean | null
-          eixo_prazo: string | null
           eixo_prova: string | null
+          eixo_status: string | null
           estado_cor: string | null
           estado_descricao: string | null
           estado_em_aberto: boolean | null
@@ -34352,8 +34352,8 @@ export type Database = {
           dias_atraso: number | null
           eh_entrada: boolean | null
           eh_inadimplencia: boolean | null
-          eixo_prazo: string | null
           eixo_prova: string | null
+          eixo_status: string | null
           email_cobranca_enviado_em: string | null
           flag_bandeira_amarela: boolean | null
           flag_grupo_economico_inadimplente: boolean | null
