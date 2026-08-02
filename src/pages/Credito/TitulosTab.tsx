@@ -51,7 +51,17 @@ import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
 import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
-import { BadgePrazo, BadgeProva } from "@/lib/financeiro/eixos-estado";
+import {
+  BadgeProva,
+  BadgeStatus,
+  PROVAS,
+  PROVA_META,
+  STATUS_EIXOS,
+  STATUS_META,
+  type EixoProva,
+  type EixoStatus,
+} from "@/lib/financeiro/eixos-estado";
+
 
 
 
