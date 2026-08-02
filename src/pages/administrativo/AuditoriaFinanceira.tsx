@@ -74,8 +74,13 @@ type Achado = {
   tratado_em: string | null;
   tratado_por: string | null;
   // vw_auditoria_lote_enriquecido
+  // `meio_pagamento` é rótulo COLAPSADO — só para exibir. Filtro usa as flags.
   meio_pagamento: string | null;
   meios_detalhe: string | null;
+  tem_cartao: boolean | null;
+  tem_boleto: boolean | null;
+  tem_pix: boolean | null;
+  tem_haver: boolean | null;
   rota_solucao: string | null;
   rotulo_acao: string | null;
   tela_solucao: string | null;
