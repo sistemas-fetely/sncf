@@ -451,8 +451,13 @@ function AbaB2B() {
     [data]
   );
 
+  const qtdInadimplentes = useMemo(
+    () => (data ?? []).filter((t) => t.eh_inadimplencia === true).length,
+    [data]
+  );
 
-  /** Conjunto filtrado por tudo EXCETO situação — base dos KPIs e das contagens. */
+
+  /** Conjunto filtrado por tudo EXCETO os dois eixos — base dos KPIs e das contagens. */
   const base = useMemo(() => {
     const titulos = data ?? [];
     const buscaLc = busca.trim().toLowerCase();
@@ -467,6 +472,7 @@ function AbaB2B() {
       if (soDivergentes && t.data_divergente !== true) return false;
       if (soMeioDivergente && t.meio_divergente !== true) return false;
       if (soSemNf && t.faturado !== false) return false;
+      if (soInadimplentes && t.eh_inadimplencia !== true) return false;
 
       if (buscaLc) {
         const num = (t.numero_titulo ?? "").toLowerCase();
@@ -489,80 +495,99 @@ function AbaB2B() {
       }
       return true;
     });
-  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente, soSemNf]);
+  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente, soSemNf, soInadimplentes]);
 
-  const contagens = useMemo(() => {
-    const c = {} as Record<EstadoGestao, number>;
-    for (const e of ESTADOS) c[e.key] = 0;
-    for (const t of base) if (t.estado_gestao) c[t.estado_gestao] = (c[t.estado_gestao] ?? 0) + 1;
+  const contagensProva = useMemo(() => {
+    const c = {} as Record<EixoProva, number>;
+    for (const p of PROVAS) c[p] = 0;
+    for (const t of base) if (t.eixo_prova) c[t.eixo_prova] = (c[t.eixo_prova] ?? 0) + 1;
+    return c;
+  }, [base]);
+
+  const contagensPrazo = useMemo(() => {
+    const c = {} as Record<EixoPrazo, number>;
+    for (const p of PRAZOS) c[p] = 0;
+    for (const t of base) if (t.eixo_prazo) c[t.eixo_prazo] = (c[t.eixo_prazo] ?? 0) + 1;
     return c;
   }, [base]);
 
   const kpis = useMemo(() => {
-    /** "Recebido" só conta o que tem prova bancária. */
-    let recebido = 0;
-    let recebidoQtd = 0;
+    /** Eixo prova: conciliado é dinheiro provado; compensado é quitação sem prova. */
+    let conciliado = 0;
+    let conciliadoQtd = 0;
+    let compensado = 0;
+    let compensadoQtd = 0;
+    let registrado = 0;
+    let registradoQtd = 0;
+    let inadimplencia = 0;
+    let inadimplenciaQtd = 0;
     let aberto = 0;
     let abertoQtd = 0;
-    let vencido = 0;
     let vence30 = 0;
     let recebidoSemNf = 0;
     let recebidoSemNfQtd = 0;
-    let baixaManual = 0;
-    let baixaManualQtd = 0;
-    const meiosBaixaManualMapa = new Map<string, number>();
+    const meiosCompensadoMapa = new Map<string, number>();
     for (const t of base) {
       const v = efetivoDe(t);
-      const e = t.estado_gestao;
-      if (ESTADOS_FORA_KPI.includes(e)) continue;
-      if (ESTADOS_PROVADOS.includes(e)) {
-        recebido += v;
-        recebidoQtd += 1;
+      const e = t.eixo_prova;
+      if (PROVA_FORA_KPI.includes(e)) continue;
+      if (e === "conciliado") {
+        conciliado += v;
+        conciliadoQtd += 1;
       }
-      if (e === "baixa_manual") {
-        baixaManual += v;
-        baixaManualQtd += 1;
+      if (e === "compensado") {
+        compensado += v;
+        compensadoQtd += 1;
         const meio = t.meio_pagamento ?? "—";
-        meiosBaixaManualMapa.set(meio, (meiosBaixaManualMapa.get(meio) ?? 0) + v);
+        meiosCompensadoMapa.set(meio, (meiosCompensadoMapa.get(meio) ?? 0) + v);
       }
-      if (t.estado_em_aberto === true) {
-        aberto += v;
-        abertoQtd += 1;
-      }
-      if (e === "vencido") vencido += v;
       if (e === "registrado") {
+        registrado += v;
+        registradoQtd += 1;
         const ref = t.data_liquidacao ?? t.data_vencimento;
         if (ref) {
           const d = new Date(ref + "T12:00:00");
           if (d >= hoje && d <= em30) vence30 += v;
         }
       }
-      if (t.faturado === false && ESTADOS_RECEBIDOS.includes(e)) {
+      if (e === "registrado" || e === "compensado") {
+        aberto += v;
+        abertoQtd += 1;
+      }
+      if (t.eh_inadimplencia === true) {
+        inadimplencia += v;
+        inadimplenciaQtd += 1;
+      }
+      if (t.faturado === false && (e === "conciliado" || e === "compensado")) {
         recebidoSemNf += v;
         recebidoSemNfQtd += 1;
       }
     }
-    const inadimplencia = aberto > 0 ? (vencido / aberto) * 100 : 0;
-    const meiosBaixaManual = Array.from(meiosBaixaManualMapa.entries())
+    const inadimplenciaPct = registrado > 0 ? (inadimplencia / registrado) * 100 : 0;
+    const meiosCompensado = Array.from(meiosCompensadoMapa.entries())
       .map(([meio, total]) => ({ meio, total }))
       .sort((a, b) => b.total - a.total);
     return {
-      recebido,
-      recebidoQtd,
+      conciliado,
+      conciliadoQtd,
+      compensado,
+      compensadoQtd,
+      registrado,
+      registradoQtd,
+      inadimplencia,
+      inadimplenciaQtd,
+      inadimplenciaPct,
+      meiosCompensado,
       aberto,
       abertoQtd,
-      vencido,
       vence30,
-      inadimplencia,
-      baixaManual,
-      baixaManualQtd,
-      meiosBaixaManual,
       recebidoSemNf,
       recebidoSemNfQtd,
-      total: recebido + baixaManual + aberto,
-      totalQtd: recebidoQtd + baixaManualQtd + abertoQtd,
+      total: conciliado + compensado + registrado,
+      totalQtd: conciliadoQtd + compensadoQtd + registradoQtd,
     };
   }, [base, hoje, em30]);
+
 
   /** Acurácia da régua: desvio só existe quando há prova bancária. */
   const desvioRegua = useMemo(() => {
