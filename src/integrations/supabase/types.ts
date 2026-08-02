@@ -33481,6 +33481,7 @@ export type Database = {
           cliente: string | null
           conciliado: boolean | null
           conta_id: string | null
+          data_caixa_projetada: string | null
           data_compra: string | null
           data_divergente: boolean | null
           data_liquidacao: string | null
@@ -33511,6 +33512,7 @@ export type Database = {
           meio_pedido: string | null
           meio_pedido_nome: string | null
           mes_caixa_efetivo: string | null
+          mes_caixa_projetado: string | null
           mes_competencia: string | null
           nf_id: string | null
           nf_numero: string | null
