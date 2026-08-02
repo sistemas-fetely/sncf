@@ -39,37 +39,25 @@ export function TesteTecnicoEntregue({
               {nome_candidato} enviou a entrega
             </Text>
             <Text style={{ fontSize: 14, color: "#334155", margin: "0 0 20px", lineHeight: "1.6" }}>
-              O candidato {nome_candidato} enviou a entrega do teste técnico para a vaga de <strong>{cargo}</strong>. Acesse o sistema para avaliar.
+              O candidato {nome_candidato} enviou a entrega do teste técnico para a vaga de <strong>{cargo}</strong>. A entrega fica disponível na tela da vaga no sistema (é necessário estar logado).
             </Text>
 
-            {link_entrega && (
-              <Section style={{ backgroundColor: "#F0F9FF", borderRadius: 8, padding: "12px 16px", margin: "0 0 16px" }}>
-                <Text style={{ fontSize: 12, fontWeight: 600, color: "#0891B2", margin: "0 0 4px" }}>
-                  Link da entrega
-                </Text>
-                <Text style={{ fontSize: 13, color: "#334155", margin: 0, wordBreak: "break-all" as const }}>
-                  {link_entrega}
-                </Text>
-              </Section>
-            )}
+            <Button
+              href={link_sistema}
+              style={{
+                backgroundColor: "#0891B2",
+                color: "#FFFFFF",
+                padding: "12px 24px",
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: "none",
+                display: "inline-block",
+              }}
+            >
+              Avaliar no sistema →
+            </Button>
 
-            {link_sistema && (
-              <Button
-                href={link_sistema}
-                style={{
-                  backgroundColor: "#0891B2",
-                  color: "#FFFFFF",
-                  padding: "12px 24px",
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  textDecoration: "none",
-                  display: "inline-block",
-                }}
-              >
-                Avaliar no sistema →
-              </Button>
-            )}
           </Section>
 
           <Hr style={{ borderColor: "#E2E8F0", margin: 0 }} />
