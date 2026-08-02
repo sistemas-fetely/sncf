@@ -124,8 +124,7 @@ export default function EntregaTeste() {
             templateData: {
               nome_candidato: candidato.nome,
               cargo: vaga?.titulo ?? "",
-              link_entrega: linkFinal,
-              link_sistema: publicUrl("/recrutamento"),
+              vaga_id: id,
             },
           },
         });
