@@ -397,6 +397,140 @@ export default function AuditoriaFinanceira() {
     !mTratar.isPending &&
     (!notaObrigatoria || nota.trim().length > 0);
 
+  /**
+   * Linha de achado. `dentroDoPedido` esconde o cliente/pedido repetido
+   * quando a visão já é agrupada por pedido.
+   */
+  const renderAchado = (a: Achado, dentroDoPedido = false) => {
+    const sev = (a.severidade ?? 3) as 1 | 2 | 3;
+    const sevMeta = SEV_META[sev] ?? SEV_META[3];
+    const sitKey = (a.situacao ?? "aberto") as Situacao;
+    const sitMeta = SITUACAO_META[sitKey] ?? SITUACAO_META.aberto;
+    const falsoPositivo = a.falso_positivo_sem_caixa === true;
+
+    // Achados vinculados no mesmo pedido
+    const irmaos = (a.pedido_id ? porPedido.get(a.pedido_id) ?? [] : []).filter((o) => o.id !== a.id);
+    const mesmaTela = a.tela_solucao
+      ? irmaos.filter((o) => o.tela_solucao === a.tela_solucao)
+      : [];
+    const outraTela = irmaos.find((o) => o.tela_solucao && o.tela_solucao !== a.tela_solucao);
+
+    return (
+      <div
+        key={a.id}
+        className={cn("px-5 py-4 grid grid-cols-12 gap-3 items-start", falsoPositivo && "opacity-60")}
+      >
+        <div className="col-span-12 md:col-span-2 space-y-1">
+          <Badge variant="outline" className={cn("flex-shrink-0", sevMeta.badge)}>
+            Sev {sev}
+          </Badge>
+          {dentroDoPedido && a.classe && (
+            <div className="text-xs font-medium leading-snug">{labelClasse(a.classe)}</div>
+          )}
+          {a.estagio && <EstagioBadge estagio={a.estagio as EstagioPedido} />}
+          {falsoPositivo && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="cursor-help">Sem caixa por natureza</Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  Forma de pagamento que não gera movimento bancário — nunca terá prova. Está na fila
+                  por limitação do detector.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+        <div className="col-span-12 md:col-span-3 text-sm">
+          {!dentroDoPedido && (
+            <>
+              <div className="truncate" title={a.cliente ?? ""}>
+                {a.cliente || "—"}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                <span className="tabular-nums">{a.id_externo || "—"}</span>
+                {a.pedido_id && (
+                  <button
+                    onClick={() => navigate(`/pedidos/${a.pedido_id}`)}
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    abrir <ExternalLink className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+          <div className="text-sm font-medium tabular-nums mt-1">
+            {formatBRL(Number(a.valor || 0))}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1" title={a.meios_detalhe ?? ""}>
+            {labelMeio(a.meio_pagamento)}
+          </div>
+        </div>
+        <div className="col-span-12 md:col-span-4 space-y-2 text-sm">
+          <div className="text-muted-foreground">{a.detalhe || "—"}</div>
+          {a.acao && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-0.5">
+                Ação
+              </div>
+              <div className="leading-snug text-foreground">{a.acao}</div>
+            </div>
+          )}
+          {a.rota_solucao ? (
+            <div className="space-y-1">
+              <Button size="sm" variant="outline" onClick={() => navigate(a.rota_solucao as string)}>
+                {a.rotulo_acao || "Abrir tela de resolução"}
+                <ArrowUpRight className="h-3.5 w-3.5 ml-1.5" />
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                Resolve em: {a.tela_solucao || "—"}
+              </div>
+              {a.rota_observacao && (
+                <div className="text-xs text-muted-foreground">{a.rota_observacao}</div>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              Sem tela de resolução mapeada — tratar manualmente.
+            </div>
+          )}
+          {mesmaTela.length > 0 && (
+            <div className="text-xs text-emerald-700">
+              Resolver aqui deve fechar também:{" "}
+              {mesmaTela.map((o) => labelClasse(o.classe)).join(", ")}
+            </div>
+          )}
+          {outraTela && (
+            <div className="text-xs text-amber-700">
+              Este pedido tem outro achado que se resolve em {outraTela.tela_solucao}
+            </div>
+          )}
+          {a.nota && (
+            <div className="text-xs text-muted-foreground italic border-l-2 pl-2 border-border">
+              Nota: {a.nota}
+            </div>
+          )}
+        </div>
+        <div className="col-span-12 md:col-span-3 flex flex-col gap-2 items-start md:items-end">
+          <Badge variant="outline" className={cn("border", sitMeta.className)}>
+            {sitMeta.label}
+          </Badge>
+          <Button size="sm" variant="outline" onClick={() => abrirTratar(a)}>
+            Tratar
+          </Button>
+          {a.tratado_em && (
+            <div className="text-[10px] text-muted-foreground">
+              Tratado em {formatDataHora(a.tratado_em)}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       {/* Cabeçalho */}
