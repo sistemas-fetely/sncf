@@ -414,7 +414,7 @@ export default function ContasReceberSops() {
           <div className="space-y-1">
             <Label className="text-xs">Busca</Label>
             <Input
-              placeholder="Título ou cliente"
+              placeholder="Título, cliente ou nome fantasia"
               value={busca}
               onChange={(e) => {
                 setBusca(e.target.value);
