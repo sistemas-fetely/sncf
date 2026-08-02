@@ -630,7 +630,7 @@ export default function TitulosTab() {
               <TableHead>Liquidação</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Prova</TableHead>
-              <TableHead>Prazo</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
