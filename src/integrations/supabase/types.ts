@@ -2521,34 +2521,138 @@ export type Database = {
         Row: {
           ativo: boolean
           canal_fiscal: string | null
+          centro_custo_id: string | null
+          centro_destino_id: string | null
+          centro_origem_id: string | null
           cfop: string
+          classe: string | null
+          condicao: string | null
           created_at: string
           descricao: string
           eh_venda: boolean
+          exige_destino_proprio: boolean
+          motivo_consumo: string | null
+          motivo_entrada: string | null
+          motivo_saida: string | null
+          movimenta_estoque: boolean
           natureza: string | null
+          observacao: string | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean
           canal_fiscal?: string | null
+          centro_custo_id?: string | null
+          centro_destino_id?: string | null
+          centro_origem_id?: string | null
           cfop: string
+          classe?: string | null
+          condicao?: string | null
           created_at?: string
           descricao: string
           eh_venda?: boolean
+          exige_destino_proprio?: boolean
+          motivo_consumo?: string | null
+          motivo_entrada?: string | null
+          motivo_saida?: string | null
+          movimenta_estoque?: boolean
           natureza?: string | null
+          observacao?: string | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean
           canal_fiscal?: string | null
+          centro_custo_id?: string | null
+          centro_destino_id?: string | null
+          centro_origem_id?: string | null
           cfop?: string
+          classe?: string | null
+          condicao?: string | null
           created_at?: string
           descricao?: string
           eh_venda?: boolean
+          exige_destino_proprio?: boolean
+          motivo_consumo?: string | null
+          motivo_entrada?: string | null
+          motivo_saida?: string | null
+          movimenta_estoque?: boolean
           natureza?: string | null
+          observacao?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cfop_natureza_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_centro_destino_id_fkey"
+            columns: ["centro_destino_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_centro_origem_id_fkey"
+            columns: ["centro_origem_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_classe_fkey"
+            columns: ["classe"]
+            isOneToOne: false
+            referencedRelation: "estoque_classe"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_condicao_fkey"
+            columns: ["condicao"]
+            isOneToOne: false
+            referencedRelation: "estoque_condicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_motivo_consumo_fkey"
+            columns: ["motivo_consumo"]
+            isOneToOne: false
+            referencedRelation: "estoque_motivo_movimento"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_motivo_entrada_fkey"
+            columns: ["motivo_entrada"]
+            isOneToOne: false
+            referencedRelation: "estoque_motivo_movimento"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_motivo_saida_fkey"
+            columns: ["motivo_saida"]
+            isOneToOne: false
+            referencedRelation: "estoque_motivo_movimento"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       classificacao_dados: {
         Row: {
@@ -6436,6 +6540,84 @@ export type Database = {
             referencedColumns: ["shopify_id"]
           },
         ]
+      }
+      dre_linha: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          exibe_pct_receita: boolean
+          fonte: string
+          formula: string | null
+          id: string
+          label: string
+          nivel: number
+          nota: string | null
+          ordem: number
+          pai_codigo: string | null
+          papel: string
+          sinal: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          exibe_pct_receita?: boolean
+          fonte: string
+          formula?: string | null
+          id?: string
+          label: string
+          nivel?: number
+          nota?: string | null
+          ordem: number
+          pai_codigo?: string | null
+          papel: string
+          sinal?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          exibe_pct_receita?: boolean
+          fonte?: string
+          formula?: string | null
+          id?: string
+          label?: string
+          nivel?: number
+          nota?: string | null
+          ordem?: number
+          pai_codigo?: string | null
+          papel?: string
+          sinal?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dre_refresh_estado: {
+        Row: {
+          duracao_ms: number | null
+          erro: string | null
+          id: boolean
+          linhas: number | null
+          refreshed_em: string
+        }
+        Insert: {
+          duracao_ms?: number | null
+          erro?: string | null
+          id?: boolean
+          linhas?: number | null
+          refreshed_em?: string
+        }
+        Update: {
+          duracao_ms?: number | null
+          erro?: string | null
+          id?: boolean
+          linhas?: number | null
+          refreshed_em?: string
+        }
+        Relationships: []
       }
       email_send_log: {
         Row: {
@@ -11975,6 +12157,7 @@ export type Database = {
       }
       movimentacao_estoque: {
         Row: {
+          centro_custo_id: string | null
           centro_id: string
           classe: string
           condicao: string
@@ -11996,6 +12179,7 @@ export type Database = {
           tipo: string
         }
         Insert: {
+          centro_custo_id?: string | null
           centro_id?: string
           classe?: string
           condicao?: string
@@ -12017,6 +12201,7 @@ export type Database = {
           tipo: string
         }
         Update: {
+          centro_custo_id?: string | null
           centro_id?: string
           classe?: string
           condicao?: string
@@ -12038,6 +12223,27 @@ export type Database = {
           tipo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "movimentacao_estoque_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
           {
             foreignKeyName: "movimentacao_estoque_centro_id_fkey"
             columns: ["centro_id"]
@@ -18693,6 +18899,7 @@ export type Database = {
           centro_custo_id: string | null
           codigo: string
           created_at: string | null
+          dre_linha_id: string | null
           id: string
           natureza: string | null
           natureza_investimento_default_id: string | null
@@ -18709,6 +18916,7 @@ export type Database = {
           centro_custo_id?: string | null
           codigo: string
           created_at?: string | null
+          dre_linha_id?: string | null
           id?: string
           natureza?: string | null
           natureza_investimento_default_id?: string | null
@@ -18725,6 +18933,7 @@ export type Database = {
           centro_custo_id?: string | null
           codigo?: string
           created_at?: string | null
+          dre_linha_id?: string | null
           id?: string
           natureza?: string | null
           natureza_investimento_default_id?: string | null
@@ -18756,6 +18965,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "plano_contas_dre_linha_id_fkey"
+            columns: ["dre_linha_id"]
+            isOneToOne: false
+            referencedRelation: "dre_linha"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "plano_contas_natureza_investimento_default_id_fkey"
@@ -28532,6 +28748,14 @@ export type Database = {
         }
         Relationships: []
       }
+      mv_dre_fato: {
+        Row: {
+          cod: string | null
+          mes: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       onboarding_tarefas_view: {
         Row: {
           checklist_id: string | null
@@ -30880,6 +31104,38 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_dre_integridade: {
+        Row: {
+          indicador: string | null
+          label: string | null
+          mes: string | null
+          ord: number | null
+          qtd: number | null
+          severidade: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
+      vw_dre_mensal: {
+        Row: {
+          codigo: string | null
+          contribuicao: number | null
+          exibe_pct_receita: boolean | null
+          fonte: string | null
+          label: string | null
+          mes: string | null
+          nivel: number | null
+          nota: string | null
+          ordem: number | null
+          pai_codigo: string | null
+          papel: string | null
+          pct_receita_liquida: number | null
+          receita_liquida_mes: number | null
+          sinal: number | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_estoque: {
         Row: {
           ativo: boolean | null
@@ -30921,11 +31177,14 @@ export type Database = {
           dias_desde_contagem: number | null
           disponivel: number | null
           fiscal_bloqueado: number | null
+          fiscal_na_contagem_total: number | null
           fiscal_sadio: number | null
           fiscal_total: number | null
           fisico_sadio: number | null
           fisico_total: number | null
           furo: number | null
+          furo_fisico_esperado: number | null
+          movimento_pos_contagem: number | null
           nome_comercial: string | null
           reservado: number | null
           reservado_aguardando_produto: number | null
@@ -30986,10 +31245,12 @@ export type Database = {
           condicao_rotulo: string | null
           data_contagem: string | null
           fiscal: number | null
+          fiscal_na_contagem: number | null
           fisico: number | null
           furo: number | null
           furo_a_investigar: number | null
           furo_esperado: boolean | null
+          movimento_pos_contagem: number | null
           sku: string | null
           ultimo_mov: string | null
           vendavel: boolean | null
@@ -31020,6 +31281,7 @@ export type Database = {
           estoque_minimo: number | null
           eta_precisao: string | null
           eta_prevista: string | null
+          fiscal_contabil: number | null
           fiscal_vendavel: number | null
           fisico: number | null
           furo: number | null
@@ -33703,14 +33965,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -38336,6 +38598,7 @@ export type Database = {
         Args: { p_condicao: Json; p_valor_alvo: number }
         Returns: Json
       }
+      fn_refresh_dre: { Args: never; Returns: undefined }
       fn_regras_aplicar: { Args: never; Returns: Json }
       fn_regua_materializar: { Args: never; Returns: Json }
       fn_render_template: {
