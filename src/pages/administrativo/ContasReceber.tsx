@@ -697,9 +697,77 @@ function AbaB2B() {
       return next;
     });
 
-  const totalPages = Math.max(1, Math.ceil(grupos.length / PAGE_SIZE));
+  const [agrupado, setAgrupado] = useState(true);
+
+  const totalItens = agrupado ? grupos.length : filtrados.length;
+  const totalPages = Math.max(1, Math.ceil(totalItens / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
-  const paginados = grupos.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+
+  const linhaTitulo = (t: RecebivelB2B, aninhada: boolean) => {
+    const atrasado = t.eh_inadimplencia === true;
+    return (
+      <TableRow
+        key={t.id}
+        className={atrasado ? "bg-red-50/40" : aninhada ? "bg-muted/10" : undefined}
+      >
+        <TableCell className={aninhada ? "pl-10" : undefined}>
+          <div className="font-mono text-xs">{t.numero_titulo ?? "—"}</div>
+          {t.numero_parcela != null && t.total_parcelas != null && (
+            <div className="text-xs text-muted-foreground">
+              parcela {t.numero_parcela}/{t.total_parcelas}
+            </div>
+          )}
+        </TableCell>
+        <TableCell className="text-sm">{aninhada ? "" : t.cliente ?? "—"}</TableCell>
+        <TableCell>
+          {!aninhada && t.pedido_ref && (
+            <button
+              type="button"
+              className="font-mono text-xs text-primary hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (t.pedido_id) navigate(`/pedidos/${t.pedido_id}`);
+              }}
+            >
+              {t.pedido_ref}
+            </button>
+          )}
+        </TableCell>
+        <TableCell className="font-mono text-xs">{t.nf_numero ?? "—"}</TableCell>
+        <TableCell>
+          <Badge variant="outline" className="text-xs">
+            {formatMeio(t.meio_pagamento)}
+          </Badge>
+        </TableCell>
+        <TableCell className={atrasado ? "text-red-700 font-medium text-sm" : "text-sm"}>
+          {formatDateBR(t.data_vencimento)}
+        </TableCell>
+        <TableCell className="text-sm">
+          {t.data_recebimento_efetiva ? (
+            formatDateBR(t.data_recebimento_efetiva)
+          ) : t.data_liquidacao_prevista ? (
+            <span className="text-muted-foreground">
+              prev. {formatDateBR(t.data_liquidacao_prevista)}
+            </span>
+          ) : (
+            "—"
+          )}
+        </TableCell>
+        <TableCell className="text-right tabular-nums">{formatBRL(efetivoDe(t))}</TableCell>
+        <TableCell>
+          <BadgeProva eixo={t.eixo_prova} />
+        </TableCell>
+        <TableCell>
+          <BadgeStatus
+            eixo={t.eixo_status}
+            compensadoPor={t.compensado_por}
+            inadimplente={t.eh_inadimplencia === true}
+          />
+        </TableCell>
+      </TableRow>
+    );
+  };
+
 
   const toggleProva = (k: EixoProva) => {
     setProvasAtivas((prev) => {
@@ -1344,6 +1412,26 @@ function AbaB2B() {
       </Card>
 
       {/* Tabela */}
+      <div className="flex items-center justify-end gap-1">
+        {([true, false] as const).map((modo) => (
+          <button
+            key={String(modo)}
+            type="button"
+            onClick={() => {
+              setAgrupado(modo);
+              setPage(1);
+            }}
+            className={
+              "text-xs px-3 py-1.5 rounded-full border transition-colors " +
+              (agrupado === modo
+                ? "bg-foreground text-background border-foreground"
+                : "bg-background text-muted-foreground border-border hover:border-foreground/40")
+            }
+          >
+            {modo ? "Agrupado por pedido" : "Lista plana"}
+          </button>
+        ))}
+      </div>
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -1352,7 +1440,8 @@ function AbaB2B() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
-          ) : paginados.length === 0 ? (
+          ) : totalItens === 0 ? (
+
             <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
               <Inbox className="h-8 w-8" />
               <p>Nenhum recebível encontrado.</p>
@@ -1374,147 +1463,83 @@ function AbaB2B() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginados.map((g) => {
-                  const aberto = abertos.has(g.chave);
-                  const linhaTitulo = (t: RecebivelB2B, aninhada: boolean) => {
-                    const atrasado = t.eh_inadimplencia === true;
-                    return (
-                      <TableRow
-                        key={t.id}
-                        className={
-                          atrasado ? "bg-red-50/40" : aninhada ? "bg-muted/10" : undefined
-                        }
-                      >
-                        <TableCell className={aninhada ? "pl-10" : undefined}>
-                          <div className="font-mono text-xs">{t.numero_titulo ?? "—"}</div>
-                          {t.numero_parcela != null && t.total_parcelas != null && (
-                            <div className="text-xs text-muted-foreground">
-                              parcela {t.numero_parcela}/{t.total_parcelas}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">{aninhada ? "" : t.cliente ?? "—"}</TableCell>
-                        <TableCell>
-                          {!aninhada && t.pedido_ref && (
-                            <button
-                              type="button"
-                              className="font-mono text-xs text-primary hover:underline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (t.pedido_id) navigate(`/pedidos/${t.pedido_id}`);
-                              }}
+                {agrupado
+                  ? grupos
+                      .slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE)
+                      .map((g) => {
+                        const aberto = abertos.has(g.chave);
+                        if (g.titulos.length === 1) return linhaTitulo(g.titulos[0], false);
+                        return (
+                          <Fragment key={g.chave}>
+                            <TableRow
+                              className="cursor-pointer bg-muted/40 hover:bg-muted/60"
+                              onClick={() => toggleGrupo(g.chave)}
                             >
-                              {t.pedido_ref}
-                            </button>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{t.nf_numero ?? "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {formatMeio(t.meio_pagamento)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell
-                          className={
-                            atrasado ? "text-red-700 font-medium text-sm" : "text-sm"
-                          }
-                        >
-                          {formatDateBR(t.data_vencimento)}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {t.data_recebimento_efetiva ? (
-                            formatDateBR(t.data_recebimento_efetiva)
-                          ) : t.data_liquidacao_prevista ? (
-                            <span className="text-muted-foreground">
-                              prev. {formatDateBR(t.data_liquidacao_prevista)}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatBRL(efetivoDe(t))}
-                        </TableCell>
-                        <TableCell>
-                          <BadgeProva eixo={t.eixo_prova} />
-                        </TableCell>
-                        <TableCell>
-                          <BadgeStatus
-                            eixo={t.eixo_status}
-                            compensadoPor={t.compensado_por}
-                            inadimplente={t.eh_inadimplencia === true}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  };
+                              <TableCell>
+                                <div className="flex items-center gap-1 text-xs font-medium">
+                                  {aberto ? (
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <ChevronRight className="h-3.5 w-3.5" />
+                                  )}
+                                  {g.titulos.length} parcela(s) de{" "}
+                                  {g.titulos[0].total_parcelas ?? g.titulos.length}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm font-medium">
+                                {g.cliente ?? "—"}
+                              </TableCell>
+                              <TableCell>
+                                {g.pedidoRef && (
+                                  <button
+                                    type="button"
+                                    className="font-mono text-xs text-primary hover:underline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (g.pedidoId) navigate(`/pedidos/${g.pedidoId}`);
+                                    }}
+                                  >
+                                    {g.pedidoRef}
+                                  </button>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {g.nfs.length > 0 ? g.nfs.join(", ") : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {g.meios.map((m) => (
+                                    <Badge key={m} variant="outline" className="text-xs">
+                                      {formatMeio(m)}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {g.proximoVencimento ? formatDateBR(g.proximoVencimento) : "—"}
+                              </TableCell>
+                              <TableCell className="text-sm">—</TableCell>
+                              <TableCell className="text-right font-semibold tabular-nums">
+                                {formatBRL(g.total)}
+                              </TableCell>
+                              <TableCell>
+                                <BadgeProva eixo={g.provaPrevalente} />
+                              </TableCell>
+                              <TableCell>
+                                <BadgeStatus eixo={g.statusPrevalente} />
+                                {g.misto && (
+                                  <div className="text-[10px] text-muted-foreground">misto</div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                            {aberto && g.titulos.map((t) => linhaTitulo(t, true))}
+                          </Fragment>
+                        );
+                      })
+                  : filtrados
+                      .slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE)
+                      .map((t) => linhaTitulo(t, false))}
 
-                  if (g.titulos.length === 1) return linhaTitulo(g.titulos[0], false);
-
-                  return (
-                    <Fragment key={g.chave}>
-                      <TableRow
-                        className="cursor-pointer bg-muted/40 hover:bg-muted/60"
-                        onClick={() => toggleGrupo(g.chave)}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-xs font-medium">
-                            {aberto ? (
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            ) : (
-                              <ChevronRight className="h-3.5 w-3.5" />
-                            )}
-                            {g.titulos.length} parcela(s) de {g.titulos[0].total_parcelas ?? g.titulos.length}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm font-medium">{g.cliente ?? "—"}</TableCell>
-                        <TableCell>
-                          {g.pedidoRef && (
-                            <button
-                              type="button"
-                              className="font-mono text-xs text-primary hover:underline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (g.pedidoId) navigate(`/pedidos/${g.pedidoId}`);
-                              }}
-                            >
-                              {g.pedidoRef}
-                            </button>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {g.nfs.length > 0 ? g.nfs.join(", ") : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {g.meios.map((m) => (
-                              <Badge key={m} variant="outline" className="text-xs">
-                                {formatMeio(m)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {g.proximoVencimento ? formatDateBR(g.proximoVencimento) : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm">—</TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">
-                          {formatBRL(g.total)}
-                        </TableCell>
-                        <TableCell>
-                          <BadgeProva eixo={g.provaPrevalente} />
-                        </TableCell>
-                        <TableCell>
-                          <BadgeStatus eixo={g.statusPrevalente} />
-                          {g.misto && (
-                            <div className="text-[10px] text-muted-foreground">misto</div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                      {aberto && g.titulos.map((t) => linhaTitulo(t, true))}
-                    </Fragment>
-                  );
-                })}
               </TableBody>
             </Table>
           )}
@@ -1522,10 +1547,10 @@ function AbaB2B() {
       </Card>
 
       {/* Paginação */}
-      {grupos.length > PAGE_SIZE && (
+      {totalItens > PAGE_SIZE && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Página {pageSafe} de {totalPages} · {grupos.length} pedidos
+            Página {pageSafe} de {totalPages} · {totalItens} {agrupado ? "pedidos" : "títulos"}
           </div>
           <div className="flex gap-2">
             <Button
