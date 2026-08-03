@@ -1455,8 +1455,19 @@ function AbaB2B() {
 
             <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
               <Inbox className="h-8 w-8" />
-              <p>Nenhum recebível encontrado.</p>
+              {eixoVazio ? (
+                <>
+                  <p>Nenhum filtro de {eixoVazio.quais} selecionado.</p>
+                  <p className="text-xs">
+                    {eixoVazio.escondidos} título{eixoVazio.escondidos !== 1 ? "s" : ""} escondido
+                    {eixoVazio.escondidos !== 1 ? "s" : ""} — clique num chip de {eixoVazio.quais} acima.
+                  </p>
+                </>
+              ) : (
+                <p>Nenhum recebível encontrado.</p>
+              )}
             </div>
+
           ) : (
             <Table>
               <TableHeader>
