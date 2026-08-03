@@ -32,6 +32,7 @@ import {
 import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
+import TitulosTab from "@/pages/Credito/TitulosTab";
 
 import {
   BadgeProva,
