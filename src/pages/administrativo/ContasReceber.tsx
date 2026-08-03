@@ -671,7 +671,7 @@ function AbaB2B() {
   const periodoLabel = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
 
   const handleExportXLSX = () => {
-    const linhas = filtrados.map((t) => ({
+    const linhas = base.map((t) => ({
       NF: t.nf_numero ?? "",
       Pedido: t.pedido_ref ?? "",
       Cliente: t.cliente ?? "",
@@ -725,7 +725,7 @@ function AbaB2B() {
         <Button
           variant="outline"
           onClick={handleExportXLSX}
-          disabled={filtrados.length === 0}
+          disabled={base.length === 0}
           className="gap-2"
         >
           <Download className="h-4 w-4" />
