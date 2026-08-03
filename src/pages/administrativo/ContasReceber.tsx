@@ -1307,7 +1307,7 @@ function AbaB2B() {
       {/* Oculta temporariamente por decisão do Flavio em 03/08/2026.
           Basta trocar MOSTRAR_MES_A_MES para true para voltar. */}
       {MOSTRAR_MES_A_MES && (
-        {/* Mês a mês */}
+        
         <div className="space-y-1">
           <Card>
             <CardHeader className="pb-2">
