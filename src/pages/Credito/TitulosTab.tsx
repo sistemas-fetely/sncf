@@ -53,7 +53,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
 import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
 import { BadgeProva, BadgeStatus } from "@/lib/financeiro/eixos-estado";
-import { agruparPorPedido, grupoEhUnitario, resumoComposicao, type GrupoPedido } from "@/lib/financeiro/agrupar-titulos";
+import { agruparPorPedido, grupoEhUnitario, grupoEstadoDividido, resumoComposicao, type GrupoPedido } from "@/lib/financeiro/agrupar-titulos";
 
 
 
@@ -518,7 +518,12 @@ function LinhaGrupo({
           ? <BadgeProva eixo={g.provaPrevalente} />
           : <span className="text-xs text-muted-foreground">—</span>}
       </TableCell>
-      <TableCell><span className="text-xs">{resumoComposicao(g)}</span></TableCell>
+      <TableCell>
+        <BadgeStatus eixo={g.statusPrevalente} />
+        {grupoEstadoDividido(g) && (
+          <div className="text-[10px] text-muted-foreground">{resumoComposicao(g)}</div>
+        )}
+      </TableCell>
     </TableRow>
   );
 }
