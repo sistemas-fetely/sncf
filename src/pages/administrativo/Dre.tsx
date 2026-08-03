@@ -233,6 +233,9 @@ export default function Dre() {
             </span>
           ) : "—"}
         </TableCell>
+        <TableCell className="text-right text-muted-foreground">
+          <Valor v={l.valor_acumulado} />
+        </TableCell>
         <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
           {l.exibe_pct_receita && l.pct_receita_liquida != null
             ? `${Number(l.pct_receita_liquida).toFixed(1)}%`
@@ -250,6 +253,21 @@ export default function Dre() {
         <TableHead className="text-right">{rotuloMes(mesAtivo)}</TableHead>
         <TableHead className="text-right">{mesAnterior ? rotuloMes(mesAnterior) : "mês anterior"}</TableHead>
         <TableHead className="text-right">Variação</TableHead>
+        <TableHead className="text-right">
+          <span className="inline-flex items-center gap-1">
+            Acumulado
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Soma desde o primeiro mês da série até o mês selecionado
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </span>
+        </TableHead>
         <TableHead className="text-right">% RL</TableHead>
       </TableRow>
     </TableHeader>
