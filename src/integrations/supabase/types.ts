@@ -33286,14 +33286,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -37368,6 +37368,14 @@ export type Database = {
           ok: boolean
           valor_total: number
         }[]
+      }
+      conciliar_familia_titulos_pagos: {
+        Args: {
+          p_movimentacao_ids: string[]
+          p_nota?: string
+          p_titulo_ids: string[]
+        }
+        Returns: Json
       }
       conciliar_lancamento: {
         Args: { p_conta_pagar_id: string; p_lancamento_id: string }
