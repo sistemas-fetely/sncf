@@ -369,7 +369,21 @@ export default function Dre() {
             <SheetDescription>
               Lançamentos de despesas em {rotuloMes(mesAtivo)}
             </SheetDescription>
+            <div className="text-sm">
+              Soma dos lançamentos:{" "}
+              <strong className="tabular-nums text-foreground">{fmtBRL(somaDrill)}</strong>
+              <span className="text-muted-foreground">
+                {" "}· linha da DRE {fmtBRL(Math.abs(drill?.valor ?? 0))}
+              </span>
+            </div>
+            {drillDivergente && (
+              <div className="flex items-center gap-1.5 text-xs text-amber-700">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                soma dos lançamentos difere do valor da linha
+              </div>
+            )}
           </SheetHeader>
+
 
           <div className="mt-6">
             {drillQ.isError ? (
