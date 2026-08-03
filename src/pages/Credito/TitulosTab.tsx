@@ -639,7 +639,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
 
   const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
 
-  /* Estágio 3: agrupamento por pedido. `titulos` entra como universo só para contar os ocultos. */
+  /* Estágio 3: agrupamento por pedido. `universo` entra de novo só para contar os ocultos — os títulos do mesmo pedido que os filtros escondem. */
   const grupos = useMemo(() => agruparPorPedido(filtrados, universo), [filtrados, universo]);
 
   async function copiar(txt: string) {
