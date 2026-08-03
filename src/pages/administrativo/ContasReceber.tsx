@@ -127,6 +127,10 @@ type RecebivelB2C = {
 
 const PAGE_SIZE = 25;
 
+/** Tabela "Mês a mês" oculta temporariamente (decisão do Flavio, 03/08/2026).
+ *  Toda a lógica continua ativa — trocar para true devolve a renderização. */
+const MOSTRAR_MES_A_MES = false;
+
 type DataBase = "vencimento" | "emissao" | "liquidacao";
 type BaseMensal = "competencia" | "caixa_projetado" | "caixa_confirmado";
 
