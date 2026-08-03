@@ -293,6 +293,14 @@ export default function Dre() {
               ))}
             </SelectContent>
           </Select>
+          {mesEmCurso && (
+            <Badge
+              variant="outline"
+              className="font-normal border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+            >
+              mês em curso — parcial
+            </Badge>
+          )}
           <Button
             variant="outline"
             size="sm"
