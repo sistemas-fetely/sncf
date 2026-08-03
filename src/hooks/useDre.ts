@@ -49,20 +49,13 @@ export function useDreMeses() {
     queryKey: ["dre", "meses"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_dre_mensal")
+        .from("vw_dre_meses")
         .select("mes")
         .order("mes", { ascending: false });
       if (error) throw error;
-      const vistos = new Set<string>();
-      const out: string[] = [];
-      for (const r of (data ?? []) as { mes: string | null }[]) {
-        const m = r.mes?.slice(0, 10);
-        if (m && !vistos.has(m)) {
-          vistos.add(m);
-          out.push(m);
-        }
-      }
-      return out;
+      return ((data ?? []) as { mes: string | null }[])
+        .map((r) => r.mes?.slice(0, 10))
+        .filter((m): m is string => !!m);
     },
   });
 }
