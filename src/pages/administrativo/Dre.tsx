@@ -93,9 +93,21 @@ export default function Dre() {
     if (meses.length === 0) return null;
     if (meses.length === 1) return meses[0];
     const hoje = new Date();
-    const corrente = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
-    return meses.find((m) => m !== corrente) ?? meses[0];
+    const chaveCorrente = hoje.getFullYear() * 12 + hoje.getMonth();
+    const chaveDe = (m: string) => {
+      const [a, b] = m.split("-");
+      return Number(a) * 12 + (Number(b) - 1);
+    };
+    return meses.find((m) => chaveDe(m) < chaveCorrente) ?? meses[0];
   }, [meses]);
+
+  const mesEmCurso = useMemo(() => {
+    if (!mesAtivoRefSafe(mes, mesPadrao)) return false;
+    const m = mesAtivoRefSafe(mes, mesPadrao)!;
+    const hoje = new Date();
+    const [a, b] = m.split("-");
+    return Number(a) === hoje.getFullYear() && Number(b) - 1 === hoje.getMonth();
+  }, [mes, mesPadrao]);
 
   const mesAtivo = mes ?? mesPadrao;
 
