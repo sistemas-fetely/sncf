@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download, ChevronDown, ChevronRight } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 
@@ -643,9 +643,63 @@ function AbaB2B() {
     return arr;
   }, [base, provasAtivas, statusAtivos, sort]);
 
-  const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  /* Agrupamento por pedido — mesma leitura da tela de Cobrança, lógica local. */
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, RecebivelB2B[]>();
+    for (const t of filtrados) {
+      const chave = t.pedido_ref ? `p:${t.pedido_ref}` : `t:${t.id}`;
+      const arr = mapa.get(chave);
+      if (arr) arr.push(t);
+      else mapa.set(chave, [t]);
+    }
+    const maisFrequente = <K extends string>(valores: K[]): K => {
+      const c = new Map<K, number>();
+      for (const v of valores) c.set(v, (c.get(v) ?? 0) + 1);
+      let melhor = valores[0];
+      let qtd = -1;
+      for (const [v, n] of c) if (n > qtd) { melhor = v; qtd = n; }
+      return melhor;
+    };
+    return Array.from(mapa.entries()).map(([chave, titulos]) => {
+      const primeiro = titulos[0];
+      const vencimentos = titulos
+        .filter((t) => t.eixo_status === "a_vencer" && t.data_vencimento)
+        .map((t) => t.data_vencimento as string)
+        .sort();
+      const statusDistintos = new Set(titulos.map((t) => t.eixo_status));
+      return {
+        chave,
+        titulos,
+        cliente: primeiro.cliente,
+        pedidoRef: primeiro.pedido_ref,
+        pedidoId: primeiro.pedido_id,
+        nfs: Array.from(
+          new Set(titulos.map((t) => t.nf_numero).filter((n): n is string => !!n))
+        ),
+        meios: Array.from(
+          new Set(titulos.map((t) => t.meio_pagamento).filter((m): m is string => !!m))
+        ),
+        proximoVencimento: vencimentos[0] ?? null,
+        total: titulos.reduce((s, t) => s + efetivoDe(t), 0),
+        provaPrevalente: maisFrequente(titulos.map((t) => t.eixo_prova)),
+        statusPrevalente: maisFrequente(titulos.map((t) => t.eixo_status)),
+        misto: statusDistintos.size > 1,
+      };
+    });
+  }, [filtrados]);
+
+  const [abertos, setAbertos] = useState<Set<string>>(new Set());
+  const toggleGrupo = (chave: string) =>
+    setAbertos((prev) => {
+      const next = new Set(prev);
+      if (next.has(chave)) next.delete(chave);
+      else next.add(chave);
+      return next;
+    });
+
+  const totalPages = Math.max(1, Math.ceil(grupos.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
-  const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+  const paginados = grupos.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
   const toggleProva = (k: EixoProva) => {
     setProvasAtivas((prev) => {
@@ -1307,222 +1361,158 @@ function AbaB2B() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <SortTh label="NF" sortKey="nf_numero" sort={sort} setSort={setSort} />
-                  <SortTh label="Cliente" sortKey="cliente" sort={sort} setSort={setSort} />
-                  <SortTh label="Pedido / Título" sortKey="numero_titulo" sort={sort} setSort={setSort} />
-                  <SortTh label="Banco" sortKey="banco_nome" sort={sort} setSort={setSort} />
-                  <SortTh label="Meio" sortKey="meio_pagamento" sort={sort} setSort={setSort} />
-                  <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
-                  <SortTh label="Vencimento" sortKey="data_vencimento" sort={sort} setSort={setSort} />
-                  <TableHead
-                    className="cursor-pointer select-none transition-colors hover:text-foreground"
-                    onClick={() =>
-                      setSort((prev) => {
-                        if (prev?.key === "data_liquidacao_prevista")
-                          return prev.dir === "desc"
-                            ? { key: "data_liquidacao_prevista", dir: "asc" }
-                            : { key: "desvio_previsao_dias", dir: "desc" };
-                        if (prev?.key === "desvio_previsao_dias")
-                          return prev.dir === "desc"
-                            ? { key: "desvio_previsao_dias", dir: "asc" }
-                            : { key: "data_liquidacao_prevista", dir: "desc" };
-                        return { key: "data_liquidacao_prevista", dir: "desc" };
-                      })
-                    }
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      Previsto
-                      {sort?.key === "desvio_previsao_dias" && (
-                        <span className="text-[10px] text-muted-foreground">desvio</span>
-                      )}
-                      {sort?.key === "data_liquidacao_prevista" ||
-                      sort?.key === "desvio_previsao_dias" ? (
-                        sort.dir === "asc" ? (
-                          <ArrowUp className="h-3 w-3 opacity-60" />
-                        ) : (
-                          <ArrowDown className="h-3 w-3 opacity-60" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-60" />
-                      )}
-                    </span>
-                  </TableHead>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SortTh
-                        label="Recebido em"
-                        sortKey="data_recebimento_efetiva"
-                        sort={sort}
-                        setSort={setSort}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Data confirmada pelo banco. Baixa registrada no sistema sem confirmação
-                        bancária não é recebimento — aparece como "marcado em".
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
-                  <SortTh label="Prova" sortKey="eixo_prova" sort={sort} setSort={setSort} />
-                  <SortTh label="Status" sortKey="eixo_status" sort={sort} setSort={setSort} />
+                  <TableHead>Título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>NF</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Liquidação</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Prova</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginados.map((t) => {
-                  const atrasado = t.eh_inadimplencia === true;
-
-                  const juros = Number(t.valor_juros ?? 0);
-                  const desconto = Number(t.valor_desconto ?? 0);
-                  const bruto = Number(t.valor_bruto ?? t.valor ?? 0);
-                  return (
-                    <TableRow key={t.id} className={atrasado ? "bg-red-50/40" : undefined}>
-                      <TableCell className="font-mono text-xs">
-                        {t.nf_numero ?? "—"}
-                      </TableCell>
-                      <TableCell className="max-w-[180px] truncate" title={t.cliente ?? ""}>
-                        {t.cliente ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {t.pedido_ref && (
-                          <div>
-                            {t.pedido_id ? (
-                              <Button
-                                variant="link"
-                                className="h-auto p-0 font-mono text-xs"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/pedidos/${t.pedido_id}`);
-                                }}
-                              >
-                                {t.pedido_ref}
-                              </Button>
-                            ) : (
-                              <span className="font-mono text-xs text-muted-foreground">
-                                {t.pedido_ref}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        <span className="font-mono">{t.numero_titulo ?? "—"}</span>
-                        {t.numero_parcela != null && t.total_parcelas != null && (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            {t.numero_parcela}/{t.total_parcelas}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>{t.banco_nome ?? "—"}</TableCell>
-                      <TableCell>
-                        <div>{formatMeio(t.meio_pagamento)}</div>
-                        {t.meio_divergente === true && (
-                          <div className="text-xs text-muted-foreground">
-                            pedido: {formatMeio(t.meio_pedido)}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>{formatDateBR(t.data_compra)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span>{formatDateBR(t.data_vencimento)}</span>
-                          {t.venc_renegociado === true && (
-                            <Badge variant="outline" className="text-[10px]">
-                              Renegociado
-                            </Badge>
+                {paginados.map((g) => {
+                  const aberto = abertos.has(g.chave);
+                  const linhaTitulo = (t: RecebivelB2B, aninhada: boolean) => {
+                    const atrasado = t.eh_inadimplencia === true;
+                    return (
+                      <TableRow
+                        key={t.id}
+                        className={
+                          atrasado ? "bg-red-50/40" : aninhada ? "bg-muted/10" : undefined
+                        }
+                      >
+                        <TableCell className={aninhada ? "pl-10" : undefined}>
+                          <div className="font-mono text-xs">{t.numero_titulo ?? "—"}</div>
+                          {t.numero_parcela != null && t.total_parcelas != null && (
+                            <div className="text-xs text-muted-foreground">
+                              parcela {t.numero_parcela}/{t.total_parcelas}
+                            </div>
                           )}
-                        </div>
-                        {t.venc_renegociado === true && (
-                          <div className="text-xs text-muted-foreground">
-                            orig. {formatDateBR(t.data_vencimento_original)} ·{" "}
-                            {(t.dias_prorrogado ?? 0) >= 0 ? "+" : ""}
-                            {t.dias_prorrogado ?? 0}d
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {t.data_liquidacao_prevista ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="cursor-help">
-                                <span>{formatDateBR(t.data_liquidacao_prevista)}</span>
-                                {t.desvio_previsao_dias != null && (
-                                  <div
-                                    className={`text-xs tabular-nums ${
-                                      Number(t.desvio_previsao_dias) > 0
-                                        ? "text-destructive"
-                                        : "text-emerald-700"
-                                    }`}
-                                  >
-                                    {Number(t.desvio_previsao_dias) === 0
-                                      ? "no dia"
-                                      : `${Number(t.desvio_previsao_dias) > 0 ? "+" : ""}${
-                                          t.desvio_previsao_dias
-                                        }d`}
-                                  </div>
-                                )}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                Previsão da régua de recebimento. O desvio compara com a data
-                                confirmada pelo banco — só existe quando há prova bancária.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {t.data_recebimento_efetiva ? (
-                          <>
-                            <span className="tabular-nums">
-                              {formatDateBR(t.data_recebimento_efetiva)}
+                        </TableCell>
+                        <TableCell className="text-sm">{aninhada ? "" : t.cliente ?? "—"}</TableCell>
+                        <TableCell>
+                          {!aninhada && t.pedido_ref && (
+                            <button
+                              type="button"
+                              className="font-mono text-xs text-primary hover:underline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (t.pedido_id) navigate(`/pedidos/${t.pedido_id}`);
+                              }}
+                            >
+                              {t.pedido_ref}
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{t.nf_numero ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {formatMeio(t.meio_pagamento)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell
+                          className={
+                            atrasado ? "text-red-700 font-medium text-sm" : "text-sm"
+                          }
+                        >
+                          {formatDateBR(t.data_vencimento)}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {t.data_recebimento_efetiva ? (
+                            formatDateBR(t.data_recebimento_efetiva)
+                          ) : t.data_liquidacao_prevista ? (
+                            <span className="text-muted-foreground">
+                              prev. {formatDateBR(t.data_liquidacao_prevista)}
                             </span>
-                            {t.data_divergente === true && (
-                              <div className="text-xs text-destructive tabular-nums">
-                                humano {formatDateBR(t.data_pagamento)}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-muted-foreground">—</span>
-                            {t.fonte_data_recebimento === "marcado_humano" && (
-                              <div className="text-xs text-muted-foreground tabular-nums">
-                                marcado em {formatDateBR(t.data_pagamento)}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </TableCell>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(efetivoDe(t))}
+                        </TableCell>
+                        <TableCell>
+                          <BadgeProva eixo={t.eixo_prova} />
+                        </TableCell>
+                        <TableCell>
+                          <BadgeStatus
+                            eixo={t.eixo_status}
+                            compensadoPor={t.compensado_por}
+                            inadimplente={t.eh_inadimplencia === true}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  };
 
-                      <TableCell className="text-right tabular-nums">
-                        <div>{formatBRL(efetivoDe(t))}</div>
-                        {(juros > 0 || desconto > 0 || efetivoDe(t) !== bruto) && (
-                          <div className="text-xs text-muted-foreground tabular-nums">
-                            bruto {formatBRL(bruto)}
-                            {juros > 0 && (
-                              <span className="text-emerald-700"> · juros +{formatBRL(juros)}</span>
+                  if (g.titulos.length === 1) return linhaTitulo(g.titulos[0], false);
+
+                  return (
+                    <Fragment key={g.chave}>
+                      <TableRow
+                        className="cursor-pointer bg-muted/40 hover:bg-muted/60"
+                        onClick={() => toggleGrupo(g.chave)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-xs font-medium">
+                            {aberto ? (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5" />
                             )}
-                            {desconto > 0 && (
-                              <span className="text-destructive"> · desc −{formatBRL(desconto)}</span>
-                            )}
+                            {g.titulos.length} parcela(s) de {g.titulos[0].total_parcelas ?? g.titulos.length}
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <BadgeProva eixo={t.eixo_prova} />
-                      </TableCell>
-                      <TableCell>
-                        <BadgeStatus
-                          eixo={t.eixo_status}
-                          compensadoPor={t.compensado_por}
-                          inadimplente={t.eh_inadimplencia === true}
-                        />
-
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">{g.cliente ?? "—"}</TableCell>
+                        <TableCell>
+                          {g.pedidoRef && (
+                            <button
+                              type="button"
+                              className="font-mono text-xs text-primary hover:underline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (g.pedidoId) navigate(`/pedidos/${g.pedidoId}`);
+                              }}
+                            >
+                              {g.pedidoRef}
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {g.nfs.length > 0 ? g.nfs.join(", ") : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {g.meios.map((m) => (
+                              <Badge key={m} variant="outline" className="text-xs">
+                                {formatMeio(m)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {g.proximoVencimento ? formatDateBR(g.proximoVencimento) : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm">—</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">
+                          {formatBRL(g.total)}
+                        </TableCell>
+                        <TableCell>
+                          <BadgeProva eixo={g.provaPrevalente} />
+                        </TableCell>
+                        <TableCell>
+                          <BadgeStatus eixo={g.statusPrevalente} />
+                          {g.misto && (
+                            <div className="text-[10px] text-muted-foreground">misto</div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                      {aberto && g.titulos.map((t) => linhaTitulo(t, true))}
+                    </Fragment>
                   );
                 })}
               </TableBody>
@@ -1532,10 +1522,10 @@ function AbaB2B() {
       </Card>
 
       {/* Paginação */}
-      {filtrados.length > PAGE_SIZE && (
+      {grupos.length > PAGE_SIZE && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Página {pageSafe} de {totalPages} · {filtrados.length} registros
+            Página {pageSafe} de {totalPages} · {grupos.length} pedidos
           </div>
           <div className="flex gap-2">
             <Button
