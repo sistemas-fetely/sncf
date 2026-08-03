@@ -643,6 +643,21 @@ function AbaB2B() {
     return arr;
   }, [base, provasAtivas, statusAtivos, sort]);
 
+  const eixoVazio = useMemo(() => {
+    const semProva = provasAtivas.size === 0;
+    const semStatus = statusAtivos.size === 0;
+    if (!semProva && !semStatus) return null;
+    const escondidos = base.filter(
+      (t) =>
+        (semProva || provasAtivas.has(t.eixo_prova)) &&
+        (semStatus || statusAtivos.has(t.eixo_status))
+    ).length;
+    const quais = semProva && semStatus ? "Prova e Status" : semProva ? "Prova" : "Status";
+    return { quais, escondidos };
+  }, [base, provasAtivas, statusAtivos]);
+
+
+
   /* Agrupamento por pedido — mesma leitura da tela de Cobrança, lógica local. */
   const grupos = useMemo(() => {
     const universo = new Map<string, { n: number; total: number }>();
@@ -1455,8 +1470,19 @@ function AbaB2B() {
 
             <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
               <Inbox className="h-8 w-8" />
-              <p>Nenhum recebível encontrado.</p>
+              {eixoVazio ? (
+                <>
+                  <p>Nenhum filtro de {eixoVazio.quais} selecionado.</p>
+                  <p className="text-xs">
+                    {eixoVazio.escondidos} título{eixoVazio.escondidos !== 1 ? "s" : ""} escondido
+                    {eixoVazio.escondidos !== 1 ? "s" : ""} — clique num chip de {eixoVazio.quais} acima.
+                  </p>
+                </>
+              ) : (
+                <p>Nenhum recebível encontrado.</p>
+              )}
             </div>
+
           ) : (
             <Table>
               <TableHeader>
