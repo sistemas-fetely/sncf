@@ -645,6 +645,14 @@ function AbaB2B() {
 
   /* Agrupamento por pedido — mesma leitura da tela de Cobrança, lógica local. */
   const grupos = useMemo(() => {
+    const universo = new Map<string, { n: number; total: number }>();
+    for (const t of data ?? []) {
+      const chave = t.pedido_ref ? `p:${t.pedido_ref}` : `t:${t.id}`;
+      const cur = universo.get(chave) ?? { n: 0, total: 0 };
+      cur.n += 1;
+      cur.total += efetivoDe(t);
+      universo.set(chave, cur);
+    }
     const mapa = new Map<string, RecebivelB2B[]>();
     for (const t of filtrados) {
       const chave = t.pedido_ref ? `p:${t.pedido_ref}` : `t:${t.id}`;
