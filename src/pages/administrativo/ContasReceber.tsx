@@ -299,6 +299,18 @@ function AbaB2B() {
   const em30 = useMemo(() => new Date(hoje.getTime() + 30 * 86400000), [hoje]);
 
 
+  const bancosOpcoes = useMemo(() => {
+    const set = new Set<string>();
+    (data ?? []).forEach((t) => t.banco_nome && set.add(t.banco_nome));
+    return Array.from(set).sort();
+  }, [data]);
+
+  const meiosOpcoes = useMemo(() => {
+    const set = new Set<string>();
+    (data ?? []).forEach((t) => t.meio_pagamento && set.add(t.meio_pagamento));
+    return Array.from(set).sort();
+  }, [data]);
+
   const qtdRenegociados = useMemo(
     () => (data ?? []).filter((t) => t.venc_renegociado === true).length,
     [data]
@@ -1048,6 +1060,232 @@ function AbaB2B() {
           ))}
         </div>
       )}
+
+      {/* Filtros */}
+      <Card>
+        <CardContent className="space-y-4 p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <AtalhosPeriodo
+              onPick={(de, ate) => {
+                setDataDe(de);
+                setDataAte(ate);
+                setPage(1);
+              }}
+            />
+            {comparativo && (
+              <div className="text-sm">
+                Recebido: <span className="tabular-nums">{formatBRL(comparativo.atual)}</span>{" "}
+                <span className="text-muted-foreground">
+                  (mês anterior <span className="tabular-nums">{formatBRL(comparativo.anterior)}</span>
+                  {comparativo.variacao != null && (
+                    <>
+                      {" · "}
+                      <span
+                        className={
+                          comparativo.variacao >= 0 ? "text-green-700" : "text-destructive"
+                        }
+                      >
+                        {comparativo.variacao >= 0 ? "+" : ""}
+                        {comparativo.variacao.toFixed(1)}%
+                      </span>
+                    </>
+                  )}
+                  )
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Prova — onde está o dinheiro</Label>
+            <div className="flex flex-wrap gap-2">
+              {PROVAS.map((p) => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={provasAtivas.has(p) ? "default" : "outline"}
+                  onClick={() => toggleProva(p)}
+                >
+                  {PROVA_META[p].label} ({contagensProva[p] ?? 0})
+                </Button>
+              ))}
+            </div>
+            <Label className="text-xs pt-2 block">Status — onde está o dinheiro desta parcela</Label>
+            <div className="flex flex-wrap gap-2">
+              {STATUS_EIXOS.map((s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={statusAtivos.has(s) ? "default" : "outline"}
+                  onClick={() => toggleStatus(s)}
+                >
+                  {STATUS_META[s].label} ({contagensStatus[s] ?? 0})
+                </Button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                size="sm"
+                variant={soInadimplentes ? "default" : "outline"}
+                onClick={() => {
+                  setSoInadimplentes((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só inadimplentes ({qtdInadimplentes})
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+
+                size="sm"
+                variant={soRenegociados ? "default" : "outline"}
+                onClick={() => {
+                  setSoRenegociados((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só renegociados ({qtdRenegociados})
+              </Button>
+              <Button
+                size="sm"
+                variant={soSemProva ? "default" : "outline"}
+                onClick={() => {
+                  setSoSemProva((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só sem prova bancária ({qtdSemProva})
+              </Button>
+              {qtdDivergentes > 0 && (
+                <Button
+                  size="sm"
+                  variant={soDivergentes ? "default" : "outline"}
+                  onClick={() => {
+                    setSoDivergentes((v) => !v);
+                    setPage(1);
+                  }}
+                >
+                  Data divergente ({qtdDivergentes})
+                </Button>
+              )}
+              {qtdMeioDivergente > 0 && (
+                <Button
+                  size="sm"
+                  variant={soMeioDivergente ? "default" : "outline"}
+                  onClick={() => {
+                    setSoMeioDivergente((v) => !v);
+                    setPage(1);
+                  }}
+                >
+                  Meio ≠ pedido ({qtdMeioDivergente})
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+            <div className="space-y-1">
+              <Label className="text-xs">Busca</Label>
+              <Input
+                placeholder="Título, NF ou cliente"
+                value={busca}
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Banco</Label>
+              <Select
+                value={filtroBanco}
+                onValueChange={(v) => {
+                  setFiltroBanco(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {bancosOpcoes.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Meio de pagamento</Label>
+              <Select
+                value={filtroMeio}
+                onValueChange={(v) => {
+                  setFiltroMeio(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {meiosOpcoes.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {formatMeio(m)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Data base</Label>
+              <Select
+                value={dataBase}
+                onValueChange={(v) => {
+                  setDataBase(v as DataBase);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vencimento">Vencimento</SelectItem>
+                  <SelectItem value="emissao">Emissão (NF)</SelectItem>
+                  <SelectItem value="liquidacao">Liquidação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">De</Label>
+              <Input
+                type="date"
+                value={dataDe}
+                onChange={(e) => {
+                  setDataDe(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Até</Label>
+              <Input
+                type="date"
+                value={dataAte}
+                onChange={(e) => {
+                  setDataAte(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <TitulosTab somenteComNf />
     </div>
