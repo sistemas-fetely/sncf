@@ -31133,6 +31133,7 @@ export type Database = {
           receita_liquida_mes: number | null
           sinal: number | null
           valor: number | null
+          valor_acumulado: number | null
         }
         Relationships: []
       }
