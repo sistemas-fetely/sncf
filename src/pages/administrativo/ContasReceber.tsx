@@ -273,7 +273,7 @@ function AbaB2B() {
 
 
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
+  const [sort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
     key: "data_compra",
     dir: "desc",
   });
@@ -643,10 +643,6 @@ function AbaB2B() {
     }
     return arr;
   }, [base, provasAtivas, statusAtivos, sort]);
-
-  const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
-  const pageSafe = Math.min(page, totalPages);
-  const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
   const toggleProva = (k: EixoProva) => {
     setProvasAtivas((prev) => {
