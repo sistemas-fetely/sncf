@@ -43,14 +43,40 @@ export interface DreDespesaRow {
   valor: number | null;
 }
 
-/** Todas as linhas da DRE (view pequena, filtro por mês no client). */
-export function useDreMensal() {
+/** Meses distintos disponíveis na DRE (mais recente primeiro). */
+export function useDreMeses() {
   return useQuery({
-    queryKey: ["dre", "vw_dre_mensal"],
+    queryKey: ["dre", "meses"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_dre_mensal")
+        .select("mes")
+        .order("mes", { ascending: false });
+      if (error) throw error;
+      const vistos = new Set<string>();
+      const out: string[] = [];
+      for (const r of (data ?? []) as { mes: string | null }[]) {
+        const m = r.mes?.slice(0, 10);
+        if (m && !vistos.has(m)) {
+          vistos.add(m);
+          out.push(m);
+        }
+      }
+      return out;
+    },
+  });
+}
+
+/** Linhas da DRE apenas dos meses pedidos (filtro no servidor). */
+export function useDreMensal(meses: string[]) {
+  return useQuery({
+    enabled: meses.length > 0,
+    queryKey: ["dre", "vw_dre_mensal", ...meses],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_dre_mensal")
         .select("*")
+        .in("mes", meses)
         .order("mes", { ascending: false })
         .order("ordem", { ascending: true });
       if (error) throw error;
@@ -59,20 +85,22 @@ export function useDreMensal() {
   });
 }
 
-export function useDreIntegridade() {
+export function useDreIntegridade(mes: string | null) {
   return useQuery({
-    queryKey: ["dre", "vw_dre_integridade"],
+    enabled: !!mes,
+    queryKey: ["dre", "vw_dre_integridade", mes],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_dre_integridade")
         .select("*")
-        .order("mes", { ascending: false })
+        .eq("mes", mes)
         .order("ord", { ascending: true });
       if (error) throw error;
       return (data ?? []) as DreIntegridadeRow[];
     },
   });
 }
+
 
 export function useDreRefreshEstado() {
   return useQuery({
