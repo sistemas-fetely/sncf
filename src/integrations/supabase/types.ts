@@ -31136,6 +31136,12 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_dre_meses: {
+        Row: {
+          mes: string | null
+        }
+        Relationships: []
+      }
       vw_estoque: {
         Row: {
           ativo: boolean | null
@@ -33965,14 +33971,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
