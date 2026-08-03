@@ -14,6 +14,7 @@ export interface DreLinhaMes {
   exibe_pct_receita: boolean | null;
   nota: string | null;
   valor: number | null;
+  valor_acumulado: number | null;
   receita_liquida_mes: number | null;
   pct_receita_liquida: number | null;
 }
