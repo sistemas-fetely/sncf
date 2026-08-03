@@ -514,9 +514,9 @@ function LinhaGrupo({
         </div>
       </TableCell>
       <TableCell>
-        {g.provaUnanime
-          ? <BadgeProva eixo={g.provaUnanime} />
-          : <span className="text-xs text-muted-foreground">misto</span>}
+        {g.provaPrevalente
+          ? <BadgeProva eixo={g.provaPrevalente} />
+          : <span className="text-xs text-muted-foreground">—</span>}
       </TableCell>
       <TableCell><span className="text-xs">{resumoComposicao(g)}</span></TableCell>
     </TableRow>
