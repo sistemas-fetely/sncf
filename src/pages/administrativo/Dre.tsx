@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
-  useDreDespesas, useDreIntegridade, useDreMensal, useDreRefreshEstado,
+  useDreDespesas, useDreIntegridade, useDreMensal, useDreMeses, useDreRefreshEstado,
   type DreLinhaMes,
 } from "@/hooks/useDre";
 
