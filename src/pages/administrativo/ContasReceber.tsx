@@ -250,7 +250,9 @@ export default function ContasReceber() {
 
 function AbaB2B() {
   const navigate = useNavigate();
-
+  const [dataBase, setDataBase] = useState<DataBase>("emissao");
+  const [dataDe, setDataDe] = useState("");
+  const [dataAte, setDataAte] = useState("");
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
 
 
@@ -303,7 +305,7 @@ function AbaB2B() {
     });
   }, [data, dataBase, dataDe, dataAte]);
 
- = useMemo(() => {
+  const kpis = useMemo(() => {
     /**
      * Eixo status: onde está o dinheiro DESTA parcela (a_vencer, pago, compensado).
      * Eixo prova: a VENDA foi validada no banco (conciliado).
