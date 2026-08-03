@@ -1412,6 +1412,26 @@ function AbaB2B() {
       </Card>
 
       {/* Tabela */}
+      <div className="flex items-center justify-end gap-1">
+        {([true, false] as const).map((modo) => (
+          <button
+            key={String(modo)}
+            type="button"
+            onClick={() => {
+              setAgrupado(modo);
+              setPage(1);
+            }}
+            className={
+              "text-xs px-3 py-1.5 rounded-full border transition-colors " +
+              (agrupado === modo
+                ? "bg-foreground text-background border-foreground"
+                : "bg-background text-muted-foreground border-border hover:border-foreground/40")
+            }
+          >
+            {modo ? "Agrupado por pedido" : "Lista plana"}
+          </button>
+        ))}
+      </div>
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -1420,7 +1440,8 @@ function AbaB2B() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
-          ) : paginados.length === 0 ? (
+          ) : totalItens === 0 ? (
+
             <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
               <Inbox className="h-8 w-8" />
               <p>Nenhum recebível encontrado.</p>
