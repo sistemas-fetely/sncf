@@ -234,7 +234,7 @@ export default function ContasReceber() {
         <TabsList>
           <TabsTrigger value="b2b">B2B</TabsTrigger>
           <TabsTrigger value="b2c">B2C</TabsTrigger>
-          <TabsTrigger value="faturados">Títulos faturados</TabsTrigger>
+          
         </TabsList>
         <TabsContent value="b2b" className="mt-4">
           <AbaB2B />
