@@ -1497,6 +1497,11 @@ function AbaB2B() {
                                   {g.titulos.length} parcela(s) de{" "}
                                   {g.titulos[0].total_parcelas ?? g.titulos.length}
                                 </div>
+                                {g.ocultos > 0 && (
+                                  <div className="text-[10px] text-amber-700 pl-5">
+                                    +{g.ocultos} fora do filtro
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell className="text-sm font-medium">
                                 {g.cliente ?? "—"}
