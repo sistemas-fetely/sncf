@@ -32,7 +32,6 @@ import {
 import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
-import TitulosTab from "@/pages/Credito/TitulosTab";
 
 import {
   BadgeProva,
@@ -250,14 +249,33 @@ export default function ContasReceber() {
 
 function AbaB2B() {
   const navigate = useNavigate();
+  const [busca, setBusca] = useState("");
   const [dataBase, setDataBase] = useState<DataBase>("emissao");
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
+  const [filtroBanco, setFiltroBanco] = useState<string>("todos");
+  const [filtroMeio, setFiltroMeio] = useState<string>("todos");
+  const [soRenegociados, setSoRenegociados] = useState(false);
+  const [soSemProva, setSoSemProva] = useState(false);
+  const [soDivergentes, setSoDivergentes] = useState(false);
+  const [soMeioDivergente, setSoMeioDivergente] = useState(false);
+  
+  const [soInadimplentes, setSoInadimplentes] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
+  const [provasAtivas, setProvasAtivas] = useState<Set<EixoProva>>(
+    new Set<EixoProva>(["registrado", "conciliado"])
+  );
+  const [statusAtivos, setStatusAtivos] = useState<Set<EixoStatus>>(
+    new Set<EixoStatus>(["a_vencer", "pago", "compensado"])
+  );
 
 
 
-  const [, setPage] = useState(1);
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
+    key: "data_compra",
+    dir: "desc",
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-b2b"],
@@ -279,16 +297,69 @@ function AbaB2B() {
 
   const em30 = useMemo(() => new Date(hoje.getTime() + 30 * 86400000), [hoje]);
 
+  const bancosOpcoes = useMemo(() => {
+    const set = new Set<string>();
+    (data ?? []).forEach((t) => t.banco_nome && set.add(t.banco_nome));
+    return Array.from(set).sort();
+  }, [data]);
 
+  const meiosOpcoes = useMemo(() => {
+    const set = new Set<string>();
+    (data ?? []).forEach((t) => t.meio_pagamento && set.add(t.meio_pagamento));
+    return Array.from(set).sort();
+  }, [data]);
+
+  const qtdRenegociados = useMemo(
+    () => (data ?? []).filter((t) => t.venc_renegociado === true).length,
+    [data]
+  );
+
+  const qtdSemProva = useMemo(
+    () => (data ?? []).filter((t) => t.fonte_data_recebimento === "marcado_humano").length,
+    [data]
+  );
+
+  const qtdDivergentes = useMemo(
+    () => (data ?? []).filter((t) => t.data_divergente === true).length,
+    [data]
+  );
+
+  const qtdMeioDivergente = useMemo(
+    () => (data ?? []).filter((t) => t.meio_divergente === true).length,
+    [data]
+  );
+
+
+  const qtdInadimplentes = useMemo(
+    () => (data ?? []).filter((t) => t.eh_inadimplencia === true).length,
+    [data]
+  );
 
 
   /** Conjunto filtrado por tudo EXCETO os dois eixos — base dos KPIs e das contagens. */
   const base = useMemo(() => {
     const titulos = data ?? [];
+    const buscaLc = busca.trim().toLowerCase();
     const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
     const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
 
     return titulos.filter((t) => {
+      if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) return false;
+      if (filtroMeio !== "todos" && t.meio_pagamento !== filtroMeio) return false;
+      if (soRenegociados && t.venc_renegociado !== true) return false;
+      if (soSemProva && t.fonte_data_recebimento !== "marcado_humano") return false;
+      if (soDivergentes && t.data_divergente !== true) return false;
+      if (soMeioDivergente && t.meio_divergente !== true) return false;
+      
+      if (soInadimplentes && t.eh_inadimplencia !== true) return false;
+
+      if (buscaLc) {
+        const num = (t.numero_titulo ?? "").toLowerCase();
+        const cli = (t.cliente ?? "").toLowerCase();
+        const nf = (t.nf_numero ?? "").toLowerCase();
+        if (!num.includes(buscaLc) && !cli.includes(buscaLc) && !nf.includes(buscaLc)) return false;
+      }
+
       if (dDe || dAte) {
         const ref =
           dataBase === "vencimento"
@@ -303,7 +374,22 @@ function AbaB2B() {
       }
       return true;
     });
-  }, [data, dataBase, dataDe, dataAte]);
+  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente, soInadimplentes]);
+
+  const contagensProva = useMemo(() => {
+    const c = {} as Record<EixoProva, number>;
+    for (const p of PROVAS) c[p] = 0;
+    for (const t of base) if (t.eixo_prova) c[t.eixo_prova] = (c[t.eixo_prova] ?? 0) + 1;
+    return c;
+  }, [base]);
+
+  const contagensStatus = useMemo(() => {
+    const c = {} as Record<EixoStatus, number>;
+    for (const s of STATUS_EIXOS) c[s] = 0;
+    for (const t of base) if (t.eixo_status) c[t.eixo_status] = (c[t.eixo_status] ?? 0) + 1;
+    return c;
+  }, [base]);
+
 
   const kpis = useMemo(() => {
     /**
@@ -405,6 +491,47 @@ function AbaB2B() {
 
 
 
+  /** Comparação com o mês anterior quando o período selecionado é um mês fechado. */
+  const comparativo = useMemo(() => {
+    if (!dataDe || !dataAte || !data) return null;
+    const de = new Date(dataDe + "T00:00:00");
+    const ate = new Date(dataAte + "T00:00:00");
+    const fimMes = new Date(de.getFullYear(), de.getMonth() + 1, 0);
+    const ehMesFechado =
+      de.getDate() === 1 &&
+      ate.getFullYear() === fimMes.getFullYear() &&
+      ate.getMonth() === fimMes.getMonth() &&
+      ate.getDate() === fimMes.getDate();
+    if (!ehMesFechado) return null;
+
+    const antDe = new Date(de.getFullYear(), de.getMonth() - 1, 1);
+    const antAte = new Date(de.getFullYear(), de.getMonth(), 0);
+
+    const somaRecebido = (ini: Date, fim: Date) => {
+      let s = 0;
+      let houve = false;
+      for (const t of data) {
+        const ref =
+          dataBase === "vencimento"
+            ? t.data_vencimento
+            : dataBase === "emissao"
+            ? t.data_compra
+            : t.data_liquidacao;
+        if (!ref) continue;
+        const d = new Date(ref + "T12:00:00");
+        if (d < ini || d > fim) continue;
+        houve = true;
+        if (t.eixo_prova === "conciliado") s += efetivoDe(t);
+      }
+      return houve ? s : null;
+    };
+
+    const atual = somaRecebido(de, new Date(ate.getTime() + 86399000)) ?? 0;
+    const anterior = somaRecebido(antDe, new Date(antAte.getTime() + 86399000));
+    if (anterior == null) return null;
+    const variacao = anterior > 0 ? ((atual - anterior) / anterior) * 100 : null;
+    return { atual, anterior, variacao };
+  }, [data, dataDe, dataAte, dataBase]);
 
   const aging = useMemo(() => {
     const faixas = { f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
@@ -496,10 +623,57 @@ function AbaB2B() {
     setPage(1);
   };
 
+  const filtrados = useMemo(() => {
+    let arr = base.filter(
+      (t) => provasAtivas.has(t.eixo_prova) && statusAtivos.has(t.eixo_status)
+    );
+    if (sort) {
+      arr = [...arr].sort((a, b) => {
+        const va = (a as any)[sort.key] ?? "";
+        const vb = (b as any)[sort.key] ?? "";
+        if (typeof va === "string" && typeof vb === "string") {
+          return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        if (typeof va === "number" && typeof vb === "number") {
+          return sort.dir === "asc" ? va - vb : vb - va;
+        }
+        return sort.dir === "asc" ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
+      });
+    }
+    return arr;
+  }, [base, provasAtivas, statusAtivos, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  const pageSafe = Math.min(page, totalPages);
+  const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+
+  const toggleProva = (k: EixoProva) => {
+    setProvasAtivas((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+    setPage(1);
+  };
+
+  const toggleStatus = (k: EixoStatus) => {
+    setStatusAtivos((prev) => {
+
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+    setPage(1);
+  };
+
+
+
   const periodoLabel = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
 
   const handleExportXLSX = () => {
-    const linhas = base.map((t) => ({
+    const linhas = filtrados.map((t) => ({
       NF: t.nf_numero ?? "",
       Pedido: t.pedido_ref ?? "",
       Cliente: t.cliente ?? "",
@@ -553,7 +727,7 @@ function AbaB2B() {
         <Button
           variant="outline"
           onClick={handleExportXLSX}
-          disabled={base.length === 0}
+          disabled={filtrados.length === 0}
           className="gap-2"
         >
           <Download className="h-4 w-4" />
@@ -889,8 +1063,500 @@ function AbaB2B() {
         </div>
       )}
 
+      {/* Filtros */}
+      <Card>
+        <CardContent className="space-y-4 p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <AtalhosPeriodo
+              onPick={(de, ate) => {
+                setDataDe(de);
+                setDataAte(ate);
+                setPage(1);
+              }}
+            />
+            {comparativo && (
+              <div className="text-sm">
+                Recebido: <span className="tabular-nums">{formatBRL(comparativo.atual)}</span>{" "}
+                <span className="text-muted-foreground">
+                  (mês anterior <span className="tabular-nums">{formatBRL(comparativo.anterior)}</span>
+                  {comparativo.variacao != null && (
+                    <>
+                      {" · "}
+                      <span
+                        className={
+                          comparativo.variacao >= 0 ? "text-green-700" : "text-destructive"
+                        }
+                      >
+                        {comparativo.variacao >= 0 ? "+" : ""}
+                        {comparativo.variacao.toFixed(1)}%
+                      </span>
+                    </>
+                  )}
+                  )
+                </span>
+              </div>
+            )}
+          </div>
 
-      <TitulosTab somenteComNf />
+          <div className="space-y-1">
+            <Label className="text-xs">Prova — onde está o dinheiro</Label>
+            <div className="flex flex-wrap gap-2">
+              {PROVAS.map((p) => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={provasAtivas.has(p) ? "default" : "outline"}
+                  onClick={() => toggleProva(p)}
+                >
+                  {PROVA_META[p].label} ({contagensProva[p] ?? 0})
+                </Button>
+              ))}
+            </div>
+            <Label className="text-xs pt-2 block">Status — onde está o dinheiro desta parcela</Label>
+            <div className="flex flex-wrap gap-2">
+              {STATUS_EIXOS.map((s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={statusAtivos.has(s) ? "default" : "outline"}
+                  onClick={() => toggleStatus(s)}
+                >
+                  {STATUS_META[s].label} ({contagensStatus[s] ?? 0})
+                </Button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                size="sm"
+                variant={soInadimplentes ? "default" : "outline"}
+                onClick={() => {
+                  setSoInadimplentes((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só inadimplentes ({qtdInadimplentes})
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+
+                size="sm"
+                variant={soRenegociados ? "default" : "outline"}
+                onClick={() => {
+                  setSoRenegociados((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só renegociados ({qtdRenegociados})
+              </Button>
+              <Button
+                size="sm"
+                variant={soSemProva ? "default" : "outline"}
+                onClick={() => {
+                  setSoSemProva((v) => !v);
+                  setPage(1);
+                }}
+              >
+                Só sem prova bancária ({qtdSemProva})
+              </Button>
+              {qtdDivergentes > 0 && (
+                <Button
+                  size="sm"
+                  variant={soDivergentes ? "default" : "outline"}
+                  onClick={() => {
+                    setSoDivergentes((v) => !v);
+                    setPage(1);
+                  }}
+                >
+                  Data divergente ({qtdDivergentes})
+                </Button>
+              )}
+              {qtdMeioDivergente > 0 && (
+                <Button
+                  size="sm"
+                  variant={soMeioDivergente ? "default" : "outline"}
+                  onClick={() => {
+                    setSoMeioDivergente((v) => !v);
+                    setPage(1);
+                  }}
+                >
+                  Meio ≠ pedido ({qtdMeioDivergente})
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+            <div className="space-y-1">
+              <Label className="text-xs">Busca</Label>
+              <Input
+                placeholder="Título, NF ou cliente"
+                value={busca}
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Banco</Label>
+              <Select
+                value={filtroBanco}
+                onValueChange={(v) => {
+                  setFiltroBanco(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {bancosOpcoes.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Meio de pagamento</Label>
+              <Select
+                value={filtroMeio}
+                onValueChange={(v) => {
+                  setFiltroMeio(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {meiosOpcoes.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {formatMeio(m)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Data base</Label>
+              <Select
+                value={dataBase}
+                onValueChange={(v) => {
+                  setDataBase(v as DataBase);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vencimento">Vencimento</SelectItem>
+                  <SelectItem value="emissao">Emissão (NF)</SelectItem>
+                  <SelectItem value="liquidacao">Liquidação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">De</Label>
+              <Input
+                type="date"
+                value={dataDe}
+                onChange={(e) => {
+                  setDataDe(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Até</Label>
+              <Input
+                type="date"
+                value={dataAte}
+                onChange={(e) => {
+                  setDataAte(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela */}
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="space-y-2 p-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : paginados.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
+              <Inbox className="h-8 w-8" />
+              <p>Nenhum recebível encontrado.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortTh label="NF" sortKey="nf_numero" sort={sort} setSort={setSort} />
+                  <SortTh label="Cliente" sortKey="cliente" sort={sort} setSort={setSort} />
+                  <SortTh label="Pedido / Título" sortKey="numero_titulo" sort={sort} setSort={setSort} />
+                  <SortTh label="Banco" sortKey="banco_nome" sort={sort} setSort={setSort} />
+                  <SortTh label="Meio" sortKey="meio_pagamento" sort={sort} setSort={setSort} />
+                  <SortTh label="Data compra" sortKey="data_compra" sort={sort} setSort={setSort} />
+                  <SortTh label="Vencimento" sortKey="data_vencimento" sort={sort} setSort={setSort} />
+                  <TableHead
+                    className="cursor-pointer select-none transition-colors hover:text-foreground"
+                    onClick={() =>
+                      setSort((prev) => {
+                        if (prev?.key === "data_liquidacao_prevista")
+                          return prev.dir === "desc"
+                            ? { key: "data_liquidacao_prevista", dir: "asc" }
+                            : { key: "desvio_previsao_dias", dir: "desc" };
+                        if (prev?.key === "desvio_previsao_dias")
+                          return prev.dir === "desc"
+                            ? { key: "desvio_previsao_dias", dir: "asc" }
+                            : { key: "data_liquidacao_prevista", dir: "desc" };
+                        return { key: "data_liquidacao_prevista", dir: "desc" };
+                      })
+                    }
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Previsto
+                      {sort?.key === "desvio_previsao_dias" && (
+                        <span className="text-[10px] text-muted-foreground">desvio</span>
+                      )}
+                      {sort?.key === "data_liquidacao_prevista" ||
+                      sort?.key === "desvio_previsao_dias" ? (
+                        sort.dir === "asc" ? (
+                          <ArrowUp className="h-3 w-3 opacity-60" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3 opacity-60" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-60" />
+                      )}
+                    </span>
+                  </TableHead>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SortTh
+                        label="Recebido em"
+                        sortKey="data_recebimento_efetiva"
+                        sort={sort}
+                        setSort={setSort}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Data confirmada pelo banco. Baixa registrada no sistema sem confirmação
+                        bancária não é recebimento — aparece como "marcado em".
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <SortTh label="Valor" sortKey="valor_efetivo" sort={sort} setSort={setSort} align="right" />
+                  <SortTh label="Prova" sortKey="eixo_prova" sort={sort} setSort={setSort} />
+                  <SortTh label="Status" sortKey="eixo_status" sort={sort} setSort={setSort} />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginados.map((t) => {
+                  const atrasado = t.eh_inadimplencia === true;
+
+                  const juros = Number(t.valor_juros ?? 0);
+                  const desconto = Number(t.valor_desconto ?? 0);
+                  const bruto = Number(t.valor_bruto ?? t.valor ?? 0);
+                  return (
+                    <TableRow key={t.id} className={atrasado ? "bg-red-50/40" : undefined}>
+                      <TableCell className="font-mono text-xs">
+                        {t.nf_numero ?? "—"}
+                      </TableCell>
+                      <TableCell className="max-w-[180px] truncate" title={t.cliente ?? ""}>
+                        {t.cliente ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {t.pedido_ref && (
+                          <div>
+                            {t.pedido_id ? (
+                              <Button
+                                variant="link"
+                                className="h-auto p-0 font-mono text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/pedidos/${t.pedido_id}`);
+                                }}
+                              >
+                                {t.pedido_ref}
+                              </Button>
+                            ) : (
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {t.pedido_ref}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <span className="font-mono">{t.numero_titulo ?? "—"}</span>
+                        {t.numero_parcela != null && t.total_parcelas != null && (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            {t.numero_parcela}/{t.total_parcelas}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{t.banco_nome ?? "—"}</TableCell>
+                      <TableCell>
+                        <div>{formatMeio(t.meio_pagamento)}</div>
+                        {t.meio_divergente === true && (
+                          <div className="text-xs text-muted-foreground">
+                            pedido: {formatMeio(t.meio_pedido)}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>{formatDateBR(t.data_compra)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{formatDateBR(t.data_vencimento)}</span>
+                          {t.venc_renegociado === true && (
+                            <Badge variant="outline" className="text-[10px]">
+                              Renegociado
+                            </Badge>
+                          )}
+                        </div>
+                        {t.venc_renegociado === true && (
+                          <div className="text-xs text-muted-foreground">
+                            orig. {formatDateBR(t.data_vencimento_original)} ·{" "}
+                            {(t.dias_prorrogado ?? 0) >= 0 ? "+" : ""}
+                            {t.dias_prorrogado ?? 0}d
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {t.data_liquidacao_prevista ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="cursor-help">
+                                <span>{formatDateBR(t.data_liquidacao_prevista)}</span>
+                                {t.desvio_previsao_dias != null && (
+                                  <div
+                                    className={`text-xs tabular-nums ${
+                                      Number(t.desvio_previsao_dias) > 0
+                                        ? "text-destructive"
+                                        : "text-emerald-700"
+                                    }`}
+                                  >
+                                    {Number(t.desvio_previsao_dias) === 0
+                                      ? "no dia"
+                                      : `${Number(t.desvio_previsao_dias) > 0 ? "+" : ""}${
+                                          t.desvio_previsao_dias
+                                        }d`}
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                Previsão da régua de recebimento. O desvio compara com a data
+                                confirmada pelo banco — só existe quando há prova bancária.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {t.data_recebimento_efetiva ? (
+                          <>
+                            <span className="tabular-nums">
+                              {formatDateBR(t.data_recebimento_efetiva)}
+                            </span>
+                            {t.data_divergente === true && (
+                              <div className="text-xs text-destructive tabular-nums">
+                                humano {formatDateBR(t.data_pagamento)}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-muted-foreground">—</span>
+                            {t.fonte_data_recebimento === "marcado_humano" && (
+                              <div className="text-xs text-muted-foreground tabular-nums">
+                                marcado em {formatDateBR(t.data_pagamento)}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-right tabular-nums">
+                        <div>{formatBRL(efetivoDe(t))}</div>
+                        {(juros > 0 || desconto > 0 || efetivoDe(t) !== bruto) && (
+                          <div className="text-xs text-muted-foreground tabular-nums">
+                            bruto {formatBRL(bruto)}
+                            {juros > 0 && (
+                              <span className="text-emerald-700"> · juros +{formatBRL(juros)}</span>
+                            )}
+                            {desconto > 0 && (
+                              <span className="text-destructive"> · desc −{formatBRL(desconto)}</span>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <BadgeProva eixo={t.eixo_prova} />
+                      </TableCell>
+                      <TableCell>
+                        <BadgeStatus
+                          eixo={t.eixo_status}
+                          compensadoPor={t.compensado_por}
+                          inadimplente={t.eh_inadimplencia === true}
+                        />
+
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Paginação */}
+      {filtrados.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Página {pageSafe} de {totalPages} · {filtrados.length} registros
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pageSafe <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pageSafe >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Próxima
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
