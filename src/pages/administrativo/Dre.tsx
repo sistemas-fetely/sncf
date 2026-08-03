@@ -101,13 +101,14 @@ export default function Dre() {
     return meses.find((m) => chaveDe(m) < chaveCorrente) ?? meses[0];
   }, [meses]);
 
+  const mesAtivo = mes ?? mesPadrao;
+
   const mesEmCurso = useMemo(() => {
-    if (!mesAtivoRefSafe(mes, mesPadrao)) return false;
-    const m = mesAtivoRefSafe(mes, mesPadrao)!;
+    if (!mesAtivo) return false;
     const hoje = new Date();
-    const [a, b] = m.split("-");
+    const [a, b] = mesAtivo.split("-");
     return Number(a) === hoje.getFullYear() && Number(b) - 1 === hoje.getMonth();
-  }, [mes, mesPadrao]);
+  }, [mesAtivo]);
 
   const mesAtivo = mes ?? mesPadrao;
 
