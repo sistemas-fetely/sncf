@@ -250,33 +250,12 @@ export default function ContasReceber() {
 
 function AbaB2B() {
   const navigate = useNavigate();
-  const [busca, setBusca] = useState("");
-  const [dataBase, setDataBase] = useState<DataBase>("emissao");
-  const [dataDe, setDataDe] = useState("");
-  const [dataAte, setDataAte] = useState("");
-  const [filtroBanco, setFiltroBanco] = useState<string>("todos");
-  const [filtroMeio, setFiltroMeio] = useState<string>("todos");
-  const [soRenegociados, setSoRenegociados] = useState(false);
-  const [soSemProva, setSoSemProva] = useState(false);
-  const [soDivergentes, setSoDivergentes] = useState(false);
-  const [soMeioDivergente, setSoMeioDivergente] = useState(false);
-  
-  const [soInadimplentes, setSoInadimplentes] = useState(false);
+
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
-  const [provasAtivas, setProvasAtivas] = useState<Set<EixoProva>>(
-    new Set<EixoProva>(["registrado", "conciliado"])
-  );
-  const [statusAtivos, setStatusAtivos] = useState<Set<EixoStatus>>(
-    new Set<EixoStatus>(["a_vencer", "pago", "compensado"])
-  );
 
 
 
   const [page, setPage] = useState(1);
-  const [sort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
-    key: "data_compra",
-    dir: "desc",
-  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-b2b"],
@@ -299,69 +278,15 @@ function AbaB2B() {
   const em30 = useMemo(() => new Date(hoje.getTime() + 30 * 86400000), [hoje]);
 
 
-  const bancosOpcoes = useMemo(() => {
-    const set = new Set<string>();
-    (data ?? []).forEach((t) => t.banco_nome && set.add(t.banco_nome));
-    return Array.from(set).sort();
-  }, [data]);
-
-  const meiosOpcoes = useMemo(() => {
-    const set = new Set<string>();
-    (data ?? []).forEach((t) => t.meio_pagamento && set.add(t.meio_pagamento));
-    return Array.from(set).sort();
-  }, [data]);
-
-  const qtdRenegociados = useMemo(
-    () => (data ?? []).filter((t) => t.venc_renegociado === true).length,
-    [data]
-  );
-
-  const qtdSemProva = useMemo(
-    () => (data ?? []).filter((t) => t.fonte_data_recebimento === "marcado_humano").length,
-    [data]
-  );
-
-  const qtdDivergentes = useMemo(
-    () => (data ?? []).filter((t) => t.data_divergente === true).length,
-    [data]
-  );
-
-  const qtdMeioDivergente = useMemo(
-    () => (data ?? []).filter((t) => t.meio_divergente === true).length,
-    [data]
-  );
-
-
-  const qtdInadimplentes = useMemo(
-    () => (data ?? []).filter((t) => t.eh_inadimplencia === true).length,
-    [data]
-  );
 
 
   /** Conjunto filtrado por tudo EXCETO os dois eixos — base dos KPIs e das contagens. */
   const base = useMemo(() => {
     const titulos = data ?? [];
-    const buscaLc = busca.trim().toLowerCase();
     const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
     const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
 
     return titulos.filter((t) => {
-      if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) return false;
-      if (filtroMeio !== "todos" && t.meio_pagamento !== filtroMeio) return false;
-      if (soRenegociados && t.venc_renegociado !== true) return false;
-      if (soSemProva && t.fonte_data_recebimento !== "marcado_humano") return false;
-      if (soDivergentes && t.data_divergente !== true) return false;
-      if (soMeioDivergente && t.meio_divergente !== true) return false;
-      
-      if (soInadimplentes && t.eh_inadimplencia !== true) return false;
-
-      if (buscaLc) {
-        const num = (t.numero_titulo ?? "").toLowerCase();
-        const cli = (t.cliente ?? "").toLowerCase();
-        const nf = (t.nf_numero ?? "").toLowerCase();
-        if (!num.includes(buscaLc) && !cli.includes(buscaLc) && !nf.includes(buscaLc)) return false;
-      }
-
       if (dDe || dAte) {
         const ref =
           dataBase === "vencimento"
@@ -376,24 +301,9 @@ function AbaB2B() {
       }
       return true;
     });
-  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco, filtroMeio, soRenegociados, soSemProva, soDivergentes, soMeioDivergente, soInadimplentes]);
+  }, [data, dataBase, dataDe, dataAte]);
 
-  const contagensProva = useMemo(() => {
-    const c = {} as Record<EixoProva, number>;
-    for (const p of PROVAS) c[p] = 0;
-    for (const t of base) if (t.eixo_prova) c[t.eixo_prova] = (c[t.eixo_prova] ?? 0) + 1;
-    return c;
-  }, [base]);
-
-  const contagensStatus = useMemo(() => {
-    const c = {} as Record<EixoStatus, number>;
-    for (const s of STATUS_EIXOS) c[s] = 0;
-    for (const t of base) if (t.eixo_status) c[t.eixo_status] = (c[t.eixo_status] ?? 0) + 1;
-    return c;
-  }, [base]);
-
-
-  const kpis = useMemo(() => {
+ = useMemo(() => {
     /**
      * Eixo status: onde está o dinheiro DESTA parcela (a_vencer, pago, compensado).
      * Eixo prova: a VENDA foi validada no banco (conciliado).
@@ -493,47 +403,6 @@ function AbaB2B() {
 
 
 
-  /** Comparação com o mês anterior quando o período selecionado é um mês fechado. */
-  const comparativo = useMemo(() => {
-    if (!dataDe || !dataAte || !data) return null;
-    const de = new Date(dataDe + "T00:00:00");
-    const ate = new Date(dataAte + "T00:00:00");
-    const fimMes = new Date(de.getFullYear(), de.getMonth() + 1, 0);
-    const ehMesFechado =
-      de.getDate() === 1 &&
-      ate.getFullYear() === fimMes.getFullYear() &&
-      ate.getMonth() === fimMes.getMonth() &&
-      ate.getDate() === fimMes.getDate();
-    if (!ehMesFechado) return null;
-
-    const antDe = new Date(de.getFullYear(), de.getMonth() - 1, 1);
-    const antAte = new Date(de.getFullYear(), de.getMonth(), 0);
-
-    const somaRecebido = (ini: Date, fim: Date) => {
-      let s = 0;
-      let houve = false;
-      for (const t of data) {
-        const ref =
-          dataBase === "vencimento"
-            ? t.data_vencimento
-            : dataBase === "emissao"
-            ? t.data_compra
-            : t.data_liquidacao;
-        if (!ref) continue;
-        const d = new Date(ref + "T12:00:00");
-        if (d < ini || d > fim) continue;
-        houve = true;
-        if (t.eixo_prova === "conciliado") s += efetivoDe(t);
-      }
-      return houve ? s : null;
-    };
-
-    const atual = somaRecebido(de, new Date(ate.getTime() + 86399000)) ?? 0;
-    const anterior = somaRecebido(antDe, new Date(antAte.getTime() + 86399000));
-    if (anterior == null) return null;
-    const variacao = anterior > 0 ? ((atual - anterior) / anterior) * 100 : null;
-    return { atual, anterior, variacao };
-  }, [data, dataDe, dataAte, dataBase]);
 
   const aging = useMemo(() => {
     const faixas = { f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
@@ -625,50 +494,7 @@ function AbaB2B() {
     setPage(1);
   };
 
-  const filtrados = useMemo(() => {
-    let arr = base.filter(
-      (t) => provasAtivas.has(t.eixo_prova) && statusAtivos.has(t.eixo_status)
-    );
-    if (sort) {
-      arr = [...arr].sort((a, b) => {
-        const va = (a as any)[sort.key] ?? "";
-        const vb = (b as any)[sort.key] ?? "";
-        if (typeof va === "string" && typeof vb === "string") {
-          return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
-        }
-        if (typeof va === "number" && typeof vb === "number") {
-          return sort.dir === "asc" ? va - vb : vb - va;
-        }
-        return sort.dir === "asc" ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
-      });
-    }
-    return arr;
-  }, [base, provasAtivas, statusAtivos, sort]);
-
-  const toggleProva = (k: EixoProva) => {
-    setProvasAtivas((prev) => {
-      const next = new Set(prev);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
-      return next;
-    });
-    setPage(1);
-  };
-
-  const toggleStatus = (k: EixoStatus) => {
-    setStatusAtivos((prev) => {
-
-      const next = new Set(prev);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
-      return next;
-    });
-    setPage(1);
-  };
-
-
-
-  const periodoLabel = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
+ = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
 
   const handleExportXLSX = () => {
     const linhas = base.map((t) => ({
