@@ -33286,14 +33286,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -37322,6 +37322,15 @@ export type Database = {
         Args: { p_movimentacao_id: string; p_nota?: string }
         Returns: Json
       }
+      conciliar_cartao_liquido: {
+        Args: {
+          p_movimentacao_id: string
+          p_nota?: string
+          p_nsu: string
+          p_titulo_ids: string[]
+        }
+        Returns: Json
+      }
       conciliar_cartao_lote_automatico: {
         Args: { p_origem?: string }
         Returns: Json
@@ -39616,6 +39625,10 @@ export type Database = {
       }
       vincular_planilha_multiplas_movs: {
         Args: { p_movimentacao_ids: string[]; p_planilha_id: string }
+        Returns: Json
+      }
+      vincular_prova_boleto_retorno: {
+        Args: { p_dry_run?: boolean }
         Returns: Json
       }
       vincular_stage_2: {

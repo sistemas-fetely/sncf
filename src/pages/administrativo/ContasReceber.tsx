@@ -645,6 +645,14 @@ function AbaB2B() {
 
   /* Agrupamento por pedido — mesma leitura da tela de Cobrança, lógica local. */
   const grupos = useMemo(() => {
+    const universo = new Map<string, { n: number; total: number }>();
+    for (const t of data ?? []) {
+      const chave = t.pedido_ref ? `p:${t.pedido_ref}` : `t:${t.id}`;
+      const cur = universo.get(chave) ?? { n: 0, total: 0 };
+      cur.n += 1;
+      cur.total += efetivoDe(t);
+      universo.set(chave, cur);
+    }
     const mapa = new Map<string, RecebivelB2B[]>();
     for (const t of filtrados) {
       const chave = t.pedido_ref ? `p:${t.pedido_ref}` : `t:${t.id}`;
@@ -684,9 +692,12 @@ function AbaB2B() {
         provaPrevalente: maisFrequente(titulos.map((t) => t.eixo_prova)),
         statusPrevalente: maisFrequente(titulos.map((t) => t.eixo_status)),
         misto: statusDistintos.size > 1,
+        ocultos: Math.max(0, (universo.get(chave)?.n ?? titulos.length) - titulos.length),
+        totalUniverso:
+          universo.get(chave)?.total ?? titulos.reduce((s, t) => s + efetivoDe(t), 0),
       };
     });
-  }, [filtrados]);
+  }, [filtrados, data]);
 
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const toggleGrupo = (chave: string) =>
@@ -1468,7 +1479,8 @@ function AbaB2B() {
                       .slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE)
                       .map((g) => {
                         const aberto = abertos.has(g.chave);
-                        if (g.titulos.length === 1) return linhaTitulo(g.titulos[0], false);
+                        if (g.titulos.length === 1 && g.ocultos === 0)
+                          return linhaTitulo(g.titulos[0], false);
                         return (
                           <Fragment key={g.chave}>
                             <TableRow
@@ -1485,6 +1497,11 @@ function AbaB2B() {
                                   {g.titulos.length} parcela(s) de{" "}
                                   {g.titulos[0].total_parcelas ?? g.titulos.length}
                                 </div>
+                                {g.ocultos > 0 && (
+                                  <div className="text-[10px] text-amber-700 pl-5">
+                                    +{g.ocultos} fora do filtro
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell className="text-sm font-medium">
                                 {g.cliente ?? "—"}
@@ -1521,6 +1538,11 @@ function AbaB2B() {
                               <TableCell className="text-sm">—</TableCell>
                               <TableCell className="text-right font-semibold tabular-nums">
                                 {formatBRL(g.total)}
+                                <div className="text-[10px] text-muted-foreground">
+                                  {g.ocultos > 0
+                                    ? `pedido ${formatBRL(g.totalUniverso)}`
+                                    : "visível"}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <BadgeProva eixo={g.provaPrevalente} />
