@@ -168,7 +168,10 @@ export default function Dre() {
     const { l, ant, atual, delta, pct } = r;
     const subtotal = l.papel === "subtotal";
     const destaque = subtotal && CODIGOS_DESTAQUE.has(l.codigo);
-    const clicavel = l.papel === "analitica" && l.fonte === "plano_contas";
+    const clicavel =
+      l.papel === "analitica" &&
+      (l.fonte === "plano_contas" || l.fonte === "fora_dre") &&
+      l.codigo !== "90.10";
 
     return (
       <TableRow
@@ -177,7 +180,12 @@ export default function Dre() {
           subtotal && "bg-muted/50 font-semibold",
           clicavel && "cursor-pointer hover:bg-muted/40",
         )}
-        onClick={clicavel ? () => setDrill({ codigo: l.codigo, label: l.label }) : undefined}
+        onClick={
+          clicavel
+            ? () => setDrill({ codigo: l.codigo, label: l.label, valor: atual })
+            : undefined
+        }
+
       >
         <TableCell className={cn("text-xs text-muted-foreground", destaque && "text-sm")}>
           {l.codigo}
