@@ -1538,6 +1538,11 @@ function AbaB2B() {
                               <TableCell className="text-sm">—</TableCell>
                               <TableCell className="text-right font-semibold tabular-nums">
                                 {formatBRL(g.total)}
+                                <div className="text-[10px] text-muted-foreground">
+                                  {g.ocultos > 0
+                                    ? `pedido ${formatBRL(g.totalUniverso)}`
+                                    : "visível"}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <BadgeProva eixo={g.provaPrevalente} />
