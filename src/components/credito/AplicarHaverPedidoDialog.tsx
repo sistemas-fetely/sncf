@@ -68,6 +68,8 @@ export function AplicarHaverPedidoDialog({ open, onOpenChange, pedidoId, idExter
       qc.invalidateQueries({ queryKey: ["credito-clientes-haveres"] });
       qc.invalidateQueries({ queryKey: ["haveres-parceiro", parceiroId] });
       qc.invalidateQueries({ queryKey: ["haver-disponivel", parceiroId] });
+      qc.invalidateQueries({ queryKey: ["titulos-pedido-resumo", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["pedido-titulos", pedidoId] });
       onOpenChange(false);
     },
     onError: (err: any) => toast.error(err.message ?? "Erro ao aplicar crédito"),
