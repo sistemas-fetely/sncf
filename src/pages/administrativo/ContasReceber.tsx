@@ -692,9 +692,12 @@ function AbaB2B() {
         provaPrevalente: maisFrequente(titulos.map((t) => t.eixo_prova)),
         statusPrevalente: maisFrequente(titulos.map((t) => t.eixo_status)),
         misto: statusDistintos.size > 1,
+        ocultos: Math.max(0, (universo.get(chave)?.n ?? titulos.length) - titulos.length),
+        totalUniverso:
+          universo.get(chave)?.total ?? titulos.reduce((s, t) => s + efetivoDe(t), 0),
       };
     });
-  }, [filtrados]);
+  }, [filtrados, data]);
 
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const toggleGrupo = (chave: string) =>
