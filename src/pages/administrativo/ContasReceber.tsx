@@ -1547,10 +1547,10 @@ function AbaB2B() {
       </Card>
 
       {/* Paginação */}
-      {grupos.length > PAGE_SIZE && (
+      {totalItens > PAGE_SIZE && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Página {pageSafe} de {totalPages} · {grupos.length} pedidos
+            Página {pageSafe} de {totalPages} · {totalItens} {agrupado ? "pedidos" : "títulos"}
           </div>
           <div className="flex gap-2">
             <Button
