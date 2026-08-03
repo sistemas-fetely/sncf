@@ -528,11 +528,21 @@ function LinhaGrupo({
   );
 }
 
-export default function TitulosTab() {
+export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: boolean }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: titulos = [], isLoading } = useTitulosCobranca();
+
+  /* Escopo da tela. "Faturado" = título com NF vinculada — teste positivo em
+     nf_id, não lista de estágios. Conferido no vivo: nf_id existe em exatamente
+     os três estágios pós-NF (faturado/em_transporte/entregue) e em nenhum outro,
+     nenhum pedido com nota emitida ficou sem vínculo, e NF é tudo-ou-nada por
+     pedido — então este escopo nunca parte um grupo em dois. */
+  const universo = useMemo(
+    () => (somenteComNf ? titulos.filter((t) => t.nf_id != null) : titulos),
+    [titulos, somenteComNf],
+  );
   const enviarBoleto = useEnviarEmailBoleto();
   const enviarCobranca = useEnviarEmailCobranca();
   const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);
@@ -592,13 +602,13 @@ export default function TitulosTab() {
   /* Estágio 1: tipo + busca + data. Base dos KPIs — cards refletem o chip. */
   const baseSemCards = useMemo(
     () =>
-      titulos.filter(
+      universo.filter(
         (t) =>
           matchTipo(tipoFiltro, t.tipo_pagamento) &&
           matchBusca(t, q) &&
           matchData(t, vencDe, vencAte),
       ),
-    [titulos, tipoFiltro, q, vencDe, vencAte],
+    [universo, tipoFiltro, q, vencDe, vencAte],
   );
 
   const kpis = useMemo(() => calcularKpis(baseSemCards), [baseSemCards]);
@@ -611,7 +621,7 @@ export default function TitulosTab() {
 
   /* Contagem dos chips: busca + data + cards, MAS NÃO tipo (anti-circular). */
   const contagemTipos = useMemo(() => {
-    const base = titulos.filter(
+    const base = universo.filter(
       (t) =>
         matchBusca(t, q) &&
         matchData(t, vencDe, vencAte) &&
@@ -623,14 +633,14 @@ export default function TitulosTab() {
       c[f] = base.filter((t) => matchTipo(f, t.tipo_pagamento)).length;
     }
     return c;
-  }, [titulos, q, vencDe, vencAte, cardsAtivos, mesAtual]);
+  }, [universo, q, vencDe, vencAte, cardsAtivos, mesAtual]);
 
 
 
   const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
 
   /* Estágio 3: agrupamento por pedido. `titulos` entra como universo só para contar os ocultos. */
-  const grupos = useMemo(() => agruparPorPedido(filtrados, titulos), [filtrados, titulos]);
+  const grupos = useMemo(() => agruparPorPedido(filtrados, universo), [filtrados, universo]);
 
   async function copiar(txt: string) {
     try {
