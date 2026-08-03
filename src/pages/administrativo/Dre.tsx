@@ -110,7 +110,6 @@ export default function Dre() {
     return Number(a) === hoje.getFullYear() && Number(b) - 1 === hoje.getMonth();
   }, [mesAtivo]);
 
-  const mesAtivo = mes ?? mesPadrao;
 
   const mesAnterior = useMemo(() => {
     if (!mesAtivo) return null;
