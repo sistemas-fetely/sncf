@@ -643,6 +643,21 @@ function AbaB2B() {
     return arr;
   }, [base, provasAtivas, statusAtivos, sort]);
 
+  const eixoVazio = useMemo(() => {
+    const semProva = provasAtivas.size === 0;
+    const semStatus = statusAtivos.size === 0;
+    if (!semProva && !semStatus) return null;
+    const escondidos = base.filter(
+      (t) =>
+        (semProva || provasAtivas.has(t.eixo_prova)) &&
+        (semStatus || statusAtivos.has(t.eixo_status))
+    ).length;
+    const quais = semProva && semStatus ? "Prova e Status" : semProva ? "Prova" : "Status";
+    return { quais, escondidos };
+  }, [base, provasAtivas, statusAtivos]);
+
+
+
   /* Agrupamento por pedido — mesma leitura da tela de Cobrança, lógica local. */
   const grupos = useMemo(() => {
     const universo = new Map<string, { n: number; total: number }>();
