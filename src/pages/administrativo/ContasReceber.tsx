@@ -1479,7 +1479,8 @@ function AbaB2B() {
                       .slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE)
                       .map((g) => {
                         const aberto = abertos.has(g.chave);
-                        if (g.titulos.length === 1) return linhaTitulo(g.titulos[0], false);
+                        if (g.titulos.length === 1 && g.ocultos === 0)
+                          return linhaTitulo(g.titulos[0], false);
                         return (
                           <Fragment key={g.chave}>
                             <TableRow
