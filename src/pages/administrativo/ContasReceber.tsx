@@ -257,7 +257,7 @@ function AbaB2B() {
 
 
 
-  const [page, setPage] = useState(1);
+  const [, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-b2b"],
