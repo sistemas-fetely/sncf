@@ -11,12 +11,28 @@
  * soma dos títulos não fecha com `pedidos.valor_liquido`, e essa divergência
  * é achado de auditoria, não número de tela.
  *
- * O resumo de estado sai pelo eixo_status — o mesmo que a coluna Status já
- * mostra em cada linha. Contar por status_gestao produziria cabeçalho
- * "3/3 pagas" sobre três linhas escritas "A vencer".
+ * ORDEM DENTRO DO GRUPO: vivos primeiro, encerrados depois, cada bloco pelo
+ * NÚMERO DO TÍTULO. Ordenar por número mantém cada geração de título colada
+ * (00186-01/00187-02/00188-03 é um bloco; 00262/00263/00264 é outro), enquanto
+ * ordenar por parcela intercalaria as gerações. Conferido no vivo: em 247
+ * linhas de pedidos de geração única, a ordem por número nunca discordou da
+ * ordem por parcela.
+ *
+ * ESTADO DO GRUPO: um badge só, o que PREVALECE, calculado sobre a mesma base
+ * do total — os vivos. Encerrado não dita o estado do grupo; se o grupo é só
+ * encerrado, aí sim ele aparece cancelado/devolvido.
+ *  - prova: a mais forte (maior ordem) — um NSU casado vale para a venda toda,
+ *    logo se uma parcela viva está conciliada, a venda está provada.
+ *  - status: o menos avançado (menor ordem) — o grupo só é compensado quando
+ *    todas as parcelas vivas estão. Tela de cobrança não arredonda a favor.
  */
 import { tituloEntraNoKpi, type TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
-import { STATUS_META, type EixoProva, type EixoStatus } from "@/lib/financeiro/eixos-estado";
+import {
+  PROVA_META,
+  STATUS_META,
+  type EixoProva,
+  type EixoStatus,
+} from "@/lib/financeiro/eixos-estado";
 
 /** Plural feminino ("parcela") dos rótulos de STATUS_META. */
 const EIXO_PLURAL: Record<EixoStatus, string> = {
@@ -34,7 +50,7 @@ export interface GrupoPedido {
   pedidoRef: string | null;
   /** Primeiro título visível — fonte de cliente/CNPJ. */
   cabeca: TituloCobranca;
-  /** Parcelas visíveis, ordenadas por parcela. */
+  /** Parcelas visíveis: vivas primeiro, encerradas depois. */
   titulos: TituloCobranca[];
   /** Soma de valor_efetivo dos visíveis não encerrados. */
   totalVisivel: number;
@@ -44,10 +60,12 @@ export interface GrupoPedido {
   ocultos: number;
   formas: string[];
   nfs: string[];
-  /** Composição por eixo_status, na ordem canônica de STATUS_META. */
+  /** Composição por eixo_status da base (vivos), ordem canônica de STATUS_META. */
   composicao: { eixo: EixoStatus; qtd: number }[];
-  /** Prova só quando unânime entre os visíveis — senão null. */
-  provaUnanime: EixoProva | null;
+  /** Prova que prevalece na base — a mais forte. */
+  provaPrevalente: EixoProva | null;
+  /** Status que prevalece na base — o menos avançado. */
+  statusPrevalente: EixoStatus | null;
   atrasoMax: number;
   /** Menor vencimento entre os visíveis ainda em aberto. */
   proximoVencimento: string | null;
@@ -59,17 +77,20 @@ function chaveDe(t: TituloCobranca): string {
 }
 
 function montar(chave: string, visiveis: TituloCobranca[], totalNoUniverso: number): GrupoPedido {
-  const titulos = [...visiveis].sort(
-    (a, b) =>
-      (a.numero_parcela ?? 0) - (b.numero_parcela ?? 0) ||
-      (a.data_vencimento_atual ?? "").localeCompare(b.data_vencimento_atual ?? "") ||
-      (a.numero_titulo ?? "").localeCompare(b.numero_titulo ?? ""),
-  );
+  const titulos = [...visiveis].sort((a, b) => {
+    const ea = tituloEntraNoKpi(a) ? 0 : 1;
+    const eb = tituloEntraNoKpi(b) ? 0 : 1;
+    if (ea !== eb) return ea - eb;
+    return (a.numero_titulo ?? "").localeCompare(b.numero_titulo ?? "");
+  });
   const cabeca = titulos[0];
   const vivos = titulos.filter(tituloEntraNoKpi);
 
+  /* Base do estado = base do total. Só cai para o conjunto todo se não sobrou vivo. */
+  const base = vivos.length > 0 ? vivos : titulos;
+
   const contagem = new Map<EixoStatus, number>();
-  for (const t of titulos) {
+  for (const t of base) {
     if (!t.eixo_status) continue;
     contagem.set(t.eixo_status, (contagem.get(t.eixo_status) ?? 0) + 1);
   }
@@ -77,8 +98,10 @@ function montar(chave: string, visiveis: TituloCobranca[], totalNoUniverso: numb
     .map(([eixo, qtd]) => ({ eixo, qtd }))
     .sort((a, b) => STATUS_META[a.eixo].ordem - STATUS_META[b.eixo].ordem);
 
+  const provas = base.map((t) => t.eixo_prova).filter(Boolean) as EixoProva[];
+  const status = base.map((t) => t.eixo_status).filter(Boolean) as EixoStatus[];
+
   const abertos = vivos.filter((t) => t.eixo_status === "a_vencer");
-  const provas = new Set(titulos.map((t) => t.eixo_prova).filter(Boolean));
 
   return {
     chave,
@@ -92,7 +115,14 @@ function montar(chave: string, visiveis: TituloCobranca[], totalNoUniverso: numb
     formas: [...new Set(titulos.map((t) => t.tipo_pagamento).filter(Boolean))],
     nfs: [...new Set(titulos.map((t) => t.nf_numero).filter(Boolean) as string[])],
     composicao,
-    provaUnanime: provas.size === 1 ? ([...provas][0] as EixoProva) : null,
+    provaPrevalente:
+      provas.length > 0
+        ? provas.reduce((a, b) => (PROVA_META[b].ordem > PROVA_META[a].ordem ? b : a))
+        : null,
+    statusPrevalente:
+      status.length > 0
+        ? status.reduce((a, b) => (STATUS_META[b].ordem < STATUS_META[a].ordem ? b : a))
+        : null,
     atrasoMax: vivos.reduce((acc, t) => Math.max(acc, t.dias_atraso ?? 0), 0),
     proximoVencimento:
       abertos.length > 0
@@ -135,9 +165,14 @@ export function agruparPorPedido(
   return ordem.map((k) => montar(k, mapa.get(k)!, totalPorPedido.get(k) ?? 0));
 }
 
-/** "2 compensadas · 1 a vencer" */
+/** "2 de 3 compensadas" — só faz sentido quando a base está dividida. */
 export function resumoComposicao(g: GrupoPedido): string {
   return g.composicao.map((c) => `${c.qtd} ${EIXO_PLURAL[c.eixo]}`).join(" · ");
+}
+
+/** A base do grupo está dividida entre estados diferentes? */
+export function grupoEstadoDividido(g: GrupoPedido): boolean {
+  return g.composicao.length > 1;
 }
 
 /** Grupo que não merece accordion: uma parcela só e nada escondido. */
