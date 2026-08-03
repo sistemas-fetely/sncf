@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
-  useDreDespesas, useDreIntegridade, useDreMensal, useDreRefreshEstado,
+  useDreDespesas, useDreIntegridade, useDreMensal, useDreMeses, useDreRefreshEstado,
   type DreLinhaMes,
 } from "@/hooks/useDre";
 
@@ -79,29 +79,23 @@ function BlocoErro({ erro }: { erro: unknown }) {
 }
 
 export default function Dre() {
-  const linhasQ = useDreMensal();
-  const integridadeQ = useDreIntegridade();
+  const mesesQ = useDreMeses();
   const refreshQ = useDreRefreshEstado();
 
   const [mes, setMes] = useState<string | null>(null);
   const [mostrarZeradas, setMostrarZeradas] = useState(false);
   const [foraAberto, setForaAberto] = useState(false);
-  const [drill, setDrill] = useState<{ codigo: string; label: string } | null>(null);
+  const [drill, setDrill] = useState<{ codigo: string; label: string; valor: number } | null>(null);
 
-  const dados = linhasQ.data ?? [];
-
-  const meses = useMemo(() => {
-    const set = new Set<string>();
-    for (const l of dados) if (l.mes) set.add(l.mes.slice(0, 10));
-    return Array.from(set).sort().reverse();
-  }, [dados]);
+  const meses = mesesQ.data ?? [];
 
   const mesPadrao = useMemo(() => {
-    const comReceita = meses.find((m) =>
-      dados.some((l) => l.mes?.slice(0, 10) === m && Number(l.receita_liquida_mes ?? 0) !== 0),
-    );
-    return comReceita ?? meses[0] ?? null;
-  }, [meses, dados]);
+    if (meses.length === 0) return null;
+    if (meses.length === 1) return meses[0];
+    const hoje = new Date();
+    const corrente = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+    return meses.find((m) => m !== corrente) ?? meses[0];
+  }, [meses]);
 
   const mesAtivo = mes ?? mesPadrao;
 
@@ -110,6 +104,13 @@ export default function Dre() {
     const idx = meses.indexOf(mesAtivo);
     return idx >= 0 ? meses[idx + 1] ?? null : null;
   }, [meses, mesAtivo]);
+
+  const linhasQ = useDreMensal(
+    [mesAtivo, mesAnterior].filter((m): m is string => !!m),
+  );
+  const integridadeQ = useDreIntegridade(mesAtivo);
+
+  const dados = linhasQ.data ?? [];
 
   const doMes = useMemo(
     () => dados.filter((l) => l.mes?.slice(0, 10) === mesAtivo),
@@ -146,22 +147,31 @@ export default function Dre() {
   );
 
   const integridade = useMemo(
-    () =>
-      (integridadeQ.data ?? [])
-        .filter((i) => i.mes?.slice(0, 10) === mesAtivo)
-        .sort((a, b) => a.ord - b.ord),
-    [integridadeQ.data, mesAtivo],
+    () => (integridadeQ.data ?? []).slice().sort((a, b) => a.ord - b.ord),
+    [integridadeQ.data],
   );
 
   const temVermelho = integridade.some((i) => i.severidade === "vermelho");
 
   const drillQ = useDreDespesas(drill?.codigo ?? null, mesAtivo);
 
+  const somaDrill = useMemo(
+    () => (drillQ.data ?? []).reduce((acc, d) => acc + Number(d.valor ?? 0), 0),
+    [drillQ.data],
+  );
+  const drillDivergente =
+    !!drill && !drillQ.isLoading && !drillQ.isError &&
+    Math.abs(somaDrill - Math.abs(drill.valor)) > 0.01;
+
+
   const renderLinha = (r: ReturnType<typeof preparar>[number]) => {
     const { l, ant, atual, delta, pct } = r;
     const subtotal = l.papel === "subtotal";
     const destaque = subtotal && CODIGOS_DESTAQUE.has(l.codigo);
-    const clicavel = l.papel === "analitica" && l.fonte === "plano_contas";
+    const clicavel =
+      l.papel === "analitica" &&
+      (l.fonte === "plano_contas" || l.fonte === "fora_dre") &&
+      l.codigo !== "90.10";
 
     return (
       <TableRow
@@ -170,7 +180,12 @@ export default function Dre() {
           subtotal && "bg-muted/50 font-semibold",
           clicavel && "cursor-pointer hover:bg-muted/40",
         )}
-        onClick={clicavel ? () => setDrill({ codigo: l.codigo, label: l.label }) : undefined}
+        onClick={
+          clicavel
+            ? () => setDrill({ codigo: l.codigo, label: l.label, valor: atual })
+            : undefined
+        }
+
       >
         <TableCell className={cn("text-xs text-muted-foreground", destaque && "text-sm")}>
           {l.codigo}
@@ -354,7 +369,21 @@ export default function Dre() {
             <SheetDescription>
               Lançamentos de despesas em {rotuloMes(mesAtivo)}
             </SheetDescription>
+            <div className="text-sm">
+              Soma dos lançamentos:{" "}
+              <strong className="tabular-nums text-foreground">{fmtBRL(somaDrill)}</strong>
+              <span className="text-muted-foreground">
+                {" "}· linha da DRE {fmtBRL(Math.abs(drill?.valor ?? 0))}
+              </span>
+            </div>
+            {drillDivergente && (
+              <div className="flex items-center gap-1.5 text-xs text-amber-700">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                soma dos lançamentos difere do valor da linha
+              </div>
+            )}
           </SheetHeader>
+
 
           <div className="mt-6">
             {drillQ.isError ? (
