@@ -643,9 +643,63 @@ function AbaB2B() {
     return arr;
   }, [base, provasAtivas, statusAtivos, sort]);
 
-  const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  /* Agrupamento por pedido — mesma leitura da tela de Cobrança, lógica local. */
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, RecebivelB2B[]>();
+    for (const t of filtrados) {
+      const chave = t.pedido_ref ? `p:${t.pedido_ref}` : `t:${t.id}`;
+      const arr = mapa.get(chave);
+      if (arr) arr.push(t);
+      else mapa.set(chave, [t]);
+    }
+    const maisFrequente = <K extends string>(valores: K[]): K => {
+      const c = new Map<K, number>();
+      for (const v of valores) c.set(v, (c.get(v) ?? 0) + 1);
+      let melhor = valores[0];
+      let qtd = -1;
+      for (const [v, n] of c) if (n > qtd) { melhor = v; qtd = n; }
+      return melhor;
+    };
+    return Array.from(mapa.entries()).map(([chave, titulos]) => {
+      const primeiro = titulos[0];
+      const vencimentos = titulos
+        .filter((t) => t.eixo_status === "a_vencer" && t.data_vencimento)
+        .map((t) => t.data_vencimento as string)
+        .sort();
+      const statusDistintos = new Set(titulos.map((t) => t.eixo_status));
+      return {
+        chave,
+        titulos,
+        cliente: primeiro.cliente,
+        pedidoRef: primeiro.pedido_ref,
+        pedidoId: primeiro.pedido_id,
+        nfs: Array.from(
+          new Set(titulos.map((t) => t.nf_numero).filter((n): n is string => !!n))
+        ),
+        meios: Array.from(
+          new Set(titulos.map((t) => t.meio_pagamento).filter((m): m is string => !!m))
+        ),
+        proximoVencimento: vencimentos[0] ?? null,
+        total: titulos.reduce((s, t) => s + efetivoDe(t), 0),
+        provaPrevalente: maisFrequente(titulos.map((t) => t.eixo_prova)),
+        statusPrevalente: maisFrequente(titulos.map((t) => t.eixo_status)),
+        misto: statusDistintos.size > 1,
+      };
+    });
+  }, [filtrados]);
+
+  const [abertos, setAbertos] = useState<Set<string>>(new Set());
+  const toggleGrupo = (chave: string) =>
+    setAbertos((prev) => {
+      const next = new Set(prev);
+      if (next.has(chave)) next.delete(chave);
+      else next.add(chave);
+      return next;
+    });
+
+  const totalPages = Math.max(1, Math.ceil(grupos.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
-  const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+  const paginados = grupos.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
   const toggleProva = (k: EixoProva) => {
     setProvasAtivas((prev) => {
