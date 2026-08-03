@@ -697,9 +697,77 @@ function AbaB2B() {
       return next;
     });
 
-  const totalPages = Math.max(1, Math.ceil(grupos.length / PAGE_SIZE));
+  const [agrupado, setAgrupado] = useState(true);
+
+  const totalItens = agrupado ? grupos.length : filtrados.length;
+  const totalPages = Math.max(1, Math.ceil(totalItens / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
-  const paginados = grupos.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+
+  const linhaTitulo = (t: RecebivelB2B, aninhada: boolean) => {
+    const atrasado = t.eh_inadimplencia === true;
+    return (
+      <TableRow
+        key={t.id}
+        className={atrasado ? "bg-red-50/40" : aninhada ? "bg-muted/10" : undefined}
+      >
+        <TableCell className={aninhada ? "pl-10" : undefined}>
+          <div className="font-mono text-xs">{t.numero_titulo ?? "—"}</div>
+          {t.numero_parcela != null && t.total_parcelas != null && (
+            <div className="text-xs text-muted-foreground">
+              parcela {t.numero_parcela}/{t.total_parcelas}
+            </div>
+          )}
+        </TableCell>
+        <TableCell className="text-sm">{aninhada ? "" : t.cliente ?? "—"}</TableCell>
+        <TableCell>
+          {!aninhada && t.pedido_ref && (
+            <button
+              type="button"
+              className="font-mono text-xs text-primary hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (t.pedido_id) navigate(`/pedidos/${t.pedido_id}`);
+              }}
+            >
+              {t.pedido_ref}
+            </button>
+          )}
+        </TableCell>
+        <TableCell className="font-mono text-xs">{t.nf_numero ?? "—"}</TableCell>
+        <TableCell>
+          <Badge variant="outline" className="text-xs">
+            {formatMeio(t.meio_pagamento)}
+          </Badge>
+        </TableCell>
+        <TableCell className={atrasado ? "text-red-700 font-medium text-sm" : "text-sm"}>
+          {formatDateBR(t.data_vencimento)}
+        </TableCell>
+        <TableCell className="text-sm">
+          {t.data_recebimento_efetiva ? (
+            formatDateBR(t.data_recebimento_efetiva)
+          ) : t.data_liquidacao_prevista ? (
+            <span className="text-muted-foreground">
+              prev. {formatDateBR(t.data_liquidacao_prevista)}
+            </span>
+          ) : (
+            "—"
+          )}
+        </TableCell>
+        <TableCell className="text-right tabular-nums">{formatBRL(efetivoDe(t))}</TableCell>
+        <TableCell>
+          <BadgeProva eixo={t.eixo_prova} />
+        </TableCell>
+        <TableCell>
+          <BadgeStatus
+            eixo={t.eixo_status}
+            compensadoPor={t.compensado_por}
+            inadimplente={t.eh_inadimplencia === true}
+          />
+        </TableCell>
+      </TableRow>
+    );
+  };
+
 
   const toggleProva = (k: EixoProva) => {
     setProvasAtivas((prev) => {
