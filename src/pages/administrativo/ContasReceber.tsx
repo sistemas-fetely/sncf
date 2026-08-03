@@ -1078,139 +1078,6 @@ function AbaB2B() {
         </div>
       </div>
 
-      {/* Mês a mês */}
-      <div className="space-y-1">
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <CardTitle className="text-base">Mês a mês</CardTitle>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant={baseMensal === "competencia" ? "default" : "outline"}
-                  onClick={() => setBaseMensal("competencia")}
-                >
-                  Competência (NF)
-                </Button>
-                <Button
-                  size="sm"
-                  variant={baseMensal === "caixa_projetado" ? "default" : "outline"}
-                  onClick={() => setBaseMensal("caixa_projetado")}
-                >
-                  Caixa projetado
-                </Button>
-                <Button
-                  size="sm"
-                  variant={baseMensal === "caixa_confirmado" ? "default" : "outline"}
-                  onClick={() => setBaseMensal("caixa_confirmado")}
-                >
-                  Caixa confirmado
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {mensal.length === 0 ? (
-              <div className="p-6 text-center text-muted-foreground">Sem dados nesta base.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="sticky left-0 bg-background z-10">Métrica</TableHead>
-                      {mensalAsc.map((l) => (
-                        <TableHead
-                          key={l.mes}
-                          className="text-right cursor-pointer hover:text-foreground"
-                          onClick={() => aplicarMes(l.mes)}
-                        >
-                          {rotuloMesCurto(l.mes)}
-                        </TableHead>
-                      ))}
-                      <TableHead className="text-right font-semibold">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(
-                      [
-                        { rotulo: "Títulos", campo: "titulos", moeda: false, cor: "" },
-                        { rotulo: "Recebido", campo: "recebido", moeda: true, cor: "text-green-700" },
-                        { rotulo: "Em aberto", campo: "aberto", moeda: true, cor: "" },
-                        { rotulo: "Atrasado", campo: "atrasado", moeda: true, cor: "text-destructive" },
-                        { rotulo: "Total", campo: "total", moeda: true, cor: "" },
-                      ] as const
-                    ).map((linha) => {
-                      const isTotal = linha.campo === "total";
-                      return (
-                        <TableRow
-                          key={linha.campo}
-                          className={isTotal ? "font-semibold bg-muted/40" : undefined}
-                        >
-                          <TableCell
-                            className={`sticky left-0 bg-background z-10 font-medium ${
-                              isTotal ? "font-semibold" : ""
-                            }`}
-                          >
-                            {linha.rotulo}
-                          </TableCell>
-                          {mensalAsc.map((l) => {
-                            const v = l[linha.campo] as number;
-                            return (
-                              <TableCell
-                                key={l.mes}
-                                className={`text-right tabular-nums ${
-                                  v > 0 ? linha.cor : "text-muted-foreground"
-                                }`}
-                              >
-                                {linha.moeda
-                                  ? v > 0
-                                    ? formatBRL(v)
-                                    : "—"
-                                  : v}
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell className="text-right tabular-nums font-semibold">
-                            {linha.moeda
-                              ? (totalMensal[linha.campo] as number) > 0
-                                ? formatBRL(totalMensal[linha.campo] as number)
-                                : "—"
-                              : totalMensal[linha.campo]}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-
-          </CardContent>
-        </Card>
-        <p className="text-xs text-muted-foreground">
-          Competência é a data da NF. Caixa projetado usa a régua por banco e forma enquanto não há
-          prova bancária. Caixa confirmado é só o que o banco confirmou.
-        </p>
-      </div>
-
-      {/* Breakdown por meio */}
-      {breakdownMeio.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {breakdownMeio.map((i) => (
-            <Card key={i.meio} className="flex-1 min-w-[160px]">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs text-muted-foreground">
-                  A receber — {formatMeio(i.meio)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-semibold tabular-nums">{formatBRL(i.total)}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
       {/* Filtros */}
       <Card>
         <CardContent className="space-y-4 p-4">
@@ -1436,6 +1303,144 @@ function AbaB2B() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Oculta temporariamente por decisão do Flavio em 03/08/2026.
+          Basta trocar MOSTRAR_MES_A_MES para true para voltar. */}
+      {MOSTRAR_MES_A_MES && (
+        {/* Mês a mês */}
+        <div className="space-y-1">
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <CardTitle className="text-base">Mês a mês</CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={baseMensal === "competencia" ? "default" : "outline"}
+                    onClick={() => setBaseMensal("competencia")}
+                  >
+                    Competência (NF)
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={baseMensal === "caixa_projetado" ? "default" : "outline"}
+                    onClick={() => setBaseMensal("caixa_projetado")}
+                  >
+                    Caixa projetado
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={baseMensal === "caixa_confirmado" ? "default" : "outline"}
+                    onClick={() => setBaseMensal("caixa_confirmado")}
+                  >
+                    Caixa confirmado
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {mensal.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground">Sem dados nesta base.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="sticky left-0 bg-background z-10">Métrica</TableHead>
+                        {mensalAsc.map((l) => (
+                          <TableHead
+                            key={l.mes}
+                            className="text-right cursor-pointer hover:text-foreground"
+                            onClick={() => aplicarMes(l.mes)}
+                          >
+                            {rotuloMesCurto(l.mes)}
+                          </TableHead>
+                        ))}
+                        <TableHead className="text-right font-semibold">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(
+                        [
+                          { rotulo: "Títulos", campo: "titulos", moeda: false, cor: "" },
+                          { rotulo: "Recebido", campo: "recebido", moeda: true, cor: "text-green-700" },
+                          { rotulo: "Em aberto", campo: "aberto", moeda: true, cor: "" },
+                          { rotulo: "Atrasado", campo: "atrasado", moeda: true, cor: "text-destructive" },
+                          { rotulo: "Total", campo: "total", moeda: true, cor: "" },
+                        ] as const
+                      ).map((linha) => {
+                        const isTotal = linha.campo === "total";
+                        return (
+                          <TableRow
+                            key={linha.campo}
+                            className={isTotal ? "font-semibold bg-muted/40" : undefined}
+                          >
+                            <TableCell
+                              className={`sticky left-0 bg-background z-10 font-medium ${
+                                isTotal ? "font-semibold" : ""
+                              }`}
+                            >
+                              {linha.rotulo}
+                            </TableCell>
+                            {mensalAsc.map((l) => {
+                              const v = l[linha.campo] as number;
+                              return (
+                                <TableCell
+                                  key={l.mes}
+                                  className={`text-right tabular-nums ${
+                                    v > 0 ? linha.cor : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {linha.moeda
+                                    ? v > 0
+                                      ? formatBRL(v)
+                                      : "—"
+                                    : v}
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="text-right tabular-nums font-semibold">
+                              {linha.moeda
+                                ? (totalMensal[linha.campo] as number) > 0
+                                  ? formatBRL(totalMensal[linha.campo] as number)
+                                  : "—"
+                                : totalMensal[linha.campo]}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+            </CardContent>
+          </Card>
+          <p className="text-xs text-muted-foreground">
+            Competência é a data da NF. Caixa projetado usa a régua por banco e forma enquanto não há
+            prova bancária. Caixa confirmado é só o que o banco confirmou.
+          </p>
+        </div>
+      )}
+
+      {/* Breakdown por meio */}
+      {breakdownMeio.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {breakdownMeio.map((i) => (
+            <Card key={i.meio} className="flex-1 min-w-[160px]">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-xs text-muted-foreground">
+                  A receber — {formatMeio(i.meio)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-semibold tabular-nums">{formatBRL(i.total)}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
 
       {/* Tabela */}
       <div className="flex items-center justify-end gap-1">
