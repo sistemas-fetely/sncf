@@ -496,7 +496,7 @@ function AbaB2B() {
     setPage(1);
   };
 
- = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
+  const periodoLabel = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
 
   const handleExportXLSX = () => {
     const linhas = base.map((t) => ({
