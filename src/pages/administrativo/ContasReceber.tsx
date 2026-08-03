@@ -298,17 +298,6 @@ function AbaB2B() {
 
   const em30 = useMemo(() => new Date(hoje.getTime() + 30 * 86400000), [hoje]);
 
-  const bancosOpcoes = useMemo(() => {
-    const set = new Set<string>();
-    (data ?? []).forEach((t) => t.banco_nome && set.add(t.banco_nome));
-    return Array.from(set).sort();
-  }, [data]);
-
-  const meiosOpcoes = useMemo(() => {
-    const set = new Set<string>();
-    (data ?? []).forEach((t) => t.meio_pagamento && set.add(t.meio_pagamento));
-    return Array.from(set).sort();
-  }, [data]);
 
   const qtdRenegociados = useMemo(
     () => (data ?? []).filter((t) => t.venc_renegociado === true).length,
