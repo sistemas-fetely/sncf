@@ -29074,12 +29074,16 @@ export type Database = {
           atraso_medio_dias: number | null
           cnpj: string | null
           em_aberto: number | null
+          em_aberto_bling_sem_titulo: number | null
           maior_compra: number | null
           pago: number | null
+          pago_legado_bling: number | null
           parceiro_id: string | null
+          qtd_bling_sem_titulo: number | null
           razao_social: string | null
           ultima_compra_em: string | null
           vencidos: number | null
+          vencidos_bling_sem_titulo: number | null
         }
         Relationships: []
       }
@@ -29543,6 +29547,29 @@ export type Database = {
           tratado_em: string | null
           tratado_por: string | null
           valor: number | null
+        }
+        Relationships: []
+      }
+      vw_auditoria_nf_entrada: {
+        Row: {
+          acao: string | null
+          classe: string | null
+          codigo_nf: string | null
+          data_emissao: string | null
+          descricao_nf: string | null
+          detalhe: string | null
+          fornecedor: string | null
+          item_seq: number | null
+          ncm_cadastro: string | null
+          ncm_declarado_nf: string | null
+          nf_id: number | null
+          nf_numero: string | null
+          produto: string | null
+          quantidade: number | null
+          serie: string | null
+          severidade: number | null
+          sku: string | null
+          valor_total: number | null
         }
         Relationships: []
       }
@@ -33652,14 +33679,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -34069,14 +34096,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
