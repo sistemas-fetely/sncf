@@ -15,7 +15,8 @@ import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
 
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
-import { isSkuDestaque } from "@/lib/pedidoDestaque";
+import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
+import { toast as toastSonner } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
