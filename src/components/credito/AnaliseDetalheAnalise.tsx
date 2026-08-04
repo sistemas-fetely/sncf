@@ -212,6 +212,7 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
                 <Linha label="Maior compra" value={fmtBRL.format(kpisFinanceiros.maior_compra)} />
                 <Linha label="Última compra" value={fmtDate(kpisFinanceiros.ultima_compra_em)} />
                 <Linha label="Atraso médio (d)" value={kpisFinanceiros.atraso_medio_dias} />
+                <AvisoResiduoBling kpis={kpisFinanceiros} />
               </CardContent>
             </Card>
           )}
