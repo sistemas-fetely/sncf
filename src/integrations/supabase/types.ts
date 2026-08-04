@@ -39047,6 +39047,25 @@ export type Database = {
           tela_slug: string
         }[]
       }
+      listar_navegacao_menu: {
+        Args: never
+        Returns: {
+          apenas_super_admin: boolean
+          app_chave: string
+          badge_fonte: string
+          chave: string
+          dominio: string
+          icone: string
+          label: string
+          nivel: string
+          ordem: number
+          pai_chave: string
+          rota: string
+          status: string
+          superficies: string[]
+          tela_slug: string
+        }[]
+      }
       listar_navegacao_portao: {
         Args: never
         Returns: {
