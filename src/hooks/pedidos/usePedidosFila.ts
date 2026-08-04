@@ -111,6 +111,8 @@ export function usePedidosFila(opts: Opts = {}) {
             valor_vencido: sf.valor_vencido as number | null,
             dias_atraso_max: sf.dias_atraso_max as number | null,
             delta_pedido_titulo: sf.delta_pedido_titulo as number | null,
+            recebivel_na_familia: sf.recebivel_na_familia as boolean | null,
+            familia_mae_externo: sf.familia_mae_externo as string | null,
           };
         });
       }

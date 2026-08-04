@@ -162,14 +162,24 @@ function ListaItensComEstoque({ itens }: { itens: any[] }) {
 
 function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   const { data: titulos, isLoading } = usePedidoTitulos(pedidoId);
+  const { data: familia, isLoading: loadFamilia, isError: errFamilia } = useRecebivelFamilia(pedidoId);
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!titulos || titulos.length === 0) {
+    const coberto = !loadFamilia && !errFamilia && familia?.recebivel_na_familia === true;
     return (
       <div className="text-center py-6 text-muted-foreground space-y-2">
         <Receipt className="h-8 w-8 mx-auto opacity-30" />
-        <p className="text-sm">Nenhum título gerado ainda.</p>
-        <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
+        {coberto ? (
+          <p className="text-sm">
+            Coberto pelo recebível da mãe {familia?.familia_mae_externo ?? "—"} — não cobrar aqui
+          </p>
+        ) : (
+          <>
+            <p className="text-sm">Nenhum título gerado ainda.</p>
+            <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
+          </>
+        )}
       </div>
     );
   }
