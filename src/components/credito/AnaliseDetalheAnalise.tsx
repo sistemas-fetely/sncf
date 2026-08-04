@@ -10,6 +10,7 @@ import { AnaliseIaCard } from "./AnaliseIaCard";
 import { EncaminharParaDecisaoDialog } from "./dialogs/EncaminharParaDecisaoDialog";
 import { DevolverParaEntradaDialog } from "./dialogs/DevolverParaEntradaDialog";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
+import { AvisoResiduoBling } from "./AvisoResiduoBling";
 import { Sparkles, Loader2, FileSearch } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
