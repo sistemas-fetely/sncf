@@ -33679,14 +33679,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -34931,11 +34931,13 @@ export type Database = {
           delta_pedido_titulo: number | null
           dias_atraso_max: number | null
           estagio: string | null
+          familia_mae_externo: string | null
           haver_saldo_parceiro: number | null
           id_externo: string | null
           nivel_prova_pior: string | null
           parceiro_id: string | null
           pedido_id: string | null
+          recebivel_na_familia: boolean | null
           situacao_financeira: string | null
           situacao_rotulo: string | null
           titulos_qtd: number | null
