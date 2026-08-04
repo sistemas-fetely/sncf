@@ -480,7 +480,14 @@ export default function Produtos() {
                     >
                       <TableCell className="font-mono text-xs">{p.sku}</TableCell>
                       <TableCell>
-                        <div className="font-medium leading-tight">{p.nome_comercial ?? "—"}</div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="font-medium leading-tight">{p.nome_comercial ?? "—"}</div>
+                          {virtual <= 0 && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-5 border-red-300 text-red-700 bg-red-100 dark:bg-red-900/40 dark:text-red-400 dark:border-red-700">
+                              Sem Estoque
+                            </Badge>
+                          )}
+                        </div>
                         {p.linha && <div className="text-xs text-muted-foreground">{p.linha}</div>}
                       </TableCell>
                       <TableCell>
