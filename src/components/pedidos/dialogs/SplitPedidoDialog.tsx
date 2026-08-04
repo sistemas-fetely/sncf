@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -16,8 +16,8 @@ import {
 import { Loader2, Scissors, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarSplit } from "@/hooks/pedidos/useCriarSplit";
-import { isSkuDestaque } from "@/lib/pedidoDestaque";
-import { Sparkles } from "lucide-react";
+import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
+import { toast } from "sonner";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -77,6 +77,12 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
     },
     enabled: open && !!pedido_id,
   });
+
+  const estoqueQ = useEstoqueVirtualPorSkus((itens ?? []).map((it) => it.sku));
+  const estoqueMap = estoqueQ.data ?? new Map<string, number>();
+  useEffect(() => {
+    if (estoqueQ.error) toast.error((estoqueQ.error as Error).message);
+  }, [estoqueQ.error]);
 
   const getQtdSplit = (sku: string, total: number) =>
     Math.min(Math.max(0, qtdSplit[sku] ?? 0), total);
@@ -158,12 +164,12 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                     {(itens ?? []).map((it) => {
                       const qSplit = getQtdSplit(it.sku, it.quantidade);
                       const qOrig = it.quantidade - qSplit;
-                      const destaque = isSkuDestaque(it.sku);
+                      const semEstoque = isSemEstoque(it.sku, estoqueMap);
                       return (
-                        <tr key={it.sku} className={`border-t ${destaque ? "bg-amber-50/60" : ""}`}>
+                        <tr key={it.sku} className={`border-t ${semEstoque ? "bg-red-50/60 dark:bg-red-950/20" : ""}`}>
                           <td className="p-2">
                             <div className="font-medium flex items-center gap-1.5">
-                              {destaque && <Sparkles className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
+                              {semEstoque && <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />}
                               {it.descricao}
                             </div>
                             <div className="text-xs text-muted-foreground">{it.sku}</div>

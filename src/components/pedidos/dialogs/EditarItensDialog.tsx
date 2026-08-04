@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
@@ -11,7 +11,7 @@ import { Pencil, Plus, Trash2, Loader2, Search, AlertCircle } from "lucide-react
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { isSkuDestaque } from "@/lib/pedidoDestaque";
+import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
 import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 
 interface Item {
@@ -64,6 +64,11 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
   const qc = useQueryClient();
 
   const produtosQ = useProdutos(busca);
+
+  const estoqueQ = useEstoqueVirtualPorSkus(itens.map((i) => i.sku));
+  useEffect(() => {
+    if (estoqueQ.error) toast.error((estoqueQ.error as Error).message);
+  }, [estoqueQ.error]);
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -150,33 +155,34 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
         {/* Lista de itens */}
         <div className="space-y-1">
           {(() => {
-            const temDestaque = itens.some((i) => isSkuDestaque(i.sku));
+            const estoqueMap = estoqueQ.data ?? new Map<string, number>();
+            const temSemEstoque = itens.some((i) => isSemEstoque(i.sku, estoqueMap));
             return (
               <>
-                {temDestaque && (
-                  <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3">
-                    <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                    <p className="text-xs text-amber-800 dark:text-amber-200">
-                      Este pedido contém produto(s) de destaque — verifique atenção especial na separação.
+                {temSemEstoque && (
+                  <div className="flex items-center gap-2 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-3 py-2 mb-3">
+                    <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                    <p className="text-xs text-red-800 dark:text-red-200">
+                      Este pedido contém produto(s) sem estoque — verifique disponibilidade antes de seguir.
                     </p>
                   </div>
                 )}
                 {itens.map((item, idx) => {
-                  const ehDestaque = isSkuDestaque(item.sku);
+                  const semEstoque = isSemEstoque(item.sku, estoqueMap);
                   return (
                     <div
                       key={`${item.sku ?? "x"}-${idx}`}
                       className={cn(
                         "flex items-center gap-2 py-2 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
-                        ehDestaque && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
+                        semEstoque && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
                       )}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium truncate">{item.descricao}</p>
-                          {ehDestaque && (
-                            <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
-                              Destaque
+                          {semEstoque && (
+                            <Badge variant="outline" className="text-[10px] h-5 border-red-300 text-red-700 bg-red-100 dark:bg-red-900/40 dark:text-red-400 dark:border-red-700">
+                              Sem Estoque
                             </Badge>
                           )}
                         </div>
