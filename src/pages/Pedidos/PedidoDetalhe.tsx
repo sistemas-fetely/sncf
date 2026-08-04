@@ -9,6 +9,7 @@ import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTitulo
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
+import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
 import { useTitulosPedidoResumo } from "@/hooks/credito/useTitulosPedidoResumo";
 import { usePedidoPriorizado } from "@/hooks/pedidos/useFilaPedidosPriorizada";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
@@ -162,14 +163,24 @@ function ListaItensComEstoque({ itens }: { itens: any[] }) {
 
 function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   const { data: titulos, isLoading } = usePedidoTitulos(pedidoId);
+  const { data: familia, isLoading: loadFamilia, isError: errFamilia } = useRecebivelFamilia(pedidoId);
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!titulos || titulos.length === 0) {
+    const coberto = !loadFamilia && !errFamilia && familia?.recebivel_na_familia === true;
     return (
       <div className="text-center py-6 text-muted-foreground space-y-2">
         <Receipt className="h-8 w-8 mx-auto opacity-30" />
-        <p className="text-sm">Nenhum título gerado ainda.</p>
-        <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
+        {coberto ? (
+          <p className="text-sm">
+            Coberto pelo recebível da mãe {familia?.familia_mae_externo ?? "—"} — não cobrar aqui
+          </p>
+        ) : (
+          <>
+            <p className="text-sm">Nenhum título gerado ainda.</p>
+            <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
+          </>
+        )}
       </div>
     );
   }
@@ -819,6 +830,7 @@ export default function PedidoDetalhe() {
   const freteComparativo = useFreteComparativo(id);
   const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
+  const { data: familiaRecebivel, isLoading: familiaCarregando, isError: familiaErro } = useRecebivelFamilia(id);
   const { data: titulosResumo } = useTitulosPedidoResumo(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
@@ -1621,7 +1633,13 @@ export default function PedidoDetalhe() {
                 </TabsContent>
                 <TabsContent value="parcelas">
                   {!titulosData || titulosData.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-6">Nenhum título gerado ainda.</p>
+                    !familiaCarregando && !familiaErro && familiaRecebivel?.recebivel_na_familia === true ? (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        Coberto pelo recebível da mãe {familiaRecebivel?.familia_mae_externo ?? "—"} — não cobrar aqui
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-6">Nenhum título gerado ainda.</p>
+                    )
                   ) : (
                     <div className="space-y-2">
                       {titulosData.map((t: TituloAReceber) => (

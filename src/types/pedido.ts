@@ -145,6 +145,8 @@ export interface PedidoFilaItem {
   situacao_financeira?: SituacaoFinanceira | null;
   situacao_rotulo?: string | null;
   delta_pedido_titulo?: number | null;
+  recebivel_na_familia?: boolean | null;
+  familia_mae_externo?: string | null;
 }
 
 export type PagamentoStatus =

@@ -91,7 +91,7 @@ export function usePedidosFila(opts: Opts = {}) {
         const { data: sfRows, error: sfErr } = await (supabase as any)
           .from("vw_pedido_situacao_financeira")
           .select(
-            "pedido_id, situacao_financeira, situacao_rotulo, valor_pago, valor_aberto, valor_vencido, dias_atraso_max, delta_pedido_titulo",
+            "pedido_id, situacao_financeira, situacao_rotulo, valor_pago, valor_aberto, valor_vencido, dias_atraso_max, delta_pedido_titulo, recebivel_na_familia, familia_mae_externo",
           )
           .in("pedido_id", ids);
         if (sfErr) throw sfErr;
@@ -111,6 +111,8 @@ export function usePedidosFila(opts: Opts = {}) {
             valor_vencido: sf.valor_vencido as number | null,
             dias_atraso_max: sf.dias_atraso_max as number | null,
             delta_pedido_titulo: sf.delta_pedido_titulo as number | null,
+            recebivel_na_familia: sf.recebivel_na_familia as boolean | null,
+            familia_mae_externo: sf.familia_mae_externo as string | null,
           };
         });
       }
