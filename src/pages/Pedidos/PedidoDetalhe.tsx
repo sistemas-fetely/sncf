@@ -105,6 +105,60 @@ function Linha({ label, value, destaque }: { label: string; value?: string | num
   );
 }
 
+function ListaItensComEstoque({ itens }: { itens: any[] }) {
+  const estoqueQ = useEstoqueVirtualPorSkus(itens.map((i: any) => i.sku));
+  const estoqueMap = estoqueQ.data ?? new Map<string, number>();
+  useEffect(() => {
+    if (estoqueQ.error) toast.error((estoqueQ.error as Error).message);
+  }, [estoqueQ.error]);
+
+  const temSemEstoque = itens.some((i: any) => isSemEstoque(i.sku, estoqueMap));
+  return (
+    <>
+      {temSemEstoque && (
+        <div className="flex items-center gap-2 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-3 py-2 mb-3">
+          <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+          <p className="text-xs text-red-800 dark:text-red-200">
+            Este pedido contém produto(s) sem estoque — verifique disponibilidade antes de seguir.
+          </p>
+        </div>
+      )}
+      {itens.length === 0
+        ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
+        : itens.map((item: any) => {
+            const semEstoque = isSemEstoque(item.sku, estoqueMap);
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
+                  semEstoque && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                )}
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">{item.descricao}</p>
+                    {semEstoque && (
+                      <Badge variant="outline" className="text-[10px] h-5 border-red-300 text-red-700 bg-red-100 dark:bg-red-900/40 dark:text-red-400 dark:border-red-700">
+                        Sem Estoque
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
+              </div>
+            );
+          })
+      }
+    </>
+  );
+}
+
+
+
 function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   const { data: titulos, isLoading } = usePedidoTitulos(pedidoId);
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
