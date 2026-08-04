@@ -78,6 +78,12 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
     enabled: open && !!pedido_id,
   });
 
+  const estoqueQ = useEstoqueVirtualPorSkus((itens ?? []).map((it) => it.sku));
+  const estoqueMap = estoqueQ.data ?? new Map<string, number>();
+  useEffect(() => {
+    if (estoqueQ.error) toast.error((estoqueQ.error as Error).message);
+  }, [estoqueQ.error]);
+
   const getQtdSplit = (sku: string, total: number) =>
     Math.min(Math.max(0, qtdSplit[sku] ?? 0), total);
 
