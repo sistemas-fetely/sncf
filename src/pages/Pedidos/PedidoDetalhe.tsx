@@ -110,7 +110,7 @@ function ListaItensComEstoque({ itens }: { itens: any[] }) {
   const estoqueQ = useEstoqueVirtualPorSkus(itens.map((i: any) => i.sku));
   const estoqueMap = estoqueQ.data ?? new Map<string, number>();
   useEffect(() => {
-    if (estoqueQ.error) toast.error((estoqueQ.error as Error).message);
+    if (estoqueQ.error) toastSonner.error((estoqueQ.error as Error).message);
   }, [estoqueQ.error]);
 
   const temSemEstoque = itens.some((i: any) => isSemEstoque(i.sku, estoqueMap));
