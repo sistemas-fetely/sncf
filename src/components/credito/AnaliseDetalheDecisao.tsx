@@ -178,6 +178,7 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
                   label="Atraso médio"
                   value={`${kpisFinanceiros.atraso_medio_dias || 0}d`}
                 />
+                <AvisoResiduoBling kpis={kpisFinanceiros} />
               </>
             ) : (
               <p className="text-sm text-muted-foreground italic">
