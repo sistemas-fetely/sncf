@@ -10,6 +10,7 @@ import { AnaliseIaCard } from "./AnaliseIaCard";
 import { EncaminharParaDecisaoDialog } from "./dialogs/EncaminharParaDecisaoDialog";
 import { DevolverParaEntradaDialog } from "./dialogs/DevolverParaEntradaDialog";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
+import { AvisoResiduoBling } from "./AvisoResiduoBling";
 import { Sparkles, Loader2, FileSearch } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
@@ -211,6 +212,7 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
                 <Linha label="Maior compra" value={fmtBRL.format(kpisFinanceiros.maior_compra)} />
                 <Linha label="Última compra" value={fmtDate(kpisFinanceiros.ultima_compra_em)} />
                 <Linha label="Atraso médio (d)" value={kpisFinanceiros.atraso_medio_dias} />
+                <AvisoResiduoBling kpis={kpisFinanceiros} />
               </CardContent>
             </Card>
           )}
