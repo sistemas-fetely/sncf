@@ -33,7 +33,7 @@ import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
 import { PedidoTarefasTab } from "@/components/pedidos/PedidoTarefasTab";
 import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
 import { MarcacaoPedido } from "@/components/pedidos/MarcacaoPedido";
-import { EstagioBadge, FormatoIdade } from "@/components/pedidos/BadgesPedido";
+import { EstagioBadge, FormatoIdade, NaturezaOperacaoBadge } from "@/components/pedidos/BadgesPedido";
 import { CardEntrega } from "@/components/pedidos/CardEntrega";
 import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
 import { BadgesContextuais } from "@/components/credito/BadgesContextuais";
