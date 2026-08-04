@@ -1062,6 +1062,7 @@ export default function PedidoDetalhe() {
           )}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <EstagioBadge estagio={estagio} />
+            <NaturezaOperacaoBadge codigo={natureza?.codigo ?? null} nome={natureza?.nome ?? null} />
             {priorizado && <BadgePriorizacao score={priorizado.score_total} breakdown={priorizado.score_breakdown} compact />}
             <span className="text-xs text-muted-foreground"><FormatoIdade minutos={idade_minutos} /></span>
             {sla_estourado && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertCircle className="h-3 w-3" />SLA estourado</Badge>}
