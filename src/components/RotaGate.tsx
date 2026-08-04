@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { resolverRegraRota } from "@/config/rotasRegistry";
 import { usePermissoesDoUsuario, TELAS_PUBLICAS, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 import { useNavegacaoPortao, resolverRegraNavegacao } from "@/hooks/useNavegacaoPortao";
+import { useRotaNaoDeclarada } from "@/hooks/useRotaNaoDeclarada";
 
 export function RotaGate({ children }: { children: ReactNode }) {
   const { roles, loading } = useAuth();
@@ -11,6 +12,12 @@ export function RotaGate({ children }: { children: ReactNode }) {
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const { data: permitidas, isLoading } = usePermissoesDoUsuario();
   const { data: nav, isLoading: isLoadingNav } = useNavegacaoPortao();
+
+  // Guarda de nascimento. Roda ANTES do bypass, de proposito — quem constroi
+  // tela nova e super_admin e nao perceberia que ela nasceu invisivel.
+  // Nao bloqueia render: e useEffect e so dispara quando as duas fontes falham.
+  useRotaNaoDeclarada(location.pathname, nav, isLoadingNav, isSuperAdmin);
+
 
   // super_admin vê tudo — nem espera o banco carregar.
   if (isSuperAdmin) return <>{children}</>;
