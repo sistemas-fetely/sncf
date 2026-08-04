@@ -16,8 +16,8 @@ import {
 import { Loader2, Scissors, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarSplit } from "@/hooks/pedidos/useCriarSplit";
-import { isSkuDestaque } from "@/lib/pedidoDestaque";
-import { Sparkles } from "lucide-react";
+import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
+import { toast } from "sonner";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
