@@ -10,6 +10,7 @@ import { FormDecisaoCredito, type CamposDecisao } from "./FormDecisaoCredito";
 import { HistoricoClienteAccordion } from "./HistoricoClienteAccordion";
 import { ScoresAnexados } from "./ScoresAnexados";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
+import { AvisoResiduoBling } from "./AvisoResiduoBling";
 import { AprovarDialog } from "./dialogs/AprovarDialog";
 import { ReprovarDialog } from "./dialogs/ReprovarDialog";
 import { DevolverParaAnaliseDialog } from "./dialogs/DevolverParaAnaliseDialog";
