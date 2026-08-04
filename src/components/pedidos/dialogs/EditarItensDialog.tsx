@@ -65,6 +65,11 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
 
   const produtosQ = useProdutos(busca);
 
+  const estoqueQ = useEstoqueVirtualPorSkus(itens.map((i) => i.sku));
+  useEffect(() => {
+    if (estoqueQ.error) toast.error((estoqueQ.error as Error).message);
+  }, [estoqueQ.error]);
+
   const salvar = useMutation({
     mutationFn: async () => {
       const { data, error } = await (supabase as any).rpc("salvar_itens_pedido", {
