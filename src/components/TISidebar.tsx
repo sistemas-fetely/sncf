@@ -1,10 +1,12 @@
-import { LayoutDashboard, Monitor, Package, LogOut, LayoutGrid, ClipboardList, Users, Shield, UsersRound, Landmark, MessageSquareWarning, Send } from "lucide-react";
+import { Monitor, LogOut, ClipboardList, UsersRound } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { getHighestRoleLabel } from "@/lib/user-role";
+import { useMenuApp } from "@/hooks/useMenuApp";
+import { resolverIcone } from "@/config/iconesNavegacao";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -13,13 +15,6 @@ import {
 
 const TI_COLOR = "#3A7D6B";
 
-const items = [
-  { title: "Dashboard", url: "/ti", icon: LayoutDashboard, end: true },
-  { title: "Ativos", url: "/ti/ativos", icon: Package, end: false },
-  // Vindo do SNCF na Sprint 2 (29/04/2026): saúde do sistema é responsabilidade de TI
-  { title: "Reportes do Sistema", url: "/admin/reportes", icon: MessageSquareWarning, end: false },
-];
-
 export function TISidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -27,14 +22,41 @@ export function TISidebar() {
   const primaryRole = getHighestRoleLabel(roles);
   const location = useLocation();
 
+  // MENU-VIA-TABELA: grupos, itens, rotulos, icones e ordem vem da
+  // sncf_navegacao. Mudar o menu de TI passa a ser UPDATE, sem deploy.
+  const { grupos, soltos } = useMenuApp("ti");
+
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : user?.email?.slice(0, 2).toUpperCase() || "??";
 
   const displayName = profile?.full_name || user?.email || "Usuário";
 
-  const isItemActive = (url: string, end: boolean) =>
-    end ? location.pathname === url : location.pathname.startsWith(url);
+  const ativa = (url: string) => location.pathname === url || location.pathname.startsWith(url + "/");
+
+  const linkClass = (active: boolean) =>
+    cn(
+      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
+      active && "bg-sidebar-accent text-sidebar-foreground font-medium border-l-[3px] shadow-sm"
+    );
+
+  const linkStyle = (active: boolean) =>
+    active ? { borderLeftColor: TI_COLOR, color: TI_COLOR } : undefined;
+
+  const renderItem = (item: { chave: string; label: string; icone: string | null; rota: string }) => {
+    const active = ativa(item.rota);
+    const Icone = resolverIcone(item.icone);
+    return (
+      <SidebarMenuItem key={item.chave}>
+        <SidebarMenuButton asChild>
+          <NavLink to={item.rota} className={linkClass(active)} style={linkStyle(active)}>
+            <Icone className="h-[18px] w-[18px] shrink-0" style={active ? { color: TI_COLOR } : undefined} />
+            {!collapsed && <span>{item.label}</span>}
+          </NavLink>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -56,21 +78,15 @@ export function TISidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
-        {/* Tarefas — acesso direto */}
+        {/* Atalhos de Meu Espaco. Ficam hardcoded de proposito: pela tabela
+            pertencem ao app meu_espaco, nao a ti. Transformar em atalho
+            declarado exige modelar isso na sncf_navegacao — frente separada. */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/tarefas"
-                    end
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
-                      location.pathname === "/tarefas" && "bg-sidebar-accent text-sidebar-foreground font-medium border-l-[3px] shadow-sm"
-                    )}
-                    style={location.pathname === "/tarefas" ? { borderLeftColor: TI_COLOR, color: TI_COLOR } : undefined}
-                  >
+                  <NavLink to="/tarefas" end className={linkClass(location.pathname === "/tarefas")} style={linkStyle(location.pathname === "/tarefas")}>
                     <ClipboardList className="h-[18px] w-[18px] shrink-0" style={location.pathname === "/tarefas" ? { color: TI_COLOR } : undefined} />
                     {!collapsed && <span>Minhas Tarefas</span>}
                   </NavLink>
@@ -94,67 +110,26 @@ export function TISidebar() {
         </SidebarGroup>
         <div className="mx-4 border-t border-sidebar-border/40" />
 
-        <SidebarGroup>
-          {!collapsed && (
-            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
-              Principal
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => {
-                const active = isItemActive(item.url, item.end);
-                return (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        end={item.end}
-                        className={cn(
-                          "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
-                          active && "bg-sidebar-accent text-sidebar-foreground font-medium border-l-[3px] shadow-sm"
-                        )}
-                        style={active ? { borderLeftColor: TI_COLOR, color: TI_COLOR } : undefined}
-                      >
-                        <item.icon className={cn("h-[18px] w-[18px] shrink-0")} style={active ? { color: TI_COLOR } : undefined} />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {roles.includes("super_admin") && (
+        {soltos.length > 0 && (
           <SidebarGroup>
-            {!collapsed && (
-              <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
-                Diagnósticos
-              </SidebarGroupLabel>
-            )}
             <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/ti/diagnosticos/teste-email"
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
-                        location.pathname === "/ti/diagnosticos/teste-email" && "bg-sidebar-accent text-sidebar-foreground font-medium border-l-[3px] shadow-sm"
-                      )}
-                      style={location.pathname === "/ti/diagnosticos/teste-email" ? { borderLeftColor: TI_COLOR, color: TI_COLOR } : undefined}
-                    >
-                      <Send className="h-[18px] w-[18px] shrink-0" style={location.pathname === "/ti/diagnosticos/teste-email" ? { color: TI_COLOR } : undefined} />
-                      {!collapsed && <span>Teste de Email</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
+              <SidebarMenu>{soltos.map(renderItem)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        {grupos.map((g) => (
+          <SidebarGroup key={g.chave}>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+                {g.label}
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>{g.itens.map(renderItem)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="p-4">
