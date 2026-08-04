@@ -13164,6 +13164,36 @@ export type Database = {
         }
         Relationships: []
       }
+      navegacao_rota_nao_declarada: {
+        Row: {
+          era_super_admin: boolean
+          hits: number
+          primeira_vez: string
+          resolvido_em: string | null
+          rota: string
+          ultima_vez: string
+          ultimo_user_id: string | null
+        }
+        Insert: {
+          era_super_admin?: boolean
+          hits?: number
+          primeira_vez?: string
+          resolvido_em?: string | null
+          rota: string
+          ultima_vez?: string
+          ultimo_user_id?: string | null
+        }
+        Update: {
+          era_super_admin?: boolean
+          hits?: number
+          primeira_vez?: string
+          resolvido_em?: string | null
+          rota?: string
+          ultima_vez?: string
+          ultimo_user_id?: string | null
+        }
+        Relationships: []
+      }
       nf_pj_classificacoes: {
         Row: {
           categoria_valor: string
@@ -23271,6 +23301,60 @@ export type Database = {
           },
         ]
       }
+      sncf_dominio: {
+        Row: {
+          apenas_super_admin_default: boolean
+          app_default: string
+          ativo: boolean
+          descricao: string | null
+          nome: string
+          objeto_de_negocio: string
+          ordem: number
+          slug: string
+          tela_slug_default: string | null
+          updated_at: string
+        }
+        Insert: {
+          apenas_super_admin_default?: boolean
+          app_default: string
+          ativo?: boolean
+          descricao?: string | null
+          nome: string
+          objeto_de_negocio: string
+          ordem: number
+          slug: string
+          tela_slug_default?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apenas_super_admin_default?: boolean
+          app_default?: string
+          ativo?: boolean
+          descricao?: string | null
+          nome?: string
+          objeto_de_negocio?: string
+          ordem?: number
+          slug?: string
+          tela_slug_default?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sncf_dominio_app_default_fkey"
+            columns: ["app_default"]
+            isOneToOne: false
+            referencedRelation: "sncf_navegacao"
+            referencedColumns: ["chave"]
+          },
+          {
+            foreignKeyName: "sncf_dominio_tela_slug_default_fkey"
+            columns: ["tela_slug_default"]
+            isOneToOne: false
+            referencedRelation: "permissoes_catalogo"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       sncf_modulo: {
         Row: {
           ativo: boolean
@@ -23310,6 +23394,8 @@ export type Database = {
           ativo: boolean
           badge_fonte: string | null
           chave: string
+          dominio: string | null
+          dono_override_motivo: string | null
           icone: string | null
           label: string
           nivel: string
@@ -23327,6 +23413,8 @@ export type Database = {
           ativo?: boolean
           badge_fonte?: string | null
           chave: string
+          dominio?: string | null
+          dono_override_motivo?: string | null
           icone?: string | null
           label: string
           nivel: string
@@ -23344,6 +23432,8 @@ export type Database = {
           ativo?: boolean
           badge_fonte?: string | null
           chave?: string
+          dominio?: string | null
+          dono_override_motivo?: string | null
           icone?: string | null
           label?: string
           nivel?: string
@@ -23357,6 +23447,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sncf_navegacao_dominio_fkey"
+            columns: ["dominio"]
+            isOneToOne: false
+            referencedRelation: "sncf_dominio"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "sncf_navegacao_pai_chave_fkey"
             columns: ["pai_chave"]
@@ -39528,6 +39625,10 @@ export type Database = {
         }
         Returns: Json
       }
+      registrar_rota_nao_declarada: {
+        Args: { p_era_super_admin?: boolean; p_rota: string }
+        Returns: undefined
+      }
       rejeitar_nf_pj: {
         Args: { _motivo: string; _nota_id: string }
         Returns: Json
@@ -39603,6 +39704,8 @@ export type Database = {
           ativo: boolean
           badge_fonte: string | null
           chave: string
+          dominio: string | null
+          dono_override_motivo: string | null
           icone: string | null
           label: string
           nivel: string
