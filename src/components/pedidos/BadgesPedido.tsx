@@ -88,3 +88,17 @@ export function FormatoIdade({ minutos }: { minutos: number }) {
   if (minutos < 1440) return <>{Math.floor(minutos / 60)}h {Math.round(minutos % 60)}m</>;
   return <>{Math.floor(minutos / 1440)}d {Math.floor((minutos % 1440) / 60)}h</>;
 }
+
+export function NaturezaOperacaoBadge({ codigo, nome }: { codigo: string | null; nome: string | null }) {
+  if (!codigo || codigo === "venda") return null;
+  const estilos: Record<string, string> = {
+    bonificacao: "bg-pink-100 text-pink-700 border-pink-300 dark:bg-pink-900/40 dark:text-pink-300 dark:border-pink-700",
+    transferencia_interna: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700",
+    venda_a_custo: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-700",
+  };
+  return (
+    <Badge variant="outline" className={cn("text-[10px] gap-1", estilos[codigo] ?? "")}>
+      {nome ?? codigo}
+    </Badge>
+  );
+}
