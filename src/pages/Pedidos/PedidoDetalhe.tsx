@@ -1470,7 +1470,22 @@ export default function PedidoDetalhe() {
                     </div>
                     <div>
                       <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor frete (R$)</label>
-                      <input type="number" step="0.01" min="0" value={valorFrete} onChange={(e) => setValorFrete(e.target.value)} placeholder="0,00" className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={valorFrete}
+                        onChange={(e) => setValorFrete(e.target.value)}
+                        placeholder="0,00"
+                        disabled={valorFreteCongelado}
+                        title={valorFreteCongelado ? "Valor congelado — há recebível emitido ou remessa criada" : undefined}
+                        className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
+                      {valorFreteCongelado && (
+                        <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                          Valor congelado — há recebível emitido. Ajuste pela tela de Cobrança.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cubagem</p>
