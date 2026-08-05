@@ -984,7 +984,9 @@ export default function PedidoDetalhe() {
     (pedido as any).snapshot_original?.valor_frete != null
       ? Number((pedido as any).snapshot_original.valor_frete)
       : null;
+  // Natureza sem cobrança não tem frete cobrado do cliente: divergência não se aplica.
   const freteDivergeOriginal =
+    geraTituloReceber &&
     freteOriginalFop != null &&
     Math.abs(freteOriginalFop - (Number(pedido.valor_frete) || 0)) > 0.005;
 
