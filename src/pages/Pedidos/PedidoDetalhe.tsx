@@ -1694,7 +1694,7 @@ export default function PedidoDetalhe() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-sm font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</p>
-                            <Badge className={cn("text-[10px]", STATUS_CORES[t.status])}>{STATUS_TITULO_LABELS[t.status]}</Badge>
+                            <BadgeEstadoParcela titulo={t} eixos={eixosTitulos} dim={dimEixosTitulos} compacto />
                           </div>
                         </div>
                       ))}
