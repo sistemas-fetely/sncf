@@ -11,6 +11,7 @@ import { EncaminharParaDecisaoDialog } from "./dialogs/EncaminharParaDecisaoDial
 import { DevolverParaEntradaDialog } from "./dialogs/DevolverParaEntradaDialog";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
 import { AvisoResiduoBling } from "./AvisoResiduoBling";
+import { AvisoNaoFaturado } from "./AvisoNaoFaturado";
 import { Sparkles, Loader2, FileSearch } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
@@ -203,6 +204,7 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
               </CardHeader>
               <CardContent className="space-y-2">
                 <Linha label="Em aberto" value={fmtBRL.format(kpisFinanceiros.em_aberto)} />
+                <AvisoNaoFaturado kpis={kpisFinanceiros} />
                 <Linha
                   label="Vencidos"
                   value={fmtBRL.format(kpisFinanceiros.vencidos)}
