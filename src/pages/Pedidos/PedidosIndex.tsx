@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
 import { PainelDashPedidos } from "@/components/pedidos/PainelDashPedidos";
+import { ExportarPedidosButton } from "@/components/pedidos/ExportarPedidosButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { EstagioPedido } from "@/types/pedido";
 
