@@ -80,31 +80,17 @@ export function useClienteDetalhe(parceiroId: string | undefined) {
 
       const titulos = (titulosData || []) as TituloB2B[];
 
-      const { data: maiorCompraData } = await sb
-        .rpc("fn_maior_compra_parceiro", { p_parceiro_id: parceiroId });
+      // FONTE ÚNICA: mesma view consumida pelas telas de análise e decisão.
+      // Não recalcular KPI em JS — a regra de "em aberto" vive na view
+      // (exclui cancelado/devolvido, inclui título sem NF, trata baixa humana
+      // como quitação da obrigação do cliente).
+      const { data: kpisData } = await sb
+        .from("v_credito_resumo_financeiro")
+        .select("*")
+        .eq("parceiro_id", parceiroId)
+        .maybeSingle();
 
-      const maior_compra = Number(maiorCompraData ?? 0);
-
-      const hojeKpi = new Date();
-      const atrasadosKpi = titulos.filter((t) => t.status_gestao === "atrasado");
-      const kpisFinanceiros: KpiFinanceiro = {
-        em_aberto: titulos.filter((t) => t.status_gestao !== "pago").reduce((s, t) => s + (t.valor || 0), 0),
-        vencidos: atrasadosKpi.reduce((s, t) => s + (t.valor || 0), 0),
-        a_vencer: titulos.filter((t) => t.status_gestao === "em_aberto").reduce((s, t) => s + (t.valor || 0), 0),
-        pago: titulos.filter((t) => t.status_gestao === "pago").reduce((s, t) => s + (t.valor || 0), 0),
-        maior_compra,
-        ultima_compra_em: titulos.length > 0
-          ? titulos.reduce((max, t) => ((t.data_compra ?? "") > max ? (t.data_compra ?? "") : max), "")
-          : null,
-        atraso_medio_dias: atrasadosKpi.length === 0
-          ? 0
-          : Math.round(
-              atrasadosKpi.reduce((s, t) => {
-                const venc = new Date(t.data_vencimento);
-                return s + Math.max(0, Math.floor((hojeKpi.getTime() - venc.getTime()) / 86400000));
-              }, 0) / atrasadosKpi.length,
-            ),
-      } as KpiFinanceiro;
+      const kpisFinanceiros = (kpisData as KpiFinanceiro) || null;
 
       let kpisGrupo: KpiFinanceiroGrupo | null = null;
       if (grupoId) {
