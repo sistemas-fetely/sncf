@@ -276,17 +276,21 @@ export default function ClienteDetalhe() {
                   <div className="flex items-center gap-4 text-right">
                     <div>
                       <p className="text-xs text-muted-foreground">
-                        {t.status_gestao === "pago"
+                        {tomTitulo(t) === "pago"
                           ? `Pago em ${t.data_liquidacao ? fmtDate(t.data_liquidacao) : "—"}`
+                          : tomTitulo(t) === "encerrado"
+                          ? "—"
                           : `Vence ${fmtDate(t.data_vencimento)}`}
                       </p>
                     </div>
                     <div className="min-w-[90px]">
                       <span
                         className={
-                          t.status_gestao === "pago"
+                          tomTitulo(t) === "encerrado"
+                            ? "text-muted-foreground line-through decoration-1"
+                            : tomTitulo(t) === "pago"
                             ? "text-muted-foreground"
-                            : t.status_gestao === "atrasado"
+                            : tomTitulo(t) === "atrasado"
                             ? "text-destructive font-medium"
                             : "text-foreground font-medium"
                         }
@@ -297,18 +301,16 @@ export default function ClienteDetalhe() {
                     <Badge
                       variant="secondary"
                       className={
-                        t.status_gestao === "pago"
+                        tomTitulo(t) === "pago"
                           ? "bg-muted text-muted-foreground"
-                          : t.status_gestao === "atrasado"
+                          : tomTitulo(t) === "encerrado"
+                          ? "bg-muted/60 text-muted-foreground"
+                          : tomTitulo(t) === "atrasado"
                           ? "bg-destructive/10 text-destructive"
                           : "bg-primary/10 text-primary"
                       }
                     >
-                      {t.status_gestao === "pago"
-                        ? "Pago"
-                        : t.status_gestao === "atrasado"
-                        ? "Atrasado"
-                        : "Em aberto"}
+                      {rotuloTitulo(t)}
                     </Badge>
                   </div>
                 </div>
