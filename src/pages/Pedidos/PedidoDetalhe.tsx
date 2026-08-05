@@ -1369,6 +1369,11 @@ export default function PedidoDetalhe() {
                               <span className="text-muted-foreground">Desconto ({((descontoSimples / bruto) * 100).toFixed(2)}%)</span>
                               <span className="text-destructive">−{fmtBRL.format(descontoSimples)}</span>
                             </div>
+                          ) : acrescimoSimples > 0.01 ? (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Acréscimo ({((acrescimoSimples / bruto) * 100).toFixed(2)}%)</span>
+                              <span>+{fmtBRL.format(acrescimoSimples)}</span>
+                            </div>
                           ) : null}
                           {temFrete && (
                             <div className="flex justify-between text-sm">
