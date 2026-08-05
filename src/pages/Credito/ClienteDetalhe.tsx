@@ -361,6 +361,26 @@ export default function ClienteDetalhe() {
   );
 }
 
+type TomTitulo = "pago" | "encerrado" | "atrasado" | "aberto";
+
+// DIMENSÃO-VIA-TABELA: quem decide se o título entra em "em aberto" é
+// `titulo_estado_gestao.entra_em_aberto`, exposto pela view como `estado_em_aberto`.
+// Não reimplementar a regra aqui — cancelado e devolvido NÃO são "em aberto".
+function tomTitulo(t: TituloB2B): TomTitulo {
+  if (t.liquidacao_realizada) return "pago";
+  if (!t.estado_em_aberto) return "encerrado";
+  if (t.status_gestao === "atrasado") return "atrasado";
+  return "aberto";
+}
+
+function rotuloTitulo(t: TituloB2B): string {
+  const tom = tomTitulo(t);
+  if (tom === "pago") return "Pago";
+  if (tom === "encerrado") return t.estado_rotulo ?? "Encerrado";
+  if (tom === "atrasado") return "Atrasado";
+  return "Em aberto";
+}
+
 function Linha({
   label, value, destaque,
 }: { label: string; value: string | number | null | undefined; destaque?: boolean }) {
