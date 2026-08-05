@@ -243,7 +243,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
                 <TableCell className="font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</TableCell>
                 <TableCell className="text-sm">{TIPO_LABEL[t.tipo_pagamento]}</TableCell>
                 <TableCell>
-                  <Badge className={cn(STATUS_CORES[t.status])}>{STATUS_TITULO_LABELS[t.status]}</Badge>
+                  <BadgeEstadoParcela titulo={t} eixos={eixos} dim={dimEixos} />
                   {(t.status === "pago" || t.status === "pago_com_atraso") && (
                     <button
                       onClick={() => setConvertendo({
