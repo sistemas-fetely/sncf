@@ -45,6 +45,7 @@ import { BadgesContextuais } from "@/components/credito/BadgesContextuais";
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
+import { ConsolidarPedidoDialog } from "@/components/pedidos/dialogs/ConsolidarPedidoDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { PainelEditarPedido } from "@/components/pedidos/PainelEditarPedido";
@@ -846,6 +847,32 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
 }
 
 
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BotaoConsolidarPedido({ pedido, qtdTitulosAtivos }: { pedido: any; qtdTitulosAtivos: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setOpen(true)}>
+        <Scissors className="h-4 w-4 rotate-90" />
+        Consolidar outro pedido aqui
+      </Button>
+      <ConsolidarPedidoDialog
+        open={open}
+        onOpenChange={setOpen}
+        pedidoId={pedido.id}
+        idExterno={pedido.id_externo}
+        parceiroId={pedido.parceiro_id}
+        naturezaId={pedido.natureza_operacao_id ?? null}
+        valorBruto={Number(pedido.valor_bruto ?? 0)}
+        valorFrete={Number(pedido.valor_frete ?? 0)}
+        valorLiquido={Number(pedido.valor_liquido ?? 0)}
+        condicao={pedido.condicao_solicitada ?? null}
+        qtdTitulosAtivos={qtdTitulosAtivos}
+      />
+    </>
+  );
+}
 
 export default function PedidoDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -2124,6 +2151,14 @@ export default function PedidoDetalhe() {
               )}
               {!estagioFinal && (
                 <BotaoSplitPedidoInline pedido={pedido} estagio={estagio} />
+              )}
+              {!estagioFinal && isSuperAdmin && (
+                <BotaoConsolidarPedido
+                  pedido={pedido}
+                  qtdTitulosAtivos={(titulosData ?? []).filter(
+                    (t: any) => !["cancelado", "cancelado_recuperacao"].includes(t.status)
+                  ).length}
+                />
               )}
               {estagio !== "cancelado" && estagio !== "em_analise_credito" && (
                 <ComunicacaoPedidoPanel
