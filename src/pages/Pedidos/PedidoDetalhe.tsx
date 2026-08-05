@@ -892,7 +892,7 @@ export default function PedidoDetalhe() {
   const [recalculandoPeso, setRecalculandoPeso] = useState(false);
   const [freteTipo, setFreteTipo] = useState("");
   const [valorFrete, setValorFrete] = useState("");
-  const camposEnvioPedidoIdRef = useRef<string | null>(null);
+  
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const freteComparativo = useFreteComparativo(id);
@@ -977,17 +977,30 @@ export default function PedidoDetalhe() {
     }
   }, [priorizado]);
 
+  // Sincroniza os campos do card "Dados de envio" sempre que o SERVIDOR mudar.
+  // Sem dirty tracking: perder digitação não salva é mais barato que gravar
+  // valor velho por cima do recalculado (consolidação, split, edição de itens).
+  const envioServidor = [
+    data?.pedido?.transportadora_id ?? "",
+    data?.pedido?.peso_bruto_total ?? "",
+    data?.pedido?.frete_tipo ?? "",
+    data?.pedido?.valor_frete ?? "",
+  ].join("|");
+  const envioServidorRef = useRef<string | null>(null);
+
   useEffect(() => {
     const pedidoAtual = data?.pedido;
     if (!pedidoAtual) return;
-    if (camposEnvioPedidoIdRef.current === pedidoAtual.id) return;
+    if (envioServidorRef.current === envioServidor) return;
 
-    camposEnvioPedidoIdRef.current = pedidoAtual.id;
+    envioServidorRef.current = envioServidor;
     setTransportadoraId(pedidoAtual.transportadora_id ?? "");
     setPesoBruto(String(pedidoAtual.peso_bruto_total ?? ""));
     setFreteTipo(pedidoAtual.frete_tipo ?? "");
     setValorFrete(String(pedidoAtual.valor_frete ?? ""));
-  }, [data?.pedido?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envioServidor]);
+
 
   if (isLoading) return <div className="p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
