@@ -92,7 +92,7 @@ export function ConsolidarPedidoDialog({
                     <span className="text-sm">{fmtBRL.format(Number(c.valor_liquido) || 0)}</span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    <Badge variant="outline" className="text-[10px] h-4 px-1">{c.estagio.replace(/_/g, " ")}</Badge>
+                    <Badge variant="outline" className="text-[10px] h-4 px-1">{rotuloEstagio(c.estagio)}</Badge>
                     <span className="text-[11px] text-muted-foreground">{c.itens} {c.itens === 1 ? "item" : "itens"}</span>
                     {c.venda_origem_id_externo && (
                       <span className="text-[11px] text-muted-foreground">· remessa da venda {c.venda_origem_id_externo}</span>
@@ -120,7 +120,7 @@ export function ConsolidarPedidoDialog({
                     <span className="text-sm">{fmtBRL.format(Number(b.valor_liquido) || 0)}</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    {b.estagio.replace(/_/g, " ")} · {b.itens} {b.itens === 1 ? "item" : "itens"} · recebível já emitido
+                    {rotuloEstagio(b.estagio)} · {b.itens} {b.itens === 1 ? "item" : "itens"} · recebível já emitido
                   </p>
                   {qtdTitulosAtivos === 0 ? (
                     <>
@@ -172,6 +172,7 @@ export function ConsolidarPedidoDialog({
             </div>
           )}
 
+          {selecionado && (
           <div className="space-y-1.5">
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Motivo (fica na timeline)</label>
             <textarea
@@ -185,10 +186,12 @@ export function ConsolidarPedidoDialog({
               <p className="text-[10px] text-destructive">Mínimo de 5 caracteres.</p>
             )}
           </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => fechar(false)} disabled={consolidar.isPending}>Cancelar</Button>
+          {elegiveis.length > 0 && (
           <Button
             disabled={!podeConfirmar}
             onClick={() =>
@@ -200,6 +203,7 @@ export function ConsolidarPedidoDialog({
           >
             {consolidar.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Consolidando…</> : "Consolidar"}
           </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
