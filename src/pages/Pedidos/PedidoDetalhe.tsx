@@ -74,6 +74,7 @@ import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
+import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
 import { useEnviarEmailPedidoCobranca } from "@/hooks/pedidos/useEnviarEmailPedidoCobranca";
 import { EnviarEmailCobrancaDialog } from "@/components/pedidos/dialogs/EnviarEmailCobrancaDialog";
@@ -869,6 +870,7 @@ export default function PedidoDetalhe() {
   const freteComparativo = useFreteComparativo(id);
   const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
+  const { data: remessasData } = useRemessas(id ?? "");
   const { data: familiaRecebivel, isLoading: familiaCarregando, isError: familiaErro } = useRecebivelFamilia(id);
   const { data: eixosTitulos } = useTituloEixosPedido(id);
   const { data: dimEixosTitulos } = useTituloEixosDim();
@@ -965,6 +967,14 @@ export default function PedidoDetalhe() {
   const geraTituloReceber = natureza?.gera_titulo_receber ?? true;
   const estagio = pedido.estagio as EstagioPedido;
   const estagioFinal = isEstagioFinal(estagio);
+
+  // Espelha a guarda dupla da RPC atualizar_frete_pedido: o VALOR do frete congela
+  // quando existe recebível emitido ou remessa criada. Demais dados de envio ficam livres.
+  const temTituloAtivo = (titulosData ?? []).some(
+    (t: any) => !["cancelado", "cancelado_recuperacao"].includes(t.status)
+  );
+  const temRemessaAtiva = (remessasData ?? []).some((r: any) => r.status !== "cancelada");
+  const valorFreteCongelado = temTituloAtivo || temRemessaAtiva;
 
   const handleRestaurarSnapshot = async () => {
     if (!pedido?.id) return;
@@ -1470,7 +1480,22 @@ export default function PedidoDetalhe() {
                     </div>
                     <div>
                       <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor frete (R$)</label>
-                      <input type="number" step="0.01" min="0" value={valorFrete} onChange={(e) => setValorFrete(e.target.value)} placeholder="0,00" className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={valorFrete}
+                        onChange={(e) => setValorFrete(e.target.value)}
+                        placeholder="0,00"
+                        disabled={valorFreteCongelado}
+                        title={valorFreteCongelado ? "Valor congelado — há recebível emitido ou remessa criada" : undefined}
+                        className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
+                      {valorFreteCongelado && (
+                        <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                          Valor congelado — há recebível emitido. Ajuste pela tela de Cobrança.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cubagem</p>
@@ -1485,7 +1510,7 @@ export default function PedidoDetalhe() {
                   <Button
                     size="sm"
                     className="h-9 w-full"
-                    disabled={salvarDadosEnvio.isPending || !!pedido.bling_id_destino}
+                    disabled={salvarDadosEnvio.isPending}
                     onClick={() =>
                       id && salvarDadosEnvio.mutate({
                         pedidoId: id,
@@ -1509,11 +1534,13 @@ export default function PedidoDetalhe() {
                     valorAtual={parseFloat(valorFrete) || 0}
                     onEscolher={(opcao) => {
                       if (opcao.transportadora_id) setTransportadoraId(opcao.transportadora_id);
-                      if (opcao.valor_estimado != null) setValorFrete(String(opcao.valor_estimado));
+                      if (opcao.valor_estimado != null && !valorFreteCongelado) setValorFrete(String(opcao.valor_estimado));
                       setCompararOpen(false);
                       toast({
                         title: `${opcao.transportadora_nome} selecionada`,
-                        description: `${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · Confirme em Salvar.`,
+                        description: valorFreteCongelado
+                          ? `Estimativa ${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · valor congelado, transportadora será gravada em Salvar.`
+                          : `${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · Confirme em Salvar.`,
                       });
                     }}
                   />
