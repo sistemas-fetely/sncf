@@ -7,6 +7,7 @@ import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedid
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
+import { usePedidoOrigens } from "@/hooks/pedidos/usePedidoOrigens";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
