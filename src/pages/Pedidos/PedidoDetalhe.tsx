@@ -1940,15 +1940,21 @@ export default function PedidoDetalhe() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full gap-2"
+                          className="w-full gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={() => setConfirmRestaurar(true)}
-                          disabled={restaurandoSnapshot}
+                          disabled={restaurandoSnapshot || temOrigemConsolidada}
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
                           Restaurar original
                         </Button>
+                        {temOrigemConsolidada && (
+                          <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-tight">
+                            Restauração bloqueada: este pedido absorveu {origens.map((o) => o.origem_id_externo).join(", ")} por consolidação. Restaurar apagaria os itens vindos de fora, que não existem em nenhum snapshot.
+                          </p>
+                        )}
                       </div>
                     )}
+
                   </CardContent>
                 </Card>
               );
