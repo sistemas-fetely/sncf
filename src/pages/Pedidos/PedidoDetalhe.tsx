@@ -1340,7 +1340,11 @@ export default function PedidoDetalhe() {
                       const celebra        = Number((pedido as any).desconto_celebra_valor) || 0;
                       const pix            = Number((pedido as any).bonus_pix_valor) || 0;
                       const temBreakdown   = celebra > 0.01 || pix > 0.01;
-                      const descontoSimples = Math.max(0, bruto + frete - liquido);
+                      // AJUSTE-COM-SINAL: negativo é acréscimo (ex.: acréscimo por condição de
+                      // pagamento). Math.max(0, ...) escondia a linha e o card não fechava.
+                      const ajusteSimples   = bruto + frete - liquido;
+                      const descontoSimples = Math.max(0, ajusteSimples);
+                      const acrescimoSimples = Math.max(0, -ajusteSimples);
                       const temFrete       = frete > 0.01;
                       const creditoHaver   = Number(titulosResumo?.somaHaver ?? 0);
                       return (
