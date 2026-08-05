@@ -892,7 +892,7 @@ export default function PedidoDetalhe() {
   const [recalculandoPeso, setRecalculandoPeso] = useState(false);
   const [freteTipo, setFreteTipo] = useState("");
   const [valorFrete, setValorFrete] = useState("");
-  const camposEnvioPedidoIdRef = useRef<string | null>(null);
+  
   const transportadoras = useTransportadoras();
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const freteComparativo = useFreteComparativo(id);
