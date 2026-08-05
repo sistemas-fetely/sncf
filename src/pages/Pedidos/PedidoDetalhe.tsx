@@ -1830,7 +1830,9 @@ export default function PedidoDetalhe() {
               const snapFrete      = Number(snap.valor_frete) || 0;
               const snapCelebra    = Number(snap.desconto_celebra_valor) || 0;
               const snapPix        = Number(snap.bonus_pix_valor) || 0;
-              const snapDescontoSimples = Math.max(0, snapBruto + snapFrete - snapLiquido);
+              const snapAjusteSimples    = snapBruto + snapFrete - snapLiquido;
+              const snapDescontoSimples  = Math.max(0, snapAjusteSimples);
+              const snapAcrescimoSimples = Math.max(0, -snapAjusteSimples);
               const snapTemBreakdown   = snapCelebra > 0.01 || snapPix > 0.01;
               const deltaLiquido        = pedido.valor_liquido - snapLiquido;
               const hasDelta            = Math.abs(deltaLiquido) > 0.01;
