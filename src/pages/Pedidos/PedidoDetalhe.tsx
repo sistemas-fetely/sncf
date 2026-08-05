@@ -7,6 +7,7 @@ import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedid
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
+import { usePedidoOrigens } from "@/hooks/pedidos/usePedidoOrigens";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
@@ -871,6 +872,7 @@ export default function PedidoDetalhe() {
   const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
   const { data: remessasData } = useRemessas(id ?? "");
+  const { data: origensData } = usePedidoOrigens(id ?? "");
   const { data: familiaRecebivel, isLoading: familiaCarregando, isError: familiaErro } = useRecebivelFamilia(id);
   const { data: eixosTitulos } = useTituloEixosPedido(id);
   const { data: dimEixosTitulos } = useTituloEixosDim();
@@ -975,6 +977,8 @@ export default function PedidoDetalhe() {
   );
   const temRemessaAtiva = (remessasData ?? []).some((r: any) => r.status !== "cancelada");
   const valorFreteCongelado = temTituloAtivo || temRemessaAtiva;
+  const origens = origensData ?? [];
+  const temOrigemConsolidada = origens.length > 0;
   const valorFreteAlterado =
     Math.abs((parseFloat(valorFrete) || 0) - (Number(pedido.valor_frete) || 0)) > 0.005;
   // Fidelidade ao original do FOP como VISIBILIDADE, não como sobrescrita:
@@ -1914,6 +1918,39 @@ export default function PedidoDetalhe() {
                       )}
                     </div>
 
+                {temOrigemConsolidada && (
+                  <div className="mt-3 rounded-md border border-amber-300/60 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
+                    <div className="text-[10px] uppercase tracking-wide text-amber-800 dark:text-amber-300 font-medium">
+                      Segunda origem — consolidado de outro pedido
+                    </div>
+                    {origens.map((o) => (
+                      <div key={o.origem_pedido_id} className="text-xs space-y-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            className="font-medium hover:underline text-left"
+                            onClick={() => navigate(`/pedidos/${o.origem_pedido_id}`)}
+                          >
+                            {o.origem_id_externo}
+                          </button>
+                          <span className="text-muted-foreground">
+                            {o.itens} {o.itens === 1 ? "item" : "itens"} · {fmtBRL.format(Number(o.valor_bruto_itens) || 0)}
+                          </span>
+                        </div>
+                        {o.origem_venda_id_externo && (
+                          <div className="text-muted-foreground">
+                            Remessa da venda {o.origem_venda_id_externo} — o snapshot do FOP dessas linhas vive no pedido de origem, não aqui.
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    <div className="text-[10px] text-muted-foreground leading-tight border-t border-amber-300/40 pt-1.5">
+                      Os itens acima não constam na lista de itens originais abaixo: eles chegaram por consolidação, não pelo FOP deste pedido.
+                    </div>
+                  </div>
+                )}
+
+
+
                     {snap.itens_json && snap.itens_json.length > 0 && (
                       <div className="mt-4 pt-4 border-t border-border/60">
                         <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
@@ -1940,15 +1977,21 @@ export default function PedidoDetalhe() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full gap-2"
+                          className="w-full gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={() => setConfirmRestaurar(true)}
-                          disabled={restaurandoSnapshot}
+                          disabled={restaurandoSnapshot || temOrigemConsolidada}
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
                           Restaurar original
                         </Button>
+                        {temOrigemConsolidada && (
+                          <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-tight">
+                            Restauração bloqueada: este pedido absorveu {origens.map((o) => o.origem_id_externo).join(", ")} por consolidação. Restaurar apagaria os itens vindos de fora, que não existem em nenhum snapshot.
+                          </p>
+                        )}
                       </div>
                     )}
+
                   </CardContent>
                 </Card>
               );
