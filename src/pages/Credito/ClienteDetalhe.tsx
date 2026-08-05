@@ -172,6 +172,7 @@ export default function ClienteDetalhe() {
                 <Linha label="Maior compra" value={fmtBRL.format(kpisFinanceiros.maior_compra)} />
                 <Linha label="Última compra" value={fmtDate(kpisFinanceiros.ultima_compra_em)} />
                 <Linha label="Atraso médio" value={`${kpisFinanceiros.atraso_medio_dias || 0} dias`} />
+                <AvisoResiduoBling kpis={kpisFinanceiros} />
               </>
             ) : (
               <p className="text-sm text-muted-foreground">Cliente novo. Sem histórico financeiro ainda.</p>
