@@ -1,0 +1,167 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Merge, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useCandidatosConsolidacao, useConsolidarPedido, type CandidatoConsolidacao } from "@/hooks/pedidos/useConsolidarPedido";
+
+const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  pedidoId: string;
+  idExterno: string;
+  parceiroId: string;
+  naturezaId: string | null;
+  valorBruto: number;
+  valorFrete: number;
+  valorLiquido: number;
+  condicao: string | null;
+  qtdTitulosAtivos: number;
+}
+
+export function ConsolidarPedidoDialog({
+  open, onOpenChange, pedidoId, idExterno, parceiroId, naturezaId,
+  valorBruto, valorFrete, valorLiquido, condicao, qtdTitulosAtivos,
+}: Props) {
+  const [selecionado, setSelecionado] = useState<CandidatoConsolidacao | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [autoriza, setAutoriza] = useState(false);
+  const { data: candidatos, isLoading } = useCandidatosConsolidacao(pedidoId, parceiroId, naturezaId, open);
+  const consolidar = useConsolidarPedido();
+
+  const elegiveis = (candidatos ?? []).filter((c) => !c.tem_recebivel_ativo);
+  const bloqueados = (candidatos ?? []).filter((c) => c.tem_recebivel_ativo);
+
+  const precisaAutorizar = qtdTitulosAtivos > 0;
+  const podeConfirmar =
+    !!selecionado && motivo.trim().length >= 5 && (!precisaAutorizar || autoriza) && !consolidar.isPending;
+
+  const novoBruto   = valorBruto + (selecionado?.valor_bruto ?? 0);
+  const novoFrete   = valorFrete + (selecionado?.valor_frete ?? 0);
+  const novoLiquido = valorLiquido + (selecionado?.valor_liquido ?? 0);
+
+  const fechar = (v: boolean) => {
+    if (!v) { setSelecionado(null); setMotivo(""); setAutoriza(false); }
+    onOpenChange(v);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={fechar}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Merge className="h-4 w-4" />
+            Consolidar outro pedido em {idExterno}
+          </DialogTitle>
+          <DialogDescription>
+            Os itens do pedido escolhido passam para {idExterno}, os valores somam e o pedido de origem é cancelado. Só pedidos do mesmo cliente e mesma natureza aparecem aqui.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Buscando candidatos…</p>
+          ) : elegiveis.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum pedido elegível deste cliente. Pedidos com NF emitida, remessa viva ou recebível próprio não podem ser absorvidos.
+            </p>
+          ) : (
+            <div className="space-y-1.5 max-h-52 overflow-y-auto">
+              {elegiveis.map((c) => (
+                <button
+                  key={c.pedido_id}
+                  onClick={() => setSelecionado(c)}
+                  className={cn(
+                    "w-full text-left rounded-md border px-3 py-2 transition",
+                    selecionado?.pedido_id === c.pedido_id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-sm">{c.id_externo}</span>
+                    <span className="text-sm">{fmtBRL.format(Number(c.valor_liquido) || 0)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    <Badge variant="outline" className="text-[10px] h-4 px-1">{c.estagio.replace(/_/g, " ")}</Badge>
+                    <span className="text-[11px] text-muted-foreground">{c.itens} {c.itens === 1 ? "item" : "itens"}</span>
+                    {c.venda_origem_id_externo && (
+                      <span className="text-[11px] text-muted-foreground">· remessa da venda {c.venda_origem_id_externo}</span>
+                    )}
+                  </div>
+                  {c.condicao_solicitada && c.condicao_solicitada !== condicao && (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                      Condição diferente: {c.condicao_solicitada} → passa a {condicao ?? "condição deste pedido"}
+                    </p>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {bloqueados.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              {bloqueados.length} pedido(s) deste cliente têm recebível próprio e não aparecem: {bloqueados.map((b) => b.id_externo).join(", ")}. Trate a cobrança deles primeiro.
+            </p>
+          )}
+
+          {selecionado && (
+            <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Resultado</p>
+              <div className="flex justify-between"><span className="text-muted-foreground">Valor bruto</span><span>{fmtBRL.format(valorBruto)} → {fmtBRL.format(novoBruto)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>{fmtBRL.format(novoFrete)}</span></div>
+              <div className="flex justify-between font-semibold border-t border-border/60 pt-1"><span>Valor líquido</span><span>{fmtBRL.format(valorLiquido)} → {fmtBRL.format(novoLiquido)}</span></div>
+              <p className="text-[11px] text-muted-foreground pt-1">{selecionado.id_externo} será cancelado, com itens e valores zerados e trilha nos dois pedidos.</p>
+            </div>
+          )}
+
+          {precisaAutorizar && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-900 dark:text-amber-200">
+                  {idExterno} tem <strong>{qtdTitulosAtivos} título(s) ativo(s)</strong>. Eles serão <strong>cancelados</strong> e o pedido volta para Cobrança — a cobrança precisa ser reoperada sobre o novo total. Títulos não são editados no lugar.
+                </p>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={autoriza} onCheckedChange={(v) => setAutoriza(v === true)} />
+                <span className="text-xs">Autorizo cancelar e reemitir a cobrança</span>
+              </label>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Motivo (fica na timeline)</label>
+            <textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              rows={2}
+              placeholder="Ex.: cliente pediu entrega e cobrança única"
+              className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            {motivo.trim().length > 0 && motivo.trim().length < 5 && (
+              <p className="text-[10px] text-destructive">Mínimo de 5 caracteres.</p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => fechar(false)} disabled={consolidar.isPending}>Cancelar</Button>
+          <Button
+            disabled={!podeConfirmar}
+            onClick={() =>
+              selecionado && consolidar.mutate(
+                { idManter: pedidoId, idDescartar: selecionado.pedido_id, motivo: motivo.trim(), cancelarRecebivel: precisaAutorizar },
+                { onSuccess: () => fechar(false) }
+              )
+            }
+          >
+            {consolidar.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Consolidando…</> : "Consolidar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
