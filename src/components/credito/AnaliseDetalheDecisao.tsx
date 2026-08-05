@@ -11,6 +11,7 @@ import { HistoricoClienteAccordion } from "./HistoricoClienteAccordion";
 import { ScoresAnexados } from "./ScoresAnexados";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
 import { AvisoResiduoBling } from "./AvisoResiduoBling";
+import { AvisoNaoFaturado } from "./AvisoNaoFaturado";
 import { AprovarDialog } from "./dialogs/AprovarDialog";
 import { ReprovarDialog } from "./dialogs/ReprovarDialog";
 import { DevolverParaAnaliseDialog } from "./dialogs/DevolverParaAnaliseDialog";
@@ -165,6 +166,7 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
             {kpisFinanceiros ? (
               <>
                 <Linha label="Em aberto" value={fmtBRL.format(kpisFinanceiros.em_aberto)} />
+                <AvisoNaoFaturado kpis={kpisFinanceiros} />
                 <Linha
                   label="Vencidos"
                   value={fmtBRL.format(kpisFinanceiros.vencidos)}
