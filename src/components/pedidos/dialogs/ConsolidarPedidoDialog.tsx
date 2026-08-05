@@ -7,6 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Merge, AlertTriangle, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCandidatosConsolidacao, useConsolidarPedido, type CandidatoConsolidacao } from "@/hooks/pedidos/useConsolidarPedido";
+import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
+
+const rotuloEstagio = (e: string) => ESTAGIO_LABELS[e as EstagioPedido] ?? e.replace(/_/g, " ");
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
