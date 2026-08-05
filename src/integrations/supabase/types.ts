@@ -29075,11 +29075,13 @@ export type Database = {
           cnpj: string | null
           em_aberto: number | null
           em_aberto_bling_sem_titulo: number | null
+          em_aberto_sem_nf: number | null
           maior_compra: number | null
           pago: number | null
           pago_legado_bling: number | null
           parceiro_id: string | null
           qtd_bling_sem_titulo: number | null
+          qtd_sem_nf: number | null
           razao_social: string | null
           ultima_compra_em: string | null
           vencidos: number | null
