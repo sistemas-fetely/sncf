@@ -975,6 +975,8 @@ export default function PedidoDetalhe() {
   );
   const temRemessaAtiva = (remessasData ?? []).some((r: any) => r.status !== "cancelada");
   const valorFreteCongelado = temTituloAtivo || temRemessaAtiva;
+  const origens = origensData ?? [];
+  const temOrigemConsolidada = origens.length > 0;
   const valorFreteAlterado =
     Math.abs((parseFloat(valorFrete) || 0) - (Number(pedido.valor_frete) || 0)) > 0.005;
   // Fidelidade ao original do FOP como VISIBILIDADE, não como sobrescrita:
