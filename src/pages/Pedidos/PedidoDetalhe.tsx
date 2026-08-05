@@ -1534,13 +1534,10 @@ export default function PedidoDetalhe() {
                     valorAtual={parseFloat(valorFrete) || 0}
                     onEscolher={(opcao) => {
                       if (opcao.transportadora_id) setTransportadoraId(opcao.transportadora_id);
-                      if (opcao.valor_estimado != null && !valorFreteCongelado) setValorFrete(String(opcao.valor_estimado));
                       setCompararOpen(false);
                       toast({
                         title: `${opcao.transportadora_nome} selecionada`,
-                        description: valorFreteCongelado
-                          ? `Estimativa ${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · valor congelado, transportadora será gravada em Salvar.`
-                          : `${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · Confirme em Salvar.`,
+                        description: `Estimativa de custo ${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · o valor cobrado do cliente não foi alterado. Confirme em Salvar.`,
                       });
                     }}
                   />
