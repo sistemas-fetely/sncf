@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
 import { PainelDashPedidos } from "@/components/pedidos/PainelDashPedidos";
+import { ExportarPedidosButton } from "@/components/pedidos/ExportarPedidosButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { EstagioPedido } from "@/types/pedido";
 
@@ -27,8 +28,9 @@ export default function PedidosIndex() {
   return (
     <div className="space-y-4 p-4">
       {/* Header */}
-      <div>
+      <div className="flex flex-row items-center justify-between">
         <h1 className="text-2xl font-semibold">Casa dos Pedidos</h1>
+        <ExportarPedidosButton />
       </div>
 
       <Tabs defaultValue="fila" className="space-y-4">
