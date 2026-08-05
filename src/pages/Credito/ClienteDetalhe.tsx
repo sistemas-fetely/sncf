@@ -15,6 +15,8 @@ import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/Ergue
 import { BaixarBandeiraVermelhaDialog } from "@/components/credito/dialogs/BaixarBandeiraVermelhaDialog";
 import { GerenciarHaverDialog } from "@/components/credito/GerenciarHaverDialog";
 import { AvisoResiduoBling } from "@/components/credito/AvisoResiduoBling";
+import { AvisoNaoFaturado } from "@/components/credito/AvisoNaoFaturado";
+import type { TituloB2B } from "@/hooks/credito/useClienteDetalhe";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -167,6 +169,7 @@ export default function ClienteDetalhe() {
             {kpisFinanceiros ? (
               <>
                 <Linha label="Em aberto" value={fmtBRL.format(kpisFinanceiros.em_aberto)} />
+                <AvisoNaoFaturado kpis={kpisFinanceiros} />
                 <Linha label="Vencidos" value={fmtBRL.format(kpisFinanceiros.vencidos)} destaque={kpisFinanceiros.vencidos > 0} />
                 <Linha label="A vencer" value={fmtBRL.format(kpisFinanceiros.a_vencer)} />
                 <Linha label="Pago acumulado" value={fmtBRL.format(kpisFinanceiros.pago)} />
@@ -273,17 +276,21 @@ export default function ClienteDetalhe() {
                   <div className="flex items-center gap-4 text-right">
                     <div>
                       <p className="text-xs text-muted-foreground">
-                        {t.status_gestao === "pago"
+                        {tomTitulo(t) === "pago"
                           ? `Pago em ${t.data_liquidacao ? fmtDate(t.data_liquidacao) : "—"}`
+                          : tomTitulo(t) === "encerrado"
+                          ? "—"
                           : `Vence ${fmtDate(t.data_vencimento)}`}
                       </p>
                     </div>
                     <div className="min-w-[90px]">
                       <span
                         className={
-                          t.status_gestao === "pago"
+                          tomTitulo(t) === "encerrado"
+                            ? "text-muted-foreground line-through decoration-1"
+                            : tomTitulo(t) === "pago"
                             ? "text-muted-foreground"
-                            : t.status_gestao === "atrasado"
+                            : tomTitulo(t) === "atrasado"
                             ? "text-destructive font-medium"
                             : "text-foreground font-medium"
                         }
@@ -294,18 +301,16 @@ export default function ClienteDetalhe() {
                     <Badge
                       variant="secondary"
                       className={
-                        t.status_gestao === "pago"
+                        tomTitulo(t) === "pago"
                           ? "bg-muted text-muted-foreground"
-                          : t.status_gestao === "atrasado"
+                          : tomTitulo(t) === "encerrado"
+                          ? "bg-muted/60 text-muted-foreground"
+                          : tomTitulo(t) === "atrasado"
                           ? "bg-destructive/10 text-destructive"
                           : "bg-primary/10 text-primary"
                       }
                     >
-                      {t.status_gestao === "pago"
-                        ? "Pago"
-                        : t.status_gestao === "atrasado"
-                        ? "Atrasado"
-                        : "Em aberto"}
+                      {rotuloTitulo(t)}
                     </Badge>
                   </div>
                 </div>
@@ -354,6 +359,26 @@ export default function ClienteDetalhe() {
       <TimelineClienteVisual marcos={marcos} />
     </div>
   );
+}
+
+type TomTitulo = "pago" | "encerrado" | "atrasado" | "aberto";
+
+// DIMENSÃO-VIA-TABELA: quem decide se o título entra em "em aberto" é
+// `titulo_estado_gestao.entra_em_aberto`, exposto pela view como `estado_em_aberto`.
+// Não reimplementar a regra aqui — cancelado e devolvido NÃO são "em aberto".
+function tomTitulo(t: TituloB2B): TomTitulo {
+  if (t.liquidacao_realizada) return "pago";
+  if (!t.estado_em_aberto) return "encerrado";
+  if (t.status_gestao === "atrasado") return "atrasado";
+  return "aberto";
+}
+
+function rotuloTitulo(t: TituloB2B): string {
+  const tom = tomTitulo(t);
+  if (tom === "pago") return "Pago";
+  if (tom === "encerrado") return t.estado_rotulo ?? "Encerrado";
+  if (tom === "atrasado") return "Atrasado";
+  return "Em aberto";
 }
 
 function Linha({
