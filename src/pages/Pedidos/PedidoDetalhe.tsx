@@ -975,6 +975,8 @@ export default function PedidoDetalhe() {
   );
   const temRemessaAtiva = (remessasData ?? []).some((r: any) => r.status !== "cancelada");
   const valorFreteCongelado = temTituloAtivo || temRemessaAtiva;
+  const valorFreteAlterado =
+    Math.abs((parseFloat(valorFrete) || 0) - (Number(pedido.valor_frete) || 0)) > 0.005;
 
   const handleRestaurarSnapshot = async () => {
     if (!pedido?.id) return;
