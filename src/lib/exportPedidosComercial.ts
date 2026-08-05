@@ -21,7 +21,7 @@ export async function exportarPedidosComercial({ de, ate }: Params): Promise<num
   const { data, error } = await supabase
     .from("vw_pedidos_export_comercial")
     .select(
-      "pedido, data_pedido, razao_social, apelido, valor, estagio, estagio_ordem, tag, pagamento, nf, transportadora, previsao_entrega, vendedor",
+      "pedido, data_pedido, razao_social, apelido, valor, estagio, estagio_ordem, tag, pagamento, nf, transportadora, transportadora_origem, previsao_entrega, vendedor",
     )
     .gte("data_pedido", de)
     .lte("data_pedido", ate)
@@ -45,6 +45,7 @@ export async function exportarPedidosComercial({ de, ate }: Params): Promise<num
     { header: "Pagamento", key: "pagamento", width: 20 },
     { header: "NF", key: "nf", width: 14 },
     { header: "Transportadora", key: "transportadora", width: 24 },
+    { header: "Embarque", key: "transportadora_origem", width: 14 },
     { header: "Previsão de Entrega", key: "previsao_entrega", width: 18, style: { numFmt: "dd/mm/yyyy" } },
     { header: "Vendedor", key: "vendedor", width: 22 },
   ];
@@ -61,6 +62,7 @@ export async function exportarPedidosComercial({ de, ate }: Params): Promise<num
       pagamento: r.pagamento ?? "",
       nf: r.nf ?? "",
       transportadora: r.transportadora ?? "",
+      transportadora_origem: r.transportadora_origem ?? "",
       previsao_entrega: toDate(r.previsao_entrega),
       vendedor: r.vendedor ?? "",
     });
