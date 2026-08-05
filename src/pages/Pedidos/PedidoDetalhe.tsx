@@ -1783,7 +1783,7 @@ export default function PedidoDetalhe() {
           </div>
 
 
-          {/* ============ FAIXA 3: Remessas + Complementar ============ */}
+          {/* ============ FAIXA 3: Remessas ============ */}
           <div className="grid gap-4 lg:grid-cols-2 items-start">
             {estagio !== "cancelado" && (
               <RemessasSection
@@ -1794,14 +1794,8 @@ export default function PedidoDetalhe() {
                 bling_id_destino={pedido.bling_id_destino}
               />
             )}
-            {estagio !== "cancelado" && (
-              <ComplementarSection
-                pedido_id={pedido.id}
-                pedido_origem_id={pedido.pedido_origem_id ?? null}
-                id_externo={pedido.id_externo}
-              />
-            )}
           </div>
+
 
 
           {/* ============ FAIXA 4: Itens do pedido (largura cheia) ============ */}
@@ -2114,6 +2108,14 @@ export default function PedidoDetalhe() {
                   />
                 </div>
               )}
+              {estagio !== "cancelado" && (
+                <ComplementarSection
+                  pedido_id={pedido.id}
+                  pedido_origem_id={pedido.pedido_origem_id ?? null}
+                  id_externo={pedido.id_externo}
+                />
+              )}
+
             </div>
           </aside>
         )}
