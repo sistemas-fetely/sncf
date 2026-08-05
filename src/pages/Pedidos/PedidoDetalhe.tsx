@@ -869,6 +869,7 @@ export default function PedidoDetalhe() {
   const freteComparativo = useFreteComparativo(id);
   const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
+  const { data: remessasData } = useRemessas(id ?? "");
   const { data: familiaRecebivel, isLoading: familiaCarregando, isError: familiaErro } = useRecebivelFamilia(id);
   const { data: eixosTitulos } = useTituloEixosPedido(id);
   const { data: dimEixosTitulos } = useTituloEixosDim();
