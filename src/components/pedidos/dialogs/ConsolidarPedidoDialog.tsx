@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Merge, AlertTriangle } from "lucide-react";
+import { Loader2, Merge, AlertTriangle, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCandidatosConsolidacao, useConsolidarPedido, type CandidatoConsolidacao } from "@/hooks/pedidos/useConsolidarPedido";
 
@@ -30,6 +31,7 @@ export function ConsolidarPedidoDialog({
   const [selecionado, setSelecionado] = useState<CandidatoConsolidacao | null>(null);
   const [motivo, setMotivo] = useState("");
   const [autoriza, setAutoriza] = useState(false);
+  const navigate = useNavigate();
   const { data: candidatos, isLoading } = useCandidatosConsolidacao(pedidoId, parceiroId, naturezaId, open);
   const consolidar = useConsolidarPedido();
 
@@ -66,9 +68,11 @@ export function ConsolidarPedidoDialog({
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Buscando candidatos…</p>
           ) : elegiveis.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhum pedido elegível deste cliente. Pedidos com NF emitida, remessa viva ou recebível próprio não podem ser absorvidos.
-            </p>
+            bloqueados.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum outro pedido pré-NF deste cliente. Pedidos com NF emitida ou remessa viva não podem ser fundidos.
+              </p>
+            ) : null
           ) : (
             <div className="space-y-1.5 max-h-52 overflow-y-auto">
               {elegiveis.map((c) => (
@@ -102,9 +106,42 @@ export function ConsolidarPedidoDialog({
           )}
 
           {bloqueados.length > 0 && (
-            <p className="text-[11px] text-muted-foreground">
-              {bloqueados.length} pedido(s) deste cliente têm recebível próprio e não aparecem: {bloqueados.map((b) => b.id_externo).join(", ")}. Trate a cobrança deles primeiro.
-            </p>
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Outros pedidos deste cliente
+              </p>
+              {bloqueados.map((b) => (
+                <div key={b.pedido_id} className="rounded-md border border-amber-300/60 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-sm">{b.id_externo}</span>
+                    <span className="text-sm">{fmtBRL.format(Number(b.valor_liquido) || 0)}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {b.estagio.replace(/_/g, " ")} · {b.itens} {b.itens === 1 ? "item" : "itens"} · recebível já emitido
+                  </p>
+                  {qtdTitulosAtivos === 0 ? (
+                    <>
+                      <p className="text-[11px] text-amber-900 dark:text-amber-200">
+                        Não pode ser absorvido por {idExterno} — o pedido descartado não pode ter recebível. Mas a fusão funciona na direção contrária: {idExterno} entra em {b.id_externo}, que mantém a identidade, a condição e a cobrança.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full h-7 gap-1.5 text-xs"
+                        onClick={() => { fechar(false); navigate(`/pedidos/${b.pedido_id}`); }}
+                      >
+                        <ArrowRight className="h-3 w-3" />
+                        Abrir {b.id_externo} e consolidar de lá
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-amber-900 dark:text-amber-200">
+                      {idExterno} e {b.id_externo} têm recebível emitido. Cancele e reemita a cobrança de um dos dois antes de fundir.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
 
           {selecionado && (
