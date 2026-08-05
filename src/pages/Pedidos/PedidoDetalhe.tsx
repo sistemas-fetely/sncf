@@ -1494,6 +1494,11 @@ export default function PedidoDetalhe() {
                       <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
                         Cobrado do cliente — não muda ao escolher transportadora.
                       </p>
+                      {freteDivergeOriginal && (
+                        <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-tight font-medium">
+                          Divergência: FOP trouxe {fmtBRL.format(freteOriginalFop as number)} · pedido está {fmtBRL.format(Number(pedido.valor_frete) || 0)}.
+                        </p>
+                      )}
                       {valorFreteCongelado && valorFreteAlterado && (
                         <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 leading-tight">
                           Há recebível emitido: o banco vai recusar esta alteração de valor. Ajuste pela tela de Cobrança.
