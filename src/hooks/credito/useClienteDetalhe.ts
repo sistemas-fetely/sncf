@@ -32,6 +32,9 @@ export interface TituloB2B {
   banco_nome: string | null;
   data_liquidacao: string | null;
   liquidacao_realizada: boolean;
+  estado_em_aberto: boolean;
+  estado_gestao: string | null;
+  estado_rotulo: string | null;
 }
 
 export interface ClienteDetalhe {
@@ -73,7 +76,7 @@ export function useClienteDetalhe(parceiroId: string | undefined) {
 
       const { data: titulosData } = await sb
         .from("vw_recebivel_b2b")
-        .select("id, numero_titulo, numero_parcela, total_parcelas, valor, data_vencimento, data_compra, status_gestao, meio_pagamento, nf_numero, banco_nome, data_liquidacao, liquidacao_realizada")
+        .select("id, numero_titulo, numero_parcela, total_parcelas, valor, data_vencimento, data_compra, status_gestao, meio_pagamento, nf_numero, banco_nome, data_liquidacao, liquidacao_realizada, estado_em_aberto, estado_gestao, estado_rotulo")
         .eq("parceiro_id", parceiroId)
         .order("data_vencimento", { ascending: false })
         .limit(200);

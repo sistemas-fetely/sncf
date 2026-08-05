@@ -15,6 +15,8 @@ import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/Ergue
 import { BaixarBandeiraVermelhaDialog } from "@/components/credito/dialogs/BaixarBandeiraVermelhaDialog";
 import { GerenciarHaverDialog } from "@/components/credito/GerenciarHaverDialog";
 import { AvisoResiduoBling } from "@/components/credito/AvisoResiduoBling";
+import { AvisoNaoFaturado } from "@/components/credito/AvisoNaoFaturado";
+import type { TituloB2B } from "@/hooks/credito/useClienteDetalhe";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -167,6 +169,7 @@ export default function ClienteDetalhe() {
             {kpisFinanceiros ? (
               <>
                 <Linha label="Em aberto" value={fmtBRL.format(kpisFinanceiros.em_aberto)} />
+                <AvisoNaoFaturado kpis={kpisFinanceiros} />
                 <Linha label="Vencidos" value={fmtBRL.format(kpisFinanceiros.vencidos)} destaque={kpisFinanceiros.vencidos > 0} />
                 <Linha label="A vencer" value={fmtBRL.format(kpisFinanceiros.a_vencer)} />
                 <Linha label="Pago acumulado" value={fmtBRL.format(kpisFinanceiros.pago)} />
