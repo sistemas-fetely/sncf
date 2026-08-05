@@ -1340,7 +1340,11 @@ export default function PedidoDetalhe() {
                       const celebra        = Number((pedido as any).desconto_celebra_valor) || 0;
                       const pix            = Number((pedido as any).bonus_pix_valor) || 0;
                       const temBreakdown   = celebra > 0.01 || pix > 0.01;
-                      const descontoSimples = Math.max(0, bruto + frete - liquido);
+                      // AJUSTE-COM-SINAL: negativo é acréscimo (ex.: acréscimo por condição de
+                      // pagamento). Math.max(0, ...) escondia a linha e o card não fechava.
+                      const ajusteSimples   = bruto + frete - liquido;
+                      const descontoSimples = Math.max(0, ajusteSimples);
+                      const acrescimoSimples = Math.max(0, -ajusteSimples);
                       const temFrete       = frete > 0.01;
                       const creditoHaver   = Number(titulosResumo?.somaHaver ?? 0);
                       return (
@@ -1368,6 +1372,11 @@ export default function PedidoDetalhe() {
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Desconto ({((descontoSimples / bruto) * 100).toFixed(2)}%)</span>
                               <span className="text-destructive">−{fmtBRL.format(descontoSimples)}</span>
+                            </div>
+                          ) : acrescimoSimples > 0.01 ? (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Acréscimo ({((acrescimoSimples / bruto) * 100).toFixed(2)}%)</span>
+                              <span>+{fmtBRL.format(acrescimoSimples)}</span>
                             </div>
                           ) : null}
                           {temFrete && (
@@ -1830,7 +1839,9 @@ export default function PedidoDetalhe() {
               const snapFrete      = Number(snap.valor_frete) || 0;
               const snapCelebra    = Number(snap.desconto_celebra_valor) || 0;
               const snapPix        = Number(snap.bonus_pix_valor) || 0;
-              const snapDescontoSimples = Math.max(0, snapBruto + snapFrete - snapLiquido);
+              const snapAjusteSimples    = snapBruto + snapFrete - snapLiquido;
+              const snapDescontoSimples  = Math.max(0, snapAjusteSimples);
+              const snapAcrescimoSimples = Math.max(0, -snapAjusteSimples);
               const snapTemBreakdown   = snapCelebra > 0.01 || snapPix > 0.01;
               const deltaLiquido        = pedido.valor_liquido - snapLiquido;
               const hasDelta            = Math.abs(deltaLiquido) > 0.01;
@@ -1887,6 +1898,11 @@ export default function PedidoDetalhe() {
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Desconto ({((snapDescontoSimples / snapBruto) * 100).toFixed(2)}%)</span>
                           <span className="text-destructive">−{fmtBRL.format(snapDescontoSimples)}</span>
+                        </div>
+                      ) : snapAcrescimoSimples > 0.01 ? (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Acréscimo ({((snapAcrescimoSimples / snapBruto) * 100).toFixed(2)}%)</span>
+                          <span>+{fmtBRL.format(snapAcrescimoSimples)}</span>
                         </div>
                       ) : null}
                   {(snapFrete > 0.01 || snap.frete_tipo) && (() => {
