@@ -1485,7 +1485,7 @@ export default function PedidoDetalhe() {
                   <Button
                     size="sm"
                     className="h-9 w-full"
-                    disabled={salvarDadosEnvio.isPending || !!pedido.bling_id_destino}
+                    disabled={salvarDadosEnvio.isPending}
                     onClick={() =>
                       id && salvarDadosEnvio.mutate({
                         pedidoId: id,
