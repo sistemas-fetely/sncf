@@ -35548,12 +35548,17 @@ export type Database = {
           estagio: string | null
           id_externo: string | null
           itens: number | null
+          motivo_bloqueio: string | null
           natureza_operacao_id: string | null
           parceiro_id: string | null
           pedido_id: string | null
+          qtd_titulos_ativos: number | null
+          recebivel_reversivel: boolean | null
           tem_nf: boolean | null
           tem_recebivel_ativo: boolean | null
           tem_remessa: boolean | null
+          tem_titulo_no_banco: boolean | null
+          tem_titulo_pago: boolean | null
           valor_bruto: number | null
           valor_frete: number | null
           valor_liquido: number | null
