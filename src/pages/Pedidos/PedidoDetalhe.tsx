@@ -870,6 +870,8 @@ export default function PedidoDetalhe() {
   const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
   const { data: familiaRecebivel, isLoading: familiaCarregando, isError: familiaErro } = useRecebivelFamilia(id);
+  const { data: eixosTitulos } = useTituloEixosPedido(id);
+  const { data: dimEixosTitulos } = useTituloEixosDim();
   const { data: titulosResumo } = useTitulosPedidoResumo(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
