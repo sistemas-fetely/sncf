@@ -163,10 +163,46 @@ function ListaItensComEstoque({ itens }: { itens: any[] }) {
 }
 
 
+/**
+ * Badge de estado da parcela: prefere os dois eixos da view (verdade calculada no
+ * banco). Em loading/erro/ausência do título na view, cai de volta no status cru.
+ */
+function BadgeEstadoParcela({
+  titulo,
+  eixos,
+  dim,
+  compacto,
+}: {
+  titulo: TituloAReceber;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  eixos: Record<string, any> | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dim: { prova: Record<string, any>; status: Record<string, any> } | undefined;
+  compacto?: boolean;
+}) {
+  const eixo = eixos?.[titulo.id];
+  const statusDim = eixo?.eixo_status ? dim?.status?.[eixo.eixo_status] : null;
+  if (statusDim) {
+    return (
+      <BadgeEixosTitulo
+        status={statusDim}
+        prova={eixo?.eixo_prova ? dim?.prova?.[eixo.eixo_prova] : null}
+        compacto={compacto}
+      />
+    );
+  }
+  return (
+    <Badge className={cn(compacto && "text-[10px]", STATUS_CORES[titulo.status])}>
+      {STATUS_TITULO_LABELS[titulo.status]}
+    </Badge>
+  );
+}
 
 function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   const { data: titulos, isLoading } = usePedidoTitulos(pedidoId);
   const { data: familia, isLoading: loadFamilia, isError: errFamilia } = useRecebivelFamilia(pedidoId);
+  const { data: eixos } = useTituloEixosPedido(pedidoId);
+  const { data: dimEixos } = useTituloEixosDim();
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!titulos || titulos.length === 0) {
