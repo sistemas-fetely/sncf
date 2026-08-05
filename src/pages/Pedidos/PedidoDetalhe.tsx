@@ -977,6 +977,16 @@ export default function PedidoDetalhe() {
   const valorFreteCongelado = temTituloAtivo || temRemessaAtiva;
   const valorFreteAlterado =
     Math.abs((parseFloat(valorFrete) || 0) - (Number(pedido.valor_frete) || 0)) > 0.005;
+  // Fidelidade ao original do FOP como VISIBILIDADE, não como sobrescrita:
+  // o campo segue carregando o valor real do pedido (o que gera a cobrança);
+  // a divergência contra o snapshot aparece como selo.
+  const freteOriginalFop =
+    (pedido as any).snapshot_original?.valor_frete != null
+      ? Number((pedido as any).snapshot_original.valor_frete)
+      : null;
+  const freteDivergeOriginal =
+    freteOriginalFop != null &&
+    Math.abs(freteOriginalFop - (Number(pedido.valor_frete) || 0)) > 0.005;
 
   const handleRestaurarSnapshot = async () => {
     if (!pedido?.id) return;
