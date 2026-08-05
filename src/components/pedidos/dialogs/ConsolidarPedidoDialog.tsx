@@ -38,10 +38,12 @@ export function ConsolidarPedidoDialog({
   const { data: candidatos, isLoading } = useCandidatosConsolidacao(pedidoId, parceiroId, naturezaId, open);
   const consolidar = useConsolidarPedido();
 
-  const elegiveis = (candidatos ?? []).filter((c) => !c.tem_recebivel_ativo);
-  const bloqueados = (candidatos ?? []).filter((c) => c.tem_recebivel_ativo);
+  const elegiveis = (candidatos ?? []).filter((c) => c.recebivel_reversivel);
+  const bloqueados = (candidatos ?? []).filter((c) => !c.recebivel_reversivel);
 
-  const precisaAutorizar = qtdTitulosAtivos > 0;
+  const titulosDoCandidato = selecionado?.qtd_titulos_ativos ?? 0;
+  const precisaAutorizar = qtdTitulosAtivos > 0 || titulosDoCandidato > 0;
+  const candidatoMaior = !!selecionado && Number(selecionado.valor_liquido) > valorLiquido;
   const podeConfirmar =
     !!selecionado && motivo.trim().length >= 5 && (!precisaAutorizar || autoriza) && !consolidar.isPending;
 
@@ -103,6 +105,16 @@ export function ConsolidarPedidoDialog({
                       Condição diferente: {c.condicao_solicitada} → passa a {condicao ?? "condição deste pedido"}
                     </p>
                   )}
+                  {c.qtd_titulos_ativos > 0 && (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                      Tem {c.qtd_titulos_ativos} título(s) ativo(s) — serão cancelados junto com os de {idExterno}.
+                    </p>
+                  )}
+                  {Number(c.valor_liquido) > valorLiquido && (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                      Maior que {idExterno}. Quem sobrevive à fusão costuma ser o pedido maior — confira a direção.
+                    </p>
+                  )}
                 </button>
               ))}
             </div>
@@ -120,28 +132,12 @@ export function ConsolidarPedidoDialog({
                     <span className="text-sm">{fmtBRL.format(Number(b.valor_liquido) || 0)}</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    {rotuloEstagio(b.estagio)} · {b.itens} {b.itens === 1 ? "item" : "itens"} · recebível já emitido
+                    {rotuloEstagio(b.estagio)} · {b.itens} {b.itens === 1 ? "item" : "itens"}
+                    {b.qtd_titulos_ativos > 0 ? ` · ${b.qtd_titulos_ativos} título(s) ativo(s)` : ""}
                   </p>
-                  {qtdTitulosAtivos === 0 ? (
-                    <>
-                      <p className="text-[11px] text-amber-900 dark:text-amber-200">
-                        Não pode ser absorvido por {idExterno} — o pedido descartado não pode ter recebível. Mas a fusão funciona na direção contrária: {idExterno} entra em {b.id_externo}, que mantém a identidade, a condição e a cobrança.
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full h-7 gap-1.5 text-xs"
-                        onClick={() => { fechar(false); navigate(`/pedidos/${b.pedido_id}`); }}
-                      >
-                        <ArrowRight className="h-3 w-3" />
-                        Abrir {b.id_externo} e consolidar de lá
-                      </Button>
-                    </>
-                  ) : (
-                    <p className="text-[11px] text-amber-900 dark:text-amber-200">
-                      {idExterno} e {b.id_externo} têm recebível emitido. Cancele e reemita a cobrança de um dos dois antes de fundir.
-                    </p>
-                  )}
+                  <p className="text-[11px] text-amber-900 dark:text-amber-200">
+                    Não pode ser fundido: {b.motivo_bloqueio ?? "recebível não reversível"}.
+                  </p>
                 </div>
               ))}
             </div>
@@ -154,6 +150,17 @@ export function ConsolidarPedidoDialog({
               <div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>{fmtBRL.format(novoFrete)}</span></div>
               <div className="flex justify-between font-semibold border-t border-border/60 pt-1"><span>Valor líquido</span><span>{fmtBRL.format(valorLiquido)} → {fmtBRL.format(novoLiquido)}</span></div>
               <p className="text-[11px] text-muted-foreground pt-1">{selecionado.id_externo} será cancelado, com itens e valores zerados e trilha nos dois pedidos.</p>
+              {candidatoMaior && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-7 gap-1.5 text-xs mt-1"
+                  onClick={() => { const alvo = selecionado.pedido_id; fechar(false); navigate(`/pedidos/${alvo}`); }}
+                >
+                  <ArrowRight className="h-3 w-3" />
+                  Prefiro manter {selecionado.id_externo} — abrir e consolidar de lá
+                </Button>
+              )}
             </div>
           )}
 
@@ -162,7 +169,7 @@ export function ConsolidarPedidoDialog({
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-amber-900 dark:text-amber-200">
-                  {idExterno} tem <strong>{qtdTitulosAtivos} título(s) ativo(s)</strong>. Eles serão <strong>cancelados</strong> e o pedido volta para Cobrança — a cobrança precisa ser reoperada sobre o novo total. Títulos não são editados no lugar.
+                  Serão <strong>cancelados</strong>: {qtdTitulosAtivos} título(s) de {idExterno}{titulosDoCandidato > 0 && selecionado ? ` e ${titulosDoCandidato} título(s) de ${selecionado.id_externo}` : ""}. Os pedidos voltam para Cobrança e a cobrança precisa ser reoperada sobre o novo total. Títulos não são editados no lugar.
                 </p>
               </div>
               <label className="flex items-center gap-2 cursor-pointer">

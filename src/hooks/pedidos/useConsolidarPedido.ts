@@ -14,8 +14,13 @@ export interface CandidatoConsolidacao {
   eh_split: boolean;
   venda_origem_id_externo: string | null;
   tem_recebivel_ativo: boolean;
+  tem_titulo_pago: boolean;
+  tem_titulo_no_banco: boolean;
+  qtd_titulos_ativos: number;
   tem_remessa: boolean;
   tem_nf: boolean;
+  recebivel_reversivel: boolean;
+  motivo_bloqueio: string | null;
 }
 
 /**
@@ -73,6 +78,8 @@ export function useConsolidarPedido() {
         descartado: string;
         recebivel_cancelado: boolean;
         titulos_cancelados: number;
+        titulos_cancelados_no_que_fica: number;
+        titulos_cancelados_no_descartado: number;
         itens_migrados: number;
         liquido: number;
         proximo_passo: string;
@@ -82,7 +89,7 @@ export function useConsolidarPedido() {
     onSuccess: (res, vars) => {
       toast({
         title: `${res.descartado} consolidado em ${res.mantido}`,
-        description: `${res.itens_migrados} item(ns) migrado(s) · novo líquido ${Number(res.liquido).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}${res.recebivel_cancelado ? ` · ${res.titulos_cancelados} título(s) cancelado(s)` : ""} · ${res.proximo_passo}`,
+        description: `${res.itens_migrados} item(ns) migrado(s) · novo líquido ${Number(res.liquido).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}${res.recebivel_cancelado ? ` · ${res.titulos_cancelados} título(s) cancelado(s) (${res.titulos_cancelados_no_que_fica} em ${res.mantido}, ${res.titulos_cancelados_no_descartado} em ${res.descartado})` : ""} · ${res.proximo_passo}`,
       });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.idManter] });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.idDescartar] });
