@@ -1888,6 +1888,11 @@ export default function PedidoDetalhe() {
                           <span className="text-muted-foreground">Desconto ({((snapDescontoSimples / snapBruto) * 100).toFixed(2)}%)</span>
                           <span className="text-destructive">−{fmtBRL.format(snapDescontoSimples)}</span>
                         </div>
+                      ) : snapAcrescimoSimples > 0.01 ? (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Acréscimo ({((snapAcrescimoSimples / snapBruto) * 100).toFixed(2)}%)</span>
+                          <span>+{fmtBRL.format(snapAcrescimoSimples)}</span>
+                        </div>
                       ) : null}
                   {(snapFrete > 0.01 || snap.frete_tipo) && (() => {
                     const freteExibir = snapFrete > 0.01 ? snapFrete : (Number(pedido.valor_frete) || 0);
