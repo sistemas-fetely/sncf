@@ -1487,13 +1487,14 @@ export default function PedidoDetalhe() {
                         value={valorFrete}
                         onChange={(e) => setValorFrete(e.target.value)}
                         placeholder="0,00"
-                        disabled={valorFreteCongelado}
-                        title={valorFreteCongelado ? "Valor congelado — há recebível emitido ou remessa criada" : undefined}
-                        className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring"
                       />
-                      {valorFreteCongelado && (
-                        <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
-                          Valor congelado — há recebível emitido. Ajuste pela tela de Cobrança.
+                      <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                        Cobrado do cliente — não muda ao escolher transportadora.
+                      </p>
+                      {valorFreteCongelado && valorFreteAlterado && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 leading-tight">
+                          Há recebível emitido: o banco vai recusar esta alteração de valor. Ajuste pela tela de Cobrança.
                         </p>
                       )}
                     </div>
