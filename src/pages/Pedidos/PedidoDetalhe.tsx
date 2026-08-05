@@ -10,6 +10,9 @@ import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
+import { useTituloEixosPedido } from "@/hooks/pedidos/useTituloEixosPedido";
+import { useTituloEixosDim } from "@/hooks/credito/useTituloEixosDim";
+import { BadgeEixosTitulo } from "@/components/pedidos/BadgeEixosTitulo";
 import { useTitulosPedidoResumo } from "@/hooks/credito/useTitulosPedidoResumo";
 import { usePedidoPriorizado } from "@/hooks/pedidos/useFilaPedidosPriorizada";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
@@ -160,10 +163,46 @@ function ListaItensComEstoque({ itens }: { itens: any[] }) {
 }
 
 
+/**
+ * Badge de estado da parcela: prefere os dois eixos da view (verdade calculada no
+ * banco). Em loading/erro/ausência do título na view, cai de volta no status cru.
+ */
+function BadgeEstadoParcela({
+  titulo,
+  eixos,
+  dim,
+  compacto,
+}: {
+  titulo: TituloAReceber;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  eixos: Record<string, any> | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dim: { prova: Record<string, any>; status: Record<string, any> } | undefined;
+  compacto?: boolean;
+}) {
+  const eixo = eixos?.[titulo.id];
+  const statusDim = eixo?.eixo_status ? dim?.status?.[eixo.eixo_status] : null;
+  if (statusDim) {
+    return (
+      <BadgeEixosTitulo
+        status={statusDim}
+        prova={eixo?.eixo_prova ? dim?.prova?.[eixo.eixo_prova] : null}
+        compacto={compacto}
+      />
+    );
+  }
+  return (
+    <Badge className={cn(compacto && "text-[10px]", STATUS_CORES[titulo.status])}>
+      {STATUS_TITULO_LABELS[titulo.status]}
+    </Badge>
+  );
+}
 
 function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   const { data: titulos, isLoading } = usePedidoTitulos(pedidoId);
   const { data: familia, isLoading: loadFamilia, isError: errFamilia } = useRecebivelFamilia(pedidoId);
+  const { data: eixos } = useTituloEixosPedido(pedidoId);
+  const { data: dimEixos } = useTituloEixosDim();
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!titulos || titulos.length === 0) {
@@ -204,7 +243,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
                 <TableCell className="font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</TableCell>
                 <TableCell className="text-sm">{TIPO_LABEL[t.tipo_pagamento]}</TableCell>
                 <TableCell>
-                  <Badge className={cn(STATUS_CORES[t.status])}>{STATUS_TITULO_LABELS[t.status]}</Badge>
+                  <BadgeEstadoParcela titulo={t} eixos={eixos} dim={dimEixos} />
                   {(t.status === "pago" || t.status === "pago_com_atraso") && (
                     <button
                       onClick={() => setConvertendo({
@@ -831,6 +870,8 @@ export default function PedidoDetalhe() {
   const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
   const { data: familiaRecebivel, isLoading: familiaCarregando, isError: familiaErro } = useRecebivelFamilia(id);
+  const { data: eixosTitulos } = useTituloEixosPedido(id);
+  const { data: dimEixosTitulos } = useTituloEixosDim();
   const { data: titulosResumo } = useTitulosPedidoResumo(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
@@ -1653,7 +1694,7 @@ export default function PedidoDetalhe() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-sm font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</p>
-                            <Badge className={cn("text-[10px]", STATUS_CORES[t.status])}>{STATUS_TITULO_LABELS[t.status]}</Badge>
+                            <BadgeEstadoParcela titulo={t} eixos={eixosTitulos} dim={dimEixosTitulos} compacto />
                           </div>
                         </div>
                       ))}
