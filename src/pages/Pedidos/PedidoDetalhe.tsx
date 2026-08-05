@@ -966,6 +966,14 @@ export default function PedidoDetalhe() {
   const estagio = pedido.estagio as EstagioPedido;
   const estagioFinal = isEstagioFinal(estagio);
 
+  // Espelha a guarda dupla da RPC atualizar_frete_pedido: o VALOR do frete congela
+  // quando existe recebível emitido ou remessa criada. Demais dados de envio ficam livres.
+  const temTituloAtivo = (titulosData ?? []).some(
+    (t: any) => !["cancelado", "cancelado_recuperacao"].includes(t.status)
+  );
+  const temRemessaAtiva = (remessasData ?? []).some((r: any) => r.status !== "cancelada");
+  const valorFreteCongelado = temTituloAtivo || temRemessaAtiva;
+
   const handleRestaurarSnapshot = async () => {
     if (!pedido?.id) return;
     setRestaurandoSnapshot(true);
