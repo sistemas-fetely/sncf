@@ -977,6 +977,16 @@ export default function PedidoDetalhe() {
   const valorFreteCongelado = temTituloAtivo || temRemessaAtiva;
   const valorFreteAlterado =
     Math.abs((parseFloat(valorFrete) || 0) - (Number(pedido.valor_frete) || 0)) > 0.005;
+  // Fidelidade ao original do FOP como VISIBILIDADE, não como sobrescrita:
+  // o campo segue carregando o valor real do pedido (o que gera a cobrança);
+  // a divergência contra o snapshot aparece como selo.
+  const freteOriginalFop =
+    (pedido as any).snapshot_original?.valor_frete != null
+      ? Number((pedido as any).snapshot_original.valor_frete)
+      : null;
+  const freteDivergeOriginal =
+    freteOriginalFop != null &&
+    Math.abs(freteOriginalFop - (Number(pedido.valor_frete) || 0)) > 0.005;
 
   const handleRestaurarSnapshot = async () => {
     if (!pedido?.id) return;
@@ -1494,6 +1504,11 @@ export default function PedidoDetalhe() {
                       <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
                         Cobrado do cliente — não muda ao escolher transportadora.
                       </p>
+                      {freteDivergeOriginal && (
+                        <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-tight font-medium">
+                          Divergência: FOP trouxe {fmtBRL.format(freteOriginalFop as number)} · pedido está {fmtBRL.format(Number(pedido.valor_frete) || 0)}.
+                        </p>
+                      )}
                       {valorFreteCongelado && valorFreteAlterado && (
                         <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 leading-tight">
                           Há recebível emitido: o banco vai recusar esta alteração de valor. Ajuste pela tela de Cobrança.
