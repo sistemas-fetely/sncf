@@ -35203,14 +35203,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -40172,6 +40172,17 @@ export type Database = {
         Args: { p_natureza_codigo: string }
         Returns: string
       }
+      fn_cap_grid: {
+        Args: {
+          a: number
+          ba: number
+          bc: number
+          bl: number
+          c: number
+          l: number
+        }
+        Returns: number
+      }
       fn_casar_nf_por_fob: {
         Args: { p_pedido_id: number }
         Returns: {
@@ -41466,6 +41477,10 @@ export type Database = {
       }
       restaurar_snapshot_completo: {
         Args: { p_pedido_id: string; p_usuario_id: string }
+        Returns: Json
+      }
+      reter_pedido_aguardando_estoque: {
+        Args: { p_motivo: string; p_pedido_id: string }
         Returns: Json
       }
       retomar_oportunidade: {
