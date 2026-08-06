@@ -1519,6 +1519,25 @@ export default function PedidoDetalhe() {
                     </div>
                   </div>
 
+                  <div className="space-y-1.5">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <label className="text-[10px] uppercase tracking-widest text-muted-foreground cursor-help">
+                            Caixas (estimativa)
+                          </label>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs">
+                          Estimativa calculada pelo histórico de expedição. Não substitui a contagem do separador.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <p className="text-sm font-medium">
+                      {pedido.caixas_estimadas != null ? pedido.caixas_estimadas : "—"}
+                    </p>
+                  </div>
+
+
                   {freteEst.isLoading && transportadoraId && (
                     <p className="text-xs text-muted-foreground">Calculando frete...</p>
                   )}
