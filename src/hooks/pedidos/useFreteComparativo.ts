@@ -12,6 +12,8 @@ export interface FreteComparativoOpcao {
   uf_destino: string | null;
   pct_sobre_pedido: number | null;
   breakdown: Record<string, number> | null;
+  valor_sem_icms?: number | null;
+  icms_aliquota?: number | null;
 }
 
 export interface FreteComparativoResult {
@@ -22,9 +24,15 @@ export interface FreteComparativoResult {
   peso_fonte?: "bruto" | "cubado" | "informado";
   peso_bruto?: number;
   peso_cubado?: number;
+  peso_expedido?: number | null;
+  caixas_estimadas?: number | null;
+  cubagem_expedicao_m3?: number | null;
+  cubagem_solida_m3?: number | null;
+  fator_cubagem?: number | null;
   valor_referencia?: number;
   opcoes?: FreteComparativoOpcao[];
 }
+
 
 export function useFreteComparativo(pedidoId: string | undefined) {
   return useQuery<FreteComparativoResult>({

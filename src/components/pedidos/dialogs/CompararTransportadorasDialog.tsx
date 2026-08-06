@@ -20,6 +20,8 @@ interface Props {
 const BREAKDOWN_LABEL: Record<string, string> = {
   base: "Base",
   gris: "GRIS",
+  adv: "Ad valorem",
+  icms: "ICMS",
   fv: "FV",
   pedagio: "Pedágio",
   txa: "TXA",
@@ -27,6 +29,11 @@ const BREAKDOWN_LABEL: Record<string, string> = {
   tx_coleta: "Tx. coleta",
   tas: "TAS",
 };
+
+function fmtM3(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+}
+
 
 function renderBreakdown(b: Record<string, number> | null | undefined): string {
   if (!b) return "";
@@ -103,7 +110,19 @@ export function CompararTransportadorasDialog({
                 {data.peso_fonte === "bruto" && <span className="ml-2">· peso bruto</span>}
                 {data.peso_fonte === "informado" && <span className="ml-2">· peso informado</span>}
               </p>
+              {(data.caixas_estimadas != null || data.cubagem_expedicao_m3 != null) && (
+                <p>
+                  Estimativa:{" "}
+                  <span className="font-medium text-foreground">
+                    {data.caixas_estimadas != null ? `${data.caixas_estimadas} caixa${data.caixas_estimadas === 1 ? "" : "s"}` : "caixas —"}
+                  </span>
+                  {data.cubagem_expedicao_m3 != null && (
+                    <> · <span className="font-medium text-foreground">{fmtM3(Number(data.cubagem_expedicao_m3))} m³</span> cubados</>
+                  )}
+                </p>
+              )}
             </div>
+
 
             {opcoes.length === 0 ? (
               <p className="py-6 text-sm text-muted-foreground text-center">

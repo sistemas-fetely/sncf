@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { usePedidoEntrega } from "@/hooks/pedidos/usePedidoEntrega";
+import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -18,6 +19,7 @@ function mesmoDia(a: string | null | undefined, b: string | null | undefined): b
 
 export function CardEntrega({ pedidoId, estagio }: Props) {
   const { data, isLoading } = usePedidoEntrega(pedidoId, estagio);
+  const { getFreteTipo, rotuloFreteTipo } = useFreteTipos();
 
   if (estagio !== "entregue") return null;
 
@@ -66,32 +68,27 @@ export function CardEntrega({ pedidoId, estagio }: Props) {
         <>
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">{formatBRL(Number(valor))}</p>
-            {e.frete_tipo && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{e.frete_tipo}</Badge>}
+            {e.frete_tipo && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{rotuloFreteTipo(e.frete_tipo)}</Badge>}
           </div>
           {e.frete_responsavel && <p className="text-[11px] text-muted-foreground">{e.frete_responsavel}</p>}
         </>
       );
     }
 
-    if (e.frete_tipo === "CIF") {
+    if (e.frete_tipo) {
+      const dim = getFreteTipo(e.frete_tipo);
+      const fetelyPaga = dim?.fetely_paga_transportadora === true;
       return (
         <>
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">—</p>
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0">CIF</Badge>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0">{rotuloFreteTipo(e.frete_tipo)}</Badge>
           </div>
-          <p className="text-[11px] text-muted-foreground">Frete por conta da Fetely — custo apurado nas faturas de frete, não no pedido</p>
-        </>
-      );
-    }
-    if (e.frete_tipo === "FOB") {
-      return (
-        <>
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium">—</p>
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0">FOB</Badge>
-          </div>
-          <p className="text-[11px] text-muted-foreground">Sem valor de frete registrado</p>
+          <p className="text-[11px] text-muted-foreground">
+            {fetelyPaga
+              ? "Frete por conta da Fetely — custo apurado nas faturas de frete, não no pedido"
+              : "Sem valor de frete registrado"}
+          </p>
         </>
       );
     }
@@ -192,7 +189,7 @@ export function CardEntrega({ pedidoId, estagio }: Props) {
                       </label>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      Diferença entre o frete cobrado do cliente e o custo real pago à transportadora. Só se aplica a FOB.
+                      Diferença entre o frete cobrado do cliente e o custo real pago à transportadora. Só se aplica quando o frete é cobrado do cliente.
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
