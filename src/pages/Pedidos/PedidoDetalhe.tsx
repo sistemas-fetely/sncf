@@ -87,6 +87,7 @@ import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -907,6 +908,7 @@ export default function PedidoDetalhe() {
   const [pesoBruto, setPesoBruto] = useState("");
   const [recalculandoPeso, setRecalculandoPeso] = useState(false);
   const [freteTipo, setFreteTipo] = useState("");
+  const { tipos: freteTiposAtivos } = useFreteTipos();
   const [valorFrete, setValorFrete] = useState("");
   
   const transportadoras = useTransportadoras();
@@ -1541,8 +1543,11 @@ export default function PedidoDetalhe() {
                       <Select value={freteTipo} onValueChange={setFreteTipo}>
                         <SelectTrigger className="h-8 text-sm mt-0.5"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="FOB">FOB — Frete cobrado do cliente</SelectItem>
-                          <SelectItem value="CIF">CIF — Benefício comercial (Fetely absorve)</SelectItem>
+                          {freteTiposAtivos.map((t) => (
+                            <SelectItem key={t.codigo} value={t.codigo}>
+                              {t.rotulo || t.codigo}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
