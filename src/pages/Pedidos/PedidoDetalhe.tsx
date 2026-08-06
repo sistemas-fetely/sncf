@@ -46,6 +46,7 @@ import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline"
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { ConsolidarPedidoDialog } from "@/components/pedidos/dialogs/ConsolidarPedidoDialog";
+import { ReterEstoqueDialog } from "@/components/pedidos/dialogs/ReterEstoqueDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { PainelEditarPedido } from "@/components/pedidos/PainelEditarPedido";
@@ -66,7 +67,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX } from "lucide-react";
 import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -873,6 +874,21 @@ function BotaoConsolidarPedido({ pedido, qtdTitulosAtivos }: { pedido: any; qtdT
     </>
   );
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BotaoReterEstoque({ pedido }: { pedido: any }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setOpen(true)}>
+        <PackageX className="h-4 w-4" />
+        Enviar para Aguardando Estoque
+      </Button>
+      <ReterEstoqueDialog open={open} onOpenChange={setOpen} pedidoId={pedido.id} idExterno={pedido.id_externo} />
+    </>
+  );
+}
+
 
 export default function PedidoDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -2172,6 +2188,9 @@ export default function PedidoDetalhe() {
                     (t: any) => !["cancelado", "cancelado_recuperacao"].includes(t.status)
                   ).length}
                 />
+              )}
+              {estagio === "pre_separacao" && (
+                <BotaoReterEstoque pedido={pedido} />
               )}
               {estagio !== "cancelado" && estagio !== "em_analise_credito" && (
                 <ComunicacaoPedidoPanel
