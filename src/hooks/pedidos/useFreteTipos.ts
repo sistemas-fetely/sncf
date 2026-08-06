@@ -6,6 +6,10 @@ export interface FreteTipo {
   rotulo: string | null;
   entra_no_liquido: boolean;
   rateia_por: string | null;
+  ordem?: number | null;
+  mod_frete_nf?: number | null;
+  valor_na_nf?: boolean | null;
+  fetely_paga_transportadora?: boolean | null;
 }
 
 /**
@@ -21,12 +25,14 @@ export function useFreteTipos() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("frete_tipos")
-        .select("codigo, rotulo, entra_no_liquido, rateia_por")
-        .eq("ativo", true);
+        .select("codigo, rotulo, entra_no_liquido, rateia_por, ordem, mod_frete_nf, valor_na_nf, fetely_paga_transportadora")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
       if (error) throw error;
       return (data || []) as FreteTipo[];
     },
   });
+
 
   const tipos = q.data || [];
 
