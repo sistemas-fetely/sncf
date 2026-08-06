@@ -20,6 +20,8 @@ interface Props {
 const BREAKDOWN_LABEL: Record<string, string> = {
   base: "Base",
   gris: "GRIS",
+  adv: "Ad valorem",
+  icms: "ICMS",
   fv: "FV",
   pedagio: "Pedágio",
   txa: "TXA",
@@ -27,6 +29,11 @@ const BREAKDOWN_LABEL: Record<string, string> = {
   tx_coleta: "Tx. coleta",
   tas: "TAS",
 };
+
+function fmtM3(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+}
+
 
 function renderBreakdown(b: Record<string, number> | null | undefined): string {
   if (!b) return "";
