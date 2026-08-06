@@ -45,5 +45,12 @@ export function useFreteTipos() {
     return getFreteTipo(codigo)?.entra_no_liquido === true;
   }
 
-  return { ...q, tipos, getFreteTipo, freteEntraNoLiquido };
+  /** Rótulo vindo da dimensão. Códigos desativados caem no próprio código. */
+  function rotuloFreteTipo(codigo?: string | null): string {
+    if (!codigo) return "—";
+    return getFreteTipo(codigo)?.rotulo || codigo;
+  }
+
+  return { ...q, tipos, getFreteTipo, freteEntraNoLiquido, rotuloFreteTipo };
+
 }
