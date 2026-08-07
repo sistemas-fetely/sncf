@@ -731,8 +731,19 @@ export default function DestinosCadastro() {
                   </Alert>
                 )}
 
+                {estoqueErro && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Estoque do SNCF indisponível</AlertTitle>
+                    <AlertDescription className="text-xs break-words">
+                      <p>{estoqueErro}</p>
+                      <p>A coluna Estoque sairá verbatim, exatamente como veio do CSV.</p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {resumo && (
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Já preenchido</p>
                       <p className="text-2xl font-bold">{resumo.jaPreenchido}</p>
@@ -751,8 +762,78 @@ export default function DestinosCadastro() {
                         {planoSituacao ? planoSituacao.mudancas.length : "—"}
                       </p>
                     </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Estoque a atualizar</p>
+                      <p className="text-2xl font-bold">
+                        {planoEstoque ? planoEstoque.aAtualizar : "—"}
+                      </p>
+                      {planoEstoque && (
+                        <>
+                          <p className="text-[11px] text-muted-foreground">
+                            {planoEstoque.sobem} sobem
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {planoEstoque.descem} descem
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
+
+                {planoEstoque && (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <p className="text-sm font-semibold">Estoque · conferência</p>
+                    <p className="text-xs text-muted-foreground">
+                      {planoEstoque.iguais} iguais · {planoEstoque.sobem} sobem ·{" "}
+                      {planoEstoque.descem} descem · {planoEstoque.semRazao} voltam verbatim por não
+                      terem razão · {planoEstoque.semAncora} voltam verbatim por não terem âncora ou
+                      estarem inativos.
+                    </p>
+                    {planoEstoque.top.length > 0 && (
+                      <div className="max-h-72 overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Código</TableHead>
+                              <TableHead>Nome</TableHead>
+                              <TableHead className="text-right">CSV</TableHead>
+                              <TableHead className="text-right">SNCF</TableHead>
+                              <TableHead className="text-right">Delta</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {planoEstoque.top.map((l, i) => (
+                              <TableRow key={`${l.codigo}-${i}`}>
+                                <TableCell className="font-mono text-xs">{l.codigo}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground truncate max-w-[240px]">
+                                  {l.nome}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs">
+                                  {l.csv === null ? "—" : numeroBR(l.csv)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs">
+                                  {numeroBR(l.sncf)}
+                                </TableCell>
+                                <TableCell
+                                  className={`text-right font-mono text-xs ${
+                                    l.delta > 0
+                                      ? "text-emerald-700 dark:text-emerald-400"
+                                      : "text-destructive"
+                                  }`}
+                                >
+                                  {l.delta > 0 ? "+" : ""}
+                                  {numeroBR(l.delta)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
 
                 {planoSituacao && planoSituacao.mudancas.length > 0 && (
                   <div
