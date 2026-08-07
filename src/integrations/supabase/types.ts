@@ -37317,14 +37317,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -37762,14 +37762,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -38421,6 +38421,8 @@ export type Database = {
         Row: {
           caixas_estimadas: number | null
           caixas_fonte: string | null
+          caixas_max: number | null
+          caixas_min: number | null
           caixas_modelo: number | null
           caixas_piso_fisico: number | null
           cubagem_expedicao_m3: number | null
@@ -38434,6 +38436,7 @@ export type Database = {
           peso_expedido_kg: number | null
           peso_produto_kg: number | null
           peso_taxado_previsto: number | null
+          piso_excede_modelo: boolean | null
           skus_sem_dimensao: number | null
         }
         Relationships: [
