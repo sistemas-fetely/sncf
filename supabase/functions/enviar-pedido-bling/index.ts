@@ -315,10 +315,7 @@ serve(async (req) => {
 
 
     const { data: titulos } = await supabase
-      .from("titulo_a_receber")
-      .select("id, numero_parcela, valor_bruto, data_vencimento_original, tipo_pagamento, eh_entrada")
-      .eq("pedido_id", pedido_id)
-      .order("numero_parcela");
+      .rpc("fn_plano_recebimento_pedido", { p_pedido_id: pedido_id });
     if (geraTitulo && (!titulos || titulos.length === 0)) {
       return err("Pedido sem títulos — confirme o portão na aba Primeiro Pagamento, ou materialize a cobrança, antes de enviar ao Bling.", 409);
     }
