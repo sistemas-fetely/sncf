@@ -10,6 +10,7 @@ import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { usePedidoOrigens } from "@/hooks/pedidos/usePedidoOrigens";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
+import { PlanoRecebimentoCard } from "@/components/pedidos/PlanoRecebimentoCard";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
 import { useTituloEixosPedido } from "@/hooks/pedidos/useTituloEixosPedido";
 import { useTituloEixosDim } from "@/hooks/credito/useTituloEixosDim";
@@ -213,24 +214,29 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   if (!titulos || titulos.length === 0) {
     const coberto = !loadFamilia && !errFamilia && familia?.recebivel_na_familia === true;
     return (
-      <div className="text-center py-6 text-muted-foreground space-y-2">
-        <Receipt className="h-8 w-8 mx-auto opacity-30" />
-        {coberto ? (
-          <p className="text-sm">
-            Coberto pelo recebível da mãe {familia?.familia_mae_externo ?? "—"} — não cobrar aqui
-          </p>
-        ) : (
-          <>
-            <p className="text-sm">Nenhum título gerado ainda.</p>
-            <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
-          </>
-        )}
+      <div className="space-y-4">
+        <PlanoRecebimentoCard pedidoId={pedidoId} />
+        <div className="text-center py-6 text-muted-foreground space-y-2">
+          <Receipt className="h-8 w-8 mx-auto opacity-30" />
+          {coberto ? (
+            <p className="text-sm">
+              Coberto pelo recebível da mãe {familia?.familia_mae_externo ?? "—"} — não cobrar aqui
+            </p>
+          ) : (
+            <>
+              <p className="text-sm">Nenhum título gerado ainda.</p>
+              <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
+            </>
+          )}
+        </div>
       </div>
     );
   }
   const total = titulos.reduce((acc, t) => acc + Number(t.valor_atual || 0), 0);
   return (
     <div className="space-y-3">
+      <PlanoRecebimentoCard pedidoId={pedidoId} />
+
       <div className="rounded-md border overflow-hidden">
         <Table>
           <TableHeader>
@@ -1810,6 +1816,7 @@ export default function PedidoDetalhe() {
                   <PedidoTarefasTab pedidoId={pedido.id} />
                 </TabsContent>
                 <TabsContent value="parcelas">
+                  <div className="mb-3"><PlanoRecebimentoCard pedidoId={pedido.id} compacto /></div>
                   {!titulosData || titulosData.length === 0 ? (
                     !familiaCarregando && !familiaErro && familiaRecebivel?.recebivel_na_familia === true ? (
                       <p className="text-sm text-muted-foreground text-center py-6">
