@@ -187,19 +187,52 @@ export default function DestinosCadastro() {
   const [fiscalErro, setFiscalErro] = useState<string | null>(null);
   const [fiscalCarregando, setFiscalCarregando] = useState(false);
   const [detalheAberto, setDetalheAberto] = useState(false);
+  const [estoque, setEstoque] = useState<Map<string, EstoqueSncf> | null>(null);
+  const [estoqueErro, setEstoqueErro] = useState<string | null>(null);
+  const [ancoras, setAncoras] = useState<Map<string, string> | null>(null); // sku -> origem_fisc
 
   const carregarFiscal = async () => {
     setFiscalCarregando(true);
     setFiscalErro(null);
+    setEstoqueErro(null);
     try {
-      const { data, error } = await (supabase as any)
-        .from("vw_bling_completar_fiscal")
-        .select(
-          "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean, ativo_sncf, situacao_sugerida",
-        );
-      if (error) throw error;
+      const [resFiscal, resEstoque, resAncora] = await Promise.all([
+        (supabase as any)
+          .from("vw_bling_completar_fiscal")
+          .select(
+            "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean, ativo_sncf, situacao_sugerida",
+          ),
+        (supabase as any)
+          .from("vw_estoque")
+          .select("sku, nome_comercial, estoque_virtual, tem_razao")
+          .range(0, 9999),
+        (supabase as any)
+          .from("sncf_produtos")
+          .select("sku, origem_fisc")
+          .range(0, 9999),
+      ]);
+
+      if (resEstoque.error) setEstoqueErro(formatError(resEstoque.error));
+      else {
+        const me = new Map<string, EstoqueSncf>();
+        for (const r of (resEstoque.data ?? []) as EstoqueSncf[]) {
+          if (r.sku) me.set(chaveSku(r.sku), r);
+        }
+        setEstoque(me);
+      }
+
+      if (resAncora.error) setAncoras(null);
+      else {
+        const ma = new Map<string, string>();
+        for (const r of (resAncora.data ?? []) as { sku: string | null; origem_fisc: string | null }[]) {
+          if (r.sku && r.origem_fisc) ma.set(chaveSku(r.sku), String(r.origem_fisc).trim());
+        }
+        setAncoras(ma);
+      }
+
+      if (resFiscal.error) throw resFiscal.error;
       const m = new Map<string, FiscalSncf>();
-      for (const r of (data ?? []) as FiscalSncf[]) {
+      for (const r of (resFiscal.data ?? []) as FiscalSncf[]) {
         if (r.sku) m.set(chaveSku(r.sku), r);
       }
       setFiscal(m);
@@ -221,12 +254,14 @@ export default function DestinosCadastro() {
       grupo: find(COL_GRUPO),
       descricao: parsed.header.findIndex((h) => h === "Descrição"),
       situacao: parsed.header.findIndex((h) => semAcento(h) === "situacao"),
+      estoque: parsed.header.findIndex((h) => semAcento(h) === "estoque"),
       preco: parsed.header.findIndex((h) => {
         const n = semAcento(h);
         return n.includes("preco") && n.includes("venda");
       }),
     };
   }, [parsed]);
+
 
 
   const resetar = () => {
