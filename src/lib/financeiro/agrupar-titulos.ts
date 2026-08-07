@@ -116,19 +116,32 @@ function montar(chave: string, visiveis: TituloCobranca[], totalNoUniverso: numb
   /* Base do estado = base do total. Só cai para o conjunto todo se não sobrou vivo. */
   const base = vivos.length > 0 ? vivos : titulos;
 
-  const contagem = new Map<EixoStatus, number>();
+  const contagem = new Map<EixoRecebimento, number>();
   for (const t of base) {
-    if (!t.eixo_status) continue;
-    contagem.set(t.eixo_status, (contagem.get(t.eixo_status) ?? 0) + 1);
+    if (!t.eixo_recebimento) continue;
+    contagem.set(t.eixo_recebimento, (contagem.get(t.eixo_recebimento) ?? 0) + 1);
   }
   const composicao = [...contagem.entries()]
     .map(([eixo, qtd]) => ({ eixo, qtd }))
-    .sort((a, b) => STATUS_META[a.eixo].ordem - STATUS_META[b.eixo].ordem);
+    .sort((a, b) => RECEBIMENTO_META[a.eixo].ordem - RECEBIMENTO_META[b.eixo].ordem);
 
-  const provas = base.map((t) => t.eixo_prova).filter(Boolean) as EixoProva[];
-  const status = base.map((t) => t.eixo_status).filter(Boolean) as EixoStatus[];
+  const instrumentos = base.map((t) => t.eixo_instrumento).filter(Boolean) as EixoInstrumento[];
+  const recebimentos = base.map((t) => t.eixo_recebimento).filter(Boolean) as EixoRecebimento[];
 
-  const abertos = vivos.filter((t) => t.eixo_status === "a_vencer");
+  const abertos = vivos.filter((t) => t.eixo_recebimento === "em_aberto");
+
+  const instrumentoPrevalente =
+    instrumentos.length > 0
+      ? instrumentos.reduce((a, b) =>
+          INSTRUMENTO_META[b].ordem > INSTRUMENTO_META[a].ordem ? b : a,
+        )
+      : null;
+  const recebimentoPrevalente =
+    recebimentos.length > 0
+      ? recebimentos.reduce((a, b) =>
+          RECEBIMENTO_META[b].ordem < RECEBIMENTO_META[a].ordem ? b : a,
+        )
+      : null;
 
   return {
     chave,
@@ -142,14 +155,15 @@ function montar(chave: string, visiveis: TituloCobranca[], totalNoUniverso: numb
     formas: [...new Set(titulos.map((t) => t.tipo_pagamento).filter(Boolean))],
     nfs: [...new Set(titulos.map((t) => t.nf_numero).filter(Boolean) as string[])],
     composicao,
-    provaPrevalente:
-      provas.length > 0
-        ? provas.reduce((a, b) => (PROVA_META[b].ordem > PROVA_META[a].ordem ? b : a))
-        : null,
-    statusPrevalente:
-      status.length > 0
-        ? status.reduce((a, b) => (STATUS_META[b].ordem < STATUS_META[a].ordem ? b : a))
-        : null,
+    instrumentoPrevalente,
+    recebimentoPrevalente,
+    temInadimplente: base.some((t) => t.eh_inadimplente === true),
+    provaPrevalente: instrumentoPrevalente
+      ? INSTRUMENTO_PARA_PROVA[instrumentoPrevalente]
+      : null,
+    statusPrevalente: recebimentoPrevalente
+      ? RECEBIMENTO_PARA_STATUS[recebimentoPrevalente]
+      : null,
     atrasoMax: vivos.reduce((acc, t) => Math.max(acc, t.dias_atraso ?? 0), 0),
     proximoVencimento:
       abertos.length > 0
