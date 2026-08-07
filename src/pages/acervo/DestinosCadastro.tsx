@@ -450,27 +450,6 @@ export default function DestinosCadastro() {
     };
   }, [parsed, idx, estoque]);
 
-  const resumo = useMemo(() => {
-    if (!parsed || !grupos || !idx) return null;
-    let jaPreenchido = 0;
-    let vaiMudar = 0;
-    parsed.rows.forEach((r, i) => {
-      const mudaFiscal = (plano?.porLinha[i]?.length ?? 0) > 0;
-      const sit = planoSituacao?.porLinha[i];
-      const mudaSituacao =
-        !!sit &&
-        idx.situacao >= 0 &&
-        semAcento((r[idx.situacao] ?? "").replace(/\t/g, "").trim()) !== semAcento(sit);
-      const est = planoEstoque?.porLinha[i];
-      const mudaEstoque =
-        !!est &&
-        idx.estoque >= 0 &&
-        (r[idx.estoque] ?? "").replace(/\t/g, "").trim() !== est;
-      if (mudaFiscal || mudaSituacao || mudaEstoque) vaiMudar++;
-      else jaPreenchido++;
-    });
-    return { jaPreenchido, vaiMudar, completados: plano?.detalhes.length ?? 0 };
-  }, [parsed, grupos, idx, plano, planoEstoque]);
 
   /** AUDITORIA INFORMATIVA: quebra pelo grupo que veio do CSV. Nunca escreve. */
   const contagem = useMemo(() => {
