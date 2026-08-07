@@ -53,8 +53,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
 import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
 import {
-  BadgeProva,
-  BadgeStatus,
   BadgeRecebimento,
   BadgeInstrumento,
   SeloInadimplente,
@@ -515,12 +513,15 @@ function LinhaGrupo({
         </div>
       </TableCell>
       <TableCell>
-        {g.provaPrevalente
-          ? <BadgeProva eixo={g.provaPrevalente} />
+        {g.instrumentoPrevalente
+          ? <BadgeInstrumento eixo={g.instrumentoPrevalente} />
           : <span className="text-xs text-muted-foreground">—</span>}
       </TableCell>
       <TableCell>
-        <BadgeStatus eixo={g.statusPrevalente} />
+        <div className="flex flex-wrap items-center gap-1">
+          <BadgeRecebimento eixo={g.recebimentoPrevalente} />
+          {g.temInadimplente && <SeloInadimplente />}
+        </div>
         {grupoEstadoDividido(g) && (
           <div className="text-[10px] text-muted-foreground">{resumoComposicao(g)}</div>
         )}
