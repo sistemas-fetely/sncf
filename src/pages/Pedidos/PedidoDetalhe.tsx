@@ -1816,6 +1816,7 @@ export default function PedidoDetalhe() {
                   <PedidoTarefasTab pedidoId={pedido.id} />
                 </TabsContent>
                 <TabsContent value="parcelas">
+                  <div className="mb-3"><PlanoRecebimentoCard pedidoId={pedido.id} compacto /></div>
                   {!titulosData || titulosData.length === 0 ? (
                     !familiaCarregando && !familiaErro && familiaRecebivel?.recebivel_na_familia === true ? (
                       <p className="text-sm text-muted-foreground text-center py-6">
