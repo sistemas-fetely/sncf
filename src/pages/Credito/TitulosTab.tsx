@@ -777,8 +777,8 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
               <TableHead>Vencimento</TableHead>
               <TableHead>Liquidação</TableHead>
               <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Prova</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Instrumento</TableHead>
+              <TableHead>Situação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
