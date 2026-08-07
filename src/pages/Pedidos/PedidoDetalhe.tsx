@@ -7,6 +7,12 @@ import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedid
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
+import { usePedidoEmbalagem } from "@/hooks/pedidos/usePedidoEmbalagem";
+
+/** Formatação pt-BR com número fixo de casas. */
+const fmtNum = (v: number, casas: number) =>
+  Number(v).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+
 import { usePedidoOrigens } from "@/hooks/pedidos/usePedidoOrigens";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
@@ -987,6 +993,10 @@ export default function PedidoDetalhe() {
   const pesoBrutoNum = parseFloat(pesoBruto) || Number(data?.pedido?.peso_bruto_total) || 0;
   const cubagemTotal = Number(data?.pedido?.cubagem_total) || 0;
   const pesoCobradoEst = cubagemTotal > 0 ? Math.max(pesoBrutoNum, cubagemTotal * 300) : pesoBrutoNum;
+  /** Números de expedição — leitura pura da view, o front só formata. */
+  const embalagem = usePedidoEmbalagem(id);
+  const emb = embalagem.data ?? null;
+
   const cepEstimativa = data?.pedido?.endereco_entrega?.cep ?? data?.parceiro?.cep ?? null;
   const freteEst = useFreteEstimado(
     transportadoraId || null,
@@ -1523,25 +1533,82 @@ export default function PedidoDetalhe() {
                         {recalculandoPeso ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
+                    {emb?.peso_expedido_kg != null && (
+                      <p className="text-[10px] text-muted-foreground leading-tight">
+                        expedido ~{fmtNum(emb.peso_expedido_kg, 1)} kg (com tara)
+                      </p>
+                    )}
                   </div>
 
-                  <div className="space-y-1.5">
+                  {/* Bloco de expedição — todos os números vêm de vw_pedido_embalagem */}
+                  <div className="rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground cursor-help">Caixas (estimativa)</p>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              Estimativa calculada pelo histórico de expedição. Não substitui a contagem do separador.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <p className="text-base font-semibold">{emb?.caixas_estimadas ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cubagem expedição</p>
+                        <p className="text-base font-semibold">
+                          {emb?.cubagem_expedicao_m3 != null ? `${fmtNum(emb.cubagem_expedicao_m3, 4)} m³` : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Peso taxado (previsto)</p>
+                        <p className="text-base font-semibold">
+                          {emb?.peso_taxado_previsto != null ? `${fmtNum(emb.peso_taxado_previsto, 1)} kg` : "—"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {emb && (
+                      <p className="text-[11px] text-muted-foreground leading-tight">
+                        {emb.pacotes_v ?? 0} volumosos · {emb.pacotes_p ?? 0} planos pequenos · {emb.pacotes_g ?? 0} planos grandes
+                        {emb.litros_solidos != null && emb.fator_embalagem != null && (
+                          <> — {fmtNum(emb.litros_solidos, 1)} L sólidos × {fmtNum(emb.fator_embalagem, 2)}</>
+                        )}
+                      </p>
+                    )}
+
+                    {emb?.caixas_fonte && (
+                      <p className="text-[11px] text-muted-foreground leading-tight">
+                        {emb.caixas_fonte === "modelo_classes"
+                          ? "Caixas pelo modelo de classes (erro mediano ±12,5%)"
+                          : emb.caixas_fonte === "piso_fisico"
+                          ? "Caixas pelo piso físico de volume"
+                          : null}
+                      </p>
+                    )}
+
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <label className="text-[10px] uppercase tracking-widest text-muted-foreground cursor-help">
-                            Caixas (estimativa)
-                          </label>
+                          <p className="text-[10px] text-muted-foreground/80 leading-tight cursor-help">
+                            Volume sólido do produto: {Number(pedido.cubagem_total) > 0 ? `${fmtNum(Number(pedido.cubagem_total), 4)} m³` : "—"}
+                          </p>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs text-xs">
-                          Estimativa calculada pelo histórico de expedição. Não substitui a contagem do separador.
+                          A transportadora não cobra por este número. A cobrança usa a cubagem de expedição (produto + embalagem).
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                    <p className="text-sm font-medium">
-                      {pedido.caixas_estimadas != null ? pedido.caixas_estimadas : "—"}
-                    </p>
+
+                    {(emb?.skus_sem_dimensao ?? 0) > 0 && (
+                      <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-[10px]">
+                        {emb!.skus_sem_dimensao} SKU(s) sem dimensão cadastrada — estimativa incompleta
+                      </Badge>
+                    )}
                   </div>
+
 
 
                   {freteEst.isLoading && transportadoraId && (
@@ -1617,13 +1684,10 @@ export default function PedidoDetalhe() {
                       )}
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cubagem</p>
-                      <p className="text-sm font-medium">{pedido.cubagem_total > 0 ? `${Number(pedido.cubagem_total).toFixed(4)} m³` : "—"}</p>
-                    </div>
-                    <div>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Peso Cubagem</p>
                       <p className="text-sm font-medium">{pedido.cubagem_total > 0 ? `${(Number(pedido.cubagem_total) * 300).toFixed(3)} kg` : "—"}</p>
                     </div>
+
                   </div>
 
                   <Button
