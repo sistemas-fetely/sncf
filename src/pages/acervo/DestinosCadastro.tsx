@@ -171,11 +171,6 @@ function gerarCsv(header: string[], rows: string[][]): Blob {
   return new Blob([conteudo], { type: "text/csv;charset=utf-8" });
 }
 
-function corGrupo(grupo: string) {
-  if (grupo === "FISCAL-REVISAR" || grupo === "FISCAL-NAO-MERCADORIA") return "amber";
-  return "ok";
-}
-
 export default function DestinosCadastro() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [arquivoNome, setArquivoNome] = useState<string | null>(null);
