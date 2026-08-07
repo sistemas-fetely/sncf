@@ -1683,10 +1683,6 @@ export default function PedidoDetalhe() {
                         </p>
                       )}
                     </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Peso Cubagem</p>
-                      <p className="text-sm font-medium">{pedido.cubagem_total > 0 ? `${(Number(pedido.cubagem_total) * 300).toFixed(3)} kg` : "—"}</p>
-                    </div>
 
                   </div>
 
