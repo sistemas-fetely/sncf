@@ -1593,15 +1593,7 @@ export default function PedidoDetalhe() {
                       </p>
                     )}
 
-                    {emb?.caixas_fonte && (
-                      <p className="text-[11px] text-muted-foreground leading-tight">
-                        {emb.caixas_fonte === "modelo_classes"
-                          ? "Caixas pelo modelo de classes (erro mediano ±12,5%)"
-                          : emb.caixas_fonte === "piso_fisico"
-                          ? "Caixas pelo piso físico de volume"
-                          : null}
-                      </p>
-                    )}
+
 
                     <TooltipProvider>
                       <Tooltip>
