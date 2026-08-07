@@ -213,24 +213,29 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   if (!titulos || titulos.length === 0) {
     const coberto = !loadFamilia && !errFamilia && familia?.recebivel_na_familia === true;
     return (
-      <div className="text-center py-6 text-muted-foreground space-y-2">
-        <Receipt className="h-8 w-8 mx-auto opacity-30" />
-        {coberto ? (
-          <p className="text-sm">
-            Coberto pelo recebível da mãe {familia?.familia_mae_externo ?? "—"} — não cobrar aqui
-          </p>
-        ) : (
-          <>
-            <p className="text-sm">Nenhum título gerado ainda.</p>
-            <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
-          </>
-        )}
+      <div className="space-y-4">
+        <PlanoRecebimentoCard pedidoId={pedidoId} />
+        <div className="text-center py-6 text-muted-foreground space-y-2">
+          <Receipt className="h-8 w-8 mx-auto opacity-30" />
+          {coberto ? (
+            <p className="text-sm">
+              Coberto pelo recebível da mãe {familia?.familia_mae_externo ?? "—"} — não cobrar aqui
+            </p>
+          ) : (
+            <>
+              <p className="text-sm">Nenhum título gerado ainda.</p>
+              <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
+            </>
+          )}
+        </div>
       </div>
     );
   }
   const total = titulos.reduce((acc, t) => acc + Number(t.valor_atual || 0), 0);
   return (
     <div className="space-y-3">
+      <PlanoRecebimentoCard pedidoId={pedidoId} />
+
       <div className="rounded-md border overflow-hidden">
         <Table>
           <TableHeader>
