@@ -55,7 +55,6 @@ export async function syncContasReceber(
         }
         const parceiro_id = await resolveParceiroId(supabase, conta.contato);
         const registro = {
-          tipo: "receber",
           descricao: conta.historico || conta.nroDocumento || "Sem descrição",
           valor: Number(conta.valor) || 0,
           data_vencimento: conta.vencimento || null,
@@ -63,20 +62,14 @@ export async function syncContasReceber(
           status,
           fornecedor_cliente: conta.contato?.nome ?? null,
           parceiro_id,
-          origem: "api_bling",
           bling_id: blingId,
           observacao: conta.ocorrencia || null,
         };
-        const { data: existing } = await supabase
-          .from("contas_pagar_receber").select("id")
-          .eq("bling_id", blingId).eq("tipo", "receber").maybeSingle();
-        if (existing) {
-          await supabase.from("contas_pagar_receber").update(registro).eq("id", existing.id);
-          atualizados++;
-        } else {
-          await supabase.from("contas_pagar_receber").insert(registro);
-          criados++;
-        }
+        const { error } = await supabase
+          .from("bling_contas_receber_stage")
+          .upsert({ ...registro, updated_at: new Date().toISOString() }, { onConflict: "bling_id" });
+        if (error) throw error;
+        criados++;
       } catch (e) {
         erros++;
         ultimoErro = `item ${conta?.id}: ${(e as Error).message}`;
