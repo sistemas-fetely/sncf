@@ -28,20 +28,41 @@
  */
 import { tituloEntraNoKpi, type TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import {
-  PROVA_META,
-  STATUS_META,
+  INSTRUMENTO_META,
+  RECEBIMENTO_META,
+  type EixoInstrumento,
+  type EixoRecebimento,
   type EixoProva,
   type EixoStatus,
 } from "@/lib/financeiro/eixos-estado";
 
-/** Plural feminino ("parcela") dos rótulos de STATUS_META. */
-const EIXO_PLURAL: Record<EixoStatus, string> = {
-  a_vencer: "a vencer",
-  pago: "pagas",
+/** Plural feminino ("parcela") dos rótulos de RECEBIMENTO_META. */
+const EIXO_PLURAL: Record<EixoRecebimento, string> = {
+  em_aberto: "em aberto",
+  quitado: "quitadas",
   compensado: "compensadas",
   devolvido: "devolvidas",
   cancelado: "canceladas",
 };
+
+/** Tradução do eixo novo para o vocabulário antigo (só para os aliases @deprecated). */
+const RECEBIMENTO_PARA_STATUS: Record<EixoRecebimento, EixoStatus> = {
+  em_aberto: "a_vencer",
+  quitado: "pago",
+  compensado: "compensado",
+  devolvido: "devolvido",
+  cancelado: "cancelado",
+};
+
+const INSTRUMENTO_PARA_PROVA: Record<EixoInstrumento, EixoProva> = {
+  sem_instrumento: "registrado",
+  registrado: "registrado",
+  remessa_gerada: "registrado",
+  baixa_solicitada: "registrado",
+  liquidado_banco: "conciliado",
+  conciliado: "conciliado",
+};
+
 
 export interface GrupoPedido {
   /** Chave estável do grupo (id do pedido). */
