@@ -289,3 +289,55 @@ export function BadgeStatus({
     </div>
   );
 }
+
+/** Selo derivado. Só aparece quando eh_inadimplente === true. */
+export function SeloInadimplente() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Badge variant="destructive" className="cursor-help">Inadimplente</Badge>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="max-w-xs">Em aberto, vencido, e a forma de pagamento não é garantida.</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Eixo recebimento: o dinheiro chegou? UM-EIXO-UM-CHIP. */
+export function BadgeRecebimento({
+  eixo,
+  compensadoPor,
+}: {
+  eixo: EixoRecebimento | null;
+  compensadoPor?: "banco" | "manual" | null;
+}) {
+  const meta = eixo ? RECEBIMENTO_META[eixo] : null;
+  if (!meta) return <span className="text-muted-foreground">—</span>;
+  return (
+    <div>
+      <BadgeComMeta meta={meta} />
+      {eixo === "compensado" && compensadoPor && (
+        <div className="text-xs text-muted-foreground">
+          {compensadoPor === "banco" ? "por banco" : "por baixa manual"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Eixo prazo: relação com a data. */
+export function BadgePrazo({ eixo }: { eixo: EixoPrazo | null }) {
+  const meta = eixo ? PRAZO_META[eixo] : null;
+  if (!meta) return <span className="text-muted-foreground">—</span>;
+  return <BadgeComMeta meta={meta} />;
+}
+
+/** Eixo instrumento: qual a prova? */
+export function BadgeInstrumento({ eixo }: { eixo: EixoInstrumento | null }) {
+  const meta = eixo ? INSTRUMENTO_META[eixo] : null;
+  if (!meta) return <span className="text-muted-foreground">—</span>;
+  return <BadgeComMeta meta={meta} />;
+}
