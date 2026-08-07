@@ -10,6 +10,7 @@ import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { usePedidoOrigens } from "@/hooks/pedidos/usePedidoOrigens";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
+import { PlanoRecebimentoCard } from "@/components/pedidos/PlanoRecebimentoCard";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
 import { useTituloEixosPedido } from "@/hooks/pedidos/useTituloEixosPedido";
 import { useTituloEixosDim } from "@/hooks/credito/useTituloEixosDim";
