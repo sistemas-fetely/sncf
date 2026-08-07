@@ -168,6 +168,10 @@ for (const nf of items) {
       bling_pedido_venda_id:     pedidoVendaBlingIdRaw ?? existing?.bling_pedido_venda_id ?? null,
     };
     if (pedido_venda_id) registro.pedido_venda_id = pedido_venda_id;
+    if (vinculoNovo) {
+      registro.vinculo_origem = 'bling';
+      registro.vinculo_em = new Date().toISOString();
+    }
 
     if (existing) {
       const { error: updErr } = await supabase.from("nfs_emitidas").update(registro).eq("id", existing.id);
