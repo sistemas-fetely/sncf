@@ -693,9 +693,9 @@ export default function DestinosCadastro() {
                   <AlertDescription className="text-xs">
                     Esta tela pode alterar apenas estas colunas:{" "}
                     <strong>
-                      Grupo de produtos, Situação, NCM, CEST, Peso líquido, Altura, Largura,
-                      Profundidade
+                      Situação, NCM, CEST, Peso líquido, Altura, Largura, Profundidade, Estoque
                     </strong>
+
                     . Todas as demais voltam verbatim. A coluna <strong>Origem</strong> nunca é
                     tocada.
                   </AlertDescription>
