@@ -52,7 +52,14 @@ import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
 import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
-import { BadgeProva, BadgeStatus } from "@/lib/financeiro/eixos-estado";
+import {
+  BadgeProva,
+  BadgeStatus,
+  BadgeRecebimento,
+  BadgeInstrumento,
+  SeloInadimplente,
+  PRAZO_CLASSE_TEXTO,
+} from "@/lib/financeiro/eixos-estado";
 import { agruparPorPedido, grupoEhUnitario, grupoEstadoDividido, resumoComposicao, type GrupoPedido } from "@/lib/financeiro/agrupar-titulos";
 
 
