@@ -987,6 +987,10 @@ export default function PedidoDetalhe() {
   const pesoBrutoNum = parseFloat(pesoBruto) || Number(data?.pedido?.peso_bruto_total) || 0;
   const cubagemTotal = Number(data?.pedido?.cubagem_total) || 0;
   const pesoCobradoEst = cubagemTotal > 0 ? Math.max(pesoBrutoNum, cubagemTotal * 300) : pesoBrutoNum;
+  /** Números de expedição — leitura pura da view, o front só formata. */
+  const embalagem = usePedidoEmbalagem(id);
+  const emb = embalagem.data ?? null;
+
   const cepEstimativa = data?.pedido?.endereco_entrega?.cep ?? data?.parceiro?.cep ?? null;
   const freteEst = useFreteEstimado(
     transportadoraId || null,
