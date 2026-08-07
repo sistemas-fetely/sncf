@@ -81,11 +81,17 @@ export interface GrupoPedido {
   ocultos: number;
   formas: string[];
   nfs: string[];
-  /** Composição por eixo_status da base (vivos), ordem canônica de STATUS_META. */
-  composicao: { eixo: EixoStatus; qtd: number }[];
-  /** Prova que prevalece na base — a mais forte. */
+  /** Composição por eixo_recebimento da base (vivos), ordem canônica de RECEBIMENTO_META. */
+  composicao: { eixo: EixoRecebimento; qtd: number }[];
+  /** Instrumento que prevalece na base — o mais forte. */
+  instrumentoPrevalente: EixoInstrumento | null;
+  /** Recebimento que prevalece na base — o menos avançado. */
+  recebimentoPrevalente: EixoRecebimento | null;
+  /** Alguma parcela viva da base é inadimplente? */
+  temInadimplente: boolean;
+  /** @deprecated usar instrumentoPrevalente */
   provaPrevalente: EixoProva | null;
-  /** Status que prevalece na base — o menos avançado. */
+  /** @deprecated usar recebimentoPrevalente */
   statusPrevalente: EixoStatus | null;
   atrasoMax: number;
   /** Menor vencimento entre os visíveis ainda em aberto. */
