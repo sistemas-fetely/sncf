@@ -378,24 +378,126 @@ export default function DestinosCadastro() {
     return { porLinha, detalhes, naoEncontrados };
   }, [parsed, idx, fiscal]);
 
+  /**
+   * Plano de Estoque: só substitui quando tem_razao = true.
+   * Sem razão, SKU ausente ou valor nulo => coluna volta VERBATIM. Nunca escreve 0 por ausência.
+   */
+  const planoEstoque = useMemo(() => {
+    if (!parsed || !idx || idx.estoque < 0 || !estoque) return null;
+    const porLinha: (string | null)[] = [];
+    const diffs: {
+      codigo: string;
+      nome: string;
+      csv: number | null;
+      sncf: number;
+      delta: number;
+    }[] = [];
+    let iguais = 0;
+    let sobem = 0;
+    let descem = 0;
+    let semRazao = 0;
+    let semAncora = 0;
+
+    parsed.rows.forEach((r) => {
+      const codigoRaw = r[idx.codigo] ?? "";
+      const info = estoque.get(chaveSku(codigoRaw));
+      if (!info) {
+        semAncora++;
+        porLinha.push(null);
+        return;
+      }
+      if (info.tem_razao !== true) {
+        semRazao++;
+        porLinha.push(null);
+        return;
+      }
+      const valor = info.estoque_virtual;
+      if (valor === null || valor === undefined || !Number.isFinite(Number(valor))) {
+        semRazao++;
+        porLinha.push(null);
+        return;
+      }
+      const sncf = Number(valor);
+      const csv = parseNumeroBR(r[idx.estoque]);
+      porLinha.push(numeroBR(sncf));
+      if (csv !== null && Math.abs(csv - sncf) < 0.005) {
+        iguais++;
+        return;
+      }
+      const base = csv ?? 0;
+      if (sncf > base) sobem++;
+      else descem++;
+      diffs.push({
+        codigo: codigoRaw.replace(/\t/g, "").trim(),
+        nome:
+          idx.descricao >= 0 ? r[idx.descricao] ?? "" : info.nome_comercial ?? "",
+        csv,
+        sncf,
+        delta: sncf - base,
+      });
+    });
+
+    diffs.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    return {
+      porLinha,
+      iguais,
+      sobem,
+      descem,
+      semRazao,
+      semAncora,
+      aAtualizar: sobem + descem,
+      top: diffs.slice(0, 15),
+    };
+  }, [parsed, idx, estoque]);
+
   const resumo = useMemo(() => {
     if (!parsed || !grupos || !idx) return null;
     let jaPreenchido = 0;
     let vaiMudar = 0;
     parsed.rows.forEach((r, i) => {
-      const atual = (r[idx.grupo] ?? "").replace(/\t/g, "").trim();
-      if (atual !== "" && atual === grupos[i]) jaPreenchido++;
-      else vaiMudar++;
+      const mudaFiscal = (plano?.porLinha[i]?.length ?? 0) > 0;
+      const sit = planoSituacao?.porLinha[i];
+      const mudaSituacao =
+        !!sit &&
+        idx.situacao >= 0 &&
+        semAcento((r[idx.situacao] ?? "").replace(/\t/g, "").trim()) !== semAcento(sit);
+      const est = planoEstoque?.porLinha[i];
+      const mudaEstoque =
+        !!est &&
+        idx.estoque >= 0 &&
+        (r[idx.estoque] ?? "").replace(/\t/g, "").trim() !== est;
+      if (mudaFiscal || mudaSituacao || mudaEstoque) vaiMudar++;
+      else jaPreenchido++;
     });
     return { jaPreenchido, vaiMudar, completados: plano?.detalhes.length ?? 0 };
-  }, [parsed, grupos, idx, plano]);
+  }, [parsed, grupos, idx, plano, planoEstoque]);
 
+  /** AUDITORIA INFORMATIVA: quebra pelo grupo que veio do CSV. Nunca escreve. */
   const contagem = useMemo(() => {
-    if (!grupos) return [];
+    if (!parsed || !idx) return [];
     const m = new Map<string, number>();
-    for (const g of grupos) m.set(g, (m.get(g) ?? 0) + 1);
+    for (const r of parsed.rows) {
+      const g = (r[idx.grupo] ?? "").replace(/\t/g, "").trim() || "(vazio)";
+      m.set(g, (m.get(g) ?? 0) + 1);
+    }
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
-  }, [grupos]);
+  }, [parsed, idx]);
+
+  /** Grupo do CSV vs esperado pela âncora origem_fisc. Só sinalização. */
+  const grupoDivergente = useMemo(() => {
+    if (!parsed || !idx || !ancoras) return null;
+    let n = 0;
+    for (const r of parsed.rows) {
+      const origem = ancoras.get(chaveSku(r[idx.codigo] ?? ""));
+      if (!origem) continue;
+      const esperado = GRUPO_ESPERADO[origem];
+      if (!esperado) continue;
+      const atual = (r[idx.grupo] ?? "").replace(/\t/g, "").trim();
+      if (atual !== esperado) n++;
+    }
+    return n;
+  }, [parsed, idx, ancoras]);
+
 
   const paraRevisar = useMemo(() => {
     if (!parsed || !grupos || !idx) return [];
