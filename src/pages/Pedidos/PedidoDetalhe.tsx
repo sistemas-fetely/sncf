@@ -97,7 +97,7 @@ const fmtDateTime = (s: string | null | undefined) => s ? new Date(s).toLocaleSt
 
 const TIPO_LABEL: Record<TipoTituloPagamento, string> = { boleto: "Boleto", pix: "PIX", cartao: "Cartão", troca_mercadoria: "Troca" };
 const STATUS_CORES: Record<StatusTitulo, string> = {
-  aguardando_pagamento: "bg-amber-500 text-white border-0", aguardando_envio_bling: "bg-sky-500 text-white border-0",
+  aguardando_pagamento: "bg-amber-500 text-white border-0", aberto: "bg-sky-500 text-white border-0",
   aguardando_emissao_nf: "bg-sky-600 text-white border-0", vigente: "bg-blue-500 text-white border-0",
   vigente_parcial: "bg-blue-400 text-white border-0", pago: "bg-emerald-500 text-white border-0",
   pago_com_atraso: "bg-emerald-600 text-white border-0", pago_judicial: "bg-emerald-700 text-white border-0",
