@@ -38424,6 +38424,7 @@ export type Database = {
           caixas_modelo: number | null
           caixas_piso_fisico: number | null
           cubagem_expedicao_m3: number | null
+          fator_embalagem: number | null
           litros_solidos: number | null
           pacotes_g: number | null
           pacotes_p: number | null
@@ -38432,6 +38433,7 @@ export type Database = {
           pedido_id: string | null
           peso_expedido_kg: number | null
           peso_produto_kg: number | null
+          peso_taxado_previsto: number | null
           skus_sem_dimensao: number | null
         }
         Relationships: [
