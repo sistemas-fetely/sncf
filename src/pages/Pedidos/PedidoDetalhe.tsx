@@ -1551,11 +1551,24 @@ export default function PedidoDetalhe() {
                               <p className="text-[10px] uppercase tracking-wide text-muted-foreground cursor-help">Caixas (estimativa)</p>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              Estimativa calculada pelo histórico de expedição. Não substitui a contagem do separador.
+                              Faixa calibrada em 66 expedições reais. O valor central acerta na mediana; a faixa cobre cerca de 60% dos casos. Não substitui a contagem do separador.
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <p className="text-base font-semibold">{emb?.caixas_estimadas ?? "—"}</p>
+                        {emb?.caixas_min != null && emb?.caixas_max != null ? (
+                          emb.caixas_min === emb.caixas_max ? (
+                            <p className="text-base font-semibold">{emb.caixas_min}</p>
+                          ) : (
+                            <>
+                              <p className="text-base font-semibold">{emb.caixas_min} a {emb.caixas_max}</p>
+                              {emb.caixas_estimadas != null && (
+                                <p className="text-[10px] text-muted-foreground leading-tight">central {emb.caixas_estimadas}</p>
+                              )}
+                            </>
+                          )
+                        ) : (
+                          <p className="text-base font-semibold">{emb?.caixas_estimadas ?? "—"}</p>
+                        )}
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cubagem expedição</p>
