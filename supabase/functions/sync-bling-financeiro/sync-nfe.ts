@@ -120,6 +120,9 @@ for (const nf of items) {
       } catch (_) { /* detalhe falhou — preserva valores existentes */ }
     }
 
+    // Vínculo resolvido AGORA nesta execução (antes de preservar o existente)
+    const vinculoNovo = !!pedido_venda_id;
+
     // Preserva pedido_venda_id já gravado no banco
     if (!pedido_venda_id && existing?.pedido_venda_id) {
       pedido_venda_id = existing.pedido_venda_id;
