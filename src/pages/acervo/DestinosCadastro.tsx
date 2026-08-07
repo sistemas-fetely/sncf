@@ -27,6 +27,33 @@ const COL_ALTURA = "Altura do Produto";
 const COL_LARGURA = "Largura do produto";
 const COL_PROFUNDIDADE = "Profundidade do produto";
 
+/** Grupos REAIS do Bling — a tela nunca escreve neles, só audita. */
+const GRUPO_ESPERADO: Record<string, string> = {
+  "2": "L1 - Produto Nacional Importado",
+  "0": "L2 - Produto Nacional",
+};
+
+interface EstoqueSncf {
+  sku: string;
+  nome_comercial: string | null;
+  estoque_virtual: number | null;
+  tem_razao: boolean | null;
+}
+
+/** Formato BR idêntico ao arquivo de entrada: 1404 -> "1.404,00" */
+function numeroBR(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Lê número em formato BR do CSV. Vazio => null. */
+function parseNumeroBR(v: string | undefined): number | null {
+  const s = (v ?? "").replace(/\t/g, "").trim();
+  if (s === "") return null;
+  const n = Number(s.replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+
 /** Campos completáveis: coluna do CSV -> campo da view. Origem NUNCA entra aqui. */
 const MAPA_FISCAL: { coluna: string; campo: keyof FiscalSncf; rotulo: string }[] = [
   { coluna: COL_NCM, campo: "ncm_sncf", rotulo: "NCM" },
