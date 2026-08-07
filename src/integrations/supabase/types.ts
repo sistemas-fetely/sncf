@@ -1237,6 +1237,489 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_migracao_ciclo_20260806_cprs: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          bling_id: string | null
+          boleto_avulso_justificativa: string | null
+          canal_venda_id: string | null
+          cartao_id: string | null
+          categoria_confirmada: boolean | null
+          categoria_sugerida_ia: boolean | null
+          centro_custo_id: string | null
+          competencia: string | null
+          compra_registrada_id: string | null
+          compromisso_parcelado_id: string | null
+          compromisso_recorrente_id: string | null
+          comprovante_url: string | null
+          conciliado_em: string | null
+          conciliado_por: string | null
+          created_at: string | null
+          criado_por: string | null
+          dados_bancarios_fornecedor: Json | null
+          dados_enriquecidos_qive: boolean | null
+          dados_pagamento_fornecedor: Json | null
+          data_compra: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          deleted_at: string | null
+          deleted_por: string | null
+          descricao: string | null
+          despesa_id: string | null
+          docs_status: string | null
+          editado_em: string | null
+          editado_por: string | null
+          email_pagamento_enviado: boolean | null
+          enviado_pagamento_em: string | null
+          enviado_pagamento_por: string | null
+          forma_pagamento_id: string | null
+          fornecedor_cliente: string | null
+          fornecedor_id: string | null
+          id: string | null
+          linha_investimento_id: string | null
+          meio_pagamento_id: string | null
+          movimentacao_bancaria_id: string | null
+          nf_aplicavel: boolean | null
+          nf_aplicavel_motivo: string | null
+          nf_cfop: string | null
+          nf_chave_acesso: string | null
+          nf_cnpj_emitente: string | null
+          nf_data_emissao: string | null
+          nf_natureza_operacao: string | null
+          nf_ncm: string | null
+          nf_numero: string | null
+          nf_pdf_url: string | null
+          nf_serie: string | null
+          nf_valor_impostos: number | null
+          nf_valor_produtos: number | null
+          nf_xml_url: string | null
+          nfs_stage_documento_id: string | null
+          numero_parcela: number | null
+          observacao: string | null
+          observacao_pagamento: string | null
+          observacao_pagamento_manual: string | null
+          origem: string | null
+          pagamento_com_pendencia: boolean | null
+          pago_em: string | null
+          pago_em_conta_id: string | null
+          pago_por: string | null
+          parceiro_id: string | null
+          parcela_atual: number | null
+          parcela_grupo_id: string | null
+          parcelas: number | null
+          pasta_contrato_id: string | null
+          pasta_contrato_parcela_id: string | null
+          pedido_compra_id: string | null
+          pendencias_no_envio: string[] | null
+          plano_contas_id: string | null
+          reembolsa_user_id: string | null
+          reembolsa_vinculo_id: string | null
+          sla_aprovacao_dias: number | null
+          sla_pagamento_dias: number | null
+          status: string | null
+          tags: Json | null
+          tarefa_id: string | null
+          tem_sugestao_nf: boolean | null
+          tipo: string | null
+          total_parcelas: number | null
+          unidade_id: string | null
+          updated_at: string | null
+          valor: number | null
+          valor_nf_vinculado: number | null
+          valor_original_item: number | null
+          valor_pago: number | null
+          vinculo_nf_completo: boolean | null
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          bling_id?: string | null
+          boleto_avulso_justificativa?: string | null
+          canal_venda_id?: string | null
+          cartao_id?: string | null
+          categoria_confirmada?: boolean | null
+          categoria_sugerida_ia?: boolean | null
+          centro_custo_id?: string | null
+          competencia?: string | null
+          compra_registrada_id?: string | null
+          compromisso_parcelado_id?: string | null
+          compromisso_recorrente_id?: string | null
+          comprovante_url?: string | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          dados_bancarios_fornecedor?: Json | null
+          dados_enriquecidos_qive?: boolean | null
+          dados_pagamento_fornecedor?: Json | null
+          data_compra?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          deleted_at?: string | null
+          deleted_por?: string | null
+          descricao?: string | null
+          despesa_id?: string | null
+          docs_status?: string | null
+          editado_em?: string | null
+          editado_por?: string | null
+          email_pagamento_enviado?: boolean | null
+          enviado_pagamento_em?: string | null
+          enviado_pagamento_por?: string | null
+          forma_pagamento_id?: string | null
+          fornecedor_cliente?: string | null
+          fornecedor_id?: string | null
+          id?: string | null
+          linha_investimento_id?: string | null
+          meio_pagamento_id?: string | null
+          movimentacao_bancaria_id?: string | null
+          nf_aplicavel?: boolean | null
+          nf_aplicavel_motivo?: string | null
+          nf_cfop?: string | null
+          nf_chave_acesso?: string | null
+          nf_cnpj_emitente?: string | null
+          nf_data_emissao?: string | null
+          nf_natureza_operacao?: string | null
+          nf_ncm?: string | null
+          nf_numero?: string | null
+          nf_pdf_url?: string | null
+          nf_serie?: string | null
+          nf_valor_impostos?: number | null
+          nf_valor_produtos?: number | null
+          nf_xml_url?: string | null
+          nfs_stage_documento_id?: string | null
+          numero_parcela?: number | null
+          observacao?: string | null
+          observacao_pagamento?: string | null
+          observacao_pagamento_manual?: string | null
+          origem?: string | null
+          pagamento_com_pendencia?: boolean | null
+          pago_em?: string | null
+          pago_em_conta_id?: string | null
+          pago_por?: string | null
+          parceiro_id?: string | null
+          parcela_atual?: number | null
+          parcela_grupo_id?: string | null
+          parcelas?: number | null
+          pasta_contrato_id?: string | null
+          pasta_contrato_parcela_id?: string | null
+          pedido_compra_id?: string | null
+          pendencias_no_envio?: string[] | null
+          plano_contas_id?: string | null
+          reembolsa_user_id?: string | null
+          reembolsa_vinculo_id?: string | null
+          sla_aprovacao_dias?: number | null
+          sla_pagamento_dias?: number | null
+          status?: string | null
+          tags?: Json | null
+          tarefa_id?: string | null
+          tem_sugestao_nf?: boolean | null
+          tipo?: string | null
+          total_parcelas?: number | null
+          unidade_id?: string | null
+          updated_at?: string | null
+          valor?: number | null
+          valor_nf_vinculado?: number | null
+          valor_original_item?: number | null
+          valor_pago?: number | null
+          vinculo_nf_completo?: boolean | null
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          bling_id?: string | null
+          boleto_avulso_justificativa?: string | null
+          canal_venda_id?: string | null
+          cartao_id?: string | null
+          categoria_confirmada?: boolean | null
+          categoria_sugerida_ia?: boolean | null
+          centro_custo_id?: string | null
+          competencia?: string | null
+          compra_registrada_id?: string | null
+          compromisso_parcelado_id?: string | null
+          compromisso_recorrente_id?: string | null
+          comprovante_url?: string | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          dados_bancarios_fornecedor?: Json | null
+          dados_enriquecidos_qive?: boolean | null
+          dados_pagamento_fornecedor?: Json | null
+          data_compra?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          deleted_at?: string | null
+          deleted_por?: string | null
+          descricao?: string | null
+          despesa_id?: string | null
+          docs_status?: string | null
+          editado_em?: string | null
+          editado_por?: string | null
+          email_pagamento_enviado?: boolean | null
+          enviado_pagamento_em?: string | null
+          enviado_pagamento_por?: string | null
+          forma_pagamento_id?: string | null
+          fornecedor_cliente?: string | null
+          fornecedor_id?: string | null
+          id?: string | null
+          linha_investimento_id?: string | null
+          meio_pagamento_id?: string | null
+          movimentacao_bancaria_id?: string | null
+          nf_aplicavel?: boolean | null
+          nf_aplicavel_motivo?: string | null
+          nf_cfop?: string | null
+          nf_chave_acesso?: string | null
+          nf_cnpj_emitente?: string | null
+          nf_data_emissao?: string | null
+          nf_natureza_operacao?: string | null
+          nf_ncm?: string | null
+          nf_numero?: string | null
+          nf_pdf_url?: string | null
+          nf_serie?: string | null
+          nf_valor_impostos?: number | null
+          nf_valor_produtos?: number | null
+          nf_xml_url?: string | null
+          nfs_stage_documento_id?: string | null
+          numero_parcela?: number | null
+          observacao?: string | null
+          observacao_pagamento?: string | null
+          observacao_pagamento_manual?: string | null
+          origem?: string | null
+          pagamento_com_pendencia?: boolean | null
+          pago_em?: string | null
+          pago_em_conta_id?: string | null
+          pago_por?: string | null
+          parceiro_id?: string | null
+          parcela_atual?: number | null
+          parcela_grupo_id?: string | null
+          parcelas?: number | null
+          pasta_contrato_id?: string | null
+          pasta_contrato_parcela_id?: string | null
+          pedido_compra_id?: string | null
+          pendencias_no_envio?: string[] | null
+          plano_contas_id?: string | null
+          reembolsa_user_id?: string | null
+          reembolsa_vinculo_id?: string | null
+          sla_aprovacao_dias?: number | null
+          sla_pagamento_dias?: number | null
+          status?: string | null
+          tags?: Json | null
+          tarefa_id?: string | null
+          tem_sugestao_nf?: boolean | null
+          tipo?: string | null
+          total_parcelas?: number | null
+          unidade_id?: string | null
+          updated_at?: string | null
+          valor?: number | null
+          valor_nf_vinculado?: number | null
+          valor_original_item?: number | null
+          valor_pago?: number | null
+          vinculo_nf_completo?: boolean | null
+        }
+        Relationships: []
+      }
+      backup_migracao_ciclo_20260806_titulos: {
+        Row: {
+          analise_credito_id: string | null
+          autorizacao_cartao: string | null
+          baixa_remessa_id: string | null
+          banco_recebimento_id: string | null
+          boleto_codigo_rejeicao: string | null
+          boleto_enviado_em: string | null
+          boleto_status: string | null
+          chave_pix: string | null
+          codigo_barras_boleto: string | null
+          condicao_pagamento: string | null
+          conta_id: string | null
+          created_at: string | null
+          created_by: string | null
+          data_criacao: string | null
+          data_emissao_nf: string | null
+          data_liquidacao_prevista: string | null
+          data_pagamento: string | null
+          data_pagamento_banco: string | null
+          data_proxima_acao_regua: string | null
+          data_vencimento_atual: string | null
+          data_vencimento_original: string | null
+          eh_entrada: boolean | null
+          email_cobranca_enviado_em: string | null
+          flag_bandeira_amarela: boolean | null
+          flag_grupo_economico_inadimplente: boolean | null
+          forma_pagamento_id: string | null
+          id: string | null
+          justificativa_renegociacao: string | null
+          linha_digitavel: string | null
+          link_pagamento: string | null
+          modalidade_renegociacao: number | null
+          movimentacao_baixa_id: string | null
+          nf_devolucao: string | null
+          nf_id: string | null
+          nivel_prova: string | null
+          nosso_numero_safra: string | null
+          nosso_numero_seq: string | null
+          numero_parcela: number | null
+          numero_titulo: string | null
+          pausa_regua_automatica: boolean | null
+          pedido_id: string | null
+          prorrogacao_nova_data: string | null
+          prorrogacao_solicitada_em: string | null
+          reemissao_aplicada_em: string | null
+          reemissao_motivo: string | null
+          reemissao_nova_data: string | null
+          reemissao_novo_valor: number | null
+          remessa_safra_id: string | null
+          status: string | null
+          subestado_atraso: string | null
+          taxa_adquirente_prevista: number | null
+          tipo_pagamento: string | null
+          titulo_pai_id: string | null
+          titulo_renegociado_origem_id: string | null
+          total_parcelas: number | null
+          updated_at: string | null
+          valor_atual: number | null
+          valor_bruto: number | null
+          valor_correcao: number | null
+          valor_desconto: number | null
+          valor_juros: number | null
+          valor_multa: number | null
+          valor_taxa_adquirente: number | null
+          vip_relacionamento: boolean | null
+        }
+        Insert: {
+          analise_credito_id?: string | null
+          autorizacao_cartao?: string | null
+          baixa_remessa_id?: string | null
+          banco_recebimento_id?: string | null
+          boleto_codigo_rejeicao?: string | null
+          boleto_enviado_em?: string | null
+          boleto_status?: string | null
+          chave_pix?: string | null
+          codigo_barras_boleto?: string | null
+          condicao_pagamento?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_criacao?: string | null
+          data_emissao_nf?: string | null
+          data_liquidacao_prevista?: string | null
+          data_pagamento?: string | null
+          data_pagamento_banco?: string | null
+          data_proxima_acao_regua?: string | null
+          data_vencimento_atual?: string | null
+          data_vencimento_original?: string | null
+          eh_entrada?: boolean | null
+          email_cobranca_enviado_em?: string | null
+          flag_bandeira_amarela?: boolean | null
+          flag_grupo_economico_inadimplente?: boolean | null
+          forma_pagamento_id?: string | null
+          id?: string | null
+          justificativa_renegociacao?: string | null
+          linha_digitavel?: string | null
+          link_pagamento?: string | null
+          modalidade_renegociacao?: number | null
+          movimentacao_baixa_id?: string | null
+          nf_devolucao?: string | null
+          nf_id?: string | null
+          nivel_prova?: string | null
+          nosso_numero_safra?: string | null
+          nosso_numero_seq?: string | null
+          numero_parcela?: number | null
+          numero_titulo?: string | null
+          pausa_regua_automatica?: boolean | null
+          pedido_id?: string | null
+          prorrogacao_nova_data?: string | null
+          prorrogacao_solicitada_em?: string | null
+          reemissao_aplicada_em?: string | null
+          reemissao_motivo?: string | null
+          reemissao_nova_data?: string | null
+          reemissao_novo_valor?: number | null
+          remessa_safra_id?: string | null
+          status?: string | null
+          subestado_atraso?: string | null
+          taxa_adquirente_prevista?: number | null
+          tipo_pagamento?: string | null
+          titulo_pai_id?: string | null
+          titulo_renegociado_origem_id?: string | null
+          total_parcelas?: number | null
+          updated_at?: string | null
+          valor_atual?: number | null
+          valor_bruto?: number | null
+          valor_correcao?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_multa?: number | null
+          valor_taxa_adquirente?: number | null
+          vip_relacionamento?: boolean | null
+        }
+        Update: {
+          analise_credito_id?: string | null
+          autorizacao_cartao?: string | null
+          baixa_remessa_id?: string | null
+          banco_recebimento_id?: string | null
+          boleto_codigo_rejeicao?: string | null
+          boleto_enviado_em?: string | null
+          boleto_status?: string | null
+          chave_pix?: string | null
+          codigo_barras_boleto?: string | null
+          condicao_pagamento?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_criacao?: string | null
+          data_emissao_nf?: string | null
+          data_liquidacao_prevista?: string | null
+          data_pagamento?: string | null
+          data_pagamento_banco?: string | null
+          data_proxima_acao_regua?: string | null
+          data_vencimento_atual?: string | null
+          data_vencimento_original?: string | null
+          eh_entrada?: boolean | null
+          email_cobranca_enviado_em?: string | null
+          flag_bandeira_amarela?: boolean | null
+          flag_grupo_economico_inadimplente?: boolean | null
+          forma_pagamento_id?: string | null
+          id?: string | null
+          justificativa_renegociacao?: string | null
+          linha_digitavel?: string | null
+          link_pagamento?: string | null
+          modalidade_renegociacao?: number | null
+          movimentacao_baixa_id?: string | null
+          nf_devolucao?: string | null
+          nf_id?: string | null
+          nivel_prova?: string | null
+          nosso_numero_safra?: string | null
+          nosso_numero_seq?: string | null
+          numero_parcela?: number | null
+          numero_titulo?: string | null
+          pausa_regua_automatica?: boolean | null
+          pedido_id?: string | null
+          prorrogacao_nova_data?: string | null
+          prorrogacao_solicitada_em?: string | null
+          reemissao_aplicada_em?: string | null
+          reemissao_motivo?: string | null
+          reemissao_nova_data?: string | null
+          reemissao_novo_valor?: number | null
+          remessa_safra_id?: string | null
+          status?: string | null
+          subestado_atraso?: string | null
+          taxa_adquirente_prevista?: number | null
+          tipo_pagamento?: string | null
+          titulo_pai_id?: string | null
+          titulo_renegociado_origem_id?: string | null
+          total_parcelas?: number | null
+          updated_at?: string | null
+          valor_atual?: number | null
+          valor_bruto?: number | null
+          valor_correcao?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_multa?: number | null
+          valor_taxa_adquirente?: number | null
+          vip_relacionamento?: boolean | null
+        }
+        Relationships: []
+      }
       baixa_estoque_pendente: {
         Row: {
           criado_em: string
@@ -5849,6 +6332,36 @@ export type Database = {
         }
         Relationships: []
       }
+      credito_origem_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          exige_decisao_humana_na_saida: boolean
+          ordem: number
+          pode_expirar: boolean
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          exige_decisao_humana_na_saida?: boolean
+          ordem: number
+          pode_expirar?: boolean
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          exige_decisao_humana_na_saida?: boolean
+          ordem?: number
+          pode_expirar?: boolean
+          rotulo?: string
+        }
+        Relationships: []
+      }
       custo_aterrissagem: {
         Row: {
           atualizado_em: string
@@ -10244,6 +10757,7 @@ export type Database = {
           id: string
           motivo: string | null
           movimentacao_origem_id: string | null
+          origem: string
           origem_descricao: string | null
           origem_pedido_id: string | null
           parceiro_id: string
@@ -10259,6 +10773,7 @@ export type Database = {
           id?: string
           motivo?: string | null
           movimentacao_origem_id?: string | null
+          origem?: string
           origem_descricao?: string | null
           origem_pedido_id?: string | null
           parceiro_id: string
@@ -10274,6 +10789,7 @@ export type Database = {
           id?: string
           motivo?: string | null
           movimentacao_origem_id?: string | null
+          origem?: string
           origem_descricao?: string | null
           origem_pedido_id?: string | null
           parceiro_id?: string
@@ -10283,6 +10799,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "haver_cliente_origem_fkey"
+            columns: ["origem"]
+            isOneToOne: false
+            referencedRelation: "credito_origem_dim"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "haver_cliente_origem_pedido_id_fkey"
             columns: ["origem_pedido_id"]
@@ -11906,6 +12429,63 @@ export type Database = {
           exige_nf?: boolean
           id?: never
           ordem?: number | null
+        }
+        Relationships: []
+      }
+      instrumento_estado_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          eh_terminal: boolean
+          eh_vigente: boolean
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          eh_terminal?: boolean
+          eh_vigente?: boolean
+          ordem: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          eh_terminal?: boolean
+          eh_vigente?: boolean
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
+      instrumento_tipo_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          exige_remessa: boolean
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          exige_remessa?: boolean
+          ordem: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          exige_remessa?: boolean
+          ordem?: number
+          rotulo?: string
         }
         Relationships: []
       }
@@ -21291,6 +21871,277 @@ export type Database = {
         }
         Relationships: []
       }
+      provisao_recebimento: {
+        Row: {
+          analise_credito_id: string | null
+          condicao_pagamento: string | null
+          created_at: string
+          created_by: string | null
+          data_prevista: string
+          eh_entrada: boolean
+          forma_pagamento_id: string | null
+          id: string
+          numero_parcela: number
+          pedido_id: string
+          status: string
+          tipo_pagamento: string
+          total_parcelas: number
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          analise_credito_id?: string | null
+          condicao_pagamento?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_prevista: string
+          eh_entrada?: boolean
+          forma_pagamento_id?: string | null
+          id?: string
+          numero_parcela?: number
+          pedido_id: string
+          status?: string
+          tipo_pagamento: string
+          total_parcelas?: number
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          analise_credito_id?: string | null
+          condicao_pagamento?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_prevista?: string
+          eh_entrada?: boolean
+          forma_pagamento_id?: string | null
+          id?: string
+          numero_parcela?: number
+          pedido_id?: string
+          status?: string
+          tipo_pagamento?: string
+          total_parcelas?: number
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisao_recebimento_analise_credito_id_fkey"
+            columns: ["analise_credito_id"]
+            isOneToOne: false
+            referencedRelation: "analises_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_analise_credito_id_fkey"
+            columns: ["analise_credito_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["analise_credito_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_analise_credito_id_fkey"
+            columns: ["analise_credito_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_analises_credito"
+            referencedColumns: ["analise_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_aguardando_pagamento"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_cobranca_materializar"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_aguardando_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_base"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_consolidavel"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_delta_snapshot"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_destino_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_entrega"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_origens"
+            referencedColumns: ["origem_pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_risco"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_situacao_financeira"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_export_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_validacao_cartao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "provisao_status_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      provisao_status_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          eh_terminal: boolean
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          eh_terminal?: boolean
+          ordem: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          eh_terminal?: boolean
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       qualidade_medicao: {
         Row: {
           contagem: number | null
@@ -26770,6 +27621,159 @@ export type Database = {
           tem_prova_bancaria?: boolean
         }
         Relationships: []
+      }
+      titulo_instrumento: {
+        Row: {
+          baixa_remessa_id: string | null
+          baixado_em: string | null
+          created_at: string
+          data_vencimento: string | null
+          estado: string
+          id: string
+          linha_digitavel: string | null
+          link_url: string | null
+          nosso_numero: string | null
+          registrado_em: string | null
+          remessa_safra_id: string | null
+          substituido_por_id: string | null
+          tipo: string
+          titulo_id: string
+          updated_at: string
+        }
+        Insert: {
+          baixa_remessa_id?: string | null
+          baixado_em?: string | null
+          created_at?: string
+          data_vencimento?: string | null
+          estado?: string
+          id?: string
+          linha_digitavel?: string | null
+          link_url?: string | null
+          nosso_numero?: string | null
+          registrado_em?: string | null
+          remessa_safra_id?: string | null
+          substituido_por_id?: string | null
+          tipo: string
+          titulo_id: string
+          updated_at?: string
+        }
+        Update: {
+          baixa_remessa_id?: string | null
+          baixado_em?: string | null
+          created_at?: string
+          data_vencimento?: string | null
+          estado?: string
+          id?: string
+          linha_digitavel?: string | null
+          link_url?: string | null
+          nosso_numero?: string | null
+          registrado_em?: string | null
+          remessa_safra_id?: string | null
+          substituido_por_id?: string | null
+          tipo?: string
+          titulo_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "titulo_instrumento_baixa_remessa_id_fkey"
+            columns: ["baixa_remessa_id"]
+            isOneToOne: false
+            referencedRelation: "remessas_safra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_baixa_remessa_id_fkey"
+            columns: ["baixa_remessa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_estado_fkey"
+            columns: ["estado"]
+            isOneToOne: false
+            referencedRelation: "instrumento_estado_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_remessa_safra_id_fkey"
+            columns: ["remessa_safra_id"]
+            isOneToOne: false
+            referencedRelation: "remessas_safra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_remessa_safra_id_fkey"
+            columns: ["remessa_safra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_substituido_por_id_fkey"
+            columns: ["substituido_por_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_instrumento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_tipo_fkey"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "instrumento_tipo_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_manuais_sem_batimento"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_previsao_recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       titulo_instrumento_log: {
         Row: {
@@ -35013,14 +36017,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -37504,7 +38508,9 @@ export type Database = {
           nome_comercial: string | null
           nome_completo: string | null
           origem_fisc: string | null
+          origem_importado: boolean | null
           origem_prod: string | null
+          origem_rotulo: string | null
           preco_atacado: number | null
           sku: string | null
         }
@@ -40728,6 +41734,10 @@ export type Database = {
         Returns: boolean
       }
       fn_extrair_dimensoes: { Args: { p_texto: string }; Returns: number[] }
+      fn_faturar_pedido: {
+        Args: { p_nf_id: string; p_pedido_id: string }
+        Returns: Json
+      }
       fn_fluxo_caixa_projetado: {
         Args: { p_horizonte?: number; p_saldo_inicial?: number }
         Returns: {
@@ -40893,6 +41903,17 @@ export type Database = {
         Returns: boolean
       }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
+      fn_plano_recebimento_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: {
+          data_vencimento_original: string
+          eh_entrada: boolean
+          id: string
+          numero_parcela: number
+          tipo_pagamento: string
+          valor_bruto: number
+        }[]
+      }
       fn_pode_agir_na_tarefa: {
         Args: { p_tarefa_id: string }
         Returns: boolean
