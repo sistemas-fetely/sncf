@@ -166,6 +166,7 @@ export const PROVA_META: Record<
   },
 };
 
+/** @deprecated use RECEBIMENTO_META */
 export const STATUS_META: Record<
   EixoStatus,
   { label: string; ordem: number; classe: string | null; tooltip: string | null }
