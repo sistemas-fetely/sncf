@@ -27,6 +27,33 @@ const COL_ALTURA = "Altura do Produto";
 const COL_LARGURA = "Largura do produto";
 const COL_PROFUNDIDADE = "Profundidade do produto";
 
+/** Grupos REAIS do Bling — a tela nunca escreve neles, só audita. */
+const GRUPO_ESPERADO: Record<string, string> = {
+  "2": "L1 - Produto Nacional Importado",
+  "0": "L2 - Produto Nacional",
+};
+
+interface EstoqueSncf {
+  sku: string;
+  nome_comercial: string | null;
+  estoque_virtual: number | null;
+  tem_razao: boolean | null;
+}
+
+/** Formato BR idêntico ao arquivo de entrada: 1404 -> "1.404,00" */
+function numeroBR(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Lê número em formato BR do CSV. Vazio => null. */
+function parseNumeroBR(v: string | undefined): number | null {
+  const s = (v ?? "").replace(/\t/g, "").trim();
+  if (s === "") return null;
+  const n = Number(s.replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+
 /** Campos completáveis: coluna do CSV -> campo da view. Origem NUNCA entra aqui. */
 const MAPA_FISCAL: { coluna: string; campo: keyof FiscalSncf; rotulo: string }[] = [
   { coluna: COL_NCM, campo: "ncm_sncf", rotulo: "NCM" },
@@ -144,11 +171,6 @@ function gerarCsv(header: string[], rows: string[][]): Blob {
   return new Blob([conteudo], { type: "text/csv;charset=utf-8" });
 }
 
-function corGrupo(grupo: string) {
-  if (grupo === "FISCAL-REVISAR" || grupo === "FISCAL-NAO-MERCADORIA") return "amber";
-  return "ok";
-}
-
 export default function DestinosCadastro() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [arquivoNome, setArquivoNome] = useState<string | null>(null);
@@ -160,19 +182,52 @@ export default function DestinosCadastro() {
   const [fiscalErro, setFiscalErro] = useState<string | null>(null);
   const [fiscalCarregando, setFiscalCarregando] = useState(false);
   const [detalheAberto, setDetalheAberto] = useState(false);
+  const [estoque, setEstoque] = useState<Map<string, EstoqueSncf> | null>(null);
+  const [estoqueErro, setEstoqueErro] = useState<string | null>(null);
+  const [ancoras, setAncoras] = useState<Map<string, string> | null>(null); // sku -> origem_fisc
 
   const carregarFiscal = async () => {
     setFiscalCarregando(true);
     setFiscalErro(null);
+    setEstoqueErro(null);
     try {
-      const { data, error } = await (supabase as any)
-        .from("vw_bling_completar_fiscal")
-        .select(
-          "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean, ativo_sncf, situacao_sugerida",
-        );
-      if (error) throw error;
+      const [resFiscal, resEstoque, resAncora] = await Promise.all([
+        (supabase as any)
+          .from("vw_bling_completar_fiscal")
+          .select(
+            "sku, nome_comercial, ncm_sncf, cest_sncf, peso_liquido_br, altura_br, largura_br, profundidade_br, ean, ativo_sncf, situacao_sugerida",
+          ),
+        (supabase as any)
+          .from("vw_estoque")
+          .select("sku, nome_comercial, estoque_virtual, tem_razao")
+          .range(0, 9999),
+        (supabase as any)
+          .from("sncf_produtos")
+          .select("sku, origem_fisc")
+          .range(0, 9999),
+      ]);
+
+      if (resEstoque.error) setEstoqueErro(formatError(resEstoque.error));
+      else {
+        const me = new Map<string, EstoqueSncf>();
+        for (const r of (resEstoque.data ?? []) as EstoqueSncf[]) {
+          if (r.sku) me.set(chaveSku(r.sku), r);
+        }
+        setEstoque(me);
+      }
+
+      if (resAncora.error) setAncoras(null);
+      else {
+        const ma = new Map<string, string>();
+        for (const r of (resAncora.data ?? []) as { sku: string | null; origem_fisc: string | null }[]) {
+          if (r.sku && r.origem_fisc) ma.set(chaveSku(r.sku), String(r.origem_fisc).trim());
+        }
+        setAncoras(ma);
+      }
+
+      if (resFiscal.error) throw resFiscal.error;
       const m = new Map<string, FiscalSncf>();
-      for (const r of (data ?? []) as FiscalSncf[]) {
+      for (const r of (resFiscal.data ?? []) as FiscalSncf[]) {
         if (r.sku) m.set(chaveSku(r.sku), r);
       }
       setFiscal(m);
@@ -194,12 +249,14 @@ export default function DestinosCadastro() {
       grupo: find(COL_GRUPO),
       descricao: parsed.header.findIndex((h) => h === "Descrição"),
       situacao: parsed.header.findIndex((h) => semAcento(h) === "situacao"),
+      estoque: parsed.header.findIndex((h) => semAcento(h) === "estoque"),
       preco: parsed.header.findIndex((h) => {
         const n = semAcento(h);
         return n.includes("preco") && n.includes("venda");
       }),
     };
   }, [parsed]);
+
 
 
   const resetar = () => {
@@ -316,24 +373,105 @@ export default function DestinosCadastro() {
     return { porLinha, detalhes, naoEncontrados };
   }, [parsed, idx, fiscal]);
 
-  const resumo = useMemo(() => {
-    if (!parsed || !grupos || !idx) return null;
-    let jaPreenchido = 0;
-    let vaiMudar = 0;
-    parsed.rows.forEach((r, i) => {
-      const atual = (r[idx.grupo] ?? "").replace(/\t/g, "").trim();
-      if (atual !== "" && atual === grupos[i]) jaPreenchido++;
-      else vaiMudar++;
-    });
-    return { jaPreenchido, vaiMudar, completados: plano?.detalhes.length ?? 0 };
-  }, [parsed, grupos, idx, plano]);
+  /**
+   * Plano de Estoque: só substitui quando tem_razao = true.
+   * Sem razão, SKU ausente ou valor nulo => coluna volta VERBATIM. Nunca escreve 0 por ausência.
+   */
+  const planoEstoque = useMemo(() => {
+    if (!parsed || !idx || idx.estoque < 0 || !estoque) return null;
+    const porLinha: (string | null)[] = [];
+    const diffs: {
+      codigo: string;
+      nome: string;
+      csv: number | null;
+      sncf: number;
+      delta: number;
+    }[] = [];
+    let iguais = 0;
+    let sobem = 0;
+    let descem = 0;
+    let semRazao = 0;
+    let semAncora = 0;
 
+    parsed.rows.forEach((r) => {
+      const codigoRaw = r[idx.codigo] ?? "";
+      const info = estoque.get(chaveSku(codigoRaw));
+      if (!info) {
+        semAncora++;
+        porLinha.push(null);
+        return;
+      }
+      if (info.tem_razao !== true) {
+        semRazao++;
+        porLinha.push(null);
+        return;
+      }
+      const valor = info.estoque_virtual;
+      if (valor === null || valor === undefined || !Number.isFinite(Number(valor))) {
+        semRazao++;
+        porLinha.push(null);
+        return;
+      }
+      const sncf = Number(valor);
+      const csv = parseNumeroBR(r[idx.estoque]);
+      porLinha.push(numeroBR(sncf));
+      if (csv !== null && Math.abs(csv - sncf) < 0.005) {
+        iguais++;
+        return;
+      }
+      const base = csv ?? 0;
+      if (sncf > base) sobem++;
+      else descem++;
+      diffs.push({
+        codigo: codigoRaw.replace(/\t/g, "").trim(),
+        nome:
+          idx.descricao >= 0 ? r[idx.descricao] ?? "" : info.nome_comercial ?? "",
+        csv,
+        sncf,
+        delta: sncf - base,
+      });
+    });
+
+    diffs.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    return {
+      porLinha,
+      iguais,
+      sobem,
+      descem,
+      semRazao,
+      semAncora,
+      aAtualizar: sobem + descem,
+      top: diffs.slice(0, 15),
+    };
+  }, [parsed, idx, estoque]);
+
+
+  /** AUDITORIA INFORMATIVA: quebra pelo grupo que veio do CSV. Nunca escreve. */
   const contagem = useMemo(() => {
-    if (!grupos) return [];
+    if (!parsed || !idx) return [];
     const m = new Map<string, number>();
-    for (const g of grupos) m.set(g, (m.get(g) ?? 0) + 1);
+    for (const r of parsed.rows) {
+      const g = (r[idx.grupo] ?? "").replace(/\t/g, "").trim() || "(vazio)";
+      m.set(g, (m.get(g) ?? 0) + 1);
+    }
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
-  }, [grupos]);
+  }, [parsed, idx]);
+
+  /** Grupo do CSV vs esperado pela âncora origem_fisc. Só sinalização. */
+  const grupoDivergente = useMemo(() => {
+    if (!parsed || !idx || !ancoras) return null;
+    let n = 0;
+    for (const r of parsed.rows) {
+      const origem = ancoras.get(chaveSku(r[idx.codigo] ?? ""));
+      if (!origem) continue;
+      const esperado = GRUPO_ESPERADO[origem];
+      if (!esperado) continue;
+      const atual = (r[idx.grupo] ?? "").replace(/\t/g, "").trim();
+      if (atual !== esperado) n++;
+    }
+    return n;
+  }, [parsed, idx, ancoras]);
+
 
   const paraRevisar = useMemo(() => {
     if (!parsed || !grupos || !idx) return [];
@@ -377,6 +515,30 @@ export default function DestinosCadastro() {
     return { porLinha, mudancas, indoParaInativo };
   }, [parsed, idx, fiscal]);
 
+  const resumo = useMemo(() => {
+    if (!parsed || !grupos || !idx) return null;
+    let jaPreenchido = 0;
+    let vaiMudar = 0;
+    parsed.rows.forEach((r, i) => {
+      const mudaFiscal = (plano?.porLinha[i]?.length ?? 0) > 0;
+      const sit = planoSituacao?.porLinha[i];
+      const mudaSituacao =
+        !!sit &&
+        idx.situacao >= 0 &&
+        semAcento((r[idx.situacao] ?? "").replace(/\t/g, "").trim()) !== semAcento(sit);
+      const est = planoEstoque?.porLinha[i];
+      const mudaEstoque =
+        !!est &&
+        idx.estoque >= 0 &&
+        (r[idx.estoque] ?? "").replace(/\t/g, "").trim() !== est;
+      if (mudaFiscal || mudaSituacao || mudaEstoque) vaiMudar++;
+      else jaPreenchido++;
+    });
+    return { jaPreenchido, vaiMudar, completados: plano?.detalhes.length ?? 0 };
+  }, [parsed, grupos, idx, plano, planoSituacao, planoEstoque]);
+
+
+
   // NCM vazio avaliado DEPOIS do completar pelo SNCF, separado por motivo.
   const semNcm = useMemo(() => {
     if (!parsed || !idx) return { falhaCompletar: [], ausenteSncf: [] } as {
@@ -406,12 +568,15 @@ export default function DestinosCadastro() {
       const rows = parsed.rows.map((r, i) => {
         const copia = [...r];
         while (copia.length < parsed.header.length) copia.push("");
-        copia[idx.grupo] = grupos[i];
+        // "Grupo de produtos" sai VERBATIM — a tela nunca escreve nessa coluna.
         for (const p of plano?.porLinha[i] ?? []) copia[p.col] = p.valor;
         const sit = planoSituacao?.porLinha[i];
         if (sit && idx.situacao >= 0) copia[idx.situacao] = sit;
+        const est = planoEstoque?.porLinha[i];
+        if (est && idx.estoque >= 0) copia[idx.estoque] = est;
         return copia;
       });
+
       const blob = gerarCsv(parsed.header, rows);
       const hoje = new Date().toISOString().slice(0, 10);
       const url = URL.createObjectURL(blob);
@@ -523,9 +688,9 @@ export default function DestinosCadastro() {
                   <AlertDescription className="text-xs">
                     Esta tela pode alterar apenas estas colunas:{" "}
                     <strong>
-                      Grupo de produtos, Situação, NCM, CEST, Peso líquido, Altura, Largura,
-                      Profundidade
+                      Situação, NCM, CEST, Peso líquido, Altura, Largura, Profundidade, Estoque
                     </strong>
+
                     . Todas as demais voltam verbatim. A coluna <strong>Origem</strong> nunca é
                     tocada.
                   </AlertDescription>
@@ -561,8 +726,19 @@ export default function DestinosCadastro() {
                   </Alert>
                 )}
 
+                {estoqueErro && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Estoque do SNCF indisponível</AlertTitle>
+                    <AlertDescription className="text-xs break-words">
+                      <p>{estoqueErro}</p>
+                      <p>A coluna Estoque sairá verbatim, exatamente como veio do CSV.</p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {resumo && (
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Já preenchido</p>
                       <p className="text-2xl font-bold">{resumo.jaPreenchido}</p>
@@ -581,8 +757,78 @@ export default function DestinosCadastro() {
                         {planoSituacao ? planoSituacao.mudancas.length : "—"}
                       </p>
                     </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground">Estoque a atualizar</p>
+                      <p className="text-2xl font-bold">
+                        {planoEstoque ? planoEstoque.aAtualizar : "—"}
+                      </p>
+                      {planoEstoque && (
+                        <>
+                          <p className="text-[11px] text-muted-foreground">
+                            {planoEstoque.sobem} sobem
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {planoEstoque.descem} descem
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
+
+                {planoEstoque && (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <p className="text-sm font-semibold">Estoque · conferência</p>
+                    <p className="text-xs text-muted-foreground">
+                      {planoEstoque.iguais} iguais · {planoEstoque.sobem} sobem ·{" "}
+                      {planoEstoque.descem} descem · {planoEstoque.semRazao} voltam verbatim por não
+                      terem razão · {planoEstoque.semAncora} voltam verbatim por não terem âncora ou
+                      estarem inativos.
+                    </p>
+                    {planoEstoque.top.length > 0 && (
+                      <div className="max-h-72 overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Código</TableHead>
+                              <TableHead>Nome</TableHead>
+                              <TableHead className="text-right">CSV</TableHead>
+                              <TableHead className="text-right">SNCF</TableHead>
+                              <TableHead className="text-right">Delta</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {planoEstoque.top.map((l, i) => (
+                              <TableRow key={`${l.codigo}-${i}`}>
+                                <TableCell className="font-mono text-xs">{l.codigo}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground truncate max-w-[240px]">
+                                  {l.nome}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs">
+                                  {l.csv === null ? "—" : numeroBR(l.csv)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs">
+                                  {numeroBR(l.sncf)}
+                                </TableCell>
+                                <TableCell
+                                  className={`text-right font-mono text-xs ${
+                                    l.delta > 0
+                                      ? "text-emerald-700 dark:text-emerald-400"
+                                      : "text-destructive"
+                                  }`}
+                                >
+                                  {l.delta > 0 ? "+" : ""}
+                                  {numeroBR(l.delta)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
 
                 {planoSituacao && planoSituacao.mudancas.length > 0 && (
                   <div
@@ -674,23 +920,32 @@ export default function DestinosCadastro() {
 
 
                 <div className="rounded-lg border">
+                  <div className="flex items-center justify-between gap-3 p-3 border-b">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Grupo de produtos · auditoria informativa
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Valor que veio do CSV. A tela nunca escreve nesta coluna.
+                      </p>
+                    </div>
+                    <Badge
+                      variant={grupoDivergente ? "destructive" : "secondary"}
+                      className="text-[10px] shrink-0"
+                    >
+                      Grupo divergente: {grupoDivergente ?? "—"}
+                    </Badge>
+                  </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Grupo de Produtos</TableHead>
+                        <TableHead>Grupo de Produtos (CSV)</TableHead>
                         <TableHead className="text-right">Produtos</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {contagem.map(([grupo, qtd]) => (
-                        <TableRow
-                          key={grupo}
-                          className={
-                            corGrupo(grupo) === "amber"
-                              ? "bg-amber-50 dark:bg-amber-950/20"
-                              : undefined
-                          }
-                        >
+                        <TableRow key={grupo}>
                           <TableCell className="font-mono text-xs">{grupo}</TableCell>
                           <TableCell className="text-right font-medium">{qtd}</TableCell>
                         </TableRow>
@@ -698,6 +953,7 @@ export default function DestinosCadastro() {
                     </TableBody>
                   </Table>
                 </div>
+
 
                 {semNcm.falhaCompletar.length > 0 && (
                   <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-3 space-y-2">
