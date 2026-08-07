@@ -925,23 +925,32 @@ export default function DestinosCadastro() {
 
 
                 <div className="rounded-lg border">
+                  <div className="flex items-center justify-between gap-3 p-3 border-b">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Grupo de produtos · auditoria informativa
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Valor que veio do CSV. A tela nunca escreve nesta coluna.
+                      </p>
+                    </div>
+                    <Badge
+                      variant={grupoDivergente ? "destructive" : "secondary"}
+                      className="text-[10px] shrink-0"
+                    >
+                      Grupo divergente: {grupoDivergente ?? "—"}
+                    </Badge>
+                  </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Grupo de Produtos</TableHead>
+                        <TableHead>Grupo de Produtos (CSV)</TableHead>
                         <TableHead className="text-right">Produtos</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {contagem.map(([grupo, qtd]) => (
-                        <TableRow
-                          key={grupo}
-                          className={
-                            corGrupo(grupo) === "amber"
-                              ? "bg-amber-50 dark:bg-amber-950/20"
-                              : undefined
-                          }
-                        >
+                        <TableRow key={grupo}>
                           <TableCell className="font-mono text-xs">{grupo}</TableCell>
                           <TableCell className="text-right font-medium">{qtd}</TableCell>
                         </TableRow>
@@ -949,6 +958,7 @@ export default function DestinosCadastro() {
                     </TableBody>
                   </Table>
                 </div>
+
 
                 {semNcm.falhaCompletar.length > 0 && (
                   <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-3 space-y-2">
