@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface PedidoEmbalagem {
   caixas_estimadas: number | null;
+  caixas_min: number | null;
+  caixas_max: number | null;
   caixas_fonte: string | null;
   caixas_modelo: number | null;
   caixas_piso_fisico: number | null;
