@@ -991,11 +991,12 @@ export default function PedidoDetalhe() {
   };
 
   const pesoBrutoNum = parseFloat(pesoBruto) || Number(data?.pedido?.peso_bruto_total) || 0;
-  const cubagemTotal = Number(data?.pedido?.cubagem_total) || 0;
-  const pesoCobradoEst = cubagemTotal > 0 ? Math.max(pesoBrutoNum, cubagemTotal * 300) : pesoBrutoNum;
   /** Números de expedição — leitura pura da view, o front só formata. */
   const embalagem = usePedidoEmbalagem(id);
   const emb = embalagem.data ?? null;
+  // PESO-TAXADO-VEM-DA-VIEW: o front não recalcula peso cobrado. A view já aplica
+  // tara e cubagem de expedição; cubagem_total (volume sólido) subestima o frete.
+  const pesoCobradoEst = Number(emb?.peso_taxado_previsto) || pesoBrutoNum;
 
   const cepEstimativa = data?.pedido?.endereco_entrega?.cep ?? data?.parceiro?.cep ?? null;
   const freteEst = useFreteEstimado(
