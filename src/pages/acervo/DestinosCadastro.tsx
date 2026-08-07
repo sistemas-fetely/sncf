@@ -573,12 +573,15 @@ export default function DestinosCadastro() {
       const rows = parsed.rows.map((r, i) => {
         const copia = [...r];
         while (copia.length < parsed.header.length) copia.push("");
-        copia[idx.grupo] = grupos[i];
+        // "Grupo de produtos" sai VERBATIM — a tela nunca escreve nessa coluna.
         for (const p of plano?.porLinha[i] ?? []) copia[p.col] = p.valor;
         const sit = planoSituacao?.porLinha[i];
         if (sit && idx.situacao >= 0) copia[idx.situacao] = sit;
+        const est = planoEstoque?.porLinha[i];
+        if (est && idx.estoque >= 0) copia[idx.estoque] = est;
         return copia;
       });
+
       const blob = gerarCsv(parsed.header, rows);
       const hoje = new Date().toISOString().slice(0, 10);
       const url = URL.createObjectURL(blob);
