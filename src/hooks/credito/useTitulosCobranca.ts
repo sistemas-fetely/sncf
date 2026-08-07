@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { EixoProva, EixoStatus } from "@/lib/financeiro/eixos-estado";
+import type {
+  EixoProva,
+  EixoStatus,
+  EixoRecebimento,
+  EixoPrazo,
+  EixoInstrumento,
+} from "@/lib/financeiro/eixos-estado";
 
 export type StatusGestao =
   | "a_vencer"
