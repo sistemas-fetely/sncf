@@ -216,7 +216,7 @@ export interface PedidoPriorizado {
 
 export type StatusTitulo =
   | "aguardando_pagamento"
-  | "aguardando_envio_bling"
+  | "aberto"
   | "aguardando_emissao_nf"
   | "vigente"
   | "vigente_parcial"
@@ -235,7 +235,7 @@ export type TipoTituloPagamento = "boleto" | "pix" | "cartao" | "troca_mercadori
 
 export const STATUS_TITULO_LABELS: Record<StatusTitulo, string> = {
   aguardando_pagamento: "Aguardando pagamento",
-  aguardando_envio_bling: "Aguardando envio Bling",
+  aberto: "Aberto",
   aguardando_emissao_nf: "Aguardando NF",
   vigente: "Vigente",
   vigente_parcial: "Vigente parcial",

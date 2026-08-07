@@ -39950,7 +39950,11 @@ export type Database = {
           dias_atraso: number | null
           eh_entrada: boolean | null
           eh_inadimplencia: boolean | null
+          eh_inadimplente: boolean | null
+          eixo_instrumento: string | null
+          eixo_prazo: string | null
           eixo_prova: string | null
+          eixo_recebimento: string | null
           eixo_status: string | null
           email_cobranca_enviado_em: string | null
           flag_bandeira_amarela: boolean | null

@@ -132,7 +132,7 @@ type StatusGrupo = "a_receber" | "vencido" | "pago" | "cancelado";
 
 const GRUPO_DE_STATUS: Record<string, StatusGrupo> = {
   aguardando_pagamento: "a_receber",
-  aguardando_envio_bling: "a_receber",
+  aberto: "a_receber",
   aguardando_emissao_nf: "a_receber",
   vigente: "a_receber",
   vigente_parcial: "a_receber",

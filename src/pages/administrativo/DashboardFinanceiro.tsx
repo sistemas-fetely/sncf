@@ -458,7 +458,7 @@ export default function DashboardFinanceiro() {
       const { data: abertos } = await (supabase as any)
         .from("titulo_a_receber")
         .select("valor_atual, valor_bruto, data_vencimento_atual, flag_bandeira_amarela")
-        .in("status", ["aguardando_pagamento", "aguardando_envio_bling", "aguardando_emissao_nf", "vigente", "vigente_parcial", "vencido", "vencido_suspenso", "em_juridico"]);
+        .in("status", ["aguardando_pagamento", "aberto", "aguardando_emissao_nf", "vigente", "vigente_parcial", "vencido", "vencido_suspenso", "em_juridico"]);
 
       let valorAReceberAVencer = 0;
       let valorEmAtraso = 0;
