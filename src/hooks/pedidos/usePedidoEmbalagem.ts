@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface PedidoEmbalagem {
   caixas_estimadas: number | null;
+  caixas_min: number | null;
+  caixas_max: number | null;
   caixas_fonte: string | null;
   caixas_modelo: number | null;
   caixas_piso_fisico: number | null;
@@ -31,7 +33,7 @@ export function usePedidoEmbalagem(pedidoId: string | undefined) {
       const { data, error } = await supabase
         .from("vw_pedido_embalagem")
         .select(
-          "caixas_estimadas, caixas_fonte, caixas_modelo, caixas_piso_fisico, pacotes_v, pacotes_g, pacotes_p, pacotes_total, litros_solidos, fator_embalagem, cubagem_expedicao_m3, peso_expedido_kg, peso_taxado_previsto, skus_sem_dimensao",
+          "caixas_estimadas, caixas_min, caixas_max, caixas_fonte, caixas_modelo, caixas_piso_fisico, pacotes_v, pacotes_g, pacotes_p, pacotes_total, litros_solidos, fator_embalagem, cubagem_expedicao_m3, peso_expedido_kg, peso_taxado_previsto, skus_sem_dimensao",
         )
         .eq("pedido_id", pedidoId!)
         .maybeSingle();
