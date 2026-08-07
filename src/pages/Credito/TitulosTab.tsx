@@ -52,7 +52,14 @@ import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
 import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
-import { BadgeProva, BadgeStatus } from "@/lib/financeiro/eixos-estado";
+import {
+  BadgeProva,
+  BadgeStatus,
+  BadgeRecebimento,
+  BadgeInstrumento,
+  SeloInadimplente,
+  PRAZO_CLASSE_TEXTO,
+} from "@/lib/financeiro/eixos-estado";
 import { agruparPorPedido, grupoEhUnitario, grupoEstadoDividido, resumoComposicao, type GrupoPedido } from "@/lib/financeiro/agrupar-titulos";
 
 
@@ -414,26 +421,20 @@ function LinhaTitulo({
       <TableCell>
         <Badge variant="outline" className="text-xs">{tipoLabel(t.tipo_pagamento)}</Badge>
       </TableCell>
-      <TableCell className={cn("text-sm", t.dias_atraso > 0 && "text-red-700 font-medium")}>
+      <TableCell className={cn("text-sm", PRAZO_CLASSE_TEXTO[t.eixo_prazo] ?? "")}>
         {formatDateBR(t.data_vencimento_atual)}
         {t.dias_atraso > 0 && <div className="text-xs text-red-600">há {t.dias_atraso}d</div>}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">{liquid}</TableCell>
       <TableCell className="text-right font-medium">{formatBRL(t.valor_efetivo)}</TableCell>
       <TableCell>
-        <div className="flex flex-col gap-1 items-start">
-          <BadgeProva eixo={t.eixo_prova} />
-          {t.tipo_pagamento === "boleto" && t.boleto_status && (
-            <BadgeBoletoStatus status={t.boleto_status} codigoRejeicao={t.boleto_codigo_rejeicao} />
-          )}
-        </div>
+        <BadgeInstrumento eixo={t.eixo_instrumento} />
       </TableCell>
       <TableCell>
-        <BadgeStatus
-          eixo={t.eixo_status}
-          compensadoPor={t.compensado_por}
-          inadimplente={t.eh_inadimplencia === true}
-        />
+        <div className="flex flex-wrap items-center gap-1">
+          <BadgeRecebimento eixo={t.eixo_recebimento} compensadoPor={t.compensado_por} />
+          {t.eh_inadimplente === true && <SeloInadimplente />}
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -776,8 +777,8 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
               <TableHead>Vencimento</TableHead>
               <TableHead>Liquidação</TableHead>
               <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Prova</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Instrumento</TableHead>
+              <TableHead>Situação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -861,12 +862,13 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                 <div className="flex items-center justify-between gap-3">
                   <SheetTitle className="font-mono text-base">{detalhe.numero_titulo}</SheetTitle>
                   <div className="flex items-center gap-2">
-                    <BadgeProva eixo={detalhe.eixo_prova} />
-                    <BadgeStatus
-                      eixo={detalhe.eixo_status}
+                    <BadgeInstrumento eixo={detalhe.eixo_instrumento} />
+                    <BadgeRecebimento
+                      eixo={detalhe.eixo_recebimento}
                       compensadoPor={detalhe.compensado_por}
-                      inadimplente={detalhe.eh_inadimplencia === true}
                     />
+                    {detalhe.eh_inadimplente === true && <SeloInadimplente />}
+
 
                   </div>
                 </div>

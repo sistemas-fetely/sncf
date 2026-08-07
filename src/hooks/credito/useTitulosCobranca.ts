@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { EixoProva, EixoStatus } from "@/lib/financeiro/eixos-estado";
+import type {
+  EixoProva,
+  EixoStatus,
+  EixoRecebimento,
+  EixoPrazo,
+  EixoInstrumento,
+} from "@/lib/financeiro/eixos-estado";
 
 export type StatusGestao =
   | "a_vencer"
@@ -88,11 +94,17 @@ export interface TituloCobranca {
   parceiro_email?: string | null;
   parceiro_email_cobranca?: string | null;
   link_pagamento?: string | null;
-  /* dois eixos: prova (a venda foi validada no banco) e status (onde está o dinheiro desta parcela) */
+  /* @deprecated dois eixos antigos — usar eixo_recebimento / eixo_instrumento */
   eixo_prova: EixoProva;
   eixo_status: EixoStatus;
   compensado_por: "banco" | "manual" | null;
+  /** @deprecated usar eh_inadimplente */
   eh_inadimplencia: boolean | null;
+  /* vocabulário honesto */
+  eixo_recebimento: EixoRecebimento;
+  eixo_prazo: EixoPrazo;
+  eixo_instrumento: EixoInstrumento;
+  eh_inadimplente: boolean | null;
 }
 
 
