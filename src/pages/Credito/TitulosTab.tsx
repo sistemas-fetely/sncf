@@ -53,8 +53,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useHistoricoReguaTitulo } from "@/hooks/credito/useReguaFila";
 import type { SubestadoAtraso } from "@/hooks/credito/useTitulosCobranca";
 import {
-  BadgeProva,
-  BadgeStatus,
   BadgeRecebimento,
   BadgeInstrumento,
   SeloInadimplente,
