@@ -862,12 +862,13 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                 <div className="flex items-center justify-between gap-3">
                   <SheetTitle className="font-mono text-base">{detalhe.numero_titulo}</SheetTitle>
                   <div className="flex items-center gap-2">
-                    <BadgeProva eixo={detalhe.eixo_prova} />
-                    <BadgeStatus
-                      eixo={detalhe.eixo_status}
+                    <BadgeInstrumento eixo={detalhe.eixo_instrumento} />
+                    <BadgeRecebimento
+                      eixo={detalhe.eixo_recebimento}
                       compensadoPor={detalhe.compensado_por}
-                      inadimplente={detalhe.eh_inadimplencia === true}
                     />
+                    {detalhe.eh_inadimplente === true && <SeloInadimplente />}
+
 
                   </div>
                 </div>
