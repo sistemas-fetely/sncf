@@ -4,7 +4,14 @@ function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
 async function resolveParceiroId(supabase: any, contato: any): Promise<string | null> { if (!contato?.id) return null; const blingId = String(contato.id); const { data: found } = await supabase .from("parceiros_comerciais").select("id").eq("bling_id", blingId).maybeSingle(); if (found) return found.id; if (!contato.nome) return null; const doc = (contato.numeroDocumento || "").replace(/\D/g, ""); const { data: novo, error: insErr } = await supabase.from("parceiros_comerciais").insert({ razao_social: contato.nome, tipo: "pj", tipo_pessoa: doc.length === 11 ? "PF" : "PJ", tipos: ["cliente"], origem: "bling", bling_id: blingId, cpf: doc.length === 11 ? doc : null, cnpj: doc.length === 14 ? doc : null, email: contato.email || null, telefone: contato.telefone || null, }).select("id").maybeSingle(); if (insErr) { console.error(`resolveParceiroId INSERT failed [bling_id=${blingId}]: ${insErr.message}`); return null; } return novo?.id ?? null; }
 
-async function resolvePedidoId(supabase: any, ref: any): Promise<string | null> { if (ref === null || ref === undefined || ref === "") return null; const baseId = String(ref).replace(/\/\d+$/, ""); const { data: pedido } = await supabase .from("pedidos").select("id").eq("id_externo", baseId).maybeSingle(); return pedido?.id ?? null; }
+async function resolvePedidoId(supabase: any, ref: any): Promise<string | null> {
+  if (ref === null || ref === undefined || ref === "") return null;
+  const exato = String(ref).trim();
+  if (!exato) return null;
+  const { data: pedido } = await supabase
+    .from("pedidos").select("id").eq("id_externo", exato).maybeSingle();
+  return pedido?.id ?? null;
+}
 
 function parseBlingDate(val: unknown): string | null { if (!val) return null; const s = String(val).split(/[T ]/)[0]; return s.startsWith("0000") ? null : s; }
 
