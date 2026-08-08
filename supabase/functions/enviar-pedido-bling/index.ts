@@ -34,6 +34,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const t0 = Date.now();
+  // Compensação de remessa órfã acessível pelo catch externo (erro inesperado antes do POST).
+  let cleanupRemessaOrfa: (() => Promise<void>) | null = null;
 
   try {
     const supabase = createClient(
@@ -380,7 +382,7 @@ serve(async (req) => {
       .eq("sistema", "bling")
       .maybeSingle();
     if (!cfg || !cfg.access_token) {
-      return err("Bling não conectado — fazer OAuth via /administrativo/bling", 503);
+      return await falhaLimpando("Bling não conectado — fazer OAuth via /administrativo/bling", 503);
     }
 
     const freshToken = await ensureFreshToken(supabase, cfg);
