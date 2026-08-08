@@ -31487,6 +31487,51 @@ export type Database = {
         }
         Relationships: []
       }
+      xpm_estoque_posicao: {
+        Row: {
+          data_hora_posicao: string
+          depositante_cnpj: string | null
+          descricao: string | null
+          endereco: string
+          id: string
+          lote: string
+          operador_cnpj: string | null
+          quantidade: number
+          quantidade_reservada: number | null
+          sincronizado_em: string
+          situacao_estoque: string | null
+          sku: string
+        }
+        Insert: {
+          data_hora_posicao: string
+          depositante_cnpj?: string | null
+          descricao?: string | null
+          endereco?: string
+          id?: string
+          lote?: string
+          operador_cnpj?: string | null
+          quantidade?: number
+          quantidade_reservada?: number | null
+          sincronizado_em?: string
+          situacao_estoque?: string | null
+          sku: string
+        }
+        Update: {
+          data_hora_posicao?: string
+          depositante_cnpj?: string | null
+          descricao?: string | null
+          endereco?: string
+          id?: string
+          lote?: string
+          operador_cnpj?: string | null
+          quantidade?: number
+          quantidade_reservada?: number | null
+          sincronizado_em?: string
+          situacao_estoque?: string | null
+          sku?: string
+        }
+        Relationships: []
+      }
       xpm_estoque_snapshot: {
         Row: {
           arquivo: string | null
