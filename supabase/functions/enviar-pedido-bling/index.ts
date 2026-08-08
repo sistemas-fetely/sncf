@@ -564,8 +564,15 @@ if (itensSemProdutoBling.length > 0) {
           const blingProdId = it.sku ? cacheMap[it.sku] : null;
           const qty = Number(it.quantidade);
           const lineTotal = parseFloat((Number(it.valor_unitario) * qty * descontoFator).toFixed(2));
+          // O codigo do item e o unico ancoradouro conferivel entre o pedido no Bling,
+          // a etiqueta fisica e a lista de separacao. Sem ele a linha sai so com descricao
+          // livre e o separador nao tem contra o que conferir (causa do PED-2122).
+          // A descricao continua sendo enviada de proposito: o nome do cadastro no Bling
+          // ainda esta contaminado (877 ativos com "contem Xun.", 72 com "cor ,") e sairia
+          // na NF. Parar de enviar descricao so depois do saneamento do cadastro no Bling.
           return {
             descricao: stripQtdSuffix(it.descricao),
+            ...(it.sku ? { codigo: String(it.sku).trim() } : {}),
             ...(blingProdId ? { produto: { id: blingProdId } } : {}),
             unidade: "UN",
             quantidade: qty,
