@@ -857,12 +857,12 @@ export default function ExpedicoesXpm() {
                                 className={`text-right tabular-nums ${
                                   atrasado
                                     ? "text-destructive font-medium"
-                                    : dias != null && dias >= 3
+                                    : !pausada && dias != null && dias >= 3
                                       ? "text-amber-700 dark:text-amber-500 font-medium"
                                       : ""
                                 }`}
                               >
-                                {dias ?? "—"}
+                                {pausada ? <Badge variant="secondary">Pausado</Badge> : (dias ?? "—")}
                               </TableCell>
                             </TableRow>
                             {expandido && (
