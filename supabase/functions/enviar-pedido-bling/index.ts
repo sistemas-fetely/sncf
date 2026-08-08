@@ -629,9 +629,17 @@ if (itensSemProdutoBling.length > 0) {
     if (valorFrete > 0) obsPartes.push(`Frete ${pedido.frete_tipo || ""}${pedido.frete_tipo ? ":" : ""} R$ ${valorFrete.toFixed(2)}`);
     const obsInternas = obsPartes.length > 0 ? obsPartes.join(" | ") : undefined;
 
+    // Bling exige dataSaida para gerar o parcelamento (erro code 14 / element dataSaida).
+    // A saída não pode ser retroativa: usa a data do pedido só quando não for passada.
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    const dataSaida = (pedido.data_pedido && String(pedido.data_pedido) > hojeISO)
+      ? String(pedido.data_pedido)
+      : hojeISO;
+
     const payload: Record<string, any> = {
       numeroLoja: remessaCodigo,
       data: pedido.data_pedido,
+      dataSaida,
       contato: { id: Number(parceiro.bling_id) },
       ...(blingLojaId ? { loja: { id: blingLojaId }, canal: { id: blingLojaId } } : {}),
       itens: blingItens,
