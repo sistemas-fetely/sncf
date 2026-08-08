@@ -247,11 +247,21 @@ function statusCell(status: string): Cell {
   } as any;
 }
 
-export async function gerarRelatorioAuditoria(pedidoIds: string[]): Promise<number> {
-  const ids = Array.from(new Set(pedidoIds.filter(Boolean)));
-  if (ids.length === 0) return 0;
+export interface ResultadoAuditoria {
+  pedidos: number;
+  itens: number;
+}
 
-  const [pedidos, itens] = await Promise.all([buscarPedidos(ids), buscarItens(ids)]);
+export async function gerarRelatorioAuditoria(params: {
+  de: string;
+  ate: string;
+}): Promise<ResultadoAuditoria> {
+  const pedidos = await buscarPedidos(params.de, params.ate);
+  if (pedidos.length === 0) return { pedidos: 0, itens: 0 };
+
+  const ids = Array.from(new Set(pedidos.map((p) => p.id).filter(Boolean)));
+  const itens = await buscarItens(ids);
+
 
   const itensPorPedido = new Map<string, Row[]>();
   itens.forEach((it) => {
