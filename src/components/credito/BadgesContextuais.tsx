@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Clock, Shield, TrendingUp, UsersRound, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BadgesContextuaisProps {
   parceiro: {
@@ -14,12 +15,18 @@ interface BadgesContextuaisProps {
   }>;
   kpisGrupo?: { vencidos: number } | null;
   valorPedido?: number;
+  /** Quando false, o fallback verde "Sem alertas" não é renderizado. Default true. */
+  mostrarSemAlertas?: boolean;
+  /** Classes extras no container das tags (ex.: reduzir escala no cabeçalho). */
+  className?: string;
 }
 
 export function BadgesContextuais({
   parceiro,
   analisesAnteriores = [],
   kpisGrupo,
+  mostrarSemAlertas = true,
+  className,
 }: BadgesContextuaisProps) {
   const badges: JSX.Element[] = [];
 
@@ -76,6 +83,7 @@ export function BadgesContextuais({
   }
 
   if (badges.length === 0) {
+    if (!mostrarSemAlertas) return null;
     return (
       <Badge variant="outline" className="gap-1 border-emerald-500 text-emerald-700">
         <CheckCircle2 className="h-3 w-3" />
@@ -84,5 +92,5 @@ export function BadgesContextuais({
     );
   }
 
-  return <div className="flex flex-wrap gap-2">{badges}</div>;
+  return <div className={cn("flex flex-wrap gap-2", className)}>{badges}</div>;
 }

@@ -674,7 +674,6 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
     return (
       <div className="flex flex-col gap-2 w-full">
         <AcoesPedidoPreFaturado pedido={pedido} parceiro={parceiro} />
-        {geraTituloReceber && <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />}
       </div>
     );
   }
@@ -695,11 +694,10 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
   return null;
 }
 
-function AcoesAguardandoPagamento({ pedido, geraTituloReceber }: { pedido: any; geraTituloReceber: boolean }) {
+function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?: boolean }) {
   return (
     <div className="flex flex-col gap-2 w-full">
       <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
-      {geraTituloReceber && <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />}
     </div>
   );
 }
@@ -1264,6 +1262,12 @@ export default function PedidoDetalhe() {
             <span className="text-xs text-muted-foreground"><FormatoIdade minutos={idade_minutos} /></span>
             {sla_estourado && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertCircle className="h-3 w-3" />SLA estourado</Badge>}
             <MarcacaoPedido pedidoId={pedido.id} marcacao={pedido.marcacao ?? null} />
+            <BadgesContextuais
+              parceiro={parceiro || {}}
+              analisesAnteriores={analisesAnteriores}
+              mostrarSemAlertas={false}
+              className="gap-2 [&>*]:text-[10px] [&>*]:py-0 [&>*]:px-1.5 [&_svg]:h-3 [&_svg]:w-3"
+            />
           </div>
           <LinhaContatosCliente
             telefone={parceiro?.telefone}
@@ -1364,27 +1368,8 @@ export default function PedidoDetalhe() {
             </Alert>
           )}
 
-          {estagio === "recebido" && (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <ArrowRight className="h-4 w-4 text-primary" />
-                <p className="text-sm font-medium">Revisar e encaminhar</p>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div><p className="text-muted-foreground uppercase tracking-wide mb-0.5">Perfil</p><p className="font-semibold capitalize">{parceiro?.perfil_credito ? String(parceiro.perfil_credito).split("_").join(" ") : "—"}</p></div>
-                <div><p className="text-muted-foreground uppercase tracking-wide mb-0.5">Valor</p><p className="font-semibold">{fmtBRL.format(pedido.valor_liquido || 0)}</p></div>
-                <div><p className="text-muted-foreground uppercase tracking-wide mb-0.5">Condição</p><p className="font-semibold">{pedido.condicao_solicitada}</p></div>
-                <div><p className="text-muted-foreground uppercase tracking-wide mb-0.5">Forma</p><p className="font-semibold">{pedido.forma_solicitada}</p></div>
-              </div>
-              <div className="pt-1">
-                <BadgesContextuais
-                  parceiro={parceiro || {}}
-                  analisesAnteriores={analisesAnteriores}
-                  valorPedido={pedido?.valor_liquido}
-                />
-              </div>
-            </div>
-          )}
+
+
 
           {/* ============ FAIXA 1: Pedido · Resumo financeiro · Dados de envio ============ */}
           <div className="grid gap-4 lg:grid-cols-2 items-stretch">
