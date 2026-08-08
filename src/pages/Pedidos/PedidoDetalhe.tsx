@@ -1614,7 +1614,7 @@ export default function PedidoDetalhe() {
 
                     {(emb?.skus_sem_dimensao ?? 0) > 0 && (
                       <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-[10px]">
-                        {emb!.skus_sem_dimensao} SKU(s) sem dimensão cadastrada — estimativa incompleta
+                        {emb!.skus_sem_dimensao} SKU(s) sem dimensão cadastrada — não entram na estimativa de caixas nem de peso
                       </Badge>
                     )}
                   </div>
