@@ -57,10 +57,7 @@ import { ConsolidarPedidoDialog } from "@/components/pedidos/dialogs/ConsolidarP
 import { ReterEstoqueDialog } from "@/components/pedidos/dialogs/ReterEstoqueDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
-import { BotaoEditarPedido, ESTAGIOS_EDICAO_BLOQUEADA } from "@/components/pedidos/BotaoEditarPedido";
-
-// Reexportado aqui porque a trava de edição é regra desta tela.
-export { ESTAGIOS_EDICAO_BLOQUEADA };
+import { BotaoEditarPedido } from "@/components/pedidos/BotaoEditarPedido";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
 import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
