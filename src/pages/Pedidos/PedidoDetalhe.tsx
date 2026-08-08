@@ -1264,6 +1264,12 @@ export default function PedidoDetalhe() {
             <span className="text-xs text-muted-foreground"><FormatoIdade minutos={idade_minutos} /></span>
             {sla_estourado && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertCircle className="h-3 w-3" />SLA estourado</Badge>}
             <MarcacaoPedido pedidoId={pedido.id} marcacao={pedido.marcacao ?? null} />
+            <BadgesContextuais
+              parceiro={parceiro || {}}
+              analisesAnteriores={analisesAnteriores}
+              mostrarSemAlertas={false}
+              className="gap-2 [&>*]:text-[10px] [&>*]:py-0 [&>*]:px-1.5 [&_svg]:h-3 [&_svg]:w-3"
+            />
           </div>
           <LinhaContatosCliente
             telefone={parceiro?.telefone}
