@@ -1534,11 +1534,6 @@ export default function PedidoDetalhe() {
                         {recalculandoPeso ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
-                    {emb?.peso_expedido_kg != null && (
-                      <p className="text-[10px] text-muted-foreground leading-tight">
-                        expedido ~{fmtNum(emb.peso_expedido_kg, 1)} kg (com tara)
-                      </p>
-                    )}
                   </div>
 
                   {/* Bloco de expedição — todos os números vêm de vw_pedido_embalagem */}
@@ -1577,10 +1572,11 @@ export default function PedidoDetalhe() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Peso taxado (previsto)</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Peso expedido (estimado)</p>
                         <p className="text-base font-semibold">
-                          {emb?.peso_taxado_previsto != null ? `${fmtNum(emb.peso_taxado_previsto, 1)} kg` : "—"}
+                          {emb?.peso_expedido_kg != null ? `${fmtNum(emb.peso_expedido_kg, 1)} kg` : "—"}
                         </p>
+                        <p className="text-[10px] text-muted-foreground leading-tight">produto + embalagem</p>
                       </div>
                     </div>
 
@@ -1630,7 +1626,7 @@ export default function PedidoDetalhe() {
                         <p className="text-base font-semibold">{freteEst.data.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
                         {pedido.valor_bruto > 0 && (<span className="text-xs text-muted-foreground">({((freteEst.data.valor_estimado / pedido.valor_bruto) * 100).toFixed(2)}% do bruto)</span>)}
                       </div>
-                      <p className="text-xs text-muted-foreground">Prazo {freteEst.data.prazo_dias}d · {freteEst.data.tarifa_code}</p>
+                      <p className="text-xs text-muted-foreground">{emb?.peso_taxado_previsto != null && <>Peso taxado {fmtNum(emb.peso_taxado_previsto, 1)} kg · </>}Prazo {freteEst.data.prazo_dias}d · {freteEst.data.tarifa_code}</p>
                       <p className="text-[11px] text-muted-foreground">Base: R$ {freteEst.data.breakdown.base.toFixed(2)} · GRIS: R$ {freteEst.data.breakdown.gris.toFixed(2)} · Pedágio: R$ {freteEst.data.breakdown.pedagio.toFixed(2)} · TAS: R$ {freteEst.data.breakdown.tas.toFixed(2)}</p>
                     </div>
                   )}
