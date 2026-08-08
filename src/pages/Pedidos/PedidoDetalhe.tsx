@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { rotuloDestinoLiberacao } from "@/lib/pedidoLiberacaoEstoque";
 import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { useState, useEffect, useRef } from "react";
