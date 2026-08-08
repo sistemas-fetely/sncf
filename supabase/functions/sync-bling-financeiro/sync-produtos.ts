@@ -26,22 +26,21 @@ export async function syncProdutos(
     for (const p of items) {
       try {
         const blingId = String(p.id);
+        // FONTE-ÚNICA / UM TRILHO SÓ — a LISTAGEM /produtos da API v3 não retorna
+        // ncm, gtin, precoCusto, pesoBruto, pesoLiquido nem mídia. Incluí-los aqui
+        // fazia o UPDATE gravar null por cima do dado bom a cada 10 min (fire-and-erase).
+        // Esses campos pertencem ao trilho do DETALHE (/produtos/{id}), onde o NCM vive
+        // em `tributacao.ncm` (não na raiz). NÃO REINTRODUZIR nenhum deles neste objeto.
         const registro: any = {
           bling_id: blingId,
           codigo: p.codigo || null,
           nome: p.nome || "Sem nome",
           descricao: p.descricaoCurta || null,
           tipo: p.tipo === "S" ? "servico" : "produto",
-          peso_bruto: p.pesoBruto != null ? Number(p.pesoBruto) : null,
-          peso_liquido: p.pesoLiquido != null ? Number(p.pesoLiquido) : null,
           unidade: p.unidade || "UN",
-          ncm: p.ncm || null,
-          gtin: p.gtin || null,
-          preco_custo: p.precoCusto != null ? Number(p.precoCusto) : null,
           preco_venda: p.preco != null ? Number(p.preco) : null,
           // estoque_atual NÃO vem na listagem /produtos da API v3 — populado pelo syncEstoques.
           estoque_minimo: p.estoque?.minimo != null ? Number(p.estoque.minimo) : null,
-          imagem_url: p.midia?.imagens?.externas?.[0]?.link ?? p.imageThumbnail ?? null,
           ativo: p.situacao === "A",
           origem: "api_bling",
           updated_at: new Date().toISOString(),
