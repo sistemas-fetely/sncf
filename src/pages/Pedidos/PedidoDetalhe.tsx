@@ -945,6 +945,24 @@ export default function PedidoDetalhe() {
   const { isSuperAdmin } = usePermissions();
 
   const parceiroIdAtual = data?.pedido?.parceiro_id as string | undefined;
+
+  // Número do pedido no Bling. pedidos_venda só tem registros a partir do início
+  // do sync (01/06/2026); ausência de match é esperada e degrada em silêncio.
+  const blingIdDestino = data?.pedido?.bling_id_destino ?? null;
+  const { data: pedidoVendaBling } = useQuery({
+    queryKey: ["pedido-venda-bling", blingIdDestino],
+    enabled: !!blingIdDestino,
+    queryFn: async () => {
+      const { data: pv, error } = await (supabase as any)
+        .from("pedidos_venda")
+        .select("numero, numero_loja")
+        .eq("bling_id", String(blingIdDestino))
+        .maybeSingle();
+      if (error) throw error;
+      return pv as { numero: string | null; numero_loja: string | null } | null;
+    },
+  });
+
   const { data: haveresDisponiveisData } = useQuery({
     queryKey: ["haver-disponivel", parceiroIdAtual],
     enabled: !!parceiroIdAtual,
