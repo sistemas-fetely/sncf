@@ -1,0 +1,639 @@
+import { Fragment, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ChevronDown, ChevronRight, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
+
+type ExpedicaoXpm = {
+  codigo: string;
+  data_expedicao: string | null;
+  situacao: string | null;
+  destinatario_nome: string | null;
+  destinatario_cnpj: string | null;
+  transportador_cnpj: string | null;
+  transportadora_nome: string | null;
+  nf_numero: string | null;
+  nf_serie: string | null;
+  nf_chave: string | null;
+  quantidade_volumes: number | null;
+  peso_bruto: number | null;
+  estagio_codigo: string;
+  estagio_descricao: string;
+  estagio_seq: number;
+  ultimo_evento_em: string | null;
+  dias_parado: number | null;
+  canal: "B2B" | "B2C" | "SEM NF";
+  pedido_sncf: string | null;
+  pedido_id: string | null;
+  cliente_sncf: string | null;
+  uf: string | null;
+  qtd_itens: number | null;
+  qtd_solicitada: number | null;
+  qtd_atendida: number | null;
+  tem_corte: boolean;
+  sincronizado_em: string | null;
+};
+
+type ItemXpm = {
+  numero_item: number | null;
+  codigo_produto: string | null;
+  quantidade_solicitada: number | null;
+  quantidade_atendida: number | null;
+  valor_unitario: number | null;
+};
+
+type EventoXpm = {
+  evento_id: number;
+  status: string | null;
+  inicio: string | null;
+  quantidade: number | null;
+};
+
+type FaseXpm = {
+  wns_id: number;
+  codigo: string | null;
+  descricao: string | null;
+  sequencia: number | null;
+};
+
+const ESTAGIOS = [
+  "SOLICITADO",
+  "SEPARADO",
+  "CONFERIDO",
+  "NOTAFISCAL",
+  "EMBARCADO",
+  "EXPEDIDO",
+] as const;
+
+const FASES_LABEL = [
+  "Solicitado",
+  "Separado",
+  "Conferido",
+  "Nota Fiscal",
+  "Embarcado",
+  "Expedido",
+];
+
+const nf = new Intl.NumberFormat("pt-BR");
+const nf2 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function fmtData(v: string | null) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  return d.toLocaleDateString("pt-BR");
+}
+
+function fmtDataHora(v: string | null) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  return d.toLocaleString("pt-BR");
+}
+
+function desdeQuando(v: string | null) {
+  if (!v) return "nunca sincronizado";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "nunca sincronizado";
+  const min = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (min < 1) return "sincronizado agora";
+  if (min < 60) return `sincronizado há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `sincronizado há ${h} h`;
+  return `sincronizado há ${Math.floor(h / 24)} d`;
+}
+
+function Semaforo({ seq }: { seq: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {FASES_LABEL.map((label, i) => {
+        const n = i + 1;
+        const cheio = n <= seq;
+        const ultimoCheio = cheio && n === seq && seq < 6;
+        return (
+          <Tooltip key={label}>
+            <TooltipTrigger asChild>
+              <span
+                className={`h-3 w-3 rounded-sm border ${
+                  ultimoCheio
+                    ? "bg-amber-500 border-amber-500"
+                    : cheio
+                      ? "bg-emerald-600 border-emerald-600"
+                      : "border-muted-foreground/40"
+                }`}
+              />
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+function LinhaExpandida({ exp, fases }: { exp: ExpedicaoXpm; fases: Map<number, string> }) {
+  const itensQ = useQuery({
+    queryKey: ["xpm-expedicao-itens", exp.codigo],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("xpm_expedicao_item")
+        .select("numero_item, codigo_produto, quantidade_solicitada, quantidade_atendida, valor_unitario")
+        .eq("expedicao_codigo", exp.codigo)
+        .order("numero_item");
+      if (error) throw error;
+      return (data ?? []) as ItemXpm[];
+    },
+  });
+
+  const eventosQ = useQuery({
+    queryKey: ["xpm-expedicao-eventos", exp.codigo],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("xpm_expedicao_evento")
+        .select("evento_id, status, inicio, quantidade")
+        .eq("expedicao_codigo", exp.codigo)
+        .order("inicio");
+      if (error) throw error;
+      return (data ?? []) as EventoXpm[];
+    },
+  });
+
+  return (
+    <div className="bg-muted/30 p-4 space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div>
+          <div className="text-xs text-muted-foreground">Transportadora</div>
+          <div>{exp.transportadora_nome ?? exp.transportador_cnpj ?? "—"}</div>
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground">Volumes</div>
+          <div className="tabular-nums">{exp.quantidade_volumes ?? "—"}</div>
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground">Peso bruto</div>
+          <div className="tabular-nums">
+            {exp.peso_bruto != null ? `${nf2.format(Number(exp.peso_bruto))} kg` : "—"}
+          </div>
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs text-muted-foreground">Chave da NF</div>
+          <div className="font-mono text-xs truncate" title={exp.nf_chave ?? ""}>
+            {exp.nf_chave ?? "—"}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Linha do tempo (eventos por volume)
+        </div>
+        {eventosQ.isLoading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : eventosQ.isError ? (
+          <div className="text-sm text-destructive">
+            {(eventosQ.error as Error)?.message ?? "Erro ao carregar eventos"}
+          </div>
+        ) : (eventosQ.data ?? []).length === 0 ? (
+          <div className="text-sm text-muted-foreground">Nenhum evento registrado.</div>
+        ) : (
+          <ul className="space-y-1 text-sm">
+            {(eventosQ.data ?? []).map((ev, i) => (
+              <li key={i} className="flex flex-wrap items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                <span className="font-medium">
+                  {fases.get(ev.evento_id) ?? `Evento ${ev.evento_id}`}
+                </span>
+                <span className="text-muted-foreground text-xs">{fmtDataHora(ev.inicio)}</span>
+                {ev.quantidade != null && (
+                  <span className="text-muted-foreground text-xs tabular-nums">
+                    qtd {nf.format(Number(ev.quantidade))}
+                  </span>
+                )}
+                {ev.status && <span className="text-muted-foreground text-xs">{ev.status}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Itens
+        </div>
+        {itensQ.isLoading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : itensQ.isError ? (
+          <div className="text-sm text-destructive">
+            {(itensQ.error as Error)?.message ?? "Erro ao carregar itens"}
+          </div>
+        ) : (itensQ.data ?? []).length === 0 ? (
+          <div className="text-sm text-muted-foreground">Nenhum item registrado.</div>
+        ) : (
+          <div className="rounded-md border bg-background">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produto</TableHead>
+                  <TableHead className="text-right w-[120px]">Solicitado</TableHead>
+                  <TableHead className="text-right w-[140px]">Atendido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(itensQ.data ?? []).map((it, i) => {
+                  const sol = Number(it.quantidade_solicitada ?? 0);
+                  const at = it.quantidade_atendida;
+                  const corte = at != null && Number(at) < sol;
+                  return (
+                    <TableRow key={`${it.codigo_produto}-${it.numero_item}-${i}`}>
+                      <TableCell className="font-mono text-xs">{it.codigo_produto ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {it.quantidade_solicitada != null ? nf.format(sol) : "—"}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right tabular-nums ${
+                          corte ? "text-destructive font-medium" : ""
+                        }`}
+                      >
+                        {at == null
+                          ? "—"
+                          : corte
+                            ? `${nf.format(Number(at))} (−${nf.format(sol - Number(at))})`
+                            : nf.format(Number(at))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function ExpedicoesXpm() {
+  const qc = useQueryClient();
+  const [canal, setCanal] = useState("todos");
+  const [estagio, setEstagio] = useState("todos");
+  const [situacao, setSituacao] = useState("em_curso");
+  const [busca, setBusca] = useState("");
+  const [aberto, setAberto] = useState<string | null>(null);
+  const [sincronizando, setSincronizando] = useState(false);
+
+  const expedicoesQ = useQuery({
+    queryKey: ["xpm-expedicoes"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_xpm_expedicao")
+        .select("*")
+        .order("data_expedicao", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ExpedicaoXpm[];
+    },
+  });
+
+  const fasesQ = useQuery({
+    queryKey: ["wns-fases-xpm"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("wns_fases_xpm")
+        .select("wns_id, codigo, descricao, sequencia");
+      if (error) throw error;
+      return (data ?? []) as FaseXpm[];
+    },
+  });
+
+  const mapaFases = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const f of fasesQ.data ?? []) {
+      m.set(Number(f.wns_id), f.descricao ?? f.codigo ?? `Evento ${f.wns_id}`);
+    }
+    return m;
+  }, [fasesQ.data]);
+
+  const rows = expedicoesQ.data ?? [];
+
+  const kpis = useMemo(() => {
+    const emCurso = rows.filter((r) => Number(r.estagio_seq) < 6);
+    return {
+      emCurso: emCurso.length,
+      semNf: rows.filter((r) => Number(r.estagio_seq) >= 2 && Number(r.estagio_seq) < 4).length,
+      parado: rows.filter((r) => r.dias_parado != null && Number(r.dias_parado) > 5).length,
+      corte: rows.filter((r) => r.tem_corte === true).length,
+      peso: emCurso.reduce((s, r) => s + Number(r.peso_bruto ?? 0), 0),
+    };
+  }, [rows]);
+
+  const filtradas = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (canal !== "todos" && r.canal !== canal) return false;
+      if (estagio !== "todos" && r.estagio_codigo !== estagio) return false;
+      if (situacao === "em_curso" && !(Number(r.estagio_seq) < 6)) return false;
+      if (situacao === "expedidas" && !(Number(r.estagio_seq) >= 6)) return false;
+      if (!q) return true;
+      return [r.codigo, r.nf_numero, r.pedido_sncf, r.cliente_sncf, r.destinatario_nome]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+  }, [rows, canal, estagio, situacao, busca]);
+
+  const ultimoSync = useMemo(() => {
+    let melhor: string | null = null;
+    for (const r of rows) {
+      if (r.sincronizado_em && (!melhor || r.sincronizado_em > melhor)) melhor = r.sincronizado_em;
+    }
+    return melhor;
+  }, [rows]);
+
+  async function sincronizar() {
+    setSincronizando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zenlog-sync-expedicoes", {
+        body: { dias: 45 },
+      });
+      if (error) throw error;
+      if (data && (data as any).ok === false) throw new Error((data as any).erro ?? "Falha na sincronização");
+      toast.success(`Sincronizado: ${(data as any)?.expedicoes ?? 0} expedições`);
+      qc.invalidateQueries({ queryKey: ["xpm-expedicoes"] });
+      qc.invalidateQueries({ queryKey: ["xpm-expedicao-itens"] });
+      qc.invalidateQueries({ queryKey: ["xpm-expedicao-eventos"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao sincronizar expedições da XPM");
+    } finally {
+      setSincronizando(false);
+    }
+  }
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 space-y-6">
+        <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Expedições XPM</h1>
+            <p className="text-sm text-muted-foreground">
+              Andamento físico das expedições no armazém, do pedido ao embarque.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">{desdeQuando(ultimoSync)}</span>
+            <Button onClick={sincronizar} disabled={sincronizando} className="gap-2">
+              {sincronizando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Sincronizar
+            </Button>
+          </div>
+        </header>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">Em curso</div>
+              <div className="text-2xl font-semibold">{nf.format(kpis.emCurso)}</div>
+            </CardContent>
+          </Card>
+          <Card className={kpis.semNf > 0 ? "border-amber-500/50" : undefined}>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">Separado sem NF</div>
+              <div
+                className={`text-2xl font-semibold ${
+                  kpis.semNf > 0 ? "text-amber-700 dark:text-amber-500" : ""
+                }`}
+              >
+                {nf.format(kpis.semNf)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={kpis.parado > 0 ? "border-destructive/50" : undefined}>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                {kpis.parado > 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}
+                Parado &gt; 5 dias
+              </div>
+              <div className={`text-2xl font-semibold ${kpis.parado > 0 ? "text-destructive" : ""}`}>
+                {nf.format(kpis.parado)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">Com corte</div>
+              <div className="text-2xl font-semibold">{nf.format(kpis.corte)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">Peso em curso</div>
+              <div className="text-2xl font-semibold">{nf2.format(kpis.peso)} kg</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Expedições</CardTitle>
+            <div className="flex flex-col md:flex-row gap-3 pt-2">
+              <Input
+                placeholder="Buscar por pedido, cliente, NF ou código XPM…"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="md:max-w-sm"
+              />
+              <Select value={canal} onValueChange={setCanal}>
+                <SelectTrigger className="md:max-w-[160px]">
+                  <SelectValue placeholder="Canal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os canais</SelectItem>
+                  <SelectItem value="B2B">B2B</SelectItem>
+                  <SelectItem value="B2C">B2C</SelectItem>
+                  <SelectItem value="SEM NF">SEM NF</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={estagio} onValueChange={setEstagio}>
+                <SelectTrigger className="md:max-w-[180px]">
+                  <SelectValue placeholder="Estágio" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os estágios</SelectItem>
+                  {ESTAGIOS.map((e) => (
+                    <SelectItem key={e} value={e}>
+                      {e}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={situacao} onValueChange={setSituacao}>
+                <SelectTrigger className="md:max-w-[180px]">
+                  <SelectValue placeholder="Situação" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  <SelectItem value="em_curso">Só em curso</SelectItem>
+                  <SelectItem value="expedidas">Só expedidas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {expedicoesQ.isError ? (
+              <Card className="border-destructive">
+                <CardContent className="pt-6 text-sm text-destructive">
+                  {(expedicoesQ.error as Error)?.message ?? "Erro ao carregar expedições"}
+                </CardContent>
+              </Card>
+            ) : expedicoesQ.isLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]" />
+                      <TableHead>Pedido</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead className="w-[60px]">UF</TableHead>
+                      <TableHead className="w-[90px]">Canal</TableHead>
+                      <TableHead className="w-[220px]">Estágio</TableHead>
+                      <TableHead className="text-right w-[70px]">Vol</TableHead>
+                      <TableHead className="text-right w-[100px]">Peso</TableHead>
+                      <TableHead className="text-right w-[80px]">Dias</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtradas.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                          Nenhuma expedição neste recorte.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filtradas.map((r) => {
+                        const dias = r.dias_parado == null ? null : Number(r.dias_parado);
+                        const atrasado = dias != null && dias > 5;
+                        const expandido = aberto === r.codigo;
+                        return (
+                          <Fragment key={r.codigo}>
+                            <TableRow
+                              className={`cursor-pointer ${
+                                atrasado
+                                  ? "bg-destructive/5"
+                                  : r.tem_corte
+                                    ? "bg-amber-500/5"
+                                    : ""
+                              }`}
+                              onClick={() => setAberto(expandido ? null : r.codigo)}
+                            >
+                              <TableCell>
+                                {expandido ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className={r.pedido_sncf ? "font-medium" : "font-mono text-xs"}>
+                                  {r.pedido_sncf ?? r.codigo}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  XPM {r.codigo} · {r.nf_numero ? `NF ${r.nf_numero}` : "sem NF"}
+                                </div>
+                              </TableCell>
+                              <TableCell className="max-w-[240px] truncate">
+                                {r.cliente_sncf ?? r.destinatario_nome ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">{r.uf ?? "—"}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    r.canal === "B2B"
+                                      ? "default"
+                                      : r.canal === "B2C"
+                                        ? "secondary"
+                                        : "outline"
+                                  }
+                                >
+                                  {r.canal}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Semaforo seq={Number(r.estagio_seq)} />
+                                  <span className="text-xs text-muted-foreground truncate">
+                                    {r.estagio_descricao}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {r.quantidade_volumes ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {r.peso_bruto != null ? nf2.format(Number(r.peso_bruto)) : "—"}
+                              </TableCell>
+                              <TableCell
+                                className={`text-right tabular-nums ${
+                                  atrasado
+                                    ? "text-destructive font-medium"
+                                    : dias != null && dias >= 3
+                                      ? "text-amber-700 dark:text-amber-500 font-medium"
+                                      : ""
+                                }`}
+                              >
+                                {dias ?? "—"}
+                              </TableCell>
+                            </TableRow>
+                            {expandido && (
+                              <TableRow>
+                                <TableCell colSpan={9} className="p-0">
+                                  <LinhaExpandida exp={r} fases={mapaFases} />
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </Fragment>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
+  );
+}
