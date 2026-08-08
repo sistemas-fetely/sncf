@@ -1,7 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type CampoEdicao = "pagamento" | "itens" | "desconto" | "split";
+export type CampoEdicao = "pagamento" | "itens" | "desconto" | "split" | "conversao_custo";
+
+/**
+ * Campos que o painel "Editar pedido" realmente oferece.
+ * `split` NÃO entra: é a ação separada "Dividir pedido".
+ */
+export const CAMPOS_PAINEL_EDICAO: readonly CampoEdicao[] = [
+  "pagamento",
+  "itens",
+  "desconto",
+  "conversao_custo",
+] as const;
 
 export interface RegraEdicaoCampo {
   campo: CampoEdicao;
@@ -10,8 +21,10 @@ export interface RegraEdicaoCampo {
   exige_papel: string[] | null;
   exige_motivo: boolean;
   rotulo: string | null;
+  observacao: string | null;
   ativo: boolean;
 }
+
 
 /**
  * Dimensão que governa a UI de edição do pedido.
