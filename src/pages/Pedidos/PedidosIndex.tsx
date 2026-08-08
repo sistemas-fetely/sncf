@@ -12,6 +12,7 @@ export default function PedidosIndex() {
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
+  const [idsFiltrados, setIdsFiltrados] = useState<string[]>([]);
 
   const handlePipelineClick = (estagio: EstagioPedido) => {
     const next = new URLSearchParams(searchParams);
@@ -30,7 +31,7 @@ export default function PedidosIndex() {
       {/* Header */}
       <div className="flex flex-row items-center justify-between">
         <h1 className="text-2xl font-semibold">Casa dos Pedidos</h1>
-        <ExportarPedidosButton />
+        <ExportarPedidosButton pedidoIdsFiltrados={idsFiltrados} />
       </div>
 
       <Tabs defaultValue="fila" className="space-y-4">
@@ -61,6 +62,7 @@ export default function PedidosIndex() {
               apenasAtivos={!estagioParam}
               incluirCancelados={incluirCancelados}
               somenteRiscoAlto={riscoAltoAtivo}
+              onIdsFiltradosChange={setIdsFiltrados}
             />
           </div>
         </TabsContent>

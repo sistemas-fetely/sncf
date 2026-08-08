@@ -66,6 +66,8 @@ interface Props {
   incluirCancelados?: boolean;
   /** Espelha a tarja de risco alto do pipeline. */
   somenteRiscoAlto?: boolean;
+  /** Notifica o pai com os ids exatamente filtrados/visíveis na fila. */
+  onIdsFiltradosChange?: (ids: string[]) => void;
 }
 
 
@@ -78,6 +80,7 @@ export function FilaPedidosPorArea({
   apenasAtivos = true,
   incluirCancelados = false,
   somenteRiscoAlto = false,
+  onIdsFiltradosChange,
 }: Props) {
   const [busca, setBusca] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
@@ -253,6 +256,16 @@ export function FilaPedidosPorArea({
     });
     return { entregues, cancelados, recuperacao, total: linhas?.length ?? 0 };
   }, [buscaGlobalAtiva, linhas]);
+
+  // Espelha para o pai o conjunto exatamente filtrado (usado pelo Rel. Auditoria).
+  const idsFiltrados = useMemo(() => (linhas || []).map((p) => p.id), [linhas]);
+  const idsFiltradosKey = idsFiltrados.join(",");
+  useEffect(() => {
+    onIdsFiltradosChange?.(idsFiltradosKey ? idsFiltradosKey.split(",") : []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsFiltradosKey]);
+
+
 
 
   const formasPgtoDisponiveis = useMemo(() => {
