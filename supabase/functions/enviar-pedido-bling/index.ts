@@ -212,6 +212,10 @@ serve(async (req) => {
 
     // 1b. Remessa: usa a fornecida ou cria lazy /01
     let remessa: any = null;
+    // Guarda o id da remessa criada NESTA chamada (nunca de remessa preexistente),
+    // para permitir a compensação em qualquer caminho de erro antes do POST.
+    let remessaCriadaNestaChamada: string | null = null;
+
 
     if (remessa_id_input) {
       // Remessa explícita (split)
