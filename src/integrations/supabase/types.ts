@@ -38453,6 +38453,7 @@ export type Database = {
           fator_embalagem: number | null
           litros_solidos: number | null
           pacotes_g: number | null
+          pacotes_l: number | null
           pacotes_p: number | null
           pacotes_total: number | null
           pacotes_v: number | null
@@ -41133,28 +41134,6 @@ export type Database = {
           sku: string | null
           tipo: string | null
           volume_l: number | null
-        }
-        Insert: {
-          classe?: never
-          colecao?: string | null
-          espessura_cm?: never
-          footprint_cm2?: never
-          grupo?: string | null
-          peso_g?: number | null
-          sku?: string | null
-          tipo?: string | null
-          volume_l?: never
-        }
-        Update: {
-          classe?: never
-          colecao?: string | null
-          espessura_cm?: never
-          footprint_cm2?: never
-          grupo?: string | null
-          peso_g?: number | null
-          sku?: string | null
-          tipo?: string | null
-          volume_l?: never
         }
         Relationships: []
       }

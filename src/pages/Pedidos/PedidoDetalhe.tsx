@@ -1582,7 +1582,15 @@ export default function PedidoDetalhe() {
 
                     {emb && (
                       <p className="text-[11px] text-muted-foreground leading-tight">
-                        {emb.pacotes_v ?? 0} volumosos · {emb.pacotes_p ?? 0} planos pequenos · {emb.pacotes_g ?? 0} planos grandes
+                        {[
+                          [emb.pacotes_v ?? 0, "volumosos"] as const,
+                          [emb.pacotes_p ?? 0, "planos pequenos"] as const,
+                          [emb.pacotes_g ?? 0, "planos grandes"] as const,
+                          [emb.pacotes_l ?? 0, "placas largas"] as const,
+                        ]
+                          .filter(([n]) => Number(n) > 0)
+                          .map(([n, rotulo]) => `${n} ${rotulo}`)
+                          .join(" · ")}
                         {emb.litros_solidos != null && emb.fator_embalagem != null && (
                           <> — {fmtNum(emb.litros_solidos, 1)} L sólidos × {fmtNum(emb.fator_embalagem, 2)}</>
                         )}
@@ -1606,7 +1614,7 @@ export default function PedidoDetalhe() {
 
                     {(emb?.skus_sem_dimensao ?? 0) > 0 && (
                       <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-[10px]">
-                        {emb!.skus_sem_dimensao} SKU(s) sem dimensão cadastrada — estimativa incompleta
+                        {emb!.skus_sem_dimensao} SKU(s) sem dimensão cadastrada — não entram na estimativa de caixas nem de peso
                       </Badge>
                     )}
                   </div>

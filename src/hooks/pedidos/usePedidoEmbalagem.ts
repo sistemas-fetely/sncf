@@ -11,6 +11,7 @@ export interface PedidoEmbalagem {
   pacotes_v: number | null;
   pacotes_g: number | null;
   pacotes_p: number | null;
+  pacotes_l: number | null;
   pacotes_total: number | null;
   litros_solidos: number | null;
   fator_embalagem: number | null;
@@ -33,7 +34,7 @@ export function usePedidoEmbalagem(pedidoId: string | undefined) {
       const { data, error } = await supabase
         .from("vw_pedido_embalagem")
         .select(
-          "caixas_estimadas, caixas_min, caixas_max, caixas_fonte, caixas_modelo, caixas_piso_fisico, pacotes_v, pacotes_g, pacotes_p, pacotes_total, litros_solidos, fator_embalagem, cubagem_expedicao_m3, peso_expedido_kg, peso_taxado_previsto, skus_sem_dimensao",
+          "caixas_estimadas, caixas_min, caixas_max, caixas_fonte, caixas_modelo, caixas_piso_fisico, pacotes_v, pacotes_g, pacotes_p, pacotes_l, pacotes_total, litros_solidos, fator_embalagem, cubagem_expedicao_m3, peso_expedido_kg, peso_taxado_previsto, skus_sem_dimensao",
         )
         .eq("pedido_id", pedidoId!)
         .maybeSingle();
