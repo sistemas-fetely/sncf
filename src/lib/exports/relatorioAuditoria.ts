@@ -424,5 +424,5 @@ export async function gerarRelatorioAuditoria(params: {
 
   XLSX.writeFile(wb, nomeArquivo(), { cellDates: true, compression: true });
 
-  return linhasPedidos.length;
+  return { pedidos: linhasPedidos.length, itens: linhasItens.length };
 }
