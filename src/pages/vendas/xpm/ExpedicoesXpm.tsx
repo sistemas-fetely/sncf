@@ -663,6 +663,8 @@ export default function ExpedicoesXpm() {
           </div>
         </header>
 
+        <AlertaDivergencia />
+
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card>
             <CardContent className="pt-6">
