@@ -31,7 +31,7 @@ export default function PedidosIndex() {
       {/* Header */}
       <div className="flex flex-row items-center justify-between">
         <h1 className="text-2xl font-semibold">Casa dos Pedidos</h1>
-        <ExportarPedidosButton />
+        <ExportarPedidosButton pedidoIdsFiltrados={idsFiltrados} />
       </div>
 
       <Tabs defaultValue="fila" className="space-y-4">
