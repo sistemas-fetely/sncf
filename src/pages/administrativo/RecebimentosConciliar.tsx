@@ -186,107 +186,46 @@ function chaveMes(mes: string | null | undefined): string | null {
 
 export default function RecebimentosConciliar() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [naoRecebivelCredito, setNaoRecebivelCredito] = useState<Credito | null>(null);
-  const [mesFiltro, setMesFiltro] = useState<string>("todos");
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: QUERY_KEY,
+  const {
+    data: orfaos,
+    isLoading: loadingOrfaos,
+    isError: errorOrfaos,
+    error: erroOrfaos,
+  } = useQuery({
+    queryKey: ["fila-creditos-nao-conciliados"],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
-        .from("vw_movimentacao_destino")
+        .from("vw_fila_creditos_nao_conciliados")
         .select(
-          "movimentacao_id, data_transacao, mes_caixa, tipo, valor, conta, conta_bancaria_id, descricao, contraparte_nome, contraparte_documento, referencia_pedido, classe, classe_nome, classe_terminal, eh_caixa_operacional, conciliado, titulos, valor_titulos, titulos_refs, nf_refs, pedidos_refs, pedido_id, mes_competencia, mes_pedido, destino"
+          "movimentacao_id, data_transacao, descricao, valor, conta_bancaria_id, conta_nome, dias_sem_conciliar, exige_acao_nossa"
         )
-        .eq("destino", "fila_recebivel")
         .order("data_transacao", { ascending: false });
       if (error) throw error;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return ((data || []) as any[]).map((r) => ({
-        id: r.movimentacao_id,
-        data_transacao: r.data_transacao,
-        descricao: r.descricao,
-        valor: r.valor,
-        conta_bancaria_id: r.conta_bancaria_id,
-        conta_nome: r.conta ?? null,
-        mes_caixa: r.mes_caixa ?? null,
-        referencia_pedido: r.referencia_pedido ?? null,
-        contraparte_nome: r.contraparte_nome ?? null,
-      })) as Credito[];
+        id: r.movimentacao_id as string,
+        data_transacao: r.data_transacao as string,
+        descricao: r.descricao as string | null,
+        valor: Number(r.valor || 0),
+        conta_bancaria_id: r.conta_bancaria_id as string | null,
+        conta_nome: r.conta_nome as string | null,
+        dias_sem_conciliar: r.dias_sem_conciliar as number | null,
+        exige_acao_nossa: r.exige_acao_nossa as boolean | null,
+      }));
     },
   });
-
-  const { data: classificadosRaw, isLoading: loadingClass, isError: errorClass } = useQuery({
-    queryKey: QUERY_KEY_CLASSIFICADOS,
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_movimentacao_destino")
-        .select(
-          "movimentacao_id, data_transacao, mes_caixa, valor, conta, descricao, classe_nome, destino, nf_refs, pedidos_refs, pedido_id"
-        )
-        .eq("tipo", "credito")
-        .in("destino", ["terminal", "resolvida_manual", "conciliada_titulo"])
-        .order("data_transacao", { ascending: false });
-      if (error) throw error;
-      return (data || []) as Classificado[];
-    },
-  });
-
-  const { data: baixasManuaisCount } = useQuery({
-    queryKey: ["baixas-manuais-aguardando-batimento"],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("titulo_a_receber")
-        .select("id", { count: "exact", head: true })
-        .in("status", ["pago", "pago_com_atraso", "pago_judicial"])
-        .is("movimentacao_baixa_id", null)
-        .eq("tipo_pagamento", "pix");
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
-  const todosCreditos = data || [];
-  const todosClassificados = classificadosRaw || [];
-
-  const mesesDisponiveis = useMemo(() => {
-    const set = new Set<string>();
-    todosCreditos.forEach((c) => {
-      const k = chaveMes(c.mes_caixa);
-      if (k) set.add(k);
-    });
-    return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [todosCreditos]);
-
-  const creditos = useMemo(
-    () =>
-      mesFiltro === "todos"
-        ? todosCreditos
-        : todosCreditos.filter((c) => chaveMes(c.mes_caixa) === mesFiltro),
-    [todosCreditos, mesFiltro]
-  );
-
-  const classificados = useMemo(
-    () =>
-      mesFiltro === "todos"
-        ? todosClassificados
-        : todosClassificados.filter((c) => chaveMes(c.mes_caixa) === mesFiltro),
-    [todosClassificados, mesFiltro]
-  );
-
-  const totalValor = creditos.reduce((s, c) => s + Number(c.valor || 0), 0);
 
   async function invalidar() {
-    await qc.invalidateQueries({ queryKey: QUERY_KEY });
-    await qc.invalidateQueries({ queryKey: QUERY_KEY_CLASSIFICADOS });
-    await qc.invalidateQueries({ queryKey: ["cobranca-divergencias"] });
-    await qc.invalidateQueries({ queryKey: ["baixas-manuais-aguardando-batimento"] });
+    await qc.invalidateQueries({ queryKey: ["fila-creditos-nao-conciliados"] });
+    await qc.invalidateQueries({ queryKey: ["recebimento-pedido-nivel"] });
     await qc.invalidateQueries({ queryKey: ["pagos-manuais-para-credito"] });
   }
 
+  const listaOrfaos = orfaos || [];
 
   return (
     <div className="p-6 space-y-6">
@@ -294,89 +233,46 @@ export default function RecebimentosConciliar() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <ArrowDownToLine className="h-6 w-6 text-admin" />
-            Recebimentos a conciliar
+            Conciliação de recebimento
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Créditos do extrato bancário ainda não vinculados a um título a receber.
+            Em que nível de prova está cada recebimento, pedido por pedido — e o extrato sem dono do lado.
           </p>
         </div>
-        <div className="space-y-1">
-          <span className="text-xs text-muted-foreground">Mês do crédito</span>
-          <Select value={mesFiltro} onValueChange={setMesFiltro}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os meses</SelectItem>
-              {mesesDisponiveis.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {labelMes(m)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-normal text-muted-foreground">Créditos na fila</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{creditos.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {classificados.length} já classificados fora da fila
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-normal text-muted-foreground">Soma dos créditos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700">{formatBRL(totalValor)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-normal text-muted-foreground">
-              Baixas manuais aguardando batimento
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-700">{baixasManuaisCount ?? "—"}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="fila" className="space-y-4">
+      <Tabs defaultValue="por_pedido" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="fila">Fila</TabsTrigger>
-          <TabsTrigger value="classificado">Já classificado</TabsTrigger>
+          <TabsTrigger value="por_pedido">Por pedido</TabsTrigger>
+          <TabsTrigger value="orfao">Extrato órfão</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="fila" className="space-y-6">
-          <DivergenciasCobrancaSection />
+        <TabsContent value="por_pedido">
+          <RecebimentoPorPedido />
+        </TabsContent>
 
+        <TabsContent value="orfao">
           <Card>
             <CardContent className="pt-6">
-              {isLoading ? (
+              {loadingOrfaos ? (
                 <div className="space-y-2">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Skeleton key={i} className="h-10 w-full" />
                   ))}
                 </div>
-              ) : isError ? (
-                <div className="py-12 text-center text-sm text-muted-foreground">
-                  Não foi possível carregar os créditos. Tente novamente em instantes.
+              ) : errorOrfaos ? (
+                <div className="py-8 text-sm text-destructive">
+                  Não foi possível carregar os créditos do extrato.
+                  <div className="mt-2 font-mono text-xs opacity-80">
+                    {(erroOrfaos as Error)?.message}
+                  </div>
                 </div>
-              ) : creditos.length === 0 ? (
+              ) : listaOrfaos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-admin-muted">
                     <Inbox className="h-8 w-8 text-admin" />
                   </div>
-                  <p className="text-lg font-semibold">Nenhum crédito aguardando conciliação.</p>
+                  <p className="text-lg font-semibold">Nenhum crédito de extrato sem dono.</p>
                 </div>
               ) : (
                 <div className="border rounded-md overflow-x-auto">
@@ -388,13 +284,13 @@ export default function RecebimentosConciliar() {
                         <TableHead>Meio</TableHead>
                         <TableHead>Conta</TableHead>
                         <TableHead>Descrição</TableHead>
-                        <TableHead>Pista de origem</TableHead>
+                        <TableHead>Dias sem conciliar</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
                         <TableHead className="w-64" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {creditos.map((c) => {
+                      {listaOrfaos.map((c) => {
                         const open = expandedId === c.id;
                         return (
                           <RowCredito
@@ -405,95 +301,13 @@ export default function RecebimentosConciliar() {
                             onNaoRecebivel={() => setNaoRecebivelCredito(c)}
                             invalidar={invalidar}
                             onDone={() => setExpandedId(null)}
+                            diasSemConciliar={c.dias_sem_conciliar}
                           />
                         );
                       })}
                     </TableBody>
                   </Table>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="classificado">
-          <Card>
-            <CardContent className="pt-6 space-y-3">
-              {loadingClass ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-10 w-full" />
-                  ))}
-                </div>
-              ) : errorClass ? (
-                <div className="py-12 text-center text-sm text-muted-foreground">
-                  Não foi possível carregar os créditos já classificados.
-                </div>
-              ) : (
-                <>
-                  <div className="border rounded-md overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Classe</TableHead>
-                          <TableHead>Conta</TableHead>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
-                          <TableHead>Destino</TableHead>
-                          <TableHead>NF</TableHead>
-                          <TableHead>Pedido</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {classificados.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
-                              Nenhum crédito classificado neste recorte.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          classificados.map((c) => (
-                            <TableRow key={c.movimentacao_id}>
-                              <TableCell className="whitespace-nowrap">{formatDateBR(c.data_transacao)}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{c.classe_nome || "—"}</Badge>
-                              </TableCell>
-                              <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                                {c.conta || "—"}
-                              </TableCell>
-                              <TableCell className="max-w-md truncate">{c.descricao || "—"}</TableCell>
-                              <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
-                                {formatBRL(Number(c.valor || 0))}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="secondary">{DESTINO_LABEL[c.destino] ?? c.destino}</Badge>
-                              </TableCell>
-                              <TableCell className="font-mono text-xs">{c.nf_refs || "—"}</TableCell>
-                              <TableCell className="font-mono text-xs">
-                                {c.pedido_id ? (
-                                  <Button
-                                    variant="link"
-                                    className="h-auto p-0 font-mono text-xs"
-                                    onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
-                                  >
-                                    {c.pedidos_refs || "ver pedido"}
-                                  </Button>
-                                ) : (
-                                  c.pedidos_refs || "—"
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Estes créditos já têm destino e por isso saíram da fila. Aporte de investidor, movimento interno,
-                    rendimento e transferência interna não são recebíveis: não existe título para casar.
-                  </p>
-                </>
               )}
             </CardContent>
           </Card>
@@ -511,6 +325,7 @@ export default function RecebimentosConciliar() {
     </div>
   );
 }
+
 
 
 function RowCredito({
