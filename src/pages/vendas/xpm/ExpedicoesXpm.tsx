@@ -559,7 +559,7 @@ export default function ExpedicoesXpm() {
     queryKey: ["xpm-expedicoes"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_xpm_expedicao")
+        .from("vw_xpm_ciclo")
         .select("*")
         .order("data_expedicao", { ascending: false });
       if (error) throw error;
