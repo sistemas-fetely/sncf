@@ -2322,8 +2322,7 @@ export default function PedidoDetalhe() {
                 <BotaoSplitPedidoInline pedido={pedido} estagio={estagio} />
               )}
 
-                />
-              )}
+
               {estagio === "pre_separacao" && (
                 <BotaoReterEstoque pedido={pedido} />
               )}
