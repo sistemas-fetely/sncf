@@ -74,11 +74,17 @@ export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens, trigg
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) reset(); }}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="gap-1">
-          <PackageOpen className="h-3.5 w-3.5" />
-          Dividir
+        <Button
+          size="sm"
+          variant="outline"
+          className={triggerFullWidth ? "w-full gap-1.5" : "gap-1"}
+          title={triggerTitle}
+        >
+          <PackageOpen className="h-3.5 w-3.5 shrink-0" />
+          {triggerLabel ?? "Dividir"}
         </Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Dividir {codigo}</DialogTitle>
