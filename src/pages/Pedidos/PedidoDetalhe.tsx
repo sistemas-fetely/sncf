@@ -694,11 +694,10 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
   return null;
 }
 
-function AcoesAguardandoPagamento({ pedido, geraTituloReceber }: { pedido: any; geraTituloReceber: boolean }) {
+function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?: boolean }) {
   return (
     <div className="flex flex-col gap-2 w-full">
       <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
-      {geraTituloReceber && <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />}
     </div>
   );
 }
