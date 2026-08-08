@@ -34,6 +34,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const t0 = Date.now();
+  // Compensação de remessa órfã acessível pelo catch externo (erro inesperado antes do POST).
+  let cleanupRemessaOrfa: (() => Promise<void>) | null = null;
 
   try {
     const supabase = createClient(
@@ -212,6 +214,10 @@ serve(async (req) => {
 
     // 1b. Remessa: usa a fornecida ou cria lazy /01
     let remessa: any = null;
+    // Guarda o id da remessa criada NESTA chamada (nunca de remessa preexistente),
+    // para permitir a compensação em qualquer caminho de erro antes do POST.
+    let remessaCriadaNestaChamada: string | null = null;
+
 
     if (remessa_id_input) {
       // Remessa explícita (split)
@@ -251,6 +257,17 @@ serve(async (req) => {
         );
       }
 
+      // FAIL-LOUD SEM DEIXAR RASTRO — a remessa e um efeito colateral persistente.
+      // Cria-la antes dos guardrails fazia toda tentativa falha deixar uma remessa orfa,
+      // que na tentativa seguinte disparava o guardrail de "remessa ja existente" e
+      // travava o pedido para sempre (PED-2116, 08/08). Remessa nasce so quando o envio
+      // esta garantido, ou e desfeita no mesmo request se algo falhar antes do POST.
+      //
+      // CAMINHO ADOTADO: COMPENSAÇÃO (não reordenação). Motivo técnico: os itens do POST
+      // vêm de `remessa.itens_json`, logo a remessa PRECISA existir antes da montagem e
+      // validação dos itens. Toda saída de erro entre a criação e o POST passa por
+      // `falhaLimpando()`, que apaga a remessa criada nesta chamada. Remessa preexistente
+      // nunca é apagada, e nada é apagado depois que o POST foi efetivamente enviado.
       const { data: rpcResult, error: rpcErr } = await supabase.rpc("criar_remessa" as string, {
         p_pedido_id: pedido_id,
         p_status: "pronta_para_envio",
@@ -259,19 +276,43 @@ serve(async (req) => {
       if (rpcErr || !rpcResult?.remessa_id) {
         return err(`Falha ao criar remessa /01: ${rpcErr?.message ?? "sem remessa_id"}`, 500);
       }
+      remessaCriadaNestaChamada = rpcResult.remessa_id as string;
 
       const { data: rem } = await supabase
         .from("pedido_remessa")
         .select("*")
         .eq("id", rpcResult.remessa_id)
         .maybeSingle();
-      if (!rem) return err("Remessa /01 criada mas não encontrada", 500);
+      if (!rem) {
+        await supabase.from("pedido_remessa").delete().eq("id", rpcResult.remessa_id);
+        remessaCriadaNestaChamada = null;
+        return err("Remessa /01 criada mas não encontrada", 500);
+      }
       remessa = rem;
     }
+
+    // Compensação: apaga a remessa criada nesta chamada antes de devolver o erro.
+    const limparRemessaOrfa = async () => {
+      if (!remessaCriadaNestaChamada) return;
+      const id = remessaCriadaNestaChamada;
+      remessaCriadaNestaChamada = null;
+      try {
+        await supabase.from("pedido_remessa").delete().eq("id", id).is("bling_pedido_id", null);
+      } catch (e) {
+        console.error("[enviar-pedido-bling] falha ao limpar remessa órfã", id, e);
+      }
+    };
+    const falhaLimpando = async (msg: string, status = 400) => {
+      await limparRemessaOrfa();
+      return err(msg, status);
+    };
+    cleanupRemessaOrfa = limparRemessaOrfa;
+
 
     // Código e valor da remessa
     const remessaCodigo = `${pedido.id_externo}/${String(remessa.sequencia).padStart(2, "0")}`;
     const remessaValor = Number(remessa.valor_remessa ?? pedido.valor_liquido);
+
 
     // 2. Parceiro (cliente)
     const { data: parceiro } = await supabase
@@ -280,7 +321,7 @@ serve(async (req) => {
       .eq("id", pedido.parceiro_id)
       .maybeSingle();
     if (!parceiro?.bling_id) {
-      return err("Parceiro sem bling_id — sincronize o parceiro no Bling antes", 409);
+      return await falhaLimpando("Parceiro sem bling_id — sincronize o parceiro no Bling antes", 409);
     }
 
     // 2b. Transportadora (opcional)
@@ -305,7 +346,7 @@ serve(async (req) => {
       .eq("codigo", pedido.forma_solicitada)
       .maybeSingle();
     if (!forma) {
-      return err(`Forma de pagamento "${pedido.forma_solicitada}" não encontrada em formas_pagamento`, 409);
+      return await falhaLimpando(`Forma de pagamento "${pedido.forma_solicitada}" não encontrada em formas_pagamento`, 409);
     }
 
     // 4. Títulos (sempre do pedido — cobrança não fragmenta por remessa em v1)
@@ -317,7 +358,7 @@ serve(async (req) => {
     const { data: titulos } = await supabase
       .rpc("fn_plano_recebimento_pedido", { p_pedido_id: pedido_id });
     if (geraTitulo && (!titulos || titulos.length === 0)) {
-      return err("Pedido sem títulos — confirme o portão na aba Primeiro Pagamento, ou materialize a cobrança, antes de enviar ao Bling.", 409);
+      return await falhaLimpando("Pedido sem títulos — confirme o portão na aba Primeiro Pagamento, ou materialize a cobrança, antes de enviar ao Bling.", 409);
     }
 
     // 5. Itens da remessa (formato normalizado: {descricao, sku, quantidade, valor_unitario})
@@ -330,7 +371,7 @@ serve(async (req) => {
       const nomes = itensSemSku
         .map((it: any) => it.descricao ?? "(sem descrição)")
         .join(" | ");
-      return err(
+      return await falhaLimpando(
         `${itensSemSku.length} item(s) sem SKU — corrija o catálogo antes de enviar ao Bling: ${nomes}`,
         409,
       );
@@ -343,7 +384,7 @@ serve(async (req) => {
       .eq("sistema", "bling")
       .maybeSingle();
     if (!cfg || !cfg.access_token) {
-      return err("Bling não conectado — fazer OAuth via /administrativo/bling", 503);
+      return await falhaLimpando("Bling não conectado — fazer OAuth via /administrativo/bling", 503);
     }
 
     const freshToken = await ensureFreshToken(supabase, cfg);
@@ -387,7 +428,7 @@ serve(async (req) => {
     }
 
     if (!blingFormaId) {
-      return err(
+      return await falhaLimpando(
         `Forma "${forma.codigo}" sem ID Bling — não encontrada no banco nem via API. Configure em /parametros.`,
         409,
       );
@@ -524,7 +565,7 @@ if (itensSemProdutoBling.length > 0) {
   const nomes = itensSemProdutoBling
     .map((it: any) => `${it.descricao ?? "(sem descrição)"} [${it.sku}]`)
     .join(" | ");
-  return err(
+  return await falhaLimpando(
     `${itensSemProdutoBling.length} produto(s) não encontrado(s) nem criado(s) no Bling — ` +
     `verifique os logs do Bling e cadastre manualmente antes de reenviar: ${nomes}`,
     409,
@@ -600,7 +641,7 @@ if (itensSemProdutoBling.length > 0) {
     // Se silenciado, a diferença cai inteira no último item gerando preço negativo.
     // Corrija a origem dos preços em itens_json antes de reenviar.
     if (Math.abs(diffItens) > 5.00) {
-      return err(
+      return await falhaLimpando(
         `Inconsistência de valor: diferença de R$ ${Math.abs(diffItens).toFixed(2)} entre ` +
         `soma dos itens (R$ ${totalProdutosCalc.toFixed(2)}) e valor do pedido ` +
         `(R$ ${totalProdutosPayload.toFixed(2)}). ` +
@@ -662,6 +703,10 @@ if (itensSemProdutoBling.length > 0) {
         ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
       };
     }
+
+    // A partir daqui o POST vai ao ar: nunca mais apagar a remessa.
+    remessaCriadaNestaChamada = null;
+    cleanupRemessaOrfa = null;
 
     // 10. POST Bling
     let blingId: number | null = null;
@@ -748,6 +793,8 @@ if (itensSemProdutoBling.length > 0) {
       return err(erroMsg || "Falha ao enviar pro Bling", 502);
     }
   } catch (e) {
+    // Erro inesperado antes do POST: desfaz a remessa criada nesta chamada.
+    if (cleanupRemessaOrfa) await cleanupRemessaOrfa();
     return err(`Erro inesperado: ${(e as Error).message}`, 500);
   }
 });
