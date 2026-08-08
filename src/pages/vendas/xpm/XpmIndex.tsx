@@ -3,9 +3,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import RecebimentoXpm from "./RecebimentoXpm";
 import EstoqueXpm from "./EstoqueXpm";
 import ExpedicoesXpm from "./ExpedicoesXpm";
+import PainelXpm from "./PainelXpm";
 
 const TABS = [
   { value: "expedicoes", label: "Expedições", component: <ExpedicoesXpm /> },
+  { value: "painel", label: "Painel XPM", component: <PainelXpm /> },
   { value: "recebimento", label: "Recebimento XPM", component: <RecebimentoXpm /> },
   { value: "estoque", label: "Estoque XPM", component: <EstoqueXpm /> },
 ];
