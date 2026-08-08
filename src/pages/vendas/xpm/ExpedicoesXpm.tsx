@@ -454,7 +454,10 @@ function LinhaExpandida({ exp, fases }: { exp: ExpedicaoXpm; fases: Map<number, 
         </div>
       </div>
 
+      <BlocoPausa codigo={exp.codigo} />
+
       <div className="space-y-2">
+
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Linha do tempo (eventos por volume)
         </div>
