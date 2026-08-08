@@ -31554,6 +31554,7 @@ export type Database = {
       xpm_expedicao_evento: {
         Row: {
           evento_id: number
+          evento_zenlog_id: number | null
           expedicao_codigo: string
           fim: string | null
           id: string
@@ -31563,6 +31564,7 @@ export type Database = {
         }
         Insert: {
           evento_id: number
+          evento_zenlog_id?: number | null
           expedicao_codigo: string
           fim?: string | null
           id?: string
@@ -31572,6 +31574,7 @@ export type Database = {
         }
         Update: {
           evento_id?: number
+          evento_zenlog_id?: number | null
           expedicao_codigo?: string
           fim?: string | null
           id?: string
@@ -38806,14 +38809,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
