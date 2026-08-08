@@ -94,33 +94,55 @@ function lote<T>(arr: T[], n: number): T[][] {
   return out;
 }
 
-async function buscarPedidos(ids: string[]): Promise<Row[]> {
+const PAGINA = 1000;
+const MAX_PEDIDOS = 20000;
+
+/** Busca todos os pedidos do período, paginando as linhas de resposta. */
+async function buscarPedidos(de: string, ate: string): Promise<Row[]> {
   const out: Row[] = [];
-  for (const chunk of lote(ids, 200)) {
+  for (let offset = 0; ; offset += PAGINA) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rows, error } = await (supabase as any)
       .from("pedidos")
       .select(SELECT_PEDIDOS)
-      .in("id", chunk);
+      .gte("data_pedido", de)
+      .lte("data_pedido", ate)
+      .order("data_pedido", { ascending: true })
+      .order("id", { ascending: true })
+      .range(offset, offset + PAGINA - 1);
     if (error) throw error;
-    out.push(...((rows || []) as Row[]));
+    const lote = (rows || []) as Row[];
+    out.push(...lote);
+    if (lote.length < PAGINA) break;
+    if (out.length > MAX_PEDIDOS) {
+      throw new Error("Período grande demais — reduza o intervalo");
+    }
   }
   return out;
 }
 
+/** Busca itens em blocos de 200 pedidos, paginando as linhas dentro de cada bloco. */
 async function buscarItens(ids: string[]): Promise<Row[]> {
   const out: Row[] = [];
   for (const chunk of lote(ids, 200)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rows, error } = await (supabase as any)
-      .from("pedido_itens")
-      .select("id, pedido_id, sku, descricao, quantidade, valor_unitario, valor_unitario_tabela, desconto_pct, subtotal, ordem")
-      .in("pedido_id", chunk);
-    if (error) throw error;
-    out.push(...((rows || []) as Row[]));
+    for (let offset = 0; ; offset += PAGINA) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error } = await (supabase as any)
+        .from("pedido_itens")
+        .select("id, pedido_id, sku, descricao, quantidade, valor_unitario, valor_unitario_tabela, desconto_pct, subtotal, ordem")
+        .in("pedido_id", chunk)
+        .order("pedido_id", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + PAGINA - 1);
+      if (error) throw error;
+      const pagina = (rows || []) as Row[];
+      out.push(...pagina);
+      if (pagina.length < PAGINA) break;
+    }
   }
   return out;
 }
+
 
 const COLS_PEDIDOS: ColDef[] = [
   { header: "Pedido", width: 14 },
