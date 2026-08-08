@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import RecebimentoXpm from "./RecebimentoXpm";
 import EstoqueXpm from "./EstoqueXpm";
+import ExpedicoesXpm from "./ExpedicoesXpm";
 
 const TABS = [
+  { value: "expedicoes", label: "Expedições", component: <ExpedicoesXpm /> },
   { value: "recebimento", label: "Recebimento XPM", component: <RecebimentoXpm /> },
   { value: "estoque", label: "Estoque XPM", component: <EstoqueXpm /> },
 ];
