@@ -50,6 +50,7 @@ import { formatError } from "@/lib/format-error";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { toast } from "sonner";
 import { ImportarExtratoDialog } from "@/components/financeiro/ImportarExtratoDialog";
+import { RecebimentoPorPedido } from "@/components/financeiro/RecebimentoPorPedido";
 
 type Credito = {
   id: string;
