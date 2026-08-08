@@ -78,7 +78,7 @@ export function FilaPedidosPorArea({
   apenasAtivos = true,
   incluirCancelados = false,
   somenteRiscoAlto = false,
-  onIdsFiltradosChange,
+  
 }: Props) {
   const [busca, setBusca] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
