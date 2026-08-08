@@ -306,6 +306,8 @@ serve(async (req) => {
       await limparRemessaOrfa();
       return err(msg, status);
     };
+    cleanupRemessaOrfa = limparRemessaOrfa;
+
 
     // Código e valor da remessa
     const remessaCodigo = `${pedido.id_externo}/${String(remessa.sequencia).padStart(2, "0")}`;
