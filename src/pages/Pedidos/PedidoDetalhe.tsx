@@ -2306,18 +2306,22 @@ export default function PedidoDetalhe() {
               {!estagioFinal && (
                 <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} geraTituloReceber={geraTituloReceber} />
               )}
+              {!estagioFinal && (
+                <AcoesRemessa
+                  pedido_id={pedido.id}
+                  parceiro_id={pedido.parceiro_id}
+                  id_externo={pedido.id_externo}
+                  estagio={estagio ?? ""}
+                  bling_id_destino={pedido.bling_id_destino}
+                />
+              )}
               {!estagioFinal && estagio === "aguardando_estoque" && (
                 <EnviarParaSeparacaoAcao pedidoId={pedido.id} />
               )}
               {!estagioFinal && (
                 <BotaoSplitPedidoInline pedido={pedido} estagio={estagio} />
               )}
-              {!estagioFinal && isSuperAdmin && (
-                <BotaoConsolidarPedido
-                  pedido={pedido}
-                  qtdTitulosAtivos={(titulosData ?? []).filter(
-                    (t: any) => !["cancelado", "cancelado_recuperacao"].includes(t.status)
-                  ).length}
+
                 />
               )}
               {estagio === "pre_separacao" && (
