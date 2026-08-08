@@ -244,6 +244,10 @@ export default function PainelXpm() {
         </Select>
       </header>
 
+      <AlertaDivergencia />
+
+
+
       {noPeriodo.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-sm text-muted-foreground">
