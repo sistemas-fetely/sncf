@@ -66,6 +66,8 @@ interface Props {
   incluirCancelados?: boolean;
   /** Espelha a tarja de risco alto do pipeline. */
   somenteRiscoAlto?: boolean;
+  /** Notifica o pai com os ids exatamente filtrados/visíveis na fila. */
+  onIdsFiltradosChange?: (ids: string[]) => void;
 }
 
 
@@ -78,6 +80,7 @@ export function FilaPedidosPorArea({
   apenasAtivos = true,
   incluirCancelados = false,
   somenteRiscoAlto = false,
+  onIdsFiltradosChange,
 }: Props) {
   const [busca, setBusca] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
