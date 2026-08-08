@@ -255,6 +255,17 @@ serve(async (req) => {
         );
       }
 
+      // FAIL-LOUD SEM DEIXAR RASTRO — a remessa e um efeito colateral persistente.
+      // Cria-la antes dos guardrails fazia toda tentativa falha deixar uma remessa orfa,
+      // que na tentativa seguinte disparava o guardrail de "remessa ja existente" e
+      // travava o pedido para sempre (PED-2116, 08/08). Remessa nasce so quando o envio
+      // esta garantido, ou e desfeita no mesmo request se algo falhar antes do POST.
+      //
+      // CAMINHO ADOTADO: COMPENSAÇÃO (não reordenação). Motivo técnico: os itens do POST
+      // vêm de `remessa.itens_json`, logo a remessa PRECISA existir antes da montagem e
+      // validação dos itens. Toda saída de erro entre a criação e o POST passa por
+      // `falhaLimpando()`, que apaga a remessa criada nesta chamada. Remessa preexistente
+      // nunca é apagada, e nada é apagado depois que o POST foi efetivamente enviado.
       const { data: rpcResult, error: rpcErr } = await supabase.rpc("criar_remessa" as string, {
         p_pedido_id: pedido_id,
         p_status: "pronta_para_envio",
@@ -263,6 +274,7 @@ serve(async (req) => {
       if (rpcErr || !rpcResult?.remessa_id) {
         return err(`Falha ao criar remessa /01: ${rpcErr?.message ?? "sem remessa_id"}`, 500);
       }
+      remessaCriadaNestaChamada = rpcResult.remessa_id as string;
 
       const { data: rem } = await supabase
         .from("pedido_remessa")
@@ -273,9 +285,26 @@ serve(async (req) => {
       remessa = rem;
     }
 
+    // Compensação: apaga a remessa criada nesta chamada antes de devolver o erro.
+    const limparRemessaOrfa = async () => {
+      if (!remessaCriadaNestaChamada) return;
+      const id = remessaCriadaNestaChamada;
+      remessaCriadaNestaChamada = null;
+      try {
+        await supabase.from("pedido_remessa").delete().eq("id", id).is("bling_pedido_id", null);
+      } catch (e) {
+        console.error("[enviar-pedido-bling] falha ao limpar remessa órfã", id, e);
+      }
+    };
+    const falhaLimpando = async (msg: string, status = 400) => {
+      await limparRemessaOrfa();
+      return err(msg, status);
+    };
+
     // Código e valor da remessa
     const remessaCodigo = `${pedido.id_externo}/${String(remessa.sequencia).padStart(2, "0")}`;
     const remessaValor = Number(remessa.valor_remessa ?? pedido.valor_liquido);
+
 
     // 2. Parceiro (cliente)
     const { data: parceiro } = await supabase
