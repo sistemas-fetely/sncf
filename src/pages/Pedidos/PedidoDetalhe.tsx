@@ -2366,12 +2366,25 @@ export default function PedidoDetalhe() {
                 </div>
               )}
               {estagio !== "cancelado" && (
-                <ComplementarSection
+                <VinculosSection
                   pedido_id={pedido.id}
-                  pedido_origem_id={pedido.pedido_origem_id ?? null}
                   id_externo={pedido.id_externo}
+                  split_de_pedido_id={(pedido as any).split_de_pedido_id ?? null}
+                  consolidado_em_pedido_id={(pedido as any).consolidado_em_pedido_id ?? null}
+                  pedido_origem_id={pedido.pedido_origem_id ?? null}
+                  acoesExtra={
+                    !estagioFinal && isSuperAdmin ? (
+                      <BotaoConsolidarPedido
+                        pedido={pedido}
+                        qtdTitulosAtivos={(titulosData ?? []).filter(
+                          (t: any) => !["cancelado", "cancelado_recuperacao"].includes(t.status)
+                        ).length}
+                      />
+                    ) : null
+                  }
                 />
               )}
+
 
             </div>
           </aside>
