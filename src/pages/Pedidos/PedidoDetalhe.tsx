@@ -1062,6 +1062,9 @@ export default function PedidoDetalhe() {
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
 
   const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, idade_minutos, sla_estourado } = data;
+  const rotuloPedido = pedido.id_externo ?? String(pedido.id).slice(0, 8);
+  const nomeClienteExibido =
+    (parceiro?.nome_fantasia ?? "").trim() || (parceiro?.razao_social ?? "").trim() || "Cliente";
   const geraTituloReceber = natureza?.gera_titulo_receber ?? true;
   const estagio = pedido.estagio as EstagioPedido;
   const estagioFinal = isEstagioFinal(estagio);
