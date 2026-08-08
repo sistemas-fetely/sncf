@@ -58,6 +58,32 @@ type ExpedicaoXpm = {
   qtd_atendida: number | null;
   tem_corte: boolean;
   sincronizado_em: string | null;
+  t_solicitado?: string | null;
+  t_embarcado?: string | null;
+  t_expedido?: string | null;
+  horas_ciclo_bruto?: number | null;
+  horas_pausadas?: number;
+  horas_ciclo_liquido?: number | null;
+  horas_em_curso_liquido?: number | null;
+  qtd_pausas?: number;
+  pausada_agora?: boolean;
+  concluida?: boolean;
+};
+
+type MotivoPausa = {
+  id: string;
+  codigo: string | null;
+  descricao: string | null;
+  culpa_nossa: boolean | null;
+  ordem: number | null;
+};
+
+type PausaXpm = {
+  id: string;
+  motivo_id: string;
+  observacao: string | null;
+  pausado_em: string;
+  retomado_em: string | null;
 };
 
 type ItemXpm = {
