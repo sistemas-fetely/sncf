@@ -1225,18 +1225,24 @@ export default function PedidoDetalhe() {
 
       <div className="px-6 pt-2 pb-4">
         <div className="space-y-1 min-w-0">
-          <h1 className="text-xl font-bold truncate">{nomeCanonico(parceiro?.razao_social, "Cliente")}</h1>
-          {apelidoParceiro(parceiro?.razao_social, parceiro?.nome_fantasia) && (
-            <p className="text-sm text-muted-foreground truncate">
-              {apelidoParceiro(parceiro?.razao_social, parceiro?.nome_fantasia)}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground font-mono">CNPJ {parceiro?.cnpj} · Pedido {pedido.id_externo}</p>
-          {parceiro?.email && (
-            <a href={`mailto:${parceiro.email}`} className="text-xs text-primary hover:underline truncate block">
-              {parceiro.email}
-            </a>
-          )}
+          {/* PEDIDO-E-O-TITULO: remessas do mesmo cliente precisam de abas distinguíveis. */}
+          <h1 className="font-serif text-[26px] font-medium tracking-tight text-foreground leading-tight truncate">
+            Pedido {rotuloPedido}
+          </h1>
+          <p className="text-[15px] text-muted-foreground truncate">
+            {pedido.parceiro_id ? (
+              <Link
+                to={`/parceiros/${pedido.parceiro_id}`}
+                title={parceiro?.razao_social ?? undefined}
+                className="text-primary border-b border-primary/40 no-underline hover:border-primary"
+              >
+                {nomeClienteExibido}
+              </Link>
+            ) : (
+              <span title={parceiro?.razao_social ?? undefined}>{nomeClienteExibido}</span>
+            )}
+            {parceiro?.cnpj && <span className="font-mono"> · CNPJ {parceiro.cnpj}</span>}
+          </p>
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <EstagioBadge estagio={estagio} />
             <NaturezaOperacaoBadge codigo={natureza?.codigo ?? null} nome={natureza?.nome ?? null} />
@@ -1245,6 +1251,12 @@ export default function PedidoDetalhe() {
             {sla_estourado && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertCircle className="h-3 w-3" />SLA estourado</Badge>}
             <MarcacaoPedido pedidoId={pedido.id} marcacao={pedido.marcacao ?? null} />
           </div>
+          <LinhaContatosCliente
+            telefone={parceiro?.telefone}
+            email={parceiro?.email}
+            email_cobranca={parceiro?.email_cobranca}
+            contatos={parceiro?.contatos}
+          />
           {!estagioFinal && pedido.proxima_acao && (
             <p className="text-sm text-muted-foreground italic pt-1.5">
               <span className="text-[10px] uppercase tracking-widest not-italic mr-1.5">Próxima ação:</span>
@@ -1253,6 +1265,7 @@ export default function PedidoDetalhe() {
           )}
         </div>
       </div>
+
 
       {/* Banner atenção — pausa (vermelho) ou aviso (âmbar) */}
       {(pedido as any).atencao_nivel && (
