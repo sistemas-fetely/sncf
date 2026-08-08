@@ -27,7 +27,14 @@ interface Props {
   pedidoId: string;
   codigo: string;
   itens: ItemRemessa[];
+  /** Rótulo do botão que abre o diálogo. Default: "Dividir". */
+  triggerLabel?: string;
+  /** title do botão (id completo da remessa em colunas estreitas). */
+  triggerTitle?: string;
+  /** Botão de largura cheia (uso na coluna AÇÕES). */
+  triggerFullWidth?: boolean;
 }
+
 
 export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens }: Props) {
   const [open, setOpen] = useState(false);
