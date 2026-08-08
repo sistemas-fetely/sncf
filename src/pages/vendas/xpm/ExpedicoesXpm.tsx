@@ -792,7 +792,8 @@ export default function ExpedicoesXpm() {
                     ) : (
                       filtradas.map((r) => {
                         const dias = r.dias_parado == null ? null : Number(r.dias_parado);
-                        const atrasado = dias != null && dias > 5;
+                        const pausada = r.pausada_agora === true;
+                        const atrasado = !pausada && dias != null && dias > 5;
                         const expandido = aberto === r.codigo;
                         return (
                           <Fragment key={r.codigo}>
