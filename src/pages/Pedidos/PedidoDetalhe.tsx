@@ -1404,8 +1404,17 @@ export default function PedidoDetalhe() {
                     </div>
                     {pedido.bling_id_destino && (
                       <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Bling ID</p>
-                        <p className="text-sm">#{pedido.bling_id_destino}</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">
+                          {pedidoVendaBling?.numero ? "Bling" : "Bling ID"}
+                        </p>
+                        {pedidoVendaBling?.numero ? (
+                          <>
+                            <p className="text-sm">#{pedidoVendaBling.numero}</p>
+                            <p className="text-[10px] text-muted-foreground">id {pedido.bling_id_destino}</p>
+                          </>
+                        ) : (
+                          <p className="text-sm">#{pedido.bling_id_destino}</p>
+                        )}
                       </div>
                     )}
                   </div>
