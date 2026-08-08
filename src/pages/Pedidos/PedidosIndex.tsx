@@ -62,6 +62,7 @@ export default function PedidosIndex() {
               apenasAtivos={!estagioParam}
               incluirCancelados={incluirCancelados}
               somenteRiscoAlto={riscoAltoAtivo}
+              onIdsFiltradosChange={setIdsFiltrados}
             />
           </div>
         </TabsContent>
