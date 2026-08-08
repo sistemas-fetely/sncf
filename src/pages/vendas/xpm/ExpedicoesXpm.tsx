@@ -183,7 +183,217 @@ function Semaforo({ seq }: { seq: number }) {
   );
 }
 
+function fmtHoras(v: number | null | undefined) {
+  if (v == null) return "—";
+  return `${Number(v).toFixed(1)} h`;
+}
+
+function BlocoPausa({ codigo }: { codigo: string }) {
+  const qc = useQueryClient();
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const [motivoId, setMotivoId] = useState("");
+  const [observacao, setObservacao] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const motivosQ = useQuery({
+    queryKey: ["xpm-motivos-pausa"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("xpm_motivo_pausa")
+        .select("id, codigo, descricao, culpa_nossa, ordem")
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as MotivoPausa[];
+    },
+  });
+
+  const pausasQ = useQuery({
+    queryKey: ["xpm-pausas", codigo],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("xpm_expedicao_pausa")
+        .select("id, motivo_id, observacao, pausado_em, retomado_em")
+        .eq("expedicao_codigo", codigo)
+        .order("pausado_em", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as PausaXpm[];
+    },
+  });
+
+  const motivoNome = (id: string) => {
+    const m = (motivosQ.data ?? []).find((x) => String(x.id) === String(id));
+    return m?.descricao ?? m?.codigo ?? "Motivo não catalogado";
+  };
+
+  const pausas = pausasQ.data ?? [];
+  const aberta = pausas.find((p) => p.retomado_em == null) ?? null;
+  const encerradas = pausas.filter((p) => p.retomado_em != null);
+
+  function invalidar() {
+    qc.invalidateQueries({ queryKey: ["xpm-expedicoes"] });
+    qc.invalidateQueries({ queryKey: ["xpm-pausas", codigo] });
+  }
+
+  async function pausar() {
+    if (!motivoId) {
+      toast.error("Escolha o motivo da pausa.");
+      return;
+    }
+    setSalvando(true);
+    try {
+      const userId = (await supabase.auth.getUser()).data.user?.id ?? null;
+      const { error } = await (supabase as any).from("xpm_expedicao_pausa").insert({
+        expedicao_codigo: codigo,
+        motivo_id: motivoId,
+        observacao: observacao.trim() || null,
+        criado_por: userId,
+      });
+      if (error) throw error;
+      toast.success("Expedição pausada.");
+      setDialogAberto(false);
+      setMotivoId("");
+      setObservacao("");
+      invalidar();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao pausar expedição", {
+        description: e?.details ?? e?.hint ?? undefined,
+      });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function retomar(id: string) {
+    setSalvando(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("xpm_expedicao_pausa")
+        .update({ retomado_em: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Expedição retomada.");
+      invalidar();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao retomar expedição", {
+        description: e?.details ?? e?.hint ?? undefined,
+      });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  const horas = (ini: string, fim: string) =>
+    ((new Date(fim).getTime() - new Date(ini).getTime()) / 3600000).toFixed(1);
+
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pausa</div>
+
+      {pausasQ.isLoading ? (
+        <Skeleton className="h-12 w-full" />
+      ) : pausasQ.isError ? (
+        <div className="text-sm text-destructive">
+          {(pausasQ.error as Error)?.message ?? "Erro ao carregar pausas"}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {aberta ? (
+            <div className="rounded-md border border-amber-500/50 bg-amber-500/5 p-3 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary">Pausado</Badge>
+                <span className="text-sm font-medium">{motivoNome(aberta.motivo_id)}</span>
+                <span className="text-xs text-muted-foreground">
+                  desde {fmtDataHora(aberta.pausado_em)} ({horas(aberta.pausado_em, new Date().toISOString())} h)
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto"
+                  disabled={salvando}
+                  onClick={() => retomar(aberta.id)}
+                >
+                  Retomar
+                </Button>
+              </div>
+              {aberta.observacao && (
+                <div className="text-sm text-muted-foreground">{aberta.observacao}</div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <Button size="sm" variant="outline" onClick={() => setDialogAberto(true)}>
+                Pausar
+              </Button>
+            </div>
+          )}
+
+          {encerradas.length > 0 && (
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              {encerradas.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                  <span className="font-medium text-foreground">{motivoNome(p.motivo_id)}</span>
+                  <span>
+                    {fmtDataHora(p.pausado_em)} → {fmtDataHora(p.retomado_em)}
+                  </span>
+                  <span className="tabular-nums">{horas(p.pausado_em, p.retomado_em as string)} h</span>
+                  {p.observacao && <span>· {p.observacao}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pausar expedição {codigo}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Motivo</Label>
+              <Select value={motivoId} onValueChange={setMotivoId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha o motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(motivosQ.data ?? []).map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.descricao ?? m.codigo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Observação</Label>
+              <Textarea
+                value={observacao}
+                onChange={(e) => setObservacao(e.target.value)}
+                placeholder="Opcional"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogAberto(false)} disabled={salvando}>
+              Cancelar
+            </Button>
+            <Button onClick={pausar} disabled={salvando || !motivoId}>
+              {salvando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Confirmar pausa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function LinhaExpandida({ exp, fases }: { exp: ExpedicaoXpm; fases: Map<number, string> }) {
+
   const itensQ = useQuery({
     queryKey: ["xpm-expedicao-itens", exp.codigo],
     queryFn: async () => {
