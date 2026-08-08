@@ -25,30 +25,25 @@ function iso(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-interface Props {
-  /** Ids dos pedidos exatamente como filtrados na fila (para o Rel. Auditoria). */
-  pedidoIdsFiltrados?: string[];
-}
+type Modo = "comercial" | "auditoria";
 
-export function ExportarPedidosButton({ pedidoIdsFiltrados = [] }: Props) {
+export function ExportarPedidosButton() {
   const hoje = new Date();
   const noventa = new Date(hoje.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-  const [open, setOpen] = useState(false);
+  const [modo, setModo] = useState<Modo | null>(null);
   const [de, setDe] = useState(iso(noventa));
   const [ate, setAte] = useState(iso(hoje));
   const [loading, setLoading] = useState(false);
-  const [loadingAuditoria, setLoadingAuditoria] = useState(false);
 
   const invalido = !de || !ate || de > ate;
-  const ocupado = loading || loadingAuditoria;
 
-  const handleExportar = async () => {
+  const handleComercial = async () => {
     setLoading(true);
     try {
       const linhas = await exportarPedidosComercial({ de, ate });
       toast.success(`Exportação concluída — ${linhas} linha(s).`);
-      setOpen(false);
+      setModo(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
@@ -57,19 +52,24 @@ export function ExportarPedidosButton({ pedidoIdsFiltrados = [] }: Props) {
   };
 
   const handleAuditoria = async () => {
-    if (pedidoIdsFiltrados.length === 0) {
-      toast.error("Nenhum pedido no filtro atual");
-      return;
-    }
-    setLoadingAuditoria(true);
+    setLoading(true);
+    const tid = toast.loading("Gerando Rel. Auditoria...");
     try {
-      const linhas = await gerarRelatorioAuditoria(pedidoIdsFiltrados);
-      toast.success(`Rel. Auditoria gerado — ${linhas} pedido(s).`);
+      const r = await gerarRelatorioAuditoria({ de, ate });
+      if (r.pedidos === 0) {
+        toast.error("Nenhum pedido no período", { id: tid });
+        return;
+      }
+      toast.success(
+        `Rel. Auditoria gerado — ${r.pedidos} pedido(s), ${r.itens} linha(s) de item.`,
+        { id: tid },
+      );
+      setModo(null);
     } catch (e) {
       console.error("Falha ao gerar Rel. Auditoria", e);
-      toast.error("Falha ao gerar Rel. Auditoria");
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar Rel. Auditoria", { id: tid });
     } finally {
-      setLoadingAuditoria(false);
+      setLoading(false);
     }
   };
 
@@ -77,30 +77,29 @@ export function ExportarPedidosButton({ pedidoIdsFiltrados = [] }: Props) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" disabled={ocupado}>
+          <Button variant="outline" size="sm" disabled={loading}>
             <Download className="h-4 w-4 mr-2" />
-            {ocupado ? "Gerando..." : "Exportar Excel"}
+            {loading ? "Gerando..." : "Exportar Excel"}
             <ChevronDown className="h-4 w-4 ml-2" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setOpen(true)}>Rel. Comercial</DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault();
-              void handleAuditoria();
-            }}
-          >
-            Rel. Auditoria
-          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setModo("comercial")}>Rel. Comercial</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setModo("auditoria")}>Rel. Auditoria</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={modo !== null} onOpenChange={(o) => !o && setModo(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Exportar pedidos</DialogTitle>
-            <DialogDescription>Escolha o período pela data do pedido.</DialogDescription>
+            <DialogTitle>
+              Exportar pedidos — {modo === "auditoria" ? "Rel. Auditoria" : "Rel. Comercial"}
+            </DialogTitle>
+            <DialogDescription>
+              {modo === "auditoria"
+                ? "Todos os pedidos do período, em qualquer estágio (inclui cancelados e entregues)."
+                : "Escolha o período pela data do pedido."}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -116,7 +115,10 @@ export function ExportarPedidosButton({ pedidoIdsFiltrados = [] }: Props) {
             <p className="text-xs text-destructive">A data inicial não pode ser maior que a final.</p>
           )}
           <DialogFooter>
-            <Button onClick={handleExportar} disabled={loading || invalido}>
+            <Button
+              onClick={() => void (modo === "auditoria" ? handleAuditoria() : handleComercial())}
+              disabled={loading || invalido}
+            >
               {loading ? "Gerando..." : "Exportar"}
             </Button>
           </DialogFooter>
@@ -125,5 +127,6 @@ export function ExportarPedidosButton({ pedidoIdsFiltrados = [] }: Props) {
     </>
   );
 }
+
 
 export default ExportarPedidosButton;
