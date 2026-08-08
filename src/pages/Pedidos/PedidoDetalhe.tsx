@@ -963,6 +963,16 @@ export default function PedidoDetalhe() {
     },
   });
 
+  // Aba do browser espelha o H1 — remessas do mesmo cliente ficam distinguíveis.
+  const idExternoAba = data?.pedido?.id_externo ?? (data?.pedido?.id ? String(data.pedido.id).slice(0, 8) : null);
+  useEffect(() => {
+    if (!idExternoAba) return;
+    const anterior = document.title;
+    document.title = `Pedido ${idExternoAba}`;
+    return () => { document.title = anterior; };
+  }, [idExternoAba]);
+
+
   const { data: haveresDisponiveisData } = useQuery({
     queryKey: ["haver-disponivel", parceiroIdAtual],
     enabled: !!parceiroIdAtual,
