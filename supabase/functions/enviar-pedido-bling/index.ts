@@ -704,6 +704,10 @@ if (itensSemProdutoBling.length > 0) {
       };
     }
 
+    // A partir daqui o POST vai ao ar: nunca mais apagar a remessa.
+    remessaCriadaNestaChamada = null;
+    cleanupRemessaOrfa = null;
+
     // 10. POST Bling
     let blingId: number | null = null;
     let respStatus: number | null = null;
@@ -789,6 +793,8 @@ if (itensSemProdutoBling.length > 0) {
       return err(erroMsg || "Falha ao enviar pro Bling", 502);
     }
   } catch (e) {
+    // Erro inesperado antes do POST: desfaz a remessa criada nesta chamada.
+    if (cleanupRemessaOrfa) await cleanupRemessaOrfa();
     return err(`Erro inesperado: ${(e as Error).message}`, 500);
   }
 });
