@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Clock, Shield, TrendingUp, UsersRound, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BadgesContextuaisProps {
   parceiro: {
