@@ -12,6 +12,7 @@ export default function PedidosIndex() {
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
+  const [idsFiltrados, setIdsFiltrados] = useState<string[]>([]);
 
   const handlePipelineClick = (estagio: EstagioPedido) => {
     const next = new URLSearchParams(searchParams);
