@@ -21,14 +21,14 @@ import { ESTAGIO_LABELS } from "@/types/pedido";
 import { formatError } from "@/lib/format-error";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
-import { edicaoBloqueadaPorEstagio, rotuloEstagioHumano } from "@/components/pedidos/BotaoEditarPedido";
+import { rotuloEstagioHumano } from "@/components/pedidos/BotaoEditarPedido";
 
 /**
  * Espelho da guarda de banco (fn_exigir_edicao_permitida sobre a dimensão
  * pedido_edicao_campo): recusa a escrita antes de sair do client.
  */
-function exigirEstagioEditavel(estagio: string | null | undefined) {
-  if (edicaoBloqueadaPorEstagio(estagio)) {
+function exigirCampoEditavel(permitido: boolean, estagio: string | null | undefined) {
+  if (!permitido) {
     throw new Error(`Edição bloqueada: pedido em ${rotuloEstagioHumano(estagio)}`);
   }
 }
@@ -195,7 +195,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
 
   const salvar = useMutation({
     mutationFn: async () => {
-      exigirEstagioEditavel(pedido?.estagio);
+      exigirCampoEditavel(guarda.permitido, pedido?.estagio);
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data, error } = await (supabase as any).rpc("alterar_pagamento_pedido", {
@@ -361,7 +361,7 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
 
   const salvar = useMutation({
     mutationFn: async () => {
-      exigirEstagioEditavel(pedido?.estagio);
+      exigirCampoEditavel(guarda.permitido, pedido?.estagio);
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data, error } = await (supabase as any).rpc("alterar_desconto_pedido", {
