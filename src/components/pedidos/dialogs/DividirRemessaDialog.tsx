@@ -36,7 +36,7 @@ interface Props {
 }
 
 
-export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens }: Props) {
+export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens, triggerLabel, triggerTitle, triggerFullWidth }: Props) {
   const [open, setOpen] = useState(false);
   const [mover, setMover] = useState(() => itens.map(() => 0));
   const dividir = useDividirRemessa();
