@@ -31496,6 +31496,7 @@ export type Database = {
           id: string
           lote: string
           operador_cnpj: string | null
+          posicao_id_zenlog: number | null
           quantidade: number
           quantidade_reservada: number | null
           sincronizado_em: string
@@ -31510,6 +31511,7 @@ export type Database = {
           id?: string
           lote?: string
           operador_cnpj?: string | null
+          posicao_id_zenlog?: number | null
           quantidade?: number
           quantidade_reservada?: number | null
           sincronizado_em?: string
@@ -31524,6 +31526,7 @@ export type Database = {
           id?: string
           lote?: string
           operador_cnpj?: string | null
+          posicao_id_zenlog?: number | null
           quantidade?: number
           quantidade_reservada?: number | null
           sincronizado_em?: string

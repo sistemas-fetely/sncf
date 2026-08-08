@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
           const sku = it.produto?.codigo;
           if (!sku) continue;
           acumulado.push({
+            posicao_id_zenlog: it.id ?? null,
             data_hora_posicao: horario,
             sku,
             descricao: it.produto?.descricao ?? null,
@@ -124,7 +125,7 @@ Deno.serve(async (req) => {
           const fatia = acumulado.slice(i, i + 500);
           const { error: eUp } = await sb
             .from("xpm_estoque_posicao")
-            .upsert(fatia, { onConflict: "data_hora_posicao,sku,lote,endereco,situacao_estoque" });
+            .upsert(fatia, { onConflict: "posicao_id_zenlog", ignoreDuplicates: false });
           if (eUp) throw new Error(`upsert posicao ${horario}: ${eUp.message}`);
         }
         linhas += acumulado.length;
