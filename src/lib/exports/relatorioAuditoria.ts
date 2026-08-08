@@ -61,10 +61,9 @@ function montarAba(cols: ColDef[], linhas: Cell[][]): XLSX.WorkSheet {
   const range = { s: { r: 0, c: 0 }, e: { r: linhas.length, c: Math.max(cols.length - 1, 0) } };
   ws["!ref"] = XLSX.utils.encode_range(range);
   ws["!cols"] = cols.map((c) => ({ wch: c.width }));
-  ws["!freeze"] = { xSplit: "0", ySplit: "1" };
-  // Congelamento (SheetJS grava via !freeze em alguns writers; !view cobre xlsx)
+  // Congela a linha de cabeçalho (SheetJS grava o pane via !freeze).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (ws as any)["!views"] = [{ ySplit: 1, state: "frozen", topLeftCell: "A2" }];
+  (ws as any)["!freeze"] = "A2";
   ws["!autofilter"] = { ref: XLSX.utils.encode_range(range) };
   return ws;
 }
