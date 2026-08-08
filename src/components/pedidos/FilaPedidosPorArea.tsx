@@ -257,13 +257,7 @@ export function FilaPedidosPorArea({
     return { entregues, cancelados, recuperacao, total: linhas?.length ?? 0 };
   }, [buscaGlobalAtiva, linhas]);
 
-  // Espelha para o pai o conjunto exatamente filtrado (usado pelo Rel. Auditoria).
-  const idsFiltrados = useMemo(() => (linhas || []).map((p) => p.id), [linhas]);
-  const idsFiltradosKey = idsFiltrados.join(",");
-  useEffect(() => {
-    onIdsFiltradosChange?.(idsFiltradosKey ? idsFiltradosKey.split(",") : []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsFiltradosKey]);
+
 
 
 
