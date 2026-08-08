@@ -11,6 +11,7 @@ export interface PedidoEmbalagem {
   pacotes_v: number | null;
   pacotes_g: number | null;
   pacotes_p: number | null;
+  pacotes_l: number | null;
   pacotes_total: number | null;
   litros_solidos: number | null;
   fator_embalagem: number | null;
