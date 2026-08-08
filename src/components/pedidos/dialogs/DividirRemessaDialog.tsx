@@ -27,9 +27,16 @@ interface Props {
   pedidoId: string;
   codigo: string;
   itens: ItemRemessa[];
+  /** Rótulo do botão que abre o diálogo. Default: "Dividir". */
+  triggerLabel?: string;
+  /** title do botão (id completo da remessa em colunas estreitas). */
+  triggerTitle?: string;
+  /** Botão de largura cheia (uso na coluna AÇÕES). */
+  triggerFullWidth?: boolean;
 }
 
-export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens }: Props) {
+
+export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens, triggerLabel, triggerTitle, triggerFullWidth }: Props) {
   const [open, setOpen] = useState(false);
   const [mover, setMover] = useState(() => itens.map(() => 0));
   const dividir = useDividirRemessa();
@@ -67,11 +74,17 @@ export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens }: Pro
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) reset(); }}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="gap-1">
-          <PackageOpen className="h-3.5 w-3.5" />
-          Dividir
+        <Button
+          size="sm"
+          variant="outline"
+          className={triggerFullWidth ? "w-full gap-1.5" : "gap-1"}
+          title={triggerTitle}
+        >
+          <PackageOpen className="h-3.5 w-3.5 shrink-0" />
+          {triggerLabel ?? "Dividir"}
         </Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Dividir {codigo}</DialogTitle>

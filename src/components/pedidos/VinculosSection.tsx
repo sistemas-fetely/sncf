@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,42 +8,77 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Link2, Link2Off, Search, Loader2, ExternalLink } from "lucide-react";
+import { Link2, Link2Off, Search, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { usePedidosComplementares } from "@/hooks/pedidos/usePedidosComplementares";
 import { useVincularComplementar } from "@/hooks/pedidos/useVincularComplementar";
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useVinculosPedido, type PedidoVinculo } from "@/hooks/pedidos/useVinculosPedido";
+import { ESTAGIO_CORES } from "@/components/pedidos/BadgesPedido";
+import { ESTAGIO_LABELS } from "@/types/pedido";
+import type { EstagioPedido } from "@/types/pedido";
+import { cn } from "@/lib/utils";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 interface Props {
   pedido_id: string;
-  pedido_origem_id: string | null;
   id_externo: string;
+  split_de_pedido_id: string | null;
+  consolidado_em_pedido_id: string | null;
+  pedido_origem_id: string | null;
+  /** Ações de vínculo vindas de fora (ex.: consolidar outro pedido aqui). */
+  acoesExtra?: ReactNode;
 }
 
-function useOrigem(pedido_origem_id: string | null) {
-  return useQuery({
-    queryKey: ["pedido-origem", pedido_origem_id],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("pedidos")
-        .select("id, id_externo, valor_liquido, estagio")
-        .eq("id", pedido_origem_id!)
-        .maybeSingle();
-      return data as any;
-    },
-    enabled: !!pedido_origem_id,
-  });
+function rotuloEstagio(estagio: string) {
+  return ESTAGIO_LABELS[estagio as EstagioPedido] ?? estagio;
 }
 
-export function ComplementarSection({ pedido_id, pedido_origem_id, id_externo }: Props) {
-  const navigate = useNavigate();
+/** Linha de vínculo: id_externo linkado + ponto de estágio. Sem valor, sem contagem. */
+function LinhaVinculo({ pedido }: { pedido: PedidoVinculo }) {
+  const cor = ESTAGIO_CORES[pedido.estagio as EstagioPedido] ?? "bg-muted-foreground";
+  return (
+    <Link
+      to={`/pedidos/${pedido.id}`}
+      title={`${pedido.id_externo} · ${rotuloEstagio(pedido.estagio)}`}
+      className="flex items-start gap-1.5 text-xs leading-tight hover:underline"
+    >
+      <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", cor)} aria-hidden />
+      <span className="break-all font-medium">{pedido.id_externo}</span>
+    </Link>
+  );
+}
+
+function Grupo({ rotulo, pedidos }: { rotulo: string; pedidos: PedidoVinculo[] }) {
+  if (!pedidos.length) return null;
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {rotulo}
+      </p>
+      <div className="space-y-1">
+        {pedidos.map((p) => <LinhaVinculo key={p.id} pedido={p} />)}
+      </div>
+    </div>
+  );
+}
+
+export function VinculosSection({
+  pedido_id,
+  id_externo,
+  split_de_pedido_id,
+  consolidado_em_pedido_id,
+  pedido_origem_id,
+  acoesExtra,
+}: Props) {
   const vincular = useVincularComplementar();
-  const { data: complementares } = usePedidosComplementares(pedido_id);
-  const { data: origem } = useOrigem(pedido_origem_id);
+  const { data: vinculos } = useVinculosPedido({
+    pedido_id,
+    split_de_pedido_id,
+    consolidado_em_pedido_id,
+    pedido_origem_id,
+  });
   const { data: permissoes } = usePermissoesDoUsuario();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
@@ -51,14 +86,23 @@ export function ComplementarSection({ pedido_id, pedido_origem_id, id_externo }:
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busca, setBusca] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [resultado, setResultado] = useState<any>(null);
   const [buscando, setBuscando] = useState(false);
   const [errosBusca, setErroBusca] = useState<string | null>(null);
 
-  const temComplementares = !!complementares && complementares.length > 0;
   const temOrigem = !!pedido_origem_id;
+  const temAlgumVinculo =
+    !!vinculos &&
+    (vinculos.remessas.length > 0 ||
+      !!vinculos.remessa_de ||
+      !!vinculos.consolidado_em ||
+      vinculos.consolidou.length > 0 ||
+      !!vinculos.origem ||
+      vinculos.complementares.length > 0);
 
-  if (!temOrigem && !temComplementares && !podeSplit) return null;
+  const temAcoes = podeSplit || !!acoesExtra;
+  if (!temAlgumVinculo && !temAcoes) return null;
 
   const handleBuscar = async () => {
     if (!busca.trim()) return;
@@ -75,6 +119,7 @@ export function ComplementarSection({ pedido_id, pedido_origem_id, id_externo }:
         .maybeSingle();
       if (!data) setErroBusca("Pedido não encontrado.");
       else setResultado(data);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setErroBusca(e.message);
     } finally {
@@ -90,75 +135,45 @@ export function ComplementarSection({ pedido_id, pedido_origem_id, id_externo }:
     setResultado(null);
   };
 
-  const handleDesvincular = async () => {
-    await vincular.mutateAsync({ pedido_id, pedido_origem_id: null });
-  };
-
   return (
     <Card className="border-border/60">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <Link2 className="h-4 w-4 text-muted-foreground" />
-          Complementar
+          Vínculos
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {temOrigem && origem && (
-          <div className="rounded-md border p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <Link2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Complementar de</span>
-                <button
-                  className="font-medium inline-flex items-center gap-1 hover:underline"
-                  onClick={() => navigate(`/casa-dos-pedidos/${origem.id}`)}
-                >
-                  {origem.id_externo}
-                  <ExternalLink className="h-3 w-3" />
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{fmtBRL.format(origem.valor_liquido ?? 0)}</span>
-                {podeSplit && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleDesvincular}
-                    disabled={vincular.isPending}
-                    title="Remover vínculo"
-                  >
-                    <Link2Off className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {temComplementares && (
-          <div className="space-y-2">
-            {complementares!.map((c: any) => (
-              <div key={c.id} className="rounded-md border p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Link2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Complementado por</span>
-                    <button
-                      className="font-medium inline-flex items-center gap-1 hover:underline"
-                      onClick={() => navigate(`/casa-dos-pedidos/${c.id}`)}
+        {vinculos && (
+          <>
+            <Grupo rotulo="Remessas" pedidos={vinculos.remessas} />
+            <Grupo rotulo="Remessa de" pedidos={vinculos.remessa_de ? [vinculos.remessa_de] : []} />
+            <Grupo rotulo="Consolidado em" pedidos={vinculos.consolidado_em ? [vinculos.consolidado_em] : []} />
+            <Grupo rotulo="Consolidou" pedidos={vinculos.consolidou} />
+            {vinculos.origem && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Origem
+                </p>
+                <div className="flex items-start justify-between gap-1">
+                  <LinhaVinculo pedido={vinculos.origem} />
+                  {podeSplit && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => vincular.mutate({ pedido_id, pedido_origem_id: null })}
+                      disabled={vincular.isPending}
+                      title="Remover vínculo de complementar"
                     >
-                      {c.id_externo}
-                      <ExternalLink className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">{c.estagio}</Badge>
-                    <span className="text-sm font-medium">{fmtBRL.format(c.valor_liquido ?? 0)}</span>
-                  </div>
+                      <Link2Off className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+            <Grupo rotulo="Complementado por" pedidos={vinculos.complementares} />
+          </>
         )}
 
         {podeSplit && !temOrigem && (
@@ -172,6 +187,8 @@ export function ComplementarSection({ pedido_id, pedido_origem_id, id_externo }:
             Vincular como complementar de…
           </Button>
         )}
+
+        {acoesExtra}
 
         <Dialog open={dialogOpen} onOpenChange={(v) => { if (!vincular.isPending) setDialogOpen(v); }}>
           <DialogContent>
@@ -207,7 +224,9 @@ export function ComplementarSection({ pedido_id, pedido_origem_id, id_externo }:
                     <div className="font-medium">{resultado.id_externo}</div>
                     <div className="text-sm">{fmtBRL.format(resultado.valor_liquido ?? 0)}</div>
                   </div>
-                  <Badge variant="secondary" className="mt-1 text-xs">{resultado.estagio}</Badge>
+                  <Badge variant="secondary" className="mt-1 text-xs">
+                    {rotuloEstagio(resultado.estagio)}
+                  </Badge>
                 </div>
               )}
             </div>

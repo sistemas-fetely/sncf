@@ -63,8 +63,9 @@ import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/Confirma
 import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 
-import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
-import { RemessasSection } from "@/components/pedidos/RemessasSection";
+import { VinculosSection } from "@/components/pedidos/VinculosSection";
+import { AcoesRemessa } from "@/components/pedidos/AcoesRemessa";
+
 import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
 import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunidadeDialog";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
@@ -1991,18 +1992,7 @@ export default function PedidoDetalhe() {
           </div>
 
 
-          {/* ============ FAIXA 3: Remessas ============ */}
-          <div className="grid gap-4 lg:grid-cols-2 items-start">
-            {estagio !== "cancelado" && (
-              <RemessasSection
-                pedido_id={pedido.id}
-                parceiro_id={pedido.parceiro_id}
-                id_externo={pedido.id_externo}
-                estagio={pedido.estagio}
-                bling_id_destino={pedido.bling_id_destino}
-              />
-            )}
-          </div>
+
 
 
 
@@ -2316,20 +2306,23 @@ export default function PedidoDetalhe() {
               {!estagioFinal && (
                 <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} geraTituloReceber={geraTituloReceber} />
               )}
+              {!estagioFinal && (
+                <AcoesRemessa
+                  pedido_id={pedido.id}
+                  parceiro_id={pedido.parceiro_id}
+                  id_externo={pedido.id_externo}
+                  estagio={estagio ?? ""}
+                  bling_id_destino={pedido.bling_id_destino}
+                />
+              )}
               {!estagioFinal && estagio === "aguardando_estoque" && (
                 <EnviarParaSeparacaoAcao pedidoId={pedido.id} />
               )}
               {!estagioFinal && (
                 <BotaoSplitPedidoInline pedido={pedido} estagio={estagio} />
               )}
-              {!estagioFinal && isSuperAdmin && (
-                <BotaoConsolidarPedido
-                  pedido={pedido}
-                  qtdTitulosAtivos={(titulosData ?? []).filter(
-                    (t: any) => !["cancelado", "cancelado_recuperacao"].includes(t.status)
-                  ).length}
-                />
-              )}
+
+
               {estagio === "pre_separacao" && (
                 <BotaoReterEstoque pedido={pedido} />
               )}
@@ -2376,12 +2369,25 @@ export default function PedidoDetalhe() {
                 </div>
               )}
               {estagio !== "cancelado" && (
-                <ComplementarSection
+                <VinculosSection
                   pedido_id={pedido.id}
-                  pedido_origem_id={pedido.pedido_origem_id ?? null}
                   id_externo={pedido.id_externo}
+                  split_de_pedido_id={(pedido as any).split_de_pedido_id ?? null}
+                  consolidado_em_pedido_id={(pedido as any).consolidado_em_pedido_id ?? null}
+                  pedido_origem_id={pedido.pedido_origem_id ?? null}
+                  acoesExtra={
+                    !estagioFinal && isSuperAdmin ? (
+                      <BotaoConsolidarPedido
+                        pedido={pedido}
+                        qtdTitulosAtivos={(titulosData ?? []).filter(
+                          (t: any) => !["cancelado", "cancelado_recuperacao"].includes(t.status)
+                        ).length}
+                      />
+                    ) : null
+                  }
                 />
               )}
+
 
             </div>
           </aside>
