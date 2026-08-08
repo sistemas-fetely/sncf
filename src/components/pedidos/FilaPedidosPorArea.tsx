@@ -66,8 +66,6 @@ interface Props {
   incluirCancelados?: boolean;
   /** Espelha a tarja de risco alto do pipeline. */
   somenteRiscoAlto?: boolean;
-  /** Notifica o pai com os ids exatamente filtrados/visíveis na fila. */
-  onIdsFiltradosChange?: (ids: string[]) => void;
 }
 
 
