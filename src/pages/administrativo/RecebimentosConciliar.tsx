@@ -335,6 +335,7 @@ function RowCredito({
   onNaoRecebivel,
   invalidar,
   onDone,
+  diasSemConciliar,
 }: {
   credito: Credito;
   open: boolean;
@@ -342,6 +343,7 @@ function RowCredito({
   onNaoRecebivel: () => void;
   invalidar: () => Promise<void>;
   onDone: () => void;
+  diasSemConciliar?: number | null;
 }) {
   const meio = detectarMeio(credito.descricao);
   const badge = MEIO_BADGE[meio];
@@ -366,7 +368,15 @@ function RowCredito({
         </TableCell>
         <TableCell className="max-w-md truncate">{credito.descricao || "—"}</TableCell>
         <TableCell className="text-xs">
-          {credito.referencia_pedido ? (
+          {diasSemConciliar != null ? (
+            <span
+              className={
+                diasSemConciliar >= 15 ? "text-red-700 font-medium" : "text-muted-foreground"
+              }
+            >
+              {diasSemConciliar} dia(s)
+            </span>
+          ) : credito.referencia_pedido ? (
             <Badge variant="outline" title="Identificador informado no QR/PIX — pista, não verdade">
               {credito.referencia_pedido}
             </Badge>
@@ -380,6 +390,7 @@ function RowCredito({
             <span className="text-muted-foreground">—</span>
           )}
         </TableCell>
+
 
 
         <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
