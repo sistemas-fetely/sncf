@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -22,22 +23,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, Loader2, AlertTriangle, CheckCircle2, PackageX } from "lucide-react";
+import { Upload, Loader2, AlertTriangle, CheckCircle2, PackageX, RefreshCw } from "lucide-react";
 
-type ConciliacaoRow = {
+type ConciliacaoApi = {
   sku: string;
   nome_comercial: string | null;
   grupo: string | null;
   linha: string | null;
   colecao: string | null;
-  data_snapshot: string | null;
-  xpm_normal: number | null;
-  xpm_truncado: number | null;
-  xpm_danificado: number | null;
-  saldo_ledger_sncf: number | null;
-  diferenca: number | null;
-  existe_no_catalogo: boolean | null;
-  status_conciliacao: "ok" | "divergente" | "so_na_xpm" | "so_no_ledger" | null;
+  descricao_xpm: string | null;
+  data_hora_posicao: string | null;
+  xpm_liberado: number;
+  xpm_outras: number;
+  xpm_total: number;
+  saldo_ledger_sncf: number;
+  diferenca: number;
+  existe_no_catalogo: boolean;
+  status_conciliacao: "ok" | "divergente" | "so_na_xpm" | "so_no_ledger";
 };
 
 type IngestResult = {
@@ -50,13 +52,13 @@ type IngestResult = {
 };
 
 const STATUS_META: Record<
-  NonNullable<ConciliacaoRow["status_conciliacao"]>,
+  ConciliacaoApi["status_conciliacao"],
   { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
 > = {
-  ok: { label: "OK", variant: "secondary" },
+  ok: { label: "OK", variant: "outline" },
   divergente: { label: "Divergente", variant: "destructive" },
-  so_na_xpm: { label: "Só na XPM", variant: "outline" },
-  so_no_ledger: { label: "Só no razão", variant: "outline" },
+  so_na_xpm: { label: "Só na XPM", variant: "secondary" },
+  so_no_ledger: { label: "Só no razão", variant: "secondary" },
 };
 
 function parseNumBR(raw: string): number {
@@ -119,6 +121,21 @@ function parseArquivoXpm(html: string): {
   return { rows, totalDeclarado, totalNormalDeclarado, totalDanificadoDeclarado };
 }
 
+const nf = new Intl.NumberFormat("pt-BR");
+
+function fmtPosicao(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function EstoqueXpm() {
   const qc = useQueryClient();
   const hoje = new Date().toISOString().slice(0, 10);
@@ -129,50 +146,114 @@ export default function EstoqueXpm() {
 
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  const [sincronizando, setSincronizando] = useState(false);
+  const [posicaoEscolhida, setPosicaoEscolhida] = useState<string>("");
 
   const conciliacaoQ = useQuery({
     queryKey: ["xpm-estoque-conciliacao"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_xpm_estoque_conciliacao")
+        .from("vw_xpm_estoque_conciliacao_api")
         .select("*")
         .order("sku", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as ConciliacaoRow[];
+      return (data ?? []) as ConciliacaoApi[];
+    },
+  });
+
+  const posicoesQ = useQuery({
+    queryKey: ["xpm-estoque-posicoes"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("xpm_estoque_posicao")
+        .select("data_hora_posicao")
+        .order("data_hora_posicao", { ascending: false })
+        .limit(2000);
+      if (error) throw error;
+      const set = new Set<string>();
+      for (const r of (data ?? []) as { data_hora_posicao: string | null }[]) {
+        if (r.data_hora_posicao) set.add(r.data_hora_posicao);
+      }
+      return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+    },
+  });
+
+  const posicoes = posicoesQ.data ?? [];
+  const posicaoMaisRecente = posicoes[0] ?? null;
+  const posicaoAtiva = posicaoEscolhida || posicaoMaisRecente || "";
+  const verHistorico = !!posicaoAtiva && posicaoAtiva !== posicaoMaisRecente;
+
+  const historicoQ = useQuery({
+    queryKey: ["xpm-estoque-posicao-detalhe", posicaoAtiva],
+    enabled: verHistorico,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("xpm_estoque_posicao")
+        .select("sku, descricao, quantidade, situacao_estoque, lote")
+        .eq("data_hora_posicao", posicaoAtiva)
+        .order("sku");
+      if (error) throw error;
+      return (data ?? []) as {
+        sku: string;
+        descricao: string | null;
+        quantidade: number | null;
+        situacao_estoque: string | null;
+        lote: string | null;
+      }[];
     },
   });
 
   const rows = conciliacaoQ.data ?? [];
 
   const kpis = useMemo(() => {
-    const totalSkus = rows.length;
-    const totalNormal = rows.reduce((s, r) => s + Number(r.xpm_normal ?? 0), 0);
-    const totalDanificado = rows.reduce((s, r) => s + Number(r.xpm_danificado ?? 0), 0);
-    const totalTruncado = rows.reduce((s, r) => s + Number(r.xpm_truncado ?? 0), 0);
-    const snapshot = rows.find((r) => r.data_snapshot)?.data_snapshot ?? null;
-
+    let totalSkus = 0;
+    let unidades = 0;
     const porStatus: Record<string, number> = { ok: 0, divergente: 0, so_na_xpm: 0, so_no_ledger: 0 };
-    let somaDif = 0;
     for (const r of rows) {
+      const total = Number(r.xpm_total ?? 0);
+      if (total > 0) totalSkus++;
+      unidades += total;
       if (r.status_conciliacao && porStatus[r.status_conciliacao] !== undefined) {
         porStatus[r.status_conciliacao]++;
       }
-      somaDif += Number(r.diferenca ?? 0);
     }
-    return { totalSkus, totalNormal, totalDanificado, totalTruncado, snapshot, porStatus, somaDif };
+    const posicao = rows.find((r) => r.data_hora_posicao)?.data_hora_posicao ?? null;
+    return { totalSkus, unidades, porStatus, posicao };
   }, [rows]);
 
   const rowsFiltradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (filtroStatus !== "todos" && r.status_conciliacao !== filtroStatus) return false;
-      if (!q) return true;
-      return (
-        r.sku.toLowerCase().includes(q) ||
-        (r.nome_comercial ?? "").toLowerCase().includes(q)
-      );
-    });
+    return rows
+      .filter((r) => {
+        if (filtroStatus !== "todos" && r.status_conciliacao !== filtroStatus) return false;
+        if (!q) return true;
+        return (
+          r.sku.toLowerCase().includes(q) || (r.nome_comercial ?? "").toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => Math.abs(Number(b.diferenca ?? 0)) - Math.abs(Number(a.diferenca ?? 0)));
   }, [rows, busca, filtroStatus]);
+
+  async function handleSincronizar() {
+    setSincronizando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zenlog-sync-estoque", { body: {} });
+      if (error) throw error;
+      const linhas =
+        (data as any)?.linhas ?? (data as any)?.total ?? (data as any)?.registros ?? null;
+      toast.success(
+        linhas != null
+          ? `Estoque sincronizado — ${nf.format(Number(linhas))} linhas de posição`
+          : "Estoque sincronizado com a XPM",
+      );
+      qc.invalidateQueries({ queryKey: ["xpm-estoque-conciliacao"] });
+      qc.invalidateQueries({ queryKey: ["xpm-estoque-posicoes"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao sincronizar estoque da XPM");
+    } finally {
+      setSincronizando(false);
+    }
+  }
 
   async function handleImportar() {
     if (!file) {
@@ -216,26 +297,115 @@ export default function EstoqueXpm() {
     }
   }
 
-  const nf = new Intl.NumberFormat("pt-BR");
-
   return (
     <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Estoque XPM</h1>
-        <p className="text-sm text-muted-foreground">
-          Snapshot do estoque no armazém XPM e conciliação com o razão do SNCF.
-        </p>
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Estoque XPM</h1>
+          <p className="text-sm text-muted-foreground">
+            Posição sincronizada direto da XPM. Atualiza sozinha todo dia às 03:25.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">
+            posição de {fmtPosicao(kpis.posicao ?? posicaoMaisRecente)}
+          </span>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handleSincronizar}
+            disabled={sincronizando}
+          >
+            {sincronizando ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Sincronizar agora
+          </Button>
+        </div>
       </header>
 
-      {/* 1. IMPORTAÇÃO */}
-      <Card>
+      {conciliacaoQ.isError && (
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-base text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Erro ao carregar a conciliação
+            </CardTitle>
+            <CardDescription className="text-destructive">
+              {(conciliacaoQ.error as any)?.message ?? "Erro desconhecido"}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {/* 1. KPIs */}
+      {conciliacaoQ.isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-[92px] w-full" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">Total de SKUs</div>
+              <div className="text-2xl font-semibold">{nf.format(kpis.totalSkus)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">Unidades na XPM</div>
+              <div className="text-2xl font-semibold">{nf.format(kpis.unidades)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">SKUs conciliados</div>
+              <div className="text-2xl font-semibold">{nf.format(kpis.porStatus.ok ?? 0)}</div>
+            </CardContent>
+          </Card>
+          <Card className={(kpis.porStatus.divergente ?? 0) > 0 ? "border-amber-500/50" : undefined}>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                {(kpis.porStatus.divergente ?? 0) > 0 && (
+                  <AlertTriangle className="h-3 w-3 text-amber-600" />
+                )}
+                SKUs divergentes
+              </div>
+              <div
+                className={`text-2xl font-semibold ${
+                  (kpis.porStatus.divergente ?? 0) > 0 ? "text-amber-700 dark:text-amber-500" : ""
+                }`}
+              >
+                {nf.format(kpis.porStatus.divergente ?? 0)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">Só no razão</div>
+              <div className="text-2xl font-semibold">
+                {nf.format(kpis.porStatus.so_no_ledger ?? 0)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 2. AVARIAS — segue por planilha */}
+      <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Upload className="h-4 w-4" />
-            Importar estoque da XPM
+            Avarias — ainda por planilha
           </CardTitle>
           <CardDescription>
-            O arquivo é o export .xls da XPM (HTML disfarçado). A data é informada pelo operador — o arquivo não carrega data própria.
+            A API da XPM não expõe avarias: o endpoint MovimentoAvaria retorna vazio e a posição de
+            estoque traz apenas itens liberados. Enquanto isso não muda, os danificados continuam
+            vindo do arquivo importado.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -291,72 +461,7 @@ export default function EstoqueXpm() {
         </CardContent>
       </Card>
 
-      {/* 2. KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-xs text-muted-foreground">Total de SKUs</div>
-            <div className="text-2xl font-semibold">{nf.format(kpis.totalSkus)}</div>
-            {kpis.snapshot && (
-              <div className="text-xs text-muted-foreground mt-1">
-                Snapshot: {kpis.snapshot}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-xs text-muted-foreground">Unidades normais</div>
-            <div className="text-2xl font-semibold">{nf.format(kpis.totalNormal)}</div>
-          </CardContent>
-        </Card>
-        <Card className={kpis.totalDanificado > 0 ? "border-amber-500/50" : undefined}>
-          <CardContent className="pt-6">
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              {kpis.totalDanificado > 0 && <AlertTriangle className="h-3 w-3 text-amber-600" />}
-              Danificado
-            </div>
-            <div
-              className={`text-2xl font-semibold ${
-                kpis.totalDanificado > 0 ? "text-amber-700 dark:text-amber-500" : ""
-              }`}
-            >
-              {nf.format(kpis.totalDanificado)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-xs text-muted-foreground">Truncado / vencido</div>
-            <div className="text-2xl font-semibold">{nf.format(kpis.totalTruncado)}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 3. CONCILIAÇÃO */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Conciliação com o razão SNCF</CardTitle>
-          <CardDescription>
-            Distribuição dos SKUs entre XPM e razão. Diferença total ={" "}
-            <span className="font-medium text-foreground">{nf.format(kpis.somaDif)}</span> un.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {(["ok", "divergente", "so_na_xpm", "so_no_ledger"] as const).map((s) => (
-              <div key={s} className="rounded-md border p-3">
-                <div className="text-xs text-muted-foreground">{STATUS_META[s].label}</div>
-                <div className="text-xl font-semibold">
-                  {nf.format(kpis.porStatus[s] ?? 0)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 4. TABELA */}
+      {/* 3. TABELA */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Detalhe por SKU</CardTitle>
@@ -382,95 +487,188 @@ export default function EstoqueXpm() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[140px]">SKU</TableHead>
-                  <TableHead>Nome comercial</TableHead>
-                  <TableHead>Grupo</TableHead>
-                  <TableHead className="text-right">XPM normal</TableHead>
-                  <TableHead className="text-right">Danificado</TableHead>
-                  <TableHead className="text-right">Razão SNCF</TableHead>
-                  <TableHead className="text-right">Diferença</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {conciliacaoQ.isLoading ? (
+          {conciliacaoQ.isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-9 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      Carregando…
-                    </TableCell>
+                    <TableHead className="w-[140px]">SKU</TableHead>
+                    <TableHead>Nome comercial</TableHead>
+                    <TableHead>Grupo</TableHead>
+                    <TableHead className="text-right">XPM</TableHead>
+                    <TableHead className="text-right">Razão SNCF</TableHead>
+                    <TableHead className="text-right">Diferença</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ) : rowsFiltradas.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      Nenhum registro.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  rowsFiltradas.slice(0, 500).map((r) => {
-                    const fora = r.existe_no_catalogo === false;
-                    const danificado = Number(r.xpm_danificado ?? 0) > 0;
-                    return (
-                      <TableRow key={`${r.sku}-${r.data_snapshot ?? ""}`}>
-                        <TableCell className="font-mono text-xs">
-                          <div className="flex items-center gap-1">
-                            {fora && (
-                              <PackageX
-                                className="h-3.5 w-3.5 text-destructive"
-                                aria-label="SKU não existe no cadastro SNCF"
-                              />
+                </TableHeader>
+                <TableBody>
+                  {rowsFiltradas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        Nenhum registro.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    rowsFiltradas.slice(0, 500).map((r) => {
+                      const fora = r.existe_no_catalogo === false;
+                      const dif = Number(r.diferenca ?? 0);
+                      const corDif =
+                        dif < 0
+                          ? "text-destructive font-medium"
+                          : dif > 0
+                            ? "text-emerald-700 dark:text-emerald-500 font-medium"
+                            : "text-muted-foreground";
+                      return (
+                        <TableRow key={r.sku}>
+                          <TableCell className="font-mono text-xs">
+                            <div className="flex items-center gap-1">
+                              {fora && (
+                                <PackageX
+                                  className="h-3.5 w-3.5 text-destructive"
+                                  aria-label="SKU não existe no cadastro SNCF"
+                                />
+                              )}
+                              {r.sku}
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[280px] truncate">
+                            {r.nome_comercial ?? r.descricao_xpm ?? (
+                              <span className="text-muted-foreground italic">sem nome</span>
                             )}
-                            {r.sku}
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[280px] truncate">
-                          {r.nome_comercial ?? (
-                            <span className="text-muted-foreground italic">sem nome</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {r.grupo ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {nf.format(Number(r.xpm_normal ?? 0))}
-                        </TableCell>
-                        <TableCell
-                          className={`text-right tabular-nums ${
-                            danificado ? "text-amber-700 dark:text-amber-500 font-medium" : ""
-                          }`}
-                        >
-                          <div className="inline-flex items-center gap-1 justify-end">
-                            {danificado && <AlertTriangle className="h-3 w-3" />}
-                            {nf.format(Number(r.xpm_danificado ?? 0))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {nf.format(Number(r.saldo_ledger_sncf ?? 0))}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {nf.format(Number(r.diferenca ?? 0))}
-                        </TableCell>
-                        <TableCell>
-                          {r.status_conciliacao && (
-                            <Badge variant={STATUS_META[r.status_conciliacao].variant}>
-                              {STATUS_META[r.status_conciliacao].label}
-                            </Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{r.grupo ?? "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {nf.format(Number(r.xpm_total ?? 0))}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {nf.format(Number(r.saldo_ledger_sncf ?? 0))}
+                          </TableCell>
+                          <TableCell className={`text-right tabular-nums ${corDif}`}>
+                            {nf.format(dif)}
+                          </TableCell>
+                          <TableCell>
+                            {r.status_conciliacao && (
+                              <Badge variant={STATUS_META[r.status_conciliacao].variant}>
+                                {STATUS_META[r.status_conciliacao].label}
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
           {rowsFiltradas.length > 500 && (
             <div className="text-xs text-muted-foreground mt-2">
               Exibindo 500 de {nf.format(rowsFiltradas.length)} linhas. Refine a busca ou o filtro.
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 4. HISTÓRICO DA POSIÇÃO */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Histórico da posição</CardTitle>
+          <CardDescription>
+            {posicoesQ.isError ? (
+              <span className="text-destructive">
+                {(posicoesQ.error as any)?.message ?? "Erro ao carregar as posições"}
+              </span>
+            ) : posicoes.length === 0 ? (
+              "Nenhuma posição sincronizada ainda."
+            ) : (
+              <>
+                {nf.format(posicoes.length)} posições disponíveis, de{" "}
+                {fmtPosicao(posicoes[posicoes.length - 1])} a {fmtPosicao(posicoes[0])}.
+              </>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {posicoesQ.isLoading ? (
+            <Skeleton className="h-9 w-[320px]" />
+          ) : (
+            posicoes.length > 0 && (
+              <Select value={posicaoAtiva} onValueChange={setPosicaoEscolhida}>
+                <SelectTrigger className="md:max-w-[320px]">
+                  <SelectValue placeholder="Escolha a posição" />
+                </SelectTrigger>
+                <SelectContent>
+                  {posicoes.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {fmtPosicao(p)}
+                      {p === posicaoMaisRecente ? " (mais recente)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )
+          )}
+
+          {verHistorico && (
+            <>
+              {historicoQ.isError && (
+                <div className="rounded-md border border-destructive p-3 text-sm text-destructive">
+                  {(historicoQ.error as any)?.message ?? "Erro ao carregar a posição"}
+                </div>
+              )}
+              {historicoQ.isLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-9 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[140px]">SKU</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Situação</TableHead>
+                        <TableHead>Lote</TableHead>
+                        <TableHead className="text-right">Quantidade</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(historicoQ.data ?? []).length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            Nenhuma linha nessa posição.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        (historicoQ.data ?? []).slice(0, 500).map((r, i) => (
+                          <TableRow key={`${r.sku}-${r.lote ?? ""}-${i}`}>
+                            <TableCell className="font-mono text-xs">{r.sku}</TableCell>
+                            <TableCell className="max-w-[320px] truncate">
+                              {r.descricao ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {r.situacao_estoque ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">{r.lote ?? "—"}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {nf.format(Number(r.quantidade ?? 0))}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
