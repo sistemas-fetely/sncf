@@ -43981,6 +43981,25 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_xpm_estoque_conciliacao_api: {
+        Row: {
+          colecao: string | null
+          data_hora_posicao: string | null
+          descricao_xpm: string | null
+          diferenca: number | null
+          existe_no_catalogo: boolean | null
+          grupo: string | null
+          linha: string | null
+          nome_comercial: string | null
+          saldo_ledger_sncf: number | null
+          sku: string | null
+          status_conciliacao: string | null
+          xpm_liberado: number | null
+          xpm_outras: number | null
+          xpm_total: number | null
+        }
+        Relationships: []
+      }
       vw_xpm_expedicao: {
         Row: {
           canal: string | null
