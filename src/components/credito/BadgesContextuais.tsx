@@ -14,12 +14,18 @@ interface BadgesContextuaisProps {
   }>;
   kpisGrupo?: { vencidos: number } | null;
   valorPedido?: number;
+  /** Quando false, o fallback verde "Sem alertas" não é renderizado. Default true. */
+  mostrarSemAlertas?: boolean;
+  /** Classes extras no container das tags (ex.: reduzir escala no cabeçalho). */
+  className?: string;
 }
 
 export function BadgesContextuais({
   parceiro,
   analisesAnteriores = [],
   kpisGrupo,
+  mostrarSemAlertas = true,
+  className,
 }: BadgesContextuaisProps) {
   const badges: JSX.Element[] = [];
 
