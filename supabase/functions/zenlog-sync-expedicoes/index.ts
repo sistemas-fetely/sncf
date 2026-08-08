@@ -128,6 +128,7 @@ Deno.serve(async (req) => {
           .filter((e: Record<string, any>) => e.eventoId != null)
           .map((e: Record<string, any>) => ({
             expedicao_codigo: codigo,
+            evento_zenlog_id: e.id ?? null,
             evento_id: e.eventoId,
             status: e.status ?? null,
             inicio: vazia(e.inicio) ? null : e.inicio,
