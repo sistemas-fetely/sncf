@@ -40,7 +40,7 @@ export function usePedidoEdicaoCampo(estagio: string | null | undefined) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("pedido_edicao_campo")
-        .select("campo, estagio, permitido, exige_papel, exige_motivo, rotulo, ativo")
+        .select("campo, estagio, permitido, exige_papel, exige_motivo, rotulo, observacao, ativo")
         .eq("ativo", true);
       if (error) throw error;
       return (data || []) as RegraEdicaoCampo[];
@@ -55,5 +55,38 @@ export function usePedidoEdicaoCampo(estagio: string | null | undefined) {
   const estagiosPermitidos = (campo: CampoEdicao): string[] =>
     todas.filter((r) => r.campo === campo && r.permitido).map((r) => r.estagio);
 
-  return { ...q, regras: todas, regraDe, estagiosPermitidos };
+  // Derivação única de "o painel de edição tem algo a oferecer neste estágio".
+  const camposEditaveisNoEstagio = (est?: string | null): CampoEdicao[] => {
+    const alvo = String(est ?? estagio ?? "");
+    return CAMPOS_PAINEL_EDICAO.filter((c) =>
+      todas.some((r) => r.campo === c && r.estagio === alvo && r.ativo && r.permitido),
+    );
+  };
+
+  const painelEditavel = (est?: string | null): boolean =>
+    camposEditaveisNoEstagio(est).length > 0;
+
+  // Motivo declarado na dimensão, quando houver. Nunca inventar motivo.
+  const observacaoBloqueio = (est?: string | null): string | null => {
+    const alvo = String(est ?? estagio ?? "");
+    const r = todas.find(
+      (x) =>
+        x.estagio === alvo &&
+        (CAMPOS_PAINEL_EDICAO as readonly string[]).includes(x.campo) &&
+        !x.permitido &&
+        !!x.observacao,
+    );
+    return r?.observacao ?? null;
+  };
+
+  return {
+    ...q,
+    regras: todas,
+    regraDe,
+    estagiosPermitidos,
+    camposEditaveisNoEstagio,
+    painelEditavel,
+    observacaoBloqueio,
+  };
 }
+
