@@ -82,6 +82,7 @@ export function BadgesContextuais({
   }
 
   if (badges.length === 0) {
+    if (!mostrarSemAlertas) return null;
     return (
       <Badge variant="outline" className="gap-1 border-emerald-500 text-emerald-700">
         <CheckCircle2 className="h-3 w-3" />
@@ -90,5 +91,5 @@ export function BadgesContextuais({
     );
   }
 
-  return <div className="flex flex-wrap gap-2">{badges}</div>;
+  return <div className={cn("flex flex-wrap gap-2", className)}>{badges}</div>;
 }
