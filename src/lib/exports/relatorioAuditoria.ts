@@ -213,6 +213,7 @@ const COLS_ITENS: ColDef[] = [
 const COR_STATUS: Record<string, string> = {
   DIVERGENTE: "FFC00000",
   "SEM ITENS": "FFED7D31",
+  "SEM REFERÊNCIA": "FFED7D31",
   OK: "FF1A7F37",
 };
 
