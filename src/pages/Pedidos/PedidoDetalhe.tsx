@@ -46,6 +46,7 @@ import { PedidoTarefasTab } from "@/components/pedidos/PedidoTarefasTab";
 import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
 import { MarcacaoPedido } from "@/components/pedidos/MarcacaoPedido";
 import { EstagioBadge, FormatoIdade, NaturezaOperacaoBadge } from "@/components/pedidos/BadgesPedido";
+import { LinhaContatosCliente } from "@/components/pedidos/LinhaContatosCliente";
 import { CardEntrega } from "@/components/pedidos/CardEntrega";
 import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
 import { BadgesContextuais } from "@/components/credito/BadgesContextuais";
