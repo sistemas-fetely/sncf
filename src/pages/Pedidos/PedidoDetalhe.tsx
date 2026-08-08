@@ -63,8 +63,9 @@ import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/Confirma
 import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 
-import { ComplementarSection } from "@/components/pedidos/ComplementarSection";
-import { RemessasSection } from "@/components/pedidos/RemessasSection";
+import { VinculosSection } from "@/components/pedidos/VinculosSection";
+import { AcoesRemessa } from "@/components/pedidos/AcoesRemessa";
+
 import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
 import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunidadeDialog";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
