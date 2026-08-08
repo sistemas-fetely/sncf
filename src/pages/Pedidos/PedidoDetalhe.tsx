@@ -747,22 +747,7 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
     },
   });
 
-  // Número do pedido no Bling. pedidos_venda só existe a partir de 01/06/2026
-  // (início do sync), então ausência de match é normal e degrada em silêncio.
-  const blingIdDestino = pedido?.bling_id_destino ?? null;
-  const { data: pedidoVendaBling } = useQuery({
-    queryKey: ["pedido-venda-bling", blingIdDestino],
-    enabled: !!blingIdDestino,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("pedidos_venda")
-        .select("numero, numero_loja")
-        .eq("bling_id", String(blingIdDestino))
-        .maybeSingle();
-      if (error) throw error;
-      return data as { numero: string | null; numero_loja: string | null } | null;
-    },
-  });
+
 
 
   const [enviando, setEnviando] = useState(false);
