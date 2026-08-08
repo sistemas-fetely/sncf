@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
           const sku = it.produto?.codigo;
           if (!sku) continue;
           acumulado.push({
+            posicao_id_zenlog: it.id ?? null,
             data_hora_posicao: horario,
             sku,
             descricao: it.produto?.descricao ?? null,
