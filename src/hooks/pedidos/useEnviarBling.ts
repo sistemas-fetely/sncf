@@ -63,8 +63,11 @@ export function useEnviarBling() {
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
     },
-    onError: (e: Error) => {
+    onError: (e: Error, vars) => {
       toast({ title: "Erro ao enviar pro Bling", description: e.message, variant: "destructive" });
+      // A edge cria a remessa antes do POST: mesmo com falha, o estado pode ter mudado.
+      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
+      qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
     },
   });
 }
