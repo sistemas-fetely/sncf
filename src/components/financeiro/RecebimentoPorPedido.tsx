@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -299,8 +299,8 @@ export function RecebimentoPorPedido() {
                   {grupos.map((g) => {
                     const open = !!abertos[g.key];
                     return (
-                      <>
-                        <TableRow key={g.key}>
+                      <Fragment key={g.key}>
+                        <TableRow>
                           <TableCell>
                             <Button
                               size="icon"
@@ -351,7 +351,7 @@ export function RecebimentoPorPedido() {
                           </TableCell>
                         </TableRow>
                         {open && (
-                          <TableRow key={`${g.key}-det`}>
+                          <TableRow>
                             <TableCell colSpan={7} className="bg-muted/30 p-4">
                               <Table>
                                 <TableHeader>
@@ -390,7 +390,7 @@ export function RecebimentoPorPedido() {
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </TableBody>
