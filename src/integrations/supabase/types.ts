@@ -31643,6 +31643,13 @@ export type Database = {
             foreignKeyName: "xpm_expedicao_evento_expedicao_codigo_fkey"
             columns: ["expedicao_codigo"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_ciclo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_evento_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
             referencedColumns: ["codigo"]
           },
@@ -31691,6 +31698,13 @@ export type Database = {
             foreignKeyName: "xpm_expedicao_item_expedicao_codigo_fkey"
             columns: ["expedicao_codigo"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_ciclo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_item_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
             referencedColumns: ["codigo"]
           },
@@ -31702,6 +31716,98 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
         ]
+      }
+      xpm_expedicao_pausa: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          expedicao_codigo: string
+          id: string
+          motivo_id: string
+          observacao: string | null
+          pausado_em: string
+          retomado_em: string | null
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          expedicao_codigo: string
+          id?: string
+          motivo_id: string
+          observacao?: string | null
+          pausado_em?: string
+          retomado_em?: string | null
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          expedicao_codigo?: string
+          id?: string
+          motivo_id?: string
+          observacao?: string | null
+          pausado_em?: string
+          retomado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_ciclo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
+            referencedRelation: "xpm_expedicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_pausa_motivo_id_fkey"
+            columns: ["motivo_id"]
+            isOneToOne: false
+            referencedRelation: "xpm_motivo_pausa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      xpm_motivo_pausa: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          culpa_nossa: boolean
+          descricao: string
+          id: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          culpa_nossa?: boolean
+          descricao: string
+          id?: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          culpa_nossa?: boolean
+          descricao?: string
+          id?: string
+          ordem?: number
+        }
+        Relationships: []
       }
       xpm_termo_linha: {
         Row: {
@@ -38858,14 +38964,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -43404,6 +43510,32 @@ export type Database = {
             referencedColumns: ["sku"]
           },
         ]
+      }
+      vw_xpm_ciclo: {
+        Row: {
+          canal: string | null
+          cliente_sncf: string | null
+          codigo: string | null
+          concluida: boolean | null
+          data_expedicao: string | null
+          destinatario_nome: string | null
+          estagio_codigo: string | null
+          estagio_seq: number | null
+          horas_ciclo_bruto: number | null
+          horas_ciclo_liquido: number | null
+          horas_em_curso_liquido: number | null
+          horas_pausadas: number | null
+          pausada_agora: boolean | null
+          pedido_sncf: string | null
+          peso_bruto: number | null
+          qtd_pausas: number | null
+          quantidade_volumes: number | null
+          t_embarcado: string | null
+          t_expedido: string | null
+          t_solicitado: string | null
+          uf: string | null
+        }
+        Relationships: []
       }
       vw_xpm_estoque_conciliacao: {
         Row: {
