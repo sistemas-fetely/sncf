@@ -746,8 +746,8 @@ export default function ExpedicoesXpm() {
                   <SelectValue placeholder="Situação" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todas">Todas</SelectItem>
                   <SelectItem value="em_curso">Só em curso</SelectItem>
+                  <SelectItem value="todos">Todos (45 dias)</SelectItem>
                   <SelectItem value="expedidas">Só expedidas</SelectItem>
                 </SelectContent>
               </Select>
