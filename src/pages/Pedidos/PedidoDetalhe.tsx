@@ -674,7 +674,6 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
     return (
       <div className="flex flex-col gap-2 w-full">
         <AcoesPedidoPreFaturado pedido={pedido} parceiro={parceiro} />
-        {geraTituloReceber && <BotaoEmailCobrancaPedido pedido_id={pedido.id} parceiro_id={pedido.parceiro_id} />}
       </div>
     );
   }
