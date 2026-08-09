@@ -130,13 +130,13 @@ export function RecebimentoPorPedido() {
   }, [linhas]);
 
   const totaisNivel = useMemo(() => {
-    const acc: Record<number, { qtd: number; soma: number }> = {};
-    NIVEIS.forEach((n) => (acc[n.rank] = { qtd: 0, soma: 0 }));
+    const acc = {} as Record<NivelKey, { qtd: number; soma: number }>;
+    NIVEIS.forEach((n) => (acc[n.key] = { qtd: 0, soma: 0 }));
     linhas.forEach((l) => {
-      const r = Number(l.nivel_rank || 0);
-      if (!acc[r]) acc[r] = { qtd: 0, soma: 0 };
-      acc[r].qtd += 1;
-      acc[r].soma += Number(l.valor || 0);
+      const k = nivelPorTexto(l.nivel_titulo);
+      if (!k) return;
+      acc[k].qtd += 1;
+      acc[k].soma += Number(l.valor || 0);
     });
     return acc;
   }, [linhas]);
