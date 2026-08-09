@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AlertaDivergencia from "./AlertaDivergencia";
+import FunilFases from "./FunilFases";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,15 +89,8 @@ type ExpedicaoXpm = {
   limiar_risco: number | null;
 };
 
-type FunilFase = {
-  sequencia: number;
-  codigo: string;
-  descricao: string;
-  parados_aqui: number;
-  ja_passaram: number;
-  em_alerta: number;
-  volumes_parados: number;
-};
+
+
 
 type MotivoPausa = {
   id: string;
@@ -587,17 +581,8 @@ export default function ExpedicoesXpm() {
     },
   });
 
-  const funilQ = useQuery({
-    queryKey: ["xpm-funil-fases"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_xpm_funil_fases")
-        .select("*")
-        .order("sequencia");
-      if (error) throw error;
-      return (data ?? []) as FunilFase[];
-    },
-  });
+
+
 
   const fasesQ = useQuery({
     queryKey: ["wns-fases-xpm"],
@@ -647,9 +632,11 @@ export default function ExpedicoesXpm() {
         r.pedido_sncf,
         r.pedido_display,
         r.pedido_loja,
+        r.cidade_entrega,
         r.cliente_sncf,
         r.destinatario_nome,
       ]
+
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
