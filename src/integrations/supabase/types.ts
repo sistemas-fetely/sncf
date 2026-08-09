@@ -45462,6 +45462,7 @@ export type Database = {
           estagio_seq: number | null
           estouro_so_por_fim_de_semana: boolean | null
           farol: string | null
+          farol_sla: string | null
           horas_ciclo_bruto: number | null
           horas_ciclo_liquido: number | null
           horas_cliente: number | null

@@ -106,7 +106,7 @@ const MinhasNotas = lazy(() => import("@/pages/MinhasNotas"));
 const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
 const HistoricoImportacoesPDF = lazy(() => import("@/pages/admin/HistoricoImportacoesPDF"));
 const GerenciarVisibilidade = lazy(() => import("@/pages/admin/GerenciarVisibilidade"));
-const NomesBling = lazy(() => import("@/pages/admin/NomesBling"));
+const NomesBling = lazy(() => import("@/pages/acervo/NomesBling"));
 const GestaoAVista = lazy(() => import("@/pages/GestaoAVista"));
 const DocumentacaoGeral = lazy(() => import("@/pages/DocumentacaoGeral"));
 const PlanoDeContas = lazy(() => import("@/pages/administrativo/PlanoDeContas"));
@@ -322,6 +322,11 @@ const App = () => (
                   <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
                   <Route path="/vendas/produto/estoque/devolucoes" element={<RetornoDevolucao />} />
                   <Route path="/vendas/produto/estoque/conciliacao" element={<ConciliacaoCadastro />} />
+                  <Route path="/vendas/produto/estoque/nomes-bling" element={
+                    <ProtectedRoute allowedRoles={["super_admin"]}>
+                      <NomesBling />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/acervo/destinos-cadastro" element={<DestinosCadastro />} />
 
                 </Route>
@@ -616,11 +621,6 @@ const App = () => (
                 <Route path="visibilidade" element={
                   <ProtectedRoute allowedRoles={["super_admin"]}>
                     <GerenciarVisibilidade />
-                  </ProtectedRoute>
-                } />
-                <Route path="nomes-bling" element={
-                  <ProtectedRoute allowedRoles={["super_admin"]}>
-                    <NomesBling />
                   </ProtectedRoute>
                 } />
                 <Route path="sla-xpm" element={
