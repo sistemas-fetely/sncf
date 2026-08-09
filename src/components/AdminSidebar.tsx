@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import {
   Sliders, Settings, UserCog, Shield,
-  ClipboardList, UsersRound, FilePlus, Eye,
+  ClipboardList, UsersRound, FilePlus, Eye, Tags,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
@@ -44,10 +44,16 @@ export function AdminSidebar() {
   const { roles } = useAuth();
   const collapsed = state === "collapsed";
 
+  // ATENCAO: este sidebar e HARDCODED, nao le sncf_navegacao. Toda tela nova de
+  // /admin precisa ser declarada NOS DOIS lugares: aqui e em sncf_navegacao
+  // (doutrina DECLARAR-OU-NAO-EXISTE). So o registro no banco nao faz aparecer.
   const sistemaItemsFinal: MenuItem[] = [
     ...sistemaItems,
     ...(roles.includes("super_admin")
-      ? [{ title: "Visibilidade de Telas", url: "/admin/visibilidade", icon: Eye }]
+      ? [
+          { title: "Nomes no Bling", url: "/admin/nomes-bling", icon: Tags },
+          { title: "Visibilidade de Telas", url: "/admin/visibilidade", icon: Eye },
+        ]
       : []),
   ];
 
