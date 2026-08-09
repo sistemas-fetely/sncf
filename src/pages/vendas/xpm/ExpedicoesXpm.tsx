@@ -931,16 +931,20 @@ export default function ExpedicoesXpm() {
                         const pausada = r.pausada_agora === true;
                         const atrasado = !pausada && dias != null && dias > 5;
                         const expandido = aberto === r.codigo;
+                        const fundo =
+                          r.farol === "risco"
+                            ? "bg-destructive/5"
+                            : r.farol === "atencao"
+                              ? "bg-amber-500/5"
+                              : r.farol === "pausada"
+                                ? ""
+                                : r.tem_corte
+                                  ? "bg-amber-500/5"
+                                  : "";
                         return (
                           <Fragment key={r.codigo}>
                             <TableRow
-                              className={`cursor-pointer ${
-                                atrasado
-                                  ? "bg-destructive/5"
-                                  : r.tem_corte
-                                    ? "bg-amber-500/5"
-                                    : ""
-                              }`}
+                              className={`cursor-pointer ${fundo}`}
                               onClick={() => setAberto(expandido ? null : r.codigo)}
                             >
                               <TableCell>
@@ -951,8 +955,12 @@ export default function ExpedicoesXpm() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <div className={r.pedido_sncf ? "font-medium" : "font-mono text-xs"}>
-                                  {r.pedido_sncf ?? r.codigo}
+                                <div
+                                  className={
+                                    r.pedido_display ? "font-medium" : "font-mono text-xs"
+                                  }
+                                >
+                                  {r.pedido_display ?? r.codigo}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                   XPM {r.codigo} · {r.nf_numero ? `NF ${r.nf_numero}` : "sem NF"}
@@ -961,7 +969,9 @@ export default function ExpedicoesXpm() {
                               <TableCell className="max-w-[240px] truncate">
                                 {r.cliente_sncf ?? r.destinatario_nome ?? "—"}
                               </TableCell>
-                              <TableCell className="text-muted-foreground">{r.uf ?? "—"}</TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {r.uf_display ?? "—"}
+                              </TableCell>
                               <TableCell>
                                 <Badge
                                   variant={
