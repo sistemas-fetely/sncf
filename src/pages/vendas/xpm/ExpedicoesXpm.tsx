@@ -992,6 +992,9 @@ export default function ExpedicoesXpm() {
                               <TableCell className="text-right tabular-nums">
                                 {r.peso_bruto != null ? nf2.format(Number(r.peso_bruto)) : "—"}
                               </TableCell>
+                              <TableCell>
+                                <CelulaSla r={r} />
+                              </TableCell>
                               <TableCell
                                 className={`text-right tabular-nums ${
                                   atrasado
