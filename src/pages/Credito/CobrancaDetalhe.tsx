@@ -1031,6 +1031,7 @@ export default function CobrancaDetalhe() {
                               <SelectItem value="pix">PIX</SelectItem>
                               <SelectItem value="boleto">Boleto</SelectItem>
                               <SelectItem value="cartao">Cartão</SelectItem>
+                              <SelectItem value="conta_corrente">Conta Corrente (Parceiro)</SelectItem>
                             </SelectContent>
                           </Select>
                         )}

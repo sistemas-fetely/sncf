@@ -253,7 +253,7 @@ export interface TituloProposto {
   numero_parcela: number;
   total_parcelas: number;
   eh_entrada: boolean;
-  tipo_pagamento: "pix" | "cartao" | "boleto";
+  tipo_pagamento: "pix" | "cartao" | "boleto" | "conta_corrente";
   valor_bruto: number;
   data_vencimento: string; // YYYY-MM-DD
   condicao_pagamento: string;
