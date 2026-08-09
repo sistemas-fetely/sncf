@@ -15,7 +15,7 @@ import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVinculosPedido, type PedidoVinculo } from "@/hooks/pedidos/useVinculosPedido";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
-import { remessaStatusMeta, sufixoRemessa } from "@/lib/remessaStatus";
+import { remessaStatusMeta } from "@/lib/remessaStatus";
 import { ESTAGIO_CORES } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import type { EstagioPedido } from "@/types/pedido";

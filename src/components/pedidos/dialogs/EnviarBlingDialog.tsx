@@ -123,8 +123,8 @@ export function EnviarBlingDialog({
             <Alert>
               <Package className="h-4 w-4" />
               <AlertDescription>
-                Este pedido já tem {remessasAtivas!.length === 1 ? "1 remessa ativa" : `${remessasAtivas!.length} remessas ativas`} aguardando envio.
-                Use a seção <strong>Remessas</strong> no detalhe do pedido para enviar ao Bling.
+                Este pedido já tem {remessasAtivas!.length === 1 ? "1 tentativa de envio" : `${remessasAtivas!.length} tentativas de envio`} aguardando envio.
+                Use a seção <strong>Envios ao Bling</strong> no detalhe do pedido para enviar ao Bling.
               </AlertDescription>
             </Alert>
             <Button
