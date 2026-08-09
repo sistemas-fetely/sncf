@@ -166,15 +166,17 @@ export function RecebimentoPorPedido() {
       }
       g.total += Number(l.valor || 0);
       g.titulos.push(l);
-      const r = Number(l.nivel_rank || 0);
-      if (!g.porNivel[r]) g.porNivel[r] = { qtd: 0, soma: 0 };
-      g.porNivel[r].qtd += 1;
-      g.porNivel[r].soma += Number(l.valor || 0);
+      const k = nivelPorTexto(l.nivel_titulo);
+      if (k) {
+        if (!g.porNivel[k]) g.porNivel[k] = { qtd: 0, soma: 0 };
+        g.porNivel[k]!.qtd += 1;
+        g.porNivel[k]!.soma += Number(l.valor || 0);
+      }
     });
 
     let arr = Array.from(map.values());
     if (selo !== "todos") {
-      const emoji = NIVEIS.find((n) => String(n.rank) === selo)?.emoji;
+      const emoji = NIVEIS.find((n) => n.key === selo)?.emoji;
       arr = arr.filter((g) => (g.pedido_selo || "").includes(emoji || "\u0000"));
     }
     if (termo) {
