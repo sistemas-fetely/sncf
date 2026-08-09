@@ -869,6 +869,16 @@ export default function ExpedicoesXpm() {
                   <SelectItem value="expedidas">Só expedidas</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={slaFiltro} onValueChange={setSlaFiltro}>
+                <SelectTrigger className="md:max-w-[170px]">
+                  <SelectValue placeholder="SLA" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">SLA: todos</SelectItem>
+                  <SelectItem value="dentro">Dentro do SLA</SelectItem>
+                  <SelectItem value="fora">Fora do SLA</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>
