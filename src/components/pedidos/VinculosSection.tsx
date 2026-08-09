@@ -8,12 +8,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Link2, Link2Off, Search, Loader2 } from "lucide-react";
+import { Link2, Link2Off, Search, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVincularComplementar } from "@/hooks/pedidos/useVincularComplementar";
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVinculosPedido, type PedidoVinculo } from "@/hooks/pedidos/useVinculosPedido";
+import { useRemessas } from "@/hooks/pedidos/useRemessas";
+import { remessaStatusMeta, sufixoRemessa } from "@/lib/remessaStatus";
 import { ESTAGIO_CORES } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import type { EstagioPedido } from "@/types/pedido";
