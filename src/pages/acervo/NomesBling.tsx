@@ -1,5 +1,7 @@
-// Mesa/Sistema — dispara a edge `atualizar-nomes-bling`.
-// O nome do cadastro no Bling e o texto que sai na linha do pedido e na NF.
+// Aba de SOPS > Produto > Estoque. Empurra sncf_produtos.nome_operacional para o campo
+// `nome` do cadastro no Bling — o texto que sai na linha do pedido e na NF.
+// Fica ao lado da aba Conciliacao de proposito: aquela DIAGNOSTICA a divergencia de
+// cadastro, esta CORRIGE. Restrita a super_admin porque reescreve cadastro fiscal.
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
