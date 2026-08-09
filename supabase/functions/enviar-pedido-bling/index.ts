@@ -377,9 +377,6 @@ serve(async (req) => {
       pedido_id, fonte: lastro.fonte, porque: lastro.porque,
     });
 
-    // geraTitulo continua sendo lido: o plano de recebimento alimenta as parcelas do payload.
-    const { data: geraTituloRpc } = await supabase.rpc("fn_pedido_gera_titulo", { p_pedido_id: pedido_id });
-    const geraTitulo = geraTituloRpc == null ? true : Boolean(geraTituloRpc);
 
     const { data: titulosRpc } = await supabase
       .rpc("fn_plano_recebimento_pedido", { p_pedido_id: pedido_id });
