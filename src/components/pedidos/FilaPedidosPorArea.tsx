@@ -835,6 +835,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     );
   }
 
+  // sem_recebivel = problema real (nada previsto, nada pago, nada na família).
   if (situacao === "sem_recebivel") {
     return (
       <>
@@ -844,15 +845,15 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-block">
-                  {/* Rótulo do banco ignorado de propósito: ele repete o valor exibido ao lado. */}
-                  <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 border-0 text-[10px] py-0 px-1.5">
-                    a faturar
+                  <Badge className={cn(classeSituacao(situacao), "text-[10px] py-0 px-1.5")}>
+                    Sem recebível
                   </Badge>
                 </span>
               </TooltipTrigger>
               <TooltipContent>
                 <p className="text-xs">
-                  Pedido sem título a receber próprio · falta faturar: {fmtBRL.format(p.valor_liquido)}
+                  {rotuloSituacao(situacao, p.lastro_porque, rotulo)} · falta faturar:{" "}
+                  {fmtBRL.format(p.valor_liquido)}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -863,21 +864,41 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
     );
   }
 
-  if (situacao === "anulado") {
+  // Estados informativos — NÃO são alerta: natureza sem cobrança, plano previsto,
+  // pré-pago por haver e recebível que vive na mãe do split. Texto vem do banco.
+  if (
+    situacao === "sem_cobranca" ||
+    situacao === "previsto" ||
+    situacao === "coberto_haver" ||
+    situacao === "recebivel_familia" ||
+    situacao === "anulado"
+  ) {
+    const texto = rotuloSituacao(situacao, rotulo, p.lastro_porque);
+    const curto = metaSituacao(situacao)?.label ?? texto;
     return (
       <>
         <div className="flex flex-wrap items-baseline gap-1.5">
           {valorLine}
-          <span className="inline-block">
-            <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-              {rotulo || "Anulado"}
-            </Badge>
-          </span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  <Badge className={cn(classeSituacao(situacao), "text-[10px] py-0 px-1.5")}>
+                    {curto}
+                  </Badge>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs max-w-[280px]">{texto}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         {condLine}
       </>
     );
   }
+
 
   // em_aberto ou sem linha na view: valor limpo, sem badge.
   return (
