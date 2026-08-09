@@ -305,9 +305,9 @@ export default function Oportunidades() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            {r.situacao_rotulo ? (
+                            {r.situacao_rotulo || r.situacao_financeira ? (
                               <span className="text-xs text-foreground">
-                                {r.situacao_rotulo}
+                                {rotuloSituacao(r.situacao_financeira, r.situacao_rotulo)}
                               </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
