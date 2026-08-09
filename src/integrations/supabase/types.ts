@@ -2444,6 +2444,45 @@ export type Database = {
         }
         Relationships: []
       }
+      bling_nome_log: {
+        Row: {
+          bling_id: string
+          dry_run: boolean
+          erro_msg: string | null
+          id: string
+          nome_antes: string | null
+          nome_depois: string | null
+          resposta_status: number | null
+          sku: string
+          sucesso: boolean
+          tentativa_em: string
+        }
+        Insert: {
+          bling_id: string
+          dry_run?: boolean
+          erro_msg?: string | null
+          id?: string
+          nome_antes?: string | null
+          nome_depois?: string | null
+          resposta_status?: number | null
+          sku: string
+          sucesso: boolean
+          tentativa_em?: string
+        }
+        Update: {
+          bling_id?: string
+          dry_run?: boolean
+          erro_msg?: string | null
+          id?: string
+          nome_antes?: string | null
+          nome_depois?: string | null
+          resposta_status?: number | null
+          sku?: string
+          sucesso?: boolean
+          tentativa_em?: string
+        }
+        Relationships: []
+      }
       bling_planilha_stage: {
         Row: {
           altura: number | null
