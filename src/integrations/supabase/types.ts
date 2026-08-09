@@ -45431,6 +45431,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_xpm_funil_fases: {
+        Row: {
+          codigo: string | null
+          descricao: string | null
+          em_alerta: number | null
+          ja_passaram: number | null
+          parados_aqui: number | null
+          sequencia: number | null
+          volumes_parados: number | null
+        }
+        Relationships: []
+      }
       vw_xpm_risco_atraso: {
         Row: {
           canal: string | null
