@@ -96,41 +96,67 @@ type ExpedicaoXpm = {
   horas_excedidas_cliente: number | null;
   horas_excedidas_xpm: number | null;
   estouro_so_por_fim_de_semana: boolean | null;
+  farol_sla: "no_prazo" | "atencao" | "estourado" | null;
 };
 
-// Dois relogios: o do cliente conta hora corrida (o que a Fetely promete),
-// o da XPM desconta fim de semana (o que se cobra deles, clausula 3.3).
+// A cor da coluna vem do relogio da XPM (desconta fim de semana), porque esta
+// tela e de triagem: cor vermelha tem que significar que cabe acao.
+// O relogio do cliente (hora corrida) segue visivel no tooltip.
 function CelulaSla({ r }: { r: ExpedicaoXpm }) {
   if (r.horas_sla == null) return <span className="text-muted-foreground">—</span>;
-  if (r.dentro_sla_cliente === true)
-    return (
-      <Badge variant="outline" className="text-xs font-normal">
-        no prazo
+
+  const arred = (v: number | null | undefined) => Math.round(Number(v ?? 0));
+  const farol = r.farol_sla;
+  if (!farol) return <span className="text-muted-foreground">—</span>;
+
+  let badge: React.ReactNode;
+  if (farol === "estourado") {
+    const h = arred(r.horas_excedidas_xpm);
+    badge = (
+      <Badge variant="destructive" className="text-xs font-normal">
+        {h > 48 ? `+${Math.round(h / 24)}d` : `+${h}h`}
       </Badge>
     );
-  if (r.estouro_so_por_fim_de_semana === true)
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant="secondary" className="text-xs font-normal">
-            fim de semana
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent>
-          Dentro do SLA no relógio da XPM; estourou só por causa do fim de semana.
-        </TooltipContent>
-      </Tooltip>
+  } else if (farol === "atencao") {
+    badge = (
+      <Badge
+        variant="outline"
+        className="text-xs font-normal border-warning/50 bg-warning/10 text-warning"
+      >
+        {arred(r.horas_xpm)}/{arred(r.horas_sla)}h
+      </Badge>
     );
-  if (r.dentro_sla_cliente === false) {
-    const h = Number(r.horas_excedidas_cliente ?? 0);
-    const txt = h > 48 ? `+${Math.round(h / 24)}d` : `+${Math.round(h)}h`;
-    return (
-      <Badge variant="destructive" className="text-xs font-normal">
-        {txt}
+  } else {
+    badge = (
+      <Badge variant="outline" className="text-xs font-normal">
+        {arred(r.horas_xpm)}/{arred(r.horas_sla)}h
       </Badge>
     );
   }
-  return <span className="text-muted-foreground">—</span>;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center gap-1">
+          {badge}
+          {r.estouro_so_por_fim_de_semana === true && (
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+          )}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <div className="space-y-0.5 text-xs">
+          <div>
+            Relógio XPM: {arred(r.horas_xpm)}h de {arred(r.horas_sla)}h
+          </div>
+          <div>Cliente esperando: {arred(r.horas_cliente)}h</div>
+          {r.estouro_so_por_fim_de_semana === true && (
+            <div>Fora do prazo do cliente só por causa do fim de semana.</div>
+          )}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 
