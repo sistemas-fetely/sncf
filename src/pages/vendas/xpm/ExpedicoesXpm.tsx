@@ -78,6 +78,24 @@ type ExpedicaoXpm = {
   qtd_pausas?: number;
   pausada_agora?: boolean;
   concluida?: boolean;
+  pedido_loja: string | null;
+  numero_pedido_loja: string | null;
+  cidade_entrega: string | null;
+  pedido_display: string | null;
+  uf_display: string | null;
+  farol: "concluida" | "pausada" | "risco" | "atencao" | "no_prazo";
+  limiar_atencao: number | null;
+  limiar_risco: number | null;
+};
+
+type FunilFase = {
+  sequencia: number;
+  codigo: string;
+  descricao: string;
+  parados_aqui: number;
+  ja_passaram: number;
+  em_alerta: number;
+  volumes_parados: number;
 };
 
 type MotivoPausa = {
