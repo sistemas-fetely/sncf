@@ -570,7 +570,7 @@ export default function PainelXpm() {
                   <TableBody>
                     {emCurso.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                           Nenhuma expedição em curso.
                         </TableCell>
                       </TableRow>
@@ -578,8 +578,8 @@ export default function PainelXpm() {
                       emCurso.map((r) => (
                         <TableRow key={r.codigo}>
                           <TableCell>
-                            <div className={r.pedido_sncf ? "font-medium" : "font-mono text-xs"}>
-                              {r.pedido_sncf ?? r.codigo}
+                            <div className={r.pedido_display ? "font-medium" : "font-mono text-xs"}>
+                              {r.pedido_display ?? r.codigo}
                             </div>
                             <div className="text-xs text-muted-foreground">XPM {r.codigo}</div>
                           </TableCell>
