@@ -716,11 +716,16 @@ if (itensSemProdutoBling.length > 0) {
       ...(blingLojaId ? { loja: { id: blingLojaId }, canal: { id: blingLojaId } } : {}),
       itens: blingItens,
       // Pedido já quitado (haver aplicado / lastro na família) ou sem cobrança
-      // (bonificação) vai SEM duplicata. O SNCF é a fonte única do recebível;
-      // duplicata criada no Bling que nunca será baixada lá é ruído de conciliação.
-      // Omitimos a chave em vez de mandar array vazio — semanticamente igual e
-      // sem risco de o Bling validar minItems.
-      ...(temParcelas ? { parcelas: blingParcelas } : {}),
+      // (bonificação) vai SEM duplicata: `blingParcelas` vem vazio e o Bling não
+      // cria conta a receber. O SNCF é a fonte única do recebível; duplicata criada
+      // no Bling que nunca será baixada lá é ruído de conciliação.
+      //
+      // A chave vai SEMPRE, mesmo vazia. Omiti-la é comportamento não testado, e
+      // API que recebe pedido sem `parcelas` costuma gerar uma parcela à vista
+      // default — exatamente a duplicata que não queremos, criada em silêncio.
+      // `parcelas: []` com total > 0 está provado contra o Bling real: PED-2114 (2x),
+      // PED-2114/01 e PED-2066, todos 200 OK (bling_envios_log).
+      parcelas: blingParcelas,
       totalProdutos: totalProdutosPayload,
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${remessaCodigo} via SNCF`,
