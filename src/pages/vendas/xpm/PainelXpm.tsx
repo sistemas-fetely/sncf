@@ -208,6 +208,34 @@ export default function PainelXpm() {
 
   const pausadas = useMemo(() => noPeriodo.filter((r) => r.pausada_agora === true), [noPeriodo]);
 
+  const fila = useMemo(() => rows.filter((r) => r.concluida === false), [rows]);
+
+  const farolFila = useMemo(
+    () => ({
+      risco: fila.filter((r) => r.farol === "risco").length,
+      atencao: fila.filter((r) => r.farol === "atencao").length,
+      noPrazo: fila.filter((r) => r.farol === "no_prazo").length,
+      pausadas: fila.filter((r) => r.farol === "pausada").length,
+    }),
+    [fila],
+  );
+
+  const limiares = useMemo(() => {
+    const atencao = rows.find((r) => r.limiar_atencao != null)?.limiar_atencao ?? null;
+    const risco = rows.find((r) => r.limiar_risco != null)?.limiar_risco ?? null;
+    return { atencao, risco };
+  }, [rows]);
+
+  const precisamAtencao = useMemo(
+    () =>
+      fila
+        .filter((r) => r.farol === "risco" || r.farol === "atencao")
+        .sort(
+          (a, b) => Number(b.horas_em_curso_liquido ?? 0) - Number(a.horas_em_curso_liquido ?? 0),
+        ),
+    [fila],
+  );
+
   const volume = useMemo(
     () => ({
       expedicoes: concluidas.length,
