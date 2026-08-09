@@ -105,8 +105,11 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
 
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       {elegiveis.map((rem: any) => {
-        const sufixo = `/${String(rem.sequencia).padStart(2, "0")}`;
-        const codigo = `${id_externo}${sufixo}`;
+        // Vocabulario de UI: linha de `pedido_remessa` e TENTATIVA de envio, nunca /NN.
+        // /NN pertence so ao split. Ver sncf_documentacao `decisao-remessa-e-tentativa-envio`.
+        const tentativa = `tentativa ${Number(rem.sequencia)}`;
+        const codigo = `${id_externo} · ${tentativa}`;
+
         const itens: any[] = Array.isArray(rem.itens_json) ? rem.itens_json : [];
         const totalUnidades = itens.reduce((s: number, it: any) => s + (Number(it.quantidade) || 0), 0);
         const podeEnviar = rem.status === "pronta_para_envio" && !rem.bling_pedido_id && !precisaSincronizar;
