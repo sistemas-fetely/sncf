@@ -202,6 +202,22 @@ function fmtData(v: string | null) {
   return d.toLocaleDateString("pt-BR");
 }
 
+// Horario em que a XPM registrou SOLICITADO — a entrada do pedido no armazem.
+const dfDiaMes = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
+const dfHora = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+function CelulaSolicitado({ v }: { v: string | null | undefined }) {
+  if (!v) return <span className="text-muted-foreground">—</span>;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return <span className="text-muted-foreground">—</span>;
+  return (
+    <div>
+      <div className="tabular-nums">{dfDiaMes.format(d)}</div>
+      <div className="text-xs text-muted-foreground tabular-nums">{dfHora.format(d)}</div>
+    </div>
+  );
+}
+
 function fmtDataHora(v: string | null) {
   if (!v) return "—";
   const d = new Date(v);
