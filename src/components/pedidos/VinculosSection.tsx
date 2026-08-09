@@ -127,6 +127,8 @@ export function VinculosSection({
     consolidado_em_pedido_id,
     pedido_origem_id,
   });
+  // Fonte CERTA das remessas: `pedido_remessa`, mesmo hook que AcoesRemessa usa.
+  const { data: remessas } = useRemessas(pedido_id);
   const { data: permissoes } = usePermissoesDoUsuario();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
