@@ -202,6 +202,22 @@ function fmtData(v: string | null) {
   return d.toLocaleDateString("pt-BR");
 }
 
+// Horario em que a XPM registrou SOLICITADO — a entrada do pedido no armazem.
+const dfDiaMes = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
+const dfHora = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+function CelulaSolicitado({ v }: { v: string | null | undefined }) {
+  if (!v) return <span className="text-muted-foreground">—</span>;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return <span className="text-muted-foreground">—</span>;
+  return (
+    <div>
+      <div className="tabular-nums">{dfDiaMes.format(d)}</div>
+      <div className="text-xs text-muted-foreground tabular-nums">{dfHora.format(d)}</div>
+    </div>
+  );
+}
+
 function fmtDataHora(v: string | null) {
   if (!v) return "—";
   const d = new Date(v);
@@ -904,7 +920,9 @@ export default function ExpedicoesXpm() {
                       <TableHead>Cliente</TableHead>
                       <TableHead className="w-[60px]">UF</TableHead>
                       <TableHead className="w-[90px]">Canal</TableHead>
+                      <TableHead className="w-[110px]">Solicitado</TableHead>
                       <TableHead className="w-[220px]">Estágio</TableHead>
+
                       <TableHead className="text-right w-[70px]">Vol</TableHead>
                       <TableHead className="text-right w-[100px]">Peso</TableHead>
                       <TableHead className="w-[92px]">SLA</TableHead>
@@ -914,7 +932,7 @@ export default function ExpedicoesXpm() {
                   <TableBody>
                     {filtradas.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                           Nenhuma expedição neste recorte.
                         </TableCell>
                       </TableRow>
@@ -979,6 +997,10 @@ export default function ExpedicoesXpm() {
                                 </Badge>
                               </TableCell>
                               <TableCell>
+                                <CelulaSolicitado v={r.t_solicitado} />
+                              </TableCell>
+                              <TableCell>
+
                                 <div className="flex items-center gap-2">
                                   <Semaforo seq={Number(r.estagio_seq)} />
                                   <span className="text-xs text-muted-foreground truncate">
@@ -1009,7 +1031,7 @@ export default function ExpedicoesXpm() {
                             </TableRow>
                             {expandido && (
                               <TableRow>
-                                <TableCell colSpan={10} className="p-0">
+                                <TableCell colSpan={11} className="p-0">
                                   <LinhaExpandida exp={r} fases={mapaFases} />
                                 </TableCell>
                               </TableRow>
