@@ -74,4 +74,7 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
     verify_jwt = true
   [functions.zenlog-sync-estoque]
     verify_jwt = true
+  [functions.atualizar-nomes-bling]
+    verify_jwt = true
+
 
