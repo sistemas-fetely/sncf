@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import {
   Sliders, Settings, UserCog, Shield,
-  ClipboardList, UsersRound, FilePlus, Eye, Tags, Timer,
+  ClipboardList, UsersRound, FilePlus, Eye, Timer,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
