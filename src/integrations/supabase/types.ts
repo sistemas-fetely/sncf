@@ -32839,6 +32839,30 @@ export type Database = {
         }
         Relationships: []
       }
+      xpm_sla_canal: {
+        Row: {
+          ativo: boolean
+          canal: string
+          horas_sla: number | null
+          observacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          canal: string
+          horas_sla?: number | null
+          observacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          canal?: string
+          horas_sla?: number | null
+          observacao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       xpm_termo_linha: {
         Row: {
           aritmetica_ok: boolean | null
@@ -39864,14 +39888,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -40347,14 +40371,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -45252,16 +45276,21 @@ export type Database = {
           codigo: string | null
           concluida: boolean | null
           data_expedicao: string | null
+          dentro_sla: boolean | null
           destinatario_cnpj: string | null
           destinatario_nome: string | null
           dias_parado: number | null
           estagio_codigo: string | null
           estagio_descricao: string | null
           estagio_seq: number | null
+          estouro_estrutural: boolean | null
           horas_ciclo_bruto: number | null
           horas_ciclo_liquido: number | null
           horas_em_curso_liquido: number | null
+          horas_excedidas: number | null
+          horas_fim_de_semana: number | null
           horas_pausadas: number | null
+          horas_sla: number | null
           nf_chave: string | null
           nf_numero: string | null
           nf_serie: string | null
@@ -45398,18 +45427,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_xpm_funil_fases: {
-        Row: {
-          codigo: string | null
-          descricao: string | null
-          em_alerta: number | null
-          ja_passaram: number | null
-          parados_aqui: number | null
-          sequencia: number | null
-          volumes_parados: number | null
-        }
-        Relationships: []
-      }
       vw_xpm_risco_atraso: {
         Row: {
           canal: string | null
@@ -45418,17 +45435,22 @@ export type Database = {
           codigo: string | null
           concluida: boolean | null
           data_expedicao: string | null
+          dentro_sla: boolean | null
           destinatario_cnpj: string | null
           destinatario_nome: string | null
           dias_parado: number | null
           estagio_codigo: string | null
           estagio_descricao: string | null
           estagio_seq: number | null
+          estouro_estrutural: boolean | null
           farol: string | null
           horas_ciclo_bruto: number | null
           horas_ciclo_liquido: number | null
           horas_em_curso_liquido: number | null
+          horas_excedidas: number | null
+          horas_fim_de_semana: number | null
           horas_pausadas: number | null
+          horas_sla: number | null
           limiar_atencao: number | null
           limiar_risco: number | null
           nf_chave: string | null
@@ -46636,6 +46658,10 @@ export type Database = {
       fn_gtin14: {
         Args: { p_ean13: string; p_indicador?: string }
         Returns: string
+      }
+      fn_horas_fim_de_semana: {
+        Args: { p_fim: string; p_ini: string }
+        Returns: number
       }
       fn_importar_cobertura_cep: {
         Args: { p_ceps: Json; p_tabela_id: string }
