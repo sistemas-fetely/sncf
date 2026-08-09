@@ -623,11 +623,6 @@ const App = () => (
                     <GerenciarVisibilidade />
                   </ProtectedRoute>
                 } />
-                <Route path="nomes-bling" element={
-                  <ProtectedRoute allowedRoles={["super_admin"]}>
-                    <NomesBling />
-                  </ProtectedRoute>
-                } />
                 <Route path="sla-xpm" element={
                   <ProtectedRoute permModule="parametros"><SlaXpm /></ProtectedRoute>
                 } />
