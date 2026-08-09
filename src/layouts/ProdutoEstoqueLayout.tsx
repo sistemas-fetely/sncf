@@ -21,7 +21,7 @@ export default function ProdutoEstoqueLayout() {
     <div className="flex flex-col h-full">
       <div className="border-b bg-card">
         <nav className="flex gap-1 px-4 pt-2">
-          {TABS.map(({ to, label, icon: Icon }) => (
+          {tabs.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
