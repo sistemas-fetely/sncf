@@ -47,8 +47,7 @@ export function useVinculosPedido(params: {
         Boolean
       ) as string[];
 
-      const [filhas, consolidou, complementares, diretos] = await Promise.all([
-        sb.from("pedidos").select(COLS).eq("split_de_pedido_id", pedido_id).order("id_externo"),
+      const [consolidou, complementares, diretos] = await Promise.all([
         sb.from("pedidos").select(COLS).eq("consolidado_em_pedido_id", pedido_id).order("id_externo"),
         sb.from("pedidos").select(COLS).eq("pedido_origem_id", pedido_id).order("id_externo"),
         idsDiretos.length
@@ -56,7 +55,7 @@ export function useVinculosPedido(params: {
           : Promise.resolve({ data: [], error: null }),
       ]);
 
-      for (const r of [filhas, consolidou, complementares, diretos]) {
+      for (const r of [consolidou, complementares, diretos]) {
         if (r?.error) throw r.error;
       }
 
@@ -64,7 +63,6 @@ export function useVinculosPedido(params: {
         id ? ((diretos.data ?? []).find((p: PedidoVinculo) => p.id === id) ?? null) : null;
 
       return {
-        remessas: (filhas.data ?? []) as PedidoVinculo[],
         remessa_de: acha(split_de_pedido_id),
         consolidado_em: acha(consolidado_em_pedido_id),
         consolidou: (consolidou.data ?? []) as PedidoVinculo[],
