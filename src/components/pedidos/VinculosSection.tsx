@@ -67,9 +67,13 @@ function Grupo({ rotulo, pedidos }: { rotulo: string; pedidos: PedidoVinculo[] }
 }
 
 /**
- * Grupo "Remessas" — unidade de DESPACHO (`pedido_remessa`), não pedido-filho de split.
- * Lista todos os status, inclusive enviada_bling / entregue / cancelada.
- * Remessa não tem tela de detalhe: a linha é texto, nunca link.
+ * Grupo "Envios ao Bling" — cada linha de `pedido_remessa` e uma TENTATIVA de envio,
+ * nao um pedido-filho nem entrega parcial. Decisao registrada em sncf_documentacao,
+ * slug `decisao-remessa-e-tentativa-envio`: das 110 linhas existentes, ZERO foram
+ * entrega parcial; o padrao real e `/01 cancelada -> /02 enviada_bling` (reenvio).
+ * A notacao /NN fica EXCLUSIVA do split. Nao renomeie de volta.
+ * Tabela, colunas e hook seguem com os nomes atuais — a mudanca e de vocabulario de UI.
+ * Tentativa nao tem tela de detalhe: a linha e texto, nunca link.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function GrupoRemessas({ remessas, id_externo }: { remessas: any[]; id_externo: string }) {
@@ -77,14 +81,14 @@ function GrupoRemessas({ remessas, id_externo }: { remessas: any[]; id_externo: 
   return (
     <div className="space-y-1">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-        Remessas
+        Envios ao Bling
       </p>
       <div className="space-y-1">
         {remessas.map((r) => {
           const meta = remessaStatusMeta(r.status);
-          const sufixo = sufixoRemessa(r.sequencia);
+          const rotulo = `tentativa ${Number(r.sequencia)}`;
           const delta = Number(r.delta_financeiro ?? 0);
-          const partes = [`${id_externo}${sufixo}`, meta.label];
+          const partes = [`${id_externo} · ${rotulo}`, meta.label];
           if (r.bling_pedido_id) partes.push(`Bling #${r.bling_pedido_id}`);
           if (r.valor_remessa != null) partes.push(fmtBRL.format(Number(r.valor_remessa)));
           return (
@@ -92,7 +96,8 @@ function GrupoRemessas({ remessas, id_externo }: { remessas: any[]; id_externo: 
               <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", meta.dot)} aria-hidden />
               <div className="min-w-0">
                 <div className="flex items-center gap-1">
-                  <span className="font-medium">{sufixo}</span>
+                  <span className="font-medium">{rotulo}</span>
+
                   {delta > 0 && (
                     <span title={`Delta financeiro: ${fmtBRL.format(delta)}`} className="inline-flex">
                       <AlertTriangle className="h-3 w-3 shrink-0 text-amber-500" aria-label="Delta financeiro" />
