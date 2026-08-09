@@ -28,7 +28,7 @@ export function useNfsEmitidas() {
   return useQuery({
     queryKey: ["nfs_emitidas"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("nfs_emitidas")
         .select("id, bling_id, numero, serie, data_emissao, situacao, valor_nota, valor_frete, parceiro_id, pedido_venda_id, pedido:pedidos(id_externo), pdf_url, xml_url, tipo, parceiro:parceiros_comerciais(razao_social, nome_fantasia, cnpj), numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id")
         .order("data_emissao", { ascending: false })
