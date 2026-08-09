@@ -570,6 +570,7 @@ export default function ExpedicoesXpm() {
   const [canal, setCanal] = useState("todos");
   const [estagio, setEstagio] = useState("todos");
   const [situacao, setSituacao] = useState("em_curso");
+  const [farolFiltro, setFarolFiltro] = useState<"risco" | "atencao" | null>(null);
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
@@ -578,11 +579,23 @@ export default function ExpedicoesXpm() {
     queryKey: ["xpm-expedicoes"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_xpm_ciclo")
+        .from("vw_xpm_risco_atraso")
         .select("*")
         .order("data_expedicao", { ascending: false });
       if (error) throw error;
       return (data ?? []) as ExpedicaoXpm[];
+    },
+  });
+
+  const funilQ = useQuery({
+    queryKey: ["xpm-funil-fases"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_xpm_funil_fases")
+        .select("*")
+        .order("sequencia");
+      if (error) throw error;
+      return (data ?? []) as FunilFase[];
     },
   });
 
