@@ -563,6 +563,7 @@ export default function PainelXpm() {
                       <TableHead className="w-[90px]">Canal</TableHead>
                       <TableHead className="w-[160px]">Estágio</TableHead>
                       <TableHead className="text-right w-[130px]">Horas em curso</TableHead>
+                      <TableHead className="w-[110px]">Farol</TableHead>
                       <TableHead className="w-[110px]">Pausada</TableHead>
                     </TableRow>
                   </TableHeader>
