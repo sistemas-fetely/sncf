@@ -602,6 +602,9 @@ export default function PainelXpm() {
                             {h1(r.horas_em_curso_liquido)}
                           </TableCell>
                           <TableCell>
+                            <BadgeFarol farol={r.farol} />
+                          </TableCell>
+                          <TableCell>
                             {r.pausada_agora ? <Badge variant="secondary">Pausada</Badge> : null}
                           </TableCell>
                         </TableRow>
