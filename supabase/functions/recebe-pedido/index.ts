@@ -287,6 +287,12 @@ if (body.tipo === "canal_badges") {
             altura_cm:            p.altura_cm           ?? null,
             largura_cm:           p.largura_cm          ?? null,
             profundidade_cm:      p.profundidade_cm     ?? null,
+            // cor e estampa sao os atributos DISCRIMINANTES do produto. Alimentam
+            // fn_gerar_nome_operacional(), que monta o nome_operacional usado pela separacao
+            // (vw_xpm_cad_item) e pela NF. Sem eles, SKUs de nome comercial identico voltam
+            // a ser indistinguiveis para quem separa (causa do PED-2122). Nao remover.
+            cor:                  p.cor                 ?? null,
+            estampa:              p.estampa             ?? null,
             atualizado_em:        new Date().toISOString(),
           })),
           { onConflict: "sku" }
@@ -295,6 +301,27 @@ if (body.tipo === "canal_badges") {
         console.error("[recebe-pedido] upsert catálogo:", upsertErr);
         return jsonResponse(500, { error: upsertErr.message });
       }
+
+      // OPERACIONAL-DERIVA-DO-COMERCIAL: nome_operacional nunca e digitado, e sempre
+      // derivado de grupo/tipo/colecao/tamanho + o discriminante declarado por colecao
+      // em colecao_regra_nome. Regerar aqui garante que catalogo novo ja nasce correto.
+      const skusLote: string[] = body.produtos
+        .map((p: any) => p.sku)
+        .filter((s: any) => typeof s === "string" && s.length > 0);
+      if (skusLote.length > 0) {
+        const { error: nomeErr } = await (supabase as any).rpc("regerar_nome_operacional", {
+          p_skus: skusLote,
+        });
+        if (nomeErr) {
+          console.error("[recebe-pedido] regerar_nome_operacional:", nomeErr);
+          return jsonResponse(500, {
+            error: `Falha ao regerar nome_operacional: ${nomeErr.message}`,
+            details: nomeErr.details ?? null,
+            hint: nomeErr.hint ?? null,
+          });
+        }
+      }
+
       console.log(`[recebe-pedido] catálogo: ${body.produtos.length} produtos upsertados`);
       return jsonResponse(200, { ok: true, upsertados: body.produtos.length });
     }

@@ -3992,6 +3992,30 @@ export type Database = {
           },
         ]
       }
+      colecao_regra_nome: {
+        Row: {
+          atualizado_em: string
+          colecao: string
+          criado_em: string
+          discriminante: string
+          observacao: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          colecao: string
+          criado_em?: string
+          discriminante: string
+          observacao?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          colecao?: string
+          criado_em?: string
+          discriminante?: string
+          observacao?: string | null
+        }
+        Relationships: []
+      }
       comentarios_pedido: {
         Row: {
           autor_id: string
@@ -27132,9 +27156,11 @@ export type Database = {
           atualizado_em: string
           cest: string | null
           colecao: string | null
+          cor: string | null
           cor_nome: string | null
           descricao_produto: string | null
           ean: string | null
+          estampa: string | null
           grupo: string | null
           largura_cm: number | null
           linha: string | null
@@ -27145,6 +27171,7 @@ export type Database = {
           ncm: string | null
           nome_comercial: string
           nome_completo: string | null
+          nome_operacional: string | null
           origem_fisc: string | null
           origem_prod: string | null
           peso_g: number
@@ -27163,9 +27190,11 @@ export type Database = {
           atualizado_em?: string
           cest?: string | null
           colecao?: string | null
+          cor?: string | null
           cor_nome?: string | null
           descricao_produto?: string | null
           ean?: string | null
+          estampa?: string | null
           grupo?: string | null
           largura_cm?: number | null
           linha?: string | null
@@ -27176,6 +27205,7 @@ export type Database = {
           ncm?: string | null
           nome_comercial: string
           nome_completo?: string | null
+          nome_operacional?: string | null
           origem_fisc?: string | null
           origem_prod?: string | null
           peso_g?: number
@@ -27194,9 +27224,11 @@ export type Database = {
           atualizado_em?: string
           cest?: string | null
           colecao?: string | null
+          cor?: string | null
           cor_nome?: string | null
           descricao_produto?: string | null
           ean?: string | null
+          estampa?: string | null
           grupo?: string | null
           largura_cm?: number | null
           linha?: string | null
@@ -27207,6 +27239,7 @@ export type Database = {
           ncm?: string | null
           nome_comercial?: string
           nome_completo?: string | null
+          nome_operacional?: string | null
           origem_fisc?: string | null
           origem_prod?: string | null
           peso_g?: number
@@ -39810,14 +39843,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -45992,6 +46025,7 @@ export type Database = {
         Args: { p_contrato_id: string }
         Returns: number
       }
+      fn_gerar_nome_operacional: { Args: { p_sku: string }; Returns: string }
       fn_gerar_numero_titulo: { Args: { p_parcela: number }; Returns: string }
       fn_grupo_fiscal: {
         Args: { p_ncm: string; p_origem: string }
@@ -46959,6 +46993,7 @@ export type Database = {
         }
         Returns: Json
       }
+      regerar_nome_operacional: { Args: { p_skus: string[] }; Returns: number }
       registrar_acao_regua: {
         Args: {
           p_canal_efetivo?: string
