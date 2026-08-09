@@ -172,6 +172,8 @@ const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
+const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
+const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
 const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
@@ -351,6 +353,8 @@ const App = () => (
 
               <Route element={<ComercialLayout />}>
                 <Route path="/comercial/oportunidades" element={<Oportunidades />} />
+                <Route path="/comercial/consignados" element={<Consignados />} />
+                <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
                 
               </Route>
 
