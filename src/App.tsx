@@ -51,6 +51,7 @@ const AguardandoAprovacao = lazy(() => import("@/pages/AguardandoAprovacao"));
 const GerenciarUsuarios = lazy(() => import("@/pages/GerenciarUsuarios"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Parametros = lazy(() => import("@/pages/Parametros"));
+const SlaXpm = lazy(() => import("@/pages/parametros/SlaXpm"));
 const ContratosPJ = lazy(() => import("@/pages/ContratosPJ"));
 const ContratoPJDetalhe = lazy(() => import("@/pages/ContratoPJDetalhe"));
 const CadastroContratoPJ = lazy(() => import("@/components/contrato-pj/CadastroContratoPJ").then(m => ({ default: m.CadastroContratoPJ })));
