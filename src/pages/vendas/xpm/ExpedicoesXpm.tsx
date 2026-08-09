@@ -920,7 +920,9 @@ export default function ExpedicoesXpm() {
                       <TableHead>Cliente</TableHead>
                       <TableHead className="w-[60px]">UF</TableHead>
                       <TableHead className="w-[90px]">Canal</TableHead>
+                      <TableHead className="w-[110px]">Solicitado</TableHead>
                       <TableHead className="w-[220px]">Estágio</TableHead>
+
                       <TableHead className="text-right w-[70px]">Vol</TableHead>
                       <TableHead className="text-right w-[100px]">Peso</TableHead>
                       <TableHead className="w-[92px]">SLA</TableHead>
