@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import {
   Sliders, Settings, UserCog, Shield,
-  ClipboardList, UsersRound, FilePlus, Eye, Tags,
+  ClipboardList, UsersRound, FilePlus, Eye, Tags, Timer,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,7 @@ export function AdminSidebar() {
     ...(roles.includes("super_admin")
       ? [
           { title: "Nomes no Bling", url: "/admin/nomes-bling", icon: Tags },
+          { title: "SLA da XPM", url: "/admin/sla-xpm", icon: Timer },
           { title: "Visibilidade de Telas", url: "/admin/visibilidade", icon: Eye },
         ]
       : []),

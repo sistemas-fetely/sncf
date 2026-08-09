@@ -39888,14 +39888,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -40371,14 +40371,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -45276,21 +45276,25 @@ export type Database = {
           codigo: string | null
           concluida: boolean | null
           data_expedicao: string | null
-          dentro_sla: boolean | null
+          dentro_sla_cliente: boolean | null
+          dentro_sla_xpm: boolean | null
           destinatario_cnpj: string | null
           destinatario_nome: string | null
           dias_parado: number | null
           estagio_codigo: string | null
           estagio_descricao: string | null
           estagio_seq: number | null
-          estouro_estrutural: boolean | null
+          estouro_so_por_fim_de_semana: boolean | null
           horas_ciclo_bruto: number | null
           horas_ciclo_liquido: number | null
+          horas_cliente: number | null
           horas_em_curso_liquido: number | null
-          horas_excedidas: number | null
+          horas_excedidas_cliente: number | null
+          horas_excedidas_xpm: number | null
           horas_fim_de_semana: number | null
           horas_pausadas: number | null
           horas_sla: number | null
+          horas_xpm: number | null
           nf_chave: string | null
           nf_numero: string | null
           nf_serie: string | null
@@ -45435,22 +45439,26 @@ export type Database = {
           codigo: string | null
           concluida: boolean | null
           data_expedicao: string | null
-          dentro_sla: boolean | null
+          dentro_sla_cliente: boolean | null
+          dentro_sla_xpm: boolean | null
           destinatario_cnpj: string | null
           destinatario_nome: string | null
           dias_parado: number | null
           estagio_codigo: string | null
           estagio_descricao: string | null
           estagio_seq: number | null
-          estouro_estrutural: boolean | null
+          estouro_so_por_fim_de_semana: boolean | null
           farol: string | null
           horas_ciclo_bruto: number | null
           horas_ciclo_liquido: number | null
+          horas_cliente: number | null
           horas_em_curso_liquido: number | null
-          horas_excedidas: number | null
+          horas_excedidas_cliente: number | null
+          horas_excedidas_xpm: number | null
           horas_fim_de_semana: number | null
           horas_pausadas: number | null
           horas_sla: number | null
+          horas_xpm: number | null
           limiar_atencao: number | null
           limiar_risco: number | null
           nf_chave: string | null

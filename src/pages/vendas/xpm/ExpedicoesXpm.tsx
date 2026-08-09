@@ -87,7 +87,51 @@ type ExpedicaoXpm = {
   farol: "concluida" | "pausada" | "risco" | "atencao" | "no_prazo";
   limiar_atencao: number | null;
   limiar_risco: number | null;
+  horas_sla: number | null;
+  horas_cliente: number | null;
+  horas_xpm: number | null;
+  horas_fim_de_semana: number;
+  dentro_sla_cliente: boolean | null;
+  dentro_sla_xpm: boolean | null;
+  horas_excedidas_cliente: number | null;
+  horas_excedidas_xpm: number | null;
+  estouro_so_por_fim_de_semana: boolean | null;
 };
+
+// Dois relogios: o do cliente conta hora corrida (o que a Fetely promete),
+// o da XPM desconta fim de semana (o que se cobra deles, clausula 3.3).
+function CelulaSla({ r }: { r: ExpedicaoXpm }) {
+  if (r.horas_sla == null) return <span className="text-muted-foreground">—</span>;
+  if (r.dentro_sla_cliente === true)
+    return (
+      <Badge variant="outline" className="text-xs font-normal">
+        no prazo
+      </Badge>
+    );
+  if (r.estouro_so_por_fim_de_semana === true)
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="secondary" className="text-xs font-normal">
+            fim de semana
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          Dentro do SLA no relógio da XPM; estourou só por causa do fim de semana.
+        </TooltipContent>
+      </Tooltip>
+    );
+  if (r.dentro_sla_cliente === false) {
+    const h = Number(r.horas_excedidas_cliente ?? 0);
+    const txt = h > 48 ? `+${Math.round(h / 24)}d` : `+${Math.round(h)}h`;
+    return (
+      <Badge variant="destructive" className="text-xs font-normal">
+        {txt}
+      </Badge>
+    );
+  }
+  return <span className="text-muted-foreground">—</span>;
+}
 
 
 
@@ -565,6 +609,7 @@ export default function ExpedicoesXpm() {
   const [estagio, setEstagio] = useState("todos");
   const [situacao, setSituacao] = useState("em_curso");
   const [farolFiltro, setFarolFiltro] = useState<"risco" | "atencao" | null>(null);
+  const [slaFiltro, setSlaFiltro] = useState("todos");
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
@@ -623,6 +668,8 @@ export default function ExpedicoesXpm() {
       if (canal !== "todos" && r.canal !== canal) return false;
       if (estagio !== "todos" && r.estagio_codigo !== estagio) return false;
       if (farolFiltro && r.farol !== farolFiltro) return false;
+      if (slaFiltro === "dentro" && r.dentro_sla_cliente !== true) return false;
+      if (slaFiltro === "fora" && r.dentro_sla_cliente !== false) return false;
       if (situacao === "em_curso" && !(Number(r.estagio_seq) < 6)) return false;
       if (situacao === "expedidas" && !(Number(r.estagio_seq) >= 6)) return false;
       if (!q) return true;
@@ -640,7 +687,7 @@ export default function ExpedicoesXpm() {
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
-  }, [rows, canal, estagio, situacao, busca, farolFiltro]);
+  }, [rows, canal, estagio, situacao, busca, farolFiltro, slaFiltro]);
 
   const ultimoSync = useMemo(() => {
     let melhor: string | null = null;
@@ -822,6 +869,16 @@ export default function ExpedicoesXpm() {
                   <SelectItem value="expedidas">Só expedidas</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={slaFiltro} onValueChange={setSlaFiltro}>
+                <SelectTrigger className="md:max-w-[170px]">
+                  <SelectValue placeholder="SLA" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">SLA: todos</SelectItem>
+                  <SelectItem value="dentro">Dentro do SLA</SelectItem>
+                  <SelectItem value="fora">Fora do SLA</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>
@@ -850,13 +907,14 @@ export default function ExpedicoesXpm() {
                       <TableHead className="w-[220px]">Estágio</TableHead>
                       <TableHead className="text-right w-[70px]">Vol</TableHead>
                       <TableHead className="text-right w-[100px]">Peso</TableHead>
+                      <TableHead className="w-[92px]">SLA</TableHead>
                       <TableHead className="text-right w-[80px]">Dias</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filtradas.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                           Nenhuma expedição neste recorte.
                         </TableCell>
                       </TableRow>
@@ -934,6 +992,9 @@ export default function ExpedicoesXpm() {
                               <TableCell className="text-right tabular-nums">
                                 {r.peso_bruto != null ? nf2.format(Number(r.peso_bruto)) : "—"}
                               </TableCell>
+                              <TableCell>
+                                <CelulaSla r={r} />
+                              </TableCell>
                               <TableCell
                                 className={`text-right tabular-nums ${
                                   atrasado
@@ -948,7 +1009,7 @@ export default function ExpedicoesXpm() {
                             </TableRow>
                             {expandido && (
                               <TableRow>
-                                <TableCell colSpan={9} className="p-0">
+                                <TableCell colSpan={10} className="p-0">
                                   <LinhaExpandida exp={r} fases={mapaFases} />
                                 </TableCell>
                               </TableRow>

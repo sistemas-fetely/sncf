@@ -52,7 +52,41 @@ type CicloXpm = {
   farol: "concluida" | "pausada" | "risco" | "atencao" | "no_prazo";
   limiar_atencao: number | null;
   limiar_risco: number | null;
+  horas_sla: number | null;
+  horas_cliente: number | null;
+  horas_xpm: number | null;
+  horas_fim_de_semana: number;
+  dentro_sla_cliente: boolean | null;
+  dentro_sla_xpm: boolean | null;
+  horas_excedidas_cliente: number | null;
+  horas_excedidas_xpm: number | null;
+  estouro_so_por_fim_de_semana: boolean | null;
 };
+
+function corAderencia(pct: number | null) {
+  if (pct == null) return "bg-muted";
+  if (pct < 50) return "bg-destructive";
+  if (pct < 80) return "bg-amber-500";
+  return "bg-emerald-600";
+}
+
+function textoAderencia(pct: number | null) {
+  if (pct == null) return "";
+  if (pct < 50) return "text-destructive";
+  if (pct < 80) return "text-amber-700 dark:text-amber-500";
+  return "text-emerald-700 dark:text-emerald-500";
+}
+
+function BarraAderencia({ pct }: { pct: number | null }) {
+  return (
+    <div className="mt-1 h-1 w-full rounded-sm bg-muted overflow-hidden">
+      <div
+        className={`h-full ${corAderencia(pct)}`}
+        style={{ width: `${Math.max(0, Math.min(100, pct ?? 0))}%` }}
+      />
+    </div>
+  );
+}
 
 function BadgeFarol({ farol }: { farol: CicloXpm["farol"] }) {
   if (farol === "risco") return <Badge variant="destructive">Risco</Badge>;
@@ -241,6 +275,37 @@ export default function PainelXpm() {
     [fila],
   );
 
+  // Aderencia ao SLA: dois relogios sobre as expedicoes concluidas do periodo.
+  const aderencia = useMemo(() => {
+    const base = noPeriodo.filter((r) => r.concluida === true && r.horas_sla != null);
+    const canais = [...new Set(base.map((r) => r.canal as string))].sort();
+    const linha = (nome: string, arr: CicloXpm[]) => {
+      const n = arr.length;
+      const okCliente = arr.filter((r) => r.dentro_sla_cliente === true).length;
+      const okXpm = arr.filter((r) => r.dentro_sla_xpm === true).length;
+      const estouraramXpm = arr.filter((r) => r.dentro_sla_xpm === false);
+      const excesso = estouraramXpm.length
+        ? estouraramXpm.reduce((s, r) => s + Number(r.horas_excedidas_xpm ?? 0), 0) /
+          estouraramXpm.length
+        : null;
+      const metas = [...new Set(arr.map((r) => Number(r.horas_sla)))];
+      return {
+        canal: nome,
+        meta: metas.length === 1 ? metas[0] : null,
+        n,
+        pctCliente: n ? (okCliente / n) * 100 : null,
+        okCliente,
+        pctXpm: n ? (okXpm / n) * 100 : null,
+        okXpm,
+        excesso,
+        soFimDeSemana: arr.filter((r) => r.estouro_so_por_fim_de_semana === true).length,
+      };
+    };
+    const linhas = canais.map((c) => linha(c, base.filter((r) => r.canal === c)));
+    if (base.length) linhas.push(linha("Total", base));
+    return linhas;
+  }, [noPeriodo]);
+
   const volume = useMemo(
     () => ({
       expedicoes: concluidas.length,
@@ -408,6 +473,81 @@ export default function PainelXpm() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Aderência ao SLA</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            SLA definido pela Fetely. O relógio do cliente conta hora corrida; o da XPM desconta fim
+            de semana, conforme a cláusula 3.3 do contrato.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {aderencia.length === 0 ? (
+            <div className="text-sm text-muted-foreground">
+              Nenhuma expedição concluída com SLA definido no período.
+            </div>
+          ) : (
+            <>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Canal</TableHead>
+                      <TableHead className="text-right w-[90px]">Meta (h)</TableHead>
+                      <TableHead className="text-right w-[110px]">Expedições</TableHead>
+                      <TableHead className="text-right w-[170px]">Aderência cliente</TableHead>
+                      <TableHead className="text-right w-[170px]">Aderência XPM</TableHead>
+                      <TableHead className="text-right w-[130px]">Excesso médio</TableHead>
+                      <TableHead className="text-right w-[150px]">Só por fim de semana</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aderencia.map((l) => (
+                      <TableRow key={l.canal} className={l.canal === "Total" ? "font-medium" : ""}>
+                        <TableCell>{l.canal}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {l.meta ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {nfInt.format(l.n)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className={`tabular-nums ${textoAderencia(l.pctCliente)}`}>
+                            {l.pctCliente == null ? "—" : `${nf2.format(l.pctCliente)}%`}
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({nfInt.format(l.okCliente)}/{nfInt.format(l.n)})
+                            </span>
+                          </div>
+                          <BarraAderencia pct={l.pctCliente} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className={`tabular-nums ${textoAderencia(l.pctXpm)}`}>
+                            {l.pctXpm == null ? "—" : `${nf2.format(l.pctXpm)}%`}
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({nfInt.format(l.okXpm)}/{nfInt.format(l.n)})
+                            </span>
+                          </div>
+                          <BarraAderencia pct={l.pctXpm} />
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{h1(l.excesso)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {nfInt.format(l.soFimDeSemana)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A diferença entre os dois relógios é o custo do fim de semana — não é falha da XPM
+                nem atraso operacional.
+              </p>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
 
 
 
