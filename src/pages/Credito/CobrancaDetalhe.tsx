@@ -1062,15 +1062,21 @@ export default function CobrancaDetalhe() {
                         {t.condicao_pagamento}
                       </TableCell>
                       <TableCell>
-                        <Input
-                          type="url"
-                          placeholder="https://..."
-                          value={t.link_pagamento ?? ""}
-                          onChange={(e) =>
-                            atualizarTitulo(idx, { link_pagamento: e.target.value || undefined })
-                          }
-                          className="h-9 w-56 text-xs"
-                        />
+                        {t.tipo_pagamento === "conta_corrente" ? (
+                          <span className="text-xs text-muted-foreground">
+                            Não se aplica
+                          </span>
+                        ) : (
+                          <Input
+                            type="url"
+                            placeholder="https://..."
+                            value={t.link_pagamento ?? ""}
+                            onChange={(e) =>
+                              atualizarTitulo(idx, { link_pagamento: e.target.value || undefined })
+                            }
+                            className="h-9 w-56 text-xs"
+                          />
+                        )}
                       </TableCell>
                       <TableCell>
                         <Button
