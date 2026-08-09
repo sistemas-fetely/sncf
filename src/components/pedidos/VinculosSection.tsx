@@ -93,13 +93,13 @@ export function VinculosSection({
 
   const temOrigem = !!pedido_origem_id;
   const temAlgumVinculo =
-    !!vinculos &&
-    (vinculos.remessas.length > 0 ||
-      !!vinculos.remessa_de ||
-      !!vinculos.consolidado_em ||
-      vinculos.consolidou.length > 0 ||
-      !!vinculos.origem ||
-      vinculos.complementares.length > 0);
+    (remessas?.length ?? 0) > 0 ||
+    (!!vinculos &&
+      (!!vinculos.remessa_de ||
+        !!vinculos.consolidado_em ||
+        vinculos.consolidou.length > 0 ||
+        !!vinculos.origem ||
+        vinculos.complementares.length > 0));
 
   const temAcoes = podeSplit || !!acoesExtra;
   if (!temAlgumVinculo && !temAcoes) return null;
