@@ -50,19 +50,33 @@ export type RecebimentoNivel = {
   pedido_selo: string | null;
 };
 
-/** Níveis canônicos por rank — cores dos tokens já usados na tela financeira. */
+/**
+ * Níveis canônicos keyados por chave estável.
+ * ATENÇÃO: `nivel_rank` da view NÃO é 1/2/3/4 (emite 0/1/3, com 3 valendo para
+ * conciliado E haver). Por isso o bucket/rótulo vem SEMPRE do emoji contido nos
+ * textos canônicos `nivel_titulo` / `pedido_selo`. O rank só serve para ordenar.
+ */
+type NivelKey = "recebivel" | "compensado" | "conciliado" | "haver";
+
 const NIVEIS = [
-  { rank: 1, emoji: "🔴", label: "Recebível", classe: "bg-red-100 text-red-800", texto: "text-red-800" },
-  { rank: 2, emoji: "🟡", label: "Compensado", classe: "bg-amber-100 text-amber-800", texto: "text-amber-800" },
-  { rank: 3, emoji: "🟢", label: "Conciliado", classe: "bg-green-100 text-green-800", texto: "text-green-800" },
-  { rank: 4, emoji: "🔵", label: "Quitado s/ caixa", classe: "bg-blue-100 text-blue-800", texto: "text-blue-800" },
-] as const;
+  { key: "recebivel", emoji: "🔴", label: "Recebível", classe: "bg-red-100 text-red-800", texto: "text-red-800" },
+  { key: "compensado", emoji: "🟡", label: "Compensado", classe: "bg-amber-100 text-amber-800", texto: "text-amber-800" },
+  { key: "conciliado", emoji: "🟢", label: "Conciliado", classe: "bg-green-100 text-green-800", texto: "text-green-800" },
+  { key: "haver", emoji: "🔵", label: "Quitado s/ caixa", classe: "bg-blue-100 text-blue-800", texto: "text-blue-800" },
+] as const satisfies readonly { key: NivelKey; emoji: string; label: string; classe: string; texto: string }[];
+
+/** Chave do nível a partir do emoji contido no texto canônico. */
+function nivelPorTexto(texto: string | null | undefined): NivelKey | null {
+  const s = texto || "";
+  return NIVEIS.find((n) => s.includes(n.emoji))?.key ?? null;
+}
 
 function classePorTexto(selo: string | null | undefined): string {
   const s = selo || "";
   const found = NIVEIS.find((n) => s.includes(n.emoji));
   return found?.classe ?? "bg-muted text-muted-foreground";
 }
+
 
 function SeloBadge({ selo }: { selo: string | null }) {
   if (!selo) return <span className="text-muted-foreground">—</span>;
@@ -80,7 +94,7 @@ type Grupo = {
   pedido_rank: number;
   total: number;
   titulos: RecebimentoNivel[];
-  porNivel: Record<number, { qtd: number; soma: number }>;
+  porNivel: Partial<Record<NivelKey, { qtd: number; soma: number }>>;
 };
 
 function useRecebimentoPedidoNivel() {
@@ -116,13 +130,13 @@ export function RecebimentoPorPedido() {
   }, [linhas]);
 
   const totaisNivel = useMemo(() => {
-    const acc: Record<number, { qtd: number; soma: number }> = {};
-    NIVEIS.forEach((n) => (acc[n.rank] = { qtd: 0, soma: 0 }));
+    const acc = {} as Record<NivelKey, { qtd: number; soma: number }>;
+    NIVEIS.forEach((n) => (acc[n.key] = { qtd: 0, soma: 0 }));
     linhas.forEach((l) => {
-      const r = Number(l.nivel_rank || 0);
-      if (!acc[r]) acc[r] = { qtd: 0, soma: 0 };
-      acc[r].qtd += 1;
-      acc[r].soma += Number(l.valor || 0);
+      const k = nivelPorTexto(l.nivel_titulo);
+      if (!k) return;
+      acc[k].qtd += 1;
+      acc[k].soma += Number(l.valor || 0);
     });
     return acc;
   }, [linhas]);
@@ -152,15 +166,17 @@ export function RecebimentoPorPedido() {
       }
       g.total += Number(l.valor || 0);
       g.titulos.push(l);
-      const r = Number(l.nivel_rank || 0);
-      if (!g.porNivel[r]) g.porNivel[r] = { qtd: 0, soma: 0 };
-      g.porNivel[r].qtd += 1;
-      g.porNivel[r].soma += Number(l.valor || 0);
+      const k = nivelPorTexto(l.nivel_titulo);
+      if (k) {
+        if (!g.porNivel[k]) g.porNivel[k] = { qtd: 0, soma: 0 };
+        g.porNivel[k]!.qtd += 1;
+        g.porNivel[k]!.soma += Number(l.valor || 0);
+      }
     });
 
     let arr = Array.from(map.values());
     if (selo !== "todos") {
-      const emoji = NIVEIS.find((n) => String(n.rank) === selo)?.emoji;
+      const emoji = NIVEIS.find((n) => n.key === selo)?.emoji;
       arr = arr.filter((g) => (g.pedido_selo || "").includes(emoji || "\u0000"));
     }
     if (termo) {
@@ -210,9 +226,9 @@ export function RecebimentoPorPedido() {
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {NIVEIS.map((n) => {
-          const t = totaisNivel[n.rank] || { qtd: 0, soma: 0 };
+          const t = totaisNivel[n.key] || { qtd: 0, soma: 0 };
           return (
-            <Card key={n.rank}>
+            <Card key={n.key}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-normal text-muted-foreground">
                   {n.emoji} {n.label}
@@ -237,7 +253,7 @@ export function RecebimentoPorPedido() {
             <SelectContent>
               <SelectItem value="todos">Todos os selos</SelectItem>
               {NIVEIS.map((n) => (
-                <SelectItem key={n.rank} value={String(n.rank)}>
+                <SelectItem key={n.key} value={n.key}>
                   {n.emoji} {n.label}
                 </SelectItem>
               ))}
@@ -335,13 +351,13 @@ export function RecebimentoPorPedido() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {NIVEIS.filter((n) => g.porNivel[n.rank]?.qtd).map((n) => (
+                              {NIVEIS.filter((n) => g.porNivel[n.key]?.qtd).map((n) => (
                                 <span
-                                  key={n.rank}
+                                  key={n.key}
                                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${n.classe}`}
                                   title={n.label}
                                 >
-                                  {n.emoji} {g.porNivel[n.rank].qtd}× {formatBRL(g.porNivel[n.rank].soma)}
+                                  {n.emoji} {g.porNivel[n.key]!.qtd}× {formatBRL(g.porNivel[n.key]!.soma)}
                                 </span>
                               ))}
                             </div>
