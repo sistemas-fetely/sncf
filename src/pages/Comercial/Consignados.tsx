@@ -27,6 +27,7 @@ interface ContaCorrenteRow {
   n_pagamentos: number | null;
   saldo_devedor: number | null;
   ultimo_pagamento: string | null;
+  haver_disponivel: number | null;
 }
 
 export function useParceirosConsignados() {

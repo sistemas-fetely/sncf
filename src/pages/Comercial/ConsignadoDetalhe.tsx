@@ -245,6 +245,7 @@ export default function ConsignadoDetalhe() {
     { label: "Último pagamento", valor: formatDateBR(cc?.ultimo_pagamento) },
     { label: "Títulos", valor: String(cc?.n_titulos ?? 0) },
     { label: "Pagamentos", valor: String(cc?.n_pagamentos ?? 0) },
+    { label: "Haver disponível", valor: formatBRL(cc?.haver_disponivel) },
   ];
 
   return (
