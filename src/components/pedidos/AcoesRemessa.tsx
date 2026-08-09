@@ -90,14 +90,15 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         <Button
           size="sm"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={`Enviar ${id_externo} pro Bling — cria a remessa /01`}
+          title={`Enviar ${id_externo} pro Bling`}
           disabled={enviar.isPending}
           onClick={() => enviar.mutate({ pedido_id })}
         >
           {enviar.isPending ? (
             <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
           ) : (
-            <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling (gera /01)</>
+            <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling</>
+
           )}
         </Button>
       )}
