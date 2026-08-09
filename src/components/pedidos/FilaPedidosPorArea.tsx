@@ -438,6 +438,10 @@ export function FilaPedidosPorArea({
             <SelectItem value="parcial_pago">Parcial pago</SelectItem>
             <SelectItem value="em_aberto">Em aberto</SelectItem>
             <SelectItem value="vencido">Vencido</SelectItem>
+            <SelectItem value="previsto">Cobrança prevista</SelectItem>
+            <SelectItem value="coberto_haver">Coberto por haver</SelectItem>
+            <SelectItem value="recebivel_familia">Recebível na mãe</SelectItem>
+            <SelectItem value="sem_cobranca">Sem cobrança</SelectItem>
             <SelectItem value="sem_recebivel">Sem recebível</SelectItem>
             <SelectItem value="anulado">Anulado</SelectItem>
           </SelectContent>
