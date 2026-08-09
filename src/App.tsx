@@ -622,6 +622,10 @@ const App = () => (
                     <NomesBling />
                   </ProtectedRoute>
                 } />
+                <Route path="sla-xpm" element={
+                  <ProtectedRoute permModule="parametros"><SlaXpm /></ProtectedRoute>
+                } />
+
 
               </Route>
 
