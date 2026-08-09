@@ -89,7 +89,7 @@ export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens, trigg
         <DialogHeader>
           <DialogTitle>Dividir {codigo}</DialogTitle>
           <DialogDescription>
-            Quanto de cada item sai para uma nova remessa. O que sobrar continua nesta. O frete é
+            Quanto de cada item sai para uma nova tentativa de envio. O que sobrar continua nesta. O frete é
             rateado proporcional ao valor de cada uma.
           </DialogDescription>
         </DialogHeader>
@@ -123,14 +123,14 @@ export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens, trigg
             <p className="font-semibold">{fmtBRL.format(valorFica)}</p>
           </div>
           <div className="rounded-md border p-2">
-            <p className="text-muted-foreground text-xs">Vai pra nova remessa</p>
+            <p className="text-muted-foreground text-xs">Vai pra nova tentativa</p>
             <p className="font-semibold">{fmtBRL.format(valorNova)}</p>
           </div>
         </div>
 
         {totalMovido > 0 && totalFica === 0 && (
           <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
-            Não dá pra mover tudo — ao menos um item precisa ficar nesta remessa. Pra mandar tudo,
+            Não dá pra mover tudo — ao menos um item precisa ficar nesta tentativa. Pra mandar tudo,
             use o envio normal.
           </div>
         )}
@@ -143,7 +143,7 @@ export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens, trigg
             {dividir.isPending ? (
               <><Loader2 className="h-4 w-4 animate-spin mr-1" />Dividindo…</>
             ) : (
-              "Criar nova remessa"
+              "Criar nova tentativa"
             )}
           </Button>
         </DialogFooter>

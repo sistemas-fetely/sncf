@@ -90,22 +90,26 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         <Button
           size="sm"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={`Enviar ${id_externo} pro Bling — cria a remessa /01`}
+          title={`Enviar ${id_externo} pro Bling`}
           disabled={enviar.isPending}
           onClick={() => enviar.mutate({ pedido_id })}
         >
           {enviar.isPending ? (
             <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
           ) : (
-            <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling (gera /01)</>
+            <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling</>
+
           )}
         </Button>
       )}
 
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       {elegiveis.map((rem: any) => {
-        const sufixo = `/${String(rem.sequencia).padStart(2, "0")}`;
-        const codigo = `${id_externo}${sufixo}`;
+        // Vocabulario de UI: linha de `pedido_remessa` e TENTATIVA de envio, nunca /NN.
+        // /NN pertence so ao split. Ver sncf_documentacao `decisao-remessa-e-tentativa-envio`.
+        const tentativa = `tentativa ${Number(rem.sequencia)}`;
+        const codigo = `${id_externo} · ${tentativa}`;
+
         const itens: any[] = Array.isArray(rem.itens_json) ? rem.itens_json : [];
         const totalUnidades = itens.reduce((s: number, it: any) => s + (Number(it.quantidade) || 0), 0);
         const podeEnviar = rem.status === "pronta_para_envio" && !rem.bling_pedido_id && !precisaSincronizar;
@@ -124,7 +128,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
                 {enviar.isPending ? (
                   <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
                 ) : (
-                  <><Send className="h-4 w-4 shrink-0" />Enviar {sufixo} pro Bling</>
+                  <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling ({tentativa})</>
                 )}
               </Button>
             )}
@@ -134,8 +138,8 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
                 pedidoId={pedido_id}
                 codigo={codigo}
                 itens={itens}
-                triggerLabel={`Dividir remessa ${sufixo}`}
-                triggerTitle={`Dividir a remessa ${codigo} em duas`}
+                triggerLabel={`Dividir ${tentativa}`}
+                triggerTitle={`Dividir ${codigo} em duas`}
                 triggerFullWidth
               />
             )}

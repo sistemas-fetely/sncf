@@ -43,8 +43,11 @@ export function useEnviarBling() {
       return data;
     },
     onSuccess: (data, vars) => {
-      const desc = data.remessa_codigo
-        ? `Remessa ${data.remessa_codigo} · id Bling: ${data.bling_id}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`
+      // `remessa_codigo` vem da edge como PED/NN. Na UI /NN e exclusivo do split:
+      // aqui a linha e uma TENTATIVA de envio (decisao-remessa-e-tentativa-envio).
+      const seqTentativa = data.remessa_codigo?.match(/\/(\d+)$/)?.[1];
+      const desc = seqTentativa
+        ? `Tentativa ${Number(seqTentativa)} · id Bling: ${data.bling_id}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`
         : `id Bling: ${data.bling_id}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`;
 
       toast({ title: "Enviado pro Bling", description: desc });

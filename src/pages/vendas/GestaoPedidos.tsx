@@ -367,7 +367,7 @@ function AbaB2B() {
               <Th k="frete_cotacao">Frete Cotação</Th>
               <Th k="frete_realizado">Frete Realizado</Th>
               <Th>Transportadora</Th>
-              <Th k="remessa_qtd">Remessas</Th>
+              <Th k="remessa_qtd">Envios</Th>
               <Th k="previsao_entrega">Prev. Entrega</Th>
               <Th k="data_entrega_real">Entrega Real</Th>
               <Th>Rastreio</Th>

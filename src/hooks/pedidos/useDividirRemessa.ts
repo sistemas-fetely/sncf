@@ -22,12 +22,12 @@ export function useDividirRemessa() {
     onSuccess: (data: any, vars) => {
       qc.invalidateQueries({ queryKey: ["remessas"] });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
-      const codigo = data?.nova?.codigo ?? "nova remessa";
-      toast.success(`Remessa dividida — ${codigo} criada`);
+      // Vocabulario de UI: `pedido_remessa` e tentativa de envio, nao remessa /NN.
+      toast.success("Envio dividido — nova tentativa criada");
     },
     onError: (err: unknown) => {
       const msg =
-        err instanceof Error ? err.message : (err as any)?.message ?? "Erro ao dividir remessa";
+        err instanceof Error ? err.message : (err as any)?.message ?? "Erro ao dividir o envio";
       console.error("useDividirRemessa error:", err);
       toast.error(msg);
     },
