@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AlertaDivergencia from "./AlertaDivergencia";
+import FunilFases from "./FunilFases";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,6 +71,15 @@ function h1(v: number | null | undefined) {
   if (v == null || Number.isNaN(Number(v))) return "—";
   return Number(v).toFixed(1);
 }
+
+// Acima de 48h a leitura em horas perde sentido operacional: virou dia.
+function fmtDuracao(v: number | null | undefined) {
+  if (v == null || Number.isNaN(Number(v))) return "—";
+  const n = Number(v);
+  if (n > 48) return `${Math.round(n / 24)} d`;
+  return `${n.toFixed(1)} h`;
+}
+
 
 function percentil(ordenado: number[], p: number) {
   if (ordenado.length === 0) return null;
