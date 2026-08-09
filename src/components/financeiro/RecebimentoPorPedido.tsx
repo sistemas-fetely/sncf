@@ -226,9 +226,9 @@ export function RecebimentoPorPedido() {
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {NIVEIS.map((n) => {
-          const t = totaisNivel[n.rank] || { qtd: 0, soma: 0 };
+          const t = totaisNivel[n.key] || { qtd: 0, soma: 0 };
           return (
-            <Card key={n.rank}>
+            <Card key={n.key}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-normal text-muted-foreground">
                   {n.emoji} {n.label}
@@ -253,7 +253,7 @@ export function RecebimentoPorPedido() {
             <SelectContent>
               <SelectItem value="todos">Todos os selos</SelectItem>
               {NIVEIS.map((n) => (
-                <SelectItem key={n.rank} value={String(n.rank)}>
+                <SelectItem key={n.key} value={n.key}>
                   {n.emoji} {n.label}
                 </SelectItem>
               ))}
@@ -351,13 +351,13 @@ export function RecebimentoPorPedido() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {NIVEIS.filter((n) => g.porNivel[n.rank]?.qtd).map((n) => (
+                              {NIVEIS.filter((n) => g.porNivel[n.key]?.qtd).map((n) => (
                                 <span
-                                  key={n.rank}
+                                  key={n.key}
                                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${n.classe}`}
                                   title={n.label}
                                 >
-                                  {n.emoji} {g.porNivel[n.rank].qtd}× {formatBRL(g.porNivel[n.rank].soma)}
+                                  {n.emoji} {g.porNivel[n.key]!.qtd}× {formatBRL(g.porNivel[n.key]!.soma)}
                                 </span>
                               ))}
                             </div>
