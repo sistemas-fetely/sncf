@@ -710,8 +710,7 @@ export default function ExpedicoesXpm() {
       if (canal !== "todos" && r.canal !== canal) return false;
       if (estagio !== "todos" && r.estagio_codigo !== estagio) return false;
       if (farolFiltro && r.farol !== farolFiltro) return false;
-      if (slaFiltro === "dentro" && r.dentro_sla_cliente !== true) return false;
-      if (slaFiltro === "fora" && r.dentro_sla_cliente !== false) return false;
+      if (slaFiltro !== "todos" && r.farol_sla !== slaFiltro) return false;
       if (situacao === "em_curso" && !(Number(r.estagio_seq) < 6)) return false;
       if (situacao === "expedidas" && !(Number(r.estagio_seq) >= 6)) return false;
       if (!q) return true;
