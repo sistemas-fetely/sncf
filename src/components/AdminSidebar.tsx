@@ -52,6 +52,7 @@ export function AdminSidebar() {
     ...(roles.includes("super_admin")
       ? [
           { title: "Nomes no Bling", url: "/admin/nomes-bling", icon: Tags },
+          { title: "SLA da XPM", url: "/admin/sla-xpm", icon: Timer },
           { title: "Visibilidade de Telas", url: "/admin/visibilidade", icon: Eye },
         ]
       : []),
