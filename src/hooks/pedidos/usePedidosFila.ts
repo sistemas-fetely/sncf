@@ -106,6 +106,8 @@ export function usePedidosFila(opts: Opts = {}) {
             ...p,
             situacao_financeira: sf.situacao_financeira as PedidoFilaItem["situacao_financeira"],
             situacao_rotulo: sf.situacao_rotulo as string | null,
+            lastro_fonte: sf.lastro_fonte as string | null,
+            lastro_porque: sf.lastro_porque as string | null,
             valor_pago: sf.valor_pago as number | null,
             valor_aberto: sf.valor_aberto as number | null,
             valor_vencido: sf.valor_vencido as number | null,
