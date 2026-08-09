@@ -43,7 +43,23 @@ type CicloXpm = {
   qtd_pausas: number;
   pausada_agora: boolean;
   concluida: boolean;
+  pedido_loja: string | null;
+  numero_pedido_loja: string | null;
+  cidade_entrega: string | null;
+  pedido_display: string | null;
+  uf_display: string | null;
+  farol: "concluida" | "pausada" | "risco" | "atencao" | "no_prazo";
+  limiar_atencao: number | null;
+  limiar_risco: number | null;
 };
+
+function BadgeFarol({ farol }: { farol: CicloXpm["farol"] }) {
+  if (farol === "risco") return <Badge variant="destructive">Risco</Badge>;
+  if (farol === "atencao") return <Badge variant="secondary">Atenção</Badge>;
+  if (farol === "pausada") return <Badge variant="outline">Pausada</Badge>;
+  if (farol === "concluida") return <Badge variant="outline">Concluída</Badge>;
+  return <Badge variant="outline">No prazo</Badge>;
+}
 
 const CANAIS: CicloXpm["canal"][] = ["B2B", "B2C", "SEM NF"];
 
