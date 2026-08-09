@@ -1024,7 +1024,7 @@ export default function CobrancaDetalhe() {
                               })
                             }
                           >
-                            <SelectTrigger className="h-9 w-[120px]">
+                            <SelectTrigger className="h-9 w-[180px]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
