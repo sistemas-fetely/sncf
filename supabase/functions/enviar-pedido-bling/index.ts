@@ -506,7 +506,13 @@ serve(async (req) => {
       );
     }
 
-    const totalExato = geraTitulo
+    // TOTAL — a condição é "há parcelas a enviar", NÃO "a natureza gera título".
+    // Com geraTitulo=true e zero linhas de cobrança (pedido pré-pago por haver
+    // aplicado, ou lastro na família), o cálculo antigo somava um array vazio e
+    // mandava total: 0 ao Bling. O caminho de zero parcelas já existia e funcionava
+    // — era o da bonificação. Agora os três casos entram pelo mesmo caminho.
+    const temParcelas = blingParcelas.length > 0;
+    const totalExato = temParcelas
       ? parseFloat(blingParcelas.reduce((s, p) => s + p.valor, 0).toFixed(2))
       : remessaValor;
 
