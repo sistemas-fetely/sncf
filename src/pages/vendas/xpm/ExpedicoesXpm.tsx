@@ -78,6 +78,24 @@ type ExpedicaoXpm = {
   qtd_pausas?: number;
   pausada_agora?: boolean;
   concluida?: boolean;
+  pedido_loja: string | null;
+  numero_pedido_loja: string | null;
+  cidade_entrega: string | null;
+  pedido_display: string | null;
+  uf_display: string | null;
+  farol: "concluida" | "pausada" | "risco" | "atencao" | "no_prazo";
+  limiar_atencao: number | null;
+  limiar_risco: number | null;
+};
+
+type FunilFase = {
+  sequencia: number;
+  codigo: string;
+  descricao: string;
+  parados_aqui: number;
+  ja_passaram: number;
+  em_alerta: number;
+  volumes_parados: number;
 };
 
 type MotivoPausa = {
@@ -552,6 +570,7 @@ export default function ExpedicoesXpm() {
   const [canal, setCanal] = useState("todos");
   const [estagio, setEstagio] = useState("todos");
   const [situacao, setSituacao] = useState("em_curso");
+  const [farolFiltro, setFarolFiltro] = useState<"risco" | "atencao" | null>(null);
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
@@ -560,11 +579,23 @@ export default function ExpedicoesXpm() {
     queryKey: ["xpm-expedicoes"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_xpm_ciclo")
+        .from("vw_xpm_risco_atraso")
         .select("*")
         .order("data_expedicao", { ascending: false });
       if (error) throw error;
       return (data ?? []) as ExpedicaoXpm[];
+    },
+  });
+
+  const funilQ = useQuery({
+    queryKey: ["xpm-funil-fases"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_xpm_funil_fases")
+        .select("*")
+        .order("sequencia");
+      if (error) throw error;
+      return (data ?? []) as FunilFase[];
     },
   });
 
@@ -594,7 +625,8 @@ export default function ExpedicoesXpm() {
     return {
       emCurso: emCurso.length,
       semNf: rows.filter((r) => Number(r.estagio_seq) >= 2 && Number(r.estagio_seq) < 4).length,
-      parado: rows.filter((r) => r.dias_parado != null && Number(r.dias_parado) > 5).length,
+      atencao: rows.filter((r) => r.farol === "atencao").length,
+      risco: rows.filter((r) => r.farol === "risco").length,
       corte: rows.filter((r) => r.tem_corte === true).length,
       peso: emCurso.reduce((s, r) => s + Number(r.peso_bruto ?? 0), 0),
     };
@@ -605,14 +637,23 @@ export default function ExpedicoesXpm() {
     return rows.filter((r) => {
       if (canal !== "todos" && r.canal !== canal) return false;
       if (estagio !== "todos" && r.estagio_codigo !== estagio) return false;
+      if (farolFiltro && r.farol !== farolFiltro) return false;
       if (situacao === "em_curso" && !(Number(r.estagio_seq) < 6)) return false;
       if (situacao === "expedidas" && !(Number(r.estagio_seq) >= 6)) return false;
       if (!q) return true;
-      return [r.codigo, r.nf_numero, r.pedido_sncf, r.cliente_sncf, r.destinatario_nome]
+      return [
+        r.codigo,
+        r.nf_numero,
+        r.pedido_sncf,
+        r.pedido_display,
+        r.pedido_loja,
+        r.cliente_sncf,
+        r.destinatario_nome,
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
-  }, [rows, canal, estagio, situacao, busca]);
+  }, [rows, canal, estagio, situacao, busca, farolFiltro]);
 
   const ultimoSync = useMemo(() => {
     let melhor: string | null = null;
@@ -666,7 +707,65 @@ export default function ExpedicoesXpm() {
 
         <AlertaDivergencia />
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {funilQ.isError ? (
+          <Card className="border-destructive">
+            <CardContent className="pt-6 text-sm text-destructive">
+              {(funilQ.error as Error)?.message ?? "Erro ao carregar o funil de fases"}
+            </CardContent>
+          </Card>
+        ) : funilQ.isLoading ? (
+          <Skeleton className="h-20 w-full" />
+        ) : (
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              <div className="flex items-center gap-1 overflow-x-auto">
+                {(funilQ.data ?? []).map((f, i) => {
+                  const ativo = estagio === f.codigo;
+                  const parados = Number(f.parados_aqui ?? 0);
+                  const apagada = parados === 0 && Number(f.ja_passaram ?? 0) > 0;
+                  return (
+                    <Fragment key={f.codigo}>
+                      {i > 0 && (
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setEstagio(ativo ? "todos" : f.codigo)}
+                        className={`relative shrink-0 rounded-md border px-3 py-2 text-left transition-colors ${
+                          ativo
+                            ? "bg-primary/20 border-primary"
+                            : parados > 0
+                              ? "bg-primary/10 border-primary/30"
+                              : apagada
+                                ? "bg-muted/40 border-border text-muted-foreground opacity-60"
+                                : "bg-background border-border"
+                        }`}
+                      >
+                        {Number(f.em_alerta ?? 0) > 0 && (
+                          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        )}
+                        <div className="text-[12px] font-medium">{f.descricao}</div>
+                        <div
+                          className={`text-[11px] ${
+                            parados > 0 ? "font-semibold opacity-100" : "opacity-60"
+                          }`}
+                        >
+                          {nf.format(parados)} parados
+                        </div>
+                      </button>
+                    </Fragment>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Separado, Conferido e Embarcado aparecem sempre zerados: a XPM grava essas fases em
+                lote, depois do fato. Um pedido nunca fica parado nelas.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <Card>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Em curso</div>
@@ -685,14 +784,48 @@ export default function ExpedicoesXpm() {
               </div>
             </CardContent>
           </Card>
-          <Card className={kpis.parado > 0 ? "border-destructive/50" : undefined}>
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => setFarolFiltro(farolFiltro === "atencao" ? null : "atencao")}
+            className={`cursor-pointer ${
+              farolFiltro === "atencao"
+                ? "border-amber-500 ring-1 ring-amber-500/40"
+                : kpis.atencao > 0
+                  ? "border-amber-500/50"
+                  : ""
+            }`}
+          >
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">Em atenção</div>
+              <div
+                className={`text-2xl font-semibold ${
+                  kpis.atencao > 0 ? "text-amber-700 dark:text-amber-500" : ""
+                }`}
+              >
+                {nf.format(kpis.atencao)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => setFarolFiltro(farolFiltro === "risco" ? null : "risco")}
+            className={`cursor-pointer ${
+              farolFiltro === "risco"
+                ? "border-destructive ring-1 ring-destructive/40"
+                : kpis.risco > 0
+                  ? "border-destructive/50"
+                  : ""
+            }`}
+          >
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground flex items-center gap-1">
-                {kpis.parado > 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}
-                Parado &gt; 5 dias
+                {kpis.risco > 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}
+                Em risco
               </div>
-              <div className={`text-2xl font-semibold ${kpis.parado > 0 ? "text-destructive" : ""}`}>
-                {nf.format(kpis.parado)}
+              <div className={`text-2xl font-semibold ${kpis.risco > 0 ? "text-destructive" : ""}`}>
+                {nf.format(kpis.risco)}
               </div>
             </CardContent>
           </Card>
@@ -798,16 +931,20 @@ export default function ExpedicoesXpm() {
                         const pausada = r.pausada_agora === true;
                         const atrasado = !pausada && dias != null && dias > 5;
                         const expandido = aberto === r.codigo;
+                        const fundo =
+                          r.farol === "risco"
+                            ? "bg-destructive/5"
+                            : r.farol === "atencao"
+                              ? "bg-amber-500/5"
+                              : r.farol === "pausada"
+                                ? ""
+                                : r.tem_corte
+                                  ? "bg-amber-500/5"
+                                  : "";
                         return (
                           <Fragment key={r.codigo}>
                             <TableRow
-                              className={`cursor-pointer ${
-                                atrasado
-                                  ? "bg-destructive/5"
-                                  : r.tem_corte
-                                    ? "bg-amber-500/5"
-                                    : ""
-                              }`}
+                              className={`cursor-pointer ${fundo}`}
                               onClick={() => setAberto(expandido ? null : r.codigo)}
                             >
                               <TableCell>
@@ -818,8 +955,12 @@ export default function ExpedicoesXpm() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <div className={r.pedido_sncf ? "font-medium" : "font-mono text-xs"}>
-                                  {r.pedido_sncf ?? r.codigo}
+                                <div
+                                  className={
+                                    r.pedido_display ? "font-medium" : "font-mono text-xs"
+                                  }
+                                >
+                                  {r.pedido_display ?? r.codigo}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                   XPM {r.codigo} · {r.nf_numero ? `NF ${r.nf_numero}` : "sem NF"}
@@ -828,7 +969,9 @@ export default function ExpedicoesXpm() {
                               <TableCell className="max-w-[240px] truncate">
                                 {r.cliente_sncf ?? r.destinatario_nome ?? "—"}
                               </TableCell>
-                              <TableCell className="text-muted-foreground">{r.uf ?? "—"}</TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {r.uf_display ?? "—"}
+                              </TableCell>
                               <TableCell>
                                 <Badge
                                   variant={

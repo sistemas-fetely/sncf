@@ -43,7 +43,23 @@ type CicloXpm = {
   qtd_pausas: number;
   pausada_agora: boolean;
   concluida: boolean;
+  pedido_loja: string | null;
+  numero_pedido_loja: string | null;
+  cidade_entrega: string | null;
+  pedido_display: string | null;
+  uf_display: string | null;
+  farol: "concluida" | "pausada" | "risco" | "atencao" | "no_prazo";
+  limiar_atencao: number | null;
+  limiar_risco: number | null;
 };
+
+function BadgeFarol({ farol }: { farol: CicloXpm["farol"] }) {
+  if (farol === "risco") return <Badge variant="destructive">Risco</Badge>;
+  if (farol === "atencao") return <Badge variant="secondary">Atenção</Badge>;
+  if (farol === "pausada") return <Badge variant="outline">Pausada</Badge>;
+  if (farol === "concluida") return <Badge variant="outline">Concluída</Badge>;
+  return <Badge variant="outline">No prazo</Badge>;
+}
 
 const CANAIS: CicloXpm["canal"][] = ["B2B", "B2C", "SEM NF"];
 
@@ -94,7 +110,7 @@ export default function PainelXpm() {
     queryKey: ["xpm-ciclo"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_xpm_ciclo")
+        .from("vw_xpm_risco_atraso")
         .select("*")
         .order("data_expedicao", { ascending: false });
       if (error) throw error;
@@ -192,6 +208,34 @@ export default function PainelXpm() {
 
   const pausadas = useMemo(() => noPeriodo.filter((r) => r.pausada_agora === true), [noPeriodo]);
 
+  const fila = useMemo(() => rows.filter((r) => r.concluida === false), [rows]);
+
+  const farolFila = useMemo(
+    () => ({
+      risco: fila.filter((r) => r.farol === "risco").length,
+      atencao: fila.filter((r) => r.farol === "atencao").length,
+      noPrazo: fila.filter((r) => r.farol === "no_prazo").length,
+      pausadas: fila.filter((r) => r.farol === "pausada").length,
+    }),
+    [fila],
+  );
+
+  const limiares = useMemo(() => {
+    const atencao = rows.find((r) => r.limiar_atencao != null)?.limiar_atencao ?? null;
+    const risco = rows.find((r) => r.limiar_risco != null)?.limiar_risco ?? null;
+    return { atencao, risco };
+  }, [rows]);
+
+  const precisamAtencao = useMemo(
+    () =>
+      fila
+        .filter((r) => r.farol === "risco" || r.farol === "atencao")
+        .sort(
+          (a, b) => Number(b.horas_em_curso_liquido ?? 0) - Number(a.horas_em_curso_liquido ?? 0),
+        ),
+    [fila],
+  );
+
   const volume = useMemo(
     () => ({
       expedicoes: concluidas.length,
@@ -245,6 +289,122 @@ export default function PainelXpm() {
       </header>
 
       <AlertaDivergencia />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Farol da fila</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Card className={farolFila.risco > 0 ? "border-destructive/50" : undefined}>
+              <CardContent className="pt-6">
+                <div className="text-xs text-muted-foreground">Em risco</div>
+                <div
+                  className={`text-2xl font-semibold ${
+                    farolFila.risco > 0 ? "text-destructive" : ""
+                  }`}
+                >
+                  {nfInt.format(farolFila.risco)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className={farolFila.atencao > 0 ? "border-amber-500/50" : undefined}>
+              <CardContent className="pt-6">
+                <div className="text-xs text-muted-foreground">Em atenção</div>
+                <div
+                  className={`text-2xl font-semibold ${
+                    farolFila.atencao > 0 ? "text-amber-700 dark:text-amber-500" : ""
+                  }`}
+                >
+                  {nfInt.format(farolFila.atencao)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-xs text-muted-foreground">No prazo</div>
+                <div className="text-2xl font-semibold">{nfInt.format(farolFila.noPrazo)}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-xs text-muted-foreground">Pausadas</div>
+                <div className="text-2xl font-semibold">{nfInt.format(farolFila.pausadas)}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Limiar calibrado no próprio histórico: atenção a partir de {h1(limiares.atencao)} h,
+            risco a partir de {h1(limiares.risco)} h (P75 e P90 do ciclo por canal). Quando houver
+            SLA acordado com a XPM, troca aqui.
+          </p>
+
+          <div className="space-y-2">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Precisam de atenção agora
+            </div>
+            {precisamAtencao.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                Nenhuma expedição em risco ou atenção agora.
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead className="w-[90px]">Canal</TableHead>
+                      <TableHead className="w-[160px]">Estágio</TableHead>
+                      <TableHead className="text-right w-[130px]">Horas em curso</TableHead>
+                      <TableHead className="w-[110px]">Farol</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {precisamAtencao.map((r) => (
+                      <TableRow key={r.codigo}>
+                        <TableCell>
+                          <div className={r.pedido_display ? "font-medium" : "font-mono text-xs"}>
+                            {r.pedido_display ?? r.codigo}
+                          </div>
+                          <div className="text-xs text-muted-foreground">XPM {r.codigo}</div>
+                        </TableCell>
+                        <TableCell className="max-w-[260px] truncate">
+                          {r.cliente_sncf ?? r.destinatario_nome ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              r.canal === "B2B"
+                                ? "default"
+                                : r.canal === "B2C"
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                          >
+                            {r.canal}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {r.estagio_codigo}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {h1(r.horas_em_curso_liquido)}
+                        </TableCell>
+                        <TableCell>
+                          <BadgeFarol farol={r.farol} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
 
 
 
@@ -403,13 +563,14 @@ export default function PainelXpm() {
                       <TableHead className="w-[90px]">Canal</TableHead>
                       <TableHead className="w-[160px]">Estágio</TableHead>
                       <TableHead className="text-right w-[130px]">Horas em curso</TableHead>
+                      <TableHead className="w-[110px]">Farol</TableHead>
                       <TableHead className="w-[110px]">Pausada</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {emCurso.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                           Nenhuma expedição em curso.
                         </TableCell>
                       </TableRow>
@@ -417,8 +578,8 @@ export default function PainelXpm() {
                       emCurso.map((r) => (
                         <TableRow key={r.codigo}>
                           <TableCell>
-                            <div className={r.pedido_sncf ? "font-medium" : "font-mono text-xs"}>
-                              {r.pedido_sncf ?? r.codigo}
+                            <div className={r.pedido_display ? "font-medium" : "font-mono text-xs"}>
+                              {r.pedido_display ?? r.codigo}
                             </div>
                             <div className="text-xs text-muted-foreground">XPM {r.codigo}</div>
                           </TableCell>
@@ -439,6 +600,9 @@ export default function PainelXpm() {
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {h1(r.horas_em_curso_liquido)}
+                          </TableCell>
+                          <TableCell>
+                            <BadgeFarol farol={r.farol} />
                           </TableCell>
                           <TableCell>
                             {r.pausada_agora ? <Badge variant="secondary">Pausada</Badge> : null}
