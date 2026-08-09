@@ -39900,6 +39900,16 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_nomes_bling_situacao: {
+        Row: {
+          aguardando_confirmacao: number | null
+          confirmados_pelo_bling: number | null
+          empurrados: number | null
+          faltam_empurrar: number | null
+          produtos_ativos: number | null
+        }
+        Relationships: []
+      }
       vw_oportunidades_comercial: {
         Row: {
           alerta_operacional: string | null
@@ -40337,14 +40347,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -47602,6 +47612,10 @@ export type Database = {
       registrar_aceite_termo_uso: {
         Args: { _versao: string }
         Returns: undefined
+      }
+      registrar_acerto_conta_corrente_cliente: {
+        Args: { p_movimentacao_id: string }
+        Returns: Json
       }
       registrar_acesso_dado: {
         Args: {
