@@ -350,16 +350,41 @@ serve(async (req) => {
     }
 
     // 4. Títulos (sempre do pedido — cobrança não fragmenta por remessa em v1)
-    // 4a. Descobrir se a natureza de operação do pedido gera título a receber
+    // 4a. LASTRO — fonte única da pergunta "este pedido tem recebível?".
+    // O guardrail antigo era "geraTitulo && titulos.length === 0 → bloqueia", que só
+    // conhecia dois mundos. Existem CINCO estados legítimos com zero linhas de cobrança
+    // (natureza sem cobrança, provisão prevista, título vivo, haver aplicado integral,
+    // cobertura por família) e apenas UM ilegítimo (cobrança não configurada).
+    // fn_pedido_tem_lastro é o juiz único — a mesma função é consumida por
+    // fn_destino_pos_estoque e pela vw_pedido_situacao_financeira. Doutrina LASTRO-E-VINCULO.
+    const { data: lastroRpc, error: lastroErr } = await supabase
+      .rpc("fn_pedido_tem_lastro", { p_pedido_id: pedido_id });
+    if (lastroErr) {
+      return await falhaLimpando(`Falha ao avaliar o lastro do pedido: ${lastroErr.message}`, 500);
+    }
+    const lastro = (lastroRpc ?? {}) as {
+      tem_lastro?: boolean; fonte?: string; porque?: string;
+      falta?: number; valor_coberto?: number; valor_devido?: number;
+    };
+    if (!lastro.tem_lastro) {
+      return await falhaLimpando(
+        `${lastro.porque ?? "Pedido sem lastro."} ` +
+        `Confirme o portão na aba Primeiro Pagamento ou materialize a cobrança antes de enviar ao Bling.`,
+        409,
+      );
+    }
+    console.log("[enviar-pedido-bling] lastro OK", {
+      pedido_id, fonte: lastro.fonte, porque: lastro.porque,
+    });
+
+    // geraTitulo continua sendo lido: o plano de recebimento alimenta as parcelas do payload.
     const { data: geraTituloRpc } = await supabase.rpc("fn_pedido_gera_titulo", { p_pedido_id: pedido_id });
     const geraTitulo = geraTituloRpc == null ? true : Boolean(geraTituloRpc);
 
-
-    const { data: titulos } = await supabase
+    const { data: titulosRpc } = await supabase
       .rpc("fn_plano_recebimento_pedido", { p_pedido_id: pedido_id });
-    if (geraTitulo && (!titulos || titulos.length === 0)) {
-      return await falhaLimpando("Pedido sem títulos — confirme o portão na aba Primeiro Pagamento, ou materialize a cobrança, antes de enviar ao Bling.", 409);
-    }
+    // Blindagem: RPC com erro devolve null. Sem isso, titulos.reduce() abaixo estoura.
+    const titulos: any[] = Array.isArray(titulosRpc) ? titulosRpc : [];
 
     // 5. Itens da remessa (formato normalizado: {descricao, sku, quantidade, valor_unitario})
     const itens: any[] = Array.isArray(remessa.itens_json) ? remessa.itens_json : [];
@@ -481,7 +506,13 @@ serve(async (req) => {
       );
     }
 
-    const totalExato = geraTitulo
+    // TOTAL — a condição é "há parcelas a enviar", NÃO "a natureza gera título".
+    // Com geraTitulo=true e zero linhas de cobrança (pedido pré-pago por haver
+    // aplicado, ou lastro na família), o cálculo antigo somava um array vazio e
+    // mandava total: 0 ao Bling. O caminho de zero parcelas já existia e funcionava
+    // — era o da bonificação. Agora os três casos entram pelo mesmo caminho.
+    const temParcelas = blingParcelas.length > 0;
+    const totalExato = temParcelas
       ? parseFloat(blingParcelas.reduce((s, p) => s + p.valor, 0).toFixed(2))
       : remessaValor;
 
@@ -684,7 +715,12 @@ if (itensSemProdutoBling.length > 0) {
       contato: { id: Number(parceiro.bling_id) },
       ...(blingLojaId ? { loja: { id: blingLojaId }, canal: { id: blingLojaId } } : {}),
       itens: blingItens,
-      parcelas: blingParcelas,
+      // Pedido já quitado (haver aplicado / lastro na família) ou sem cobrança
+      // (bonificação) vai SEM duplicata. O SNCF é a fonte única do recebível;
+      // duplicata criada no Bling que nunca será baixada lá é ruído de conciliação.
+      // Omitimos a chave em vez de mandar array vazio — semanticamente igual e
+      // sem risco de o Bling validar minItems.
+      ...(temParcelas ? { parcelas: blingParcelas } : {}),
       totalProdutos: totalProdutosPayload,
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${remessaCodigo} via SNCF`,
