@@ -194,9 +194,9 @@ export function VinculosSection({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <GrupoRemessas remessas={remessas ?? []} id_externo={id_externo} />
         {vinculos && (
           <>
-            <GrupoRemessas pedido_id={pedido_id} id_externo={id_externo} />
             <Grupo rotulo="Split de" pedidos={vinculos.remessa_de ? [vinculos.remessa_de] : []} />
             <Grupo rotulo="Consolidado em" pedidos={vinculos.consolidado_em ? [vinculos.consolidado_em] : []} />
             <Grupo rotulo="Consolidou" pedidos={vinculos.consolidou} />
