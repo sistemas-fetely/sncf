@@ -100,9 +100,18 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                       <EstagioBadge estagio={p.estagio} />
                     </TableCell>
                     <TableCell>
-                      {p.situacao_rotulo ? (
-                        <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-                          {p.situacao_rotulo}
+                      {p.situacao_financeira || p.situacao_rotulo ? (
+                        <Badge
+                          className={cn(
+                            classeSituacao(p.situacao_financeira),
+                            "text-[10px] py-0 px-1.5 whitespace-normal text-left",
+                          )}
+                        >
+                          {rotuloSituacao(
+                            p.situacao_financeira,
+                            p.situacao_rotulo,
+                            p.lastro_porque,
+                          )}
                         </Badge>
                       ) : (
                         "—"
