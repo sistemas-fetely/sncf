@@ -997,6 +997,10 @@ export default function ExpedicoesXpm() {
                                 </Badge>
                               </TableCell>
                               <TableCell>
+                                <CelulaSolicitado v={r.t_solicitado} />
+                              </TableCell>
+                              <TableCell>
+
                                 <div className="flex items-center gap-2">
                                   <Semaforo seq={Number(r.estagio_seq)} />
                                   <span className="text-xs text-muted-foreground truncate">
