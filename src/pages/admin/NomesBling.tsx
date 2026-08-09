@@ -342,7 +342,7 @@ export default function NomesBling() {
             {historico.isFetching
               ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
               : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
-            Recarregar
+            Atualizar
           </Button>
         </CardHeader>
         <CardContent>
