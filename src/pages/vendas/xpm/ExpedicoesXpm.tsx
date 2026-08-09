@@ -907,13 +907,14 @@ export default function ExpedicoesXpm() {
                       <TableHead className="w-[220px]">Estágio</TableHead>
                       <TableHead className="text-right w-[70px]">Vol</TableHead>
                       <TableHead className="text-right w-[100px]">Peso</TableHead>
+                      <TableHead className="w-[92px]">SLA</TableHead>
                       <TableHead className="text-right w-[80px]">Dias</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filtradas.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                           Nenhuma expedição neste recorte.
                         </TableCell>
                       </TableRow>
