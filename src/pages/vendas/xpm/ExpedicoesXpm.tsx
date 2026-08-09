@@ -625,7 +625,8 @@ export default function ExpedicoesXpm() {
     return {
       emCurso: emCurso.length,
       semNf: rows.filter((r) => Number(r.estagio_seq) >= 2 && Number(r.estagio_seq) < 4).length,
-      parado: rows.filter((r) => r.dias_parado != null && Number(r.dias_parado) > 5).length,
+      atencao: rows.filter((r) => r.farol === "atencao").length,
+      risco: rows.filter((r) => r.farol === "risco").length,
       corte: rows.filter((r) => r.tem_corte === true).length,
       peso: emCurso.reduce((s, r) => s + Number(r.peso_bruto ?? 0), 0),
     };
@@ -636,14 +637,23 @@ export default function ExpedicoesXpm() {
     return rows.filter((r) => {
       if (canal !== "todos" && r.canal !== canal) return false;
       if (estagio !== "todos" && r.estagio_codigo !== estagio) return false;
+      if (farolFiltro && r.farol !== farolFiltro) return false;
       if (situacao === "em_curso" && !(Number(r.estagio_seq) < 6)) return false;
       if (situacao === "expedidas" && !(Number(r.estagio_seq) >= 6)) return false;
       if (!q) return true;
-      return [r.codigo, r.nf_numero, r.pedido_sncf, r.cliente_sncf, r.destinatario_nome]
+      return [
+        r.codigo,
+        r.nf_numero,
+        r.pedido_sncf,
+        r.pedido_display,
+        r.pedido_loja,
+        r.cliente_sncf,
+        r.destinatario_nome,
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
-  }, [rows, canal, estagio, situacao, busca]);
+  }, [rows, canal, estagio, situacao, busca, farolFiltro]);
 
   const ultimoSync = useMemo(() => {
     let melhor: string | null = null;
