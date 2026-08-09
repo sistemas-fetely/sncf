@@ -352,48 +352,65 @@ export default function NomesBling() {
               <span>Falha ao ler o histórico: {(historico.error as any)?.message}</span>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Quando</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Nome antes</TableHead>
-                  <TableHead>Nome depois</TableHead>
-                  <TableHead>Dry run</TableHead>
-                  <TableHead>Sucesso</TableHead>
-                  <TableHead>Erro</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(historico.data ?? []).length === 0 ? (
+            <>
+              <div className="mb-2 flex justify-end text-xs text-muted-foreground">
+                mostrando {(historico.data ?? []).length} de {historicoTotal.data ?? "—"}
+              </div>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
-                      {historico.isLoading ? "Carregando…" : "Sem registros."}
-                    </TableCell>
+                    <TableHead>Quando</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Nome antes</TableHead>
+                    <TableHead>Nome depois</TableHead>
+                    <TableHead>Dry run</TableHead>
+                    <TableHead>Sucesso</TableHead>
+                    <TableHead>Erro</TableHead>
                   </TableRow>
-                ) : (
-                  historico.data!.map((l, i) => (
-                    <TableRow key={`${l.sku}-${l.tentativa_em}-${i}`}>
-                      <TableCell className="whitespace-nowrap text-xs">{fmtQuando(l.tentativa_em)}</TableCell>
-                      <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{l.nome_antes ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{l.nome_depois ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={l.dry_run ? "secondary" : "outline"}>
-                          {l.dry_run ? "simulação" : "real"}
-                        </Badge>
+                </TableHeader>
+                <TableBody>
+                  {(historico.data ?? []).length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
+                        {historico.isLoading ? "Carregando…" : "Sem registros."}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={l.sucesso ? "default" : "destructive"}>
-                          {l.sucesso ? "sim" : "não"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-destructive">{l.erro_msg ?? ""}</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    historico.data!.map((l, i) => (
+                      <TableRow key={`${l.sku}-${l.tentativa_em}-${i}`}>
+                        <TableCell className="whitespace-nowrap text-xs">{fmtQuando(l.tentativa_em)}</TableCell>
+                        <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{l.nome_antes ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{l.nome_depois ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={l.dry_run ? "secondary" : "outline"}>
+                            {l.dry_run ? "simulação" : "real"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={l.sucesso ? "default" : "destructive"}>
+                            {l.sucesso ? "sim" : "não"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-destructive">{l.erro_msg ?? ""}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              {(historico.data ?? []).length >= limiteHistorico && (
+                <div className="mt-3 flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={historico.isFetching}
+                    onClick={() => setLimiteHistorico((n) => n + 50)}
+                  >
+                    Ver mais 50
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
