@@ -609,6 +609,7 @@ export default function ExpedicoesXpm() {
   const [estagio, setEstagio] = useState("todos");
   const [situacao, setSituacao] = useState("em_curso");
   const [farolFiltro, setFarolFiltro] = useState<"risco" | "atencao" | null>(null);
+  const [slaFiltro, setSlaFiltro] = useState("todos");
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
