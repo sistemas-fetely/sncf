@@ -619,6 +619,12 @@ const App = () => (
                     <GerenciarVisibilidade />
                   </ProtectedRoute>
                 } />
+                <Route path="nomes-bling" element={
+                  <ProtectedRoute allowedRoles={["super_admin"]}>
+                    <NomesBling />
+                  </ProtectedRoute>
+                } />
+
               </Route>
 
 
