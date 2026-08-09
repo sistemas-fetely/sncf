@@ -1009,7 +1009,7 @@ export default function ExpedicoesXpm() {
                             </TableRow>
                             {expandido && (
                               <TableRow>
-                                <TableCell colSpan={9} className="p-0">
+                                <TableCell colSpan={10} className="p-0">
                                   <LinhaExpandida exp={r} fases={mapaFases} />
                                 </TableCell>
                               </TableRow>
