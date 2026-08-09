@@ -189,26 +189,42 @@ export default function NomesBling() {
               <span>Falha ao ler a contagem: {(situacao.error as any)?.message}</span>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-3">
-              <div>
-                <div className="text-3xl font-semibold tabular-nums">
-                  {situacao.isLoading ? "—" : situacao.data?.ativosComFicha}
+            <>
+              <div className="grid gap-6 sm:grid-cols-4">
+                <div>
+                  <div className="text-3xl font-semibold tabular-nums">
+                    {situacao.isLoading ? "—" : situacao.data?.produtos_ativos}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Produtos ativos</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Produtos ativos</div>
-              </div>
-              <div>
-                <div className="text-3xl font-semibold tabular-nums text-amber-600">
-                  {situacao.isLoading ? "—" : situacao.data?.divergentes}
+                <div>
+                  <div className="text-3xl font-semibold tabular-nums text-amber-600">
+                    {situacao.isLoading ? "—" : situacao.data?.faltam_empurrar}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Faltam empurrar</div>
+                  <div className="text-xs text-muted-foreground">atualiza na hora</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Com nome divergente</div>
-              </div>
-              <div>
-                <div className="text-3xl font-semibold tabular-nums text-emerald-600">
-                  {situacao.isLoading ? "—" : situacao.data?.iguais}
+                <div>
+                  <div className="text-3xl font-semibold tabular-nums text-emerald-600">
+                    {situacao.isLoading ? "—" : situacao.data?.empurrados}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Já empurrados</div>
+                  <div className="text-xs text-muted-foreground">atualiza na hora</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Já atualizados</div>
+                <div>
+                  <div className="text-3xl font-semibold tabular-nums text-muted-foreground">
+                    {situacao.isLoading ? "—" : situacao.data?.aguardando_confirmacao}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Aguardando confirmação</div>
+                  <div className="text-xs text-muted-foreground">o Bling confirma em até ~40 min</div>
+                </div>
               </div>
-            </div>
+              <p className="mt-4 max-w-3xl text-xs text-muted-foreground">
+                ‘Faltam’ e ‘já empurrados’ mudam no mesmo instante em que você aplica. ‘Aguardando
+                confirmação’ só zera quando a sincronização com o Bling traz o nome de volta. Se esse
+                número ficar parado por mais de uma hora, o Bling aceitou mas não gravou — me avise.
+              </p>
+            </>
           )}
         </CardContent>
       </Card>
