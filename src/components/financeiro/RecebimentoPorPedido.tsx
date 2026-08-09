@@ -50,19 +50,33 @@ export type RecebimentoNivel = {
   pedido_selo: string | null;
 };
 
-/** Níveis canônicos por rank — cores dos tokens já usados na tela financeira. */
+/**
+ * Níveis canônicos keyados por chave estável.
+ * ATENÇÃO: `nivel_rank` da view NÃO é 1/2/3/4 (emite 0/1/3, com 3 valendo para
+ * conciliado E haver). Por isso o bucket/rótulo vem SEMPRE do emoji contido nos
+ * textos canônicos `nivel_titulo` / `pedido_selo`. O rank só serve para ordenar.
+ */
+type NivelKey = "recebivel" | "compensado" | "conciliado" | "haver";
+
 const NIVEIS = [
-  { rank: 1, emoji: "🔴", label: "Recebível", classe: "bg-red-100 text-red-800", texto: "text-red-800" },
-  { rank: 2, emoji: "🟡", label: "Compensado", classe: "bg-amber-100 text-amber-800", texto: "text-amber-800" },
-  { rank: 3, emoji: "🟢", label: "Conciliado", classe: "bg-green-100 text-green-800", texto: "text-green-800" },
-  { rank: 4, emoji: "🔵", label: "Quitado s/ caixa", classe: "bg-blue-100 text-blue-800", texto: "text-blue-800" },
-] as const;
+  { key: "recebivel", emoji: "🔴", label: "Recebível", classe: "bg-red-100 text-red-800", texto: "text-red-800" },
+  { key: "compensado", emoji: "🟡", label: "Compensado", classe: "bg-amber-100 text-amber-800", texto: "text-amber-800" },
+  { key: "conciliado", emoji: "🟢", label: "Conciliado", classe: "bg-green-100 text-green-800", texto: "text-green-800" },
+  { key: "haver", emoji: "🔵", label: "Quitado s/ caixa", classe: "bg-blue-100 text-blue-800", texto: "text-blue-800" },
+] as const satisfies readonly { key: NivelKey; emoji: string; label: string; classe: string; texto: string }[];
+
+/** Chave do nível a partir do emoji contido no texto canônico. */
+function nivelPorTexto(texto: string | null | undefined): NivelKey | null {
+  const s = texto || "";
+  return NIVEIS.find((n) => s.includes(n.emoji))?.key ?? null;
+}
 
 function classePorTexto(selo: string | null | undefined): string {
   const s = selo || "";
   const found = NIVEIS.find((n) => s.includes(n.emoji));
   return found?.classe ?? "bg-muted text-muted-foreground";
 }
+
 
 function SeloBadge({ selo }: { selo: string | null }) {
   if (!selo) return <span className="text-muted-foreground">—</span>;
