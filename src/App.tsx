@@ -105,6 +105,7 @@ const MinhasNotas = lazy(() => import("@/pages/MinhasNotas"));
 const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
 const HistoricoImportacoesPDF = lazy(() => import("@/pages/admin/HistoricoImportacoesPDF"));
 const GerenciarVisibilidade = lazy(() => import("@/pages/admin/GerenciarVisibilidade"));
+const NomesBling = lazy(() => import("@/pages/admin/NomesBling"));
 const GestaoAVista = lazy(() => import("@/pages/GestaoAVista"));
 const DocumentacaoGeral = lazy(() => import("@/pages/DocumentacaoGeral"));
 const PlanoDeContas = lazy(() => import("@/pages/administrativo/PlanoDeContas"));
@@ -618,6 +619,12 @@ const App = () => (
                     <GerenciarVisibilidade />
                   </ProtectedRoute>
                 } />
+                <Route path="nomes-bling" element={
+                  <ProtectedRoute allowedRoles={["super_admin"]}>
+                    <NomesBling />
+                  </ProtectedRoute>
+                } />
+
               </Route>
 
 
