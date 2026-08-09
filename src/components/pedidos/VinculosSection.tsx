@@ -66,6 +66,54 @@ function Grupo({ rotulo, pedidos }: { rotulo: string; pedidos: PedidoVinculo[] }
   );
 }
 
+/**
+ * Grupo "Remessas" — unidade de DESPACHO (`pedido_remessa`), não pedido-filho de split.
+ * Lista todos os status, inclusive enviada_bling / entregue / cancelada.
+ * Remessa não tem tela de detalhe: a linha é texto, nunca link.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function GrupoRemessas({ remessas, id_externo }: { remessas: any[]; id_externo: string }) {
+  if (!remessas.length) return null;
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        Remessas
+      </p>
+      <div className="space-y-1">
+        {remessas.map((r) => {
+          const meta = remessaStatusMeta(r.status);
+          const sufixo = sufixoRemessa(r.sequencia);
+          const delta = Number(r.delta_financeiro ?? 0);
+          const partes = [`${id_externo}${sufixo}`, meta.label];
+          if (r.bling_pedido_id) partes.push(`Bling #${r.bling_pedido_id}`);
+          if (r.valor_remessa != null) partes.push(fmtBRL.format(Number(r.valor_remessa)));
+          return (
+            <div key={r.id} className="flex items-start gap-1.5 text-xs leading-tight" title={partes.join(" · ")}>
+              <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", meta.dot)} aria-hidden />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">{sufixo}</span>
+                  {delta > 0 && (
+                    <AlertTriangle
+                      className="h-3 w-3 shrink-0 text-amber-500"
+                      title={`Delta financeiro: ${fmtBRL.format(delta)}`}
+                      aria-label="Delta financeiro"
+                    />
+                  )}
+                </div>
+                {r.bling_pedido_id && (
+                  <div className="text-[10px] text-muted-foreground">#{r.bling_pedido_id}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 export function VinculosSection({
   pedido_id,
   id_externo,
