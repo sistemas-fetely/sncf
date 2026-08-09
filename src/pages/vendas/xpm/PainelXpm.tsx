@@ -230,11 +230,6 @@ export default function PainelXpm() {
     [fila],
   );
 
-  const limiares = useMemo(() => {
-    const atencao = rows.find((r) => r.limiar_atencao != null)?.limiar_atencao ?? null;
-    const risco = rows.find((r) => r.limiar_risco != null)?.limiar_risco ?? null;
-    return { atencao, risco };
-  }, [rows]);
 
   const precisamAtencao = useMemo(
     () =>
