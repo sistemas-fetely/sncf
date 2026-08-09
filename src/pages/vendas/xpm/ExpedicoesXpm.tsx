@@ -87,7 +87,51 @@ type ExpedicaoXpm = {
   farol: "concluida" | "pausada" | "risco" | "atencao" | "no_prazo";
   limiar_atencao: number | null;
   limiar_risco: number | null;
+  horas_sla: number | null;
+  horas_cliente: number | null;
+  horas_xpm: number | null;
+  horas_fim_de_semana: number;
+  dentro_sla_cliente: boolean | null;
+  dentro_sla_xpm: boolean | null;
+  horas_excedidas_cliente: number | null;
+  horas_excedidas_xpm: number | null;
+  estouro_so_por_fim_de_semana: boolean | null;
 };
+
+// Dois relogios: o do cliente conta hora corrida (o que a Fetely promete),
+// o da XPM desconta fim de semana (o que se cobra deles, clausula 3.3).
+function CelulaSla({ r }: { r: ExpedicaoXpm }) {
+  if (r.horas_sla == null) return <span className="text-muted-foreground">—</span>;
+  if (r.dentro_sla_cliente === true)
+    return (
+      <Badge variant="outline" className="text-xs font-normal">
+        no prazo
+      </Badge>
+    );
+  if (r.estouro_so_por_fim_de_semana === true)
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="secondary" className="text-xs font-normal">
+            fim de semana
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          Dentro do SLA no relógio da XPM; estourou só por causa do fim de semana.
+        </TooltipContent>
+      </Tooltip>
+    );
+  if (r.dentro_sla_cliente === false) {
+    const h = Number(r.horas_excedidas_cliente ?? 0);
+    const txt = h > 48 ? `+${Math.round(h / 24)}d` : `+${Math.round(h)}h`;
+    return (
+      <Badge variant="destructive" className="text-xs font-normal">
+        {txt}
+      </Badge>
+    );
+  }
+  return <span className="text-muted-foreground">—</span>;
+}
 
 
 
