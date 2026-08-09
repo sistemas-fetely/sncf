@@ -474,6 +474,81 @@ export default function PainelXpm() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Aderência ao SLA</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            SLA definido pela Fetely. O relógio do cliente conta hora corrida; o da XPM desconta fim
+            de semana, conforme a cláusula 3.3 do contrato.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {aderencia.length === 0 ? (
+            <div className="text-sm text-muted-foreground">
+              Nenhuma expedição concluída com SLA definido no período.
+            </div>
+          ) : (
+            <>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Canal</TableHead>
+                      <TableHead className="text-right w-[90px]">Meta (h)</TableHead>
+                      <TableHead className="text-right w-[110px]">Expedições</TableHead>
+                      <TableHead className="text-right w-[170px]">Aderência cliente</TableHead>
+                      <TableHead className="text-right w-[170px]">Aderência XPM</TableHead>
+                      <TableHead className="text-right w-[130px]">Excesso médio</TableHead>
+                      <TableHead className="text-right w-[150px]">Só por fim de semana</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aderencia.map((l) => (
+                      <TableRow key={l.canal} className={l.canal === "Total" ? "font-medium" : ""}>
+                        <TableCell>{l.canal}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {l.meta ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {nfInt.format(l.n)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className={`tabular-nums ${textoAderencia(l.pctCliente)}`}>
+                            {l.pctCliente == null ? "—" : `${nf2.format(l.pctCliente)}%`}
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({nfInt.format(l.okCliente)}/{nfInt.format(l.n)})
+                            </span>
+                          </div>
+                          <BarraAderencia pct={l.pctCliente} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className={`tabular-nums ${textoAderencia(l.pctXpm)}`}>
+                            {l.pctXpm == null ? "—" : `${nf2.format(l.pctXpm)}%`}
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({nfInt.format(l.okXpm)}/{nfInt.format(l.n)})
+                            </span>
+                          </div>
+                          <BarraAderencia pct={l.pctXpm} />
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{h1(l.excesso)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {nfInt.format(l.soFimDeSemana)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A diferença entre os dois relógios é o custo do fim de semana — não é falha da XPM
+                nem atraso operacional.
+              </p>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+
 
 
 
