@@ -144,6 +144,10 @@ export interface PedidoFilaItem {
   // Fonte única para tag de pagamento na UI. Não usar pedido_portao para isso.
   situacao_financeira?: SituacaoFinanceira | null;
   situacao_rotulo?: string | null;
+  /** Origem do lastro segundo fn_pedido_tem_lastro. */
+  lastro_fonte?: string | null;
+  /** Frase pronta em pt-BR explicando o lastro — use como texto do badge/tooltip. */
+  lastro_porque?: string | null;
   delta_pedido_titulo?: number | null;
   recebivel_na_familia?: boolean | null;
   familia_mae_externo?: string | null;
