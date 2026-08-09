@@ -46993,6 +46993,7 @@ export type Database = {
         }
         Returns: Json
       }
+      regerar_nome_operacional: { Args: { p_skus: string[] }; Returns: number }
       registrar_acao_regua: {
         Args: {
           p_canal_efetivo?: string
