@@ -128,7 +128,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
                 {enviar.isPending ? (
                   <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
                 ) : (
-                  <><Send className="h-4 w-4 shrink-0" />Enviar {sufixo} pro Bling</>
+                  <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling ({tentativa})</>
                 )}
               </Button>
             )}
@@ -138,8 +138,8 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
                 pedidoId={pedido_id}
                 codigo={codigo}
                 itens={itens}
-                triggerLabel={`Dividir remessa ${sufixo}`}
-                triggerTitle={`Dividir a remessa ${codigo} em duas`}
+                triggerLabel={`Dividir ${tentativa}`}
+                triggerTitle={`Dividir ${codigo} em duas`}
                 triggerFullWidth
               />
             )}
