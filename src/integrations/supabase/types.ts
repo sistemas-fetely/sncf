@@ -39843,14 +39843,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -46150,6 +46150,7 @@ export type Database = {
         Returns: boolean
       }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
+      fn_pedido_tem_lastro: { Args: { p_pedido_id: string }; Returns: Json }
       fn_plano_recebimento_pedido: {
         Args: { p_pedido_id: string }
         Returns: {
