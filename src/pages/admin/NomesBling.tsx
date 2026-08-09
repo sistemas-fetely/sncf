@@ -54,56 +54,53 @@ const fmtQuando = (v: string | null) =>
 
 export default function NomesBling() {
   const [limite, setLimite] = useState(50);
+  const [limiteHistorico, setLimiteHistorico] = useState(50);
   const [rodando, setRodando] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [simulado, setSimulado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
 
-  // ---- Bloco 1: situação ----
+  // ---- Bloco 1: situação (view instantânea) ----
   const situacao = useQuery({
     queryKey: ["nomes-bling-situacao"],
     queryFn: async () => {
-      const { data: prods, error: prodErr } = await supabase
-        .from("produtos")
-        .select("codigo, nome")
-        .eq("ativo", true)
-        .not("bling_id", "is", null);
-      if (prodErr) throw prodErr;
-
-      const { data: fichas, error: fErr } = await supabase
-        .from("sncf_produtos")
-        .select("sku, nome_operacional");
-      if (fErr) throw fErr;
-
-      const mapa = new Map<string, string | null>();
-      for (const f of fichas ?? []) mapa.set(f.sku, f.nome_operacional ?? null);
-
-      let ativosComFicha = 0;
-      let divergentes = 0;
-      let iguais = 0;
-      for (const p of prods ?? []) {
-        if (!p.codigo || !mapa.has(p.codigo)) continue;
-        ativosComFicha++;
-        const novo = (mapa.get(p.codigo) ?? "").trim();
-        if (!novo) continue;
-        if (novo === (p.nome ?? "").trim()) iguais++;
-        else divergentes++;
-      }
-      return { ativosComFicha, divergentes, iguais };
+      const { data, error } = await (supabase as any)
+        .from("vw_nomes_bling_situacao")
+        .select("*")
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        produtos_ativos: number;
+        empurrados: number;
+        faltam_empurrar: number;
+        confirmados_pelo_bling: number;
+        aguardando_confirmacao: number;
+      } | null;
     },
   });
 
   // ---- Bloco 4: histórico ----
   const historico = useQuery({
-    queryKey: ["nomes-bling-log"],
+    queryKey: ["nomes-bling-log", limiteHistorico],
     queryFn: async (): Promise<LogRow[]> => {
       const { data, error } = await supabase
         .from("bling_nome_log")
         .select("sku, bling_id, nome_antes, nome_depois, dry_run, sucesso, erro_msg, tentativa_em")
         .order("tentativa_em", { ascending: false })
-        .limit(50);
+        .limit(limiteHistorico);
       if (error) throw error;
       return (data ?? []) as LogRow[];
+    },
+  });
+
+  const historicoTotal = useQuery({
+    queryKey: ["nomes-bling-log-total"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("bling_nome_log")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
     },
   });
 
