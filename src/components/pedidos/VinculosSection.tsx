@@ -146,8 +146,8 @@ export function VinculosSection({
       <CardContent className="space-y-3">
         {vinculos && (
           <>
-            <Grupo rotulo="Remessas" pedidos={vinculos.remessas} />
-            <Grupo rotulo="Remessa de" pedidos={vinculos.remessa_de ? [vinculos.remessa_de] : []} />
+            <GrupoRemessas pedido_id={pedido_id} id_externo={id_externo} />
+            <Grupo rotulo="Split de" pedidos={vinculos.remessa_de ? [vinculos.remessa_de] : []} />
             <Grupo rotulo="Consolidado em" pedidos={vinculos.consolidado_em ? [vinculos.consolidado_em] : []} />
             <Grupo rotulo="Consolidou" pedidos={vinculos.consolidou} />
             {vinculos.origem && (
