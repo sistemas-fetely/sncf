@@ -52,7 +52,41 @@ type CicloXpm = {
   farol: "concluida" | "pausada" | "risco" | "atencao" | "no_prazo";
   limiar_atencao: number | null;
   limiar_risco: number | null;
+  horas_sla: number | null;
+  horas_cliente: number | null;
+  horas_xpm: number | null;
+  horas_fim_de_semana: number;
+  dentro_sla_cliente: boolean | null;
+  dentro_sla_xpm: boolean | null;
+  horas_excedidas_cliente: number | null;
+  horas_excedidas_xpm: number | null;
+  estouro_so_por_fim_de_semana: boolean | null;
 };
+
+function corAderencia(pct: number | null) {
+  if (pct == null) return "bg-muted";
+  if (pct < 50) return "bg-destructive";
+  if (pct < 80) return "bg-amber-500";
+  return "bg-emerald-600";
+}
+
+function textoAderencia(pct: number | null) {
+  if (pct == null) return "";
+  if (pct < 50) return "text-destructive";
+  if (pct < 80) return "text-amber-700 dark:text-amber-500";
+  return "text-emerald-700 dark:text-emerald-500";
+}
+
+function BarraAderencia({ pct }: { pct: number | null }) {
+  return (
+    <div className="mt-1 h-1 w-full rounded-sm bg-muted overflow-hidden">
+      <div
+        className={`h-full ${corAderencia(pct)}`}
+        style={{ width: `${Math.max(0, Math.min(100, pct ?? 0))}%` }}
+      />
+    </div>
+  );
+}
 
 function BadgeFarol({ farol }: { farol: CicloXpm["farol"] }) {
   if (farol === "risco") return <Badge variant="destructive">Risco</Badge>;
