@@ -94,11 +94,9 @@ function GrupoRemessas({ remessas, id_externo }: { remessas: any[]; id_externo: 
                 <div className="flex items-center gap-1">
                   <span className="font-medium">{sufixo}</span>
                   {delta > 0 && (
-                    <AlertTriangle
-                      className="h-3 w-3 shrink-0 text-amber-500"
-                      title={`Delta financeiro: ${fmtBRL.format(delta)}`}
-                      aria-label="Delta financeiro"
-                    />
+                    <span title={`Delta financeiro: ${fmtBRL.format(delta)}`} className="inline-flex">
+                      <AlertTriangle className="h-3 w-3 shrink-0 text-amber-500" aria-label="Delta financeiro" />
+                    </span>
                   )}
                 </div>
                 {r.bling_pedido_id && (
