@@ -54,56 +54,53 @@ const fmtQuando = (v: string | null) =>
 
 export default function NomesBling() {
   const [limite, setLimite] = useState(50);
+  const [limiteHistorico, setLimiteHistorico] = useState(50);
   const [rodando, setRodando] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [simulado, setSimulado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
 
-  // ---- Bloco 1: situação ----
+  // ---- Bloco 1: situação (view instantânea) ----
   const situacao = useQuery({
     queryKey: ["nomes-bling-situacao"],
     queryFn: async () => {
-      const { data: prods, error: prodErr } = await supabase
-        .from("produtos")
-        .select("codigo, nome")
-        .eq("ativo", true)
-        .not("bling_id", "is", null);
-      if (prodErr) throw prodErr;
-
-      const { data: fichas, error: fErr } = await supabase
-        .from("sncf_produtos")
-        .select("sku, nome_operacional");
-      if (fErr) throw fErr;
-
-      const mapa = new Map<string, string | null>();
-      for (const f of fichas ?? []) mapa.set(f.sku, f.nome_operacional ?? null);
-
-      let ativosComFicha = 0;
-      let divergentes = 0;
-      let iguais = 0;
-      for (const p of prods ?? []) {
-        if (!p.codigo || !mapa.has(p.codigo)) continue;
-        ativosComFicha++;
-        const novo = (mapa.get(p.codigo) ?? "").trim();
-        if (!novo) continue;
-        if (novo === (p.nome ?? "").trim()) iguais++;
-        else divergentes++;
-      }
-      return { ativosComFicha, divergentes, iguais };
+      const { data, error } = await (supabase as any)
+        .from("vw_nomes_bling_situacao")
+        .select("*")
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        produtos_ativos: number;
+        empurrados: number;
+        faltam_empurrar: number;
+        confirmados_pelo_bling: number;
+        aguardando_confirmacao: number;
+      } | null;
     },
   });
 
   // ---- Bloco 4: histórico ----
   const historico = useQuery({
-    queryKey: ["nomes-bling-log"],
+    queryKey: ["nomes-bling-log", limiteHistorico],
     queryFn: async (): Promise<LogRow[]> => {
       const { data, error } = await supabase
         .from("bling_nome_log")
         .select("sku, bling_id, nome_antes, nome_depois, dry_run, sucesso, erro_msg, tentativa_em")
         .order("tentativa_em", { ascending: false })
-        .limit(50);
+        .limit(limiteHistorico);
       if (error) throw error;
       return (data ?? []) as LogRow[];
+    },
+  });
+
+  const historicoTotal = useQuery({
+    queryKey: ["nomes-bling-log-total"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("bling_nome_log")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
     },
   });
 
@@ -192,26 +189,42 @@ export default function NomesBling() {
               <span>Falha ao ler a contagem: {(situacao.error as any)?.message}</span>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-3">
-              <div>
-                <div className="text-3xl font-semibold tabular-nums">
-                  {situacao.isLoading ? "—" : situacao.data?.ativosComFicha}
+            <>
+              <div className="grid gap-6 sm:grid-cols-4">
+                <div>
+                  <div className="text-3xl font-semibold tabular-nums">
+                    {situacao.isLoading ? "—" : situacao.data?.produtos_ativos}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Produtos ativos</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Produtos ativos</div>
-              </div>
-              <div>
-                <div className="text-3xl font-semibold tabular-nums text-amber-600">
-                  {situacao.isLoading ? "—" : situacao.data?.divergentes}
+                <div>
+                  <div className="text-3xl font-semibold tabular-nums text-amber-600">
+                    {situacao.isLoading ? "—" : situacao.data?.faltam_empurrar}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Faltam empurrar</div>
+                  <div className="text-xs text-muted-foreground">atualiza na hora</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Com nome divergente</div>
-              </div>
-              <div>
-                <div className="text-3xl font-semibold tabular-nums text-emerald-600">
-                  {situacao.isLoading ? "—" : situacao.data?.iguais}
+                <div>
+                  <div className="text-3xl font-semibold tabular-nums text-emerald-600">
+                    {situacao.isLoading ? "—" : situacao.data?.empurrados}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Já empurrados</div>
+                  <div className="text-xs text-muted-foreground">atualiza na hora</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Já atualizados</div>
+                <div>
+                  <div className="text-3xl font-semibold tabular-nums text-muted-foreground">
+                    {situacao.isLoading ? "—" : situacao.data?.aguardando_confirmacao}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Aguardando confirmação</div>
+                  <div className="text-xs text-muted-foreground">o Bling confirma em até ~40 min</div>
+                </div>
               </div>
-            </div>
+              <p className="mt-4 max-w-3xl text-xs text-muted-foreground">
+                ‘Faltam’ e ‘já empurrados’ mudam no mesmo instante em que você aplica. ‘Aguardando
+                confirmação’ só zera quando a sincronização com o Bling traz o nome de volta. Se esse
+                número ficar parado por mais de uma hora, o Bling aceitou mas não gravou — me avise.
+              </p>
+            </>
           )}
         </CardContent>
       </Card>
@@ -329,7 +342,7 @@ export default function NomesBling() {
             {historico.isFetching
               ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
               : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
-            Recarregar
+            Atualizar
           </Button>
         </CardHeader>
         <CardContent>
@@ -339,48 +352,65 @@ export default function NomesBling() {
               <span>Falha ao ler o histórico: {(historico.error as any)?.message}</span>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Quando</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Nome antes</TableHead>
-                  <TableHead>Nome depois</TableHead>
-                  <TableHead>Dry run</TableHead>
-                  <TableHead>Sucesso</TableHead>
-                  <TableHead>Erro</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(historico.data ?? []).length === 0 ? (
+            <>
+              <div className="mb-2 flex justify-end text-xs text-muted-foreground">
+                mostrando {(historico.data ?? []).length} de {historicoTotal.data ?? "—"}
+              </div>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
-                      {historico.isLoading ? "Carregando…" : "Sem registros."}
-                    </TableCell>
+                    <TableHead>Quando</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Nome antes</TableHead>
+                    <TableHead>Nome depois</TableHead>
+                    <TableHead>Dry run</TableHead>
+                    <TableHead>Sucesso</TableHead>
+                    <TableHead>Erro</TableHead>
                   </TableRow>
-                ) : (
-                  historico.data!.map((l, i) => (
-                    <TableRow key={`${l.sku}-${l.tentativa_em}-${i}`}>
-                      <TableCell className="whitespace-nowrap text-xs">{fmtQuando(l.tentativa_em)}</TableCell>
-                      <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{l.nome_antes ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{l.nome_depois ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={l.dry_run ? "secondary" : "outline"}>
-                          {l.dry_run ? "simulação" : "real"}
-                        </Badge>
+                </TableHeader>
+                <TableBody>
+                  {(historico.data ?? []).length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
+                        {historico.isLoading ? "Carregando…" : "Sem registros."}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={l.sucesso ? "default" : "destructive"}>
-                          {l.sucesso ? "sim" : "não"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-destructive">{l.erro_msg ?? ""}</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    historico.data!.map((l, i) => (
+                      <TableRow key={`${l.sku}-${l.tentativa_em}-${i}`}>
+                        <TableCell className="whitespace-nowrap text-xs">{fmtQuando(l.tentativa_em)}</TableCell>
+                        <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{l.nome_antes ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{l.nome_depois ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={l.dry_run ? "secondary" : "outline"}>
+                            {l.dry_run ? "simulação" : "real"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={l.sucesso ? "default" : "destructive"}>
+                            {l.sucesso ? "sim" : "não"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-destructive">{l.erro_msg ?? ""}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              {(historico.data ?? []).length >= limiteHistorico && (
+                <div className="mt-3 flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={historico.isFetching}
+                    onClick={() => setLimiteHistorico((n) => n + 50)}
+                  >
+                    Ver mais 50
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
