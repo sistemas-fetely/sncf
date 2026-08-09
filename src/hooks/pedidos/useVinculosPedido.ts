@@ -8,7 +8,7 @@ export interface PedidoVinculo {
 }
 
 export interface VinculosPedido {
-  remessas: PedidoVinculo[];
+  /** Pedido-pai do split (link para cima). Fonte: `split_de_pedido_id`. */
   remessa_de: PedidoVinculo | null;
   consolidado_em: PedidoVinculo | null;
   consolidou: PedidoVinculo[];
