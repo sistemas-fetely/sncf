@@ -275,6 +275,37 @@ export default function PainelXpm() {
     [fila],
   );
 
+  // Aderencia ao SLA: dois relogios sobre as expedicoes concluidas do periodo.
+  const aderencia = useMemo(() => {
+    const base = noPeriodo.filter((r) => r.concluida === true && r.horas_sla != null);
+    const canais = [...new Set(base.map((r) => r.canal as string))].sort();
+    const linha = (nome: string, arr: CicloXpm[]) => {
+      const n = arr.length;
+      const okCliente = arr.filter((r) => r.dentro_sla_cliente === true).length;
+      const okXpm = arr.filter((r) => r.dentro_sla_xpm === true).length;
+      const estouraramXpm = arr.filter((r) => r.dentro_sla_xpm === false);
+      const excesso = estouraramXpm.length
+        ? estouraramXpm.reduce((s, r) => s + Number(r.horas_excedidas_xpm ?? 0), 0) /
+          estouraramXpm.length
+        : null;
+      const metas = [...new Set(arr.map((r) => Number(r.horas_sla)))];
+      return {
+        canal: nome,
+        meta: metas.length === 1 ? metas[0] : null,
+        n,
+        pctCliente: n ? (okCliente / n) * 100 : null,
+        okCliente,
+        pctXpm: n ? (okXpm / n) * 100 : null,
+        okXpm,
+        excesso,
+        soFimDeSemana: arr.filter((r) => r.estouro_so_por_fim_de_semana === true).length,
+      };
+    };
+    const linhas = canais.map((c) => linha(c, base.filter((r) => r.canal === c)));
+    if (base.length) linhas.push(linha("Total", base));
+    return linhas;
+  }, [noPeriodo]);
+
   const volume = useMemo(
     () => ({
       expedicoes: concluidas.length,
