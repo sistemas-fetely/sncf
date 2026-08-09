@@ -182,7 +182,6 @@ const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ComercialLayout = lazy(() => import("@/layouts/ComercialLayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
-const WnsXpm = lazy(() => import("@/pages/vendas/WnsXpm"));
 const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
 const DashPedidos = lazy(() => import("@/pages/vendas/DashPedidos"));
 const GestaoPedidos = lazy(() => import("@/pages/vendas/GestaoPedidos"));
@@ -325,7 +324,6 @@ const App = () => (
                   <Route path="/acervo/destinos-cadastro" element={<DestinosCadastro />} />
 
                 </Route>
-                <Route path="/vendas/wns-xpm" element={<WnsXpm />} />
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
                 <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
                 <Route path="/vendas/dash-pedidos" element={<DashPedidos />} />
