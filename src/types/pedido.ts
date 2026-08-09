@@ -144,6 +144,10 @@ export interface PedidoFilaItem {
   // Fonte única para tag de pagamento na UI. Não usar pedido_portao para isso.
   situacao_financeira?: SituacaoFinanceira | null;
   situacao_rotulo?: string | null;
+  /** Origem do lastro segundo fn_pedido_tem_lastro. */
+  lastro_fonte?: string | null;
+  /** Frase pronta em pt-BR explicando o lastro — use como texto do badge/tooltip. */
+  lastro_porque?: string | null;
   delta_pedido_titulo?: number | null;
   recebivel_na_familia?: boolean | null;
   familia_mae_externo?: string | null;
@@ -156,13 +160,19 @@ export type PagamentoStatus =
   | 'vencido'
   | 'sem_cobranca';
 
+// Domínio de vw_pedido_situacao_financeira, derivado de fn_pedido_tem_lastro.
+// Só `sem_recebivel` e `vencido` são estados de alerta; os demais informam.
 export type SituacaoFinanceira =
   | 'sem_recebivel'
   | 'anulado'
   | 'vencido'
   | 'quitado'
   | 'parcial_pago'
-  | 'em_aberto';
+  | 'em_aberto'
+  | 'sem_cobranca'
+  | 'previsto'
+  | 'coberto_haver'
+  | 'recebivel_familia';
 
 export interface PipelineItem {
   estagio: EstagioPedido;

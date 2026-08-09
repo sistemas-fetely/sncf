@@ -91,7 +91,7 @@ export function usePedidosFila(opts: Opts = {}) {
         const { data: sfRows, error: sfErr } = await (supabase as any)
           .from("vw_pedido_situacao_financeira")
           .select(
-            "pedido_id, situacao_financeira, situacao_rotulo, valor_pago, valor_aberto, valor_vencido, dias_atraso_max, delta_pedido_titulo, recebivel_na_familia, familia_mae_externo",
+            "pedido_id, situacao_financeira, situacao_rotulo, lastro_fonte, lastro_porque, valor_pago, valor_aberto, valor_vencido, dias_atraso_max, delta_pedido_titulo, recebivel_na_familia, familia_mae_externo",
           )
           .in("pedido_id", ids);
         if (sfErr) throw sfErr;
@@ -106,6 +106,8 @@ export function usePedidosFila(opts: Opts = {}) {
             ...p,
             situacao_financeira: sf.situacao_financeira as PedidoFilaItem["situacao_financeira"],
             situacao_rotulo: sf.situacao_rotulo as string | null,
+            lastro_fonte: sf.lastro_fonte as string | null,
+            lastro_porque: sf.lastro_porque as string | null,
             valor_pago: sf.valor_pago as number | null,
             valor_aberto: sf.valor_aberto as number | null,
             valor_vencido: sf.valor_vencido as number | null,

@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
 import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
+import { rotuloSituacao } from "@/lib/pedidos/situacao-financeira";
 
 type OrigemOportunidade = "portao_vencido" | "estoque_inadimplente" | "manual";
 
@@ -305,9 +306,9 @@ export default function Oportunidades() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            {r.situacao_rotulo ? (
+                            {r.situacao_rotulo || r.situacao_financeira ? (
                               <span className="text-xs text-foreground">
-                                {r.situacao_rotulo}
+                                {rotuloSituacao(r.situacao_financeira, r.situacao_rotulo)}
                               </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>

@@ -12,6 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
+import { cn } from "@/lib/utils";
+import { classeSituacao, rotuloSituacao } from "@/lib/pedidos/situacao-financeira";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import { formatError } from "@/lib/format-error";
 
@@ -100,9 +102,18 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                       <EstagioBadge estagio={p.estagio} />
                     </TableCell>
                     <TableCell>
-                      {p.situacao_rotulo ? (
-                        <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-                          {p.situacao_rotulo}
+                      {p.situacao_financeira || p.situacao_rotulo ? (
+                        <Badge
+                          className={cn(
+                            classeSituacao(p.situacao_financeira),
+                            "text-[10px] py-0 px-1.5 whitespace-normal text-left",
+                          )}
+                        >
+                          {rotuloSituacao(
+                            p.situacao_financeira,
+                            p.situacao_rotulo,
+                            p.lastro_porque,
+                          )}
                         </Badge>
                       ) : (
                         "—"
