@@ -916,8 +916,9 @@ export default function ExpedicoesXpm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">SLA: todos</SelectItem>
-                  <SelectItem value="dentro">Dentro do SLA</SelectItem>
-                  <SelectItem value="fora">Fora do SLA</SelectItem>
+                  <SelectItem value="no_prazo">No prazo</SelectItem>
+                  <SelectItem value="atencao">Atenção</SelectItem>
+                  <SelectItem value="estourado">Estourado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
