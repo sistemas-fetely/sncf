@@ -715,7 +715,12 @@ if (itensSemProdutoBling.length > 0) {
       contato: { id: Number(parceiro.bling_id) },
       ...(blingLojaId ? { loja: { id: blingLojaId }, canal: { id: blingLojaId } } : {}),
       itens: blingItens,
-      parcelas: blingParcelas,
+      // Pedido já quitado (haver aplicado / lastro na família) ou sem cobrança
+      // (bonificação) vai SEM duplicata. O SNCF é a fonte única do recebível;
+      // duplicata criada no Bling que nunca será baixada lá é ruído de conciliação.
+      // Omitimos a chave em vez de mandar array vazio — semanticamente igual e
+      // sem risco de o Bling validar minItems.
+      ...(temParcelas ? { parcelas: blingParcelas } : {}),
       totalProdutos: totalProdutosPayload,
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${remessaCodigo} via SNCF`,
