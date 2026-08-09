@@ -94,7 +94,7 @@ type Grupo = {
   pedido_rank: number;
   total: number;
   titulos: RecebimentoNivel[];
-  porNivel: Record<number, { qtd: number; soma: number }>;
+  porNivel: Partial<Record<NivelKey, { qtd: number; soma: number }>>;
 };
 
 function useRecebimentoPedidoNivel() {
