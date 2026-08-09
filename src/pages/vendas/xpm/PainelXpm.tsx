@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AlertaDivergencia from "./AlertaDivergencia";
+import FunilFases from "./FunilFases";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,6 +71,15 @@ function h1(v: number | null | undefined) {
   if (v == null || Number.isNaN(Number(v))) return "—";
   return Number(v).toFixed(1);
 }
+
+// Acima de 48h a leitura em horas perde sentido operacional: virou dia.
+function fmtDuracao(v: number | null | undefined) {
+  if (v == null || Number.isNaN(Number(v))) return "—";
+  const n = Number(v);
+  if (n > 48) return `${Math.round(n / 24)} d`;
+  return `${n.toFixed(1)} h`;
+}
+
 
 function percentil(ordenado: number[], p: number) {
   if (ordenado.length === 0) return null;
@@ -220,11 +230,6 @@ export default function PainelXpm() {
     [fila],
   );
 
-  const limiares = useMemo(() => {
-    const atencao = rows.find((r) => r.limiar_atencao != null)?.limiar_atencao ?? null;
-    const risco = rows.find((r) => r.limiar_risco != null)?.limiar_risco ?? null;
-    return { atencao, risco };
-  }, [rows]);
 
   const precisamAtencao = useMemo(
     () =>
@@ -290,15 +295,21 @@ export default function PainelXpm() {
 
       <AlertaDivergencia />
 
+      <FunilFases />
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Farol da fila</CardTitle>
+          <CardTitle className="text-base">Risco de atraso</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Sem SLA acordado, o limiar vem do próprio histórico: atenção a partir do P75 do canal,
+            risco a partir do P90.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card className={farolFila.risco > 0 ? "border-destructive/50" : undefined}>
               <CardContent className="pt-6">
-                <div className="text-xs text-muted-foreground">Em risco</div>
+                <div className="text-xs text-muted-foreground">Risco</div>
                 <div
                   className={`text-2xl font-semibold ${
                     farolFila.risco > 0 ? "text-destructive" : ""
@@ -310,7 +321,7 @@ export default function PainelXpm() {
             </Card>
             <Card className={farolFila.atencao > 0 ? "border-amber-500/50" : undefined}>
               <CardContent className="pt-6">
-                <div className="text-xs text-muted-foreground">Em atenção</div>
+                <div className="text-xs text-muted-foreground">Atenção</div>
                 <div
                   className={`text-2xl font-semibold ${
                     farolFila.atencao > 0 ? "text-amber-700 dark:text-amber-500" : ""
@@ -329,81 +340,75 @@ export default function PainelXpm() {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-xs text-muted-foreground">Pausadas</div>
-                <div className="text-2xl font-semibold">{nfInt.format(farolFila.pausadas)}</div>
+                <div className="text-2xl font-semibold text-muted-foreground">
+                  {nfInt.format(farolFila.pausadas)}
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            Limiar calibrado no próprio histórico: atenção a partir de {h1(limiares.atencao)} h,
-            risco a partir de {h1(limiares.risco)} h (P75 e P90 do ciclo por canal). Quando houver
-            SLA acordado com a XPM, troca aqui.
-          </p>
-
-          <div className="space-y-2">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Precisam de atenção agora
-            </div>
-            {precisamAtencao.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                Nenhuma expedição em risco ou atenção agora.
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Pedido</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead className="w-[90px]">Canal</TableHead>
-                      <TableHead className="w-[160px]">Estágio</TableHead>
-                      <TableHead className="text-right w-[130px]">Horas em curso</TableHead>
-                      <TableHead className="w-[110px]">Farol</TableHead>
+          {precisamAtencao.length === 0 ? (
+            <div className="text-sm text-muted-foreground">Nenhuma expedição em risco.</div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="w-[90px]">Canal</TableHead>
+                    <TableHead className="w-[160px]">Estágio</TableHead>
+                    <TableHead className="text-right w-[130px]">Horas em curso</TableHead>
+                    <TableHead className="text-right w-[140px]">Limiar do canal</TableHead>
+                    <TableHead className="w-[110px]">Farol</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {precisamAtencao.map((r) => (
+                    <TableRow key={r.codigo}>
+                      <TableCell>
+                        <div className={r.pedido_display ? "font-medium" : "font-mono text-xs"}>
+                          {r.pedido_display ?? r.codigo}
+                        </div>
+                        <div className="text-xs text-muted-foreground">XPM {r.codigo}</div>
+                      </TableCell>
+                      <TableCell className="max-w-[260px] truncate">
+                        {r.cliente_sncf ?? r.destinatario_nome ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            r.canal === "B2B"
+                              ? "default"
+                              : r.canal === "B2C"
+                                ? "secondary"
+                                : "outline"
+                          }
+                        >
+                          {r.canal}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {r.estagio_codigo}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {fmtDuracao(r.horas_em_curso_liquido)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {fmtDuracao(r.farol === "risco" ? r.limiar_risco : r.limiar_atencao)}
+                      </TableCell>
+                      <TableCell>
+                        <BadgeFarol farol={r.farol} />
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {precisamAtencao.map((r) => (
-                      <TableRow key={r.codigo}>
-                        <TableCell>
-                          <div className={r.pedido_display ? "font-medium" : "font-mono text-xs"}>
-                            {r.pedido_display ?? r.codigo}
-                          </div>
-                          <div className="text-xs text-muted-foreground">XPM {r.codigo}</div>
-                        </TableCell>
-                        <TableCell className="max-w-[260px] truncate">
-                          {r.cliente_sncf ?? r.destinatario_nome ?? "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              r.canal === "B2B"
-                                ? "default"
-                                : r.canal === "B2C"
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                          >
-                            {r.canal}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {r.estagio_codigo}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {h1(r.horas_em_curso_liquido)}
-                        </TableCell>
-                        <TableCell>
-                          <BadgeFarol farol={r.farol} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
+
 
 
 
