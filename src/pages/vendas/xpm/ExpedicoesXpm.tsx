@@ -707,7 +707,65 @@ export default function ExpedicoesXpm() {
 
         <AlertaDivergencia />
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {funilQ.isError ? (
+          <Card className="border-destructive">
+            <CardContent className="pt-6 text-sm text-destructive">
+              {(funilQ.error as Error)?.message ?? "Erro ao carregar o funil de fases"}
+            </CardContent>
+          </Card>
+        ) : funilQ.isLoading ? (
+          <Skeleton className="h-20 w-full" />
+        ) : (
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              <div className="flex items-center gap-1 overflow-x-auto">
+                {(funilQ.data ?? []).map((f, i) => {
+                  const ativo = estagio === f.codigo;
+                  const parados = Number(f.parados_aqui ?? 0);
+                  const apagada = parados === 0 && Number(f.ja_passaram ?? 0) > 0;
+                  return (
+                    <Fragment key={f.codigo}>
+                      {i > 0 && (
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setEstagio(ativo ? "todos" : f.codigo)}
+                        className={`relative shrink-0 rounded-md border px-3 py-2 text-left transition-colors ${
+                          ativo
+                            ? "bg-primary/20 border-primary"
+                            : parados > 0
+                              ? "bg-primary/10 border-primary/30"
+                              : apagada
+                                ? "bg-muted/40 border-border text-muted-foreground opacity-60"
+                                : "bg-background border-border"
+                        }`}
+                      >
+                        {Number(f.em_alerta ?? 0) > 0 && (
+                          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        )}
+                        <div className="text-[12px] font-medium">{f.descricao}</div>
+                        <div
+                          className={`text-[11px] ${
+                            parados > 0 ? "font-semibold opacity-100" : "opacity-60"
+                          }`}
+                        >
+                          {nf.format(parados)} parados
+                        </div>
+                      </button>
+                    </Fragment>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Separado, Conferido e Embarcado aparecem sempre zerados: a XPM grava essas fases em
+                lote, depois do fato. Um pedido nunca fica parado nelas.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <Card>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Em curso</div>
@@ -726,14 +784,48 @@ export default function ExpedicoesXpm() {
               </div>
             </CardContent>
           </Card>
-          <Card className={kpis.parado > 0 ? "border-destructive/50" : undefined}>
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => setFarolFiltro(farolFiltro === "atencao" ? null : "atencao")}
+            className={`cursor-pointer ${
+              farolFiltro === "atencao"
+                ? "border-amber-500 ring-1 ring-amber-500/40"
+                : kpis.atencao > 0
+                  ? "border-amber-500/50"
+                  : ""
+            }`}
+          >
+            <CardContent className="pt-6">
+              <div className="text-xs text-muted-foreground">Em atenção</div>
+              <div
+                className={`text-2xl font-semibold ${
+                  kpis.atencao > 0 ? "text-amber-700 dark:text-amber-500" : ""
+                }`}
+              >
+                {nf.format(kpis.atencao)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => setFarolFiltro(farolFiltro === "risco" ? null : "risco")}
+            className={`cursor-pointer ${
+              farolFiltro === "risco"
+                ? "border-destructive ring-1 ring-destructive/40"
+                : kpis.risco > 0
+                  ? "border-destructive/50"
+                  : ""
+            }`}
+          >
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground flex items-center gap-1">
-                {kpis.parado > 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}
-                Parado &gt; 5 dias
+                {kpis.risco > 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}
+                Em risco
               </div>
-              <div className={`text-2xl font-semibold ${kpis.parado > 0 ? "text-destructive" : ""}`}>
-                {nf.format(kpis.parado)}
+              <div className={`text-2xl font-semibold ${kpis.risco > 0 ? "text-destructive" : ""}`}>
+                {nf.format(kpis.risco)}
               </div>
             </CardContent>
           </Card>
