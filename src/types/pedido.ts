@@ -156,13 +156,19 @@ export type PagamentoStatus =
   | 'vencido'
   | 'sem_cobranca';
 
+// Domínio de vw_pedido_situacao_financeira, derivado de fn_pedido_tem_lastro.
+// Só `sem_recebivel` e `vencido` são estados de alerta; os demais informam.
 export type SituacaoFinanceira =
   | 'sem_recebivel'
   | 'anulado'
   | 'vencido'
   | 'quitado'
   | 'parcial_pago'
-  | 'em_aberto';
+  | 'em_aberto'
+  | 'sem_cobranca'
+  | 'previsto'
+  | 'coberto_haver'
+  | 'recebivel_familia';
 
 export interface PipelineItem {
   estagio: EstagioPedido;
