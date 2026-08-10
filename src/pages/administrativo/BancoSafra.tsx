@@ -205,14 +205,15 @@ function semAcento(v: string) {
 function AcoesGrupoCliente({
   boletos,
   gerandoEntrada,
-  onGerarEntrada,
+  onAbrirEntrada,
+  onEnviarEmail,
 }: {
   boletos: TitulosBoleto[];
   gerandoEntrada: boolean;
-  onGerarEntrada: (ids: string[]) => void;
+  onAbrirEntrada: (ids: string[]) => void;
+  onEnviarEmail: (tituloId: string) => Promise<unknown>;
 }) {
   const { toast } = useToast();
-  const enviarEmail = useEnviarEmailBoleto();
   const [confirmarEmails, setConfirmarEmails] = useState(false);
   const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null);
 
