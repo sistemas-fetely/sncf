@@ -1,5 +1,6 @@
-import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { RESEND_FROM_ADDRESS, sendResendEmail } from '../_shared/resend-send.ts'
+
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -79,17 +80,17 @@ async function moveToDlq(
 }
 
 Deno.serve(async (req) => {
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
+
 
   const authHeader = req.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -112,6 +113,20 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  // Doutrina #77: credencial externa vem do vault, nunca de Deno.env.
+  const { data: resendApiKey, error: vaultError } = await supabase.rpc('get_vault_secret', {
+    p_name: 'RESEND_API_KEY',
+  })
+
+  if (vaultError || !resendApiKey) {
+    console.error('Failed to retrieve RESEND_API_KEY from vault', vaultError)
+    return new Response(
+      JSON.stringify({ error: 'Resend credential not configured' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
 
   // 1. Check rate-limit cooldown and read queue config
   const { data: state } = await supabase
