@@ -329,7 +329,7 @@ const App = () => (
                   <Route path="/vendas/produto/estoque/devolucoes" element={<RetornoDevolucao />} />
                   <Route path="/vendas/produto/estoque/conciliacao" element={<ConciliacaoCadastro />} />
                   <Route path="/vendas/produto/estoque/nomes-bling" element={
-                    <ProtectedRoute allowedRoles={["super_admin"]}>
+                    <ProtectedRoute>
                       <NomesBling />
                     </ProtectedRoute>
                   } />
@@ -377,7 +377,7 @@ const App = () => (
 
               {/* Acervo — detalhes e editores (sem tab bar) */}
               <Route path="/processos/importar" element={
-                <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
+                <ProtectedRoute>
                   <ImportarProcessoPdf />
                 </ProtectedRoute>
               } />
@@ -432,7 +432,7 @@ const App = () => (
                 <Route
                   path="/pessoas/reembolsos/saneamento"
                   element={
-                    <ProtectedRoute allowedRoles={["diretoria_executiva", "coordenacao_op_fin", "super_admin"]}>
+                    <ProtectedRoute>
                       <ReembolsoSaneamento />
                     </ProtectedRoute>
                   }
@@ -440,7 +440,7 @@ const App = () => (
                 <Route
                   path="/pessoas/reembolsos/ciclos"
                   element={
-                    <ProtectedRoute allowedRoles={["diretoria_executiva", "coordenacao_op_fin", "super_admin"]}>
+                    <ProtectedRoute>
                       <ReembolsoCiclos />
                     </ProtectedRoute>
                   }
@@ -448,138 +448,138 @@ const App = () => (
                 <Route path="/pessoas/novo" element={<PessoaForm />} />
                 <Route path="/pessoas/:id/editar" element={<PessoaForm />} />
                 <Route path="/colaboradores" element={
-                  <ProtectedRoute permModule="colaboradores">
+                  <ProtectedRoute>
                     <RedirectToPessoasCLT />
                   </ProtectedRoute>
                 } />
                 <Route path="/colaboradores/novo" element={
-                  <ProtectedRoute permModule="colaboradores" permAction="create">
+                  <ProtectedRoute>
                     <CadastroColaboradorCLTWrapper />
                   </ProtectedRoute>
                 } />
                 <Route path="/colaboradores/:id" element={
-                  <ProtectedRoute permModule="colaboradores">
+                  <ProtectedRoute>
                     <ColaboradorDetalhe />
                   </ProtectedRoute>
                 } />
                 <Route path="/organograma" element={
-                  <ProtectedRoute permModule="organograma">
+                  <ProtectedRoute>
                     <Organograma />
                   </ProtectedRoute>
                 } />
                 <Route path="/movimentacoes" element={
-                  <ProtectedRoute permModule="movimentacoes">
+                  <ProtectedRoute>
                     <Movimentacoes />
                   </ProtectedRoute>
                 } />
 
                 {/* CLT */}
                 <Route path="/folha-pagamento" element={
-                  <ProtectedRoute permModule="folha_pagamento">
+                  <ProtectedRoute>
                     <FolhaPagamento />
                   </ProtectedRoute>
                 } />
                 <Route path="/ferias" element={
-                  <ProtectedRoute permModule="ferias">
+                  <ProtectedRoute>
                     <Ferias />
                   </ProtectedRoute>
                 } />
                 <Route path="/ferias/colaborador/:id" element={
-                  <ProtectedRoute permModule="ferias">
+                  <ProtectedRoute>
                     <FeriasColaborador />
                   </ProtectedRoute>
                 } />
                 <Route path="/ponto" element={
-                  <ProtectedRoute permModule="folha_pagamento">
+                  <ProtectedRoute>
                     <PlaceholderPage title="Controle de Ponto" description="Apuração de horas e banco de horas" />
                   </ProtectedRoute>
                 } />
                 <Route path="/beneficios" element={
-                  <ProtectedRoute permModule="beneficios">
+                  <ProtectedRoute>
                     <Beneficios />
                   </ProtectedRoute>
                 } />
 
                 {/* PJ */}
                 <Route path="/contratos-pj" element={
-                  <ProtectedRoute permModule="contratos_pj">
+                  <ProtectedRoute>
                     <RedirectToPessoasPJ />
                   </ProtectedRoute>
                 } />
                 <Route path="/contratos-pj/novo" element={
-                  <ProtectedRoute permModule="contratos_pj" permAction="create">
+                  <ProtectedRoute>
                     <CadastroContratoPJ />
                   </ProtectedRoute>
                 } />
                 <Route path="/contratos-pj/novo-manual" element={
-                  <ProtectedRoute permModule="contratos_pj" permAction="create">
+                  <ProtectedRoute>
                     <CadastroManualContratoPJ />
                   </ProtectedRoute>
                 } />
                 <Route path="/contratos-pj/:id" element={
-                  <ProtectedRoute permModule="contratos_pj">
+                  <ProtectedRoute>
                     <ContratoPJDetalhe />
                   </ProtectedRoute>
                 } />
                 <Route path="/notas-fiscais" element={
-                  <ProtectedRoute permModule="notas_fiscais">
+                  <ProtectedRoute>
                     <NotasFiscais />
                   </ProtectedRoute>
                 } />
                 <Route path="/notas-fiscais/:id" element={
-                  <ProtectedRoute permModule="notas_fiscais">
+                  <ProtectedRoute>
                     <NotaFiscalDetalhe />
                   </ProtectedRoute>
                 } />
                 <Route path="/pagamentos-pj" element={
-                  <ProtectedRoute permModule="pagamentos_pj">
+                  <ProtectedRoute>
                     <PagamentosPJ />
                   </ProtectedRoute>
                 } />
                 <Route path="/pagamentos-pj/:contratoId" element={
-                  <ProtectedRoute permModule="pagamentos_pj">
+                  <ProtectedRoute>
                     <PagamentoPJRelatorio />
                   </ProtectedRoute>
                 } />
 
                 {/* RH */}
                 <Route path="/convites-cadastro" element={
-                  <ProtectedRoute permModule="convites">
+                  <ProtectedRoute>
                     <ConvitesCadastro />
                   </ProtectedRoute>
                 } />
                 <Route path="/convites-cadastro/:id" element={
-                  <ProtectedRoute permModule="convites">
+                  <ProtectedRoute>
                     <ConviteDetalhe />
                   </ProtectedRoute>
                 } />
                 <Route path="/onboarding" element={
-                  <ProtectedRoute permModule="convites">
+                  <ProtectedRoute>
                     <Onboarding />
                   </ProtectedRoute>
                 } />
                 <Route path="/onboarding/:id" element={
-                  <ProtectedRoute permModule="convites">
+                  <ProtectedRoute>
                     <OnboardingDetalhe />
                   </ProtectedRoute>
                 } />
                 <Route path="/recrutamento" element={
-                  <ProtectedRoute permModule="recrutamento">
+                  <ProtectedRoute>
                     <Recrutamento />
                   </ProtectedRoute>
                 } />
                 <Route path="/recrutamento/:id" element={
-                  <ProtectedRoute permModule="recrutamento">
+                  <ProtectedRoute>
                     <RecrutamentoDetalhe />
                   </ProtectedRoute>
                 } />
                 <Route path="/avaliacoes" element={
-                  <ProtectedRoute permModule="avaliacoes">
+                  <ProtectedRoute>
                     <PlaceholderPage title="Avaliações de Desempenho" description="Ciclos de avaliação e PDI" />
                   </ProtectedRoute>
                 } />
                 <Route path="/treinamentos" element={
-                  <ProtectedRoute permModule="treinamentos">
+                  <ProtectedRoute>
                     <PlaceholderPage title="Treinamentos" description="Controle de capacitação e certificados" />
                   </ProtectedRoute>
                 } />
@@ -593,46 +593,46 @@ const App = () => (
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Navigate to="/admin/cargos" replace />} />
                 <Route path="cargos" element={
-                  <ProtectedRoute permModule="parametros"><Cargos /></ProtectedRoute>
+                  <ProtectedRoute><Cargos /></ProtectedRoute>
                 } />
                 <Route path="cargos/novo" element={
-                  <ProtectedRoute permModule="parametros"><CargoForm /></ProtectedRoute>
+                  <ProtectedRoute><CargoForm /></ProtectedRoute>
                 } />
                 <Route path="cargos/enriquecimento" element={
-                  <ProtectedRoute permModule="parametros"><CargosEnriquecimento /></ProtectedRoute>
+                  <ProtectedRoute><CargosEnriquecimento /></ProtectedRoute>
                 } />
                 <Route path="cargos/:id" element={
-                  <ProtectedRoute permModule="parametros"><CargoForm /></ProtectedRoute>
+                  <ProtectedRoute><CargoForm /></ProtectedRoute>
                 } />
                 <Route path="parametros" element={
-                  <ProtectedRoute permModule="parametros"><Parametros /></ProtectedRoute>
+                  <ProtectedRoute><Parametros /></ProtectedRoute>
                 } />
                 <Route path="configuracoes" element={
-                  <ProtectedRoute permModule="usuarios"><Configuracoes /></ProtectedRoute>
+                  <ProtectedRoute><Configuracoes /></ProtectedRoute>
                 } />
                 <Route path="usuarios" element={
-                  <ProtectedRoute permModule="usuarios"><GerenciarUsuarios /></ProtectedRoute>
+                  <ProtectedRoute><GerenciarUsuarios /></ProtectedRoute>
                 } />
                 <Route path="usuarios/perfis" element={
-                  <ProtectedRoute permModule="usuarios"><ConfigurarPerfis /></ProtectedRoute>
+                  <ProtectedRoute><ConfigurarPerfis /></ProtectedRoute>
                 } />
                 <Route path="reportes" element={
-                  <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
+                  <ProtectedRoute>
                     <SistemaReportes />
                   </ProtectedRoute>
                 } />
                 <Route path="importacoes-pdf" element={
-                  <ProtectedRoute allowedRoles={["super_admin", "admin_rh"]}>
+                  <ProtectedRoute>
                     <HistoricoImportacoesPDF />
                   </ProtectedRoute>
                 } />
                 <Route path="visibilidade" element={
-                  <ProtectedRoute allowedRoles={["super_admin"]}>
+                  <ProtectedRoute>
                     <GerenciarVisibilidade />
                   </ProtectedRoute>
                 } />
                 <Route path="sla-xpm" element={
-                  <ProtectedRoute permModule="parametros"><SlaXpm /></ProtectedRoute>
+                  <ProtectedRoute><SlaXpm /></ProtectedRoute>
                 } />
 
 
@@ -711,7 +711,7 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/gestao-a-vista" element={<GestaoAVista />} />
                 <Route path="/relatorios" element={
-                  <ProtectedRoute permModule="relatorios">
+                  <ProtectedRoute>
                     <PlaceholderPage title="Relatórios e BI" description="Relatórios gerenciais e exportação" />
                   </ProtectedRoute>
                 } />
