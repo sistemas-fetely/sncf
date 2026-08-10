@@ -85,6 +85,19 @@ const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   baixa_remessa_gerada: { label: "Baixa em remessa", cls: "bg-purple-100 text-purple-800" },
 };
 
+/** Cor sólida para o ponto de status (as classes -100 do badge somem num círculo de 8px). */
+const BOLETO_STATUS_DOT: Record<string, string> = {
+  pendente: "bg-gray-400",
+  remessa_gerada: "bg-yellow-500",
+  registrado: "bg-blue-500",
+  pago_manual: "bg-emerald-500",
+  pago_banco: "bg-green-600",
+  rejeitado: "bg-red-500",
+  vencido: "bg-orange-500",
+  baixa_solicitada: "bg-orange-600",
+  baixa_remessa_gerada: "bg-purple-500",
+};
+
 function BotaoBaixarBoletoPdf({ boleto }: { boleto: any }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
