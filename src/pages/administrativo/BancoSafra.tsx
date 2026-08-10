@@ -507,7 +507,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         title: `Remessa de entrada gerada: ${data.qtd_titulos} boleto(s)`,
         description: data.valor_total != null ? `Total: ${formatBRL(Number(data.valor_total))}` : undefined,
       });
-      setEntradaDialogOpen(false);
+      fecharDialogEntrada();
       await qc.invalidateQueries({ queryKey: ["boletos-safra"] });
       refetchBoletos();
     } catch (e) {
