@@ -1,15 +1,11 @@
-// v4 — QR Code PIX + redesign cobranca-pedido
+// v5 — envio unificado via _shared/resend-send.ts
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import QRCode from 'npm:qrcode'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
+import { RESEND_FROM_ADDRESS, sendResendEmail } from '../_shared/resend-send.ts'
 
-// Resend via direct API. Credential lives in vault as 'RESEND_API_KEY' (Doutrina #77).
-const SITE_NAME = 'Fetély'
-const FROM_DOMAIN = 'notify.fetelycorp.com.br'
-const FROM_ADDRESS = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`
-const RESEND_API_URL = 'https://api.resend.com/emails'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -211,41 +207,32 @@ Deno.serve(async (req) => {
     recipient_email: effectiveRecipient, status: 'pending', metadata: emailMetadata,
   })
 
-  // Send via Resend direct API
+  // Send via o único ponto de envio do sistema (_shared/resend-send.ts)
   try {
-    const resp = await fetch(RESEND_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${resendApiKey}`,
-        'Idempotency-Key': idempotencyKey,
-      },
-      body: JSON.stringify({
-        from: FROM_ADDRESS,
-        to: [effectiveRecipient],
+    let respJson: any
+    try {
+      respJson = await sendResendEmail({
+        apiKey: resendApiKey as string,
+        from: RESEND_FROM_ADDRESS,
+        to: effectiveRecipient,
         subject: resolvedSubject,
         html: htmlWithFooter,
         text: textWithFooter,
-        headers: {
-          'List-Unsubscribe': `<${unsubscribeUrl}>`,
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-        },
-        ...(attachments.length > 0 && { attachments }),
+        idempotencyKey,
+        unsubscribeUrl,
         ...(cc.length > 0 && { cc }),
-      }),
-    })
-
-    const respJson = await resp.json().catch(() => ({}))
-
-    if (!resp.ok) {
-      console.error('Resend send failed', { status: resp.status, body: respJson })
+        ...(attachments.length > 0 && { attachments }),
+      })
+    } catch (sendErr) {
+      const sendMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
+      console.error('Resend send failed', sendMsg)
       await supabase.from('email_send_log').insert({
         message_id: messageId, template_name: templateName,
         recipient_email: effectiveRecipient, status: 'failed', metadata: emailMetadata,
-        error_message: `Resend ${resp.status}: ${JSON.stringify(respJson)}`,
+        error_message: sendMsg,
       })
       return new Response(
-        JSON.stringify({ error: 'Failed to send email', details: respJson }),
+        JSON.stringify({ error: 'Failed to send email', details: sendMsg }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -259,6 +246,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: true, messageId: respJson?.id ?? messageId }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
+
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Resend send exception', msg)

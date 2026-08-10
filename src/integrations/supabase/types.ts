@@ -363,6 +363,7 @@ export type Database = {
           pedido_id: string
           portao_id: string | null
           recebido_em: string | null
+          safrapay_nsu: string | null
           saldo: number
           status: string
           updated_at: string
@@ -382,6 +383,7 @@ export type Database = {
           pedido_id: string
           portao_id?: string | null
           recebido_em?: string | null
+          safrapay_nsu?: string | null
           saldo: number
           status?: string
           updated_at?: string
@@ -401,6 +403,7 @@ export type Database = {
           pedido_id?: string
           portao_id?: string | null
           recebido_em?: string | null
+          safrapay_nsu?: string | null
           saldo?: number
           status?: string
           updated_at?: string
@@ -33941,6 +33944,7 @@ export type Database = {
           ativo: boolean
           codigo: string
           descricao: string
+          exige_quantidade: boolean
           icone: string | null
           sequencia: number
           wns_id: number
@@ -33949,6 +33953,7 @@ export type Database = {
           ativo?: boolean
           codigo: string
           descricao: string
+          exige_quantidade?: boolean
           icone?: string | null
           sequencia: number
           wns_id: number
@@ -33957,6 +33962,7 @@ export type Database = {
           ativo?: boolean
           codigo?: string
           descricao?: string
+          exige_quantidade?: boolean
           icone?: string | null
           sequencia?: number
           wns_id?: number
@@ -34508,6 +34514,13 @@ export type Database = {
             foreignKeyName: "xpm_expedicao_evento_expedicao_codigo_fkey"
             columns: ["expedicao_codigo"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao_sem_ponte"
+            referencedColumns: ["expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_evento_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["codigo"]
           },
@@ -34591,6 +34604,13 @@ export type Database = {
             foreignKeyName: "xpm_expedicao_item_expedicao_codigo_fkey"
             columns: ["expedicao_codigo"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao_sem_ponte"
+            referencedColumns: ["expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_item_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["codigo"]
           },
@@ -34669,6 +34689,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao_b2c"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao_sem_ponte"
+            referencedColumns: ["expedicao_codigo"]
           },
           {
             foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
@@ -42263,14 +42290,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -48173,6 +48200,20 @@ export type Database = {
           },
         ]
       }
+      vw_urgencia_declarada_operador: {
+        Row: {
+          operador_id: string | null
+          operador_nome: string | null
+          pct_critica_sobre_proprias: number | null
+          pedidos_distintos_afetados: number | null
+          primeira_declaracao: string | null
+          qtd_alta: number | null
+          qtd_critica: number | null
+          total_declaracoes: number | null
+          ultima_declaracao: string | null
+        }
+        Relationships: []
+      }
       vw_validacao_cartao: {
         Row: {
           atrasado_no_banco: number | null
@@ -48472,15 +48513,22 @@ export type Database = {
         Row: {
           cliente: string | null
           data_expedicao: string | null
+          embarcado_em: string | null
           estagio_sncf: string | null
           evento_em: string | null
           expedicao_codigo: string | null
+          expedicao_id_zenlog: number | null
+          expedicao_ref: string | null
+          expedido_em: string | null
           horas_desde_evento: number | null
           motivo: string | null
           nf_numero: string | null
           pedido: string | null
           pedido_id: string | null
+          remessa_sequencia: number | null
+          situacao_integracao: number | null
           ultimo_evento_xpm: string | null
+          valor_liquido: number | null
         }
         Relationships: [
           {
@@ -48580,6 +48628,42 @@ export type Database = {
           numero_pedido_loja: string | null
           pedido_loja: string | null
           uf_entrega: string | null
+        }
+        Relationships: []
+      }
+      vw_xpm_expedicao_sem_ponte: {
+        Row: {
+          data_expedicao: string | null
+          destinatario_nome: string | null
+          expedicao_codigo: string | null
+          expedicao_id_zenlog: number | null
+          expedicao_ref: string | null
+          nf_numero: string | null
+          obs_expedicao: string | null
+          situacao_integracao: number | null
+          ultimo_evento_em: string | null
+        }
+        Insert: {
+          data_expedicao?: string | null
+          destinatario_nome?: string | null
+          expedicao_codigo?: string | null
+          expedicao_id_zenlog?: number | null
+          expedicao_ref?: never
+          nf_numero?: string | null
+          obs_expedicao?: string | null
+          situacao_integracao?: number | null
+          ultimo_evento_em?: never
+        }
+        Update: {
+          data_expedicao?: string | null
+          destinatario_nome?: string | null
+          expedicao_codigo?: string | null
+          expedicao_id_zenlog?: number | null
+          expedicao_ref?: never
+          nf_numero?: string | null
+          obs_expedicao?: string | null
+          situacao_integracao?: number | null
+          ultimo_evento_em?: never
         }
         Relationships: []
       }
@@ -50098,6 +50182,10 @@ export type Database = {
         Returns: Json
       }
       fn_refresh_dre: { Args: never; Returns: undefined }
+      fn_registrar_residuo_adquirente: {
+        Args: { p_nsu: string; p_simular?: boolean; p_user_id?: string }
+        Returns: Json
+      }
       fn_regras_aplicar: { Args: never; Returns: Json }
       fn_regua_materializar: { Args: never; Returns: Json }
       fn_render_template: {
@@ -50105,6 +50193,10 @@ export type Database = {
         Returns: string
       }
       fn_resolver_condicao: { Args: { p_condicao: string }; Returns: string }
+      fn_resolver_pedido_por_ref_bling: {
+        Args: { p_ref: string }
+        Returns: string
+      }
       fn_sem_acento: { Args: { p_txt: string }; Returns: string }
       fn_simular_portao: {
         Args: { p_fonte?: string; p_rota: string; p_user_id: string }
@@ -50203,6 +50295,20 @@ export type Database = {
           valor_total: number
           valor_unit: number
         }[]
+      }
+      fn_xpm_aplicar_evento: {
+        Args: {
+          p_evento_id: number
+          p_evento_zenlog_id: number
+          p_expedicao_codigo: string
+          p_origem?: string
+          p_quantidade: number
+        }
+        Returns: Json
+      }
+      fn_xpm_reprocessar_expedicao: {
+        Args: { p_expedicao_codigo: string }
+        Returns: Json
       }
       gerar_celebracoes_aniversario_mural: { Args: never; Returns: number }
       gerar_celebracoes_tempo_casa_mural: { Args: never; Returns: number }
