@@ -998,7 +998,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       <AcoesGrupoCliente
                         boletos={g.boletos}
                         gerandoEntrada={gerandoEntrada}
-                        onGerarEntrada={(ids) => handleGerarEntrada(ids)}
+                        onAbrirEntrada={abrirDialogEntrada}
+                        onEnviarEmail={(id) => enviarEmailBoleto.mutateAsync(id)}
                       />
                     </div>
                     <CollapsibleContent>
