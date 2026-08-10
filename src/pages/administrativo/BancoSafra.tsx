@@ -1019,7 +1019,14 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         </CardFooter>
       </Card>
 
-      <Dialog open={entradaDialogOpen} onOpenChange={(v) => !gerandoEntrada && setEntradaDialogOpen(v)}>
+      <Dialog
+        open={entradaDialogOpen}
+        onOpenChange={(v) => {
+          if (gerandoEntrada) return;
+          if (v) setEntradaDialogOpen(true);
+          else fecharDialogEntrada();
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Gerar Remessa de Entrada</DialogTitle>
