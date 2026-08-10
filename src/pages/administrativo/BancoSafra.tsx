@@ -469,6 +469,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: `Remessa de baixa gerada: ${data.qtd_titulos} boleto(s)` });
+      setBaixaDialogOpen(false);
       await qc.invalidateQueries({ queryKey: ["baixas-pendentes"] });
       await qc.invalidateQueries({ queryKey: ["remessas-safra"] });
       refetchBoletos();
