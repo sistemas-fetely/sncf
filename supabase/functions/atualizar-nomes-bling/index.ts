@@ -144,9 +144,14 @@ serve(async (req) => {
     }
 
     for (let i = 0; i < fila.length; i++) {
+      if (Date.now() - inicio > BUDGET_MS) {
+        interrompidoPorTempo = true;
+        break;
+      }
       const p: any = fila[i];
       const blingId = String(p.bling_id);
       const nomeNovo = (fichas.get(p.codigo) ?? "").trim();
+
 
       // guardrails (com log, para skus explícitos)
       if (!nomeNovo || nomeNovo.length > NOME_MAX) {
