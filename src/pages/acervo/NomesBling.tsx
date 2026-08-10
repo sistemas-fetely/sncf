@@ -201,31 +201,48 @@ export default function NomesBling() {
                   <div className="text-sm text-muted-foreground">Produtos ativos</div>
                 </div>
                 <div>
+                  <div className="text-3xl font-semibold tabular-nums text-emerald-600">
+                    {situacao.isLoading ? "—" : situacao.data?.ok_no_bling}
+                  </div>
+                  <div className="text-sm text-muted-foreground">OK no Bling</div>
+                  <div className="text-xs text-muted-foreground">nome certo no Bling, confirmado</div>
+                </div>
+                <div>
                   <div className="text-3xl font-semibold tabular-nums text-amber-600">
                     {situacao.isLoading ? "—" : situacao.data?.faltam_empurrar}
                   </div>
                   <div className="text-sm text-muted-foreground">Faltam empurrar</div>
-                  <div className="text-xs text-muted-foreground">atualiza na hora</div>
+                  <div className="text-xs text-muted-foreground">some a cada lote, até zerar</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-semibold tabular-nums text-emerald-600">
-                    {situacao.isLoading ? "—" : situacao.data?.empurrados}
+                  <div className="text-3xl font-semibold tabular-nums text-destructive">
+                    {situacao.isLoading ? "—" : situacao.data?.falhas_a_reprocessar}
                   </div>
-                  <div className="text-sm text-muted-foreground">Já empurrados</div>
-                  <div className="text-xs text-muted-foreground">atualiza na hora</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-semibold tabular-nums text-muted-foreground">
-                    {situacao.isLoading ? "—" : situacao.data?.aguardando_confirmacao}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Aguardando confirmação</div>
-                  <div className="text-xs text-muted-foreground">o Bling confirma em até ~40 min</div>
+                  <div className="text-sm text-muted-foreground">Falhas a reprocessar</div>
+                  <div className="text-xs text-muted-foreground">última tentativa deu erro</div>
                 </div>
               </div>
+
+              <div className="mt-4 max-w-3xl space-y-1.5 text-xs text-muted-foreground">
+                <p>
+                  <span className="font-medium text-foreground">
+                    espelho atrasado: {situacao.isLoading ? "—" : situacao.data?.espelho_atrasado}
+                  </span>{" "}
+                  — Já está certo no Bling; é só o espelho local que ainda não atualizou. Não entra
+                  na fila e não precisa de ação.
+                </p>
+                <p>
+                  <span className="font-medium text-foreground">
+                    sem nome operacional: {situacao.isLoading ? "—" : situacao.data?.sem_nome_operacional}
+                  </span>{" "}
+                  — Produtos ativos no Bling que ainda não têm nome operacional gerado no SNCF. Não
+                  dá para empurrar.
+                </p>
+              </div>
+
               <p className="mt-4 max-w-3xl text-xs text-muted-foreground">
-                ‘Faltam’ e ‘já empurrados’ mudam no mesmo instante em que você aplica. ‘Aguardando
-                confirmação’ só zera quando a sincronização com o Bling traz o nome de volta. Se esse
-                número ficar parado por mais de uma hora, o Bling aceitou mas não gravou — me avise.
+                A fila só desce. Cada lote pega SKUs novos — nada que já foi empurrado volta a
+                aparecer. Rode até ‘Faltam empurrar’ chegar a zero.
               </p>
             </>
           )}
