@@ -232,7 +232,7 @@ export default function EntradasRecebidas() {
                       <TableCell className="text-right text-sm">{formatBRL(r.valor)}</TableCell>
                       <TableCell className="text-right font-semibold">{formatBRL(r.saldo)}</TableCell>
                       <TableCell className="text-right text-sm">
-                        {r.pct_pago === null ? "—" : `${Math.round(r.pct_pago * (r.pct_pago <= 1 ? 100 : 1))}%`}
+                        {r.pct_pago === null ? "—" : `${Math.round(r.pct_pago)}%`}
                         {r.cobre_pedido_inteiro && (
                           <Badge variant="outline" className="ml-2 text-[9px] h-4 px-1 border-emerald-500 text-emerald-700 dark:text-emerald-400">
                             integral
