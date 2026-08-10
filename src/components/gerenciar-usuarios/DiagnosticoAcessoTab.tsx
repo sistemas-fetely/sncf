@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ScanSearch, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -195,7 +195,7 @@ function MatrizConcessao() {
                   {linhas.map((l, i) => {
                     const novoPilar = i === 0 || linhas[i - 1].pilar !== l.pilar;
                     return (
-                      <>
+                      <Fragment key={l.slug}>
                         {novoPilar && (
                           <TableRow key={`pilar-${l.pilar}`} className="bg-muted/50">
                             <TableCell
@@ -206,7 +206,7 @@ function MatrizConcessao() {
                             </TableCell>
                           </TableRow>
                         )}
-                        <TableRow key={l.slug}>
+                        <TableRow>
                           <TableCell>
                             <div className="font-medium text-sm">{l.nome}</div>
                             <div className="text-xs text-muted-foreground font-mono">{l.slug}</div>
@@ -221,7 +221,7 @@ function MatrizConcessao() {
                             </TableCell>
                           ))}
                         </TableRow>
-                      </>
+                      </Fragment>
                     );
                   })}
                   {linhas.length === 0 && (
