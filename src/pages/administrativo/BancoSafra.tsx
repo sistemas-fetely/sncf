@@ -873,6 +873,119 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     </Table>
   );
 
+  // ── Faixa de trabalho: só o que está parado esperando gente ───────────────
+  type LinhaFaixa = {
+    key: string;
+    filtro: typeof filtroKpi;
+    texto: React.ReactNode;
+    valor: number | null;
+    tom: "vermelho" | "ambar" | "neutro";
+    acao: { label: string; onClick: () => void; disabled?: boolean; loading?: boolean } | null;
+  };
+  const linhasFaixa: LinhaFaixa[] = [];
+  if (boletosKpis.pendentes > 0) {
+    linhasFaixa.push({
+      key: "pendentes",
+      filtro: "pendentes",
+      tom: boletosKpis.pendentesPassado > 0 ? "vermelho" : "neutro",
+      valor: boletosKpis.pendentesValor,
+      texto: (
+        <>
+          {boletosKpis.pendentes} boletos nunca registrados no Safra
+          {boletosKpis.pendentesPassado > 0 && (
+            <span className="text-destructive">
+              , {boletosKpis.pendentesPassado} com vencimento no passado
+            </span>
+          )}
+        </>
+      ),
+      acao: {
+        label: "Gerar entrada",
+        onClick: () => abrirDialogEntrada(),
+        disabled: pendentesEntrada.length === 0 || gerandoEntrada,
+        loading: gerandoEntrada,
+      },
+    });
+  }
+  if (boletosKpis.vencidos > 0) {
+    linhasFaixa.push({
+      key: "vencidos",
+      filtro: "vencidos",
+      tom: "vermelho",
+      valor: boletosKpis.vencidosValor,
+      texto: (
+        <>
+          {boletosKpis.vencidos} vencidos
+          {boletosKpis.diasVencidoMaisAntigo != null &&
+            `, o mais antigo há ${boletosKpis.diasVencidoMaisAntigo} dias`}
+        </>
+      ),
+      acao: { label: "Ver", onClick: () => setFiltroKpi("vencidos") },
+    });
+  }
+  if (countSolicitada > 0) {
+    linhasFaixa.push({
+      key: "baixas",
+      filtro: "baixas",
+      tom: "neutro",
+      valor: baixasPendentesData?.totalSolicitada ?? 0,
+      texto: <>{countSolicitada} baixas aguardando remessa</>,
+      acao: {
+        label: "Gerar baixa",
+        onClick: abrirDialogBaixa,
+        disabled: gerandoBaixa,
+        loading: gerandoBaixa,
+      },
+    });
+  }
+  if (remessasParadas.qtd > 0) {
+    linhasFaixa.push({
+      key: "remessas-paradas",
+      filtro: null,
+      tom: "ambar",
+      valor: null,
+      texto: (
+        <>
+          {remessasParadas.qtd} arquivos gerados e nunca enviados ao Safra
+          {remessasParadas.maisAntigaDias != null && `, há ${remessasParadas.maisAntigaDias} dias`}
+        </>
+      ),
+      acao: onIrParaRemessas
+        ? { label: "Abrir Remessas", onClick: onIrParaRemessas }
+        : null,
+    });
+  }
+  if (boletosKpis.prorrogacaoPendente > 0) {
+    linhasFaixa.push({
+      key: "prorrogacoes",
+      filtro: null,
+      tom: "neutro",
+      valor: null,
+      texto: <>{boletosKpis.prorrogacaoPendente} prorrogações aguardando envio</>,
+      acao: {
+        label: "Gerar prorrogação",
+        onClick: handleGerarProrrogacao,
+        disabled: gerandoProrrogacao,
+        loading: gerandoProrrogacao,
+      },
+    });
+  }
+  if (aguardandoRetorno.qtd > 0) {
+    linhasFaixa.push({
+      key: "aguardando-retorno",
+      filtro: null,
+      tom: "neutro",
+      valor: null,
+      texto: (
+        <>
+          {aguardandoRetorno.qtd} remessas enviadas aguardando retorno do banco
+          {aguardandoRetorno.dias != null && `, há ${aguardandoRetorno.dias} dias`}
+        </>
+      ),
+      acao: null,
+    });
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div>
