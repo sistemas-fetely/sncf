@@ -160,6 +160,14 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           </div>
         );
       })}
+
+      {podeReenviar && (
+        <ReenviarBlingDialog
+          pedidoId={pedido_id}
+          idExterno={id_externo}
+          blingIdAtual={String(bling_id_destino)}
+        />
+      )}
     </div>
   );
 }
