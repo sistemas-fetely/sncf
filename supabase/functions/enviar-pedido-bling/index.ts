@@ -861,8 +861,24 @@ if (itensSemProdutoBling.length > 0) {
         status: "enviada_bling",
       }).eq("id", remessa.id);
 
-      // 12b. Carimba pedido apenas na primeira remessa enviada
-      if (!pedido.bling_id_destino) {
+      // 12b. Carimba o pedido com o id VIGENTE do Bling.
+      // Grava quando (a) é o primeiro envio, ou (b) o id atual pertence a uma tentativa
+      // CANCELADA — houve reenvio e o vigente mudou. Antes gravava só em (a), e o pedido
+      // ficava apontando pro id MORTO depois de todo reenvio.
+      // Condição derivada do ESTADO, não de flag: vale pra qualquer caminho, não só o botão.
+      // Split real (duas tentativas vivas) segue intocado — nenhuma delas está cancelada.
+      let carimbarDestino = !pedido.bling_id_destino;
+      if (!carimbarDestino) {
+        const { data: remMorta } = await supabase
+          .from("pedido_remessa")
+          .select("id")
+          .eq("pedido_id", pedido_id)
+          .eq("bling_pedido_id", String(pedido.bling_id_destino))
+          .eq("status", "cancelada")
+          .limit(1);
+        carimbarDestino = !!(remMorta && remMorta.length > 0);
+      }
+      if (carimbarDestino) {
         await supabase.from("pedidos").update({
           bling_id_destino: blingId,
           bling_enviado_em: new Date().toISOString(),
