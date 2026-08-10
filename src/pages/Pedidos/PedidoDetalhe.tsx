@@ -1343,6 +1343,28 @@ export default function PedidoDetalhe() {
         </div>
       )}
 
+      {adiantadoVivo > 0.01 && (
+        <div className="mx-6 mb-3 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-emerald-900 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-200">
+          <Wallet className="h-4 w-4 shrink-0 mt-0.5" />
+          <p className="text-sm">
+            {adiantamentoPedido?.cobre_pedido_inteiro ? (
+              <>
+                Pedido já pago integralmente — <span className="font-semibold">{fmtBRL.format(adiantadoVivo)}</span>{" "}
+                recebidos em {adiantamentoPedido?.formas ?? "—"}. Os títulos nascem quitados no faturamento.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{fmtBRL.format(adiantadoVivo)}</span> já pagos neste pedido
+                {" "}({adiantamentoPedido?.formas ?? "—"}
+                {adiantamentoPedido?.recebido_em ? `, ${formatDateBR(adiantamentoPedido.recebido_em)}` : ""}).
+                {" "}Abate a parcela mais próxima automaticamente no faturamento.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
+
       {totalHaverDisponivel > 0.01 && pedido.estagio !== "faturado" && pedido.estagio !== "cancelado" && (
         <div className="mx-6 mb-3 flex items-center justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 dark:bg-emerald-950/30 dark:border-emerald-800">
           <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-200">
