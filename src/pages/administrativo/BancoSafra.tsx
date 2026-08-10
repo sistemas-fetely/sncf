@@ -840,7 +840,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
 
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            onClick={abrirDialogEntrada}
+            onClick={() => abrirDialogEntrada()}
             disabled={pendentesEntrada.length === 0 || gerandoEntrada}
             size="sm"
             className="gap-2"
