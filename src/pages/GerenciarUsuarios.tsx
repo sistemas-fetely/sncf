@@ -715,6 +715,14 @@ export default function GerenciarUsuarios() {
           </TabsContent>
         )}
 
+        {isSuperAdmin && (
+          <TabsContent value="diagnostico" className="mt-4">
+            <DiagnosticoAcessoTab />
+          </TabsContent>
+        )}
+
+
+
       </Tabs>
 
       {/* Hub da Pessoa v2 — perfis, níveis e unidades */}
