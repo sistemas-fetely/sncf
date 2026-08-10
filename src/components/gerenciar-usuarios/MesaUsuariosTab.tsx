@@ -119,7 +119,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vinculos")
-        .select("id, usuario_id, tipo_vinculo, status, pessoa_id, pessoas(nome_completo), cargos(nome)")
+        .select("id, usuario_id, tipo_vinculo, status, pessoa_id, pessoas!vinculos_pessoa_id_fkey(nome_completo), cargos(nome)")
         .not("usuario_id", "is", null);
       if (error) throw error;
       return data;
@@ -172,7 +172,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vinculos")
-        .select("id, tipo_vinculo, pessoas(nome_completo)")
+        .select("id, tipo_vinculo, pessoas!vinculos_pessoa_id_fkey(nome_completo)")
         .is("usuario_id", null)
         .eq("status", "ativo");
       if (error) throw error;
