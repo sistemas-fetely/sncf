@@ -25,8 +25,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const THROTTLE_MS = 350;
 const LIMITE_DEFAULT = 25;
-const LIMITE_MAX = 300;
+const LIMITE_MAX = 100;
 const NOME_MAX = 120;
+// Orçamento de tempo: o runtime corta em 150s de idle. Paramos antes e devolvemos parcial.
+const BUDGET_MS = 110_000;
+
 
 type Item = {
   sku: string;
