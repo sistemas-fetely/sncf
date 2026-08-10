@@ -164,6 +164,8 @@ const CobrancaDetalhe = lazy(() => import("@/pages/Credito/CobrancaDetalhe"));
 const AguardandoPagamentoFila = lazy(() => import("@/pages/Credito/AguardandoPagamentoFila"));
 const AguardandoPagamentoDetalhe = lazy(() => import("@/pages/Credito/AguardandoPagamentoDetalhe"));
 const RecebimentoLayout = lazy(() => import("@/pages/Recebimento/RecebimentoLayout"));
+const EntradasRecebidas = lazy(() => import("@/pages/Recebimento/EntradasRecebidas"));
+
 const RegrasCadencia = lazy(() => import("@/pages/Credito/RegrasCadencia"));
 const ReguaEtapas = lazy(() => import("@/pages/Credito/ReguaEtapas"));
 
@@ -314,6 +316,8 @@ const App = () => (
               <Route element={<VendasLayout />}>
                 <Route path="/pedidos" element={<PedidosIndex />} />
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
+                <Route path="/recebimento/entradas" element={<EntradasRecebidas />} />
+
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
                 

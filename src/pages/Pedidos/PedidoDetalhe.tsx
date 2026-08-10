@@ -30,6 +30,8 @@ import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
 import { toast as toastSonner } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatDateBR } from "@/lib/format-currency";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -990,6 +992,31 @@ export default function PedidoDetalhe() {
     (s: number, h: any) => s + Number(h.saldo), 0
   );
 
+  // ADIANTAMENTO-TEM-DESTINO: dinheiro já pago pelo cliente amarrado a ESTE
+  // pedido. Não é crédito e não tem ação — é consumido no faturamento.
+  const { data: adiantamentoPedido } = useQuery({
+    queryKey: ["pedido-adiantamento", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_adiantamento")
+        .select("adiantado_vivo, formas, recebido_em, pct_pago, cobre_pedido_inteiro")
+        .eq("pedido_id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        adiantado_vivo: number | null;
+        formas: string | null;
+        recebido_em: string | null;
+        pct_pago: number | null;
+        cobre_pedido_inteiro: boolean | null;
+      } | null;
+    },
+  });
+  const adiantadoVivo = Number(adiantamentoPedido?.adiantado_vivo ?? 0);
+
+
+
   const { data: splitsAtivos } = useQuery({
     queryKey: ["splits", id],
     queryFn: async () => {
@@ -1317,6 +1344,28 @@ export default function PedidoDetalhe() {
           )}
         </div>
       )}
+
+      {adiantadoVivo > 0.01 && (
+        <div className="mx-6 mb-3 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-emerald-900 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-200">
+          <Wallet className="h-4 w-4 shrink-0 mt-0.5" />
+          <p className="text-sm">
+            {adiantamentoPedido?.cobre_pedido_inteiro ? (
+              <>
+                Pedido já pago integralmente — <span className="font-semibold">{fmtBRL.format(adiantadoVivo)}</span>{" "}
+                recebidos em {adiantamentoPedido?.formas ?? "—"}. Os títulos nascem quitados no faturamento.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{fmtBRL.format(adiantadoVivo)}</span> já pagos neste pedido
+                {" "}({adiantamentoPedido?.formas ?? "—"}
+                {adiantamentoPedido?.recebido_em ? `, ${formatDateBR(adiantamentoPedido.recebido_em)}` : ""}).
+                {" "}Abate a parcela mais próxima automaticamente no faturamento.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
 
       {totalHaverDisponivel > 0.01 && pedido.estagio !== "faturado" && pedido.estagio !== "cancelado" && (
         <div className="mx-6 mb-3 flex items-center justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 dark:bg-emerald-950/30 dark:border-emerald-800">
