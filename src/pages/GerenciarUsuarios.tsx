@@ -962,11 +962,6 @@ export default function GerenciarUsuarios() {
           <GruposAcessoTabV2 />
         </TabsContent>
 
-        {(isSuperAdmin || isAdminRH) && (
-          <TabsContent value="matriz" className="mt-4">
-            <MatrizPermissoes />
-          </TabsContent>
-        )}
 
         {isSuperAdmin && (
           <TabsContent value="fantasmas" className="mt-4">
