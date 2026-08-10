@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowUpRight, CheckCircle2, ChevronDown, Search, User } from "lucide-react";
 import AchadoDrawer from "@/components/auditoria/AchadoDrawer";
+import CardSaudeAuditoria from "@/components/auditoria/CardSaudeAuditoria";
 import {
   useAchadosAuditoria,
   useDimsAuditoria,
