@@ -28,6 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowUpRight, Loader2, UserX } from "lucide-react";
+import AcaoAchadoBloco from "@/components/auditoria/AcaoAchadoBloco";
+
 import {
   useDimsAuditoria,
   useDonosAuditoria,
@@ -187,6 +189,10 @@ export default function AchadoDrawer({
                 <h4 className="text-xs font-semibold uppercase text-muted-foreground">Contexto</h4>
                 <Contexto contexto={achado.contexto} />
               </section>
+
+              <AcaoAchadoBloco achado={achado} userId={user?.id} />
+
+
 
               <section className="space-y-2 rounded-md border p-3">
                 <h4 className="text-xs font-semibold uppercase text-muted-foreground">
