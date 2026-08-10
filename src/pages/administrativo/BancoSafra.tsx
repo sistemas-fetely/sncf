@@ -484,8 +484,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     }
   };
 
-  const handleGerarEntrada = async (idsParam?: string[]) => {
-    const ids = idsParam ?? Array.from(selecionados);
+  const handleGerarEntrada = async () => {
+    const ids = Array.from(selecionados);
     if (ids.length === 0) {
       toast({ title: "Nenhum título selecionado", variant: "destructive" });
       return;
