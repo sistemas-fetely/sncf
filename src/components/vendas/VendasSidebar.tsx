@@ -67,6 +67,8 @@ export function VendasSidebar() {
               <FinancasSidebarItem to="/pedidos" icon={ShoppingCart} label="Pedidos B2B" end />
               <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Pedidos B2C" end />
               <FinancasSidebarItem to="/recebimento/cobranca" icon={Receipt} label="Cobrança" />
+              <FinancasSidebarItem to="/recebimento/entradas" icon={HandCoins} label="Entradas Recebidas" />
+
               
               
               
