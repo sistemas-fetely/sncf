@@ -706,6 +706,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       let qtdVencido = 0;
       let proximoVencimento: string | null = null;
       const contagem = new Map<string, number>();
+      /** Pedidos na ordem de vencimento (lista já vem ordenada asc). */
+      const pedidos: string[] = [];
       for (const b of lista) {
         const v = Number(b.valor_bruto || 0);
         total += v;
@@ -724,6 +726,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         ) {
           proximoVencimento = b.data_vencimento_atual;
         }
+        const ped = b.pedido?.id_externo;
+        if (ped && !pedidos.includes(ped)) pedidos.push(ped);
         const st = b.boleto_status || "—";
         contagem.set(st, (contagem.get(st) ?? 0) + 1);
       }
@@ -741,6 +745,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         qtdVencido,
         proximoVencimento,
         mixStatus,
+        pedidos,
         abrirPorPadrao: qtdVencido > 0,
       };
     });
