@@ -1063,7 +1063,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendentesEntrada.map((b) => {
+                {entradaLista.map((b) => {
                   const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
                   const marcado = selecionados.has(b.id);
                   return (
