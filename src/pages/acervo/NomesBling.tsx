@@ -73,10 +73,11 @@ export default function NomesBling() {
       if (error) throw error;
       return data as {
         produtos_ativos: number;
-        empurrados: number;
+        ok_no_bling: number;
         faltam_empurrar: number;
-        confirmados_pelo_bling: number;
-        aguardando_confirmacao: number;
+        espelho_atrasado: number;
+        falhas_a_reprocessar: number;
+        sem_nome_operacional: number;
       } | null;
     },
   });
