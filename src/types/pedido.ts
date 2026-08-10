@@ -151,6 +151,13 @@ export interface PedidoFilaItem {
   delta_pedido_titulo?: number | null;
   recebivel_na_familia?: boolean | null;
   familia_mae_externo?: string | null;
+  // vw_pedido_adiantamento: dinheiro já recebido que ainda não virou título.
+  adiantado_vivo?: number | null;
+  adiantado_lancamentos?: number | null;
+  adiantado_formas?: string | null;
+  adiantado_recebido_em?: string | null;
+  adiantado_pct_pago?: number | null;
+  adiantado_cobre_pedido_inteiro?: boolean | null;
 }
 
 export type PagamentoStatus =
