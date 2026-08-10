@@ -656,7 +656,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         status,
         qtd,
         label: BOLETO_STATUS_CFG[status]?.label ?? status,
-        cls: BOLETO_STATUS_CFG[status]?.cls ?? "bg-gray-300",
+        dot: BOLETO_STATUS_DOT[status] ?? "bg-gray-400",
       }));
       return {
         nome,
