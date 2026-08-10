@@ -28,6 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowUpRight, Loader2, UserX } from "lucide-react";
+import AcaoAchadoBloco from "@/components/auditoria/AcaoAchadoBloco";
+
 import {
   useDimsAuditoria,
   useDonosAuditoria,
