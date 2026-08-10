@@ -212,6 +212,78 @@ serve(async (req) => {
       return err(`Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio`);
     }
 
+    // ── Branch: reenviar ─────────────────────────────────────────────────
+    // Reenvio ao Bling APÓS cancelamento LÁ. Prepara (cancela a tentativa vigente
+    // preservando o id morto + cria a tentativa seguinte) e cai no fluxo normal
+    // de envio com a remessa nova. Exclusivo de super_admin, exclusivo de em_separacao.
+    if (body?.acao === "reenviar") {
+      if (!ehSuperAdmin) return err("Reenvio ao Bling é exclusivo de super_admin", 403);
+      if (pedido.estagio !== "em_separacao") {
+        return err(`Reenvio só em "Em separação" — pedido está em "${pedido.estagio}"`, 409);
+      }
+      if (!pedido.bling_id_destino) {
+        return err("Pedido ainda não tem id do Bling — use o envio normal, não o reenvio", 409);
+      }
+      const motivo: string = String(body?.motivo ?? "").trim();
+      if (!motivo) return err("Motivo obrigatório para reenviar", 400);
+
+      // AVISO, NÃO BLOQUEIO — SISTEMA SUGERE / HUMANO DECIDE.
+      // Reenviar um pedido que NÃO foi cancelado no Bling cria pedido DUPLICADO lá.
+      if (!body?.confirmar_nao_cancelado) {
+        let situacaoAviso: string | null = null;
+        try {
+          const { data: cfgChk } = await supabase
+            .from("integracoes_config").select("*").eq("sistema", "bling").maybeSingle();
+          if (!cfgChk?.access_token) throw new Error("Bling não conectado");
+
+          const tk = await ensureFreshToken(supabase, cfgChk);
+          const cli = makeBlingClient(supabase, cfgChk, tk);
+          const resSit = await cli.get(`/pedidos/vendas/${pedido.bling_id_destino}`);
+          const sitId = Number(resSit?.data?.situacao?.id ?? resSit?.data?.situacao?.valor ?? 0);
+
+          // DIMENSÃO VIA TABELA: o id de "Cancelado" vem de bling_situacoes, nunca hardcode.
+          const { data: sitCancelado } = await supabase
+            .from("bling_situacoes").select("bling_situacao_id")
+            .eq("modulo_nome", "Vendas").eq("nome", "Cancelado").maybeSingle();
+          if (!sitCancelado?.bling_situacao_id) throw new Error("Situação 'Cancelado' ausente em bling_situacoes");
+
+          if (sitId && sitId !== Number(sitCancelado.bling_situacao_id)) {
+            const { data: sitAtual } = await supabase
+              .from("bling_situacoes").select("nome")
+              .eq("modulo_nome", "Vendas").eq("bling_situacao_id", sitId).maybeSingle();
+            situacaoAviso = sitAtual?.nome ?? `situação ${sitId}`;
+          }
+        } catch (e) {
+          // Não conseguir verificar NÃO é permissão para reenviar no escuro:
+          // vira o mesmo pedido de confirmação explícita.
+          situacaoAviso = `não verificada (${(e as Error).message})`;
+        }
+
+        if (situacaoAviso) {
+          return new Response(JSON.stringify({
+            sucesso: false,
+            requer_confirmacao: true,
+            situacao_atual: situacaoAviso,
+            bling_id: String(pedido.bling_id_destino),
+            erro: `O pedido ${pedido.bling_id_destino} não consta cancelado no Bling (situação: ${situacaoAviso}). Reenviar agora pode criar um pedido DUPLICADO lá.`,
+          }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
+
+      const { data: prep, error: prepErr } = await supabase.rpc("reenviar_pedido_bling" as string, {
+        p_pedido_id: pedido_id,
+        p_motivo: motivo,
+        p_ator: userId,
+      });
+      if (prepErr) return err(`Falha ao preparar reenvio: ${prepErr.message}`, 500);
+      if (!prep?.ok) return err(String(prep?.erro ?? "Falha ao preparar reenvio"), 409);
+
+      // Segue o fluxo normal de envio, agora apontando pra tentativa nova.
+      remessa_id_input = String(prep.remessa_id);
+    }
+    // ── fim branch reenviar ──────────────────────────────────────────────
+
+
     // 1b. Remessa: usa a fornecida ou cria lazy /01
     let remessa: any = null;
     // Guarda o id da remessa criada NESTA chamada (nunca de remessa preexistente),
