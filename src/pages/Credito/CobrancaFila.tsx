@@ -1173,6 +1173,7 @@ export default function CobrancaFila() {
   const { data: titulosCobranca = [] } = useTitulosCobranca();
   const { data: baixasPendentes } = useBaixasPendentes();
   const [tabAtiva, setTabAtiva] = useState("fila");
+  const [subTabBanco, setSubTabBanco] = useState("remessas");
 
   const totalPedidos = pedidos.length;
   const totalTitulosAbertos = titulosCobranca.filter(
