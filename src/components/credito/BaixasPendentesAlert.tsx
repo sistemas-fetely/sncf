@@ -3,14 +3,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { AlertTriangle, ArrowUpFromLine, ChevronDown, Clock, Download, Info, Loader2, UploadCloud } from "lucide-react";
+import { AlertTriangle, ArrowUpFromLine, ArrowUpRight, ChevronDown, Clock, Info, Loader2, UploadCloud } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import type { BaixaPendenteItem } from "@/hooks/credito/useBaixasPendentes";
-import { baixarArquivoRemessa } from "@/lib/financeiro/baixarArquivoRemessa";
-import { useToast } from "@/hooks/use-toast";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function daysSince(iso: string | null): number | null {
   if (!iso) return null;
@@ -64,12 +61,13 @@ function ListaBaixas({ itens, mostrarIdade }: { itens: BaixaPendenteItem[]; most
 export function BaixasPendentesAlert({
   onGerarBaixa,
   gerandoBaixa,
+  onIrParaRemessas,
 }: {
   onGerarBaixa: (tituloIds: string[]) => void;
   gerandoBaixa: boolean;
+  onIrParaRemessas?: () => void;
 }) {
   const { data, isLoading, error, refetch } = useBaixasPendentes();
-  const { toast } = useToast();
   const [openSolicitada, setOpenSolicitada] = useState(true);
   const [openGerada, setOpenGerada] = useState(false);
   const [openEnviada, setOpenEnviada] = useState(false);
@@ -156,7 +154,6 @@ export function BaixasPendentesAlert({
   type GrupoRemessa = {
     remessa_id: string | null;
     arquivo_nome: string | null;
-    conteudo: string | null;
     gerado_em: string | null;
     total: number;
     itens: BaixaPendenteItem[];
@@ -173,8 +170,7 @@ export function BaixasPendentesAlert({
         map.set(key, {
           remessa_id: it.remessa_id,
           arquivo_nome: it.remessa_arquivo_nome,
-          conteudo: it.remessa_conteudo,
-          gerado_em: it.remessa_gerado_em,
+            gerado_em: it.remessa_gerado_em,
           total: Number(it.valor ?? 0),
           itens: [it],
         });
