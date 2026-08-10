@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
 
     /**
      * Sprint C2 (29/04/2026): criação manual de usuário com modelo NOVO
-     * de grupos (grupo_acesso_usuarios + user_colaborador_link).
+     * de grupos (grupo_acesso_usuarios).
      *
      * Body esperado:
      *   - email (obrigatório)
@@ -251,11 +251,11 @@ Deno.serve(async (req) => {
      *   - vinculo_tipo: 'clt' | 'pj' | 'externo' | null
      *   - colaborador_clt_id (se vinculo_tipo='clt')
      *   - contrato_pj_id (se vinculo_tipo='pj')
-     *   - tipo_externo (se vinculo_tipo='externo'): "consultor", "contador", etc
+     *   - tipo_externo (se vinculo_tipo='externo'): aceito, mas não persistido aqui
      *   - grupo_ids: array de IDs de grupos_acesso (vazio = sem grupos)
      *
      * Doutrina:
-     *   - Marcos: user_colaborador_link é imutável após criação
+     *   - A identidade usuário↔vínculo vive em vinculos.usuario_id (gravada em outro fluxo)
      *   - Marcos: vínculo é opcional em V1 (Flavio cravado)
      *   - Email de boas-vindas com link de recovery (user define senha no 1º acesso)
      */
