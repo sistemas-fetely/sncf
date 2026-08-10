@@ -27,6 +27,8 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const { data: remessas, isLoading } = useRemessas(pedido_id);
   const enviar = useEnviarBling();
   const sync = useSyncContato();
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
 
   const { data: parceiroBling, refetch: recheckBling } = useQuery({
     queryKey: ["parceiro-bling-check", parceiro_id],
