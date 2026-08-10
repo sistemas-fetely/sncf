@@ -44,7 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
   AlertCircle,
-  ArrowUpFromLine,
+  
   Check,
   FileText,
   Landmark,
