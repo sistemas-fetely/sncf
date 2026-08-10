@@ -37,6 +37,8 @@ import { HubDaPessoaDialog } from "@/components/gerenciar-usuarios/HubDaPessoaDi
 import { GrupoCell } from "@/components/gerenciar-usuarios/GrupoCell";
 import NovoUsuarioDialog from "@/components/gerenciar-usuarios/NovoUsuarioDialog";
 import MesaUsuariosTab from "@/components/gerenciar-usuarios/MesaUsuariosTab";
+import DiagnosticoAcessoTab from "@/components/gerenciar-usuarios/DiagnosticoAcessoTab";
+
 
 import { ReenviarLinkAcessoButton } from "@/components/auth/ReenviarLinkAcessoButton";
 import { DefinirSenhaButton } from "@/components/gerenciar-usuarios/DefinirSenhaButton";
