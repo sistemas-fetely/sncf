@@ -314,6 +314,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const qc = useQueryClient();
   const { data: baixasPendentesData } = useBaixasPendentes();
   const countSolicitada = baixasPendentesData?.countSolicitada ?? 0;
+  const baixaSolicitadaItens = baixasPendentesData?.baixaSolicitada ?? [];
+  const { data: remessas = [] } = useRemessasSafra();
+
 
 
 
