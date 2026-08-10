@@ -989,7 +989,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                               <span
                                 key={m.status}
                                 title={`${m.label}: ${m.qtd}`}
-                                className={`inline-block h-2 w-2 rounded-full ${m.cls}`}
+                                className={`inline-block h-2 w-2 rounded-full ${m.dot}`}
                               />
                             ))}
                           </span>
