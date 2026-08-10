@@ -22,7 +22,9 @@ import {
   classeSituacao,
   metaSituacao,
   rotuloSituacao,
+  TOM_CLASSES,
 } from "@/lib/pedidos/situacao-financeira";
+import { formatDateBR } from "@/lib/format-currency";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
