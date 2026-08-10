@@ -545,18 +545,34 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     primeiroDia.setDate(1);
     primeiroDia.setHours(0, 0, 0, 0);
     const iso = primeiroDia.toISOString().slice(0, 10);
+    const hoje = new Date().toISOString().slice(0, 10);
     let pendentes = 0;
+    let pendentesValor = 0;
+    let pendentesPassado = 0;
     let registrados = 0;
     let pagosMes = 0;
     let vencidos = 0;
-    let baixaPendente = 0;
+    let vencidosValor = 0;
+    let vencidoMaisAntigo: string | null = null;
     let prorrogacaoPendente = 0;
     for (const b of boletos) {
       const s = b.boleto_status || "";
-      if (s === "pendente" || s === "remessa_gerada") pendentes++;
-      else if (s === "registrado") registrados++;
-      else if (s === "vencido") vencidos++;
-      else if (s === "baixa_solicitada") baixaPendente++;
+      const v = Number(b.valor_bruto || 0);
+      if (s === "pendente") {
+        pendentes++;
+        pendentesValor += v;
+        if (b.data_vencimento_atual && b.data_vencimento_atual < hoje) pendentesPassado++;
+      } else if (s === "registrado") registrados++;
+      else if (s === "vencido") {
+        vencidos++;
+        vencidosValor += v;
+        if (
+          b.data_vencimento_atual &&
+          (!vencidoMaisAntigo || b.data_vencimento_atual < vencidoMaisAntigo)
+        ) {
+          vencidoMaisAntigo = b.data_vencimento_atual;
+        }
+      }
       if (
         s === "registrado" &&
         b.prorrogacao_nova_data &&
@@ -572,8 +588,45 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         pagosMes++;
       }
     }
-    return { pendentes, registrados, pagosMes, vencidos, baixaPendente, prorrogacaoPendente };
+    const diasVencidoMaisAntigo = vencidoMaisAntigo
+      ? diasDesde(`${vencidoMaisAntigo}T00:00:00`)
+      : null;
+    return {
+      pendentes,
+      pendentesValor,
+      pendentesPassado,
+      registrados,
+      pagosMes,
+      vencidos,
+      vencidosValor,
+      diasVencidoMaisAntigo,
+      prorrogacaoPendente,
+    };
   }, [boletos]);
+
+  /** Arquivos gerados e nunca enviados ao Safra. */
+  const remessasParadas = useMemo(() => {
+    const geradas = remessas.filter((r) => r.status === "gerada" && !r.enviada_em);
+    let maisAntigaDias: number | null = null;
+    for (const r of geradas) {
+      const d = diasDesde(r.gerado_em);
+      if (d != null && (maisAntigaDias == null || d > maisAntigaDias)) maisAntigaDias = d;
+    }
+    return { qtd: geradas.length, maisAntigaDias };
+  }, [remessas]);
+
+  /** Bloco 3 do useBaixasPendentes: enviadas ao banco, aguardando retorno. */
+  const aguardandoRetorno = useMemo(() => {
+    const itens = baixasPendentesData?.remessaEnviadaAguardandoRetorno ?? [];
+    let dias: number | null = null;
+    for (const i of itens) {
+      const d = diasDesde(i.remessa_enviada_em);
+      if (d != null && (dias == null || d > dias)) dias = d;
+    }
+    const remessasUnicas = new Set(itens.map((i) => i.remessa_id ?? i.id));
+    return { qtd: remessasUnicas.size, dias };
+  }, [baixasPendentesData]);
+
 
   // ── visão, filtros e busca ────────────────────────────────────────────────
   const [modo, setModo] = useState<"cliente" | "vencimento">("cliente");
