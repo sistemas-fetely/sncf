@@ -7,43 +7,49 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { CalendarClock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface Provisao {
-  id: string;
+interface ProvisaoCaixa {
+  provisao_id: string;
   numero_parcela: number;
   total_parcelas: number | null;
-  valor: number | null;
+  valor_provisao: number | null;
   data_prevista: string | null;
   tipo_pagamento: string | null;
   eh_entrada: boolean | null;
-  status: string | null;
+  adiantado_no_pedido: number | null;
+  coberta_por_adiantamento: boolean | null;
+  valor_a_receber: number | null;
 }
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (d?: string | null) =>
   d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 
-function BadgeStatusProvisao({ status }: { status?: string | null }) {
-  if (status === "consumida") {
-    return <Badge variant="outline" className="border-emerald-500 text-emerald-700 dark:text-emerald-400">Faturada</Badge>;
+function BadgeStatusProvisao({ coberta }: { coberta?: boolean | null }) {
+  if (coberta) {
+    return (
+      <Badge variant="outline" className="border-emerald-500 text-emerald-700 dark:text-emerald-400">
+        Paga por adiantamento
+      </Badge>
+    );
   }
-  if (status === "prevista") {
-    return <Badge variant="outline" className="border-sky-500 text-sky-700 dark:text-sky-400">Prevista</Badge>;
-  }
-  return <Badge variant="outline">{status ?? "—"}</Badge>;
+  return <Badge variant="outline" className="border-sky-500 text-sky-700 dark:text-sky-400">Prevista</Badge>;
 }
 
 export function usePlanoRecebimento(pedidoId: string) {
   return useQuery({
-    queryKey: ["provisao-recebimento", pedidoId],
-    queryFn: async (): Promise<Provisao[]> => {
+    queryKey: ["provisao-caixa", pedidoId],
+    queryFn: async (): Promise<ProvisaoCaixa[]> => {
       const { data, error } = await (supabase as any)
-        .from("provisao_recebimento")
-        .select("id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_entrada, status")
+        .from("vw_provisao_caixa")
+        .select(
+          "provisao_id, numero_parcela, total_parcelas, valor_provisao, data_prevista, tipo_pagamento, eh_entrada, adiantado_no_pedido, coberta_por_adiantamento, valor_a_receber",
+        )
         .eq("pedido_id", pedidoId)
         .order("numero_parcela");
       if (error) throw error;
-      return (data ?? []) as Provisao[];
+      return (data ?? []) as ProvisaoCaixa[];
     },
     enabled: !!pedidoId,
   });
@@ -65,15 +71,21 @@ export function PlanoRecebimentoCard({
   }
   if (!data || data.length === 0) return null;
 
-  const total = data.reduce((acc, p) => acc + Number(p.valor ?? 0), 0);
-  const tudoFaturado = data.every((p) => p.status === "consumida");
+  const jaRecebido = data
+    .filter((p) => p.coberta_por_adiantamento)
+    .reduce((acc, p) => acc + Number(p.valor_provisao ?? 0), 0);
+  const aReceber = data.reduce((acc, p) => acc + Number(p.valor_a_receber ?? 0), 0);
+  const temAdiantamento = jaRecebido > 0.005;
+
+  const valorClasse = (coberta?: boolean | null) =>
+    cn("font-semibold", coberta && "line-through text-muted-foreground font-normal");
 
   const linhas = (
     <div className="space-y-2">
       {compacto ? (
         <div className="space-y-2">
           {data.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-2 border-b border-border/40 pb-2 last:border-0 last:pb-0">
+            <div key={p.provisao_id} className="flex items-center justify-between gap-2 border-b border-border/40 pb-2 last:border-0 last:pb-0">
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="font-mono text-xs">{p.numero_parcela}/{p.total_parcelas ?? data.length}</span>
@@ -86,8 +98,10 @@ export function PlanoRecebimentoCard({
                 </p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-sm font-semibold">{fmtBRL.format(Number(p.valor ?? 0))}</p>
-                <BadgeStatusProvisao status={p.status} />
+                <p className={cn("text-sm", valorClasse(p.coberta_por_adiantamento))}>
+                  {fmtBRL.format(Number(p.valor_provisao ?? 0))}
+                </p>
+                <BadgeStatusProvisao coberta={p.coberta_por_adiantamento} />
               </div>
             </div>
           ))}
@@ -106,17 +120,19 @@ export function PlanoRecebimentoCard({
             </TableHeader>
             <TableBody>
               {data.map((p) => (
-                <TableRow key={p.id}>
+                <TableRow key={p.provisao_id}>
                   <TableCell className="font-mono text-xs">
                     {p.numero_parcela}/{p.total_parcelas ?? data.length}
                     {p.eh_entrada && (
                       <Badge variant="outline" className="ml-2 border-emerald-500 text-emerald-700">Entrada</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="font-semibold">{fmtBRL.format(Number(p.valor ?? 0))}</TableCell>
+                  <TableCell className={valorClasse(p.coberta_por_adiantamento)}>
+                    {fmtBRL.format(Number(p.valor_provisao ?? 0))}
+                  </TableCell>
                   <TableCell className="text-sm">{fmtDate(p.data_prevista)}</TableCell>
                   <TableCell className="text-sm">{p.tipo_pagamento ?? "—"}</TableCell>
-                  <TableCell><BadgeStatusProvisao status={p.status} /></TableCell>
+                  <TableCell><BadgeStatusProvisao coberta={p.coberta_por_adiantamento} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -124,14 +140,18 @@ export function PlanoRecebimentoCard({
         </div>
       )}
 
-      <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">Total previsto</span>
-        <span className="font-bold">{fmtBRL.format(total)}</span>
-      </div>
-
-      {tudoFaturado && (
-        <p className="text-xs text-muted-foreground">Plano faturado — ver títulos abaixo</p>
+      {temAdiantamento && (
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Já recebido (adiantamento)</span>
+          <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+            {fmtBRL.format(jaRecebido)}
+          </span>
+        </div>
       )}
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">Ainda a receber</span>
+        <span className="font-bold">{fmtBRL.format(aReceber)}</span>
+      </div>
     </div>
   );
 
