@@ -990,6 +990,31 @@ export default function PedidoDetalhe() {
     (s: number, h: any) => s + Number(h.saldo), 0
   );
 
+  // ADIANTAMENTO-TEM-DESTINO: dinheiro já pago pelo cliente amarrado a ESTE
+  // pedido. Não é crédito e não tem ação — é consumido no faturamento.
+  const { data: adiantamentoPedido } = useQuery({
+    queryKey: ["pedido-adiantamento", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_adiantamento")
+        .select("adiantado_vivo, formas, recebido_em, pct_pago, cobre_pedido_inteiro")
+        .eq("pedido_id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        adiantado_vivo: number | null;
+        formas: string | null;
+        recebido_em: string | null;
+        pct_pago: number | null;
+        cobre_pedido_inteiro: boolean | null;
+      } | null;
+    },
+  });
+  const adiantadoVivo = Number(adiantamentoPedido?.adiantado_vivo ?? 0);
+
+
+
   const { data: splitsAtivos } = useQuery({
     queryKey: ["splits", id],
     queryFn: async () => {
