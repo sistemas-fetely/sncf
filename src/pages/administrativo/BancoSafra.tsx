@@ -44,7 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
   AlertCircle,
-  ArrowUpFromLine,
+  
   Check,
   FileText,
   Landmark,
@@ -56,9 +56,17 @@ import {
   Search,
 } from "lucide-react";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
-import { BaixasPendentesAlert } from "@/components/credito/BaixasPendentesAlert";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
+import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+/** Dias corridos desde uma data ISO (null se inválida). */
+function diasDesde(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.max(0, Math.floor((Date.now() - t) / 86400000));
+}
 
 type TitulosBoleto = {
   id: string;
@@ -306,6 +314,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const qc = useQueryClient();
   const { data: baixasPendentesData } = useBaixasPendentes();
   const countSolicitada = baixasPendentesData?.countSolicitada ?? 0;
+  const baixaSolicitadaItens = baixasPendentesData?.baixaSolicitada ?? [];
+  const { data: remessas = [] } = useRemessasSafra();
+
 
 
 
@@ -333,6 +344,16 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const [entradaDialogOpen, setEntradaDialogOpen] = useState(false);
   /** Quando existe, o Dialog de entrada considera apenas estes títulos (escopo de um cliente). */
   const [escopoEntrada, setEscopoEntrada] = useState<string[] | null>(null);
+  // Diálogo de conferência da baixa (seleção de títulos que antes vivia no BaixasPendentesAlert)
+  const [baixaDialogOpen, setBaixaDialogOpen] = useState(false);
+  const [baixaSelecionados, setBaixaSelecionados] = useState<Set<string>>(new Set());
+  const abrirDialogBaixa = () => {
+    setBaixaSelecionados(new Set(baixaSolicitadaItens.map((i) => i.id)));
+    setBaixaDialogOpen(true);
+  };
+  const totalBaixaSelecionado = baixaSolicitadaItens
+    .filter((i) => baixaSelecionados.has(i.id))
+    .reduce((s, i) => s + Number(i.valor || 0), 0);
 
   // mutation de e-mail: uma única instância para toda a tela
   const enviarEmailBoleto = useEnviarEmailBoleto();
@@ -448,6 +469,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: `Remessa de baixa gerada: ${data.qtd_titulos} boleto(s)` });
+      setBaixaDialogOpen(false);
       await qc.invalidateQueries({ queryKey: ["baixas-pendentes"] });
       await qc.invalidateQueries({ queryKey: ["remessas-safra"] });
       refetchBoletos();
@@ -523,18 +545,34 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     primeiroDia.setDate(1);
     primeiroDia.setHours(0, 0, 0, 0);
     const iso = primeiroDia.toISOString().slice(0, 10);
+    const hoje = new Date().toISOString().slice(0, 10);
     let pendentes = 0;
+    let pendentesValor = 0;
+    let pendentesPassado = 0;
     let registrados = 0;
     let pagosMes = 0;
     let vencidos = 0;
-    let baixaPendente = 0;
+    let vencidosValor = 0;
+    let vencidoMaisAntigo: string | null = null;
     let prorrogacaoPendente = 0;
     for (const b of boletos) {
       const s = b.boleto_status || "";
-      if (s === "pendente" || s === "remessa_gerada") pendentes++;
-      else if (s === "registrado") registrados++;
-      else if (s === "vencido") vencidos++;
-      else if (s === "baixa_solicitada") baixaPendente++;
+      const v = Number(b.valor_bruto || 0);
+      if (s === "pendente") {
+        pendentes++;
+        pendentesValor += v;
+        if (b.data_vencimento_atual && b.data_vencimento_atual < hoje) pendentesPassado++;
+      } else if (s === "registrado") registrados++;
+      else if (s === "vencido") {
+        vencidos++;
+        vencidosValor += v;
+        if (
+          b.data_vencimento_atual &&
+          (!vencidoMaisAntigo || b.data_vencimento_atual < vencidoMaisAntigo)
+        ) {
+          vencidoMaisAntigo = b.data_vencimento_atual;
+        }
+      }
       if (
         s === "registrado" &&
         b.prorrogacao_nova_data &&
@@ -550,8 +588,45 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         pagosMes++;
       }
     }
-    return { pendentes, registrados, pagosMes, vencidos, baixaPendente, prorrogacaoPendente };
+    const diasVencidoMaisAntigo = vencidoMaisAntigo
+      ? diasDesde(`${vencidoMaisAntigo}T00:00:00`)
+      : null;
+    return {
+      pendentes,
+      pendentesValor,
+      pendentesPassado,
+      registrados,
+      pagosMes,
+      vencidos,
+      vencidosValor,
+      diasVencidoMaisAntigo,
+      prorrogacaoPendente,
+    };
   }, [boletos]);
+
+  /** Arquivos gerados e nunca enviados ao Safra. */
+  const remessasParadas = useMemo(() => {
+    const geradas = remessas.filter((r) => r.status === "gerada" && !r.enviada_em);
+    let maisAntigaDias: number | null = null;
+    for (const r of geradas) {
+      const d = diasDesde(r.gerado_em);
+      if (d != null && (maisAntigaDias == null || d > maisAntigaDias)) maisAntigaDias = d;
+    }
+    return { qtd: geradas.length, maisAntigaDias };
+  }, [remessas]);
+
+  /** Bloco 3 do useBaixasPendentes: enviadas ao banco, aguardando retorno. */
+  const aguardandoRetorno = useMemo(() => {
+    const itens = baixasPendentesData?.remessaEnviadaAguardandoRetorno ?? [];
+    let dias: number | null = null;
+    for (const i of itens) {
+      const d = diasDesde(i.remessa_enviada_em);
+      if (d != null && (dias == null || d > dias)) dias = d;
+    }
+    const remessasUnicas = new Set(itens.map((i) => i.remessa_id ?? i.id));
+    return { qtd: remessasUnicas.size, dias };
+  }, [baixasPendentesData]);
+
 
   // ── visão, filtros e busca ────────────────────────────────────────────────
   const [modo, setModo] = useState<"cliente" | "vencimento">("cliente");
@@ -578,7 +653,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     const termo = semAcento(buscaDebounced.trim());
     return boletos.filter((b) => {
       const s = b.boleto_status || "";
-      if (filtroKpi === "pendentes" && !(s === "pendente" || s === "remessa_gerada")) return false;
+      if (filtroKpi === "pendentes" && s !== "pendente") return false;
       if (filtroKpi === "registrados" && s !== "registrado") return false;
       if (filtroKpi === "vencidos" && s !== "vencido") return false;
       if (filtroKpi === "baixas" && s !== "baixa_solicitada") return false;
@@ -631,6 +706,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       let qtdVencido = 0;
       let proximoVencimento: string | null = null;
       const contagem = new Map<string, number>();
+      /** Pedidos na ordem de vencimento (lista já vem ordenada asc). */
+      const pedidos: string[] = [];
       for (const b of lista) {
         const v = Number(b.valor_bruto || 0);
         total += v;
@@ -649,6 +726,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         ) {
           proximoVencimento = b.data_vencimento_atual;
         }
+        const ped = b.pedido?.id_externo;
+        if (ped && !pedidos.includes(ped)) pedidos.push(ped);
         const st = b.boleto_status || "—";
         contagem.set(st, (contagem.get(st) ?? 0) + 1);
       }
@@ -666,6 +745,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         qtdVencido,
         proximoVencimento,
         mixStatus,
+        pedidos,
         abrirPorPadrao: qtdVencido > 0,
       };
     });
@@ -793,6 +873,119 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     </Table>
   );
 
+  // ── Faixa de trabalho: só o que está parado esperando gente ───────────────
+  type LinhaFaixa = {
+    key: string;
+    filtro: typeof filtroKpi;
+    texto: React.ReactNode;
+    valor: number | null;
+    tom: "vermelho" | "ambar" | "neutro";
+    acao: { label: string; onClick: () => void; disabled?: boolean; loading?: boolean } | null;
+  };
+  const linhasFaixa: LinhaFaixa[] = [];
+  if (boletosKpis.pendentes > 0) {
+    linhasFaixa.push({
+      key: "pendentes",
+      filtro: "pendentes",
+      tom: boletosKpis.pendentesPassado > 0 ? "vermelho" : "neutro",
+      valor: boletosKpis.pendentesValor,
+      texto: (
+        <>
+          {boletosKpis.pendentes} boletos nunca registrados no Safra
+          {boletosKpis.pendentesPassado > 0 && (
+            <span className="text-destructive">
+              , {boletosKpis.pendentesPassado} com vencimento no passado
+            </span>
+          )}
+        </>
+      ),
+      acao: {
+        label: "Gerar entrada",
+        onClick: () => abrirDialogEntrada(),
+        disabled: pendentesEntrada.length === 0 || gerandoEntrada,
+        loading: gerandoEntrada,
+      },
+    });
+  }
+  if (boletosKpis.vencidos > 0) {
+    linhasFaixa.push({
+      key: "vencidos",
+      filtro: "vencidos",
+      tom: "vermelho",
+      valor: boletosKpis.vencidosValor,
+      texto: (
+        <>
+          {boletosKpis.vencidos} vencidos
+          {boletosKpis.diasVencidoMaisAntigo != null &&
+            `, o mais antigo há ${boletosKpis.diasVencidoMaisAntigo} dias`}
+        </>
+      ),
+      acao: { label: "Ver", onClick: () => setFiltroKpi("vencidos") },
+    });
+  }
+  if (countSolicitada > 0) {
+    linhasFaixa.push({
+      key: "baixas",
+      filtro: "baixas",
+      tom: "neutro",
+      valor: baixasPendentesData?.totalSolicitada ?? 0,
+      texto: <>{countSolicitada} baixas aguardando remessa</>,
+      acao: {
+        label: "Gerar baixa",
+        onClick: abrirDialogBaixa,
+        disabled: gerandoBaixa,
+        loading: gerandoBaixa,
+      },
+    });
+  }
+  if (remessasParadas.qtd > 0) {
+    linhasFaixa.push({
+      key: "remessas-paradas",
+      filtro: null,
+      tom: "ambar",
+      valor: null,
+      texto: (
+        <>
+          {remessasParadas.qtd} arquivos gerados e nunca enviados ao Safra
+          {remessasParadas.maisAntigaDias != null && `, há ${remessasParadas.maisAntigaDias} dias`}
+        </>
+      ),
+      acao: onIrParaRemessas
+        ? { label: "Abrir Remessas", onClick: onIrParaRemessas }
+        : null,
+    });
+  }
+  if (boletosKpis.prorrogacaoPendente > 0) {
+    linhasFaixa.push({
+      key: "prorrogacoes",
+      filtro: null,
+      tom: "neutro",
+      valor: null,
+      texto: <>{boletosKpis.prorrogacaoPendente} prorrogações aguardando envio</>,
+      acao: {
+        label: "Gerar prorrogação",
+        onClick: handleGerarProrrogacao,
+        disabled: gerandoProrrogacao,
+        loading: gerandoProrrogacao,
+      },
+    });
+  }
+  if (aguardandoRetorno.qtd > 0) {
+    linhasFaixa.push({
+      key: "aguardando-retorno",
+      filtro: null,
+      tom: "neutro",
+      valor: null,
+      texto: (
+        <>
+          {aguardandoRetorno.qtd} remessas enviadas aguardando retorno do banco
+          {aguardandoRetorno.dias != null && `, há ${aguardandoRetorno.dias} dias`}
+        </>
+      ),
+      acao: null,
+    });
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -805,93 +998,83 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         </p>
       </div>
 
-      <BaixasPendentesAlert
-        onGerarBaixa={handleGerarBaixa}
-        gerandoBaixa={gerandoBaixa}
-        onIrParaRemessas={onIrParaRemessas}
-      />
+      <Card>
+        <CardContent className="p-0">
+          {linhasFaixa.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-muted-foreground">
+              Nada parado. Tudo em dia por aqui.
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {linhasFaixa.map((l) => {
+                const ativo = l.filtro != null && filtroKpi === l.filtro;
+                const borda =
+                  l.tom === "vermelho"
+                    ? "border-l-destructive"
+                    : l.tom === "ambar"
+                      ? "border-l-amber-500"
+                      : "border-l-transparent";
+                return (
+                  <li
+                    key={l.key}
+                    className={`flex items-center justify-between gap-3 border-l-2 px-4 py-2 ${borda} ${
+                      ativo ? "bg-muted/60" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      disabled={l.filtro == null}
+                      onClick={() => l.filtro && setFiltroKpi(ativo ? null : l.filtro)}
+                      className={`flex min-w-0 flex-1 items-baseline gap-2 text-left text-sm ${
+                        l.filtro == null ? "cursor-default" : "hover:underline"
+                      } ${l.tom === "vermelho" ? "text-destructive" : l.tom === "ambar" ? "text-amber-700" : ""}`}
+                    >
+                      <span className="truncate">{l.texto}</span>
+                      {l.valor != null && (
+                        <span className="shrink-0 font-medium tabular-nums text-muted-foreground">
+                          {formatBRL(l.valor)}
+                        </span>
+                      )}
+                    </button>
+                    {l.acao && (
+                      <Button
+                        size="sm"
+                        variant={l.tom === "neutro" ? "outline" : "default"}
+                        className="shrink-0 gap-2"
+                        onClick={l.acao.onClick}
+                        disabled={l.acao.disabled}
+                      >
+                        {l.acao.loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        {l.acao.label}
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card px-4 py-2">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          {([
-            { key: "pendentes", label: "Pendentes", valor: boletosKpis.pendentes, cls: "text-gray-700", ativoCls: "bg-gray-700 text-white" },
-            { key: "registrados", label: "Registrados", valor: boletosKpis.registrados, cls: "text-blue-700", ativoCls: "bg-blue-700 text-white" },
-            { key: "pagos_mes", label: "Pagos no mês", valor: boletosKpis.pagosMes, cls: "text-green-700", ativoCls: "bg-green-700 text-white" },
-            { key: "vencidos", label: "Vencidos", valor: boletosKpis.vencidos, cls: "text-orange-700", ativoCls: "bg-orange-700 text-white" },
-            { key: "baixas", label: "Baixas pendentes", valor: countSolicitada, cls: "text-purple-700", ativoCls: "bg-purple-700 text-white" },
-          ] as const).map((k) => {
-            const ativo = filtroKpi === k.key;
-            return (
-              <button
-                key={k.key}
-                type="button"
-                onClick={() => setFiltroKpi(ativo ? null : k.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                  ativo ? `${k.ativoCls} border-transparent` : "border-border hover:bg-muted"
-                }`}
-              >
-                <span className={ativo ? "" : "text-muted-foreground"}>{k.label}</span>
-                <span className={`font-semibold ${ativo ? "" : k.cls}`}>{k.valor}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={() => abrirDialogEntrada()}
-            disabled={pendentesEntrada.length === 0 || gerandoEntrada}
-            size="sm"
-            className="gap-2"
-          >
-            {gerandoEntrada ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowUpFromLine className="h-4 w-4" />
-            )}
-            Entrada
-            {pendentesEntrada.length > 0 && ` (${pendentesEntrada.length})`}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGerarProrrogacao}
-            disabled={boletosKpis.prorrogacaoPendente === 0 || gerandoProrrogacao}
-            className="gap-2"
-          >
-            {gerandoProrrogacao ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowUpFromLine className="h-4 w-4" />
-            )}
-            Prorrogação
-            {boletosKpis.prorrogacaoPendente > 0 && ` (${boletosKpis.prorrogacaoPendente})`}
-          </Button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleGerarBaixa([])}
-                  disabled={countSolicitada === 0 || gerandoBaixa}
-                  className="gap-2"
-                >
-                  {gerandoBaixa ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ArrowUpFromLine className="h-4 w-4" />
-                  )}
-                  Baixa (todos)
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Gera remessa de baixa para TODOS os títulos aguardando ({countSolicitada}). Para selecionar cliente/título, use o banner acima.</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-        </div>
+      {/* resumo do que não pede ação */}
+      <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => setFiltroKpi(filtroKpi === "registrados" ? null : "registrados")}
+          className={`hover:underline ${filtroKpi === "registrados" ? "font-semibold text-foreground" : ""}`}
+        >
+          {boletosKpis.registrados} registrados
+        </button>
+        <span>·</span>
+        <button
+          type="button"
+          onClick={() => setFiltroKpi(filtroKpi === "pagos_mes" ? null : "pagos_mes")}
+          className={`hover:underline ${filtroKpi === "pagos_mes" ? "font-semibold text-foreground" : ""}`}
+        >
+          {boletosKpis.pagosMes} pagos no mês
+        </button>
       </div>
+
 
       <Card>
         <CardHeader className="space-y-3">
@@ -968,6 +1151,15 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                           <span className="truncate font-medium text-sm" title={g.nome}>
                             {g.nome}
                           </span>
+                          {g.pedidos.length > 0 && (
+                            <span
+                              className="shrink-0 font-mono text-[11px] text-muted-foreground"
+                              title={g.pedidos.join(", ")}
+                            >
+                              {g.pedidos[0]}
+                              {g.pedidos.length > 1 && ` +${g.pedidos.length - 1}`}
+                            </span>
+                          )}
                           <Badge variant="outline" className="shrink-0 text-[10px]">
                             {g.boletos.length}
                           </Badge>
@@ -1118,6 +1310,93 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             >
               {gerandoEntrada && <Loader2 className="h-4 w-4 animate-spin" />}
               Gerar remessa com {selecionados.size} título(s) · {formatBRL(totalSelecionado)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={baixaDialogOpen}
+        onOpenChange={(v) => {
+          if (gerandoBaixa) return;
+          setBaixaDialogOpen(v);
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gerar Remessa de Baixa</DialogTitle>
+            <DialogDescription>
+              Selecione os títulos com baixa solicitada que entram nesta remessa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[360px] overflow-y-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={
+                        baixaSolicitadaItens.length > 0 &&
+                        baixaSelecionados.size === baixaSolicitadaItens.length
+                      }
+                      onCheckedChange={(c) =>
+                        setBaixaSelecionados(
+                          c ? new Set(baixaSolicitadaItens.map((i) => i.id)) : new Set()
+                        )
+                      }
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Nosso número</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {baixaSolicitadaItens.map((i) => (
+                  <TableRow key={i.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={baixaSelecionados.has(i.id)}
+                        onCheckedChange={() =>
+                          setBaixaSelecionados((prev) => {
+                            const n = new Set(prev);
+                            if (n.has(i.id)) n.delete(i.id);
+                            else n.add(i.id);
+                            return n;
+                          })
+                        }
+                        aria-label={`Selecionar ${i.numero_titulo ?? i.id}`}
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{i.numero_titulo || "—"}</TableCell>
+                    <TableCell className="max-w-[220px] truncate">{i.cliente}</TableCell>
+                    <TableCell className="font-mono text-xs">{i.nosso_numero_seq || "—"}</TableCell>
+                    <TableCell className="text-right font-mono">{formatBRL(i.valor)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBaixaDialogOpen(false)}
+              disabled={gerandoBaixa}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => handleGerarBaixa(Array.from(baixaSelecionados))}
+              disabled={gerandoBaixa || baixaSelecionados.size === 0}
+              className="gap-2"
+            >
+              {gerandoBaixa && <Loader2 className="h-4 w-4 animate-spin" />}
+              Gerar remessa com {baixaSelecionados.size} título(s) ·{" "}
+              {formatBRL(totalBaixaSelecionado)}
             </Button>
           </DialogFooter>
         </DialogContent>
