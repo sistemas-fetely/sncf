@@ -36,6 +36,8 @@ import { DrawerUsuario } from "@/components/DrawerUsuario";
 import { HubDaPessoaDialog } from "@/components/gerenciar-usuarios/HubDaPessoaDialog";
 import { GrupoCell } from "@/components/gerenciar-usuarios/GrupoCell";
 import NovoUsuarioDialog from "@/components/gerenciar-usuarios/NovoUsuarioDialog";
+import MesaUsuariosTab from "@/components/gerenciar-usuarios/MesaUsuariosTab";
+
 import { ReenviarLinkAcessoButton } from "@/components/auth/ReenviarLinkAcessoButton";
 import { DefinirSenhaButton } from "@/components/gerenciar-usuarios/DefinirSenhaButton";
 import { useUnidades } from "@/hooks/useUnidades";
