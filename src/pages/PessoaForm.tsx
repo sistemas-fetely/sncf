@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Save } from "lucide-react";
@@ -118,6 +118,20 @@ export default function PessoaForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pessoaExistente, setPessoaExistente] = useState<{ id: string; nome_completo: string } | null>(null);
+
+  // Rastro de visualização (telemetria — nunca bloqueia nem alerta o usuário)
+  const rastroRef = useRef(false);
+  useEffect(() => {
+    if (!isEdit || !id || rastroRef.current) return;
+    rastroRef.current = true;
+    (supabase.rpc as any)("registrar_acesso_ficha", {
+      p_pessoa_id: id,
+      p_tipo_dado: "dados_cadastrais",
+      p_contexto: "Abriu ficha da pessoa (edição)",
+    }).then(({ error }: any) => {
+      if (error) console.error("registrar_acesso_ficha falhou:", error);
+    }, (e: any) => console.error("registrar_acesso_ficha falhou:", e));
+  }, [isEdit, id]);
 
   // Load dims
   useEffect(() => {

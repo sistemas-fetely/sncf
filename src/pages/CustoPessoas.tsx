@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -47,6 +47,20 @@ const COMPOSICAO_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2, 142 71% 45
 
 export default function CustoPessoas() {
   const navigate = useNavigate();
+
+  // Rastro de visualização (telemetria — nunca bloqueia nem alerta o usuário)
+  const rastroRef = useRef(false);
+  useEffect(() => {
+    if (rastroRef.current) return;
+    rastroRef.current = true;
+    (supabase.rpc as any)("registrar_acesso_lote", {
+      p_tipo_dado: "salario",
+      p_contexto: "Abriu Custo de Pessoas",
+      p_quantidade: null,
+    }).then(({ error }: any) => {
+      if (error) console.error("registrar_acesso_lote falhou:", error);
+    }, (e: any) => console.error("registrar_acesso_lote falhou:", e));
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["custo-pessoas"],

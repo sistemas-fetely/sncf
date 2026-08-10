@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -38,6 +38,20 @@ export default function FolhaMensal() {
   const hoje = new Date();
   const defaultComp = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   const [competencia, setCompetencia] = useState<string>(defaultComp);
+
+  // Rastro de visualização (telemetria — nunca bloqueia nem alerta o usuário)
+  const rastroRef = useRef(false);
+  useEffect(() => {
+    if (rastroRef.current) return;
+    rastroRef.current = true;
+    (supabase.rpc as any)("registrar_acesso_lote", {
+      p_tipo_dado: "salario",
+      p_contexto: "Abriu Folha Mensal",
+      p_quantidade: null,
+    }).then(({ error }: any) => {
+      if (error) console.error("registrar_acesso_lote falhou:", error);
+    }, (e: any) => console.error("registrar_acesso_lote falhou:", e));
+  }, []);
 
   const { data: linhas = [], isLoading } = useQuery({
     queryKey: ["folha-competencia", competencia],
