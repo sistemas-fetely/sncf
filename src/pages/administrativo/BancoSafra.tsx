@@ -3,7 +3,24 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,6 +51,9 @@ import {
   Loader2,
   Mail,
   MailCheck,
+  ChevronDown,
+  MoreHorizontal,
+  Search,
 } from "lucide-react";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { BaixasPendentesAlert } from "@/components/credito/BaixasPendentesAlert";
@@ -165,7 +185,109 @@ function BotaoEmailBoleto({ boleto }: { boleto: any }) {
   );
 }
 
-export default function BancoSafra() {
+function semAcento(v: string) {
+  return v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function AcoesGrupoCliente({
+  boletos,
+  gerandoEntrada,
+  onGerarEntrada,
+}: {
+  boletos: TitulosBoleto[];
+  gerandoEntrada: boolean;
+  onGerarEntrada: (ids: string[]) => void;
+}) {
+  const { toast } = useToast();
+  const enviarEmail = useEnviarEmailBoleto();
+  const [confirmarEmails, setConfirmarEmails] = useState(false);
+  const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null);
+
+  const hojeIso = new Date().toISOString().slice(0, 10);
+  const pendentesEntrada = boletos.filter(
+    (b) =>
+      b.boleto_status === "pendente" &&
+      (!b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso),
+  );
+  const registrados = boletos.filter((b) => b.boleto_status === "registrado");
+
+  async function enviarEmSequencia() {
+    setConfirmarEmails(false);
+    let enviados = 0;
+    for (let i = 0; i < registrados.length; i++) {
+      const b = registrados[i];
+      setProgresso({ atual: i + 1, total: registrados.length });
+      try {
+        await enviarEmail.mutateAsync(b.id);
+        enviados++;
+      } catch (e) {
+        setProgresso(null);
+        toast({
+          title: `Envio interrompido no boleto ${b.numero_titulo ?? b.id}`,
+          description: `${enviados} de ${registrados.length} enviados. Erro: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    setProgresso(null);
+    toast({ title: `${enviados} boleto(s) enviado(s) por e-mail` });
+  }
+
+  return (
+    <>
+      {progresso && (
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          Enviando {progresso.atual} de {progresso.total}...
+        </span>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            disabled={pendentesEntrada.length === 0 || gerandoEntrada}
+            onSelect={() => onGerarEntrada(pendentesEntrada.map((b) => b.id))}
+          >
+            Gerar entrada dos pendentes ({pendentesEntrada.length})
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={registrados.length === 0 || !!progresso}
+            onSelect={(e) => {
+              e.preventDefault();
+              setConfirmarEmails(true);
+            }}
+          >
+            Enviar boletos por e-mail ({registrados.length})
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={confirmarEmails} onOpenChange={setConfirmarEmails}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar boletos por e-mail</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão enviados {registrados.length} e-mails separados, um por boleto. O cliente
+              receberá {registrados.length} mensagens.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={enviarEmSequencia}>Enviar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: () => void } = {}) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: baixasPendentesData } = useBaixasPendentes();
@@ -329,11 +451,16 @@ export default function BancoSafra() {
     }
   };
 
-  const handleGerarEntrada = async () => {
+  const handleGerarEntrada = async (idsParam?: string[]) => {
+    const ids = idsParam ?? Array.from(selecionados);
+    if (ids.length === 0) {
+      toast({ title: "Nenhum título selecionado", variant: "destructive" });
+      return;
+    }
     setGerandoEntrada(true);
     try {
       const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
-        body: { tipo: "entrada", titulo_ids: Array.from(selecionados) },
+        body: { tipo: "entrada", titulo_ids: ids },
       });
       if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de entrada");
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
@@ -405,7 +532,11 @@ export default function BancoSafra() {
         </p>
       </div>
 
-      <BaixasPendentesAlert onGerarBaixa={handleGerarBaixa} gerandoBaixa={gerandoBaixa} />
+      <BaixasPendentesAlert
+        onGerarBaixa={handleGerarBaixa}
+        gerandoBaixa={gerandoBaixa}
+        onIrParaRemessas={onIrParaRemessas}
+      />
 
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card px-4 py-2">
