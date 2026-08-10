@@ -588,7 +588,7 @@ function TabelaTitulosRemessa({
     if (cancelada) {
       return (
         <div className="p-3 text-xs text-muted-foreground space-y-1.5">
-          <p>Títulos já liberados — ver histórico no campo observação</p>
+          <p>Títulos já liberados — ver histórico abaixo</p>
           {observacao && (
             <pre className="whitespace-pre-wrap rounded-md border bg-background/60 p-2 font-mono text-[11px] text-foreground">
               {observacao}
