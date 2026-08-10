@@ -9,10 +9,8 @@ export default function Ferias() {
   const canManage = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
   const isAdmin = hasAnyRole(["super_admin"]);
 
-  // For colaborador role only, filter tabs by their tipo (clt/pj)
-  const isColaboradorOnly = roles.length === 1 && roles[0] === "colaborador";
-  const showCLT = !isColaboradorOnly || userTipos.includes("clt");
-  const showPJ = !isColaboradorOnly || userTipos.includes("pj");
+  const showCLT = true;
+  const showPJ = true;
 
   const defaultTab = showCLT ? "clt" : "pj";
 

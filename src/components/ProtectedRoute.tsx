@@ -1,24 +1,19 @@
-import { ReactNode, useMemo } from "react";
+import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Database } from "@/integrations/supabase/types";
-
-type AppRole = Database["public"]["Enums"]["app_role"];
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles?: AppRole[];
-  /** If set, checks dynamic permission instead of allowedRoles */
-  permModule?: string;
-  permAction?: string;
 }
 
-export function ProtectedRoute({ children, allowedRoles, permModule, permAction = "view" }: ProtectedRouteProps) {
+/**
+ * Portão de AUTENTICAÇÃO apenas. Autorização é responsabilidade do
+ * RotaGate (sncf_navegacao / permissoes_catalogo) e das RLS no banco.
+ */
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, roles, loading, approved } = useAuth();
-  const hasPermission = (_m: string, _a?: string) => true;
-  const permLoading = false;
 
-  if (loading || (permModule && permLoading)) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -33,30 +28,8 @@ export function ProtectedRoute({ children, allowedRoles, permModule, permAction 
     return <Navigate to="/login" replace />;
   }
 
-  const isSuperAdmin = roles.includes("super_admin");
-  if (!approved && !isSuperAdmin) {
+  if (!approved && !roles.includes("super_admin")) {
     return <Navigate to="/aguardando-aprovacao" replace />;
-  }
-
-  // Super Admin bypasses ALL permission checks (global)
-  if (isSuperAdmin) {
-    return <>{children}</>;
-  }
-
-  // Permission-based check (preferred)
-  if (permModule) {
-    if (!hasPermission(permModule, permAction)) {
-      return <Navigate to="/sem-permissao" replace />;
-    }
-    return <>{children}</>;
-  }
-
-  // Legacy role-based check
-  if (allowedRoles && allowedRoles.length > 0) {
-    const hasAccess = allowedRoles.some((r) => roles.includes(r));
-    if (!hasAccess) {
-      return <Navigate to="/sem-permissao" replace />;
-    }
   }
 
   return <>{children}</>;
