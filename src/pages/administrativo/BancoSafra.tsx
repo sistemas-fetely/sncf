@@ -266,9 +266,9 @@ function AcoesGrupoCliente({
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             disabled={pendentesEntrada.length === 0 || gerandoEntrada}
-            onSelect={() => onGerarEntrada(pendentesEntrada.map((b) => b.id))}
+            onSelect={() => onAbrirEntrada(pendentesEntrada.map((b) => b.id))}
           >
-            Gerar entrada dos pendentes ({pendentesEntrada.length})
+            Conferir entrada dos pendentes ({pendentesEntrada.length})
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={registrados.length === 0 || !!progresso}
