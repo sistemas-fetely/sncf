@@ -28,7 +28,7 @@ import {
 import {
   CheckCircle2, XCircle, UserCheck, UserX, Users, UserPlus,
   Shield, ShieldCheck, ShieldAlert, Pencil, Trash2, Link2, LinkIcon, Unlink,
-  ChevronDown, ChevronRight, FileText, Sparkles, Check, Eye, Ghost, Loader2, ScanSearch,
+  ChevronDown, ChevronRight, FileText, Sparkles, Check, Eye, Ghost, Loader2, ScanSearch, History,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmacaoDupla } from "@/components/ConfirmacaoDupla";
@@ -38,6 +38,7 @@ import { GrupoCell } from "@/components/gerenciar-usuarios/GrupoCell";
 import NovoUsuarioDialog from "@/components/gerenciar-usuarios/NovoUsuarioDialog";
 import MesaUsuariosTab from "@/components/gerenciar-usuarios/MesaUsuariosTab";
 import DiagnosticoAcessoTab from "@/components/gerenciar-usuarios/DiagnosticoAcessoTab";
+import RastroAcessoTab from "@/components/gerenciar-usuarios/RastroAcessoTab";
 
 
 import { ReenviarLinkAcessoButton } from "@/components/auth/ReenviarLinkAcessoButton";
@@ -691,6 +692,11 @@ export default function GerenciarUsuarios() {
               <ScanSearch className="h-4 w-4" /> Diagnóstico
             </TabsTrigger>
           )}
+          {isSuperAdmin && (
+            <TabsTrigger value="rastro" className="gap-2">
+              <History className="h-4 w-4" /> Rastro
+            </TabsTrigger>
+          )}
 
 
         </TabsList>
@@ -720,6 +726,12 @@ export default function GerenciarUsuarios() {
         {isSuperAdmin && (
           <TabsContent value="diagnostico" className="mt-4">
             <DiagnosticoAcessoTab />
+          </TabsContent>
+        )}
+
+        {isSuperAdmin && (
+          <TabsContent value="rastro" className="mt-4">
+            <RastroAcessoTab />
           </TabsContent>
         )}
 
