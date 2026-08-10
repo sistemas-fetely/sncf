@@ -43750,14 +43750,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -50890,6 +50890,14 @@ export type Database = {
           _tabela_origem?: string
           _tipo_dado: string
         }
+        Returns: undefined
+      }
+      registrar_acesso_ficha: {
+        Args: { p_contexto?: string; p_pessoa_id: string; p_tipo_dado: string }
+        Returns: undefined
+      }
+      registrar_acesso_lote: {
+        Args: { p_contexto: string; p_quantidade?: number; p_tipo_dado: string }
         Returns: undefined
       }
       registrar_acesso_salario_lote: {
