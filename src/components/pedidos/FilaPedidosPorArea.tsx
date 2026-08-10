@@ -22,7 +22,9 @@ import {
   classeSituacao,
   metaSituacao,
   rotuloSituacao,
+  TOM_CLASSES,
 } from "@/lib/pedidos/situacao-financeira";
+import { formatDateBR } from "@/lib/format-currency";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
@@ -38,7 +40,7 @@ import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
 import type { AreaPedido, EstagioPedido, PedidoFilaItem } from "@/types/pedido";
 
 
-type OrdenacaoFila = "cronologico" | "risco";
+type OrdenacaoFila = "cronologico" | "risco" | "entrada_paga";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -226,12 +228,23 @@ export function FilaPedidosPorArea({
     if (situacaoFilter !== "todas") {
       base = base.filter((p) => {
         const s = p.situacao_financeira;
+        // Ortogonal às demais: descreve dinheiro que já entrou, não o que falta cobrar.
+        if (situacaoFilter === "com_entrada_paga") return Number(p.adiantado_vivo || 0) > 0;
         if (situacaoFilter === "em_aberto") return s === "em_aberto" || s === "parcial_pago";
         return s === situacaoFilter;
       });
     }
     if (somenteRiscoAlto) {
       base = base.filter((p) => riscoMap?.get(p.id)?.risco_cor === "destructive");
+    }
+    if (ordenacao === "entrada_paga") {
+      // Quem já pôs dinheiro fura a fila; empate volta ao critério cronológico.
+      return [...base].sort((a, b) => {
+        const va = Number(a.adiantado_vivo || 0);
+        const vb = Number(b.adiantado_vivo || 0);
+        if (vb !== va) return vb - va;
+        return new Date(b.recebido_em).getTime() - new Date(a.recebido_em).getTime();
+      });
     }
     if (ordenacao !== "risco") return base;
     return [...base].sort((a, b) => {
@@ -444,6 +457,7 @@ export function FilaPedidosPorArea({
             <SelectItem value="sem_cobranca">Sem cobrança</SelectItem>
             <SelectItem value="sem_recebivel">Sem recebível</SelectItem>
             <SelectItem value="anulado">Anulado</SelectItem>
+            <SelectItem value="com_entrada_paga">Com entrada paga</SelectItem>
           </SelectContent>
         </Select>
         <Select value={marcacaoFilter} onValueChange={setMarcacaoFilter}>
@@ -466,6 +480,7 @@ export function FilaPedidosPorArea({
           <SelectContent>
             <SelectItem value="cronologico">Ordenar: Cronológico</SelectItem>
             <SelectItem value="risco">Ordenar: Risco</SelectItem>
+            <SelectItem value="entrada_paga">Ordenar: Entrada paga primeiro</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -747,6 +762,37 @@ export function FilaPedidosPorArea({
   );
 }
 
+/**
+ * ENTRADA-PAGA: dinheiro já recebido que ainda não virou título.
+ * Convive com o badge de situação — são fatos diferentes sobre o mesmo pedido.
+ */
+function BadgeEntradaPaga({ p }: { p: PedidoFilaItem }) {
+  const valor = Number(p.adiantado_vivo || 0);
+  if (!(valor > 0)) return null;
+  const pct = Number(p.adiantado_pct_pago || 0);
+  const integral = !!p.adiantado_cobre_pedido_inteiro;
+  const texto = integral
+    ? `Pago integral · ${fmtBRL.format(valor)}`
+    : `Entrada paga · ${fmtBRL.format(valor)} (${pct}%)`;
+  const partes = [p.adiantado_formas, p.adiantado_recebido_em ? `recebido em ${formatDateBR(p.adiantado_recebido_em)}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-block">
+            <Badge className={cn(TOM_CLASSES.positivo, "text-[10px] py-0 px-1.5")}>{texto}</Badge>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs max-w-[280px]">{partes || texto}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   const situacao = p.situacao_financeira;
   const rotulo = p.situacao_rotulo;
@@ -756,6 +802,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   const valorAberto = Number(p.valor_aberto || 0);
   const valorVencido = Number(p.valor_vencido || 0);
   const diasAtraso = Number(p.dias_atraso_max || 0);
+  const badgeAdiantado = <BadgeEntradaPaga p={p} />;
 
   const valorLine = <p className="font-semibold">{fmtBRL.format(p.valor_liquido)}</p>;
   const condLine = (
@@ -785,6 +832,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {badgeAdiantado}
         </div>
         {condLine}
       </>
@@ -811,6 +859,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {badgeAdiantado}
         </div>
         {condLine}
       </>
@@ -830,6 +879,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
                     {rotulo || "Parcial pago"}
                   </Badge>
                 </span>
+                {badgeAdiantado}
               </div>
               {condLine}
             </div>
@@ -867,6 +917,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {badgeAdiantado}
         </div>
         {condLine}
       </>
@@ -902,6 +953,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {badgeAdiantado}
         </div>
         {condLine}
       </>
@@ -909,10 +961,13 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   }
 
 
-  // em_aberto ou sem linha na view: valor limpo, sem badge.
+  // em_aberto ou sem linha na view: valor limpo, só o badge de entrada paga.
   return (
     <>
-      {valorLine}
+      <div className="flex flex-wrap items-baseline gap-1.5">
+        {valorLine}
+        {badgeAdiantado}
+      </div>
       {condLine}
     </>
   );
