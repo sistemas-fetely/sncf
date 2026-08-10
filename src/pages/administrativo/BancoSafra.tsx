@@ -489,11 +489,46 @@ export default function BancoSafra() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Boletos{" "}
-            <span className="text-sm text-muted-foreground font-normal">({boletos.length})</span>
-          </CardTitle>
+        <CardHeader className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="text-base">
+              Boletos{" "}
+              <span className="text-sm text-muted-foreground font-normal">
+                ({boletosFiltrados.length}
+                {boletosFiltrados.length !== boletos.length ? ` de ${boletos.length}` : ""})
+              </span>
+            </CardTitle>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Cliente, título, pedido..."
+                  className="h-8 w-[240px] pl-8"
+                />
+              </div>
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-muted-foreground mr-1">Ver por:</span>
+                <Button
+                  size="sm"
+                  variant={modo === "cliente" ? "default" : "outline"}
+                  className="h-7 px-2.5"
+                  onClick={() => setModo("cliente")}
+                >
+                  Cliente
+                </Button>
+                <Button
+                  size="sm"
+                  variant={modo === "vencimento" ? "default" : "outline"}
+                  className="h-7 px-2.5"
+                  onClick={() => setModo("vencimento")}
+                >
+                  Vencimento
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loadingBoletos ? (
@@ -502,127 +537,80 @@ export default function BancoSafra() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
-          ) : boletos.length === 0 ? (
+          ) : boletosFiltrados.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
               Nenhum boleto encontrado.
             </p>
+          ) : modo === "vencimento" ? (
+            renderTabela(boletosFiltrados, false)
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Pedido</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {boletos.map((b) => {
-                  const cfg =
-                    BOLETO_STATUS_CFG[b.boleto_status || ""] || {
-                      label: b.boleto_status || "—",
-                      cls: "bg-gray-100 text-gray-600",
-                    };
-                  const vencido = b.boleto_status === "vencido";
-                  const editavel = b.boleto_status === "pendente";
-                  const registrado = b.boleto_status === "registrado" || b.boleto_status === "remessa_gerada";
-                  const pendentePassado =
-                    editavel && !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
-                  return (
-                    <TableRow
-                      key={b.id}
-                      className={pendentePassado ? "bg-red-50/60 border-l-2 border-l-red-400" : ""}
-                    >
-                      <TableCell className={vencido || pendentePassado ? "text-red-700 font-medium" : ""}>
-                        {pendentePassado && (
-                          <Badge className="mb-1 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
-                            Vencimento no passado
+            <div className="space-y-2">
+              {gruposCliente.map((g) => {
+                const aberto = gruposAbertos[g.nome] ?? g.abrirPorPadrao;
+                return (
+                  <Collapsible
+                    key={g.nome}
+                    open={aberto}
+                    onOpenChange={(o) => setGruposAbertos((p) => ({ ...p, [g.nome]: o }))}
+                    className="rounded-md border"
+                  >
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <CollapsibleTrigger asChild>
+                        <button className="flex flex-1 items-center gap-3 text-left min-w-0">
+                          <ChevronDown
+                            className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${aberto ? "" : "-rotate-90"}`}
+                          />
+                          <span className="truncate font-medium text-sm" title={g.nome}>
+                            {g.nome}
+                          </span>
+                          <Badge variant="outline" className="shrink-0 text-[10px]">
+                            {g.boletos.length}
                           </Badge>
-                        )}
-                        {editavel ? (
-                          <Input
-                            type="date"
-                            className="h-8 w-[140px]"
-                            value={edits[b.id]?.data ?? b.data_vencimento_atual ?? ""}
-                            onChange={(e) =>
-                              setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
-                            }
-                          />
-                        ) : registrado ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="inline-flex items-center gap-1.5">
-                                  {formatDateBR(b.data_vencimento_atual)}
-                                  <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>Para alterar, solicite a baixa primeiro</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          formatDateBR(b.data_vencimento_atual)
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {b.numero_titulo || "—"}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {b.pedido?.id_externo || "—"}
-                      </TableCell>
-                      <TableCell className="max-w-[160px] truncate">
-                        {b.conta?.parceiro?.razao_social || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`${cfg.cls} hover:${cfg.cls}`}>{cfg.label}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {editavel ? (
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            className="h-8 w-[110px] ml-auto text-right font-mono"
-                            value={edits[b.id]?.valor ?? String(b.valor_bruto ?? "")}
-                            onChange={(e) =>
-                              setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], valor: e.target.value } }))
-                            }
-                          />
-                        ) : (
-                          formatBRL(Number(b.valor_bruto || 0))
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {temEdicao(b.id) && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => handleSalvar(b)}
-                              disabled={salvando[b.id]}
-                              className="h-8"
-                            >
-                              {salvando[b.id] ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Check className="h-3.5 w-3.5" />
-                              )}
-                              <span className="ml-1">Salvar</span>
-                            </Button>
+                          <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                            {formatBRL(g.total)}
+                          </span>
+                          {g.qtdVencido > 0 && (
+                            <Badge className="shrink-0 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
+                              {g.qtdVencido} vencido · {formatBRL(g.totalVencido)}
+                            </Badge>
                           )}
-                          <BotaoBaixarBoletoPdf boleto={b} />
-                          <BotaoEmailBoleto boleto={b} />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                          {g.proximoVencimento && (
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              próx. {formatDateBR(g.proximoVencimento)}
+                            </span>
+                          )}
+                          <span className="flex shrink-0 items-center gap-1">
+                            {g.mixStatus.map((m) => (
+                              <span
+                                key={m.status}
+                                title={`${m.label}: ${m.qtd}`}
+                                className={`inline-block h-2 w-2 rounded-full ${m.cls}`}
+                              />
+                            ))}
+                          </span>
+                        </button>
+                      </CollapsibleTrigger>
+                      <AcoesGrupoCliente
+                        boletos={g.boletos}
+                        gerandoEntrada={gerandoEntrada}
+                        onGerarEntrada={(ids) => handleGerarEntrada(ids)}
+                      />
+                    </div>
+                    <CollapsibleContent>
+                      <div className="border-t px-2 pb-2">{renderTabela(g.boletos, true)}</div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </div>
           )}
         </CardContent>
+        <CardFooter className="border-t py-2 text-xs text-muted-foreground">
+          <span>
+            {totaisFiltrados.qtd} boleto{totaisFiltrados.qtd === 1 ? "" : "s"} ·{" "}
+            {formatBRL(totaisFiltrados.total)} total · {formatBRL(totaisFiltrados.vencido)} vencido
+          </span>
+        </CardFooter>
       </Card>
 
       <Dialog open={entradaDialogOpen} onOpenChange={(v) => !gerandoEntrada && setEntradaDialogOpen(v)}>
