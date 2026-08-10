@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -519,6 +519,246 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     }
     return { pendentes, registrados, pagosMes, vencidos, baixaPendente, prorrogacaoPendente };
   }, [boletos]);
+
+  // ── visão, filtros e busca ────────────────────────────────────────────────
+  const [modo, setModo] = useState<"cliente" | "vencimento">("cliente");
+  const [filtroKpi, setFiltroKpi] = useState<
+    "pendentes" | "registrados" | "pagos_mes" | "vencidos" | "baixas" | null
+  >(null);
+  const [busca, setBusca] = useState("");
+  const [buscaDebounced, setBuscaDebounced] = useState("");
+  const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaDebounced(busca), 200);
+    return () => clearTimeout(t);
+  }, [busca]);
+
+  const primeiroDiaMesIso = useMemo(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().slice(0, 10);
+  }, []);
+
+  const boletosFiltrados = useMemo(() => {
+    const termo = semAcento(buscaDebounced.trim());
+    return boletos.filter((b) => {
+      const s = b.boleto_status || "";
+      if (filtroKpi === "pendentes" && !(s === "pendente" || s === "remessa_gerada")) return false;
+      if (filtroKpi === "registrados" && s !== "registrado") return false;
+      if (filtroKpi === "vencidos" && s !== "vencido") return false;
+      if (filtroKpi === "baixas" && s !== "baixa_solicitada") return false;
+      if (filtroKpi === "pagos_mes") {
+        const pago = s === "pago_manual" || s === "pago_banco";
+        if (!pago) return false;
+        if (!b.data_vencimento_atual || b.data_vencimento_atual < primeiroDiaMesIso) return false;
+      }
+      if (termo) {
+        const alvo = semAcento(
+          [
+            b.conta?.parceiro?.razao_social ?? "",
+            b.numero_titulo ?? "",
+            b.pedido?.id_externo ?? "",
+          ].join(" "),
+        );
+        if (!alvo.includes(termo)) return false;
+      }
+      return true;
+    });
+  }, [boletos, filtroKpi, buscaDebounced, primeiroDiaMesIso]);
+
+  const totaisFiltrados = useMemo(() => {
+    let total = 0;
+    let vencido = 0;
+    for (const b of boletosFiltrados) {
+      const v = Number(b.valor_bruto || 0);
+      total += v;
+      const atrasado =
+        b.boleto_status === "vencido" ||
+        (b.boleto_status === "pendente" &&
+          !!b.data_vencimento_atual &&
+          b.data_vencimento_atual < hojeIso);
+      if (atrasado) vencido += v;
+    }
+    return { qtd: boletosFiltrados.length, total, vencido };
+  }, [boletosFiltrados, hojeIso]);
+
+  const gruposCliente = useMemo(() => {
+    const map = new Map<string, TitulosBoleto[]>();
+    for (const b of boletosFiltrados) {
+      const nome = b.conta?.parceiro?.razao_social || "— sem cliente —";
+      const arr = map.get(nome);
+      if (arr) arr.push(b);
+      else map.set(nome, [b]);
+    }
+    const grupos = Array.from(map.entries()).map(([nome, lista]) => {
+      let total = 0;
+      let totalVencido = 0;
+      let qtdVencido = 0;
+      let proximoVencimento: string | null = null;
+      const contagem = new Map<string, number>();
+      for (const b of lista) {
+        const v = Number(b.valor_bruto || 0);
+        total += v;
+        const atrasado =
+          b.boleto_status === "vencido" ||
+          (b.boleto_status === "pendente" &&
+            !!b.data_vencimento_atual &&
+            b.data_vencimento_atual < hojeIso);
+        if (atrasado) {
+          qtdVencido++;
+          totalVencido += v;
+        }
+        if (
+          b.data_vencimento_atual &&
+          (!proximoVencimento || b.data_vencimento_atual < proximoVencimento)
+        ) {
+          proximoVencimento = b.data_vencimento_atual;
+        }
+        const st = b.boleto_status || "—";
+        contagem.set(st, (contagem.get(st) ?? 0) + 1);
+      }
+      const mixStatus = Array.from(contagem.entries()).map(([status, qtd]) => ({
+        status,
+        qtd,
+        label: BOLETO_STATUS_CFG[status]?.label ?? status,
+        cls: BOLETO_STATUS_CFG[status]?.cls ?? "bg-gray-300",
+      }));
+      return {
+        nome,
+        boletos: lista,
+        total,
+        totalVencido,
+        qtdVencido,
+        proximoVencimento,
+        mixStatus,
+        abrirPorPadrao: qtdVencido > 0,
+      };
+    });
+    grupos.sort((a, b) => {
+      if (b.totalVencido !== a.totalVencido) return b.totalVencido - a.totalVencido;
+      const va = a.proximoVencimento ?? "9999-12-31";
+      const vb = b.proximoVencimento ?? "9999-12-31";
+      return va.localeCompare(vb);
+    });
+    return grupos;
+  }, [boletosFiltrados, hojeIso]);
+
+  const renderTabela = (lista: TitulosBoleto[], ocultarCliente: boolean) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Vencimento</TableHead>
+          <TableHead>Título</TableHead>
+          <TableHead>Pedido</TableHead>
+          {!ocultarCliente && <TableHead>Cliente</TableHead>}
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Valor</TableHead>
+          <TableHead className="w-12"></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {lista.map((b) => {
+          const cfg =
+            BOLETO_STATUS_CFG[b.boleto_status || ""] || {
+              label: b.boleto_status || "—",
+              cls: "bg-gray-100 text-gray-600",
+            };
+          const vencido = b.boleto_status === "vencido";
+          const editavel = b.boleto_status === "pendente";
+          const registrado = b.boleto_status === "registrado" || b.boleto_status === "remessa_gerada";
+          const pendentePassado =
+            editavel && !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
+          return (
+            <TableRow
+              key={b.id}
+              className={pendentePassado ? "bg-red-50/60 border-l-2 border-l-red-400" : ""}
+            >
+              <TableCell className={vencido || pendentePassado ? "text-red-700 font-medium" : ""}>
+                {pendentePassado && (
+                  <Badge className="mb-1 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
+                    Vencimento no passado
+                  </Badge>
+                )}
+                {editavel ? (
+                  <Input
+                    type="date"
+                    className="h-8 w-[140px]"
+                    value={edits[b.id]?.data ?? b.data_vencimento_atual ?? ""}
+                    onChange={(e) =>
+                      setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
+                    }
+                  />
+                ) : registrado ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1.5">
+                          {formatDateBR(b.data_vencimento_atual)}
+                          <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Para alterar, solicite a baixa primeiro</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  formatDateBR(b.data_vencimento_atual)
+                )}
+              </TableCell>
+              <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
+              <TableCell className="font-mono text-xs">{b.pedido?.id_externo || "—"}</TableCell>
+              {!ocultarCliente && (
+                <TableCell className="max-w-[160px] truncate">
+                  {b.conta?.parceiro?.razao_social || "—"}
+                </TableCell>
+              )}
+              <TableCell>
+                <Badge className={`${cfg.cls} hover:${cfg.cls}`}>{cfg.label}</Badge>
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {editavel ? (
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    className="h-8 w-[110px] ml-auto text-right font-mono"
+                    value={edits[b.id]?.valor ?? String(b.valor_bruto ?? "")}
+                    onChange={(e) =>
+                      setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], valor: e.target.value } }))
+                    }
+                  />
+                ) : (
+                  formatBRL(Number(b.valor_bruto || 0))
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  {temEdicao(b.id) && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleSalvar(b)}
+                      disabled={salvando[b.id]}
+                      className="h-8"
+                    >
+                      {salvando[b.id] ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                      <span className="ml-1">Salvar</span>
+                    </Button>
+                  )}
+                  <BotaoBaixarBoletoPdf boleto={b} />
+                  <BotaoEmailBoleto boleto={b} />
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
 
   return (
     <div className="p-6 space-y-6">
