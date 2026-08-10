@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
 
     /**
      * Sprint C2 (29/04/2026): criação manual de usuário com modelo NOVO
-     * de grupos (grupo_acesso_usuarios + user_colaborador_link).
+     * de grupos (grupo_acesso_usuarios).
      *
      * Body esperado:
      *   - email (obrigatório)
@@ -251,11 +251,11 @@ Deno.serve(async (req) => {
      *   - vinculo_tipo: 'clt' | 'pj' | 'externo' | null
      *   - colaborador_clt_id (se vinculo_tipo='clt')
      *   - contrato_pj_id (se vinculo_tipo='pj')
-     *   - tipo_externo (se vinculo_tipo='externo'): "consultor", "contador", etc
+     *   - tipo_externo (se vinculo_tipo='externo'): aceito, mas não persistido aqui
      *   - grupo_ids: array de IDs de grupos_acesso (vazio = sem grupos)
      *
      * Doutrina:
-     *   - Marcos: user_colaborador_link é imutável após criação
+     *   - A identidade usuário↔vínculo vive em vinculos.usuario_id (gravada em outro fluxo)
      *   - Marcos: vínculo é opcional em V1 (Flavio cravado)
      *   - Email de boas-vindas com link de recovery (user define senha no 1º acesso)
      */
@@ -308,7 +308,6 @@ Deno.serve(async (req) => {
       const rollbackUser = async (motivo: string, detail?: string) => {
         console.error("[create_user_v2] rollback:", motivo, detail);
         await adminClient.from("grupo_acesso_usuarios").delete().eq("user_id", userId);
-        await adminClient.from("user_colaborador_link").delete().eq("user_id", userId);
         await adminClient.from("profiles").delete().eq("user_id", userId);
         await adminClient.auth.admin.deleteUser(userId);
         return new Response(JSON.stringify({ error: motivo, detail: detail ?? null }), {
@@ -329,14 +328,7 @@ Deno.serve(async (req) => {
       if (profileErr) return await rollbackUser("Falha ao criar o perfil do usuário", profileErr.message);
 
       if (vinculo_tipo) {
-        const { error: vincErr } = await adminClient.from("user_colaborador_link").insert({
-          user_id: userId,
-          colaborador_clt_id: vinculo_tipo === "clt" ? colaborador_clt_id : null,
-          contrato_pj_id: vinculo_tipo === "pj" ? contrato_pj_id : null,
-          tipo_externo: vinculo_tipo === "externo" ? tipo_externo : null,
-          vinculado_por: callerId,
-        });
-        if (vincErr) return await rollbackUser("Falha ao criar o vínculo do usuário", vincErr.message);
+
 
         if (vinculo_tipo === "clt") {
           const { error: cltErr } = await adminClient.from("colaboradores_clt")

@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import GruposAcessoTabV2 from "@/components/grupos-acesso/GruposAcessoTabV2";
 
-import MatrizPermissoes from "@/components/gerenciar-usuarios/MatrizPermissoes";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -678,17 +677,12 @@ export default function GerenciarUsuarios() {
         <TabsList>
           <TabsTrigger value="usuarios" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>
           <TabsTrigger value="grupos" className="gap-2"><ShieldCheck className="h-4 w-4" /> Grupos de Acesso</TabsTrigger>
-          {(isSuperAdmin || isAdminRH) && (
-            <TabsTrigger value="matriz" className="gap-2">
-              <ShieldCheck className="h-4 w-4" /> Matriz de Permissões
-              <Badge variant="outline" className="ml-2 text-[10px] py-0">Em breve</Badge>
-            </TabsTrigger>
-          )}
           {isSuperAdmin && (
             <TabsTrigger value="fantasmas" className="gap-2">
               <Ghost className="h-4 w-4" /> Contas sem perfil
             </TabsTrigger>
           )}
+
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
@@ -962,11 +956,6 @@ export default function GerenciarUsuarios() {
           <GruposAcessoTabV2 />
         </TabsContent>
 
-        {(isSuperAdmin || isAdminRH) && (
-          <TabsContent value="matriz" className="mt-4">
-            <MatrizPermissoes />
-          </TabsContent>
-        )}
 
         {isSuperAdmin && (
           <TabsContent value="fantasmas" className="mt-4">

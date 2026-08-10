@@ -24183,7 +24183,6 @@ export type Database = {
           telefone: string | null
           uf: string | null
           updated_at: string
-          usuario_id: string | null
         }
         Insert: {
           bairro?: string | null
@@ -24214,7 +24213,6 @@ export type Database = {
           telefone?: string | null
           uf?: string | null
           updated_at?: string
-          usuario_id?: string | null
         }
         Update: {
           bairro?: string | null
@@ -24245,7 +24243,6 @@ export type Database = {
           telefone?: string | null
           uf?: string | null
           updated_at?: string
-          usuario_id?: string | null
         }
         Relationships: []
       }
@@ -27786,50 +27783,6 @@ export type Database = {
           responsabilidade?: string
         }
         Relationships: []
-      }
-      role_permissions: {
-        Row: {
-          colaborador_tipo: string
-          created_at: string
-          granted: boolean
-          id: string
-          module: string
-          nivel_minimo: Database["public"]["Enums"]["nivel_cargo"] | null
-          permission: string
-          role_name: string
-          updated_at: string
-        }
-        Insert: {
-          colaborador_tipo?: string
-          created_at?: string
-          granted?: boolean
-          id?: string
-          module: string
-          nivel_minimo?: Database["public"]["Enums"]["nivel_cargo"] | null
-          permission: string
-          role_name: string
-          updated_at?: string
-        }
-        Update: {
-          colaborador_tipo?: string
-          created_at?: string
-          granted?: boolean
-          id?: string
-          module?: string
-          nivel_minimo?: Database["public"]["Enums"]["nivel_cargo"] | null
-          permission?: string
-          role_name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "role_permissions_role_name_fkey"
-            columns: ["role_name"]
-            isOneToOne: false
-            referencedRelation: "custom_roles"
-            referencedColumns: ["name"]
-          },
-        ]
       }
       safra_motivos_rejeicao: {
         Row: {
@@ -33134,51 +33087,6 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_colaborador_link: {
-        Row: {
-          colaborador_clt_id: string | null
-          contrato_pj_id: string | null
-          inativado_em: string | null
-          tipo_externo: string | null
-          user_id: string
-          vinculado_em: string | null
-          vinculado_por: string | null
-        }
-        Insert: {
-          colaborador_clt_id?: string | null
-          contrato_pj_id?: string | null
-          inativado_em?: string | null
-          tipo_externo?: string | null
-          user_id: string
-          vinculado_em?: string | null
-          vinculado_por?: string | null
-        }
-        Update: {
-          colaborador_clt_id?: string | null
-          contrato_pj_id?: string | null
-          inativado_em?: string | null
-          tipo_externo?: string | null
-          user_id?: string
-          vinculado_em?: string | null
-          vinculado_por?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_colaborador_link_colaborador_clt_id_fkey"
-            columns: ["colaborador_clt_id"]
-            isOneToOne: false
-            referencedRelation: "colaboradores_clt"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_colaborador_link_contrato_pj_id_fkey"
-            columns: ["contrato_pj_id"]
-            isOneToOne: false
-            referencedRelation: "contratos_pj"
             referencedColumns: ["id"]
           },
         ]
@@ -42855,14 +42763,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -43842,14 +43750,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -45228,7 +45136,6 @@ export type Database = {
           rotas_cabeadas: number | null
           slug: string | null
           tipo: string | null
-          vetado_motor_c: boolean | null
         }
         Relationships: []
       }
@@ -50377,13 +50284,6 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
-      get_user_departamento_unidade: {
-        Args: { p_user_id: string }
-        Returns: {
-          departamento_id: string
-          unidade_id: string
-        }[]
-      }
       get_user_id_from_profile: {
         Args: { _profile_id: string }
         Returns: string
@@ -50393,10 +50293,6 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"][]
       }
       get_vault_secret: { Args: { p_name: string }; Returns: string }
-      has_permission: {
-        Args: { _module: string; _permission: string; _user_id: string }
-        Returns: boolean
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -51394,10 +51290,6 @@ export type Database = {
           _unidade_id?: string
           _user_id: string
         }
-        Returns: boolean
-      }
-      tem_qualquer_acesso_modulo: {
-        Args: { _modulo: string; _user_id: string }
         Returns: boolean
       }
       template_sugerido_para_cargo: {
