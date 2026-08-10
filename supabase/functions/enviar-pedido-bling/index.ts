@@ -57,15 +57,15 @@ serve(async (req) => {
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
-    const allowed = (roles || []).some((r: any) =>
-      ["super_admin", "admin_rh", "sops"].includes(r.role)
-    );
+    const rolesArr = (roles || []).map((r: any) => String(r.role));
+    const ehSuperAdmin = rolesArr.includes("super_admin");
+    const allowed = rolesArr.some((r) => ["super_admin", "admin_rh", "sops"].includes(r));
     if (!allowed) return err("Sem permissão (sops, admin_rh ou super_admin)", 403);
 
     // Input
     const body = await req.json().catch(() => ({}));
     const pedido_id = body?.pedido_id;
-    const remessa_id_input: string | null = body?.remessa_id ?? null;
+    let remessa_id_input: string | null = body?.remessa_id ?? null;
     if (!pedido_id) return err("pedido_id obrigatório");
 
     // ── Branch: anexos_nf ────────────────────────────────────────────────
