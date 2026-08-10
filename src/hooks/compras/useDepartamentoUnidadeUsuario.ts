@@ -14,9 +14,13 @@ export function useDepartamentoUnidadeUsuario() {
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<DepUni> => {
-      const { data, error } = await supabase.rpc("get_user_departamento_unidade", {
-        p_user_id: user!.id,
-      });
+      const { data, error } = await (supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>)(
+        "get_user_departamento_unidade",
+        { p_user_id: user!.id },
+      );
       if (error) throw error;
       const row = (data as Array<{ departamento_id: string | null; unidade_id: string | null }>)?.[0];
       if (!row) return { departamento: null, unidade: null };
