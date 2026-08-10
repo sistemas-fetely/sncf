@@ -1382,6 +1382,75 @@ export type Database = {
           },
         ]
       }
+      auditoria_saude_historico: {
+        Row: {
+          achados_vivos: number | null
+          bloqueantes: number | null
+          confiavel: boolean
+          detalhe: Json | null
+          eixo_confiabilidade: number | null
+          eixo_envelhecimento: number | null
+          eixo_gravidade: number | null
+          eixo_tratamento: number | null
+          id: string
+          medido_em: string
+          nota: number | null
+          valor_vivo: number | null
+        }
+        Insert: {
+          achados_vivos?: number | null
+          bloqueantes?: number | null
+          confiavel?: boolean
+          detalhe?: Json | null
+          eixo_confiabilidade?: number | null
+          eixo_envelhecimento?: number | null
+          eixo_gravidade?: number | null
+          eixo_tratamento?: number | null
+          id?: string
+          medido_em?: string
+          nota?: number | null
+          valor_vivo?: number | null
+        }
+        Update: {
+          achados_vivos?: number | null
+          bloqueantes?: number | null
+          confiavel?: boolean
+          detalhe?: Json | null
+          eixo_confiabilidade?: number | null
+          eixo_envelhecimento?: number | null
+          eixo_gravidade?: number | null
+          eixo_tratamento?: number | null
+          id?: string
+          medido_em?: string
+          nota?: number | null
+          valor_vivo?: number | null
+        }
+        Relationships: []
+      }
+      auditoria_saude_parametro: {
+        Row: {
+          chave: string
+          descricao: string
+          unidade: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          chave: string
+          descricao: string
+          unidade?: string | null
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          chave?: string
+          descricao?: string
+          unidade?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       auditoria_severidade_dim: {
         Row: {
           ativo: boolean
@@ -35826,6 +35895,51 @@ export type Database = {
           },
         ]
       }
+      vw_auditoria_saude: {
+        Row: {
+          achados_vivos: number | null
+          bloqueantes: number | null
+          confiavel: boolean | null
+          dia: string | null
+          eixo_confiabilidade: number | null
+          eixo_envelhecimento: number | null
+          eixo_gravidade: number | null
+          eixo_tratamento: number | null
+          faixa: string | null
+          medido_em: string | null
+          nota: number | null
+          valor_vivo: number | null
+        }
+        Insert: {
+          achados_vivos?: number | null
+          bloqueantes?: number | null
+          confiavel?: boolean | null
+          dia?: never
+          eixo_confiabilidade?: number | null
+          eixo_envelhecimento?: number | null
+          eixo_gravidade?: number | null
+          eixo_tratamento?: number | null
+          faixa?: never
+          medido_em?: string | null
+          nota?: number | null
+          valor_vivo?: number | null
+        }
+        Update: {
+          achados_vivos?: number | null
+          bloqueantes?: number | null
+          confiavel?: boolean | null
+          dia?: never
+          eixo_confiabilidade?: number | null
+          eixo_envelhecimento?: number | null
+          eixo_gravidade?: number | null
+          eixo_tratamento?: number | null
+          faixa?: never
+          medido_em?: string | null
+          nota?: number | null
+          valor_vivo?: number | null
+        }
+        Relationships: []
+      }
       vw_b2c_faturado_vs_recebido: {
         Row: {
           bruto_shopify: number | null
@@ -41594,14 +41708,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -42094,14 +42208,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -48609,6 +48723,7 @@ export type Database = {
             }
             Returns: Json
           }
+      fn_auditoria_saude: { Args: { p_gravar?: boolean }; Returns: Json }
       fn_auditoria_sql_valido: { Args: { p_sql: string }; Returns: string }
       fn_auditoria_testar_pendentes: {
         Args: { p_amostra?: number; p_max?: number; p_origem?: string }
