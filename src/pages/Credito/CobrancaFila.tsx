@@ -1279,7 +1279,7 @@ export default function CobrancaFila() {
 
 
         <TabsContent value="banco">
-          <Tabs defaultValue="remessas" className="space-y-4">
+          <Tabs value={subTabBanco} onValueChange={setSubTabBanco} className="space-y-4">
             <TabsList className="bg-transparent p-0 h-auto gap-2">
               <TabsTrigger value="remessas" className={pillTriggerCls}>
                 Remessas Safra
@@ -1292,7 +1292,7 @@ export default function CobrancaFila() {
               <RemessasSafraTab />
             </TabsContent>
             <TabsContent value="banco-safra">
-              <BancoSafra />
+              <BancoSafra onIrParaRemessas={() => setSubTabBanco("remessas")} />
             </TabsContent>
           </Tabs>
         </TabsContent>
