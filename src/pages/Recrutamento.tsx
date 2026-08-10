@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +13,6 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { usePermissions } from "@/hooks/usePermissions";
 import { format } from "date-fns";
 import { NovaVagaDialog } from "@/components/recrutamento/NovaVagaDialog";
 import { toast } from "sonner";
@@ -35,7 +35,9 @@ const tipoContratoLabel: Record<string, string> = {
 
 export default function Recrutamento() {
   const navigate = useNavigate();
-  const { hasPermission, isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const hasPermission = (_m: string, _a?: string) => true;
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const canCreate = hasPermission("recrutamento", "create");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);

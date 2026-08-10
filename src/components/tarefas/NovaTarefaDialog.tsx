@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useRegistrarHistorico } from "@/hooks/useTarefaHistorico";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
@@ -62,7 +61,9 @@ interface Props {
 
 export function NovaTarefaDialog({ open, onOpenChange, onCriada, tarefaParaEditar, responsavelInicial }: Props) {
   const { user } = useAuth();
-  const { isSuperAdmin, isAdminRH } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const { registrar } = useRegistrarHistorico();
 
   const isEdicao = !!tarefaParaEditar;

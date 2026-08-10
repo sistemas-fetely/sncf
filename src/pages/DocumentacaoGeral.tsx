@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, FileText, Search, BookOpen, ChevronRight, Trash2 } from "lucide-react";
@@ -13,7 +14,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
 
@@ -44,7 +44,8 @@ const SNCF_COLOR = "#1A4A3A";
 
 export default function DocumentacaoGeral() {
   const navigate = useNavigate();
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
 
   const [docs, setDocs] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);

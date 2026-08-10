@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useMemo, useState } from "react";
 import {
   Users, Briefcase, Calendar, AlertTriangle, FileText, CreditCard, Gift,
@@ -13,7 +14,6 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
 } from "recharts";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { usePermissions } from "@/hooks/usePermissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { SugestoesInboxDialog, type SugestaoItem } from "@/components/dashboard/SugestoesInboxDialog";
@@ -196,7 +196,8 @@ function DashboardGestao() {
     mesAtualLabel,
     isLoading,
   } = useDashboardData();
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const [sugestoesOpen, setSugestoesOpen] = useState(false);
 
   const statusData = useMemo(() => Object.entries(statusClt).map(([status, value]) => ({

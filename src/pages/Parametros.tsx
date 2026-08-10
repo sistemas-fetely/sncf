@@ -1,10 +1,10 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useMemo } from "react";
 import { useAllParametros } from "@/hooks/useParametros";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -390,7 +390,8 @@ function UsageBadge({ count }: { count: number | undefined }) {
 export default function Parametros() {
   const [searchParams, setSearchParams] = useSearchParams();
   const modulo = searchParams.get("modulo") || "geral";
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
 
   const { data: allParams, isLoading } = useAllParametros();
   const { data: usageData } = useParametroUsage();

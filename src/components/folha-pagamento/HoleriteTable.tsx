@@ -1,8 +1,8 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useCLevelCargos } from "@/hooks/useCLevelCargos";
 import { SalarioMasked } from "@/components/SalarioMasked";
 import type { HoleriteComColaborador } from "@/hooks/useFolhaPagamento";
@@ -17,7 +17,10 @@ interface Props {
 
 export function HoleriteTable({ holerites, onSelect }: Props) {
   const [busca, setBusca] = useState("");
-  const { canSeeSalary } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdminLocal = (authRoles ?? []).includes("super_admin");
+  const isAdminRHLocal = (authRoles ?? []).includes("admin_rh");
+  const canSeeSalary = (isCLevel = false) => isCLevel ? isSuperAdminLocal : (isSuperAdminLocal || isAdminRHLocal);
   const { isCargoClevel } = useCLevelCargos();
 
   const filtered = holerites.filter((h) =>

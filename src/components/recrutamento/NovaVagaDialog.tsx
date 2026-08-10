@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useParametros } from "@/hooks/useParametros";
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
 import { useCargos, type Cargo } from "@/hooks/useCargos";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSkillsCatalogo, salvarNovaSkill } from "@/hooks/useSkillsCatalogo";
 import { useFerramentasCatalogo, salvarNovaFerramenta } from "@/hooks/useFerramentasCatalogo";
@@ -40,7 +39,9 @@ interface Props {
 export function NovaVagaDialog({ open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { isSuperAdmin, isAdminRH } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const canSeeFaixa = isSuperAdmin || isAdminRH;
 
   const [step, setStep] = useState(1);

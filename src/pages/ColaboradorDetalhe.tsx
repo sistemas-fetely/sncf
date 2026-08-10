@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useCLevelCargos } from "@/hooks/useCLevelCargos";
 import { useParametros } from "@/hooks/useParametros";
 import { useQuery } from "@tanstack/react-query";
@@ -88,7 +87,11 @@ export default function ColaboradorDetalhe() {
   const location = useLocation();
   const rotaVolta = ((location.state as any)?.from as string) || "/colaboradores";
   const { user, profile } = useAuth();
-  const { canSeeSalary, isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdminLocal = (authRoles ?? []).includes("super_admin");
+  const isAdminRHLocal = (authRoles ?? []).includes("admin_rh");
+  const canSeeSalary = (isCLevel = false) => isCLevel ? isSuperAdminLocal : (isSuperAdminLocal || isAdminRHLocal);
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const { isCargoClevel } = useCLevelCargos();
   const { data: sistemasParametros } = useParametros("sistema");
   const { data: tiposEquipParametros } = useParametros("tipo_equipamento");

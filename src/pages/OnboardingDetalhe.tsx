@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -91,7 +90,8 @@ export default function OnboardingDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { userRoles: roles } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const roles = authRoles;
   const [loading, setLoading] = useState(true);
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [extensoesMap, setExtensoesMap] = useState<Record<string, ExtensaoMeta>>({});

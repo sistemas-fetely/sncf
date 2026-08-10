@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect, useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -14,7 +15,6 @@ import { calcularFolha, type DadosCalculo } from "@/lib/calculo-folha";
 import { useEditarHolerite, type HoleriteComColaborador } from "@/hooks/useFolhaPagamento";
 import { useParametrosFolha } from "@/hooks/useParametrosFolha";
 import { SalarioMasked } from "@/components/SalarioMasked";
-import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -75,7 +75,8 @@ export function HoleriteDrawer({ holerite, open, onClose, competenciaId, canEdit
   const [editing, setEditing] = useState(false);
   const editMut = useEditarHolerite();
   const { data: parametrosFolha } = useParametrosFolha();
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const queryClient = useQueryClient();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [form, setForm] = useState<EditForm>({

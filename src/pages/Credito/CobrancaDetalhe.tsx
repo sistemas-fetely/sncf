@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -26,7 +27,6 @@ import { useMaterializarComHaver } from "@/hooks/credito/useMaterializarComHaver
 import { useHaverDisponivelCliente } from "@/hooks/credito/useHaverDisponivelCliente";
 import { useTitulosPedidoResumo } from "@/hooks/credito/useTitulosPedidoResumo";
 import { useCriarPortaoProvisorio } from "@/hooks/credito/useCriarPortaoProvisorio";
-import { usePermissions } from "@/hooks/usePermissions";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { SmartBackButton } from "@/components/SmartBackButton";
@@ -388,7 +388,8 @@ export default function CobrancaDetalhe() {
   const materializar = useMaterializarCobranca();
   const materializarComHaver = useMaterializarComHaver();
   const criarPortao = useCriarPortaoProvisorio();
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const exigePortao = !!(pedidoQ.data as any)?.exige_portao;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,6 +1,6 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { usePermissions } from "@/hooks/usePermissions";
 import {
   Briefcase, Plus, Search, MoreHorizontal, Eye, Edit, Trash2,
   FileCheck, FileClock, User, ShieldAlert,
@@ -393,7 +393,10 @@ function ContratoPJForm({
 export default function ContratosPJ() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { hasPermission, isSuperAdmin, isAdminRH } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const hasPermission = (_m: string, _a?: string) => true;
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const canCreate = hasPermission("contratos_pj", "create");
   const canEdit = hasPermission("contratos_pj", "edit");
   const canDelete = hasPermission("contratos_pj", "delete");

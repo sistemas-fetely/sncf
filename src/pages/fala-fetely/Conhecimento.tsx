@@ -24,7 +24,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -104,7 +103,11 @@ function getCategoriaStyle(c: string) {
 export default function Conhecimento() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isSuperAdmin, isAdminRH, userRoles, isLoading } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
+  const userRoles = authRoles;
+  const isLoading = false;
   const [mostrarUploadPdf, setMostrarUploadPdf] = useState(false);
   const [itens, setItens] = useState<Conhecimento[]>([]);
   const [sugestoes, setSugestoes] = useState<SugestaoPendente[]>([]);

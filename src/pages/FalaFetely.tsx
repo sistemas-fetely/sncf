@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { usePermissions } from "@/hooks/usePermissions";
 import { EnsinarDialog } from "@/components/fala-fetely/EnsinarDialog";
 import { FeedbackNegativoDialog } from "@/components/fala-fetely/FeedbackNegativoDialog";
 import {
@@ -98,7 +97,10 @@ function formatRelativo(iso: string) {
 export default function FalaFetely() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { isSuperAdmin, isAdminRH, userRoles } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
+  const userRoles = authRoles;
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [conversaAtiva, setConversaAtiva] = useState<Conversa | null>(null);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);

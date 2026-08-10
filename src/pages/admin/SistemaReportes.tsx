@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { MessageSquareWarning, Clock, AlertCircle, Loader2, Trash2 } from "lucide-react";
 import {
@@ -6,7 +7,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
-import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,8 @@ const STATUS_COR: Record<string, string> = {
 };
 
 export default function SistemaReportes() {
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const [filtroStatus, setFiltroStatus] = useState("");
   const { data: reportes, isLoading } = useReportesInbox(filtroStatus || undefined);
   const [selecionado, setSelecionado] = useState<Reporte | null>(null);

@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useProcessos, type FiltrosProcessos } from "@/hooks/useProcessos";
 import { useAllParametros } from "@/hooks/useParametros";
 import { useUnidades } from "@/hooks/useUnidades";
@@ -49,7 +48,8 @@ const NATUREZA_LABEL: Record<string, string> = {
 export default function Processos() {
   const navigate = useNavigate();
   const { roles } = useAuth();
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const queryClient = useQueryClient();
   const podeEditar = roles?.some((r) => ["super_admin", "admin_rh"].includes(r));
 

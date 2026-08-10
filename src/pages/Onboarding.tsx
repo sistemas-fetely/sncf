@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -97,7 +96,9 @@ function diasAtraso(prazoData: string): number {
 
 export default function Onboarding() {
   const { user } = useAuth();
-  const { userRoles: roles, isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const roles = authRoles;
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [checklists, setChecklists] = useState<Checklist[]>([]);

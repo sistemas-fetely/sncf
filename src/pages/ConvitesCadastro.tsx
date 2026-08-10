@@ -46,7 +46,6 @@ import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDeparta
 import { useCargos } from "@/hooks/useCargos";
 import { useUnidades } from "@/hooks/useUnidades";
 import { useCLevelCargos } from "@/hooks/useCLevelCargos";
-import { usePermissions } from "@/hooks/usePermissions";
 import { SystemReadinessBanner } from "@/components/shared/SystemReadinessBanner";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -221,7 +220,11 @@ export default function ConvitesCadastro() {
   const cargos = (cargosRaw || []).map((c) => ({ id: c.id, valor: c.nome, label: c.nome, is_clevel: c.is_clevel }));
   const { data: unidades } = useUnidades();
   const { isCargoClevel } = useCLevelCargos();
-  const { canSeeSalary, isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdminLocal = (authRoles ?? []).includes("super_admin");
+  const isAdminRHLocal = (authRoles ?? []).includes("admin_rh");
+  const canSeeSalary = (isCLevel = false) => isCLevel ? isSuperAdminLocal : (isSuperAdminLocal || isAdminRHLocal);
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
 
   const canSeeSensitive = hasAnyRole(["super_admin", "admin_rh"]);
   const isGestorDireto = !hasAnyRole(["super_admin", "admin_rh", "gestor_rh"]) && hasAnyRole(["gestor_direto"]);

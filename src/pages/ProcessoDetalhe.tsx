@@ -16,7 +16,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useProcessoDetalhe } from "@/hooks/useProcessos";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -46,7 +45,8 @@ export default function ProcessoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, roles } = useAuth();
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const { data: processo, isLoading } = useProcessoDetalhe(id || null);
