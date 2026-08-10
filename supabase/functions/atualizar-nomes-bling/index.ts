@@ -71,45 +71,53 @@ serve(async (req) => {
     } catch (_) { /* sem body = dry run com default */ }
 
     // ---- candidatos ----
-    let q = supabase
-      .from("produtos")
-      .select("codigo, nome, bling_id")
-      .not("bling_id", "is", null)
-      .eq("ativo", true)
-      .eq("tipo_bling", "P")
-      .eq("formato_bling", "S")
-      .order("codigo");
-    if (skus.length > 0) {
-      q = q.in("codigo", skus).limit(Math.max(skus.length, limite));
-    } else {
-      q = q.limit(Math.min(limite * 4, 2000));
-    }
-    const { data: prods, error: prodErr } = await q;
-    if (prodErr) return json({ ok: false, erro: `Falha ao ler produtos: ${prodErr.message}` }, 500);
-
-    const codigos = (prods || []).map((p: any) => p.codigo).filter(Boolean);
+    // Sem skus explícitos: a view vw_nome_bling_fila já entrega só quem falta
+    // (ativo, tipo P, formato S, bling_id, tem ficha, nome válido e SEM push bem-sucedido).
+    // A fila só desce: quem já teve push OK nunca volta.
     const fichas = new Map<string, string | null>();
-    // lote de fichas em sncf_produtos (chunk para não estourar a URL)
-    for (let i = 0; i < codigos.length; i += 200) {
-      const chunk = codigos.slice(i, i + 200);
-      const { data: fs, error: fErr } = await supabase
-        .from("sncf_produtos")
-        .select("sku, nome_operacional")
-        .in("sku", chunk);
-      if (fErr) return json({ ok: false, erro: `Falha ao ler sncf_produtos: ${fErr.message}` }, 500);
-      for (const f of fs || []) fichas.set(f.sku, f.nome_operacional ?? null);
-    }
+    let fila: any[] = [];
 
-    // fila final: só quem tem ficha, nome válido e diferente do nome atual
-    const fila = (prods || []).filter((p: any) => {
-      if (!fichas.has(p.codigo)) return false;
-      const nomeNovo = (fichas.get(p.codigo) ?? "").trim();
-      if (skus.length > 0) return true; // explícito: guardrails avaliados no laço (com log)
-      if (!nomeNovo) return false;
-      if (nomeNovo.length > NOME_MAX) return false;
-      if (nomeNovo === (p.nome ?? "").trim()) return false;
-      return true;
-    }).slice(0, limite);
+    if (skus.length === 0) {
+      const { data: rows, error: filaErr } = await supabase
+        .from("vw_nome_bling_fila")
+        .select("codigo, bling_id, nome_espelho, nome_operacional")
+        .order("codigo")
+        .limit(limite);
+      if (filaErr) return json({ ok: false, erro: `Falha ao ler vw_nome_bling_fila: ${filaErr.message}` }, 500);
+      fila = (rows || []).map((r: any) => ({
+        codigo: r.codigo,
+        bling_id: r.bling_id,
+        nome: r.nome_espelho ?? null,
+      }));
+      for (const r of rows || []) fichas.set(r.codigo, r.nome_operacional ?? null);
+    } else {
+      // escape hatch: reprocessa SKU específico mesmo já empurrado
+      const { data: prods, error: prodErr } = await supabase
+        .from("produtos")
+        .select("codigo, nome, bling_id")
+        .not("bling_id", "is", null)
+        .eq("ativo", true)
+        .eq("tipo_bling", "P")
+        .eq("formato_bling", "S")
+        .in("codigo", skus)
+        .order("codigo")
+        .limit(Math.max(skus.length, limite));
+      if (prodErr) return json({ ok: false, erro: `Falha ao ler produtos: ${prodErr.message}` }, 500);
+
+      const codigos = (prods || []).map((p: any) => p.codigo).filter(Boolean);
+      for (let i = 0; i < codigos.length; i += 200) {
+        const chunk = codigos.slice(i, i + 200);
+        const { data: fs, error: fErr } = await supabase
+          .from("sncf_produtos")
+          .select("sku, nome_operacional")
+          .in("sku", chunk);
+        if (fErr) return json({ ok: false, erro: `Falha ao ler sncf_produtos: ${fErr.message}` }, 500);
+        for (const f of fs || []) fichas.set(f.sku, f.nome_operacional ?? null);
+      }
+
+      // guardrails avaliados no laço (com log)
+      fila = (prods || []).filter((p: any) => fichas.has(p.codigo)).slice(0, Math.max(skus.length, limite));
+    }
 
     const itens: Item[] = [];
     let sucesso = 0;
