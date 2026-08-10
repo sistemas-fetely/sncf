@@ -344,6 +344,16 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const [entradaDialogOpen, setEntradaDialogOpen] = useState(false);
   /** Quando existe, o Dialog de entrada considera apenas estes títulos (escopo de um cliente). */
   const [escopoEntrada, setEscopoEntrada] = useState<string[] | null>(null);
+  // Diálogo de conferência da baixa (seleção de títulos que antes vivia no BaixasPendentesAlert)
+  const [baixaDialogOpen, setBaixaDialogOpen] = useState(false);
+  const [baixaSelecionados, setBaixaSelecionados] = useState<Set<string>>(new Set());
+  const abrirDialogBaixa = () => {
+    setBaixaSelecionados(new Set(baixaSolicitadaItens.map((i) => i.id)));
+    setBaixaDialogOpen(true);
+  };
+  const totalBaixaSelecionado = baixaSolicitadaItens
+    .filter((i) => baixaSelecionados.has(i.id))
+    .reduce((s, i) => s + Number(i.valor || 0), 0);
 
   // mutation de e-mail: uma única instância para toda a tela
   const enviarEmailBoleto = useEnviarEmailBoleto();
