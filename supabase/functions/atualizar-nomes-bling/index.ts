@@ -242,8 +242,11 @@ serve(async (req) => {
       sucesso,
       falhas,
       pulados,
+      interrompido_por_tempo: interrompidoPorTempo,
+      restantes: interrompidoPorTempo ? fila.length - (sucesso + falhas + pulados) : 0,
       itens,
     });
+
   } catch (e) {
     return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);
   }
