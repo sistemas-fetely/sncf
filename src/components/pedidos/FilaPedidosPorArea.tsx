@@ -747,6 +747,37 @@ export function FilaPedidosPorArea({
   );
 }
 
+/**
+ * ENTRADA-PAGA: dinheiro já recebido que ainda não virou título.
+ * Convive com o badge de situação — são fatos diferentes sobre o mesmo pedido.
+ */
+function BadgeEntradaPaga({ p }: { p: PedidoFilaItem }) {
+  const valor = Number(p.adiantado_vivo || 0);
+  if (!(valor > 0)) return null;
+  const pct = Number(p.adiantado_pct_pago || 0);
+  const integral = !!p.adiantado_cobre_pedido_inteiro;
+  const texto = integral
+    ? `Pago integral · ${fmtBRL.format(valor)}`
+    : `Entrada paga · ${fmtBRL.format(valor)} (${pct}%)`;
+  const partes = [p.adiantado_formas, p.adiantado_recebido_em ? `recebido em ${formatDateBR(p.adiantado_recebido_em)}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-block">
+            <Badge className={cn(TOM_CLASSES.positivo, "text-[10px] py-0 px-1.5")}>{texto}</Badge>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs max-w-[280px]">{partes || texto}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   const situacao = p.situacao_financeira;
   const rotulo = p.situacao_rotulo;
@@ -756,6 +787,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   const valorAberto = Number(p.valor_aberto || 0);
   const valorVencido = Number(p.valor_vencido || 0);
   const diasAtraso = Number(p.dias_atraso_max || 0);
+  const badgeAdiantado = <BadgeEntradaPaga p={p} />;
 
   const valorLine = <p className="font-semibold">{fmtBRL.format(p.valor_liquido)}</p>;
   const condLine = (
