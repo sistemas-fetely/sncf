@@ -998,93 +998,83 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         </p>
       </div>
 
-      <BaixasPendentesAlert
-        onGerarBaixa={handleGerarBaixa}
-        gerandoBaixa={gerandoBaixa}
-        onIrParaRemessas={onIrParaRemessas}
-      />
+      <Card>
+        <CardContent className="p-0">
+          {linhasFaixa.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-muted-foreground">
+              Nada parado. Tudo em dia por aqui.
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {linhasFaixa.map((l) => {
+                const ativo = l.filtro != null && filtroKpi === l.filtro;
+                const borda =
+                  l.tom === "vermelho"
+                    ? "border-l-destructive"
+                    : l.tom === "ambar"
+                      ? "border-l-amber-500"
+                      : "border-l-transparent";
+                return (
+                  <li
+                    key={l.key}
+                    className={`flex items-center justify-between gap-3 border-l-2 px-4 py-2 ${borda} ${
+                      ativo ? "bg-muted/60" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      disabled={l.filtro == null}
+                      onClick={() => l.filtro && setFiltroKpi(ativo ? null : l.filtro)}
+                      className={`flex min-w-0 flex-1 items-baseline gap-2 text-left text-sm ${
+                        l.filtro == null ? "cursor-default" : "hover:underline"
+                      } ${l.tom === "vermelho" ? "text-destructive" : l.tom === "ambar" ? "text-amber-700" : ""}`}
+                    >
+                      <span className="truncate">{l.texto}</span>
+                      {l.valor != null && (
+                        <span className="shrink-0 font-medium tabular-nums text-muted-foreground">
+                          {formatBRL(l.valor)}
+                        </span>
+                      )}
+                    </button>
+                    {l.acao && (
+                      <Button
+                        size="sm"
+                        variant={l.tom === "neutro" ? "outline" : "default"}
+                        className="shrink-0 gap-2"
+                        onClick={l.acao.onClick}
+                        disabled={l.acao.disabled}
+                      >
+                        {l.acao.loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        {l.acao.label}
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card px-4 py-2">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          {([
-            { key: "pendentes", label: "Pendentes", valor: boletosKpis.pendentes, cls: "text-gray-700", ativoCls: "bg-gray-700 text-white" },
-            { key: "registrados", label: "Registrados", valor: boletosKpis.registrados, cls: "text-blue-700", ativoCls: "bg-blue-700 text-white" },
-            { key: "pagos_mes", label: "Pagos no mês", valor: boletosKpis.pagosMes, cls: "text-green-700", ativoCls: "bg-green-700 text-white" },
-            { key: "vencidos", label: "Vencidos", valor: boletosKpis.vencidos, cls: "text-orange-700", ativoCls: "bg-orange-700 text-white" },
-            { key: "baixas", label: "Baixas pendentes", valor: countSolicitada, cls: "text-purple-700", ativoCls: "bg-purple-700 text-white" },
-          ] as const).map((k) => {
-            const ativo = filtroKpi === k.key;
-            return (
-              <button
-                key={k.key}
-                type="button"
-                onClick={() => setFiltroKpi(ativo ? null : k.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                  ativo ? `${k.ativoCls} border-transparent` : "border-border hover:bg-muted"
-                }`}
-              >
-                <span className={ativo ? "" : "text-muted-foreground"}>{k.label}</span>
-                <span className={`font-semibold ${ativo ? "" : k.cls}`}>{k.valor}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={() => abrirDialogEntrada()}
-            disabled={pendentesEntrada.length === 0 || gerandoEntrada}
-            size="sm"
-            className="gap-2"
-          >
-            {gerandoEntrada ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowUpFromLine className="h-4 w-4" />
-            )}
-            Entrada
-            {pendentesEntrada.length > 0 && ` (${pendentesEntrada.length})`}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGerarProrrogacao}
-            disabled={boletosKpis.prorrogacaoPendente === 0 || gerandoProrrogacao}
-            className="gap-2"
-          >
-            {gerandoProrrogacao ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowUpFromLine className="h-4 w-4" />
-            )}
-            Prorrogação
-            {boletosKpis.prorrogacaoPendente > 0 && ` (${boletosKpis.prorrogacaoPendente})`}
-          </Button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleGerarBaixa([])}
-                  disabled={countSolicitada === 0 || gerandoBaixa}
-                  className="gap-2"
-                >
-                  {gerandoBaixa ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ArrowUpFromLine className="h-4 w-4" />
-                  )}
-                  Baixa (todos)
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Gera remessa de baixa para TODOS os títulos aguardando ({countSolicitada}). Para selecionar cliente/título, use o banner acima.</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-        </div>
+      {/* resumo do que não pede ação */}
+      <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => setFiltroKpi(filtroKpi === "registrados" ? null : "registrados")}
+          className={`hover:underline ${filtroKpi === "registrados" ? "font-semibold text-foreground" : ""}`}
+        >
+          {boletosKpis.registrados} registrados
+        </button>
+        <span>·</span>
+        <button
+          type="button"
+          onClick={() => setFiltroKpi(filtroKpi === "pagos_mes" ? null : "pagos_mes")}
+          className={`hover:underline ${filtroKpi === "pagos_mes" ? "font-semibold text-foreground" : ""}`}
+        >
+          {boletosKpis.pagosMes} pagos no mês
+        </button>
       </div>
+
 
       <Card>
         <CardHeader className="space-y-3">
