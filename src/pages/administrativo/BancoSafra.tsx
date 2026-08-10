@@ -1108,7 +1108,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEntradaDialogOpen(false)} disabled={gerandoEntrada}>
+            <Button variant="outline" onClick={fecharDialogEntrada} disabled={gerandoEntrada}>
               Cancelar
             </Button>
             <Button
