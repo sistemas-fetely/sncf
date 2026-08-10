@@ -653,7 +653,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     const termo = semAcento(buscaDebounced.trim());
     return boletos.filter((b) => {
       const s = b.boleto_status || "";
-      if (filtroKpi === "pendentes" && !(s === "pendente" || s === "remessa_gerada")) return false;
+      if (filtroKpi === "pendentes" && s !== "pendente") return false;
       if (filtroKpi === "registrados" && s !== "registrado") return false;
       if (filtroKpi === "vencidos" && s !== "vencido") return false;
       if (filtroKpi === "baixas" && s !== "baixa_solicitada") return false;
