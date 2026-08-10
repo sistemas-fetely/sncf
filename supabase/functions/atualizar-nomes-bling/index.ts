@@ -25,8 +25,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const THROTTLE_MS = 350;
 const LIMITE_DEFAULT = 25;
-const LIMITE_MAX = 300;
+const LIMITE_MAX = 100;
 const NOME_MAX = 120;
+// Orçamento de tempo: o runtime corta em 150s de idle. Paramos antes e devolvemos parcial.
+const BUDGET_MS = 110_000;
+
 
 type Item = {
   sku: string;
@@ -113,6 +116,9 @@ serve(async (req) => {
     let falhas = 0;
     let pulados = 0;
     let processados = 0;
+    let interrompidoPorTempo = false;
+    const inicio = Date.now();
+
 
     // grava log e falha em voz alta
     async function logar(row: Record<string, unknown>) {
@@ -138,9 +144,14 @@ serve(async (req) => {
     }
 
     for (let i = 0; i < fila.length; i++) {
+      if (Date.now() - inicio > BUDGET_MS) {
+        interrompidoPorTempo = true;
+        break;
+      }
       const p: any = fila[i];
       const blingId = String(p.bling_id);
       const nomeNovo = (fichas.get(p.codigo) ?? "").trim();
+
 
       // guardrails (com log, para skus explícitos)
       if (!nomeNovo || nomeNovo.length > NOME_MAX) {
@@ -231,8 +242,11 @@ serve(async (req) => {
       sucesso,
       falhas,
       pulados,
+      interrompido_por_tempo: interrompidoPorTempo,
+      restantes: interrompidoPorTempo ? fila.length - (sucesso + falhas + pulados) : 0,
       itens,
     });
+
   } catch (e) {
     return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);
   }
