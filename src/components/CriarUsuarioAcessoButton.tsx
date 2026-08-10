@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { UserPlus, Loader2, CheckCircle2, MoreHorizontal, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
 import { ReenviarLinkAcessoButton } from "@/components/auth/ReenviarLinkAcessoButton";
@@ -45,7 +45,9 @@ export function CriarUsuarioAcessoButton({
   userId,
   onChange,
 }: CriarUsuarioAcessoButtonProps) {
-  const { isSuperAdmin, isAdminRH } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [banConfirmOpen, setBanConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);

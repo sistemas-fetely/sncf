@@ -9,7 +9,6 @@ import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions";
 import { Badge } from "@/components/ui/badge";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -59,7 +58,6 @@ interface MenuItem {
   title: string;
   url: string;
   icon: React.ComponentType<{ className?: string }>;
-  permModule?: string;
   requireRole?: string;
 }
 
@@ -71,37 +69,36 @@ const analiseItems: MenuItem[] = [];
 
 // Grupo 2: Pessoas (núcleo operacional)
 const pessoasItems: MenuItem[] = [
-  { title: "Pessoas", url: "/pessoas", icon: Users, permModule: "colaboradores" },
-  { title: "Cargos e Salários", url: "/admin/cargos", icon: Banknote, permModule: "cargos" },
-  { title: "Organograma", url: "/organograma", icon: GitBranch, permModule: "organograma" },
-  { title: "Recrutamento", url: "/recrutamento", icon: UserSearch, permModule: "recrutamento" },
-  { title: "Convites de Cadastro", url: "/convites-cadastro", icon: MailPlus, permModule: "convites" },
-  { title: "Onboarding", url: "/onboarding", icon: Rocket, permModule: "convites" },
-  { title: "Movimentações", url: "/movimentacoes", icon: ArrowLeftRight, permModule: "movimentacoes" },
-  { title: "Reembolsos", url: "/pessoas/reembolsos", icon: Receipt, permModule: "colaboradores" },
-  { title: "Avaliações", url: "/avaliacoes", icon: Award, permModule: "avaliacoes" },
-  { title: "Treinamentos", url: "/treinamentos", icon: BookOpen, permModule: "treinamentos" },
+  { title: "Pessoas", url: "/pessoas", icon: Users },
+  { title: "Cargos e Salários", url: "/admin/cargos", icon: Banknote },
+  { title: "Organograma", url: "/organograma", icon: GitBranch },
+  { title: "Recrutamento", url: "/recrutamento", icon: UserSearch },
+  { title: "Convites de Cadastro", url: "/convites-cadastro", icon: MailPlus },
+  { title: "Onboarding", url: "/onboarding", icon: Rocket },
+  { title: "Movimentações", url: "/movimentacoes", icon: ArrowLeftRight },
+  { title: "Reembolsos", url: "/pessoas/reembolsos", icon: Receipt },
+  { title: "Avaliações", url: "/avaliacoes", icon: Award },
+  { title: "Treinamentos", url: "/treinamentos", icon: BookOpen },
 ];
 
 // Grupo 3: Benefícios & Financeiro
 const beneficiosItems: MenuItem[] = [
-  { title: "Folha de Pagamento", url: "/folha-pagamento", icon: Receipt, permModule: "folha_pagamento" },
-  { title: "Ponto", url: "/ponto", icon: Clock, permModule: "folha_pagamento" },
-  { title: "Férias", url: "/ferias", icon: Palmtree, permModule: "ferias" },
-  { title: "Benefícios", url: "/beneficios", icon: Gift, permModule: "beneficios" },
-  { title: "Pagamentos PJ", url: "/pagamentos-pj", icon: CreditCard, permModule: "pagamentos_pj" },
-  { title: "Notas Fiscais PJ", url: "/notas-fiscais", icon: FileText, permModule: "notas_fiscais" },
+  { title: "Folha de Pagamento", url: "/folha-pagamento", icon: Receipt },
+  { title: "Ponto", url: "/ponto", icon: Clock },
+  { title: "Férias", url: "/ferias", icon: Palmtree },
+  { title: "Benefícios", url: "/beneficios", icon: Gift },
+  { title: "Pagamentos PJ", url: "/pagamentos-pj", icon: CreditCard },
+  { title: "Notas Fiscais PJ", url: "/notas-fiscais", icon: FileText },
 ];
 
 interface MenuGroupProps {
   label: string;
   items: MenuItem[];
   collapsed: boolean;
-  canViewModule: (mod: string) => boolean;
   userRoles?: string[];
 }
 
-function MenuGroup({ label, items, collapsed, canViewModule, userRoles = [] }: MenuGroupProps) {
+function MenuGroup({ label, items, collapsed, userRoles = [] }: MenuGroupProps) {
   const location = useLocation();
   const visibleItems = items.filter((item) => {
     if (item.requireRole) {
@@ -113,8 +110,7 @@ function MenuGroup({ label, items, collapsed, canViewModule, userRoles = [] }: M
         return false;
       }
     }
-    if (!item.permModule) return true;
-    return canViewModule(item.permModule);
+    return true;
   });
 
   if (visibleItems.length === 0) return null;
@@ -167,7 +163,6 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { user, roles, profile, signOut } = useAuth();
-  const { canView } = usePermissions();
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -234,11 +229,11 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <div className="mx-4 border-t border-sidebar-border/40" />
-        <MenuGroup label="Análise" items={analiseItems} collapsed={collapsed} canViewModule={canView} userRoles={roles} />
+        <MenuGroup label="Análise" items={analiseItems} collapsed={collapsed} userRoles={roles} />
         <div className="mx-4 border-t border-sidebar-border/40" />
-        <MenuGroup label="Pessoas" items={pessoasItems} collapsed={collapsed} canViewModule={canView} userRoles={roles} />
+        <MenuGroup label="Pessoas" items={pessoasItems} collapsed={collapsed} userRoles={roles} />
         <div className="mx-4 border-t border-sidebar-border/40" />
-        <MenuGroup label="Benefícios & Financeiro" items={beneficiosItems} collapsed={collapsed} canViewModule={canView} userRoles={roles} />
+        <MenuGroup label="Benefícios & Financeiro" items={beneficiosItems} collapsed={collapsed} userRoles={roles} />
       </SidebarContent>
 
       <SidebarFooter className="p-4">

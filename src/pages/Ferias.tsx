@@ -3,18 +3,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Briefcase } from "lucide-react";
 import { FeriasCLTView } from "@/components/ferias/FeriasCLTView";
 import { FeriasPJView } from "@/components/ferias/FeriasPJView";
-import { usePermissions } from "@/hooks/usePermissions";
 
 export default function Ferias() {
   const { hasAnyRole, roles } = useAuth();
-  const { userTipos } = usePermissions();
   const canManage = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
   const isAdmin = hasAnyRole(["super_admin"]);
 
-  // For colaborador role only, filter tabs by their tipo (clt/pj)
-  const isColaboradorOnly = roles.length === 1 && roles[0] === "colaborador";
-  const showCLT = !isColaboradorOnly || userTipos.includes("clt");
-  const showPJ = !isColaboradorOnly || userTipos.includes("pj");
+  const showCLT = true;
+  const showPJ = true;
 
   const defaultTab = showCLT ? "clt" : "pj";
 

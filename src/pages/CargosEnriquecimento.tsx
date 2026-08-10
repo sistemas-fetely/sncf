@@ -1,9 +1,9 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAllCargos } from "@/hooks/useCargos";
-import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -14,7 +14,9 @@ const DELAY_MS = 3500;
 export default function CargosEnriquecimento() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isSuperAdmin, isAdminRH } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const pausadoRef = useRef(false);
 
   const { data: cargos = [] } = useAllCargos();

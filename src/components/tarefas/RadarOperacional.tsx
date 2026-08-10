@@ -1,9 +1,9 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Radar, Mail, ClipboardCheck, FileSignature, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { usePermissions } from "@/hooks/usePermissions";
 
 interface IndicadorRadar {
   label: string;
@@ -16,7 +16,9 @@ interface IndicadorRadar {
 
 export function RadarOperacional() {
   const navigate = useNavigate();
-  const { isSuperAdmin, isAdminRH } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const data = useDashboardData();
 
   // Radar só aparece pra quem tem ação operacional (RH, admin, super)

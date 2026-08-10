@@ -82,7 +82,6 @@ import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock
 import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { usePermissions } from "@/hooks/usePermissions";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
@@ -944,7 +943,8 @@ export default function PedidoDetalhe() {
   const [confirmRestaurar, setConfirmRestaurar] = useState(false);
   const [corrigindoSnapshot, setCorrigindoSnapshot] = useState(false);
   const { user } = useAuth();
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
 
   const parceiroIdAtual = data?.pedido?.parceiro_id as string | undefined;
 

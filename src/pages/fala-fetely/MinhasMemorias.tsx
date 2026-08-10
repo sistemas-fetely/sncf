@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Brain, Pencil, Trash2, Plus, RotateCcw, ShieldAlert, X } from "lucide-react";
-import { usePermissions } from "@/hooks/usePermissions";
 import { AcessarMemoriasOutroDialog } from "@/components/fala-fetely/AcessarMemoriasOutroDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,7 +91,8 @@ function formatData(iso: string) {
 export default function MinhasMemorias() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const [memorias, setMemorias] = useState<Memoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroTipo, setFiltroTipo] = useState<string>("todas");

@@ -6,7 +6,7 @@ import { toast } from "sonner";
  * Sprint C2 (29/04/2026) — Criação manual de usuário com modelo NOVO.
  *
  * Doutrina:
- *  - Marcos (Trabalhista): user_colaborador_link imutável após criação.
+ *  - Marcos (Trabalhista): vínculo imutável após criação.
  *  - Marcos: vínculo é OPCIONAL em V1 (Flavio cravado).
  *  - Email de boas-vindas com link de recovery (user define senha no 1º acesso).
  *

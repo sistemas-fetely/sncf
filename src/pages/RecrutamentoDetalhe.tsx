@@ -4,7 +4,6 @@ import { publicUrl, PUBLIC_APP_URL } from "@/lib/urls";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useParametros } from "@/hooks/useParametros";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -59,7 +58,9 @@ export default function RecrutamentoDetalhe() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { isSuperAdmin, isAdminRH } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const canSeeFaixa = isSuperAdmin || isAdminRH;
   const podeExcluir = isSuperAdmin || isAdminRH;
 

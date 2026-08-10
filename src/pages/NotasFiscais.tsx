@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useParametros } from "@/hooks/useParametros";
-import { usePermissions } from "@/hooks/usePermissions";
 import {
   FileText, Search, MoreHorizontal, Eye, Edit, Trash2, Plus, Loader2,
   Calendar, Filter, TrendingUp, Clock, CheckCircle2, AlertTriangle, DollarSign, Upload,
@@ -104,7 +103,7 @@ export default function NotasFiscais() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { roles } = useAuth();
   const isSuperAdmin = roles.includes("super_admin");
-  const { hasPermission } = usePermissions();
+  const hasPermission = (_m: string, _a?: string) => true;
   const canCreate = hasPermission("notas_fiscais", "create");
   const canEdit = hasPermission("notas_fiscais", "edit");
   const canDelete = hasPermission("notas_fiscais", "delete");

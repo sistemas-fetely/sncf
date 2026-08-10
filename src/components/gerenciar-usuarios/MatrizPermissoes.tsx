@@ -21,7 +21,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import type { Database } from "@/integrations/supabase/types";
-import { MODULES, MODULE_CATEGORIES } from "@/hooks/usePermissions";
+import { MODULES, MODULE_CATEGORIES } from "./modulosMatriz";
 import { CelulaPermissaoEditavel } from "./CelulaPermissaoEditavel";
 
 type AppRole = Database["public"]["Enums"]["app_role"];

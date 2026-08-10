@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAllCargos, type Cargo } from "@/hooks/useCargos";
@@ -21,7 +22,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Lock, Plus, Search, Pencil, Sparkles, MoreHorizontal, Trash2 } from "lucide-react";
-import { usePermissions } from "@/hooks/usePermissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -214,7 +214,9 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
 export default function Cargos() {
   const navigate = useNavigate();
   const { data: cargos, isLoading } = useAllCargos();
-  const { isSuperAdmin, isAdminRH } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const [search, setSearch] = useState("");
   const [filtroDepartamento, setFiltroDepartamento] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");

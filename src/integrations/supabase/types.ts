@@ -12858,6 +12858,13 @@ export type Database = {
             referencedRelation: "permissoes_catalogo"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "grupo_acesso_permissoes_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_permissao_diagnostico"
+            referencedColumns: ["id"]
+          },
         ]
       }
       grupo_acesso_usuarios: {
@@ -29074,6 +29081,13 @@ export type Database = {
             referencedRelation: "permissoes_catalogo"
             referencedColumns: ["slug"]
           },
+          {
+            foreignKeyName: "sncf_dominio_tela_slug_default_fkey"
+            columns: ["tela_slug_default"]
+            isOneToOne: false
+            referencedRelation: "vw_permissao_diagnostico"
+            referencedColumns: ["slug"]
+          },
         ]
       }
       sncf_modulo: {
@@ -29187,6 +29201,13 @@ export type Database = {
             columns: ["tela_slug"]
             isOneToOne: false
             referencedRelation: "permissoes_catalogo"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "sncf_navegacao_tela_slug_fkey"
+            columns: ["tela_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_permissao_diagnostico"
             referencedColumns: ["slug"]
           },
         ]
@@ -33187,29 +33208,35 @@ export type Database = {
         Row: {
           atribuido_manualmente: boolean
           created_at: string
+          escopo: Database["public"]["Enums"]["escopo_acesso"]
           id: string
           nivel: Database["public"]["Enums"]["nivel_cargo"] | null
           revogado_em: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
+          valido_ate: string | null
         }
         Insert: {
           atribuido_manualmente?: boolean
           created_at?: string
+          escopo?: Database["public"]["Enums"]["escopo_acesso"]
           id?: string
           nivel?: Database["public"]["Enums"]["nivel_cargo"] | null
           revogado_em?: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
+          valido_ate?: string | null
         }
         Update: {
           atribuido_manualmente?: boolean
           created_at?: string
+          escopo?: Database["public"]["Enums"]["escopo_acesso"]
           id?: string
           nivel?: Database["public"]["Enums"]["nivel_cargo"] | null
           revogado_em?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+          valido_ate?: string | null
         }
         Relationships: []
       }
@@ -33665,6 +33692,7 @@ export type Database = {
           tipo_vinculo: string
           unidade_id: string | null
           updated_at: string
+          usuario_id: string | null
           valor_base: number | null
           valor_transporte: number | null
         }
@@ -33713,6 +33741,7 @@ export type Database = {
           tipo_vinculo: string
           unidade_id?: string | null
           updated_at?: string
+          usuario_id?: string | null
           valor_base?: number | null
           valor_transporte?: number | null
         }
@@ -33761,6 +33790,7 @@ export type Database = {
           tipo_vinculo?: string
           unidade_id?: string | null
           updated_at?: string
+          usuario_id?: string | null
           valor_base?: number | null
           valor_transporte?: number | null
         }
@@ -45184,6 +45214,24 @@ export type Database = {
           },
         ]
       }
+      vw_permissao_diagnostico: {
+        Row: {
+          ativo: boolean | null
+          diagnostico: string | null
+          id: string | null
+          n_grupos: number | null
+          n_pessoas: number | null
+          n_pessoas_nao_sa: number | null
+          nome_exibicao: string | null
+          pilar: string | null
+          rotas_alcancaveis: number | null
+          rotas_cabeadas: number | null
+          slug: string | null
+          tipo: string | null
+          vetado_motor_c: boolean | null
+        }
+        Relationships: []
+      }
       vw_pj_notas_fiscais: {
         Row: {
           cnpj_prestador: string | null
@@ -49716,6 +49764,14 @@ export type Database = {
         Args: { p_data: string; p_dias: number }
         Returns: string
       }
+      fn_alcanca: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user: string
+          p_vinculo_alvo: string
+        }
+        Returns: boolean
+      }
       fn_alocar_trilha_pedido: {
         Args: { p_pedido_id: string }
         Returns: string
@@ -50005,6 +50061,7 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: undefined
       }
+      fn_meu_vinculo: { Args: never; Returns: string }
       fn_mov_duplicata_fonte_candidato: {
         Args: {
           p_conta: string
@@ -51533,6 +51590,7 @@ export type Database = {
         | "organograma"
         | "relatorio_pj"
         | "auditoria"
+      escopo_acesso: "proprio" | "centro_custo" | "unidade" | "tudo"
       nivel_cargo:
         | "estagio"
         | "assistente"
@@ -51729,6 +51787,7 @@ export const Constants = {
         "relatorio_pj",
         "auditoria",
       ],
+      escopo_acesso: ["proprio", "centro_custo", "unidade", "tudo"],
       nivel_cargo: [
         "estagio",
         "assistente",

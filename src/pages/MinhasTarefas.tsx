@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
 import { formatError } from "@/lib/format-error";
@@ -88,7 +87,10 @@ function diasDesdeISO(dateStr: string): number {
 export default function MinhasTarefas() {
   const navigate = useNavigate();
   const { user, roles } = useAuth();
-  const { userRoles, isSuperAdmin, isAdminRH } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const userRoles = authRoles;
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"minhas" | "acompanhamento">("minhas");

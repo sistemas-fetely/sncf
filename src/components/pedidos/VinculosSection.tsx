@@ -137,7 +137,7 @@ export function VinculosSection({
   const { data: permissoes } = usePermissoesDoUsuario();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
-  const podeSplit = isSuperAdmin || (permissoes?.has("operacao.split_pedido") ?? false);
+  const podeSplit = isSuperAdmin || (permissoes?.has("acao.split_pedido") ?? false);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busca, setBusca] = useState("");

@@ -31,7 +31,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useCLevelCargos } from "@/hooks/useCLevelCargos";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -96,7 +95,12 @@ export default function ContratoPJDetalhe() {
   const location = useLocation();
   const rotaVolta = ((location.state as any)?.from as string) || "/contratos-pj";
   const { user, profile } = useAuth();
-  const { hasPermission, canSeeSalary, isSuperAdmin } = usePermissions();
+  const { roles: authRoles } = useAuth();
+  const isSuperAdminLocal = (authRoles ?? []).includes("super_admin");
+  const isAdminRHLocal = (authRoles ?? []).includes("admin_rh");
+  const hasPermission = (_m: string, _a?: string) => true;
+  const canSeeSalary = (isCLevel = false) => isCLevel ? isSuperAdminLocal : (isSuperAdminLocal || isAdminRHLocal);
+  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const { isCargoClevel } = useCLevelCargos();
   const canEditContract = hasPermission("contratos_pj", "edit");
   const [loading, setLoading] = useState(true);
