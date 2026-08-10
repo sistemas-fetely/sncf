@@ -30,6 +30,8 @@ import { isEstagioFinal } from "@/lib/pedidoTransicoes";
 import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
 import { toast as toastSonner } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatDateBR } from "@/lib/format-currency";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
