@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
+import { useAuth } from "@/contexts/AuthContext";
+import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
 
 interface Props {
   pedido_id: string;
