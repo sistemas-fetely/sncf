@@ -353,7 +353,8 @@ export type RemessaStatus =
   | "gerada"
   | "enviada"
   | "processada"
-  | "com_rejeicoes";
+  | "com_rejeicoes"
+  | "cancelada";
 
 export interface TituloBoletoPendente {
   titulo_id: string;
@@ -388,6 +389,7 @@ export interface RemessaSafra {
   enviada_em: string | null;
   enviada_por: string | null;
   conteudo: string | null;
+  observacao: string | null;
 }
 
 export interface ValidacaoRemessa {

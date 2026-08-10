@@ -3,14 +3,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { AlertTriangle, ArrowUpFromLine, ChevronDown, Clock, Download, Info, Loader2, UploadCloud } from "lucide-react";
+import { AlertTriangle, ArrowUpFromLine, ArrowUpRight, ChevronDown, Clock, Info, Loader2, UploadCloud } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import type { BaixaPendenteItem } from "@/hooks/credito/useBaixasPendentes";
-import { baixarArquivoRemessa } from "@/lib/financeiro/baixarArquivoRemessa";
-import { useToast } from "@/hooks/use-toast";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function daysSince(iso: string | null): number | null {
   if (!iso) return null;
@@ -64,12 +61,13 @@ function ListaBaixas({ itens, mostrarIdade }: { itens: BaixaPendenteItem[]; most
 export function BaixasPendentesAlert({
   onGerarBaixa,
   gerandoBaixa,
+  onIrParaRemessas,
 }: {
   onGerarBaixa: (tituloIds: string[]) => void;
   gerandoBaixa: boolean;
+  onIrParaRemessas?: () => void;
 }) {
   const { data, isLoading, error, refetch } = useBaixasPendentes();
-  const { toast } = useToast();
   const [openSolicitada, setOpenSolicitada] = useState(true);
   const [openGerada, setOpenGerada] = useState(false);
   const [openEnviada, setOpenEnviada] = useState(false);
@@ -156,7 +154,6 @@ export function BaixasPendentesAlert({
   type GrupoRemessa = {
     remessa_id: string | null;
     arquivo_nome: string | null;
-    conteudo: string | null;
     gerado_em: string | null;
     total: number;
     itens: BaixaPendenteItem[];
@@ -173,8 +170,7 @@ export function BaixasPendentesAlert({
         map.set(key, {
           remessa_id: it.remessa_id,
           arquivo_nome: it.remessa_arquivo_nome,
-          conteudo: it.remessa_conteudo,
-          gerado_em: it.remessa_gerado_em,
+            gerado_em: it.remessa_gerado_em,
           total: Number(it.valor ?? 0),
           itens: [it],
         });
@@ -309,7 +305,7 @@ export function BaixasPendentesAlert({
             )}
           >
             <UploadCloud className="h-3.5 w-3.5" />
-            Baixe o arquivo abaixo, suba no SafraNet e marque como enviada na sub-aba "Remessas Safra".
+            O arquivo fica na sub-aba "Remessas Safra" — baixe lá, suba no SafraNet e marque como enviada.
             {geradaAtrasada && (
               <span className="ml-1 inline-flex items-center gap-1 font-medium">
                 <Clock className="h-3.5 w-3.5" />
@@ -318,34 +314,19 @@ export function BaixasPendentesAlert({
             )}
           </AlertDescription>
 
-          {/* Grupos por remessa, com botão de download por remessa */}
+          {onIrParaRemessas && (
+            <div className="mt-3">
+              <Button size="sm" variant="outline" className="gap-2" onClick={onIrParaRemessas}>
+                <ArrowUpRight className="h-4 w-4" />
+                Abrir Remessas
+              </Button>
+            </div>
+          )}
+
+          {/* Grupos por remessa — informativo: o arquivo vive na aba Remessas */}
           <div className="mt-3 space-y-2">
             {gruposGerada.map((g) => {
               const idade = daysSince(g.gerado_em);
-              const semConteudo = !g.conteudo;
-              const btn = (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-2 shrink-0"
-                  disabled={semConteudo}
-                  onClick={() => {
-                    try {
-                      baixarArquivoRemessa(g.conteudo, g.arquivo_nome ?? `remessa-${g.remessa_id ?? "sem-id"}.rem`);
-                      toast({ title: "Arquivo baixado", description: g.arquivo_nome ?? "remessa" });
-                    } catch (e) {
-                      toast({
-                        title: "Erro ao baixar remessa",
-                        description: e instanceof Error ? e.message : String(e),
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                >
-                  <Download className="h-4 w-4" />
-                  Baixar arquivo
-                </Button>
-              );
               return (
                 <div key={g.remessa_id ?? `sem-${g.itens[0].id}`} className="rounded-md border bg-background/60 overflow-hidden">
                   <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-muted/40 text-xs">
@@ -361,16 +342,6 @@ export function BaixasPendentesAlert({
                         </span>
                       )}
                     </div>
-                    {semConteudo ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
-                          <TooltipContent>Arquivo não disponível — remessa anterior ao histórico</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      btn
-                    )}
                   </div>
                   <Collapsible>
                     <CollapsibleTrigger asChild>
