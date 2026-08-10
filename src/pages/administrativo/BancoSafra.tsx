@@ -409,28 +409,29 @@ export default function BancoSafra() {
 
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card px-4 py-2">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm divide-x divide-border">
-          <div className="pr-5">
-            <span className="text-muted-foreground text-xs mr-1.5">Pendentes</span>
-            <span className="font-semibold text-gray-700">{boletosKpis.pendentes}</span>
-          </div>
-          <div className="pl-5 pr-5">
-            <span className="text-muted-foreground text-xs mr-1.5">Registrados</span>
-            <span className="font-semibold text-blue-700">{boletosKpis.registrados}</span>
-          </div>
-          <div className="pl-5 pr-5">
-            <span className="text-muted-foreground text-xs mr-1.5">Pagos no mês</span>
-            <span className="font-semibold text-green-700">{boletosKpis.pagosMes}</span>
-          </div>
-          <div className="pl-5 pr-5">
-            <span className="text-muted-foreground text-xs mr-1.5">Vencidos</span>
-            <span className="font-semibold text-orange-700">{boletosKpis.vencidos}</span>
-          </div>
-          <div className="pl-5">
-            <span className="text-muted-foreground text-xs mr-1.5">Baixas pendentes</span>
-            <span className="font-semibold text-purple-700">{countSolicitada}</span>
-          </div>
-
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {([
+            { key: "pendentes", label: "Pendentes", valor: boletosKpis.pendentes, cls: "text-gray-700", ativoCls: "bg-gray-700 text-white" },
+            { key: "registrados", label: "Registrados", valor: boletosKpis.registrados, cls: "text-blue-700", ativoCls: "bg-blue-700 text-white" },
+            { key: "pagos_mes", label: "Pagos no mês", valor: boletosKpis.pagosMes, cls: "text-green-700", ativoCls: "bg-green-700 text-white" },
+            { key: "vencidos", label: "Vencidos", valor: boletosKpis.vencidos, cls: "text-orange-700", ativoCls: "bg-orange-700 text-white" },
+            { key: "baixas", label: "Baixas pendentes", valor: countSolicitada, cls: "text-purple-700", ativoCls: "bg-purple-700 text-white" },
+          ] as const).map((k) => {
+            const ativo = filtroKpi === k.key;
+            return (
+              <button
+                key={k.key}
+                type="button"
+                onClick={() => setFiltroKpi(ativo ? null : k.key)}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                  ativo ? `${k.ativoCls} border-transparent` : "border-border hover:bg-muted"
+                }`}
+              >
+                <span className={ativo ? "" : "text-muted-foreground"}>{k.label}</span>
+                <span className={`font-semibold ${ativo ? "" : k.cls}`}>{k.valor}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
