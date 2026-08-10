@@ -1314,6 +1314,93 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={baixaDialogOpen}
+        onOpenChange={(v) => {
+          if (gerandoBaixa) return;
+          setBaixaDialogOpen(v);
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gerar Remessa de Baixa</DialogTitle>
+            <DialogDescription>
+              Selecione os títulos com baixa solicitada que entram nesta remessa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[360px] overflow-y-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={
+                        baixaSolicitadaItens.length > 0 &&
+                        baixaSelecionados.size === baixaSolicitadaItens.length
+                      }
+                      onCheckedChange={(c) =>
+                        setBaixaSelecionados(
+                          c ? new Set(baixaSolicitadaItens.map((i) => i.id)) : new Set()
+                        )
+                      }
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Nosso número</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {baixaSolicitadaItens.map((i) => (
+                  <TableRow key={i.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={baixaSelecionados.has(i.id)}
+                        onCheckedChange={() =>
+                          setBaixaSelecionados((prev) => {
+                            const n = new Set(prev);
+                            if (n.has(i.id)) n.delete(i.id);
+                            else n.add(i.id);
+                            return n;
+                          })
+                        }
+                        aria-label={`Selecionar ${i.numero_titulo ?? i.id}`}
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{i.numero_titulo || "—"}</TableCell>
+                    <TableCell className="max-w-[220px] truncate">{i.cliente}</TableCell>
+                    <TableCell className="font-mono text-xs">{i.nosso_numero_seq || "—"}</TableCell>
+                    <TableCell className="text-right font-mono">{formatBRL(i.valor)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBaixaDialogOpen(false)}
+              disabled={gerandoBaixa}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => handleGerarBaixa(Array.from(baixaSelecionados))}
+              disabled={gerandoBaixa || baixaSelecionados.size === 0}
+              className="gap-2"
+            >
+              {gerandoBaixa && <Loader2 className="h-4 w-4 animate-spin" />}
+              Gerar remessa com {baixaSelecionados.size} título(s) ·{" "}
+              {formatBRL(totalBaixaSelecionado)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
