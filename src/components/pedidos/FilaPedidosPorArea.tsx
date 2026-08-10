@@ -40,7 +40,7 @@ import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
 import type { AreaPedido, EstagioPedido, PedidoFilaItem } from "@/types/pedido";
 
 
-type OrdenacaoFila = "cronologico" | "risco";
+type OrdenacaoFila = "cronologico" | "risco" | "entrada_paga";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -228,12 +228,23 @@ export function FilaPedidosPorArea({
     if (situacaoFilter !== "todas") {
       base = base.filter((p) => {
         const s = p.situacao_financeira;
+        // Ortogonal às demais: descreve dinheiro que já entrou, não o que falta cobrar.
+        if (situacaoFilter === "com_entrada_paga") return Number(p.adiantado_vivo || 0) > 0;
         if (situacaoFilter === "em_aberto") return s === "em_aberto" || s === "parcial_pago";
         return s === situacaoFilter;
       });
     }
     if (somenteRiscoAlto) {
       base = base.filter((p) => riscoMap?.get(p.id)?.risco_cor === "destructive");
+    }
+    if (ordenacao === "entrada_paga") {
+      // Quem já pôs dinheiro fura a fila; empate volta ao critério cronológico.
+      return [...base].sort((a, b) => {
+        const va = Number(a.adiantado_vivo || 0);
+        const vb = Number(b.adiantado_vivo || 0);
+        if (vb !== va) return vb - va;
+        return new Date(b.recebido_em).getTime() - new Date(a.recebido_em).getTime();
+      });
     }
     if (ordenacao !== "risco") return base;
     return [...base].sort((a, b) => {
@@ -446,6 +457,7 @@ export function FilaPedidosPorArea({
             <SelectItem value="sem_cobranca">Sem cobrança</SelectItem>
             <SelectItem value="sem_recebivel">Sem recebível</SelectItem>
             <SelectItem value="anulado">Anulado</SelectItem>
+            <SelectItem value="com_entrada_paga">Com entrada paga</SelectItem>
           </SelectContent>
         </Select>
         <Select value={marcacaoFilter} onValueChange={setMarcacaoFilter}>
@@ -468,6 +480,7 @@ export function FilaPedidosPorArea({
           <SelectContent>
             <SelectItem value="cronologico">Ordenar: Cronológico</SelectItem>
             <SelectItem value="risco">Ordenar: Risco</SelectItem>
+            <SelectItem value="entrada_paga">Ordenar: Entrada paga primeiro</SelectItem>
           </SelectContent>
         </Select>
       </div>
