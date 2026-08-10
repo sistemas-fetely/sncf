@@ -523,14 +523,283 @@ function TitulosBoletoTab() {
 
 // ─── Tab 3: Remessas ─────────────────────────────────────────────────────────
 
+type RemessaTituloRow = {
+  remessa_id: string;
+  titulo_id: string;
+  numero_titulo: string | null;
+  cliente: string | null;
+  pedido_externo: string | null;
+  nosso_numero_seq: number | string | null;
+  data_vencimento_atual: string | null;
+  valor_bruto: number | null;
+  boleto_status: string | null;
+};
+
+function useRemessaTitulos(remessaId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["remessa-safra-titulos", remessaId],
+    enabled: enabled && !!remessaId,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_remessa_safra_titulos")
+        .select(
+          "remessa_id, titulo_id, numero_titulo, cliente, pedido_externo, nosso_numero_seq, data_vencimento_atual, valor_bruto, boleto_status",
+        )
+        .eq("remessa_id", remessaId)
+        .order("data_vencimento_atual", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as RemessaTituloRow[];
+    },
+  });
+}
+
+function TabelaTitulosRemessa({
+  remessaId,
+  cancelada,
+  observacao,
+}: {
+  remessaId: string;
+  cancelada: boolean;
+  observacao: string | null;
+}) {
+  const { data: titulos = [], isLoading, isError, error } = useRemessaTitulos(remessaId, true);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-1.5 p-3">
+        <Skeleton className="h-6 w-full" />
+        <Skeleton className="h-6 w-full" />
+        <Skeleton className="h-6 w-2/3" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-3 text-xs text-destructive">
+        Falha ao carregar títulos: {(error as Error).message}
+      </div>
+    );
+  }
+
+  if (titulos.length === 0) {
+    if (cancelada) {
+      return (
+        <div className="p-3 text-xs text-muted-foreground space-y-1.5">
+          <p>Títulos já liberados — ver histórico no campo observação</p>
+          {observacao && (
+            <pre className="whitespace-pre-wrap rounded-md border bg-background/60 p-2 font-mono text-[11px] text-foreground">
+              {observacao}
+            </pre>
+          )}
+        </div>
+      );
+    }
+    return <div className="p-3 text-xs text-muted-foreground">Nenhum título nesta remessa.</div>;
+  }
+
+  const soma = titulos.reduce((s, t) => s + Number(t.valor_bruto ?? 0), 0);
+
+  return (
+    <div className="rounded-md border bg-background/60 overflow-hidden m-2">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/50">
+          <tr className="text-left">
+            <th className="px-3 py-1.5 font-medium">Título</th>
+            <th className="px-3 py-1.5 font-medium">Cliente</th>
+            <th className="px-3 py-1.5 font-medium">Pedido</th>
+            <th className="px-3 py-1.5 font-medium">Nosso número</th>
+            <th className="px-3 py-1.5 font-medium">Vencimento</th>
+            <th className="px-3 py-1.5 font-medium text-right">Valor</th>
+            <th className="px-3 py-1.5 font-medium">Status hoje</th>
+          </tr>
+        </thead>
+        <tbody>
+          {titulos.map((t) => (
+            <tr key={t.titulo_id} className="border-t">
+              <td className="px-3 py-1.5 font-mono">{t.numero_titulo ?? "—"}</td>
+              <td className="px-3 py-1.5">{t.cliente ?? "—"}</td>
+              <td className="px-3 py-1.5 font-mono">{t.pedido_externo ?? "—"}</td>
+              <td className="px-3 py-1.5 font-mono">{t.nosso_numero_seq ?? "—"}</td>
+              <td className="px-3 py-1.5">
+                {t.data_vencimento_atual ? fmtDate(t.data_vencimento_atual) : "—"}
+              </td>
+              <td className="px-3 py-1.5 text-right tabular-nums">
+                {formatBRL(Number(t.valor_bruto ?? 0))}
+              </td>
+              <td className="px-3 py-1.5">
+                {t.boleto_status ? <BadgeBoletoStatus status={t.boleto_status as BoletoStatus} /> : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot className="bg-muted/30">
+          <tr className="border-t">
+            <td className="px-3 py-1.5 font-medium" colSpan={5}>
+              {titulos.length} título{titulos.length === 1 ? "" : "s"}
+            </td>
+            <td className="px-3 py-1.5 text-right font-medium tabular-nums">{formatBRL(soma)}</td>
+            <td />
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+function CancelarRemessaDialog({
+  remessa,
+  onClose,
+}: {
+  remessa: { id: string; arquivo_nome: string } | null;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [motivo, setMotivo] = useState("");
+  const [cancelando, setCancelando] = useState(false);
+  const { data: titulos = [], isLoading } = useRemessaTitulos(remessa?.id ?? null, !!remessa);
+
+  async function confirmar() {
+    if (!remessa) return;
+    setCancelando(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("cancelar_remessa_safra", {
+        p_remessa_id: remessa.id,
+        p_motivo: motivo.trim(),
+      });
+      if (error) throw error;
+      const liberados = data?.titulos_liberados ?? 0;
+      toast({
+        title: `${data?.arquivo_nome ?? remessa.arquivo_nome} cancelada — ${liberados} título(s) liberado(s)`,
+      });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["remessas-safra"] }),
+        qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
+        qc.invalidateQueries({ queryKey: ["baixas-pendentes"] }),
+      ]);
+      setMotivo("");
+      onClose();
+    } catch (e) {
+      toast({
+        title: "Erro ao cancelar remessa",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setCancelando(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={!!remessa}
+      onOpenChange={(o) => {
+        if (!o && !cancelando) {
+          setMotivo("");
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Cancelar remessa {remessa?.arquivo_nome}</DialogTitle>
+        </DialogHeader>
+
+        <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900">
+          <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+          <AlertDescription className="text-amber-900 dark:text-amber-100">
+            A remessa não será apagada — o número sequencial é a prova perante o Safra. Ela ficará
+            marcada como cancelada e os títulos voltam ao estado anterior.
+          </AlertDescription>
+        </Alert>
+
+        <div className="rounded-md border overflow-hidden max-h-[240px] overflow-y-auto">
+          {isLoading ? (
+            <div className="p-3 space-y-1.5">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-2/3" />
+            </div>
+          ) : titulos.length === 0 ? (
+            <div className="p-3 text-xs text-muted-foreground">Nenhum título vinculado.</div>
+          ) : (
+            <table className="w-full text-xs">
+              <thead className="bg-muted/50">
+                <tr className="text-left">
+                  <th className="px-3 py-1.5 font-medium">Título</th>
+                  <th className="px-3 py-1.5 font-medium">Cliente</th>
+                  <th className="px-3 py-1.5 font-medium">Vencimento</th>
+                  <th className="px-3 py-1.5 font-medium text-right">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {titulos.map((t) => (
+                  <tr key={t.titulo_id} className="border-t">
+                    <td className="px-3 py-1.5 font-mono">{t.numero_titulo ?? "—"}</td>
+                    <td className="px-3 py-1.5">{t.cliente ?? "—"}</td>
+                    <td className="px-3 py-1.5">
+                      {t.data_vencimento_atual ? fmtDate(t.data_vencimento_atual) : "—"}
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">
+                      {formatBRL(Number(t.valor_bruto ?? 0))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Motivo do cancelamento</label>
+          <Textarea
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Por que esta remessa está sendo cancelada?"
+            rows={3}
+          />
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setMotivo("");
+              onClose();
+            }}
+            disabled={cancelando}
+          >
+            Voltar
+          </Button>
+          <Button variant="destructive" onClick={confirmar} disabled={cancelando || !motivo.trim()}>
+            {cancelando ? "Cancelando..." : "Confirmar cancelamento"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function RemessasSafraTab() {
   const [importarOpen, setImportarOpen] = useState(false);
-  
+
   const [marcarEnviadaTarget, setMarcarEnviadaTarget] = useState<{ id: string; arquivo_nome: string } | null>(null);
   const [marcandoEnviada, setMarcandoEnviada] = useState(false);
+  const [cancelarTarget, setCancelarTarget] = useState<{ id: string; arquivo_nome: string } | null>(null);
+  const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: remessas = [], isLoading } = useRemessasSafra();
+
+  const toggleExpandida = (id: string) =>
+    setExpandidas((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
 
   function baixarNovamente(conteudo: string | null, arquivoNome: string) {
     try {
@@ -587,6 +856,10 @@ function RemessasSafraTab() {
       label: "Com rejeições",
       className: "bg-red-50 text-red-700 border border-red-200",
     },
+    cancelada: {
+      label: "Cancelada",
+      className: "bg-red-50 text-red-700 border border-red-200",
+    },
   };
 
   const umDiaMs = 24 * 60 * 60 * 1000;
@@ -605,9 +878,10 @@ function RemessasSafraTab() {
       </div>
 
       <div className="rounded-md border overflow-x-auto">
-        <Table className="min-w-[900px]">
+        <Table className="min-w-[960px]">
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8"></TableHead>
               <TableHead>Arquivo</TableHead>
               <TableHead>Gerada em</TableHead>
               <TableHead>Enviada em</TableHead>
@@ -622,14 +896,14 @@ function RemessasSafraTab() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={8} className="py-6">
+                <TableCell colSpan={9} className="py-6">
                   <Skeleton className="h-10 w-full" />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && remessas.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Nenhuma remessa gerada ainda.
                 </TableCell>
               </TableRow>
@@ -640,69 +914,111 @@ function RemessasSafraTab() {
                 r.status === "gerada" &&
                 !r.enviada_em &&
                 Date.now() - new Date(r.gerado_em).getTime() > umDiaMs;
+              const aberta = expandidas.has(r.id);
               return (
-                <TableRow
-                  key={r.id}
-                  className={esquecida ? "bg-amber-50/60 hover:bg-amber-50" : undefined}
-                  title={
-                    esquecida
-                      ? "Gerada e nunca marcada como enviada — o arquivo subiu no SafraNet?"
-                      : undefined
-                  }
-                >
-                  <TableCell className="font-mono text-xs">
-                    <div className="flex items-center gap-1.5">
-                      {esquecida && (
-                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                      )}
-                      {r.arquivo_nome}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{fmtDateTime(r.gerado_em)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {r.enviada_em ? fmtDateTime(r.enviada_em) : "—"}
-                  </TableCell>
-                  <TableCell className="text-right">{r.qtd_titulos}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatBRL(r.valor_total)}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {r.retorno_processado_em ? fmtDateTime(r.retorno_processado_em) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.className}`}
-                    >
-                      {s.label}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {r.status === "gerada" && (
+                <>
+                  <TableRow
+                    key={r.id}
+                    className={esquecida ? "bg-amber-50/60 hover:bg-amber-50" : undefined}
+                    title={
+                      esquecida
+                        ? "Gerada e nunca marcada como enviada — o arquivo subiu no SafraNet?"
+                        : undefined
+                    }
+                  >
+                    <TableCell className="w-8">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => toggleExpandida(r.id)}
+                        aria-label={aberta ? "Recolher títulos" : "Ver títulos"}
+                      >
+                        {aberta ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      <div className="flex items-center gap-1.5">
+                        {esquecida && (
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                        )}
+                        {r.arquivo_nome}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">{fmtDateTime(r.gerado_em)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {r.enviada_em ? fmtDateTime(r.enviada_em) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">{r.qtd_titulos}</TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatBRL(r.valor_total)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {r.retorno_processado_em ? fmtDateTime(r.retorno_processado_em) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.className}`}
+                      >
+                        {s.label}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {r.status === "gerada" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setMarcarEnviadaTarget({ id: r.id, arquivo_nome: r.arquivo_nome })
+                            }
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                            Marcar enviada
+                          </Button>
+                        )}
+                        {r.status === "gerada" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-700 hover:text-red-800"
+                            onClick={() =>
+                              setCancelarTarget({ id: r.id, arquivo_nome: r.arquivo_nome })
+                            }
+                          >
+                            <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                            Cancelar
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() =>
-                            setMarcarEnviadaTarget({ id: r.id, arquivo_nome: r.arquivo_nome })
-                          }
+                          disabled={!r.conteudo}
+                          title={!r.conteudo ? "Arquivo não disponível (remessa anterior ao histórico)" : undefined}
+                          onClick={() => baixarNovamente(r.conteudo, r.arquivo_nome)}
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                          Marcar enviada
+                          <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                          Baixar arquivo
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!r.conteudo}
-                        title={!r.conteudo ? "Arquivo não disponível (remessa anterior ao histórico)" : undefined}
-                        onClick={() => baixarNovamente(r.conteudo, r.arquivo_nome)}
-                      >
-                        <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                        Baixar arquivo
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {aberta && (
+                    <TableRow key={`${r.id}-titulos`} className="bg-muted/20 hover:bg-muted/20">
+                      <TableCell colSpan={9} className="p-0">
+                        <TabelaTitulosRemessa
+                          remessaId={r.id}
+                          cancelada={r.status === "cancelada"}
+                          observacao={r.observacao}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
               );
             })}
 
@@ -718,6 +1034,8 @@ function RemessasSafraTab() {
           qc.invalidateQueries({ queryKey: ["titulos-boleto"] });
         }}
       />
+
+      <CancelarRemessaDialog remessa={cancelarTarget} onClose={() => setCancelarTarget(null)} />
 
       <Dialog
         open={!!marcarEnviadaTarget}
