@@ -116,6 +116,9 @@ serve(async (req) => {
     let falhas = 0;
     let pulados = 0;
     let processados = 0;
+    let interrompidoPorTempo = false;
+    const inicio = Date.now();
+
 
     // grava log e falha em voz alta
     async function logar(row: Record<string, unknown>) {
