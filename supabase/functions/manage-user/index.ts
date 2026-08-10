@@ -308,7 +308,6 @@ Deno.serve(async (req) => {
       const rollbackUser = async (motivo: string, detail?: string) => {
         console.error("[create_user_v2] rollback:", motivo, detail);
         await adminClient.from("grupo_acesso_usuarios").delete().eq("user_id", userId);
-        await adminClient.from("user_colaborador_link").delete().eq("user_id", userId);
         await adminClient.from("profiles").delete().eq("user_id", userId);
         await adminClient.auth.admin.deleteUser(userId);
         return new Response(JSON.stringify({ error: motivo, detail: detail ?? null }), {
