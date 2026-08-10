@@ -64,7 +64,17 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const mostrarAlerta = precisaSincronizar;
   const mostrarInicial = !precisaSincronizar && semRemessa && podeEnviarInicial;
 
-  if (!mostrarAlerta && !mostrarInicial && elegiveis.length === 0) return null;
+  // Reenvio: só super_admin, só em_separacao, e só se existe uma tentativa VIVA
+  // carregando exatamente o id que o pedido aponta hoje (a "vigente").
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const temTentativaVigente = (remessas ?? []).some((r: any) =>
+    r.status !== "cancelada" && !!r.bling_pedido_id &&
+    String(r.bling_pedido_id) === String(bling_id_destino)
+  );
+  const podeReenviar =
+    isSuperAdmin && estagio === "em_separacao" && !!bling_id_destino && temTentativaVigente;
+
+  if (!mostrarAlerta && !mostrarInicial && elegiveis.length === 0 && !podeReenviar) return null;
 
   return (
     <div className="space-y-2">
