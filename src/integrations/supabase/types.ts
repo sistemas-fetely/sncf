@@ -1012,6 +1012,7 @@ export type Database = {
           duracao_ms: number | null
           id: string
           iniciado_em: string
+          interrompida: boolean
           origem: string
           regra_slug: string | null
           regras_com_erro: number
@@ -1027,6 +1028,7 @@ export type Database = {
           duracao_ms?: number | null
           id?: string
           iniciado_em?: string
+          interrompida?: boolean
           origem?: string
           regra_slug?: string | null
           regras_com_erro?: number
@@ -1042,6 +1044,7 @@ export type Database = {
           duracao_ms?: number | null
           id?: string
           iniciado_em?: string
+          interrompida?: boolean
           origem?: string
           regra_slug?: string | null
           regras_com_erro?: number
@@ -1195,6 +1198,7 @@ export type Database = {
           modulo_slug: string
           o_que_significa: string | null
           observacao: string | null
+          orcamento_ms: number
           ordem: number
           origem: string
           permite_lote: boolean
@@ -1220,6 +1224,7 @@ export type Database = {
           modulo_slug: string
           o_que_significa?: string | null
           observacao?: string | null
+          orcamento_ms?: number
           ordem?: number
           origem?: string
           permite_lote?: boolean
@@ -1245,6 +1250,7 @@ export type Database = {
           modulo_slug?: string
           o_que_significa?: string | null
           observacao?: string | null
+          orcamento_ms?: number
           ordem?: number
           origem?: string
           permite_lote?: boolean
@@ -42078,14 +42084,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -42862,14 +42868,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -48575,10 +48581,24 @@ export type Database = {
         Args: { p_limite?: number; p_slug: string }
         Returns: Json
       }
-      fn_auditoria_rodar: {
-        Args: { p_origem?: string; p_regra_slug?: string; p_user_id?: string }
-        Returns: Json
-      }
+      fn_auditoria_rodar:
+        | {
+            Args: {
+              p_origem?: string
+              p_regra_slug?: string
+              p_user_id?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_origem?: string
+              p_regra_slug?: string
+              p_teto_ms?: number
+              p_user_id?: string
+            }
+            Returns: Json
+          }
       fn_auditoria_sql_valido: { Args: { p_sql: string }; Returns: string }
       fn_auditoria_testar_pendentes: {
         Args: { p_amostra?: number; p_max?: number; p_origem?: string }

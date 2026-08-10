@@ -1071,7 +1071,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
               Cancelar
             </Button>
             <Button
-              onClick={handleGerarEntrada}
+              onClick={() => handleGerarEntrada()}
               disabled={gerandoEntrada || selecionados.size === 0}
               className="gap-2"
             >

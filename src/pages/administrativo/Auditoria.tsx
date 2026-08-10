@@ -1,0 +1,61 @@
+/**
+ * Auditoria — motor de "regra como dado".
+ *
+ * Doutrina: cada monitoria é uma linha em `auditoria_regra` com o SQL que o
+ * motor executa. O sistema ACHA; o humano TRATA. A tela não resolve o problema:
+ * ela leva para a tela que resolve (`rota_acao`).
+ *
+ * Fontes: vw_auditoria_achado (aba Achados) e vw_auditoria_painel (aba Painel).
+ * Escrita SEMPRE por RPC — nunca UPDATE direto no achado.
+ */
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AchadosTab from "@/components/auditoria/AchadosTab";
+import PainelAuditoriaTab from "@/components/auditoria/PainelAuditoriaTab";
+import { useExecucoesAuditoria } from "@/hooks/auditoria/useAuditoria";
+import { ShieldAlert } from "lucide-react";
+
+export default function Auditoria() {
+  const [aba, setAba] = useState("achados");
+  const [regraFiltro, setRegraFiltro] = useState<string | null>(null);
+  const execucoes = useExecucoesAuditoria();
+  const ultimaExecucaoEm = execucoes.data?.[0]?.iniciado_em ?? null;
+
+  return (
+    <div className="mx-auto max-w-[1500px] space-y-6 p-6">
+      <div className="flex items-start gap-3">
+        <ShieldAlert className="mt-1 h-6 w-6 text-muted-foreground" />
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Auditoria</h1>
+          <p className="text-sm text-muted-foreground">
+            O motor acha; o humano trata. Cada monitoria é uma regra com SQL versionado.
+          </p>
+        </div>
+      </div>
+
+      <Tabs value={aba} onValueChange={setAba}>
+        <TabsList>
+          <TabsTrigger value="achados">Achados</TabsTrigger>
+          <TabsTrigger value="painel">Painel</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="achados" className="mt-4">
+          <AchadosTab
+            regraFiltro={regraFiltro}
+            onLimparRegra={() => setRegraFiltro(null)}
+            ultimaExecucaoEm={ultimaExecucaoEm}
+          />
+        </TabsContent>
+
+        <TabsContent value="painel" className="mt-4">
+          <PainelAuditoriaTab
+            onVerAchadosDaRegra={(slug) => {
+              setRegraFiltro(slug);
+              setAba("achados");
+            }}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
