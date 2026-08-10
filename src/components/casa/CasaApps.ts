@@ -11,8 +11,6 @@ export interface CasaApp {
   routeMatchers: string[];
   /** Ícone Lucide */
   icon: LucideIcon;
-  /** permModule necessário para aparecer (null = sempre visível) */
-  permModule: string | null;
   /** App só aparece no menu do avatar (Mesa restrita) */
   hiddenFromTopNav?: boolean;
   /** Visível apenas para super_admin / admin_rh */
@@ -32,7 +30,6 @@ export const CASA_APPS: CasaApp[] = [
     defaultRoute: "/",
     routeMatchers: ["/"],
     icon: Home,
-    permModule: null,
     tela_slug: "tela.home",
   },
   {
@@ -62,7 +59,6 @@ export const CASA_APPS: CasaApp[] = [
       "/treinamentos",
     ],
     icon: Users,
-    permModule: null,
     tela_slug: "tela.pessoas",
   },
   {
@@ -71,7 +67,6 @@ export const CASA_APPS: CasaApp[] = [
     defaultRoute: "/administrativo",
     routeMatchers: ["/administrativo", "/compras"],
     icon: Wallet,
-    permModule: null,
     tela_slug: "tela.financeiro",
     slugPrefix: "tela.fin_",
   },
@@ -81,7 +76,6 @@ export const CASA_APPS: CasaApp[] = [
     defaultRoute: "/administrativo-fetely",
     routeMatchers: ["/administrativo-fetely"],
     icon: Sparkles,
-    permModule: null,
     tela_slug: "tela.admin_fetely",
   },
   {
@@ -90,7 +84,6 @@ export const CASA_APPS: CasaApp[] = [
     defaultRoute: "/credito",
     routeMatchers: ["/credito"],
     icon: CreditCard,
-    permModule: null,
     tela_slug: "tela.credito",
   },
   {
@@ -99,7 +92,6 @@ export const CASA_APPS: CasaApp[] = [
     defaultRoute: "/pedidos",
     routeMatchers: ["/recebimento", "/pedidos", "/comercial", "/vendas", "/administrativo-fetely/parceiros", "/credito/clientes", "/logistica", "/parceiros", "/canal-cpo"],
     icon: HandCoins,
-    permModule: null,
     tela_slug: "tela.pedidos",
   },
   {
@@ -108,7 +100,6 @@ export const CASA_APPS: CasaApp[] = [
     defaultRoute: "/comercial/oportunidades",
     routeMatchers: ["/comercial/oportunidades"],
     icon: Boxes,
-    permModule: null,
     tela_slug: "tela.comercial",
   },
   {
@@ -126,7 +117,6 @@ export const CASA_APPS: CasaApp[] = [
       "/minhas-notas",
     ],
     icon: BookOpen,
-    permModule: null,
     tela_slug: "tela.sncf",
   },
   {
@@ -135,7 +125,6 @@ export const CASA_APPS: CasaApp[] = [
     defaultRoute: "/admin",
     routeMatchers: ["/admin", "/ti"],
     icon: Shield,
-    permModule: null,
     tela_slug: null,
     hiddenFromTopNav: true,
     requireAdminRole: true,
