@@ -697,6 +697,191 @@ export type Database = {
         }
         Relationships: []
       }
+      auditoria_achado: {
+        Row: {
+          chave: string
+          contexto: Json | null
+          created_at: string
+          detalhe: string | null
+          dono_user_id: string | null
+          entidade: string | null
+          entidade_id: string | null
+          execucao_primeira: string | null
+          execucao_ultima: string | null
+          fechado_em: string | null
+          id: string
+          id_externo: string | null
+          nota: string | null
+          parceiro: string | null
+          pedido_id: string | null
+          primeira_vez_em: string
+          regra_slug: string
+          situacao: string
+          sumiu_em: string | null
+          tratado_em: string | null
+          tratado_por: string | null
+          ultima_vez_em: string
+          updated_at: string
+          valor: number | null
+          vezes_visto: number
+        }
+        Insert: {
+          chave: string
+          contexto?: Json | null
+          created_at?: string
+          detalhe?: string | null
+          dono_user_id?: string | null
+          entidade?: string | null
+          entidade_id?: string | null
+          execucao_primeira?: string | null
+          execucao_ultima?: string | null
+          fechado_em?: string | null
+          id?: string
+          id_externo?: string | null
+          nota?: string | null
+          parceiro?: string | null
+          pedido_id?: string | null
+          primeira_vez_em?: string
+          regra_slug: string
+          situacao?: string
+          sumiu_em?: string | null
+          tratado_em?: string | null
+          tratado_por?: string | null
+          ultima_vez_em?: string
+          updated_at?: string
+          valor?: number | null
+          vezes_visto?: number
+        }
+        Update: {
+          chave?: string
+          contexto?: Json | null
+          created_at?: string
+          detalhe?: string | null
+          dono_user_id?: string | null
+          entidade?: string | null
+          entidade_id?: string | null
+          execucao_primeira?: string | null
+          execucao_ultima?: string | null
+          fechado_em?: string | null
+          id?: string
+          id_externo?: string | null
+          nota?: string | null
+          parceiro?: string | null
+          pedido_id?: string | null
+          primeira_vez_em?: string
+          regra_slug?: string
+          situacao?: string
+          sumiu_em?: string | null
+          tratado_em?: string | null
+          tratado_por?: string | null
+          ultima_vez_em?: string
+          updated_at?: string
+          valor?: number | null
+          vezes_visto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_achado_entidade_fkey"
+            columns: ["entidade"]
+            isOneToOne: false
+            referencedRelation: "auditoria_entidade_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_execucao_primeira_fkey"
+            columns: ["execucao_primeira"]
+            isOneToOne: false
+            referencedRelation: "auditoria_execucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_execucao_ultima_fkey"
+            columns: ["execucao_ultima"]
+            isOneToOne: false
+            referencedRelation: "auditoria_execucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "auditoria_regra"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_auditoria_painel"
+            referencedColumns: ["regra_slug"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_situacao_fkey"
+            columns: ["situacao"]
+            isOneToOne: false
+            referencedRelation: "auditoria_situacao_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      auditoria_achado_evento: {
+        Row: {
+          achado_id: string
+          created_at: string
+          de: string | null
+          execucao_id: string | null
+          id: string
+          nota: string | null
+          para: string | null
+          tipo: string
+          user_id: string | null
+        }
+        Insert: {
+          achado_id: string
+          created_at?: string
+          de?: string | null
+          execucao_id?: string | null
+          id?: string
+          nota?: string | null
+          para?: string | null
+          tipo: string
+          user_id?: string | null
+        }
+        Update: {
+          achado_id?: string
+          created_at?: string
+          de?: string | null
+          execucao_id?: string | null
+          id?: string
+          nota?: string | null
+          para?: string | null
+          tipo?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_achado_evento_achado_id_fkey"
+            columns: ["achado_id"]
+            isOneToOne: false
+            referencedRelation: "auditoria_achado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_evento_achado_id_fkey"
+            columns: ["achado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_auditoria_achado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_evento_execucao_id_fkey"
+            columns: ["execucao_id"]
+            isOneToOne: false
+            referencedRelation: "auditoria_execucao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auditoria_classe_rota: {
         Row: {
           ativo: boolean
@@ -786,6 +971,145 @@ export type Database = {
           },
         ]
       }
+      auditoria_entidade_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+          tabela_alvo: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+          tabela_alvo?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+          tabela_alvo?: string | null
+        }
+        Relationships: []
+      }
+      auditoria_execucao: {
+        Row: {
+          achados_novos: number
+          achados_reaparecidos: number
+          achados_sumiram: number
+          achados_vivos: number
+          disparado_por: string | null
+          duracao_ms: number | null
+          id: string
+          iniciado_em: string
+          origem: string
+          regra_slug: string | null
+          regras_com_erro: number
+          regras_rodadas: number
+          terminado_em: string | null
+        }
+        Insert: {
+          achados_novos?: number
+          achados_reaparecidos?: number
+          achados_sumiram?: number
+          achados_vivos?: number
+          disparado_por?: string | null
+          duracao_ms?: number | null
+          id?: string
+          iniciado_em?: string
+          origem?: string
+          regra_slug?: string | null
+          regras_com_erro?: number
+          regras_rodadas?: number
+          terminado_em?: string | null
+        }
+        Update: {
+          achados_novos?: number
+          achados_reaparecidos?: number
+          achados_sumiram?: number
+          achados_vivos?: number
+          disparado_por?: string | null
+          duracao_ms?: number | null
+          id?: string
+          iniciado_em?: string
+          origem?: string
+          regra_slug?: string | null
+          regras_com_erro?: number
+          regras_rodadas?: number
+          terminado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_execucao_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "auditoria_regra"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "auditoria_execucao_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_auditoria_painel"
+            referencedColumns: ["regra_slug"]
+          },
+        ]
+      }
+      auditoria_execucao_regra: {
+        Row: {
+          created_at: string
+          duracao_ms: number | null
+          erro: string | null
+          execucao_id: string
+          id: string
+          linhas: number | null
+          regra_slug: string
+        }
+        Insert: {
+          created_at?: string
+          duracao_ms?: number | null
+          erro?: string | null
+          execucao_id: string
+          id?: string
+          linhas?: number | null
+          regra_slug: string
+        }
+        Update: {
+          created_at?: string
+          duracao_ms?: number | null
+          erro?: string | null
+          execucao_id?: string
+          id?: string
+          linhas?: number | null
+          regra_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_execucao_regra_execucao_id_fkey"
+            columns: ["execucao_id"]
+            isOneToOne: false
+            referencedRelation: "auditoria_execucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_execucao_regra_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "auditoria_regra"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "auditoria_execucao_regra_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_auditoria_painel"
+            referencedColumns: ["regra_slug"]
+          },
+        ]
+      }
       auditoria_hipotese_regra: {
         Row: {
           acao: string
@@ -850,6 +1174,106 @@ export type Database = {
             columns: ["confianca"]
             isOneToOne: false
             referencedRelation: "hipotese_confianca"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      auditoria_regra: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          criado_por: string | null
+          entidade: string
+          modo: string
+          modulo_slug: string
+          o_que_significa: string | null
+          observacao: string | null
+          ordem: number
+          origem: string
+          permite_lote: boolean
+          rota_acao: string | null
+          rotulo_acao: string | null
+          severidade: string
+          slug: string
+          sql_achado: string
+          sql_hash: string | null
+          testado_em: string | null
+          testado_erro: string | null
+          testado_hash: string | null
+          testado_linhas: number | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          entidade?: string
+          modo?: string
+          modulo_slug: string
+          o_que_significa?: string | null
+          observacao?: string | null
+          ordem?: number
+          origem?: string
+          permite_lote?: boolean
+          rota_acao?: string | null
+          rotulo_acao?: string | null
+          severidade: string
+          slug: string
+          sql_achado: string
+          sql_hash?: string | null
+          testado_em?: string | null
+          testado_erro?: string | null
+          testado_hash?: string | null
+          testado_linhas?: number | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          entidade?: string
+          modo?: string
+          modulo_slug?: string
+          o_que_significa?: string | null
+          observacao?: string | null
+          ordem?: number
+          origem?: string
+          permite_lote?: boolean
+          rota_acao?: string | null
+          rotulo_acao?: string | null
+          severidade?: string
+          slug?: string
+          sql_achado?: string
+          sql_hash?: string | null
+          testado_em?: string | null
+          testado_erro?: string | null
+          testado_hash?: string | null
+          testado_linhas?: number | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_regra_entidade_fkey"
+            columns: ["entidade"]
+            isOneToOne: false
+            referencedRelation: "auditoria_entidade_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "auditoria_regra_modulo_slug_fkey"
+            columns: ["modulo_slug"]
+            isOneToOne: false
+            referencedRelation: "sncf_modulo"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "auditoria_regra_severidade_fkey"
+            columns: ["severidade"]
+            isOneToOne: false
+            referencedRelation: "auditoria_severidade_dim"
             referencedColumns: ["codigo"]
           },
         ]
@@ -944,6 +1368,60 @@ export type Database = {
             referencedColumns: ["nf_id"]
           },
         ]
+      }
+      auditoria_severidade_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          cor: string | null
+          ordem: number
+          peso: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          cor?: string | null
+          ordem?: number
+          peso: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          cor?: string | null
+          ordem?: number
+          peso?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
+      auditoria_situacao_dim: {
+        Row: {
+          ativo: boolean
+          atribuivel_por_humano: boolean
+          codigo: string
+          eh_terminal: boolean
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          atribuivel_por_humano?: boolean
+          codigo: string
+          eh_terminal?: boolean
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          atribuivel_por_humano?: boolean
+          codigo?: string
+          eh_terminal?: boolean
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
       }
       auditoria_snapshot: {
         Row: {
@@ -8371,6 +8849,102 @@ export type Database = {
           id?: string
           token?: string
           used_at?: string | null
+        }
+        Relationships: []
+      }
+      embalagem_banda_faixa: {
+        Row: {
+          ativo: boolean
+          banda_max: number
+          banda_min: number
+          caixas_ate: number | null
+          caixas_de: number
+          cobertura_pct: number | null
+          erro_medio_pct: number | null
+          faixa_codigo: string
+          metodo: string | null
+          n_amostra: number
+          n_minimo: number
+          updated_at: string
+          vigencia_inicio: string
+        }
+        Insert: {
+          ativo?: boolean
+          banda_max: number
+          banda_min: number
+          caixas_ate?: number | null
+          caixas_de: number
+          cobertura_pct?: number | null
+          erro_medio_pct?: number | null
+          faixa_codigo: string
+          metodo?: string | null
+          n_amostra?: number
+          n_minimo?: number
+          updated_at?: string
+          vigencia_inicio?: string
+        }
+        Update: {
+          ativo?: boolean
+          banda_max?: number
+          banda_min?: number
+          caixas_ate?: number | null
+          caixas_de?: number
+          cobertura_pct?: number | null
+          erro_medio_pct?: number | null
+          faixa_codigo?: string
+          metodo?: string | null
+          n_amostra?: number
+          n_minimo?: number
+          updated_at?: string
+          vigencia_inicio?: string
+        }
+        Relationships: []
+      }
+      embalagem_calibracao_execucao: {
+        Row: {
+          atingiu_n_minimo: boolean
+          banda_max_medida: number | null
+          banda_max_vigente: number | null
+          banda_min_medida: number | null
+          banda_min_vigente: number | null
+          erro_medio_pct: number | null
+          executado_em: string
+          faixa_codigo: string
+          fora_do_intervalo: boolean
+          homologado_em: string | null
+          homologado_por: string | null
+          id: string
+          n_amostra: number
+        }
+        Insert: {
+          atingiu_n_minimo?: boolean
+          banda_max_medida?: number | null
+          banda_max_vigente?: number | null
+          banda_min_medida?: number | null
+          banda_min_vigente?: number | null
+          erro_medio_pct?: number | null
+          executado_em?: string
+          faixa_codigo: string
+          fora_do_intervalo?: boolean
+          homologado_em?: string | null
+          homologado_por?: string | null
+          id?: string
+          n_amostra: number
+        }
+        Update: {
+          atingiu_n_minimo?: boolean
+          banda_max_medida?: number | null
+          banda_max_vigente?: number | null
+          banda_min_medida?: number | null
+          banda_min_vigente?: number | null
+          erro_medio_pct?: number | null
+          executado_em?: string
+          faixa_codigo?: string
+          fora_do_intervalo?: boolean
+          homologado_em?: string | null
+          homologado_por?: string | null
+          id?: string
+          n_amostra?: number
         }
         Relationships: []
       }
@@ -21491,6 +22065,13 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
           {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "pedidos_forma_pagamento_id_fkey"
             columns: ["forma_pagamento_id"]
             isOneToOne: false
@@ -29240,7 +29821,7 @@ export type Database = {
           reemissao_nova_data?: string | null
           reemissao_novo_valor?: number | null
           remessa_safra_id?: string | null
-          status?: string
+          status: string
           subestado_atraso?: string
           taxa_adquirente_prevista?: number | null
           tipo_pagamento: string
@@ -34417,6 +34998,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "pedidos_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -34478,7 +35066,15 @@ export type Database = {
           soma_valor: number | null
           valor_risco_vermelho: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       v_pedidos_priorizados: {
         Row: {
@@ -34508,6 +35104,13 @@ export type Database = {
           valor_liquido: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
             columns: ["parceiro_id"]
@@ -34653,6 +35256,92 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["cpr_id"]
+          },
+        ]
+      }
+      vw_auditoria_achado: {
+        Row: {
+          chave: string | null
+          contexto: Json | null
+          detalhe: string | null
+          dono_nome: string | null
+          dono_user_id: string | null
+          eh_terminal: boolean | null
+          entidade: string | null
+          entidade_id: string | null
+          entidade_rotulo: string | null
+          esta_vivo: boolean | null
+          fechado_em: string | null
+          id: string | null
+          id_externo: string | null
+          idade_dias: number | null
+          modulo_nome: string | null
+          modulo_slug: string | null
+          nota: string | null
+          o_que_significa: string | null
+          parceiro: string | null
+          pedido_id: string | null
+          permite_lote: boolean | null
+          primeira_vez_em: string | null
+          regra_slug: string | null
+          regra_titulo: string | null
+          reincidente: boolean | null
+          rota_acao: string | null
+          rotulo_acao: string | null
+          severidade: string | null
+          severidade_peso: number | null
+          severidade_rotulo: string | null
+          situacao: string | null
+          situacao_rotulo: string | null
+          sumiu_em: string | null
+          tratado_em: string | null
+          tratado_por: string | null
+          ultima_vez_em: string | null
+          valor: number | null
+          vezes_visto: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_achado_entidade_fkey"
+            columns: ["entidade"]
+            isOneToOne: false
+            referencedRelation: "auditoria_entidade_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "auditoria_regra"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_auditoria_painel"
+            referencedColumns: ["regra_slug"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_situacao_fkey"
+            columns: ["situacao"]
+            isOneToOne: false
+            referencedRelation: "auditoria_situacao_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "auditoria_regra_modulo_slug_fkey"
+            columns: ["modulo_slug"]
+            isOneToOne: false
+            referencedRelation: "sncf_modulo"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "auditoria_regra_severidade_fkey"
+            columns: ["severidade"]
+            isOneToOne: false
+            referencedRelation: "auditoria_severidade_dim"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -34821,6 +35510,56 @@ export type Database = {
           valor_total: number | null
         }
         Relationships: []
+      }
+      vw_auditoria_painel: {
+        Row: {
+          achados_reincidentes: number | null
+          achados_vivos: number | null
+          ativo: boolean | null
+          modo: string | null
+          modulo_nome: string | null
+          modulo_slug: string | null
+          o_que_significa: string | null
+          ordem: number | null
+          regra_slug: string | null
+          rota_acao: string | null
+          rotulo_acao: string | null
+          saude: string | null
+          severidade: string | null
+          severidade_peso: number | null
+          testado_em: string | null
+          testado_erro: string | null
+          teste_valido: boolean | null
+          titulo: string | null
+          ultima_contagem: number | null
+          ultima_duracao_ms: number | null
+          ultima_execucao_id: string | null
+          ultima_rodada_em: string | null
+          ultimo_erro: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_execucao_regra_execucao_id_fkey"
+            columns: ["ultima_execucao_id"]
+            isOneToOne: false
+            referencedRelation: "auditoria_execucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_regra_modulo_slug_fkey"
+            columns: ["modulo_slug"]
+            isOneToOne: false
+            referencedRelation: "sncf_modulo"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "auditoria_regra_severidade_fkey"
+            columns: ["severidade"]
+            isOneToOne: false
+            referencedRelation: "auditoria_severidade_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_b2c_faturado_vs_recebido: {
         Row: {
@@ -35204,7 +35943,15 @@ export type Database = {
           uf: string | null
           valor_pedido: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_ciclo_titulo: {
         Row: {
@@ -35252,6 +35999,13 @@ export type Database = {
             columns: ["mov_classe"]
             isOneToOne: false
             referencedRelation: "movimentacao_classe"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
         ]
@@ -36616,7 +37370,15 @@ export type Database = {
           titulos: Json | null
           valor_pedido: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_dre_integridade: {
         Row: {
@@ -36683,7 +37445,9 @@ export type Database = {
           qtd_solicitada: number | null
           razao_real_estimado: number | null
           sem_contagem: boolean | null
+          suspeita_fracionamento: boolean | null
           suspeita_palete: boolean | null
+          teto_fisico_volumes: number | null
           volumes_reais: number | null
         }
         Relationships: []
@@ -36930,7 +37694,15 @@ export type Database = {
           tipo_sla: string | null
           valor_liquido: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio_atual_do_pedido"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_fato_faturamento: {
         Row: {
@@ -38931,6 +39703,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "pedidos_frete_tipo_fk"
             columns: ["frete_tipo"]
             isOneToOne: false
@@ -39551,7 +40330,15 @@ export type Database = {
           ultima_ocorrencia_em: string | null
           valor_liquido: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_logistica_fila_feed: {
         Row: {
@@ -40486,14 +41273,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -40969,14 +41756,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -41334,6 +42121,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio_comercial"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "pedidos_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -41640,6 +42434,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "pedidos_natureza_operacao_id_fkey"
             columns: ["natureza_operacao_id"]
             isOneToOne: false
@@ -41722,7 +42523,22 @@ export type Database = {
           valor_bruto: number | null
           valor_liquido: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["filho_estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_pedido_destino_estoque: {
         Row: {
@@ -41738,6 +42554,8 @@ export type Database = {
       }
       vw_pedido_embalagem: {
         Row: {
+          banda_faixa: string | null
+          banda_fallback: boolean | null
           caixas_estimadas: number | null
           caixas_fonte: string | null
           caixas_max: number | null
@@ -41985,6 +42803,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "pedidos_frete_tipo_fk"
             columns: ["frete_tipo"]
             isOneToOne: false
@@ -42072,6 +42897,13 @@ export type Database = {
             columns: ["confianca"]
             isOneToOne: false
             referencedRelation: "hipotese_confianca"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
         ]
@@ -42294,6 +43126,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedido_link_pagamento"
             referencedColumns: ["link_id"]
+          },
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
@@ -42737,7 +43576,15 @@ export type Database = {
           risco_score: number | null
           valor_liquido: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_pedido_situacao_financeira: {
         Row: {
@@ -42767,6 +43614,13 @@ export type Database = {
           valor_vencido: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
             columns: ["parceiro_id"]
@@ -42838,7 +43692,15 @@ export type Database = {
           valor: number | null
           vendedor: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio_codigo"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_pedidos_farol: {
         Row: {
@@ -42868,6 +43730,13 @@ export type Database = {
           valor_liquido: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
             columns: ["parceiro_id"]
@@ -43500,6 +44369,13 @@ export type Database = {
           valor: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -45214,6 +46090,13 @@ export type Database = {
             referencedColumns: ["conta_id"]
           },
           {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["pedido_estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "titulo_a_receber_banco_recebimento_id_fkey"
             columns: ["banco_recebimento_id"]
             isOneToOne: false
@@ -45762,7 +46645,15 @@ export type Database = {
           valor_pedido: number | null
           valor_titulos: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_vendas_produto: {
         Row: {
@@ -46038,7 +46929,15 @@ export type Database = {
           pedido_id: string | null
           ultimo_evento_xpm: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio_sncf"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_xpm_estoque_atual: {
         Row: {
@@ -47223,6 +48122,30 @@ export type Database = {
         Args: { p_analise_id: string }
         Returns: string
       }
+      fn_auditoria_conferir_tipos: {
+        Args: { p_amostra: Json }
+        Returns: string
+      }
+      fn_auditoria_regra_testar: {
+        Args: { p_limite?: number; p_slug: string }
+        Returns: Json
+      }
+      fn_auditoria_rodar: {
+        Args: { p_origem?: string; p_regra_slug?: string; p_user_id?: string }
+        Returns: Json
+      }
+      fn_auditoria_sql_valido: { Args: { p_sql: string }; Returns: string }
+      fn_auditoria_tratar_achado: {
+        Args: {
+          p_achado_id: string
+          p_dono_user_id?: string
+          p_limpar_dono?: boolean
+          p_nota?: string
+          p_situacao?: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       fn_avaliar_impacto_edicao_pedido: {
         Args: {
           p_nova_condicao: string
@@ -47312,6 +48235,7 @@ export type Database = {
         Returns: number
       }
       fn_eh_comprador: { Args: { p_user_id: string }; Returns: boolean }
+      fn_embalagem_calibracao_medir: { Args: never; Returns: number }
       fn_estado_canonico_b2c: {
         Args: { p_eventos: Json; p_status_atual: string }
         Returns: string
