@@ -232,7 +232,7 @@ function AcoesGrupoCliente({
       const b = registrados[i];
       setProgresso({ atual: i + 1, total: registrados.length });
       try {
-        await enviarEmail.mutateAsync(b.id);
+        await onEnviarEmail(b.id);
         enviados++;
       } catch (e) {
         setProgresso(null);
