@@ -188,6 +188,10 @@ export default function AchadoDrawer({
                 <Contexto contexto={achado.contexto} />
               </section>
 
+              <AcaoAchadoBloco achado={achado} userId={user?.id} />
+
+
+
               <section className="space-y-2 rounded-md border p-3">
                 <h4 className="text-xs font-semibold uppercase text-muted-foreground">
                   Tratamento
