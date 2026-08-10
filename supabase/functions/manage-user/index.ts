@@ -329,14 +329,7 @@ Deno.serve(async (req) => {
       if (profileErr) return await rollbackUser("Falha ao criar o perfil do usuário", profileErr.message);
 
       if (vinculo_tipo) {
-        const { error: vincErr } = await adminClient.from("user_colaborador_link").insert({
-          user_id: userId,
-          colaborador_clt_id: vinculo_tipo === "clt" ? colaborador_clt_id : null,
-          contrato_pj_id: vinculo_tipo === "pj" ? contrato_pj_id : null,
-          tipo_externo: vinculo_tipo === "externo" ? tipo_externo : null,
-          vinculado_por: callerId,
-        });
-        if (vincErr) return await rollbackUser("Falha ao criar o vínculo do usuário", vincErr.message);
+
 
         if (vinculo_tipo === "clt") {
           const { error: cltErr } = await adminClient.from("colaboradores_clt")
