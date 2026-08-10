@@ -1824,6 +1824,9 @@ export type Database = {
           permite_lote: boolean
           rota_acao: string | null
           rotulo_acao: string | null
+          rpc_acao: string | null
+          rpc_acao_param: string | null
+          rpc_acao_rotulo: string | null
           severidade: string
           slug: string
           sql_achado: string
@@ -1850,6 +1853,9 @@ export type Database = {
           permite_lote?: boolean
           rota_acao?: string | null
           rotulo_acao?: string | null
+          rpc_acao?: string | null
+          rpc_acao_param?: string | null
+          rpc_acao_rotulo?: string | null
           severidade: string
           slug: string
           sql_achado: string
@@ -1876,6 +1882,9 @@ export type Database = {
           permite_lote?: boolean
           rota_acao?: string | null
           rotulo_acao?: string | null
+          rpc_acao?: string | null
+          rpc_acao_param?: string | null
+          rpc_acao_rotulo?: string | null
           severidade?: string
           slug?: string
           sql_achado?: string
@@ -17618,6 +17627,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
             columns: ["substituida_por_nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
+            columns: ["substituida_por_nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
           },
@@ -18128,6 +18144,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_frete_pedido_link"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_venda_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
             referencedColumns: ["nf_id"]
           },
           {
@@ -31019,6 +31042,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
           },
@@ -36204,6 +36234,10 @@ export type Database = {
           reincidente: boolean | null
           rota_acao: string | null
           rotulo_acao: string | null
+          rpc_acao: string | null
+          rpc_acao_param: string | null
+          rpc_acao_rotulo: string | null
+          rpc_acao_valor: string | null
           severidade: string | null
           severidade_peso: number | null
           severidade_rotulo: string | null
@@ -41628,6 +41662,21 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_nf_em_pedido_cancelado: {
+        Row: {
+          cancelado_em: string | null
+          data_emissao: string | null
+          nf_id: string | null
+          numero: string | null
+          numero_pedido_loja: string | null
+          pedido: string | null
+          serie: string | null
+          situacao: string | null
+          titulos_indevidos: number | null
+          valor_nota: number | null
+        }
+        Relationships: []
+      }
       vw_nf_estado: {
         Row: {
           ausente_na_origem_desde: string | null
@@ -41934,6 +41983,13 @@ export type Database = {
             columns: ["substituida_por_nf_id"]
             isOneToOne: false
             referencedRelation: "vw_frete_pedido_link"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
+            columns: ["substituida_por_nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
             referencedColumns: ["nf_id"]
           },
           {
@@ -42290,14 +42346,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -46317,6 +46373,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
           },
@@ -47772,6 +47835,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_frete_pedido_link"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
             referencedColumns: ["nf_id"]
           },
           {
