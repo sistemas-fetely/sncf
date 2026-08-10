@@ -273,7 +273,8 @@ export default function NomesBling() {
               }}
             />
             <p className="text-xs text-muted-foreground">
-              Lotes acima de 100 podem estourar o tempo limite. Rode várias vezes até zerar.
+              Máximo 100 por lote. Agora cada lote traz 100 SKUs novos de verdade — rode em
+              sequência até zerar.
             </p>
           </div>
 
