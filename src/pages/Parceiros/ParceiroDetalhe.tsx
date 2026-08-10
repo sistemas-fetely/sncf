@@ -60,7 +60,7 @@ export default function ParceiroDetalhe() {
     );
   }
 
-  const { parceiro, socios, total_pedidos, valor_total, pedidos_em_aberto, valor_cancelado } = data;
+  const { parceiro, socios, total_pedidos, pedidos_excluidos, valor_total, pedidos_em_aberto, valor_cancelado, titulos_aberto_qtd, titulos_aberto_valor, credito_disponivel } = data;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rf = (parceiro.contexto_bureau as any)?.brasilapi as Record<string, any> | undefined;
 
@@ -170,11 +170,16 @@ export default function ParceiroDetalhe() {
       })()}
 
       {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Pedidos totais</p>
             <p className="text-2xl font-bold mt-1">{total_pedidos}</p>
+            {pedidos_excluidos > 0 && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {pedidos_excluidos} cancelado(s)/recuperação não contam
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -190,7 +195,21 @@ export default function ParceiroDetalhe() {
             <p className="text-2xl font-bold mt-1">{fmtBRL.format(valor_total)}</p>
             {valor_cancelado > 0 && (
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                exclui {fmtBRL.format(valor_cancelado)} cancelado
+                exclui {fmtBRL.format(valor_cancelado)} cancelado/recuperação
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Financeiro</p>
+            <p className="text-2xl font-bold mt-1">{fmtBRL.format(titulos_aberto_valor)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {titulos_aberto_qtd} título(s) em aberto
+            </p>
+            {credito_disponivel > 0 && (
+              <p className="text-[11px] text-emerald-600 mt-1 font-medium">
+                + {fmtBRL.format(credito_disponivel)} em crédito disponível
               </p>
             )}
           </CardContent>
