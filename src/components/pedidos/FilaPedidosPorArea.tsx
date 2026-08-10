@@ -819,6 +819,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {badgeAdiantado}
         </div>
         {condLine}
       </>
@@ -845,6 +846,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {badgeAdiantado}
         </div>
         {condLine}
       </>
@@ -864,6 +866,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
                     {rotulo || "Parcial pago"}
                   </Badge>
                 </span>
+                {badgeAdiantado}
               </div>
               {condLine}
             </div>
@@ -901,6 +904,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {badgeAdiantado}
         </div>
         {condLine}
       </>
@@ -936,6 +940,7 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {badgeAdiantado}
         </div>
         {condLine}
       </>
@@ -943,10 +948,13 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   }
 
 
-  // em_aberto ou sem linha na view: valor limpo, sem badge.
+  // em_aberto ou sem linha na view: valor limpo, só o badge de entrada paga.
   return (
     <>
-      {valorLine}
+      <div className="flex flex-wrap items-baseline gap-1.5">
+        {valorLine}
+        {badgeAdiantado}
+      </div>
       {condLine}
     </>
   );
