@@ -331,27 +331,46 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const [gerandoProrrogacao, setGerandoProrrogacao] = useState(false);
   const [gerandoEntrada, setGerandoEntrada] = useState(false);
   const [entradaDialogOpen, setEntradaDialogOpen] = useState(false);
+  /** Quando existe, o Dialog de entrada considera apenas estes títulos (escopo de um cliente). */
+  const [escopoEntrada, setEscopoEntrada] = useState<string[] | null>(null);
+
+  // mutation de e-mail: uma única instância para toda a tela
+  const enviarEmailBoleto = useEnviarEmailBoleto();
 
   const hojeIso = new Date().toISOString().slice(0, 10);
   const pendentesEntrada = useMemo(
     () => boletos.filter((b) => b.boleto_status === "pendente"),
     [boletos],
   );
+  /** Universo do Dialog: escopo do cliente, ou todos os pendentes. */
+  const entradaLista = useMemo(() => {
+    if (!escopoEntrada) return pendentesEntrada;
+    const set = new Set(escopoEntrada);
+    return pendentesEntrada.filter((b) => set.has(b.id));
+  }, [pendentesEntrada, escopoEntrada]);
   const pendentesPassado = useMemo(
     () =>
-      pendentesEntrada.filter(
+      entradaLista.filter(
         (b) => b.data_vencimento_atual && b.data_vencimento_atual < hojeIso,
       ),
-    [pendentesEntrada, hojeIso],
+    [entradaLista, hojeIso],
   );
 
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
-  const abrirDialogEntrada = () => {
-    const validos = pendentesEntrada
+  const abrirDialogEntrada = (ids?: string[]) => {
+    const escopo = ids && ids.length > 0 ? ids : null;
+    const set = escopo ? new Set(escopo) : null;
+    const base = set ? pendentesEntrada.filter((b) => set.has(b.id)) : pendentesEntrada;
+    const validos = base
       .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
       .map((b) => b.id);
+    setEscopoEntrada(escopo);
     setSelecionados(new Set(validos));
     setEntradaDialogOpen(true);
+  };
+  const fecharDialogEntrada = () => {
+    setEntradaDialogOpen(false);
+    setEscopoEntrada(null);
   };
   const toggleSelecionado = (id: string) => {
     setSelecionados((prev) => {
@@ -363,10 +382,10 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   };
   const idsSelecionaveis = useMemo(
     () =>
-      pendentesEntrada
+      entradaLista
         .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
         .map((b) => b.id),
-    [pendentesEntrada, hojeIso],
+    [entradaLista, hojeIso],
   );
   const todosSelecionados =
     idsSelecionaveis.length > 0 &&
@@ -377,10 +396,10 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   };
   const totalSelecionado = useMemo(
     () =>
-      pendentesEntrada
+      entradaLista
         .filter((b) => selecionados.has(b.id))
         .reduce((s, b) => s + Number(b.valor_bruto || 0), 0),
-    [pendentesEntrada, selecionados],
+    [entradaLista, selecionados],
   );
 
   // edição inline de boletos
