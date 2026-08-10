@@ -1151,6 +1151,15 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                           <span className="truncate font-medium text-sm" title={g.nome}>
                             {g.nome}
                           </span>
+                          {g.pedidos.length > 0 && (
+                            <span
+                              className="shrink-0 font-mono text-[11px] text-muted-foreground"
+                              title={g.pedidos.join(", ")}
+                            >
+                              {g.pedidos[0]}
+                              {g.pedidos.length > 1 && ` +${g.pedidos.length - 1}`}
+                            </span>
+                          )}
                           <Badge variant="outline" className="shrink-0 text-[10px]">
                             {g.boletos.length}
                           </Badge>
