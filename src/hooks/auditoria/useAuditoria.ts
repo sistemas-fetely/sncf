@@ -234,6 +234,7 @@ export function useRodarAuditoria() {
         qc.invalidateQueries({ queryKey: CHAVES_AUDITORIA.achados }),
         qc.invalidateQueries({ queryKey: CHAVES_AUDITORIA.painel }),
         qc.invalidateQueries({ queryKey: CHAVES_AUDITORIA.execucoes }),
+        qc.invalidateQueries({ queryKey: ["auditoria", "saude"] }),
       ]);
     },
   });
