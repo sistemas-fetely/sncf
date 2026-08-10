@@ -28,7 +28,7 @@ import {
 import {
   CheckCircle2, XCircle, UserCheck, UserX, Users, UserPlus,
   Shield, ShieldCheck, ShieldAlert, Pencil, Trash2, Link2, LinkIcon, Unlink,
-  ChevronDown, ChevronRight, FileText, Sparkles, Check, Eye, Ghost, Loader2,
+  ChevronDown, ChevronRight, FileText, Sparkles, Check, Eye, Ghost, Loader2, ScanSearch,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmacaoDupla } from "@/components/ConfirmacaoDupla";
