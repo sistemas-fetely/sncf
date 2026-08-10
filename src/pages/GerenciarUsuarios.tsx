@@ -677,11 +677,12 @@ export default function GerenciarUsuarios() {
         <TabsList>
           <TabsTrigger value="usuarios" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>
           <TabsTrigger value="grupos" className="gap-2"><ShieldCheck className="h-4 w-4" /> Grupos de Acesso</TabsTrigger>
-          {(isSuperAdmin || isAdminRH) && (
-            <TabsTrigger value="matriz" className="gap-2">
+          {isSuperAdmin && (
+            <TabsTrigger value="fantasmas" className="gap-2">
               <Ghost className="h-4 w-4" /> Contas sem perfil
             </TabsTrigger>
           )}
+
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
