@@ -684,6 +684,12 @@ export default function GerenciarUsuarios() {
               <Ghost className="h-4 w-4" /> Contas sem perfil
             </TabsTrigger>
           )}
+          {isSuperAdmin && (
+            <TabsTrigger value="diagnostico" className="gap-2">
+              <ScanSearch className="h-4 w-4" /> Diagnóstico
+            </TabsTrigger>
+          )}
+
 
         </TabsList>
 
