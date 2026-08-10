@@ -119,7 +119,37 @@ export function usePedidosFila(opts: Opts = {}) {
         });
       }
 
-
+      // ENTRADA-PAGA: dinheiro que já entrou e ainda não virou título
+      // (vw_pedido_adiantamento). Convive com a situação financeira: uma coisa é
+      // o que ainda vai ser cobrado, outra é o que já foi pago.
+      if (result.length > 0) {
+        const ids = result.map((p) => p.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: advRows, error: advErr } = await (supabase as any)
+          .from("vw_pedido_adiantamento")
+          .select(
+            "pedido_id, adiantado_vivo, lancamentos, formas, recebido_em, pct_pago, cobre_pedido_inteiro",
+          )
+          .in("pedido_id", ids);
+        if (advErr) throw advErr;
+        const advMap = new Map<string, Record<string, unknown>>();
+        (advRows || []).forEach((r: { pedido_id: string } & Record<string, unknown>) => {
+          advMap.set(r.pedido_id, r);
+        });
+        result = result.map((p) => {
+          const a = advMap.get(p.id);
+          if (!a) return p;
+          return {
+            ...p,
+            adiantado_vivo: a.adiantado_vivo as number | null,
+            adiantado_lancamentos: a.lancamentos as number | null,
+            adiantado_formas: a.formas as string | null,
+            adiantado_recebido_em: a.recebido_em as string | null,
+            adiantado_pct_pago: a.pct_pago as number | null,
+            adiantado_cobre_pedido_inteiro: a.cobre_pedido_inteiro as boolean | null,
+          };
+        });
+      }
 
       return result;
     },
