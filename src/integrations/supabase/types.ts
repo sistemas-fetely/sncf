@@ -42263,14 +42263,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -50284,6 +50284,13 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      get_user_departamento_unidade: {
+        Args: { p_user_id: string }
+        Returns: {
+          departamento_id: string
+          unidade_id: string
+        }[]
+      }
       get_user_id_from_profile: {
         Args: { _profile_id: string }
         Returns: string
@@ -50561,6 +50568,10 @@ export type Database = {
           acao: string
           stage_id: string
         }[]
+      }
+      mesa_vincular_usuario: {
+        Args: { p_user_id: string; p_vinculo_id: string }
+        Returns: Json
       }
       mesclar_pares_nf: {
         Args: {
