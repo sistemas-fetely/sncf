@@ -85,6 +85,19 @@ const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   baixa_remessa_gerada: { label: "Baixa em remessa", cls: "bg-purple-100 text-purple-800" },
 };
 
+/** Cor sólida para o ponto de status (as classes -100 do badge somem num círculo de 8px). */
+const BOLETO_STATUS_DOT: Record<string, string> = {
+  pendente: "bg-gray-400",
+  remessa_gerada: "bg-yellow-500",
+  registrado: "bg-blue-500",
+  pago_manual: "bg-emerald-500",
+  pago_banco: "bg-green-600",
+  rejeitado: "bg-red-500",
+  vencido: "bg-orange-500",
+  baixa_solicitada: "bg-orange-600",
+  baixa_remessa_gerada: "bg-purple-500",
+};
+
 function BotaoBaixarBoletoPdf({ boleto }: { boleto: any }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -192,14 +205,15 @@ function semAcento(v: string) {
 function AcoesGrupoCliente({
   boletos,
   gerandoEntrada,
-  onGerarEntrada,
+  onAbrirEntrada,
+  onEnviarEmail,
 }: {
   boletos: TitulosBoleto[];
   gerandoEntrada: boolean;
-  onGerarEntrada: (ids: string[]) => void;
+  onAbrirEntrada: (ids: string[]) => void;
+  onEnviarEmail: (tituloId: string) => Promise<unknown>;
 }) {
   const { toast } = useToast();
-  const enviarEmail = useEnviarEmailBoleto();
   const [confirmarEmails, setConfirmarEmails] = useState(false);
   const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null);
 
@@ -218,7 +232,7 @@ function AcoesGrupoCliente({
       const b = registrados[i];
       setProgresso({ atual: i + 1, total: registrados.length });
       try {
-        await enviarEmail.mutateAsync(b.id);
+        await onEnviarEmail(b.id);
         enviados++;
       } catch (e) {
         setProgresso(null);
@@ -252,9 +266,9 @@ function AcoesGrupoCliente({
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             disabled={pendentesEntrada.length === 0 || gerandoEntrada}
-            onSelect={() => onGerarEntrada(pendentesEntrada.map((b) => b.id))}
+            onSelect={() => onAbrirEntrada(pendentesEntrada.map((b) => b.id))}
           >
-            Gerar entrada dos pendentes ({pendentesEntrada.length})
+            Conferir entrada dos pendentes ({pendentesEntrada.length})
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={registrados.length === 0 || !!progresso}
@@ -317,27 +331,46 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const [gerandoProrrogacao, setGerandoProrrogacao] = useState(false);
   const [gerandoEntrada, setGerandoEntrada] = useState(false);
   const [entradaDialogOpen, setEntradaDialogOpen] = useState(false);
+  /** Quando existe, o Dialog de entrada considera apenas estes títulos (escopo de um cliente). */
+  const [escopoEntrada, setEscopoEntrada] = useState<string[] | null>(null);
+
+  // mutation de e-mail: uma única instância para toda a tela
+  const enviarEmailBoleto = useEnviarEmailBoleto();
 
   const hojeIso = new Date().toISOString().slice(0, 10);
   const pendentesEntrada = useMemo(
     () => boletos.filter((b) => b.boleto_status === "pendente"),
     [boletos],
   );
+  /** Universo do Dialog: escopo do cliente, ou todos os pendentes. */
+  const entradaLista = useMemo(() => {
+    if (!escopoEntrada) return pendentesEntrada;
+    const set = new Set(escopoEntrada);
+    return pendentesEntrada.filter((b) => set.has(b.id));
+  }, [pendentesEntrada, escopoEntrada]);
   const pendentesPassado = useMemo(
     () =>
-      pendentesEntrada.filter(
+      entradaLista.filter(
         (b) => b.data_vencimento_atual && b.data_vencimento_atual < hojeIso,
       ),
-    [pendentesEntrada, hojeIso],
+    [entradaLista, hojeIso],
   );
 
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
-  const abrirDialogEntrada = () => {
-    const validos = pendentesEntrada
+  const abrirDialogEntrada = (ids?: string[]) => {
+    const escopo = ids && ids.length > 0 ? ids : null;
+    const set = escopo ? new Set(escopo) : null;
+    const base = set ? pendentesEntrada.filter((b) => set.has(b.id)) : pendentesEntrada;
+    const validos = base
       .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
       .map((b) => b.id);
+    setEscopoEntrada(escopo);
     setSelecionados(new Set(validos));
     setEntradaDialogOpen(true);
+  };
+  const fecharDialogEntrada = () => {
+    setEntradaDialogOpen(false);
+    setEscopoEntrada(null);
   };
   const toggleSelecionado = (id: string) => {
     setSelecionados((prev) => {
@@ -349,10 +382,10 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   };
   const idsSelecionaveis = useMemo(
     () =>
-      pendentesEntrada
+      entradaLista
         .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
         .map((b) => b.id),
-    [pendentesEntrada, hojeIso],
+    [entradaLista, hojeIso],
   );
   const todosSelecionados =
     idsSelecionaveis.length > 0 &&
@@ -363,10 +396,10 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   };
   const totalSelecionado = useMemo(
     () =>
-      pendentesEntrada
+      entradaLista
         .filter((b) => selecionados.has(b.id))
         .reduce((s, b) => s + Number(b.valor_bruto || 0), 0),
-    [pendentesEntrada, selecionados],
+    [entradaLista, selecionados],
   );
 
   // edição inline de boletos
@@ -451,8 +484,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     }
   };
 
-  const handleGerarEntrada = async (idsParam?: string[]) => {
-    const ids = idsParam ?? Array.from(selecionados);
+  const handleGerarEntrada = async () => {
+    const ids = Array.from(selecionados);
     if (ids.length === 0) {
       toast({ title: "Nenhum título selecionado", variant: "destructive" });
       return;
@@ -474,7 +507,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         title: `Remessa de entrada gerada: ${data.qtd_titulos} boleto(s)`,
         description: data.valor_total != null ? `Total: ${formatBRL(Number(data.valor_total))}` : undefined,
       });
-      setEntradaDialogOpen(false);
+      fecharDialogEntrada();
       await qc.invalidateQueries({ queryKey: ["boletos-safra"] });
       refetchBoletos();
     } catch (e) {
@@ -623,7 +656,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         status,
         qtd,
         label: BOLETO_STATUS_CFG[status]?.label ?? status,
-        cls: BOLETO_STATUS_CFG[status]?.cls ?? "bg-gray-300",
+        dot: BOLETO_STATUS_DOT[status] ?? "bg-gray-400",
       }));
       return {
         nome,
@@ -807,7 +840,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
 
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            onClick={abrirDialogEntrada}
+            onClick={() => abrirDialogEntrada()}
             disabled={pendentesEntrada.length === 0 || gerandoEntrada}
             size="sm"
             className="gap-2"
@@ -956,7 +989,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                               <span
                                 key={m.status}
                                 title={`${m.label}: ${m.qtd}`}
-                                className={`inline-block h-2 w-2 rounded-full ${m.cls}`}
+                                className={`inline-block h-2 w-2 rounded-full ${m.dot}`}
                               />
                             ))}
                           </span>
@@ -965,7 +998,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       <AcoesGrupoCliente
                         boletos={g.boletos}
                         gerandoEntrada={gerandoEntrada}
-                        onGerarEntrada={(ids) => handleGerarEntrada(ids)}
+                        onAbrirEntrada={abrirDialogEntrada}
+                        onEnviarEmail={(id) => enviarEmailBoleto.mutateAsync(id)}
                       />
                     </div>
                     <CollapsibleContent>
@@ -985,7 +1019,14 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         </CardFooter>
       </Card>
 
-      <Dialog open={entradaDialogOpen} onOpenChange={(v) => !gerandoEntrada && setEntradaDialogOpen(v)}>
+      <Dialog
+        open={entradaDialogOpen}
+        onOpenChange={(v) => {
+          if (gerandoEntrada) return;
+          if (v) setEntradaDialogOpen(true);
+          else fecharDialogEntrada();
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Gerar Remessa de Entrada</DialogTitle>
@@ -1022,7 +1063,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendentesEntrada.map((b) => {
+                {entradaLista.map((b) => {
                   const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
                   const marcado = selecionados.has(b.id);
                   return (
@@ -1067,7 +1108,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEntradaDialogOpen(false)} disabled={gerandoEntrada}>
+            <Button variant="outline" onClick={fecharDialogEntrada} disabled={gerandoEntrada}>
               Cancelar
             </Button>
             <Button
