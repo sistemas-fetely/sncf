@@ -56,9 +56,17 @@ import {
   Search,
 } from "lucide-react";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
-import { BaixasPendentesAlert } from "@/components/credito/BaixasPendentesAlert";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
+import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+/** Dias corridos desde uma data ISO (null se inválida). */
+function diasDesde(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.max(0, Math.floor((Date.now() - t) / 86400000));
+}
 
 type TitulosBoleto = {
   id: string;
