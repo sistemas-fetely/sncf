@@ -42526,14 +42526,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -48135,6 +48135,10 @@ export type Database = {
         Returns: Json
       }
       fn_auditoria_sql_valido: { Args: { p_sql: string }; Returns: string }
+      fn_auditoria_testar_todas: {
+        Args: { p_limite?: number; p_origem?: string }
+        Returns: Json
+      }
       fn_auditoria_tratar_achado: {
         Args: {
           p_achado_id: string
@@ -49265,6 +49269,10 @@ export type Database = {
           p_gestor_pessoa_id?: string
           p_vinculo_id: string
         }
+        Returns: Json
+      }
+      reenviar_pedido_bling: {
+        Args: { p_ator?: string; p_motivo: string; p_pedido_id: string }
         Returns: Json
       }
       regerar_nome_operacional: { Args: { p_skus: string[] }; Returns: number }

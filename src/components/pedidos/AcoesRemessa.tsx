@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
+import { useAuth } from "@/contexts/AuthContext";
+import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
 
 interface Props {
   pedido_id: string;
@@ -25,6 +27,8 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const { data: remessas, isLoading } = useRemessas(pedido_id);
   const enviar = useEnviarBling();
   const sync = useSyncContato();
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
 
   const { data: parceiroBling, refetch: recheckBling } = useQuery({
     queryKey: ["parceiro-bling-check", parceiro_id],
@@ -60,7 +64,17 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const mostrarAlerta = precisaSincronizar;
   const mostrarInicial = !precisaSincronizar && semRemessa && podeEnviarInicial;
 
-  if (!mostrarAlerta && !mostrarInicial && elegiveis.length === 0) return null;
+  // Reenvio: só super_admin, só em_separacao, e só se existe uma tentativa VIVA
+  // carregando exatamente o id que o pedido aponta hoje (a "vigente").
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const temTentativaVigente = (remessas ?? []).some((r: any) =>
+    r.status !== "cancelada" && !!r.bling_pedido_id &&
+    String(r.bling_pedido_id) === String(bling_id_destino)
+  );
+  const podeReenviar =
+    isSuperAdmin && estagio === "em_separacao" && !!bling_id_destino && temTentativaVigente;
+
+  if (!mostrarAlerta && !mostrarInicial && elegiveis.length === 0 && !podeReenviar) return null;
 
   return (
     <div className="space-y-2">
@@ -146,6 +160,14 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           </div>
         );
       })}
+
+      {podeReenviar && (
+        <ReenviarBlingDialog
+          pedidoId={pedido_id}
+          idExterno={id_externo}
+          blingIdAtual={String(bling_id_destino)}
+        />
+      )}
     </div>
   );
 }
