@@ -41630,13 +41630,23 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_nome_bling_fila: {
+        Row: {
+          bling_id: string | null
+          codigo: string | null
+          nome_espelho: string | null
+          nome_operacional: string | null
+        }
+        Relationships: []
+      }
       vw_nomes_bling_situacao: {
         Row: {
-          aguardando_confirmacao: number | null
-          confirmados_pelo_bling: number | null
-          empurrados: number | null
+          espelho_atrasado: number | null
+          falhas_a_reprocessar: number | null
           faltam_empurrar: number | null
+          ok_no_bling: number | null
           produtos_ativos: number | null
+          sem_nome_operacional: number | null
         }
         Relationships: []
       }
@@ -42084,14 +42094,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
