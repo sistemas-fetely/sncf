@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCobrancaFila } from "@/hooks/credito/useCobrancaFila";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useTitulosBoleto } from "@/hooks/credito/useTitulosBoleto";
@@ -25,6 +25,7 @@ import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -32,7 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search, FileDown, Upload, CheckCircle2, XCircle, Clock,
-  AlertTriangle, FileText, RefreshCw,
+  AlertTriangle, FileText, RefreshCw, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL } from "@/lib/format-currency";
@@ -916,9 +917,8 @@ function RemessasSafraTab() {
                 Date.now() - new Date(r.gerado_em).getTime() > umDiaMs;
               const aberta = expandidas.has(r.id);
               return (
-                <>
+                <Fragment key={r.id}>
                   <TableRow
-                    key={r.id}
                     className={esquecida ? "bg-amber-50/60 hover:bg-amber-50" : undefined}
                     title={
                       esquecida
@@ -1008,7 +1008,7 @@ function RemessasSafraTab() {
                     </TableCell>
                   </TableRow>
                   {aberta && (
-                    <TableRow key={`${r.id}-titulos`} className="bg-muted/20 hover:bg-muted/20">
+                    <TableRow className="bg-muted/20 hover:bg-muted/20">
                       <TableCell colSpan={9} className="p-0">
                         <TabelaTitulosRemessa
                           remessaId={r.id}
@@ -1018,7 +1018,7 @@ function RemessasSafraTab() {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               );
             })}
 
