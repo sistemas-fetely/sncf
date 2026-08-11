@@ -115,6 +115,9 @@ export default function ExtratoImportacao() {
   const [processando, setProcessando] = useState(false);
   const [reprocessandoItau, setReprocessandoItau] = useState(false);
   const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
+  const [conferencia, setConferencia] = useState<{ contaId: string; dataReferencia: string } | null>(
+    null
+  );
 
   async function enriquecerItau() {
     setReprocessandoItau(true);
