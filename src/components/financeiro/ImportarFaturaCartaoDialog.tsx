@@ -183,19 +183,28 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
 
     setEtapa("salvando");
 
-    const result = await salvarFaturaCartao({
-      parsed,
-      cartao_id: cartaoId,
-      data_vencimento: dataVencimento,
-      arquivo_original: arquivo,
-      observacao: observacao || undefined,
-    });
-
-    if (!result.ok) {
-      toast.error("Erro ao salvar: " + (result.erro || "?"));
+    let result: Awaited<ReturnType<typeof salvarFaturaCartao>>;
+    try {
+      result = await salvarFaturaCartao({
+        parsed,
+        cartao_id: cartaoId,
+        data_vencimento: dataVencimento,
+        arquivo_original: arquivo,
+        observacao: observacao || undefined,
+      });
+    } catch (e) {
+      console.error("[ImportarFaturaCartao] falha ao salvar", e);
+      toast.error("Falha ao salvar a fatura: " + formatError(e));
       setEtapa("preview");
       return;
     }
+
+    if (!result.ok) {
+      toast.error("Falha ao salvar a fatura: " + (result.erro || "erro sem mensagem"));
+      setEtapa("preview");
+      return;
+    }
+
 
     setResultadoFinal({
       qtd_lancamentos: result.qtd_lancamentos || 0,
