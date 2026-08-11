@@ -261,8 +261,8 @@ export default function ExtratoImportacao() {
         .from("extrato_importacoes")
         .update({
           fonte_tipo: FONTE_TIPO_DB[fonte],
-          nome_arquivo: `${PREFIXO_NOME[fonte] ?? ""}${file.name}`,
         })
+
         .eq("id", impId);
     } catch (e) {
       await sb
