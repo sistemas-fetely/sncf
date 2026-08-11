@@ -177,7 +177,7 @@ export default function CreditoClientesIndex() {
           { label: "Crédito do cliente" },
         ]}
         title="Posição de crédito por cliente"
-        subtitle="Haveres, em aberto, vencidos e posição líquida"
+        subtitle="Crédito livre, adiantamento reservado, em aberto e vencidos"
         actions={
           isSuperAdmin ? (
             <Button size="sm" onClick={() => setCriarHaverOpen(true)} className="gap-2">
