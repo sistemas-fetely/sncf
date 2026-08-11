@@ -16,6 +16,10 @@ interface Props {
   pedido_id_externo?: string
   nf_numero?:         string
   boletos?:           BoletoItem[]
+  /** Frase de instrumento quando não há boleto (cartão / pix). */
+  instrumento_texto?: string
+  /** XML anexado (só no envio de faturamento). */
+  tem_xml?:           boolean
 }
 
 const Verde       = '#2d5a27'
@@ -28,11 +32,15 @@ const NfEntregaBoletoEmail = ({
   pedido_id_externo,
   nf_numero,
   boletos = [],
+  instrumento_texto,
+  tem_xml = true,
 }: Props) => {
+  const temBoleto = boletos.length > 0
+  const anexoNota = tem_xml ? 'A NF (PDF) e o XML' : 'A NF (PDF)'
   return (
     <Html lang="pt-BR" dir="ltr">
       <Head />
-      <Preview>Fetély · Sua nota fiscal e seus boletos.</Preview>
+      <Preview>{temBoleto ? 'Fetély · Sua nota fiscal e seus boletos.' : 'Fetély · Sua nota fiscal.'}</Preview>
       <Body style={main}>
         <Container style={container}>
 
@@ -50,13 +58,18 @@ const NfEntregaBoletoEmail = ({
 
           <Section style={body}>
             <Text style={headlineNormal}>
-              <span style={headlineBold}>Sua nota fiscal e seus boletos.</span>
+              <span style={headlineBold}>
+                {temBoleto ? 'Sua nota fiscal e seus boletos.' : 'Sua nota fiscal.'}
+              </span>
             </Text>
 
             <Text style={sublineStyle}>
-              {pedido_id_externo
-                ? `O pedido ${pedido_id_externo} foi faturado. A NF e o XML seguem anexados, e os boletos para pagamento estão na lista abaixo (e também em anexo). É só pagar até os vencimentos.`
-                : 'Seu pedido foi faturado. A NF e o XML seguem anexados, e os boletos para pagamento estão na lista abaixo (e também em anexo). É só pagar até os vencimentos.'}
+              {`${pedido_id_externo ? `O pedido ${pedido_id_externo}` : 'Seu pedido'} foi faturado. ${anexoNota} ${tem_xml ? 'seguem' : 'segue'} anexad${tem_xml ? 'os' : 'a'}.`}
+              {temBoleto
+                ? ' Os boletos para pagamento estão na lista abaixo (e também em anexo). É só pagar até os vencimentos.'
+                : instrumento_texto
+                  ? ` ${instrumento_texto}`
+                  : ' Não há boleto a pagar neste pedido.'}
             </Text>
 
             <Hr style={divider} />
@@ -82,7 +95,7 @@ const NfEntregaBoletoEmail = ({
               )}
             </Section>
 
-            {boletos.length > 0 && (
+            {temBoleto && (
               <>
                 <Text style={listaTitulo}>Boletos para pagamento</Text>
                 {boletos.map((b, i) => (
@@ -99,7 +112,9 @@ const NfEntregaBoletoEmail = ({
             )}
 
             <Text style={ctaNote}>
-              A NF (PDF), o XML e os boletos (PDF) estão em anexo neste e-mail.
+              {temBoleto
+                ? `${anexoNota} e os boletos (PDF) estão em anexo neste e-mail.`
+                : `${anexoNota} ${tem_xml ? 'estão' : 'está'} em anexo neste e-mail.`}
             </Text>
           </Section>
 
