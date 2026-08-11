@@ -141,6 +141,7 @@ export default function CreditoClientesIndex() {
   const totalHaveres = clientes.reduce((s: number, c: any) => s + (c.haver_disponivel ?? 0), 0);
   const totalAVencer = clientes.reduce((s: number, c: any) => s + (c.a_vencer ?? 0), 0);
   const totalVencidos = clientes.reduce((s: number, c: any) => s + (c.vencidos ?? 0), 0);
+  const totalReservado = clientes.reduce((s: number, c: any) => s + (c.reservado ?? 0), 0);
   const posicaoLiquida = clientes.reduce((s: number, c: any) => s + (c.em_aberto ?? 0), 0) - totalHaveres;
 
   const filtrados = useMemo(() => {
@@ -176,7 +177,7 @@ export default function CreditoClientesIndex() {
           { label: "Crédito do cliente" },
         ]}
         title="Posição de crédito por cliente"
-        subtitle="Haveres, em aberto, vencidos e posição líquida"
+        subtitle="Crédito livre, adiantamento reservado, em aberto e vencidos"
         actions={
           isSuperAdmin ? (
             <Button size="sm" onClick={() => setCriarHaverOpen(true)} className="gap-2">
@@ -187,8 +188,9 @@ export default function CreditoClientesIndex() {
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Total de haveres" value={fmtBRL.format(totalHaveres)} tone="success" />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <KpiCard label="Crédito livre" value={fmtBRL.format(totalHaveres)} tone="success" />
+        <KpiCard label="Adiantamento reservado" value={fmtBRL.format(totalReservado)} />
         <KpiCard label="Total a vencer" value={fmtBRL.format(totalAVencer)} />
         <KpiCard
           label="Total vencidos"
