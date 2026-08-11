@@ -77,19 +77,22 @@ export default function CreditoClientesIndex() {
       parceirosMap[p.id] = { razao_social: p.razao_social, nome_fantasia: p.nome_fantasia ?? null, cnpj: p.cnpj };
     });
 
-    // Agrupar haveres por parceiro com nome
-    const haverPorParceiro: Record<string, { total: number; razao_social: string | null; nome_fantasia: string | null; cnpj: string | null }> = {};
+    // Agrupar crédito por parceiro, separando livre (aplicável) de reservado (adiantamento)
+    const haverPorParceiro: Record<string, { total: number; reservado: number; razao_social: string | null; nome_fantasia: string | null; cnpj: string | null }> = {};
     haveres.forEach((h: any) => {
       const pid = h.parceiro_id;
       if (!haverPorParceiro[pid]) {
         haverPorParceiro[pid] = {
           total: 0,
+          reservado: 0,
           razao_social: parceirosMap[pid]?.razao_social ?? null,
           nome_fantasia: parceirosMap[pid]?.nome_fantasia ?? null,
           cnpj: parceirosMap[pid]?.cnpj ?? null,
         };
       }
-      haverPorParceiro[pid].total += Number(h.saldo) || 0;
+      const v = Number(h.saldo) || 0;
+      if (h.natureza === "reservado") haverPorParceiro[pid].reservado += v;
+      else haverPorParceiro[pid].total += v;
     });
 
     // Resumos enriquecidos com haver
@@ -103,6 +106,7 @@ export default function CreditoClientesIndex() {
       vencidos:     Number(r.total_vencido   ?? 0),
       a_vencer:     Number(r.faixa_a_vencer  ?? 0),
       haver_disponivel: haverPorParceiro[r.parceiro_id]?.total ?? 0,
+      reservado: haverPorParceiro[r.parceiro_id]?.reservado ?? 0,
     }));
 
     // Parceiros com haver mas SEM títulos em aberto — não estavam na lista
@@ -123,12 +127,14 @@ export default function CreditoClientesIndex() {
         vencidos: 0,
         a_vencer: 0,
         haver_disponivel: info.total,
+        reservado: info.reservado,
       }));
 
     return [...resumosComHaver, ...extras].filter(
       (c) => (c.em_aberto ?? c.total_a_receber ?? 0) > 0 ||
               (c.vencidos ?? c.total_vencido ?? 0) > 0 ||
-              (c.haver_disponivel ?? 0) > 0
+              (c.haver_disponivel ?? 0) > 0 ||
+              (c.reservado ?? 0) > 0
     );
   }, [resumosQ.data, haveresQ.data, parceirosAllQ.data]);
 
