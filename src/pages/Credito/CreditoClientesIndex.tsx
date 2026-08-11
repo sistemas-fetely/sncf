@@ -141,6 +141,7 @@ export default function CreditoClientesIndex() {
   const totalHaveres = clientes.reduce((s: number, c: any) => s + (c.haver_disponivel ?? 0), 0);
   const totalAVencer = clientes.reduce((s: number, c: any) => s + (c.a_vencer ?? 0), 0);
   const totalVencidos = clientes.reduce((s: number, c: any) => s + (c.vencidos ?? 0), 0);
+  const totalReservado = clientes.reduce((s: number, c: any) => s + (c.reservado ?? 0), 0);
   const posicaoLiquida = clientes.reduce((s: number, c: any) => s + (c.em_aberto ?? 0), 0) - totalHaveres;
 
   const filtrados = useMemo(() => {
