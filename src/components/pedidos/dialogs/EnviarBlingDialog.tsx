@@ -35,9 +35,12 @@ export function EnviarBlingDialog({
 }: Props) {
 
   const [open, setOpen] = useState(false);
+  const [assumeRisco, setAssumeRisco] = useState(false);
   const enviar = useEnviarBling();
   const sync = useSyncContato();
   const navigate = useNavigate();
+
+  const { data: prova, isLoading: checkingProva } = useProvaPagamento(pedido_id, open);
 
   const { data: parceiroStatus, isLoading: checkingBling, refetch: recheckBling } = useQuery({
     queryKey: ["parceiro-bling-check", parceiro_id],
