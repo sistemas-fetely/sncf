@@ -45,6 +45,8 @@ import {
   parsearPDFFatura,
   salvarFaturaCartao,
 } from "@/lib/financeiro/fatura-cartao-handler";
+import { formatError } from "@/lib/format-error";
+import { BlocoErroBoundary } from "@/components/BlocoErroBoundary";
 
 interface Props {
   open: boolean;
@@ -53,6 +55,37 @@ interface Props {
 }
 
 type Etapa = "upload" | "preview" | "salvando" | "concluido";
+
+/**
+ * Blindagem do payload: parser de PDF vem de IA e parser de CSV de arquivo do
+ * banco. Nada garante formato. Aqui tudo vira o shape que a tela sabe render —
+ * arrays sempre arrays, número sempre número. Sem isso, um campo fora de forma
+ * derruba a aplicação inteira no render da prévia.
+ */
+function normalizarFatura(f: FaturaParsed): FaturaParsed {
+  const numeroOuNulo = (v: unknown): number | null =>
+    typeof v === "number" && Number.isFinite(v) ? v : null;
+  const lancamentos = (Array.isArray(f?.lancamentos) ? f.lancamentos : []).map((l) => ({
+    ...l,
+    descricao: String(l?.descricao ?? ""),
+    data_compra: String(l?.data_compra ?? ""),
+    valor: Number.isFinite(Number(l?.valor)) ? Number(l.valor) : 0,
+    parcela_atual: numeroOuNulo(l?.parcela_atual),
+    parcela_total: numeroOuNulo(l?.parcela_total),
+    tipo: l?.tipo ?? "compra",
+    natureza: l?.natureza === "INTERNACIONAL" ? "INTERNACIONAL" : "NACIONAL",
+  })) as FaturaParsed["lancamentos"];
+
+  return {
+    ...f,
+    lancamentos,
+    alertas: Array.isArray(f?.alertas) ? f.alertas.map((a) => String(a)) : [],
+    valor_total: numeroOuNulo(f?.valor_total),
+    valor_pagamento_anterior: numeroOuNulo(f?.valor_pagamento_anterior),
+    valor_saldo_atraso: numeroOuNulo(f?.valor_saldo_atraso),
+  };
+}
+
 
 export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Props) {
   const [etapa, setEtapa] = useState<Etapa>("upload");
