@@ -73,10 +73,11 @@ function KpiCard({
 }
 
 function CardTitulo({
-  titulo, etapa, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote,
+  titulo, etapa, acaoAtrasada, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote,
 }: {
   titulo: TituloCobranca;
   etapa: ReguaEtapa | null;
+  acaoAtrasada?: boolean;
   onAcao: () => void;
   onPular: () => void;
   onPausar: () => void;
@@ -85,8 +86,22 @@ function CardTitulo({
 }) {
   const razao = nomeCanonico(titulo.parceiro_razao_social, "—");
   const apelido = apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
+  const proxima = (titulo as any).data_proxima_acao_regua as string | null | undefined;
   return (
-    <div className="rounded-md border bg-card p-3 space-y-2">
+    <div
+      className={cn(
+        "rounded-md border bg-card p-3 space-y-2",
+        acaoAtrasada && "border-destructive/60 ring-1 ring-destructive/30 bg-destructive/5",
+      )}
+    >
+      {acaoAtrasada && (
+        <div className="flex items-center gap-1 text-[10px] font-semibold text-destructive">
+          <AlertTriangle className="h-3 w-3" />
+          Ação da régua atrasada
+          {proxima && <span className="font-normal">· prevista para {String(proxima).slice(0, 10).split("-").reverse().join("/")}</span>}
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{razao}</p>
