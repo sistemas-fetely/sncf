@@ -1279,6 +1279,10 @@ export default function CobrancaFila() {
           </Tabs>
         </TabsContent>
 
+        <TabsContent value="adiantamento">
+          <AdiantamentoSemNfTab />
+        </TabsContent>
+
         <TabsContent value="regua">
           <ReguaTab />
         </TabsContent>
