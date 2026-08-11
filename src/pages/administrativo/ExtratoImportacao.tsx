@@ -277,6 +277,12 @@ export default function ExtratoImportacao() {
       }
       trilha.fonte = fonte;
 
+      // O rastro grava a fonte real antes de qualquer recusa
+      await sb
+        .from("extrato_importacoes")
+        .update({ fonte_tipo: FONTE_TIPO_DB[fonte] })
+        .eq("id", impId);
+
       if (fonte === "super_agenda") {
         throw new Error(
           "SUPER AGENDA é previsão de recebível, será tratada no Fluxo Futuro — não importada aqui."
@@ -290,14 +296,6 @@ export default function ExtratoImportacao() {
         );
       }
 
-
-      await sb
-        .from("extrato_importacoes")
-        .update({
-          fonte_tipo: FONTE_TIPO_DB[fonte],
-        })
-
-        .eq("id", impId);
     } catch (e) {
       await sb
         .from("extrato_importacoes")
