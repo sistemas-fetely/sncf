@@ -39932,6 +39932,7 @@ export type Database = {
       }
       vw_entrega_nf: {
         Row: {
+          cidade_destino: string | null
           cte_numero: string | null
           data_entrega: string | null
           eh_problema: boolean | null
@@ -39939,6 +39940,9 @@ export type Database = {
           embarques: number | null
           estado: string | null
           estado_frase: string | null
+          houve_devolucao: boolean | null
+          houve_entrega: boolean | null
+          houve_problema: boolean | null
           nf_num: number | null
           nf_numero_bruto: string | null
           ocorrencia_codigo: string | null
@@ -39948,12 +39952,10 @@ export type Database = {
           previsao_entrega: string | null
           recebedor: string | null
           reembarcada_apos_devolucao: boolean | null
-          tem_devolucao: boolean | null
-          tem_em_transito: boolean | null
-          tem_entrega: boolean | null
-          tem_problema: boolean | null
           transportadora_apelido: string | null
           transportadora_id: string | null
+          transportadoras: number | null
+          uf_destino: string | null
         }
         Relationships: [
           {
@@ -40439,6 +40441,7 @@ export type Database = {
           fonte_importacao_id: string | null
           id: string | null
           informativa_fonte: string | null
+          linha_auxiliar: boolean | null
           linha_informativa: boolean | null
           origem: string | null
           par_transferencia_id: string | null
@@ -40446,6 +40449,7 @@ export type Database = {
           plano_contas_nome: string | null
           referencia_pedido: string | null
           saldo_banco_do_dia: number | null
+          saldo_banco_origem: string | null
           saldo_corrido: number | null
           sentido: string | null
           tipo_meio: string | null
@@ -46043,14 +46047,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
