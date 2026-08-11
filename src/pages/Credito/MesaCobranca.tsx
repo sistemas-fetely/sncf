@@ -314,6 +314,17 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const [detalhe, setDetalhe] = useState<LinhaMesa | null>(null);
   /** Loading do envio de pacote — por PEDIDO, não por parcela. */
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
+  /** Ação de régua em curso (título adaptado + etapa aplicável). */
+  const [acaoRegua, setAcaoRegua] = useState<{
+    titulo: TituloCobranca;
+    etapa: ReguaEtapa | null;
+    tipo: "enviada" | "pulada" | "pausar" | "renegociar";
+  } | null>(null);
+
+  const etapasQ = useReguaEtapas();
+  const etapas = etapasQ.data ?? [];
+
+
 
   const qc = useQueryClient();
   const q = useQuery({
