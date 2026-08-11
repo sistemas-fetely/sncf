@@ -105,19 +105,65 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   if (/withdraw_id|numero da retirada/.test(cabecalho)) return "mp_withdraw";
   return "safra_lancamentos";
 }
+/**
+ * `extrato_importacoes.fonte_tipo` tem CHECK e não aceita valor novo. As duas
+ * fontes de cobrança Safra são gravadas como `safra_lancamentos` e a distinção
+ * fica no nome do arquivo (prefixo) e no resumo da tela. Histórico sempre existe:
+ * importação que não aparece no histórico não aconteceu.
+ */
+const FONTE_TIPO_DB: Record<Fonte, string> = {
+  ofx: "ofx",
+  safra_lancamentos: "safra_lancamentos",
+  mp_withdraw: "mp_withdraw",
+  safrapay_liquidacao: "safrapay_liquidacao",
+  mp_settlement: "mp_settlement",
+  mp_release: "mp_release",
+  safra_instrucoes_2via: "safra_lancamentos",
+  safra_francesinha: "safra_lancamentos",
+};
 
+const PREFIXO_NOME: Partial<Record<Fonte, string>> = {
+  safra_instrucoes_2via: "[Instruções 2ª via] ",
+  safra_francesinha: "[Francesinha] ",
+};
+
+type Bloco = "extrato" | "auxiliar";
+
+const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
+  ofx: "extrato",
+  safra_lancamentos: "extrato",
+  mp_withdraw: "auxiliar",
+  safrapay_liquidacao: "auxiliar",
+  mp_settlement: "auxiliar",
+  mp_release: "auxiliar",
+  safra_instrucoes_2via: "auxiliar",
+  safra_francesinha: "auxiliar",
+};
+
+const NOME_BLOCO: Record<Bloco, string> = {
+  extrato: "1. Extratos",
+  auxiliar: "2. Relatórios auxiliares",
+};
+
+const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
+  safra_instrucoes_2via: "Recebimentos - Instruções 2ª via",
+  safra_francesinha: "Gestão de Cobrança - Francesinha",
+};
 
 export default function ExtratoImportacao() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [conta, setConta] = useState<string>("");
   const [arquivos, setArquivos] = useState<File[]>([]);
+  const [arquivosAux, setArquivosAux] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
+  const [processandoAux, setProcessandoAux] = useState(false);
   const [reprocessandoItau, setReprocessandoItau] = useState(false);
   const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
   const [conferencia, setConferencia] = useState<{ contaId: string; dataReferencia: string } | null>(
     null
   );
+
 
   async function enriquecerItau() {
     setReprocessandoItau(true);
