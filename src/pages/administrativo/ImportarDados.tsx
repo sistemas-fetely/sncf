@@ -10,20 +10,16 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Loader2, Settings2, Upload, CreditCard, X } from "lucide-react";
+import { RefreshCw, Loader2, Settings2, Upload, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ImportadorNFs } from "@/components/financeiro/ImportadorNFs";
-import { ImportadorOFX } from "@/components/financeiro/ImportadorOFX";
-import { ImportadorItauPagamentos } from "@/components/financeiro/ImportadorItauPagamentos";
-import { ImportarFaturaCartaoDialog } from "@/components/financeiro/ImportarFaturaCartaoDialog";
 
 export default function ImportarDados() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
-  const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   
 
@@ -185,41 +181,18 @@ export default function ImportarDados() {
         <ImportadorNFs />
       </div>
 
-      {/* Extratos & Faturas */}
-      <div>
-        <h2 className="text-lg font-semibold mb-1">Extratos & Faturas</h2>
-        <p className="text-sm text-muted-foreground mb-3">
-          Importe arquivos OFX dos bancos, relatório de pagamentos Itaú e faturas de cartão.
-        </p>
-        <div className="grid gap-4 md:grid-cols-2">
-          <ImportadorOFX />
-          <ImportadorItauPagamentos />
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <CreditCard className="h-6 w-6 text-admin" />
-                  <div>
-                    <div className="font-medium">Faturas de Cartão</div>
-                    <div className="text-xs text-muted-foreground">
-                      Selecione cartão, fatura e período
-                    </div>
-                  </div>
-                </div>
-                <Button onClick={() => setImportarFaturaOpen(true)} className="gap-2">
-                  <Upload className="h-4 w-4" />
-                  Importar Fatura
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {/* Centralizado em Importar Extratos */}
+      <p className="text-xs text-muted-foreground border-l-2 border-muted pl-3">
+        Importação de extratos, relatórios bancários e faturas de cartão foi centralizada em{" "}
+        <Link
+          to="/administrativo/extrato-importacao"
+          className="text-admin hover:underline font-medium"
+        >
+          Importar Extratos
+        </Link>
+        .
+      </p>
 
-      <ImportarFaturaCartaoDialog
-        open={importarFaturaOpen}
-        onOpenChange={setImportarFaturaOpen}
-      />
     </div>
   );
 }

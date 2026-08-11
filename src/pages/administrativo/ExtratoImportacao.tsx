@@ -13,9 +13,10 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Upload, Loader2, FileText, Link2 } from "lucide-react";
+import { Upload, Loader2, FileText, Link2, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { ImportadorItauPagamentos } from "@/components/financeiro/ImportadorItauPagamentos";
+import { ImportarFaturaCartaoDialog } from "@/components/financeiro/ImportarFaturaCartaoDialog";
 import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
 import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
@@ -94,6 +95,7 @@ export default function ExtratoImportacao() {
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
   const [reprocessandoItau, setReprocessandoItau] = useState(false);
+  const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
 
   async function enriquecerItau() {
     setReprocessandoItau(true);
@@ -169,16 +171,68 @@ export default function ExtratoImportacao() {
       let novas = 0;
       let enriquecidas = 0;
       let duplicadas = 0;
+      let linhasSaldo = 0;
       let periodoInicio: string | null = null;
       let periodoFim: string | null = null;
 
       if (fonte === "ofx") {
         const text = await file.text();
-        const parsed = parseOFX(text);
+        const parsed = parseOFX(text, { manterLinhasSaldo: true });
         linhasLidas = parsed.movimentacoes.length;
         if (linhasLidas === 0) throw new Error("Nenhuma movimentação no OFX");
 
-        const movs = parsed.movimentacoes.filter((m) => m.data_transacao);
+        // LEDGERBAL do arquivo → saldo do dia
+        if (parsed.saldo != null && parsed.saldoData) {
+          const { error: errLb } = await sb.rpc("fn_saldo_diario_registrar", {
+            p_conta: conta,
+            p_data: parsed.saldoData,
+            p_saldo: parsed.saldo,
+            p_origem: "ledgerbal",
+            p_importacao: impId,
+            p_observacao: "LEDGERBAL do arquivo",
+          });
+          if (errLb) throw errLb;
+        }
+
+        // A dimensão extrato_fontes decide o que é linha de saldo — não o código
+        const descricoesUnicas = Array.from(
+          new Set(parsed.movimentacoes.map((m) => m.descricao))
+        );
+        const classificacao = new Map<
+          string,
+          { fonte_codigo: string; papel: string; destino: string } | null
+        >();
+        for (const desc of descricoesUnicas) {
+          const { data: cls, error: errCls } = await sb.rpc("fn_extrato_classificar", {
+            p_conta: conta,
+            p_descricao: desc,
+          });
+          if (errCls) throw errCls;
+          classificacao.set(desc, Array.isArray(cls) ? cls[0] ?? null : cls ?? null);
+        }
+
+        const transacoes: typeof parsed.movimentacoes = [];
+        for (const m of parsed.movimentacoes) {
+          const cls = classificacao.get(m.descricao);
+          if (cls && cls.papel === "informativa") {
+            if (cls.destino === "saldo_diario_conta" && m.data_transacao) {
+              const { error: errSaldo } = await sb.rpc("fn_saldo_diario_registrar", {
+                p_conta: conta,
+                p_data: m.data_transacao,
+                p_saldo: m.valor,
+                p_origem: "linha_saldo_ofx",
+                p_importacao: impId,
+                p_observacao: cls.fonte_codigo,
+              });
+              if (errSaldo) throw errSaldo;
+            }
+            linhasSaldo++;
+            continue; // informativa nunca vira movimentação
+          }
+          transacoes.push(m);
+        }
+
+        const movs = transacoes.filter((m) => m.data_transacao);
         const datas = movs.map((m) => m.data_transacao!).sort();
         periodoInicio = datas[0] || null;
         periodoFim = datas[datas.length - 1] || null;
@@ -432,6 +486,21 @@ export default function ExtratoImportacao() {
             .maybeSingle();
           if (exist) { duplicadas++; continue; }
 
+          // Antes de inserir: tentar enriquecer a linha do extrato que já
+          // representa esse dinheiro. Sem isso, o mesmo valor é contado duas vezes.
+          const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
+            p_conta: conta,
+            p_data: p.dt_efetiva,
+            p_valor: p.valor_recebido,
+            p_contraparte_nome: `SAFRAPAY ${p.produto} ${p.modalidade}`.trim(),
+            p_contraparte_documento: null,
+            p_referencia_pedido: null,
+            p_tipo_meio: "cartao",
+            p_classe: null,
+          });
+          if (errEnr) throw errEnr;
+          if (alvoId) { enriquecidas++; continue; }
+
           const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
             conta_bancaria_id: conta,
             data_transacao: p.dt_efetiva,
@@ -470,6 +539,21 @@ export default function ExtratoImportacao() {
           if (exist) { duplicadas++; continue; }
 
           const tipoMeio = t.tipo_meio_pagamento.toLowerCase().includes("bancaria") ? "pix" : "cartao";
+
+          // Enriquecer o crédito que já entrou pelo extrato, se existir
+          const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
+            p_conta: conta,
+            p_data: t.data_liberacao || t.data_aprovacao,
+            p_valor: t.valor_liquido,
+            p_contraparte_nome: `MP ${t.meio_pagamento.toUpperCase()}`.trim(),
+            p_contraparte_documento: null,
+            p_referencia_pedido: t.codigo_referencia || null,
+            p_tipo_meio: tipoMeio,
+            p_classe: null,
+          });
+          if (errEnr) throw errEnr;
+          if (alvoId) { enriquecidas++; continue; }
+
 
           const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
             conta_bancaria_id: conta,
@@ -544,7 +628,8 @@ export default function ExtratoImportacao() {
         .eq("id", impId);
 
       toast.success(
-        `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas`
+        `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas` +
+          (linhasSaldo > 0 ? ` · ${linhasSaldo} linha(s) de saldo` : "")
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -609,60 +694,80 @@ export default function ExtratoImportacao() {
           Importar Extratos
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          OFX (Itaú/Safra), XLSX Safra PIX, CSV SafraPay Tipo 2, XLSX MP Settlement e Reserve-Release.
+          Porta única para arquivo de banco: extratos, relatórios auxiliares e faturas de cartão —
+          com um só histórico.
         </p>
       </div>
 
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div>
-            <Label>Conta bancária</Label>
-            <Select value={conta} onValueChange={setConta}>
-              <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
-              <SelectContent>
-                {contas.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Arquivos (.ofx, .xlsx, .csv — múltiplos)</Label>
-            <Input
-              type="file"
-              multiple
-              accept=".ofx,.xlsx,.csv"
-              onChange={(e) => setArquivos(Array.from(e.target.files || []))}
-            />
-            {arquivos.length > 0 && (
-              <ul className="mt-2 text-xs text-muted-foreground space-y-1">
-                {arquivos.map((f) => (
-                  <li key={f.name} className="flex items-center gap-2">
-                    <FileText className="h-3 w-3" />
-                    {f.name}
-                    <span className="text-[10px] uppercase">
-                      {detectarFonteBase(f) || "?"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <Button
-            onClick={handleImportar}
-            disabled={processando || !conta || arquivos.length === 0}
-            className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
-          >
-            {processando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Importar {arquivos.length > 0 ? `(${arquivos.length})` : ""}
-          </Button>
-        </CardContent>
-      </Card>
-
+      {/* 1 — EXTRATOS */}
       <div className="space-y-2">
+        <div>
+          <h2 className="text-lg font-semibold">1. Extratos</h2>
+          <p className="text-xs text-muted-foreground">
+            OFX (Itaú/Safra) e planilhas de lançamento. Linhas de saldo são identificadas pela
+            dimensão de fontes e vão para o saldo diário, não para movimentações.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div>
+              <Label>Conta bancária</Label>
+              <Select value={conta} onValueChange={setConta}>
+                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+                <SelectContent>
+                  {contas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Arquivos (.ofx, .xlsx, .csv — múltiplos)</Label>
+              <Input
+                type="file"
+                multiple
+                accept=".ofx,.xlsx,.csv"
+                onChange={(e) => setArquivos(Array.from(e.target.files || []))}
+              />
+              {arquivos.length > 0 && (
+                <ul className="mt-2 text-xs text-muted-foreground space-y-1">
+                  {arquivos.map((f) => (
+                    <li key={f.name} className="flex items-center gap-2">
+                      <FileText className="h-3 w-3" />
+                      {f.name}
+                      <span className="text-[10px] uppercase">
+                        {detectarFonteBase(f) || "?"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <Button
+              onClick={handleImportar}
+              disabled={processando || !conta || arquivos.length === 0}
+              className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
+            >
+              {processando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Importar {arquivos.length > 0 ? `(${arquivos.length})` : ""}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 2 — RELATÓRIOS AUXILIARES */}
+      <div className="space-y-2">
+        <div>
+          <h2 className="text-lg font-semibold">2. Relatórios auxiliares</h2>
+          <p className="text-xs text-muted-foreground">
+            Pagamentos Itaú, SafraPay, Mercado Pago e Safra PIX. Estes arquivos primeiro tentam
+            enriquecer a linha que já existe no extrato — só criam movimentação nova quando não
+            existe par.
+          </p>
+        </div>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Pagamentos Itaú (Consulta de Pagamentos)</h2>
+            <h3 className="text-sm font-semibold">Pagamentos Itaú (Consulta de Pagamentos)</h3>
             <p className="text-xs text-muted-foreground">
               Enriquece débitos anônimos (PAG TIT) do extrato cruzando data + valor + conta.
             </p>
@@ -683,6 +788,43 @@ export default function ExtratoImportacao() {
           onSuccess={() => { enriquecerItau(); }}
         />
       </div>
+
+      {/* 3 — FATURAS DE CARTÃO */}
+      <div className="space-y-2">
+        <div>
+          <h2 className="text-lg font-semibold">3. Faturas de cartão</h2>
+          <p className="text-xs text-muted-foreground">
+            Fatura de cartão é despesa de cartão, não movimento de conta corrente — por isso vai
+            para outro destino (faturas de cartão e seus lançamentos), e não para o extrato.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-6 w-6 text-admin" />
+                <div>
+                  <div className="font-medium">Faturas de Cartão</div>
+                  <div className="text-xs text-muted-foreground">
+                    Selecione cartão, fatura e período
+                  </div>
+                </div>
+              </div>
+              <Button onClick={() => setImportarFaturaOpen(true)} className="gap-2">
+                <Upload className="h-4 w-4" />
+                Importar Fatura
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <ImportarFaturaCartaoDialog
+        open={importarFaturaOpen}
+        onOpenChange={setImportarFaturaOpen}
+      />
+
+
 
 
       <div>

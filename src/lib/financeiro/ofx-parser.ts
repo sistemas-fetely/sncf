@@ -30,6 +30,17 @@ export interface OFXParsed {
   movimentacoes: MovimentacaoOFX[];
   saldo: number | null;
   ignoradasSaldo: number;
+  /** Data do LEDGERBAL (DTASOF) do arquivo, ISO, quando presente */
+  saldoData: string | null;
+}
+
+export interface ParseOFXOpcoes {
+  /**
+   * Quando true, o parser NÃO decide o que é linha de saldo.
+   * Devolve todas as linhas e quem chama classifica pela dimensão
+   * `extrato_fontes` (fn_extrato_classificar).
+   */
+  manterLinhasSaldo?: boolean;
 }
 
 function extrairTag(bloco: string, tag: string): string | null {
@@ -123,7 +134,7 @@ function extrairContraparte(memo: string): {
   return { nome: antes.substring(0, 200), documento };
 }
 
-export function parseOFX(text: string): OFXParsed {
+export function parseOFX(text: string, opcoes: ParseOFXOpcoes = {}): OFXParsed {
   const movimentacoes: MovimentacaoOFX[] = [];
   let ignoradasSaldo = 0;
 
@@ -141,14 +152,10 @@ export function parseOFX(text: string): OFXParsed {
     const name = extrairTag(bloco, "NAME");
     const trnType = extrairTag(bloco, "TRNTYPE");
 
-    // Dialeto Safra: blocos de saldo entram como STMTTRN. Ignorar.
-    const trnTypeNorm = (trnType || "").toUpperCase().trim();
-    const descNorm = (memo || name || "").toUpperCase().trim();
-    if (
-      trnTypeNorm === "BALANCE" ||
-      descNorm.startsWith("SALDO TOTAL") ||
-      descNorm.startsWith("SALDO INICIAL")
-    ) {
+    // Sem `manterLinhasSaldo`, mantém o comportamento legado de descartar
+    // blocos de saldo pelo TRNTYPE (dialeto Safra). Nenhuma descrição
+    // de linha de saldo vive aqui: isso é papel da dimensão extrato_fontes.
+    if (!opcoes.manterLinhasSaldo && (trnType || "").toUpperCase().trim() === "BALANCE") {
       ignoradasSaldo++;
       continue;
     }
@@ -177,9 +184,14 @@ export function parseOFX(text: string): OFXParsed {
     });
   }
 
-  // Extrair saldo final (LEDGERBAL > BALAMT)
-  const saldoMatch = text.match(/<BALAMT>([\-\d.,]+)/i);
+  // Extrair saldo final (LEDGERBAL > BALAMT) e a data dele (DTASOF)
+  const blocoLedger = text.match(/<LEDGERBAL>([\s\S]*?)<\/LEDGERBAL>/i)?.[1] || text;
+  const saldoMatch = blocoLedger.match(/<BALAMT>([\-\d.,]+)/i);
   const saldo = saldoMatch ? parseFloat(saldoMatch[1].replace(",", ".")) : null;
+  const dtAsOf = blocoLedger.match(/<DTASOF>(\d{8})/i)?.[1] || null;
+  const saldoData = dtAsOf
+    ? `${dtAsOf.substring(0, 4)}-${dtAsOf.substring(4, 6)}-${dtAsOf.substring(6, 8)}`
+    : null;
 
-  return { movimentacoes, saldo, ignoradasSaldo };
+  return { movimentacoes, saldo, ignoradasSaldo, saldoData };
 }

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ParametrosExtratoFontes } from "@/components/parametros/ParametrosExtratoFontes";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -536,6 +537,7 @@ export default function Parametros() {
             {key === "financeiro" && (
               <div className="mb-6 space-y-6">
                 <ParametrosFinanceiroTab />
+                <ParametrosExtratoFontes />
                 {isSuperAdmin && <ParametrosCondicoesPagamento />}
               </div>
             )}
