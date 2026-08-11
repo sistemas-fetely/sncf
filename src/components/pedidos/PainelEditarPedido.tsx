@@ -186,12 +186,47 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
         p_novo_valor_liquido: num(pedido?.valor_liquido),
       });
       if (error) throw error;
-      return data as { caminho?: string; motivo?: string | null } | null;
+      return data as ImpactoEdicao | null;
     },
   });
 
-  const caminho = impactoQ.data?.caminho ?? null;
+  const impacto = impactoQ.data ?? null;
+  const caminho = impacto?.caminho ?? null;
   const bloqueadoPeloImpacto = caminho === "financeiro" || caminho === "bloqueado";
+  const direcao = impacto?.direcao ?? null;
+  const podeAplicar = impacto?.pode_aplicar !== false;
+  const papeisAlcada = impacto?.papeis_com_alcada || [];
+  const mostrarReanalise = !!impacto && impacto.pode_aplicar === false && !bloqueadoPeloImpacto;
+
+  const reabrir = useMutation({
+    mutationFn: async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any).rpc("reabrir_analise_pedido", {
+          p_pedido_id: pedidoId,
+          p_motivo: motivo.trim(),
+          p_condicao_slug: slug,
+        });
+        if (error) throw error;
+        return data as { ok?: boolean; erro?: string | null } | null;
+      } catch (e) {
+        throw new Error(formatError(e));
+      }
+    },
+    onSuccess: async (data) => {
+      if (data && data.ok === false) {
+        toast.error(data.erro || "Não foi possível reenviar para análise.");
+        return;
+      }
+      toast.success("Pedido devolvido para análise de crédito com a condição pretendida registrada.");
+      await qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["pedidos"] });
+      setOpen(false);
+      setMotivo("");
+    },
+    onError: (e: unknown) => toast.error(formatError(e)),
+  });
+
 
   const salvar = useMutation({
     mutationFn: async () => {
