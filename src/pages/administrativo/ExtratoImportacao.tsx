@@ -52,7 +52,15 @@ type Importacao = {
   created_at: string;
 };
 
-type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw" | "safrapay_liquidacao" | "mp_settlement" | "mp_release";
+type Fonte =
+  | "ofx"
+  | "safra_lancamentos"
+  | "mp_withdraw"
+  | "safrapay_liquidacao"
+  | "mp_settlement"
+  | "mp_release"
+  | "safra_instrucoes_2via"
+  | "safra_francesinha";
 
 function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | null {
   const nome = file.name.toLowerCase();
@@ -74,14 +82,22 @@ async function ehRelatorioPagamentosItau(file: File): Promise<boolean> {
   return /tipo de pagamento/.test(cabecalho) && /nome favorecido/.test(cabecalho);
 }
 
-async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw" | "safrapay_liquidacao" | "mp_settlement" | "mp_release"> {
+async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
 
+  const semAcento = (v: unknown) =>
+    String(v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  // Fontes de cobrança Safra: o título mora na linha 4 (índice 3)
+  const linha4 = (rows[3] || []).map(semAcento).join("|");
+  if (/recebimentos - instrucoes/.test(linha4)) return "safra_instrucoes_2via";
+  if (/francesinha/.test(linha4)) return "safra_francesinha";
+
   const cabecalho = rows.slice(0, 5)
-    .map((r) => (r || []).map((c) => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")).join("|"))
+    .map((r) => (r || []).map(semAcento).join("|"))
     .join("|");
 
   if (/data de liberacao do dinheiro/.test(cabecalho)) return "mp_settlement";
