@@ -69,17 +69,28 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
     parcelas_pagas_marcadas: number;
   } | null>(null);
 
-  // Buscar cartões cadastrados — Modelo 3D (cartoes_credito)
-  const { data: cartoes } = useQuery({
-    queryKey: ["cartoes-credito"],
+  // Buscar cartões cadastrados — cartoes_credito é a ÚNICA fonte de cartão.
+  // contas_bancarias não guarda cartão nenhum. Erro aqui é mostrado, não engolido.
+  const {
+    data: cartoes = [],
+    error: erroCartoes,
+    isLoading: carregandoCartoes,
+  } = useQuery({
+    queryKey: ["cartoes-credito-import"],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("cartoes_credito")
         .select("id, nome, ultimos_digitos, bandeira")
         .eq("ativo", true)
         .order("nome");
-      return (data || []) as { id: string; nome: string; ultimos_digitos: string | null; bandeira: string | null }[];
+      if (error) throw error;
+      return (data || []).filter((c: { id?: string }) => !!c?.id) as {
+        id: string;
+        nome: string | null;
+        ultimos_digitos: string | null;
+        bandeira: string | null;
+      }[];
     },
     enabled: open,
   });
@@ -116,38 +127,48 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
       if (ext === "csv" || f.type === "text/csv") {
         const texto = await f.text();
         if (!isCsvItau(texto)) {
-          toast.error("CSV não reconhecido como formato Itaú. Tente o PDF da fatura.");
-          setParseando(false);
-          setArquivo(null);
-          return;
+          throw new Error(
+            "CSV não reconhecido como fatura Itaú (esperado cabeçalho com DATA, NOME DO PORTADOR, " +
+              "NUMERO DO CARTAO e VALOR EM REAIS). Tente o PDF da fatura.",
+          );
         }
         resultado = parseCsvItau(texto);
-      } else {
+      } else if (ext === "pdf" || f.type === "application/pdf") {
         resultado = await parsearPDFFatura(f);
+      } else {
+        throw new Error(
+          `Arquivo "${f.name}" não é fatura de cartão. Aceito aqui: PDF ou CSV da fatura.`,
+        );
       }
 
-      // Sugerir cartão pelo final detectado (Modelo 3D — ultimos_digitos)
-      if (resultado.cartao_numero_final && cartoes) {
+      const seguro = normalizarFatura(resultado);
+      if (seguro.lancamentos.length === 0) {
+        throw new Error(
+          `Nenhum lançamento foi extraído de "${f.name}". Confira se o arquivo é a fatura completa.`,
+        );
+      }
+
+      // Sugerir cartão pelo final detectado (cartoes_credito.ultimos_digitos)
+      if (seguro.cartao_numero_final) {
         const sugestao = cartoes.find(
-          (c) => c.ultimos_digitos === resultado.cartao_numero_final,
+          (c) => c.ultimos_digitos === seguro.cartao_numero_final,
         );
         if (sugestao) setCartaoId(sugestao.id);
       }
-      // Sugerir vencimento
-      if (resultado.data_vencimento) {
-        setDataVencimento(resultado.data_vencimento);
-      }
+      if (seguro.data_vencimento) setDataVencimento(seguro.data_vencimento);
 
-      setParsed(resultado);
+      setParsed(seguro);
       setEtapa("preview");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error("Erro ao ler arquivo: " + msg);
+      console.error("[ImportarFaturaCartao] falha ao ler arquivo", e);
+      toast.error("Falha ao ler a fatura: " + formatError(e));
       setArquivo(null);
+      setEtapa("upload");
     } finally {
       setParseando(false);
     }
   }
+
 
   async function handleSalvar() {
     if (!parsed) return;
