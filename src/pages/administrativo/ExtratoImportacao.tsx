@@ -1035,8 +1035,8 @@ export default function ExtratoImportacao() {
             </div>
 
             <div>
-              <Label>Conta bancária</Label>
-              <Select value={conta} onValueChange={setConta}>
+              <Label>Conta bancária (relatórios auxiliares)</Label>
+              <Select value={contaAux} onValueChange={setContaAux}>
                 <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
                 <SelectContent>
                   {contas.map((c) => (
@@ -1045,6 +1045,7 @@ export default function ExtratoImportacao() {
                 </SelectContent>
               </Select>
             </div>
+
 
             <div>
               <Label>
