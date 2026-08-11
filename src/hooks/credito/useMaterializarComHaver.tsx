@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { TituloProposto } from "@/types/credito";
 import { rawMessage } from "@/lib/format-error";
+import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 
 interface Args {
   pedidoId: string;
@@ -16,6 +17,7 @@ export function useMaterializarComHaver() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
 
   return useMutation({
     mutationFn: async ({ pedidoId, titulosEditados, haverId, valorHaver }: Args) => {
@@ -38,7 +40,7 @@ export function useMaterializarComHaver() {
         title: "Cobrança materializada com haver",
         description: "Haver aplicado e títulos criados.",
       });
-      navigate("/recebimento/cobranca");
+      navigate(voltarPara);
     },
     onError: (e: unknown) => {
       console.error("[materializar_cobranca_com_haver]", e);

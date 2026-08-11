@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { TituloProposto } from "@/types/credito";
+import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 
 interface Args {
   pedidoId: string;
@@ -13,6 +14,7 @@ export function useCriarPortaoProvisorio() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
 
   return useMutation({
     mutationFn: async ({ pedidoId, titulosEditados }: Args) => {
@@ -31,7 +33,7 @@ export function useCriarPortaoProvisorio() {
         title: "Portão criado",
         description: "O pedido vai aguardar o primeiro pagamento à vista para liberar a NF.",
       });
-      navigate("/recebimento/cobranca");
+      navigate(voltarPara);
     },
     onError: (e: Error) => {
       console.error("[criar_portao_provisorio]", e);
