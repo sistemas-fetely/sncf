@@ -409,8 +409,15 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           </div>
         ) : (
           <div className="space-y-2">
-            {filasOrdenadas.map((f) => {
+            {filasOrdenadas.filter((f) => f.rows.length > 0).length === 0 ? (
+              <div className="rounded-md border px-3 py-6 text-center text-sm text-muted-foreground">
+                Nenhum título aberto na mesa.
+              </div>
+            ) : (
+              <>
+            {filasOrdenadas.filter((f) => f.rows.length > 0).map((f) => {
               const rows = f.rows;
+
               const soma = rows.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0);
               const acao = rows.find((r) => r.acao_sugerida)?.acao_sugerida ?? null;
               const naoCobrar = NAO_COBRAR.has(f.chave);
