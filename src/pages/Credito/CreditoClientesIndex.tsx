@@ -41,13 +41,11 @@ export default function CreditoClientesIndex() {
   });
 
   const haveresQ = useQuery({
-    queryKey: ["credito-clientes-haveres"],
+    queryKey: ["credito-clientes-haveres-consolidado"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("haver_cliente")
-        .select("parceiro_id, saldo, status")
-        .in("status", ["disponivel", "parcial"])
-        .gt("saldo", 0);
+        .from("vw_credito_cliente_consolidado")
+        .select("parceiro_id, saldo, natureza");
       if (error) throw error;
       return (data ?? []) as any[];
     },
