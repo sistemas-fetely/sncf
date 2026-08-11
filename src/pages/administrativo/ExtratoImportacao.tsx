@@ -121,7 +121,10 @@ const FONTE_TIPO_DB: Record<Fonte, string> = {
   ofx: "ofx",
   safra_lancamentos: "safra_lancamentos",
   mp_withdraw: "mp_withdraw",
+  safrapay_vendas: "safrapay_vendas",
   safrapay_liquidacao: "safrapay_liquidacao",
+  safrapay_ajustes: "safrapay_ajustes",
+  super_agenda: "super_agenda",
   mp_settlement: "mp_settlement",
   mp_release: "mp_release",
   safra_instrucoes_2via: "safra_instrucoes_2via",
@@ -135,7 +138,10 @@ const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
   ofx: "extrato",
   safra_lancamentos: "extrato",
   mp_withdraw: "auxiliar",
+  safrapay_vendas: "auxiliar",
   safrapay_liquidacao: "auxiliar",
+  safrapay_ajustes: "auxiliar",
+  super_agenda: "auxiliar",
   mp_settlement: "auxiliar",
   mp_release: "auxiliar",
   safra_instrucoes_2via: "auxiliar",
@@ -150,7 +156,12 @@ const NOME_BLOCO: Record<Bloco, string> = {
 const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   safra_instrucoes_2via: "Recebimentos - Instruções 2ª via",
   safra_francesinha: "Gestão de Cobrança - Francesinha",
+  safrapay_vendas: "SafraPay Tipo 1 - Vendas",
+  safrapay_liquidacao: "SafraPay Tipo 2 - Realizado",
+  safrapay_ajustes: "SafraPay Tipo 3 - Ajustes",
+  super_agenda: "SafraPay SUPER AGENDA (não importável)",
 };
+
 
 export default function ExtratoImportacao() {
   const { user } = useAuth();
