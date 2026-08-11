@@ -420,6 +420,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       .map((b) => b.id);
     setEscopoEntrada(escopo);
     setSelecionados(new Set(validos));
+    setBuscaEntrada("");
     setEntradaDialogOpen(true);
   };
   const fecharDialogEntrada = () => {
