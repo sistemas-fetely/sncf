@@ -929,11 +929,11 @@ export default function ExtratoImportacao() {
               </Select>
             </div>
             <div>
-              <Label>Arquivos (.ofx, .xlsx, .csv — múltiplos)</Label>
+              <Label>Arquivos de extrato (.ofx, .xlsx de lançamentos — múltiplos)</Label>
               <Input
                 type="file"
                 multiple
-                accept=".ofx,.xlsx,.csv"
+                accept=".ofx,.xlsx"
                 onChange={(e) => setArquivos(Array.from(e.target.files || []))}
               />
               {arquivos.length > 0 && (
@@ -951,7 +951,7 @@ export default function ExtratoImportacao() {
               )}
             </div>
             <Button
-              onClick={handleImportar}
+              onClick={() => handleImportar("extrato")}
               disabled={processando || !conta || arquivos.length === 0}
               className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
             >
@@ -974,31 +974,85 @@ export default function ExtratoImportacao() {
         </div>
 
         <Card>
-          <CardContent className="pt-6 space-y-1 text-xs text-muted-foreground">
-            <div className="text-sm font-semibold text-foreground">
-              Cobrança Safra (solte no campo de arquivos acima — detecção automática)
+          <CardContent className="pt-6 space-y-4">
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="text-sm font-semibold text-foreground">Cobrança Safra</div>
+              <div>
+                <span className="font-medium text-foreground">Recebimentos - Instruções 2ª via</span>{" "}
+                (.xlsx): papel de <span className="font-medium">conferência</span>. Alimenta apenas a
+                carteira de conferência — não escreve em movimentações bancárias e não dá baixa em
+                título nenhum.
+              </div>
+              <div>
+                <span className="font-medium text-foreground">Gestão de Cobrança - Francesinha</span>{" "}
+                (.xlsx): snapshot diário com juros, descontos, comissões, DDA e ocorrência CNAB. Só
+                enriquece a linha do extrato — nunca insere linha nova, porque o dinheiro do boleto
+                chega pelo OFX.
+              </div>
             </div>
+
             <div>
-              <span className="font-medium text-foreground">Recebimentos - Instruções 2ª via</span>{" "}
-              (.xlsx): papel de <span className="font-medium">conferência</span>. Alimenta apenas a
-              carteira de conferência — não escreve em movimentações bancárias e não dá baixa em
-              título nenhum.
+              <Label>Conta bancária</Label>
+              <Select value={conta} onValueChange={setConta}>
+                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+                <SelectContent>
+                  {contas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
             <div>
-              <span className="font-medium text-foreground">Gestão de Cobrança - Francesinha</span>{" "}
-              (.xlsx): snapshot diário com juros, descontos, comissões, DDA e ocorrência CNAB. Só
-              enriquece a linha do extrato — nunca insere linha nova, porque o dinheiro do boleto
-              chega pelo OFX.
+              <Label>
+                Arquivos auxiliares (.xlsx, .csv — Francesinha, Instruções 2ª via, SafraPay,
+                Mercado Pago)
+              </Label>
+              <Input
+                type="file"
+                multiple
+                accept=".xlsx,.csv"
+                onChange={(e) => setArquivosAux(Array.from(e.target.files || []))}
+              />
+              {arquivosAux.length > 0 && (
+                <ul className="mt-2 text-xs text-muted-foreground space-y-1">
+                  {arquivosAux.map((f) => (
+                    <li key={f.name} className="flex items-center gap-2">
+                      <FileText className="h-3 w-3" />
+                      {f.name}
+                      <span className="text-[10px] uppercase">
+                        {detectarFonteBase(f) || "?"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                A detecção é automática pelo conteúdo do arquivo. Se o arquivo pertencer ao bloco
+                1, o sistema avisa e importa igual.
+              </p>
             </div>
+
+            <Button
+              onClick={() => handleImportar("auxiliar")}
+              disabled={processandoAux || !conta || arquivosAux.length === 0}
+              className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
+            >
+              {processandoAux ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Importar auxiliares {arquivosAux.length > 0 ? `(${arquivosAux.length})` : ""}
+            </Button>
           </CardContent>
         </Card>
 
         {conferencia && (
-          <ResumoSafraCarteira
-            contaId={conferencia.contaId}
-            dataReferencia={conferencia.dataReferencia}
-          />
+          <BlocoErroBoundary titulo="O resumo da carteira Safra falhou">
+            <ResumoSafraCarteira
+              contaId={conferencia.contaId}
+              dataReferencia={conferencia.dataReferencia}
+            />
+          </BlocoErroBoundary>
         )}
+
 
         <div className="flex items-center justify-between">
           <div>
