@@ -370,6 +370,32 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     () => boletos.filter((b) => b.boleto_status === "pendente"),
     [boletos],
   );
+
+  /** Sugestão de vencimento por título pendente (só sugestão — nunca grava sozinha). */
+  const sugestoes = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const b of pendentesEntrada) {
+      const s = sugerirVencimentoBoleto(
+        b.pedido?.faturado_em,
+        b.pedido?.condicao_solicitada,
+        b.numero_parcela,
+        b.total_parcelas,
+      );
+      if (s) map[b.id] = s;
+    }
+    return map;
+  }, [pendentesEntrada]);
+
+  /** Pendentes com sugestão diferente da data salva — universo do dialog em lote. */
+  const pendentesComSugestao = useMemo(
+    () =>
+      pendentesEntrada.filter(
+        (b) => sugestoes[b.id] && sugestoes[b.id] !== b.data_vencimento_atual,
+      ),
+    [pendentesEntrada, sugestoes],
+  );
+  const [sugestoesDialogOpen, setSugestoesDialogOpen] = useState(false);
+  const [aplicandoSugestoes, setAplicandoSugestoes] = useState(false);
   /** Universo do Dialog: escopo do cliente, ou todos os pendentes. */
   const entradaLista = useMemo(() => {
     if (!escopoEntrada) return pendentesEntrada;
