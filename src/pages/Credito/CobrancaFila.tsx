@@ -8,7 +8,7 @@ import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import BancoSafra from "@/pages/administrativo/BancoSafra";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
-import ReguaTab from "@/pages/Credito/ReguaTab";
+// ReguaTab aposentado: a régua operacional vive dentro da Mesa (fusão Mesa × Régua).
 import AdiantamentoSemNfTab from "@/pages/Credito/AdiantamentoSemNfTab";
 import MesaCobranca, { FILAS_AGIR_AGORA } from "@/pages/Credito/MesaCobranca";
 import { useAdiantamentoSemNf } from "@/hooks/credito/useAdiantamentoSemNf";
@@ -1250,7 +1250,7 @@ export default function CobrancaFila() {
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             { value: "adiantamento", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
-            { value: "regua", label: "Régua" },
+            { value: "banco", label: "Banco" },
             { value: "banco", label: "Banco" },
             { value: "credito-cliente", label: "Crédito do cliente" },
           ].map((tab) => (
