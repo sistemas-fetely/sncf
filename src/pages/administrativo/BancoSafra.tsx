@@ -1403,7 +1403,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           else fecharDialogEntrada();
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Gerar Remessa de Entrada</DialogTitle>
             <DialogDescription>
@@ -1443,8 +1443,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                     />
                   </TableHead>
                   <TableHead>Título</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="w-[120px]">Vencimento</TableHead>
+                  <TableHead className="w-[110px] text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1474,20 +1474,25 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                           aria-label={`Selecionar pedido ${g.pedido}`}
                         />
                       </TableCell>
-                      <TableCell colSpan={2}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="truncate text-sm font-medium" title={g.cliente}>
+                      <TableCell colSpan={2} className="max-w-0">
+                        <div className="min-w-0">
+                          <div
+                            className="truncate text-sm font-medium max-w-[280px]"
+                            title={g.cliente}
+                          >
                             {g.cliente}
-                          </span>
-                          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-                            {g.pedido}
-                          </span>
-                          <Badge variant="outline" className="shrink-0 text-[10px]">
-                            {g.boletos.length}
-                          </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                              {g.pedido}
+                            </span>
+                            <Badge variant="outline" className="shrink-0 text-[10px]">
+                              {g.boletos.length}
+                            </Badge>
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-mono text-xs">
+                      <TableCell className="w-[110px] text-right font-mono text-xs whitespace-nowrap">
                         {formatBRL(g.total)}
                       </TableCell>
                     </TableRow>
@@ -1515,17 +1520,19 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                               )}
                             </Tooltip>
                           </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {b.numero_titulo || "—"}
-                            {b.numero_parcela && b.total_parcelas ? (
-                              <span className="text-muted-foreground">
-                                {" "}{b.numero_parcela}/{b.total_parcelas}
-                              </span>
-                            ) : null}
+                          <TableCell className="font-mono text-xs max-w-0">
+                            <div className="truncate">
+                              {b.numero_titulo || "—"}
+                              {b.numero_parcela && b.total_parcelas ? (
+                                <span className="text-muted-foreground">
+                                  {" "}{b.numero_parcela}/{b.total_parcelas}
+                                </span>
+                              ) : null}
+                            </div>
                           </TableCell>
-                          <TableCell className={passado ? "text-red-700 font-medium" : ""}>
-                            <div className="flex items-center gap-2">
-                              {formatDateBR(b.data_vencimento_atual)}
+                          <TableCell className={`w-[120px] ${passado ? "text-red-700 font-medium" : ""}`}>
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="whitespace-nowrap">{formatDateBR(b.data_vencimento_atual)}</span>
                               {passado && (
                                 <Badge variant="outline" className="border-red-300 text-red-700 text-[10px]">
                                   Vencimento no passado
@@ -1533,7 +1540,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-mono">{formatBRL(Number(b.valor_bruto || 0))}</TableCell>
+                          <TableCell className="w-[110px] text-right font-mono whitespace-nowrap">{formatBRL(Number(b.valor_bruto || 0))}</TableCell>
                         </TableRow>
                       );
                     })}
