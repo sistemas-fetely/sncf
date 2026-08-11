@@ -136,6 +136,7 @@ const Produtos = lazy(() => import("@/pages/administrativo/Produtos"));
 const CaixaBanco = lazy(() => import("@/pages/administrativo/CaixaBanco"));
 const BancoSafra = lazy(() => import("@/pages/administrativo/BancoSafra"));
 const ContasBancarias = lazy(() => import("@/pages/administrativo/ContasBancarias"));
+const ExtratoConta = lazy(() => import("@/pages/administrativo/ExtratoConta"));
 const Conciliacao = lazy(() => import("@/pages/administrativo/Conciliacao"));
 const RegrasOFX = lazy(() => import("@/pages/administrativo/RegrasOFX"));
 const DashboardFinanceiro = lazy(() => import("@/pages/administrativo/DashboardFinanceiro"));
