@@ -265,41 +265,14 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   }, [porFila]);
 
 
-  const handleEnviarPacote = async (l: LinhaMesa) => {
+  const abrirEnviarPacote = (l: LinhaMesa, totalPedido: number) => {
     if (!l.pedido_id) {
       toast({ title: "Sem pedido vinculado", description: "Não é possível enviar o pacote.", variant: "destructive" });
       return;
     }
-    if (!l.email_cliente) {
-      toast({ title: "Cliente sem e-mail", description: "Cadastre o e-mail do cliente antes de enviar.", variant: "destructive" });
-      return;
-    }
-    setEnviandoId(l.pedido_id);
-    try {
-      await enviarNfBoletos.mutateAsync({
-        pedido_id: l.pedido_id,
-        emails: [l.email_cliente],
-        skipEstagioCheck: true,
-      });
-      await logEnvio.mutateAsync({
-        pedido_id: l.pedido_id,
-        tipo_email: "nf_boletos",
-        destinatario: l.email_cliente,
-        estagio_pedido: l.estagio ?? undefined,
-        titulo_id: l.titulo_id,
-      });
-      await Promise.all([
-        q.refetch(),
-        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] }),
-        qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
-      ]);
-    } catch (e: any) {
-      toast({ title: "Falha ao enviar pacote", description: e?.message ?? String(e), variant: "destructive" });
-      throw e;
-    } finally {
-      setEnviandoId(null);
-    }
+    setPacote({ linha: l, total: totalPedido });
   };
+
 
   const copiarLinha = async (linha: string) => {
     try {
