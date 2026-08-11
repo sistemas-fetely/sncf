@@ -131,6 +131,19 @@ function CardTitulo({
           </Badge>
         )}
       </div>
+      {(() => {
+        const l = (titulo as any)._mesa as LinhaMesa | undefined;
+        if (!l) return null;
+        return (
+          <TooltipProvider>
+            <div className="flex flex-wrap items-center gap-1">
+              {seloEntrega(l)}
+              {seloEnvio(l)}
+            </div>
+            <EntregaResumoInline l={l} />
+          </TooltipProvider>
+        );
+      })()}
 
       {(titulo as any).regua_cobrar_sem_boleto && (
         <div className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-[11px] font-medium text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-100">
