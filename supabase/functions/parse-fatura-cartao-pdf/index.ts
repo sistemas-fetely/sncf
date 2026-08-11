@@ -94,54 +94,119 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (!lovableApiKey) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "A chave da IA (LOVABLE_API_KEY) não está disponível nesta função. Sem ela o PDF não pode ser lido.",
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Converter PDF pra base64
     const arrayBuffer = await file.arrayBuffer();
+    const MAX_BYTES = 15 * 1024 * 1024;
+    if (arrayBuffer.byteLength > MAX_BYTES) {
+      return new Response(
+        JSON.stringify({
+          error: `PDF grande demais para a IA: ${(arrayBuffer.byteLength / 1048576).toFixed(1)}MB (limite 15MB). Envie o CSV da fatura.`,
+        }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     const bytes = new Uint8Array(arrayBuffer);
     let binary = "";
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    const CHUNK = 8192;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
     }
     const base64 = btoa(binary);
 
-    // Chamar AI Gateway (URL CORRIGIDA - ai.gateway.lovable.dev/v1/...)
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro", // pro pra fatura (mais complexa que NF)
-        messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:application/pdf;base64,${base64}`,
-                },
-              },
-              {
-                type: "text",
-                text: "Extraia os dados desta fatura de cartão de crédito conforme o schema JSON.",
-              },
-            ],
-          },
+    const mensagens = [
+      { role: "system", content: SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
+          { type: "text", text: "Extraia os dados desta fatura de cartão de crédito conforme o schema JSON." },
         ],
-      }),
-    });
+      },
+    ];
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errText);
+    // O 503 do gateway ("upstream_error") é transitório e derrubava a importação
+    // inteira. Tenta o modelo pro, com backoff, e cai para o flash se persistir.
+    const tentativas: { model: string }[] = [
+      { model: "google/gemini-2.5-pro" },
+      { model: "google/gemini-2.5-pro" },
+      { model: "google/gemini-2.5-flash" },
+    ];
+
+    let aiResponse: Response | null = null;
+    let ultimoErro = "";
+    let ultimoStatus = 502;
+
+    for (let t = 0; t < tentativas.length; t++) {
+      if (t > 0) await new Promise((r) => setTimeout(r, 1500 * t));
+      const { model } = tentativas[t];
+      let resp: Response;
+      try {
+        resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${lovableApiKey}`,
+          },
+          body: JSON.stringify({ model, messages: mensagens }),
+        });
+      } catch (netErr) {
+        ultimoErro = `falha de rede ao chamar a IA: ${netErr instanceof Error ? netErr.message : String(netErr)}`;
+        ultimoStatus = 502;
+        console.error("AI Gateway fetch error:", ultimoErro);
+        continue;
+      }
+
+      if (resp.ok) {
+        aiResponse = resp;
+        break;
+      }
+
+      const errText = await resp.text();
+      ultimoStatus = resp.status;
+      ultimoErro = `modelo ${model} respondeu ${resp.status}: ${errText.slice(0, 500)}`;
+      console.error("AI Gateway error:", ultimoErro);
+
+      // 429/402/401 não melhoram com retry de modelo
+      if (resp.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Limite de uso da IA atingido. Tente de novo em alguns minutos." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (resp.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Créditos de IA esgotados no workspace." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (resp.status === 401 || resp.status === 403) {
+        return new Response(
+          JSON.stringify({ error: `Credencial de IA rejeitada pelo gateway (${resp.status}).` }),
+          { status: resp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
+    if (!aiResponse) {
       return new Response(
-        JSON.stringify({ error: `Falha na IA: ${aiResponse.status}`, detail: errText }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            ultimoStatus === 503
+              ? "O serviço de IA está temporariamente indisponível (503 no gateway) — 3 tentativas falharam. Tente de novo em alguns minutos ou importe o CSV da fatura."
+              : `A IA não conseguiu ler o PDF — ${ultimoErro}`,
+          detail: ultimoErro,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -155,11 +220,14 @@ Deno.serve(async (req) => {
     let parsed;
     try {
       parsed = JSON.parse(jsonStr);
-    } catch (e) {
-      console.error("Falha ao parsear JSON da IA:", content);
+    } catch (_e) {
+      console.error("Falha ao parsear JSON da IA:", content.slice(0, 1000));
       return new Response(
-        JSON.stringify({ error: "IA retornou JSON inválido", raw: content }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "A IA respondeu num formato que não é JSON válido.",
+          raw: String(content).slice(0, 2000),
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
