@@ -1524,6 +1524,60 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Aplicar sugestões de vencimento em lote (só pendentes com sugestão diferente) */}
+      <Dialog open={sugestoesDialogOpen} onOpenChange={(v) => !aplicandoSugestoes && setSugestoesDialogOpen(v)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Aplicar sugestões de vencimento</DialogTitle>
+            <DialogDescription>
+              Faturamento do pedido + dias da condição comercial, nunca antes de faturamento + 7
+              dias. Só títulos nunca registrados no Safra.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[50vh] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Vencimento atual</TableHead>
+                  <TableHead>Sugestão</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendentesComSugestao.map((b) => (
+                  <TableRow key={b.id}>
+                    <TableCell className="max-w-[200px] truncate">
+                      {b.conta?.parceiro?.razao_social || "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatDateBR(b.data_vencimento_atual)}
+                    </TableCell>
+                    <TableCell className="tabular-nums font-medium">
+                      {formatDateBR(sugestoes[b.id])}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSugestoesDialogOpen(false)}
+              disabled={aplicandoSugestoes}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={aplicarSugestoes} disabled={aplicandoSugestoes} className="gap-2">
+              {aplicandoSugestoes && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Confirmar e salvar ({pendentesComSugestao.length} títulos)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
