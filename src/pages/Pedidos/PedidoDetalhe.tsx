@@ -98,6 +98,8 @@ import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPa
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
+import { SituacaoFinanceiraBloco } from "@/components/pedidos/SituacaoFinanceiraBloco";
+
 
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
