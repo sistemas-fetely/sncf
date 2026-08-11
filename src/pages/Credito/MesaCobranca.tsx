@@ -331,7 +331,11 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         estagio_pedido: l.estagio ?? undefined,
         titulo_id: l.titulo_id,
       });
-      await q.refetch();
+      await Promise.all([
+        q.refetch(),
+        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] }),
+        qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
+      ]);
     } catch (e: any) {
       toast({ title: "Falha ao enviar pacote", description: e?.message ?? String(e), variant: "destructive" });
       throw e;

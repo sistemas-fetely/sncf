@@ -140,6 +140,8 @@ export function useEnviarEmailNfBoletos() {
       });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["boletos-do-pedido", vars.pedido_id] });
+      qc.invalidateQueries({ queryKey: ["boletos-safra"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar NF + boletos", description: e.message, variant: "destructive" });
