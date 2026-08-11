@@ -38108,6 +38108,8 @@ export type Database = {
           estagio: string | null
           faturado_em: string | null
           fila: string | null
+          flag_bandeira_amarela: boolean | null
+          flag_grupo_economico_inadimplente: boolean | null
           instrumento: string | null
           lastro_entrega: string | null
           lastro_envio: string | null
@@ -38119,15 +38121,18 @@ export type Database = {
           numero_parcela: number | null
           numero_titulo: string | null
           pacote_enviado_em: string | null
+          parceiro_cnpj: string | null
           parceiro_id: string | null
           pausa_regua_automatica: boolean | null
           pedido: string | null
           pedido_id: string | null
           ressalvas: string | null
+          subestado_atraso: string | null
           titulo_id: string | null
           total_parcelas: number | null
           valor_atual: number | null
           vencimento: string | null
+          vip_relacionamento: boolean | null
         }
         Relationships: [
           {
@@ -44696,14 +44701,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
