@@ -25,6 +25,8 @@ import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parse
 import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
 import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
+import { temTitulo, textoPrimeirasLinhas } from "@/lib/financeiro/xlsx-titulo";
+
 import { ResumoSafraCarteira } from "@/components/financeiro/ResumoSafraCarteira";
 import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
