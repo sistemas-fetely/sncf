@@ -10,6 +10,10 @@
  *  - linha 6 (índice 5): cabeçalho da tabela
  */
 import * as XLSX from "xlsx";
+import { temTitulo, textoPrimeirasLinhas } from "./xlsx-titulo";
+
+const RE_INSTRUCOES = /recebimentos\s*-\s*instrucoes/;
+
 
 export const CABECALHO_INSTRUCOES_ESPERADO =
   "Data Vencimento | Data Pagamento | Nº Operação | Nº Documento | Nosso Nº | Pagador | " +
