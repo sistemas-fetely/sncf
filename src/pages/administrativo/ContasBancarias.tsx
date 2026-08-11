@@ -425,7 +425,20 @@ export default function ContasBancarias() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {cartoesAtivos.map((c) => (
-              <Card key={c.id}>
+              <Card
+                key={c.id}
+                role="button"
+                tabIndex={0}
+                title="Ver faturas do cartão"
+                className="cursor-pointer transition-colors hover:border-admin/50"
+                onClick={() => navigate("/administrativo/faturas-cartao")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate("/administrativo/faturas-cartao");
+                  }
+                }}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-start gap-2">
@@ -445,7 +458,7 @@ export default function ContasBancarias() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => handleEditarCartao(c)}
+                        onClick={(e) => { e.stopPropagation(); handleEditarCartao(c); }}
                         title="Editar"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -454,7 +467,7 @@ export default function ContasBancarias() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => setParaExcluirCartao(c)}
+                        onClick={(e) => { e.stopPropagation(); setParaExcluirCartao(c); }}
                         title="Inativar"
                       >
                         <Power className="h-3.5 w-3.5" />
