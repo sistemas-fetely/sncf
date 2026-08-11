@@ -862,14 +862,51 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                   </Badge>
                 )}
                 {editavel ? (
-                  <Input
-                    type="date"
-                    className="h-8 w-[140px]"
-                    value={edits[b.id]?.data ?? b.data_vencimento_atual ?? ""}
-                    onChange={(e) =>
-                      setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
-                    }
-                  />
+                  (() => {
+                    const valorAtual = edits[b.id]?.data ?? b.data_vencimento_atual ?? "";
+                    const sug = sugestoes[b.id];
+                    const dias = (() => {
+                      const m = (b.pedido?.condicao_solicitada || "").match(/\d+(?:\s*\/\s*\d+)+/);
+                      if (!m) return null;
+                      const arr = m[0].split("/").map((x) => x.trim());
+                      return arr[(b.numero_parcela ?? 1) - 1] ?? null;
+                    })();
+                    return (
+                      <div className="space-y-1">
+                        <Input
+                          type="date"
+                          className="h-8 w-[140px]"
+                          value={valorAtual}
+                          onChange={(e) =>
+                            setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
+                          }
+                        />
+                        {sug && sug !== valorAtual && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: sug } }))
+                                  }
+                                  className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                                >
+                                  Sugestão: {formatDateBR(sug)} ·{" "}
+                                  <span className="font-medium underline">usar</span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Faturamento ({formatDateBR(b.pedido?.faturado_em ?? null)?.slice(0, 5)})
+                                {dias ? ` + ${dias} dias da condição` : " + dias da condição"}, nunca
+                                antes de faturamento + 7 dias
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : registrado ? (
                   <TooltipProvider>
                     <Tooltip>
