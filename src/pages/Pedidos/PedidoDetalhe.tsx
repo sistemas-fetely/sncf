@@ -915,6 +915,7 @@ export default function PedidoDetalhe() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { data, isLoading } = usePedidoDetalhe(id);
+  const { data: prova } = useProvaPagamento(id);
   const { data: priorizado } = usePedidoPriorizado(id);
   const atualizarUrgencia = useAtualizarUrgencia();
   const limparAtencao = useLimparAtencao();
