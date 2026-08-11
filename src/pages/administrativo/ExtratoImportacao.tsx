@@ -29,6 +29,7 @@ import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-rele
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
 import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
 import { temTitulo, textoPrimeirasLinhas } from "@/lib/financeiro/xlsx-titulo";
+import { ehRetornoSafra, hashArquivo, parseRetornoSafra } from "@/lib/financeiro/cnab-retorno-safra-parser";
 
 import { ResumoSafraCarteira } from "@/components/financeiro/ResumoSafraCarteira";
 import * as XLSX from "xlsx";
@@ -70,13 +71,15 @@ type Fonte =
   | "mp_settlement"
   | "mp_release"
   | "safra_instrucoes_2via"
-  | "safra_francesinha";
+  | "safra_francesinha"
+  | "retorno_safra";
 
-function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | null {
+function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | "txt" | null {
   const nome = file.name.toLowerCase();
   if (nome.endsWith(".ofx")) return "ofx";
   if (nome.endsWith(".xlsx")) return "xlsx";
   if (nome.endsWith(".csv")) return "csv";
+  if (nome.endsWith(".txt") || nome.endsWith(".ret")) return "txt";
   return null;
 }
 
@@ -129,6 +132,7 @@ const FONTE_TIPO_DB: Record<Fonte, string> = {
   mp_release: "mp_release",
   safra_instrucoes_2via: "safra_instrucoes_2via",
   safra_francesinha: "csv_safra",
+  retorno_safra: "retorno_safra",
 };
 
 
@@ -146,6 +150,7 @@ const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
   mp_release: "auxiliar",
   safra_instrucoes_2via: "auxiliar",
   safra_francesinha: "auxiliar",
+  retorno_safra: "auxiliar",
 };
 
 const NOME_BLOCO: Record<Bloco, string> = {
@@ -160,6 +165,7 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   safrapay_liquidacao: "SafraPay Tipo 2 - Realizado",
   safrapay_ajustes: "SafraPay Tipo 3 - Ajustes",
   super_agenda: "SafraPay SUPER AGENDA (não importável)",
+  retorno_safra: "Retorno CNAB 400 Safra (cobrança)",
 };
 
 
@@ -242,7 +248,13 @@ export default function ExtratoImportacao() {
     // A linha do histórico nasce ANTES de qualquer leitura: se a detecção ou o
     // parser explodir, o erro fica registrado no histórico e não some.
     const tipoProvisorio =
-      base === "ofx" ? "ofx" : base === "csv" ? "safrapay_liquidacao" : "safra_lancamentos";
+      base === "ofx"
+        ? "ofx"
+        : base === "csv"
+          ? "safrapay_liquidacao"
+          : base === "txt"
+            ? "retorno_safra"
+            : "safra_lancamentos";
     const { data: impRow, error: errImp } = await sb
       .from("extrato_importacoes")
       .insert({
@@ -263,6 +275,13 @@ export default function ExtratoImportacao() {
       if (!base) throw new Error(`Extensão não reconhecida: ${file.name} (aceito .ofx, .xlsx, .csv)`);
       if (base === "ofx") {
         fonte = "ofx";
+      } else if (base === "txt") {
+        textoCsv = await file.text();
+        if (!ehRetornoSafra(textoCsv))
+          throw new Error(
+            "Arquivo .txt não reconhecido como Retorno CNAB 400 do Safra (a primeira linha precisa começar com 02RETORNO01COBRANCA e conter 422SAFRA)."
+          );
+        fonte = "retorno_safra";
       } else if (base === "csv") {
         // O CSV SafraPay declara o tipo na primeira coluna de cada linha.
         textoCsv = await file.text();
@@ -911,6 +930,108 @@ export default function ExtratoImportacao() {
             else semPar++;
           }
         }
+      } else if (fonte === "retorno_safra") {
+        // Papel: REGISTRO DA RESPOSTA DO BANCO. Não dá baixa em título e não
+        // cria movimentação bancária — a baixa é decisão humana, outro caminho.
+        const parsed = parseRetornoSafra(textoCsv);
+        const hash = await hashArquivo(textoCsv);
+        linhasLidas = parsed.ocorrencias.length;
+        periodoInicio = parsed.data_movimento || parsed.data_geracao;
+        periodoFim = periodoInicio;
+
+        const { data: existenteSeq, error: errSeq } = await sb
+          .from("safra_retorno_arquivo")
+          .select("id, hash_arquivo, arquivo_nome")
+          .eq("nro_sequencial", parsed.nro_sequencial)
+          .maybeSingle();
+        if (errSeq) throw errSeq;
+        if (existenteSeq && existenteSeq.hash_arquivo !== hash) {
+          throw new Error(
+            `Sequencial ${parsed.nro_sequencial} já foi importado com conteúdo diferente (arquivo "${existenteSeq.arquivo_nome}"). Dois arquivos distintos com o mesmo número — verificar com o banco antes de importar.`
+          );
+        }
+
+        const arquivoRow = {
+          nro_sequencial: parsed.nro_sequencial,
+          data_geracao: parsed.data_geracao,
+          data_movimento: parsed.data_movimento,
+          arquivo_nome: file.name,
+          hash_arquivo: hash,
+          qtd_registros: parsed.qtd_registros,
+          qtd_liquidacoes: parsed.qtd_liquidacoes,
+          valor_liquidacoes: parsed.valor_liquidacoes,
+          processado_em: new Date().toISOString(),
+          status: "processado",
+          erro_detalhe: null,
+        };
+
+        let arquivoId: string;
+        if (existenteSeq) {
+          const { error: errUpArq } = await sb
+            .from("safra_retorno_arquivo")
+            .update(arquivoRow)
+            .eq("id", existenteSeq.id);
+          if (errUpArq) throw errUpArq;
+          arquivoId = existenteSeq.id as string;
+          duplicadas = linhasLidas;
+        } else {
+          const { data: novoArq, error: errArq } = await sb
+            .from("safra_retorno_arquivo")
+            .insert(arquivoRow)
+            .select("id")
+            .single();
+          if (errArq) throw errArq;
+          arquivoId = novoArq.id as string;
+        }
+
+        let orfas = 0;
+        const rowsOc: Record<string, unknown>[] = [];
+        for (const o of parsed.ocorrencias) {
+          // fn_cnab_resolver_titulo já sabe a ordem certa: prefixo do uuid,
+          // depois nosso número — nunca por seu número.
+          const { data: res, error: errRes } = await sb.rpc("fn_cnab_resolver_titulo", {
+            uso_empresa: o.uso_empresa,
+            nosso_numero: o.nosso_numero,
+            seu_numero: o.seu_numero,
+          });
+          if (errRes) throw errRes;
+          const r = (Array.isArray(res) ? res[0] : res) as
+            | { titulo_id: string | null; casado_por: string | null }
+            | null;
+          if (!r?.titulo_id) orfas++;
+          rowsOc.push({
+            arquivo_id: arquivoId,
+            nro_sequencial: parsed.nro_sequencial,
+            linha: o.linha,
+            codigo_ocorrencia: o.codigo_ocorrencia,
+            motivo_rejeicao: o.motivo_rejeicao,
+            data_ocorrencia: o.data_ocorrencia,
+            nosso_numero: o.nosso_numero,
+            uso_empresa: o.uso_empresa,
+            seu_numero: o.seu_numero,
+            titulo_id: r?.titulo_id ?? null,
+            casado_por: r?.casado_por ?? null,
+            sacado: o.sacado,
+            data_vencimento: o.data_vencimento,
+            valor_titulo: o.valor_titulo,
+            valor_pago: o.valor_pago,
+            valor_juros: o.valor_juros,
+            data_credito: o.data_credito,
+          });
+        }
+
+        for (let i = 0; i < rowsOc.length; i += 200) {
+          const lote = rowsOc.slice(i, i + 200);
+          const { error } = await sb
+            .from("safra_retorno_ocorrencia")
+            .upsert(lote, { onConflict: "nro_sequencial,linha" });
+          if (error) throw error;
+        }
+        novas = rowsOc.length;
+        semPar = orfas;
+        qc.invalidateQueries({ queryKey: ["safra-retorno-pendente"] });
+        qc.invalidateQueries({ queryKey: ["safra-retorno-arquivos"] });
+        qc.invalidateQueries({ queryKey: ["safra-retorno-sequencia"] });
       }
 
 
@@ -927,7 +1048,14 @@ export default function ExtratoImportacao() {
         })
         .eq("id", impId);
 
-      if (fonte === "safra_instrucoes_2via") {
+      if (fonte === "retorno_safra") {
+        toast.success(
+          `${PARSER_ROTULO.retorno_safra} — ${file.name}: arquivo ${linhasLidas} registro(s) lidos · ${novas} ocorrência(s) gravadas` +
+            (semPar > 0 ? ` · ${semPar} órfã(s) sem título` : "") +
+            (duplicadas > 0 ? " · arquivo já conhecido, atualizado" : "") +
+            " — nenhuma baixa de título e nenhuma movimentação criada."
+        );
+      } else if (fonte === "safra_instrucoes_2via") {
         toast.success(
           `${PARSER_ROTULO.safra_instrucoes_2via} — ${file.name}: ${novas} boleto(s) na conferência da carteira — nenhuma movimentação ou baixa gerada.`
         );
@@ -1137,6 +1265,11 @@ export default function ExtratoImportacao() {
                 enriquece a linha do extrato — nunca insere linha nova, porque o dinheiro do boleto
                 chega pelo OFX.
               </div>
+              <div>
+                <span className="font-medium text-foreground">Retorno CNAB 400</span> (.txt): a
+                resposta do banco à remessa — registros, rejeições e liquidações. Só registra o que
+                o banco disse; não dá baixa em título e não cria movimentação bancária.
+              </div>
             </div>
 
             <div>
@@ -1155,12 +1288,12 @@ export default function ExtratoImportacao() {
             <div>
               <Label>
                 Arquivos auxiliares (.xlsx, .csv — Francesinha, Instruções 2ª via, SafraPay,
-                Mercado Pago)
+                Mercado Pago, Retorno CNAB 400 .txt)
               </Label>
               <Input
                 type="file"
                 multiple
-                accept=".xlsx,.csv"
+                accept=".xlsx,.csv,.txt,.ret"
                 onChange={(e) => setArquivosAux(Array.from(e.target.files || []))}
               />
               {arquivosAux.length > 0 && (

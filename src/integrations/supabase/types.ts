@@ -28461,29 +28461,35 @@ export type Database = {
       }
       safra_ocorrencias_retorno: {
         Row: {
+          acao_sugerida: string | null
           ativo: boolean
           categoria: string
           codigo: string
           created_at: string
           descricao: string
+          exige_humano: boolean
           gera_data_credito: boolean
           observacao: string | null
         }
         Insert: {
+          acao_sugerida?: string | null
           ativo?: boolean
           categoria: string
           codigo: string
           created_at?: string
           descricao: string
+          exige_humano?: boolean
           gera_data_credito?: boolean
           observacao?: string | null
         }
         Update: {
+          acao_sugerida?: string | null
           ativo?: boolean
           categoria?: string
           codigo?: string
           created_at?: string
           descricao?: string
+          exige_humano?: boolean
           gera_data_credito?: boolean
           observacao?: string | null
         }
@@ -28536,6 +28542,162 @@ export type Database = {
           valor_liquidacoes?: number
         }
         Relationships: []
+      }
+      safra_retorno_ocorrencia: {
+        Row: {
+          arquivo_id: string | null
+          casado_por: string | null
+          codigo_ocorrencia: string
+          created_at: string
+          data_credito: string | null
+          data_ocorrencia: string | null
+          data_vencimento: string | null
+          id: string
+          linha: number | null
+          motivo_rejeicao: string | null
+          nosso_numero: string | null
+          nro_sequencial: number | null
+          observacao: string | null
+          sacado: string | null
+          seu_numero: string | null
+          titulo_id: string | null
+          tratado: boolean
+          tratado_em: string | null
+          tratado_por: string | null
+          uso_empresa: string | null
+          valor_juros: number | null
+          valor_pago: number | null
+          valor_titulo: number | null
+        }
+        Insert: {
+          arquivo_id?: string | null
+          casado_por?: string | null
+          codigo_ocorrencia: string
+          created_at?: string
+          data_credito?: string | null
+          data_ocorrencia?: string | null
+          data_vencimento?: string | null
+          id?: string
+          linha?: number | null
+          motivo_rejeicao?: string | null
+          nosso_numero?: string | null
+          nro_sequencial?: number | null
+          observacao?: string | null
+          sacado?: string | null
+          seu_numero?: string | null
+          titulo_id?: string | null
+          tratado?: boolean
+          tratado_em?: string | null
+          tratado_por?: string | null
+          uso_empresa?: string | null
+          valor_juros?: number | null
+          valor_pago?: number | null
+          valor_titulo?: number | null
+        }
+        Update: {
+          arquivo_id?: string | null
+          casado_por?: string | null
+          codigo_ocorrencia?: string
+          created_at?: string
+          data_credito?: string | null
+          data_ocorrencia?: string | null
+          data_vencimento?: string | null
+          id?: string
+          linha?: number | null
+          motivo_rejeicao?: string | null
+          nosso_numero?: string | null
+          nro_sequencial?: number | null
+          observacao?: string | null
+          sacado?: string | null
+          seu_numero?: string | null
+          titulo_id?: string | null
+          tratado?: boolean
+          tratado_em?: string | null
+          tratado_por?: string | null
+          uso_empresa?: string | null
+          valor_juros?: number | null
+          valor_pago?: number | null
+          valor_titulo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_arquivo_id_fkey"
+            columns: ["arquivo_id"]
+            isOneToOne: false
+            referencedRelation: "safra_retorno_arquivo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobranca_mesa"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_manuais_sem_batimento"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebimento_pedido_nivel"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       safrapay_venda: {
         Row: {
@@ -46047,14 +46209,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -49272,6 +49434,116 @@ export type Database = {
           valor_recebido: number | null
           vencimento_banco: string | null
           vencimento_sncf: string | null
+        }
+        Relationships: []
+      }
+      vw_safra_retorno_pendente: {
+        Row: {
+          acao_sugerida: string | null
+          boleto_status: string | null
+          casado_por: string | null
+          categoria: string | null
+          codigo_ocorrencia: string | null
+          data_credito: string | null
+          data_ocorrencia: string | null
+          data_vencimento: string | null
+          exige_humano: boolean | null
+          id: string | null
+          motivo_rejeicao: string | null
+          nosso_numero: string | null
+          nro_sequencial: number | null
+          numero_titulo: string | null
+          ocorrencia_descricao: string | null
+          sacado: string | null
+          situacao: string | null
+          status_titulo: string | null
+          titulo_id: string | null
+          tratado: boolean | null
+          tratado_em: string | null
+          valor_juros: number | null
+          valor_pago: number | null
+          valor_titulo: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobranca_mesa"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_manuais_sem_batimento"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebimento_pedido_nivel"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_safra_retorno_sequencia: {
+        Row: {
+          data_movimento: string | null
+          faltando_entre: number | null
+          nro_sequencial: number | null
+          proximo: number | null
+          situacao: string | null
         }
         Relationships: []
       }

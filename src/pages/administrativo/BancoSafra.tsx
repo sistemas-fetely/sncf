@@ -60,6 +60,7 @@ import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { RetornoSafraPainel } from "@/components/financeiro/RetornoSafraPainel";
 
 /** Dias corridos desde uma data ISO (null se inválida). */
 function diasDesde(iso: string | null | undefined): number | null {
@@ -1719,6 +1720,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RetornoSafraPainel />
     </div>
   );
 }
