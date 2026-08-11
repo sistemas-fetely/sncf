@@ -231,6 +231,7 @@ export default function CreditoClientesIndex() {
                     <tr>
                       <SortTh label="Cliente" sortKey="razao_social" sort={sort} setSort={setSort} />
                       <SortTh label="Haver disponível" sortKey="haver_disponivel" sort={sort} setSort={setSort} align="right" />
+                      <SortTh label="Reservado" sortKey="reservado" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Em aberto" sortKey="em_aberto" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Vencido" sortKey="vencidos" sort={sort} setSort={setSort} align="right" />
                     </tr>
@@ -238,14 +239,14 @@ export default function CreditoClientesIndex() {
                   <tbody>
                     {loading && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                           Carregando…
                         </td>
                       </tr>
                     )}
                     {!loading && filtrados.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                           Nenhum cliente encontrado.
                         </td>
                       </tr>
