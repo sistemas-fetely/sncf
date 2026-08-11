@@ -626,7 +626,8 @@ export default function ExtratoImportacao() {
         .eq("id", impId);
 
       toast.success(
-        `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas`
+        `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas` +
+          (linhasSaldo > 0 ? ` · ${linhasSaldo} linha(s) de saldo` : "")
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
