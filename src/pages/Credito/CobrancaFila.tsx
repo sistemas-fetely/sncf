@@ -9,6 +9,8 @@ import BancoSafra from "@/pages/administrativo/BancoSafra";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
 import ReguaTab from "@/pages/Credito/ReguaTab";
+import AdiantamentoSemNfTab from "@/pages/Credito/AdiantamentoSemNfTab";
+import { useAdiantamentoSemNf } from "@/hooks/credito/useAdiantamentoSemNf";
 
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
@@ -1176,6 +1178,8 @@ export default function CobrancaFila() {
   const [subTabBanco, setSubTabBanco] = useState("remessas");
 
   const totalPedidos = pedidos.length;
+  const { data: adiantamentosSemNf } = useAdiantamentoSemNf();
+  const totalAdiantamentos = adiantamentosSemNf?.length ?? 0;
   const totalTitulosAbertos = titulosCobranca.filter(
     (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
   ).length;
@@ -1225,6 +1229,7 @@ export default function CobrancaFila() {
           {[
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
+            { value: "adiantamento", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
             { value: "regua", label: "Régua" },
             { value: "banco", label: "Banco" },
             { value: "credito-cliente", label: "Crédito do cliente" },
@@ -1272,6 +1277,10 @@ export default function CobrancaFila() {
               <TitulosTab somenteComNf />
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        <TabsContent value="adiantamento">
+          <AdiantamentoSemNfTab />
         </TabsContent>
 
         <TabsContent value="regua">

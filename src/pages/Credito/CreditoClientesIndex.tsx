@@ -41,13 +41,11 @@ export default function CreditoClientesIndex() {
   });
 
   const haveresQ = useQuery({
-    queryKey: ["credito-clientes-haveres"],
+    queryKey: ["credito-clientes-haveres-consolidado"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("haver_cliente")
-        .select("parceiro_id, saldo, status")
-        .in("status", ["disponivel", "parcial"])
-        .gt("saldo", 0);
+        .from("vw_credito_cliente_consolidado")
+        .select("parceiro_id, saldo, natureza");
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -79,19 +77,22 @@ export default function CreditoClientesIndex() {
       parceirosMap[p.id] = { razao_social: p.razao_social, nome_fantasia: p.nome_fantasia ?? null, cnpj: p.cnpj };
     });
 
-    // Agrupar haveres por parceiro com nome
-    const haverPorParceiro: Record<string, { total: number; razao_social: string | null; nome_fantasia: string | null; cnpj: string | null }> = {};
+    // Agrupar crédito por parceiro, separando livre (aplicável) de reservado (adiantamento)
+    const haverPorParceiro: Record<string, { total: number; reservado: number; razao_social: string | null; nome_fantasia: string | null; cnpj: string | null }> = {};
     haveres.forEach((h: any) => {
       const pid = h.parceiro_id;
       if (!haverPorParceiro[pid]) {
         haverPorParceiro[pid] = {
           total: 0,
+          reservado: 0,
           razao_social: parceirosMap[pid]?.razao_social ?? null,
           nome_fantasia: parceirosMap[pid]?.nome_fantasia ?? null,
           cnpj: parceirosMap[pid]?.cnpj ?? null,
         };
       }
-      haverPorParceiro[pid].total += Number(h.saldo) || 0;
+      const v = Number(h.saldo) || 0;
+      if (h.natureza === "reservado") haverPorParceiro[pid].reservado += v;
+      else haverPorParceiro[pid].total += v;
     });
 
     // Resumos enriquecidos com haver
@@ -105,6 +106,7 @@ export default function CreditoClientesIndex() {
       vencidos:     Number(r.total_vencido   ?? 0),
       a_vencer:     Number(r.faixa_a_vencer  ?? 0),
       haver_disponivel: haverPorParceiro[r.parceiro_id]?.total ?? 0,
+      reservado: haverPorParceiro[r.parceiro_id]?.reservado ?? 0,
     }));
 
     // Parceiros com haver mas SEM títulos em aberto — não estavam na lista
@@ -125,12 +127,14 @@ export default function CreditoClientesIndex() {
         vencidos: 0,
         a_vencer: 0,
         haver_disponivel: info.total,
+        reservado: info.reservado,
       }));
 
     return [...resumosComHaver, ...extras].filter(
       (c) => (c.em_aberto ?? c.total_a_receber ?? 0) > 0 ||
               (c.vencidos ?? c.total_vencido ?? 0) > 0 ||
-              (c.haver_disponivel ?? 0) > 0
+              (c.haver_disponivel ?? 0) > 0 ||
+              (c.reservado ?? 0) > 0
     );
   }, [resumosQ.data, haveresQ.data, parceirosAllQ.data]);
 
@@ -227,6 +231,7 @@ export default function CreditoClientesIndex() {
                     <tr>
                       <SortTh label="Cliente" sortKey="razao_social" sort={sort} setSort={setSort} />
                       <SortTh label="Haver disponível" sortKey="haver_disponivel" sort={sort} setSort={setSort} align="right" />
+                      <SortTh label="Reservado" sortKey="reservado" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Em aberto" sortKey="em_aberto" sort={sort} setSort={setSort} align="right" />
                       <SortTh label="Vencido" sortKey="vencidos" sort={sort} setSort={setSort} align="right" />
                     </tr>
@@ -234,14 +239,14 @@ export default function CreditoClientesIndex() {
                   <tbody>
                     {loading && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                           Carregando…
                         </td>
                       </tr>
                     )}
                     {!loading && filtrados.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                           Nenhum cliente encontrado.
                         </td>
                       </tr>
@@ -269,6 +274,19 @@ export default function CreditoClientesIndex() {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
+                        <td
+                          className="px-4 py-2 text-right"
+                          title="Adiantamento amarrado a um pedido — sai sozinho no faturamento"
+                        >
+                          {(c.reservado ?? 0) > 0 ? (
+                            <span className="font-medium text-sky-600">
+                              {fmtBRL.format(c.reservado)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+
                         <td className="px-4 py-2 text-right">
                           {(c.em_aberto ?? 0) > 0
                             ? fmtBRL.format(c.em_aberto)
