@@ -1178,6 +1178,8 @@ export default function CobrancaFila() {
   const [subTabBanco, setSubTabBanco] = useState("remessas");
 
   const totalPedidos = pedidos.length;
+  const { data: adiantamentosSemNf } = useAdiantamentoSemNf();
+  const totalAdiantamentos = adiantamentosSemNf?.length ?? 0;
   const totalTitulosAbertos = titulosCobranca.filter(
     (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
   ).length;
