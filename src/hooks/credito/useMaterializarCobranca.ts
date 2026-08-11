@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { TituloProposto } from "@/types/credito";
 import { rawMessage } from "@/lib/format-error";
+import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 
 interface Args {
   pedidoId: string;
@@ -14,6 +15,7 @@ export function useMaterializarCobranca() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
 
   return useMutation({
     mutationFn: async ({ pedidoId, titulosEditados }: Args) => {
@@ -32,7 +34,7 @@ export function useMaterializarCobranca() {
         title: "Cobrança materializada",
         description: "Títulos criados e pedido avançado.",
       });
-      navigate("/recebimento/cobranca");
+      navigate(voltarPara);
     },
     onError: (e: unknown) => {
       console.error("[materializar_cobranca]", e);
