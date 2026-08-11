@@ -19,16 +19,16 @@ import {
 } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, Search, Send, Copy, Loader2, AlertTriangle } from "lucide-react";
+import { ChevronDown, Search, Send, Copy, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useEnviarEmailNfBoletos } from "@/hooks/pedidos/useEnviarEmailNfBoletos";
-import { useLogEmailEnvio } from "@/hooks/pedidos/usePedidoEmailLog";
 import { useReguaEtapas, resolverEtapaParaTitulo, type ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
+import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
+
 import { adaptarParaTitulo, type LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import {
   seloEntrega, seloInstrumento, seloEnvio, EntregaResumoInline,
@@ -150,8 +150,6 @@ interface MesaCobrancaProps {
 
 export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) {
   const { toast } = useToast();
-  const enviarNfBoletos = useEnviarEmailNfBoletos();
-  const logEnvio = useLogEmailEnvio();
 
   const [busca, setBusca] = useState("");
   const [instrumentoF, setInstrumentoF] = useState("todos");
@@ -166,8 +164,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const [tocados, setTocados] = useState<Record<string, boolean>>({});
   const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
   const [detalhe, setDetalhe] = useState<LinhaMesa | null>(null);
-  /** Loading do envio de pacote — por PEDIDO, não por parcela. */
-  const [enviandoId, setEnviandoId] = useState<string | null>(null);
+  /** Diálogo de confirmação do envio do pacote (destinatário editável + CC). */
+  const [pacote, setPacote] = useState<{ linha: LinhaMesa; total: number } | null>(null);
+
   /** Ação de régua em curso (título adaptado + etapa aplicável). */
   const [acaoRegua, setAcaoRegua] = useState<{
     titulo: TituloCobranca;
@@ -265,41 +264,14 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   }, [porFila]);
 
 
-  const handleEnviarPacote = async (l: LinhaMesa) => {
+  const abrirEnviarPacote = (l: LinhaMesa, totalPedido: number) => {
     if (!l.pedido_id) {
       toast({ title: "Sem pedido vinculado", description: "Não é possível enviar o pacote.", variant: "destructive" });
       return;
     }
-    if (!l.email_cliente) {
-      toast({ title: "Cliente sem e-mail", description: "Cadastre o e-mail do cliente antes de enviar.", variant: "destructive" });
-      return;
-    }
-    setEnviandoId(l.pedido_id);
-    try {
-      await enviarNfBoletos.mutateAsync({
-        pedido_id: l.pedido_id,
-        emails: [l.email_cliente],
-        skipEstagioCheck: true,
-      });
-      await logEnvio.mutateAsync({
-        pedido_id: l.pedido_id,
-        tipo_email: "nf_boletos",
-        destinatario: l.email_cliente,
-        estagio_pedido: l.estagio ?? undefined,
-        titulo_id: l.titulo_id,
-      });
-      await Promise.all([
-        q.refetch(),
-        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] }),
-        qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
-      ]);
-    } catch (e: any) {
-      toast({ title: "Falha ao enviar pacote", description: e?.message ?? String(e), variant: "destructive" });
-      throw e;
-    } finally {
-      setEnviandoId(null);
-    }
+    setPacote({ linha: l, total: totalPedido });
   };
+
 
   const copiarLinha = async (linha: string) => {
     try {
@@ -545,17 +517,13 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                     size="sm"
                                     variant="outline"
                                     className="h-7 shrink-0 text-xs"
-                                    disabled={enviandoId === g.urgente.pedido_id}
-                                    onClick={() => { void handleEnviarPacote(g.urgente).catch(() => {}); }}
+                                    onClick={() => abrirEnviarPacote(g.urgente, Number(g.total ?? 0))}
                                   >
-                                    {enviandoId === g.urgente.pedido_id ? (
-                                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <Send className="mr-1 h-3 w-3" />
-                                    )}
+                                    <Send className="mr-1 h-3 w-3" />
                                     Enviar pacote
                                   </Button>
                                 )}
+
                               </div>
                               <CollapsibleContent>
                                 <div className="border-t px-2 pb-2">
@@ -781,6 +749,15 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
             onClose={() => setAcaoRegua(null)}
           />
         )}
+
+        <EnviarPacoteDialog
+          linha={pacote?.linha ?? null}
+          valorTotalPedido={pacote?.total ?? null}
+          open={!!pacote}
+          onOpenChange={(v) => { if (!v) setPacote(null); }}
+          onEnviado={async () => { await q.refetch(); }}
+        />
+
       </div>
     </TooltipProvider>
   );

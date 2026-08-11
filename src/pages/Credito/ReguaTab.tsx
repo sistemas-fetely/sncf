@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { RefreshCw, Star, AlertTriangle, Users, Play } from "lucide-react";
+import { RefreshCw, Star, AlertTriangle, Users, Play, Send } from "lucide-react";
 import {
   useReguaEtapas,
   useReguaFilaHoje,
@@ -26,6 +26,7 @@ import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDia
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import { seloEntrega, seloEnvio, EntregaResumoInline } from "@/lib/financeiro/mesa-lastros";
+import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
 
 type Vista = "fila" | "pausados";
 
@@ -72,7 +73,7 @@ function KpiCard({
 }
 
 function CardTitulo({
-  titulo, etapa, onAcao, onPular, onPausar, onRenegociar,
+  titulo, etapa, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote,
 }: {
   titulo: TituloCobranca;
   etapa: ReguaEtapa | null;
@@ -80,6 +81,7 @@ function CardTitulo({
   onPular: () => void;
   onPausar: () => void;
   onRenegociar: () => void;
+  onEnviarPacote: (l: LinhaMesa) => void;
 }) {
   const razao = nomeCanonico(titulo.parceiro_razao_social, "—");
   const apelido = apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
@@ -168,6 +170,20 @@ function CardTitulo({
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onRenegociar}>
           Renegociar
         </Button>
+        {(() => {
+          const l = (titulo as any)._mesa as LinhaMesa | undefined;
+          if (!l?.pedido_id || l.fila !== "A_ENVIAR") return null;
+          return (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => onEnviarPacote(l)}
+            >
+              <Send className="h-3 w-3 mr-1" /> Enviar pacote
+            </Button>
+          );
+        })()}
       </div>
     </div>
   );
@@ -215,6 +231,7 @@ export default function ReguaTab() {
   const [acaoDialog, setAcaoDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null; modo: "enviada" | "pulada" } | null>(null);
   const [pausarDialog, setPausarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
   const [renegociarDialog, setRenegociarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
+  const [pacote, setPacote] = useState<LinhaMesa | null>(null);
 
   const somaValor = (lista: TituloCobranca[]) =>
     lista.reduce((acc, t) => acc + Number(t.valor_efetivo ?? 0), 0);
@@ -324,6 +341,7 @@ export default function ReguaTab() {
                   onPular={() => setAcaoDialog({ titulo: t, etapa, modo: "pulada" })}
                   onPausar={() => setPausarDialog({ titulo: t, etapa })}
                   onRenegociar={() => setRenegociarDialog({ titulo: t, etapa })}
+                  onEnviarPacote={(l) => setPacote(l)}
                 />
                 {vista === "pausados" && (
                   <Button
@@ -340,6 +358,12 @@ export default function ReguaTab() {
           </div>
         </section>
       ))}
+
+      <EnviarPacoteDialog
+        linha={pacote}
+        open={!!pacote}
+        onOpenChange={(v) => { if (!v) setPacote(null); }}
+      />
 
       {acaoDialog && (
         <AcaoReguaDialog
