@@ -91,6 +91,8 @@ export function useEnviarEmailBoleto() {
       });
       qc.invalidateQueries({ queryKey: ["banco-safra-boletos"] });
       qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+      qc.invalidateQueries({ queryKey: ["boletos-safra"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar boleto", description: e.message, variant: "destructive" });

@@ -345,6 +345,19 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     },
   });
 
+  /**
+   * Revalida TODO consumidor de `titulo_a_receber` no hub de Cobrança.
+   * Banco Safra (`boletos-safra`) e Mesa de Cobrança (`cobranca-mesa`) leem o mesmo
+   * dado de fundo — qualquer ação que muda boleto precisa invalidar os dois caches.
+   */
+  const revalidarTitulos = async () => {
+    await Promise.all([
+      refetchBoletos(),
+      qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
+      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] }),
+    ]);
+  };
+
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
   const [gerandoProrrogacao, setGerandoProrrogacao] = useState(false);
   const [gerandoEntrada, setGerandoEntrada] = useState(false);
@@ -539,7 +552,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       if (error) throw error;
       setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
       toast({ title: "Boleto atualizado", description: `${b.numero_titulo} salvo com sucesso.` });
-      refetchBoletos();
+      void revalidarTitulos();
     } catch (e) {
       toast({ title: "Erro ao salvar", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -568,14 +581,14 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       }
       toast({ title: `${salvos} vencimentos atualizados pela sugestão` });
       setSugestoesDialogOpen(false);
-      await refetchBoletos();
+      await revalidarTitulos();
     } catch (e) {
       toast({
         title: "Erro ao aplicar sugestões",
         description: (e as Error).message,
         variant: "destructive",
       });
-      await refetchBoletos();
+      await revalidarTitulos();
     } finally {
       setAplicandoSugestoes(false);
     }
@@ -599,7 +612,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       setBaixaDialogOpen(false);
       await qc.invalidateQueries({ queryKey: ["baixas-pendentes"] });
       await qc.invalidateQueries({ queryKey: ["remessas-safra"] });
-      refetchBoletos();
+      void revalidarTitulos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Erro ao gerar baixa", description: msg, variant: "destructive" });
@@ -624,7 +637,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: `Remessa de prorrogação gerada: ${data.qtd_titulos} boleto(s)` });
-      refetchBoletos();
+      void revalidarTitulos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Erro ao gerar prorrogação", description: msg, variant: "destructive" });
@@ -658,7 +671,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       });
       fecharDialogEntrada();
       await qc.invalidateQueries({ queryKey: ["boletos-safra"] });
-      refetchBoletos();
+      void revalidarTitulos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Erro ao gerar entrada", description: msg, variant: "destructive" });

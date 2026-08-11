@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format-currency";
 import {
@@ -260,6 +260,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   /** Loading do envio de pacote — por PEDIDO, não por parcela. */
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
 
+  const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["cobranca-mesa"],
     queryFn: async () => {
@@ -331,7 +332,11 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         estagio_pedido: l.estagio ?? undefined,
         titulo_id: l.titulo_id,
       });
-      await q.refetch();
+      await Promise.all([
+        q.refetch(),
+        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] }),
+        qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
+      ]);
     } catch (e: any) {
       toast({ title: "Falha ao enviar pacote", description: e?.message ?? String(e), variant: "destructive" });
       throw e;

@@ -519,6 +519,8 @@ function TitulosBoletoTab() {
           setSelecionados(new Set());
           qc.invalidateQueries({ queryKey: ["titulos-boleto"] });
           qc.invalidateQueries({ queryKey: ["remessas-safra"] });
+          qc.invalidateQueries({ queryKey: ["boletos-safra"] });
+          qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
         }}
       />
     </div>
@@ -683,6 +685,7 @@ function CancelarRemessaDialog({
         qc.invalidateQueries({ queryKey: ["remessas-safra"] }),
         qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
         qc.invalidateQueries({ queryKey: ["baixas-pendentes"] }),
+        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] }),
       ]);
       setMotivo("");
       onClose();
@@ -837,6 +840,8 @@ function RemessasSafraTab() {
       if (error) throw error;
       toast({ title: "Remessa marcada como enviada", description: marcarEnviadaTarget.arquivo_nome });
       qc.invalidateQueries({ queryKey: ["remessas-safra"] });
+      qc.invalidateQueries({ queryKey: ["boletos-safra"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
       setMarcarEnviadaTarget(null);
     } catch (e) {
       toast({
@@ -1035,6 +1040,8 @@ function RemessasSafraTab() {
         onSuccess={() => {
           qc.invalidateQueries({ queryKey: ["remessas-safra"] });
           qc.invalidateQueries({ queryKey: ["titulos-boleto"] });
+          qc.invalidateQueries({ queryKey: ["boletos-safra"] });
+          qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
         }}
       />
 
