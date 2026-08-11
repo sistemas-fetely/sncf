@@ -484,49 +484,48 @@ serve(async (req) => {
     const freshToken = await ensureFreshToken(supabase, cfg);
     const client = makeBlingClient(supabase, cfg, freshToken);
 
-    // 7. ID da forma de pagamento — lookup dinâmico no Bling (auto-corretivo)
-    const FORMA_KEYWORDS: Record<string, string[]> = {
-      boleto:         ["boleto"],
-      pix:            ["pix"],
-      transferencia:  ["transferência", "transferencia", "ted", "doc"],
-      cartao_credito: ["crédito", "credito"],
-      cartao_debito:  ["débito", "debito"],
-      cartao:         ["crédito", "credito"],
-      deposito:       ["depósito", "deposito"],
-      dinheiro:       ["dinheiro"],
-      cheque:         ["cheque"],
-      sem_pagamento:  ["sem pagamento"],
-      outro:          ["outro"],
+    // 7. ID da forma de pagamento — FAIL-LOUD.
+    // Fonte única: formas_pagamento.bling_id_forma_pagamento (ID do cadastro DO BLING,
+    // 7-8 dígitos). O lookup dinâmico por palavra-chave em /formas-pagamentos foi
+    // REMOVIDO: casar "descrição parecida" é fallback silencioso e pode faturar com a
+    // forma errada. Sem ID válido no cadastro, o envio é barrado antes de qualquer POST.
+    const abortarForma = async (msg: string) => {
+      await supabase.from("bling_envios_log").insert({
+        pedido_id,
+        enviado_por: userId,
+        payload_enviado: null,
+        resposta_status: null,
+        resposta_body: null,
+        bling_id_retornado: null,
+        sucesso: false,
+        erro_msg: msg,
+        duracao_ms: Date.now() - t0,
+      });
+      await supabase.from("pedidos").update({ bling_envio_erro: msg }).eq("id", pedido_id);
+      return await falhaLimpando(msg, 409);
     };
 
-    let blingFormaId: number | null = forma.bling_id_forma_pagamento ?? null;
+    const blingFormaIdBruto = forma.bling_id_forma_pagamento ?? null;
 
-    try {
-      const formasData = await client.get("/formas-pagamentos");
-      const formasList: any[] = formasData?.data || [];
-      const kws = FORMA_KEYWORDS[forma.codigo] || [forma.nome.toLowerCase()];
-      const match = formasList.find((bf: any) =>
-        kws.some((k) => bf.descricao?.toLowerCase().includes(k))
-      );
-      if (match?.id) {
-        if (match.id !== forma.bling_id_forma_pagamento) {
-          await supabase
-            .from("formas_pagamento")
-            .update({ bling_id_forma_pagamento: match.id })
-            .eq("codigo", forma.codigo);
-        }
-        blingFormaId = match.id;
-      }
-    } catch (_) {
-      // GET /formas-pagamentos falhou: usa o ID salvo no banco como fallback
-    }
-
-    if (!blingFormaId) {
-      return await falhaLimpando(
-        `Forma "${forma.codigo}" sem ID Bling — não encontrada no banco nem via API. Configure em /parametros.`,
-        409,
+    if (blingFormaIdBruto === null || blingFormaIdBruto === undefined) {
+      return await abortarForma(
+        `A forma de pagamento "${forma.nome}" não tem cadastro correspondente no Bling. ` +
+        `Cadastre a forma no Bling e preencha o ID em Formas de Pagamento antes de enviar este pedido.`,
       );
     }
+
+    const blingFormaId = Number(blingFormaIdBruto);
+
+    // Limiar 1000: todo ID real da conta Bling da Fetély tem 7-8 dígitos; todo código
+    // legado de TIPO de pagamento da NFe (1, 2, 18, 99...) é menor que 100.
+    if (!Number.isFinite(blingFormaId) || blingFormaId < 1000) {
+      return await abortarForma(
+        `A forma de pagamento "${forma.nome}" está com um ID inválido no cadastro (${blingFormaIdBruto}) — ` +
+        `esse número é código de tipo de pagamento, não ID de forma de pagamento do Bling. ` +
+        `Corrija em Formas de Pagamento antes de enviar.`,
+      );
+    }
+
 
     // 7.5 Canal/Loja Fetely
     let blingLojaId: number | null = (cfg.config as any)?.loja_bling_id ?? null;
