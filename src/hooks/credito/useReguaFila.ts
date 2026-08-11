@@ -41,9 +41,6 @@ export interface AcaoReguaLog {
   executada_em: string;
 }
 
-function hojeISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 
 
@@ -71,14 +68,12 @@ export function useReguaFilaHoje() {
   return useQuery({
     queryKey: ["titulos-cobranca", "cobranca-mesa", "regua-fila-hoje"],
     queryFn: async (): Promise<TituloCobranca[]> => {
-      const hoje = hojeISO();
       const { data, error } = await (supabase as any)
         .from("vw_cobranca_mesa")
         .select("*")
         .eq("regua_elegivel", true)
-        .lte("data_proxima_acao_regua", hoje)
         .eq("pausa_regua_automatica", false)
-        .order("dias_atraso", { ascending: false })
+        .order("data_proxima_acao_regua", { ascending: true, nullsFirst: false })
         .limit(500);
       if (error) throw error;
       return ((data ?? []) as LinhaMesa[]).map(adaptarParaTitulo);
@@ -86,6 +81,7 @@ export function useReguaFilaHoje() {
     staleTime: 30_000,
   });
 }
+
 
 export function useReguaPausados() {
   return useQuery({
