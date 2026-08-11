@@ -10,6 +10,10 @@
  *  - linha 6 (índice 5): cabeçalho da tabela
  */
 import * as XLSX from "xlsx";
+import { temTitulo, textoPrimeirasLinhas } from "./xlsx-titulo";
+
+const RE_INSTRUCOES = /recebimentos\s*-\s*instrucoes/;
+
 
 export const CABECALHO_INSTRUCOES_ESPERADO =
   "Data Vencimento | Data Pagamento | Nº Operação | Nº Documento | Nosso Nº | Pagador | " +
@@ -49,10 +53,9 @@ function lerRows(buf: ArrayBuffer): unknown[][] {
 }
 
 export function ehSafraInstrucoes2Via(buf: ArrayBuffer): boolean {
-  const rows = lerRows(buf);
-  const alvo = (rows[3] || []).map(normalizar).join(" | ");
-  return alvo.includes("recebimentos - instrucoes");
+  return temTitulo(lerRows(buf), RE_INSTRUCOES);
 }
+
 
 /** Valor em formato brasileiro: "1.458,38" → 1458.38 */
 function num(v: unknown): number {
@@ -113,16 +116,26 @@ function hoje(): string {
 export function parseXlsxSafraInstrucoes2Via(buf: ArrayBuffer): SafraInstrucoesParsed {
   const rows = lerRows(buf);
 
-  const titulo = (rows[3] || []).map(normalizar).join(" | ");
-  if (!titulo.includes("recebimentos - instrucoes")) {
+  if (!temTitulo(rows, RE_INSTRUCOES)) {
     throw new Error(
       "Arquivo não é o relatório Safra 'Recebimentos - Instruções 2ª via'. " +
-        `Esperado na linha 4 o título 'Recebimentos - Instruções' e na linha 6 o cabeçalho: ${CABECALHO_INSTRUCOES_ESPERADO}`
+        `Esperado o título 'Recebimentos - Instruções' nas primeiras linhas e o cabeçalho: ${CABECALHO_INSTRUCOES_ESPERADO}. ` +
+        `Primeiras linhas lidas: ${textoPrimeirasLinhas(rows).slice(0, 400)}`
     );
   }
 
-  const header = (rows[5] || []).map(normalizar);
+  // Cabeçalho mora na linha 6, mas não confiamos no índice fixo: achamos a
+  // primeira linha que tem "Nosso Nº" e "Pagador".
+  let linhaHeader = rows.findIndex(
+    (r) =>
+      (r || []).some((c) => normalizar(c) === normalizar("Nosso Nº")) &&
+      (r || []).some((c) => normalizar(c) === normalizar("Pagador"))
+  );
+  if (linhaHeader < 0) linhaHeader = 5;
+
+  const header = (rows[linhaHeader] || []).map(normalizar);
   const idx = (rotulo: string) => header.findIndex((h) => h === normalizar(rotulo));
+
   const cols = {
     vencimento: idx("Data Vencimento"),
     pagamento: idx("Data Pagamento"),
@@ -141,7 +154,7 @@ export function parseXlsxSafraInstrucoes2Via(buf: ArrayBuffer): SafraInstrucoesP
     .map(([k]) => k);
   if (faltando.length > 0) {
     throw new Error(
-      `Cabeçalho na linha 6 não bate (colunas ausentes: ${faltando.join(", ")}). ` +
+      `Cabeçalho na linha ${linhaHeader + 1} não bate (colunas ausentes: ${faltando.join(", ")}). ` +
         `Esperado: ${CABECALHO_INSTRUCOES_ESPERADO}`
     );
   }
@@ -159,7 +172,8 @@ export function parseXlsxSafraInstrucoes2Via(buf: ArrayBuffer): SafraInstrucoesP
   const data_referencia = dataRef || hoje();
 
   const linhas: SafraInstrucaoLinha[] = [];
-  for (let i = 6; i < rows.length; i++) {
+  for (let i = linhaHeader + 1; i < rows.length; i++) {
+
     const r = rows[i] || [];
     const nossoNumero = txt(r[cols.nossoNumero]);
     if (!nossoNumero) continue;

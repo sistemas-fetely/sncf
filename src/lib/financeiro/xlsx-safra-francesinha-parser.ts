@@ -12,6 +12,8 @@
  *  - tabela detalhada a partir da linha 22 (índice 21)
  */
 import * as XLSX from "xlsx";
+import { temTitulo, textoPrimeirasLinhas } from "./xlsx-titulo";
+
 
 export const CABECALHO_FRANCESINHA_ESPERADO =
   "Vencimento | Pagamento | Nº documento | Nosso nº | Pagador | Valor boleto (R$) | " +
@@ -117,10 +119,9 @@ function hoje(): string {
 }
 
 export function ehSafraFrancesinha(buf: ArrayBuffer): boolean {
-  const rows = lerRows(buf);
-  const alvo = (rows[3] || []).map(normalizar).join(" | ");
-  return alvo.includes("francesinha");
+  return temTitulo(lerRows(buf), /francesinha/);
 }
+
 
 /** Acha, numa linha que contenha o rótulo, os números à direita dele */
 function numerosAposRotulo(rows: unknown[][], rotulo: string): number[] {
@@ -144,13 +145,14 @@ function numerosAposRotulo(rows: unknown[][], rotulo: string): number[] {
 export function parseXlsxSafraFrancesinha(buf: ArrayBuffer): FrancesinhaParsed {
   const rows = lerRows(buf);
 
-  const titulo = (rows[3] || []).map(normalizar).join(" | ");
-  if (!titulo.includes("francesinha")) {
+  if (!temTitulo(rows, /francesinha/)) {
     throw new Error(
       "Arquivo não é o relatório Safra 'Gestão de Cobrança - Francesinha'. " +
-        `Esperado na linha 4 o título 'Gestão de Cobrança - Francesinha' e a tabela detalhada a partir da linha 22 com o cabeçalho: ${CABECALHO_FRANCESINHA_ESPERADO}`
+        `Esperado o título 'Gestão de Cobrança - Francesinha' nas primeiras linhas e a tabela detalhada a partir da linha 22 com o cabeçalho: ${CABECALHO_FRANCESINHA_ESPERADO}. ` +
+        `Primeiras linhas lidas: ${textoPrimeirasLinhas(rows).slice(0, 400)}`
     );
   }
+
 
   // Linha 8: conta de recebimento + data do período
   const linha8 = (rows[7] || []).map((c) => String(c ?? "").trim()).filter(Boolean);

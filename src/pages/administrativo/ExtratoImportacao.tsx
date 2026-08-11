@@ -25,6 +25,8 @@ import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parse
 import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
 import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
+import { temTitulo, textoPrimeirasLinhas } from "@/lib/financeiro/xlsx-titulo";
+
 import { ResumoSafraCarteira } from "@/components/financeiro/ResumoSafraCarteira";
 import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
@@ -90,23 +92,20 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
 
-  const semAcento = (v: unknown) =>
-    String(v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // Fontes de cobrança Safra: título nas primeiras linhas, em qualquer coluna,
+  // sem acento e sem caixa. O nome do arquivo NUNCA é critério — ele varia
+  // ("Francesinha (8).xlsx").
+  if (temTitulo(rows, /recebimentos\s*-\s*instrucoes/)) return "safra_instrucoes_2via";
+  if (temTitulo(rows, /francesinha/)) return "safra_francesinha";
 
-  // Fontes de cobrança Safra: o título mora na linha 4 (índice 3)
-  const linha4 = (rows[3] || []).map(semAcento).join("|");
-  if (/recebimentos - instrucoes/.test(linha4)) return "safra_instrucoes_2via";
-  if (/francesinha/.test(linha4)) return "safra_francesinha";
-
-  const cabecalho = rows.slice(0, 5)
-    .map((r) => (r || []).map(semAcento).join("|"))
-    .join("|");
+  const cabecalho = textoPrimeirasLinhas(rows, 5);
 
   if (/data de liberacao do dinheiro/.test(cabecalho)) return "mp_settlement";
   if (/valor liquido creditado/.test(cabecalho) && /saldo/.test(cabecalho)) return "mp_release";
   if (/withdraw_id|numero da retirada/.test(cabecalho)) return "mp_withdraw";
   return "safra_lancamentos";
 }
+
 /**
  * `extrato_importacoes.fonte_tipo` tem CHECK e não aceita valor novo. As duas
  * fontes de cobrança Safra são gravadas como `safra_lancamentos` e a distinção
@@ -156,6 +155,7 @@ export default function ExtratoImportacao() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [conta, setConta] = useState<string>("");
+  const [contaAux, setContaAux] = useState<string>("");
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [arquivosAux, setArquivosAux] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
@@ -165,6 +165,11 @@ export default function ExtratoImportacao() {
   const [conferencia, setConferencia] = useState<{ contaId: string; dataReferencia: string } | null>(
     null
   );
+  // 1c — o operador precisa ver qual parser cada arquivo acionou
+  const [resultados, setResultados] = useState<
+    { arquivo: string; parser: string; resultado: string; ok: boolean }[]
+  >([]);
+
 
 
   async function enriquecerItau() {
@@ -213,7 +218,12 @@ export default function ExtratoImportacao() {
     },
   });
 
-  async function processarArquivo(file: File, conta: string, bloco: Bloco) {
+  async function processarArquivo(
+    file: File,
+    conta: string,
+    bloco: Bloco,
+    trilha: { fonte?: Fonte; resumo?: string } = {}
+  ) {
     if (!conta || !user) throw new Error("Selecione a conta bancária");
     const base = detectarFonteBase(file);
 
@@ -242,6 +252,8 @@ export default function ExtratoImportacao() {
         base === "ofx" ? "ofx"
           : base === "csv" ? "safrapay_liquidacao"
           : await detectarSubtipoXlsx(file);
+      trilha.fonte = fonte;
+
 
       const blocoCerto = BLOCO_DA_FONTE[fonte];
       if (blocoCerto !== bloco) {
@@ -850,8 +862,9 @@ export default function ExtratoImportacao() {
     const files = bloco === "extrato" ? arquivos : arquivosAux;
     const setFiles = bloco === "extrato" ? setArquivos : setArquivosAux;
     const setProc = bloco === "extrato" ? setProcessando : setProcessandoAux;
+    const contaBloco = bloco === "extrato" ? conta : contaAux;
 
-    if (!conta) {
+    if (!contaBloco) {
       toast.error("Selecione a conta bancária");
       return;
     }
@@ -860,21 +873,51 @@ export default function ExtratoImportacao() {
       return;
     }
     setProc(true);
+    setResultados([]);
     try {
       for (const f of files) {
+        const trilha: { fonte?: Fonte } = {};
         try {
           if (await ehRelatorioPagamentosItau(f)) {
             toast.error(
               "Este arquivo é o Relatório de Pagamentos Itaú — use o card 'Pagamentos Itaú' no bloco 2 desta mesma página."
             );
+            setResultados((r) => [
+              ...r,
+              {
+                arquivo: f.name,
+                parser: "itau_pagamentos",
+                resultado: "Use o card 'Pagamentos Itaú' no bloco 2",
+                ok: false,
+              },
+            ]);
             continue;
           }
-          await processarArquivo(f, conta, bloco);
+          await processarArquivo(f, contaBloco, bloco, trilha);
+          setResultados((r) => [
+            ...r,
+            {
+              arquivo: f.name,
+              parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "—",
+              resultado: "Importado",
+              ok: true,
+            },
+          ]);
         } catch (e) {
           toast.error(`Falha em ${f.name}: ${formatError(e)}`);
+          setResultados((r) => [
+            ...r,
+            {
+              arquivo: f.name,
+              parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "não reconhecido",
+              resultado: formatError(e),
+              ok: false,
+            },
+          ]);
         }
       }
       setFiles([]);
+
       // Aplicar regras automáticas nas linhas novas
       try {
         const { data, error } = await sb.rpc("fn_regras_aplicar");
@@ -992,8 +1035,8 @@ export default function ExtratoImportacao() {
             </div>
 
             <div>
-              <Label>Conta bancária</Label>
-              <Select value={conta} onValueChange={setConta}>
+              <Label>Conta bancária (relatórios auxiliares)</Label>
+              <Select value={contaAux} onValueChange={setContaAux}>
                 <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
                 <SelectContent>
                   {contas.map((c) => (
@@ -1002,6 +1045,7 @@ export default function ExtratoImportacao() {
                 </SelectContent>
               </Select>
             </div>
+
 
             <div>
               <Label>
@@ -1035,14 +1079,33 @@ export default function ExtratoImportacao() {
 
             <Button
               onClick={() => handleImportar("auxiliar")}
-              disabled={processandoAux || !conta || arquivosAux.length === 0}
+              disabled={processandoAux || !contaAux || arquivosAux.length === 0}
               className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
             >
               {processandoAux ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               Importar auxiliares {arquivosAux.length > 0 ? `(${arquivosAux.length})` : ""}
             </Button>
+
+            {resultados.length > 0 && (
+              <div className="rounded-md border divide-y text-xs">
+                <div className="px-3 py-2 font-semibold">Parser escolhido por arquivo</div>
+                {resultados.map((r, i) => (
+                  <div key={`${r.arquivo}-${i}`} className="px-3 py-2 space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-3 w-3 shrink-0" />
+                      <span className="font-medium">{r.arquivo}</span>
+                      <span className="text-muted-foreground">→ {r.parser}</span>
+                    </div>
+                    <div className={r.ok ? "text-muted-foreground" : "text-destructive"}>
+                      {r.resultado}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
+
 
         {conferencia && (
           <BlocoErroBoundary titulo="O resumo da carteira Safra falhou">
