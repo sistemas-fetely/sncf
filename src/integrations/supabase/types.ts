@@ -44197,14 +44197,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -45712,14 +45712,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -48920,6 +48920,7 @@ export type Database = {
         Row: {
           boleto_status: string | null
           data_referencia: string | null
+          delta_dias_vencimento: number | null
           delta_valor: number | null
           diagnostico: string | null
           nosso_numero: string | null
@@ -48932,7 +48933,10 @@ export type Database = {
           titulo_id: string | null
           valor_atual: number | null
           valor_boleto: number | null
+          valor_bruto: number | null
           valor_recebido: number | null
+          vencimento_banco: string | null
+          vencimento_sncf: string | null
         }
         Relationships: []
       }
@@ -52374,6 +52378,20 @@ export type Database = {
               tipo: string
             }[]
           }
+      fn_sugerir_vinculo_nosso_numero: {
+        Args: never
+        Returns: {
+          confianca: string
+          motivo: string
+          nosso_numero_banco: string
+          nosso_numero_seq: string
+          numero_titulo: string
+          pagador: string
+          titulo_id: string
+          valor_bruto: number
+          vencimento: string
+        }[]
+      }
       fn_tarefa_sou_raci: {
         Args: {
           p_acc_user: string
