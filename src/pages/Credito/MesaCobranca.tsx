@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format-currency";
-import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -84,6 +83,11 @@ const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
 };
 
 const NAO_COBRAR = new Set<string>(GRUPOS.nao);
+
+/** Filas do bloco AGIR AGORA — usado também pelo badge da aba no hub. */
+export const FILAS_AGIR_AGORA = GRUPOS.agir;
+
+const FILAS_BOLETO = new Set<string>(["A_EMITIR_BOLETO", "A_REEMITIR_BOLETO"]);
 
 function fmtData(iso: string | null): string {
   if (!iso) return "—";
@@ -178,7 +182,12 @@ function seloEnvio(l: LinhaMesa) {
 }
 
 // ── Página ──
-export default function MesaCobranca() {
+interface MesaCobrancaProps {
+  /** Navega o hub para Banco → Remessas Safra. Se ausente, o link não é renderizado. */
+  onIrParaBanco?: () => void;
+}
+
+export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) {
   const { toast } = useToast();
   const enviarNfBoletos = useEnviarEmailNfBoletos();
   const logEnvio = useLogEmailEnvio();
@@ -291,13 +300,7 @@ export default function MesaCobranca() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="space-y-4 p-4">
-        <CasaPageHeader
-          breadcrumb={[{ label: "Recebimento" }, { label: "Cobrança" }]}
-          title="Mesa de Cobrança"
-          subtitle="Fila de trabalho por lastro de cobrança"
-        />
-
+      <div className="space-y-4">
         {q.isError && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -392,6 +395,19 @@ export default function MesaCobranca() {
                       {acao && <div className="truncate text-xs text-muted-foreground">{acao}</div>}
                       {naoCobrar && (
                         <div className="text-xs text-warning">Estes títulos não devem ser cobrados do cliente.</div>
+                      )}
+                      {onIrParaBanco && FILAS_BOLETO.has(f.chave) && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="mt-0.5 inline-block cursor-pointer text-xs text-primary underline-offset-2 hover:underline"
+                          onClick={(e) => { e.stopPropagation(); onIrParaBanco(); }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onIrParaBanco(); }
+                          }}
+                        >
+                          Ir para Banco → Remessas Safra
+                        </span>
                       )}
                     </div>
                   </CollapsibleTrigger>

@@ -10,6 +10,7 @@ import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
 import ReguaTab from "@/pages/Credito/ReguaTab";
 import AdiantamentoSemNfTab from "@/pages/Credito/AdiantamentoSemNfTab";
+import MesaCobranca, { FILAS_AGIR_AGORA } from "@/pages/Credito/MesaCobranca";
 import { useAdiantamentoSemNf } from "@/hooks/credito/useAdiantamentoSemNf";
 
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
@@ -1174,7 +1175,7 @@ export default function CobrancaFila() {
   const { data: pedidos = [] } = useCobrancaFila();
   const { data: titulosCobranca = [] } = useTitulosCobranca();
   const { data: baixasPendentes } = useBaixasPendentes();
-  const [tabAtiva, setTabAtiva] = useState("fila");
+  const [tabAtiva, setTabAtiva] = useState("mesa");
   const [subTabBanco, setSubTabBanco] = useState("remessas");
 
   const totalPedidos = pedidos.length;
@@ -1193,6 +1194,17 @@ export default function CobrancaFila() {
   // Badge conta só o que exige AÇÃO NOSSA: aguardando gerar + aguardando envio.
   // Bloco "enviada aguardando retorno" fica fora — a bola está com o banco.
   const totalBaixasPend = baixasPendentes?.countAcoesNossas ?? 0;
+
+  // Contagem AGIR AGORA da Mesa — mesma queryKey da Mesa, sem requisição extra.
+  const mesaQ = useQuery({
+    queryKey: ["cobranca-mesa"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("vw_cobranca_mesa").select("*");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+  const totalAgirAgora = (mesaQ.data ?? []).filter((l) => FILAS_AGIR_AGORA.includes(l.fila ?? "")).length;
 
   const tabTriggerCls =
     "rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent";
@@ -1227,6 +1239,7 @@ export default function CobrancaFila() {
       <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-4">
         <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-6">
           {[
+            { value: "mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             { value: "adiantamento", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
@@ -1240,6 +1253,15 @@ export default function CobrancaFila() {
             </TabsTrigger>
           ))}
         </TabsList>
+
+        <TabsContent value="mesa">
+          <MesaCobranca
+            onIrParaBanco={() => {
+              setSubTabBanco("remessas");
+              setTabAtiva("banco");
+            }}
+          />
+        </TabsContent>
 
         <TabsContent value="fila">
           <Tabs defaultValue="materializacao" className="space-y-4">
