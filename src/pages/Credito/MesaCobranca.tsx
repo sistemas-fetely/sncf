@@ -245,7 +245,6 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         qtdVencido: vencidas.length,
         totalVencido: vencidas.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0),
         maxAtraso: maiorAtraso(rows),
-        urgenciaAlta: FILAS_URGENCIA_ALTA.has(f.chave) && rows.length > 0,
         ordemBase: i,
       };
     }).sort((a, b) => {
@@ -253,12 +252,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
       const bv = b.qtdVencido > 0 ? 1 : 0;
       if (av !== bv) return bv - av;
       if (av === 1 && a.maxAtraso !== b.maxAtraso) return b.maxAtraso - a.maxAtraso;
-      // Sem vencido: filas de urgência alta (entrega devolvida / problema) vêm antes.
-      const au = a.urgenciaAlta ? 1 : 0;
-      const bu = b.urgenciaAlta ? 1 : 0;
-      if (av === 0 && au !== bu) return bu - au;
       return a.ordemBase - b.ordemBase;
     });
+
   }, [porFila]);
 
 
