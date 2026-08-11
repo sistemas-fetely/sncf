@@ -1,0 +1,554 @@
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { formatBRL } from "@/lib/format-currency";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { ChevronDown, Search, Send, Copy, Loader2, AlertTriangle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useEnviarEmailNfBoletos } from "@/hooks/pedidos/useEnviarEmailNfBoletos";
+import { useLogEmailEnvio } from "@/hooks/pedidos/usePedidoEmailLog";
+
+// ── Tipos ──
+interface LinhaMesa {
+  titulo_id: string;
+  numero_titulo: string | null;
+  pedido_id: string | null;
+  pedido: string | null;
+  parceiro_id: string | null;
+  nome_canonico: string | null;
+  apelido: string | null;
+  nome_exibicao: string | null;
+  email_cliente: string | null;
+  instrumento: string | null;
+  numero_parcela: number | null;
+  total_parcelas: number | null;
+  valor_atual: number | null;
+  vencimento: string | null;
+  dias_atraso: number | null;
+  boleto_status: string | null;
+  linha_digitavel: string | null;
+  estagio: string | null;
+  faturado_em: string | null;
+  nf_numero: string | null;
+  pacote_enviado_em: string | null;
+  email_cobranca_enviado_em: string | null;
+  data_proxima_acao_regua: string | null;
+  pausa_regua_automatica: boolean | null;
+  lastro_entrega: string | null;
+  entregue_metodo: string | null;
+  entregue_em: string | null;
+  lastro_instrumento: string | null;
+  lastro_envio: string | null;
+  fila: string | null;
+  acao_sugerida: string | null;
+  ressalvas: string | null;
+}
+
+// ── Ordem de trabalho (fixa) ──
+const FILAS: { chave: string; label: string }[] = [
+  { chave: "A_ENVIAR", label: "A enviar — NF + boleto + cópia do pedido" },
+  { chave: "A_EMITIR_BOLETO", label: "A emitir boleto" },
+  { chave: "A_REEMITIR_BOLETO", label: "A reemitir boleto" },
+  { chave: "A_COBRAR", label: "A cobrar" },
+  { chave: "A_VENCER", label: "A vencer (D-3)" },
+  { chave: "ENTREGA_ATRASADA", label: "Entrega atrasada" },
+  { chave: "CONCILIAR", label: "Conciliar — não cobrar" },
+  { chave: "BOLETO_EM_CURSO_BANCO", label: "Boleto em curso no banco" },
+  { chave: "EM_CURSO", label: "Em curso" },
+  { chave: "NAO_COBRAVEL", label: "Não cobrável" },
+];
+
+const GRUPOS = {
+  agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR"],
+  vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
+  nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL"],
+} as const;
+
+const NAO_COBRAR = new Set(GRUPOS.nao);
+
+function fmtData(iso: string | null): string {
+  if (!iso) return "—";
+  const [y, m, d] = String(iso).slice(0, 10).split("-");
+  if (!y || !m || !d) return String(iso);
+  return `${d}/${m}/${y}`;
+}
+
+function fmtDataHora(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("pt-BR");
+  } catch {
+    return String(iso);
+  }
+}
+
+type SeloTom = "verde" | "ambar" | "vermelho" | "neutro";
+
+const TOM_CLASS: Record<SeloTom, string> = {
+  verde: "bg-success/15 text-success border-success/30",
+  ambar: "bg-warning/15 text-warning border-warning/30",
+  vermelho: "bg-destructive/15 text-destructive border-destructive/30",
+  neutro: "bg-muted text-muted-foreground border-border",
+};
+
+function Selo({ texto, tom, tooltip }: { texto: string; tom: SeloTom; tooltip: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium leading-none whitespace-nowrap ${TOM_CLASS[tom]}`}
+        >
+          {texto}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-xs">{tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function seloEntrega(l: LinhaMesa) {
+  const extra = l.entregue_em ? ` · ${fmtDataHora(l.entregue_em)}` : "";
+  switch (l.lastro_entrega) {
+    case "confirmada":
+      return <Selo texto="Entrega OK" tom="verde" tooltip={`Entrega confirmada${l.entregue_metodo ? ` (${l.entregue_metodo})` : ""}${extra}`} />;
+    case "presumida":
+      return <Selo texto="Entrega presumida (CEP)" tom="ambar" tooltip="Entrega presumida por prazo/CEP — sem confirmação do transportador" />;
+    case "sem_prova":
+      return <Selo texto="Entrega sem prova" tom="ambar" tooltip="Não há prova de entrega registrada" />;
+    case "em_transito":
+      return <Selo texto="Em trânsito" tom="vermelho" tooltip="Mercadoria ainda em trânsito" />;
+    default:
+      return <Selo texto={l.lastro_entrega ?? "—"} tom="neutro" tooltip={`Lastro de entrega: ${l.lastro_entrega ?? "não informado"}`} />;
+  }
+}
+
+function seloInstrumento(l: LinhaMesa) {
+  switch (l.lastro_instrumento) {
+    case "pagavel":
+      return <Selo texto="Boleto pagável" tom="verde" tooltip={`Boleto pagável${l.boleto_status ? ` (${l.boleto_status})` : ""}`} />;
+    case "inexistente":
+      return <Selo texto="Sem boleto" tom="vermelho" tooltip="Cliente não tem instrumento de pagamento — nada a pagar" />;
+    case "exige_reemissao":
+      return <Selo texto="Reemitir" tom="ambar" tooltip="Boleto exige reemissão antes de cobrar" />;
+    case "em_processo":
+      return <Selo texto="No banco" tom="neutro" tooltip="Instrumento em processamento no banco" />;
+    case "nao_aplicavel":
+      return <Selo texto={l.instrumento ?? "não aplicável"} tom="neutro" tooltip={`Instrumento: ${l.instrumento ?? "não aplicável"}`} />;
+    default:
+      return <Selo texto={l.lastro_instrumento ?? "—"} tom="neutro" tooltip={`Lastro de instrumento: ${l.lastro_instrumento ?? "não informado"}`} />;
+  }
+}
+
+function seloEnvio(l: LinhaMesa) {
+  switch (l.lastro_envio) {
+    case "aceito_provedor":
+      return (
+        <Selo
+          texto="Enviado"
+          tom="verde"
+          tooltip={`Provedor aceitou o envio — não confirma que o cliente abriu.${l.pacote_enviado_em ? ` Envio em ${fmtDataHora(l.pacote_enviado_em)}.` : ""}`}
+        />
+      );
+    case "sem_registro":
+      return <Selo texto="Sem registro de envio" tom="ambar" tooltip="Não há registro de envio do pacote ao cliente" />;
+    case "envio_com_falha":
+      return <Selo texto="E-mail falhou" tom="vermelho" tooltip="O provedor recusou/falhou o envio do e-mail" />;
+    default:
+      return <Selo texto={l.lastro_envio ?? "—"} tom="neutro" tooltip={`Lastro de envio: ${l.lastro_envio ?? "não informado"}`} />;
+  }
+}
+
+// ── Página ──
+export default function MesaCobranca() {
+  const { toast } = useToast();
+  const enviarNfBoletos = useEnviarEmailNfBoletos();
+  const logEnvio = useLogEmailEnvio();
+
+  const [busca, setBusca] = useState("");
+  const [instrumentoF, setInstrumentoF] = useState("todos");
+  const [filaF, setFilaF] = useState("todas");
+  const [soAtraso, setSoAtraso] = useState(false);
+  const [grupoAtivo, setGrupoAtivo] = useState<keyof typeof GRUPOS | null>(null);
+  const [abertos, setAbertos] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(FILAS.map((f) => [f.chave, GRUPOS.agir.includes(f.chave as any)])),
+  );
+  const [detalhe, setDetalhe] = useState<LinhaMesa | null>(null);
+  const [enviandoId, setEnviandoId] = useState<string | null>(null);
+
+  const q = useQuery({
+    queryKey: ["cobranca-mesa"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_cobranca_mesa")
+        .select("*");
+      if (error) throw error;
+      return (data ?? []) as LinhaMesa[];
+    },
+  });
+
+  const linhas = q.data ?? [];
+
+  const instrumentos = useMemo(
+    () => Array.from(new Set(linhas.map((l) => l.instrumento).filter(Boolean))) as string[],
+    [linhas],
+  );
+
+  const filtradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return linhas.filter((l) => {
+      if (grupoAtivo && !GRUPOS[grupoAtivo].includes((l.fila ?? "") as any)) return false;
+      if (filaF !== "todas" && l.fila !== filaF) return false;
+      if (instrumentoF !== "todos" && l.instrumento !== instrumentoF) return false;
+      if (soAtraso && !((l.dias_atraso ?? 0) > 0)) return false;
+      if (termo) {
+        const alvo = [l.nome_exibicao, l.pedido, l.numero_titulo].join(" ").toLowerCase();
+        if (!alvo.includes(termo)) return false;
+      }
+      return true;
+    });
+  }, [linhas, busca, instrumentoF, filaF, soAtraso, grupoAtivo]);
+
+  const resumoGrupo = (grupo: keyof typeof GRUPOS) => {
+    const alvo = linhas.filter((l) => GRUPOS[grupo].includes((l.fila ?? "") as any));
+    return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
+  };
+
+  const porFila = useMemo(() => {
+    const map: Record<string, LinhaMesa[]> = Object.fromEntries(FILAS.map((f) => [f.chave, []]));
+    for (const l of filtradas) {
+      const k = l.fila ?? "";
+      if (!map[k]) map[k] = [];
+      map[k].push(l);
+    }
+    return map;
+  }, [filtradas]);
+
+  const handleEnviarPacote = async (l: LinhaMesa) => {
+    if (!l.pedido_id) {
+      toast({ title: "Sem pedido vinculado", description: "Não é possível enviar o pacote.", variant: "destructive" });
+      return;
+    }
+    if (!l.email_cliente) {
+      toast({ title: "Cliente sem e-mail", description: "Cadastre o e-mail do cliente antes de enviar.", variant: "destructive" });
+      return;
+    }
+    setEnviandoId(l.titulo_id);
+    try {
+      await enviarNfBoletos.mutateAsync({
+        pedido_id: l.pedido_id,
+        emails: [l.email_cliente],
+        skipEstagioCheck: true,
+      });
+      await logEnvio.mutateAsync({
+        pedido_id: l.pedido_id,
+        tipo_email: "nf_boletos",
+        destinatario: l.email_cliente,
+        estagio_pedido: l.estagio ?? undefined,
+        titulo_id: l.titulo_id,
+      });
+      await q.refetch();
+    } catch (e: any) {
+      toast({ title: "Falha ao enviar pacote", description: e?.message ?? String(e), variant: "destructive" });
+      throw e;
+    } finally {
+      setEnviandoId(null);
+    }
+  };
+
+  const copiarLinha = async (linha: string) => {
+    try {
+      await navigator.clipboard.writeText(linha);
+      toast({ title: "Linha digitável copiada" });
+    } catch (e: any) {
+      toast({ title: "Não foi possível copiar", description: e?.message ?? String(e), variant: "destructive" });
+    }
+  };
+
+  const cards: { chave: keyof typeof GRUPOS; titulo: string }[] = [
+    { chave: "agir", titulo: "AGIR AGORA" },
+    { chave: "vigiar", titulo: "VIGIAR" },
+    { chave: "nao", titulo: "NÃO É COBRANÇA" },
+  ];
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div className="space-y-4 p-4">
+        <CasaPageHeader titulo="Mesa de Cobrança" subtitulo="Fila de trabalho por lastro de cobrança" />
+
+        {q.isError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Erro ao carregar a mesa: {(q.error as any)?.message ?? "erro desconhecido"}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Cartões-resumo */}
+        <div className="grid gap-3 sm:grid-cols-3">
+          {cards.map((c) => {
+            const r = resumoGrupo(c.chave);
+            const ativo = grupoAtivo === c.chave;
+            return (
+              <Card
+                key={c.chave}
+                onClick={() => setGrupoAtivo(ativo ? null : c.chave)}
+                className={`cursor-pointer transition ${ativo ? "ring-2 ring-primary" : "hover:bg-muted/50"}`}
+              >
+                <CardContent className="p-3">
+                  <div className="text-[11px] font-semibold tracking-wide text-muted-foreground">{c.titulo}</div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-2xl font-semibold tabular-nums">{r.qtd}</span>
+                    <span className="text-xs text-muted-foreground">títulos</span>
+                  </div>
+                  <div className="text-sm tabular-nums">{formatBRL(r.soma)}</div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="h-9 pl-8"
+              placeholder="Cliente, pedido ou título"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
+          <Select value={instrumentoF} onValueChange={setInstrumentoF}>
+            <SelectTrigger className="h-9 w-[180px]"><SelectValue placeholder="Instrumento" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os instrumentos</SelectItem>
+              {instrumentos.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filaF} onValueChange={setFilaF}>
+            <SelectTrigger className="h-9 w-[240px]"><SelectValue placeholder="Fila" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as filas</SelectItem>
+              {FILAS.map((f) => <SelectItem key={f.chave} value={f.chave}>{f.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <Switch id="so-atraso" checked={soAtraso} onCheckedChange={setSoAtraso} />
+            <Label htmlFor="so-atraso" className="text-xs">Só em atraso</Label>
+          </div>
+        </div>
+
+        {/* Grupos */}
+        {q.isLoading ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {FILAS.map((f) => {
+              const rows = porFila[f.chave] ?? [];
+              const soma = rows.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0);
+              const acao = rows.find((r) => r.acao_sugerida)?.acao_sugerida ?? null;
+              const naoCobrar = NAO_COBRAR.has(f.chave as any);
+              return (
+                <Collapsible
+                  key={f.chave}
+                  open={!!abertos[f.chave]}
+                  onOpenChange={(o) => setAbertos((p) => ({ ...p, [f.chave]: o }))}
+                  className="rounded-md border"
+                >
+                  <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-muted/50">
+                    <ChevronDown className={`h-4 w-4 shrink-0 transition ${abertos[f.chave] ? "" : "-rotate-90"}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">{f.label}</span>
+                        <Badge variant="secondary" className="tabular-nums">{rows.length}</Badge>
+                        <span className="text-xs tabular-nums text-muted-foreground">{formatBRL(soma)}</span>
+                      </div>
+                      {acao && <div className="truncate text-xs text-muted-foreground">{acao}</div>}
+                      {naoCobrar && (
+                        <div className="text-xs text-warning">Estes títulos não devem ser cobrados do cliente.</div>
+                      )}
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    {rows.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Fila limpa.</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="text-[11px]">
+                            <TableHead className="h-8">Cliente</TableHead>
+                            <TableHead className="h-8">Pedido</TableHead>
+                            <TableHead className="h-8">Título</TableHead>
+                            <TableHead className="h-8">Instrumento</TableHead>
+                            <TableHead className="h-8">NF</TableHead>
+                            <TableHead className="h-8 text-right">Valor</TableHead>
+                            <TableHead className="h-8">Vencimento</TableHead>
+                            <TableHead className="h-8">Atraso</TableHead>
+                            <TableHead className="h-8">Lastros</TableHead>
+                            <TableHead className="h-8">Ressalvas</TableHead>
+                            {f.chave === "A_ENVIAR" && <TableHead className="h-8" />}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {rows.map((l) => {
+                            const atraso = Number(l.dias_atraso ?? 0);
+                            return (
+                              <TableRow
+                                key={l.titulo_id}
+                                className="cursor-pointer text-xs"
+                                onClick={() => setDetalhe(l)}
+                              >
+                                <TableCell className="py-1.5 font-medium">{l.nome_exibicao ?? "—"}</TableCell>
+                                <TableCell className="py-1.5">{l.pedido ?? "—"}</TableCell>
+                                <TableCell className="py-1.5">
+                                  {l.numero_titulo ?? "—"}
+                                  {l.numero_parcela && l.total_parcelas ? (
+                                    <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
+                                  ) : null}
+                                </TableCell>
+                                <TableCell className="py-1.5">{l.instrumento ?? "—"}</TableCell>
+                                <TableCell className="py-1.5">{l.nf_numero ?? "—"}</TableCell>
+                                <TableCell className="py-1.5 text-right tabular-nums">{formatBRL(Number(l.valor_atual ?? 0))}</TableCell>
+                                <TableCell className="py-1.5 tabular-nums">{fmtData(l.vencimento)}</TableCell>
+                                <TableCell className="py-1.5 tabular-nums">
+                                  {atraso > 0 ? (
+                                    <span className="text-destructive">{atraso}d em atraso</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">vence em {Math.abs(atraso)}d</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="py-1.5">
+                                  <div className="flex flex-wrap items-center gap-1">
+                                    {seloEntrega(l)}
+                                    {seloInstrumento(l)}
+                                    {seloEnvio(l)}
+                                  </div>
+                                  {l.ressalvas && (
+                                    <div className="mt-1 text-[10px] text-warning">{l.ressalvas}</div>
+                                  )}
+                                </TableCell>
+                                <TableCell className="py-1.5 text-[10px] text-warning">{l.ressalvas ?? ""}</TableCell>
+                                {f.chave === "A_ENVIAR" && (
+                                  <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs"
+                                      disabled={enviandoId === l.titulo_id}
+                                      onClick={() => { void handleEnviarPacote(l).catch(() => {}); }}
+                                    >
+                                      {enviandoId === l.titulo_id ? (
+                                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Send className="mr-1 h-3 w-3" />
+                                      )}
+                                      Enviar pacote
+                                    </Button>
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Drawer somente-leitura */}
+        <Sheet open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
+          <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+            {detalhe && (
+              <>
+                <SheetHeader>
+                  <SheetTitle className="text-base">
+                    {detalhe.numero_titulo ?? "Título"}{" "}
+                    {detalhe.numero_parcela && detalhe.total_parcelas
+                      ? `· ${detalhe.numero_parcela}/${detalhe.total_parcelas}`
+                      : ""}
+                  </SheetTitle>
+                  <SheetDescription>{detalhe.nome_exibicao ?? "—"}</SheetDescription>
+                </SheetHeader>
+                <div className="mt-4 space-y-2 text-xs">
+                  {[
+                    ["Pedido", detalhe.pedido ?? "—"],
+                    ["Nome canônico", detalhe.nome_canonico ?? "—"],
+                    ["Apelido", detalhe.apelido ?? "—"],
+                    ["E-mail", detalhe.email_cliente ?? "—"],
+                    ["Instrumento", detalhe.instrumento ?? "—"],
+                    ["Valor atual", formatBRL(Number(detalhe.valor_atual ?? 0))],
+                    ["Vencimento", fmtData(detalhe.vencimento)],
+                    ["Dias de atraso", String(detalhe.dias_atraso ?? 0)],
+                    ["Status do boleto", detalhe.boleto_status ?? "—"],
+                    ["Estágio", detalhe.estagio ?? "—"],
+                    ["Faturado em", fmtDataHora(detalhe.faturado_em)],
+                    ["NF", detalhe.nf_numero ?? "—"],
+                    ["Pacote enviado em", fmtDataHora(detalhe.pacote_enviado_em)],
+                    ["E-mail de cobrança em", fmtDataHora(detalhe.email_cobranca_enviado_em)],
+                    ["Próxima ação (régua)", fmtData(detalhe.data_proxima_acao_regua)],
+                    ["Régua pausada", detalhe.pausa_regua_automatica ? "sim" : "não"],
+                    ["Lastro entrega", detalhe.lastro_entrega ?? "—"],
+                    ["Entregue método", detalhe.entregue_metodo ?? "—"],
+                    ["Entregue em", fmtDataHora(detalhe.entregue_em)],
+                    ["Lastro instrumento", detalhe.lastro_instrumento ?? "—"],
+                    ["Lastro envio", detalhe.lastro_envio ?? "—"],
+                    ["Fila", detalhe.fila ?? "—"],
+                    ["Ação sugerida", detalhe.acao_sugerida ?? "—"],
+                    ["Ressalvas", detalhe.ressalvas ?? "—"],
+                  ].map(([k, v]) => (
+                    <div key={k as string} className="flex justify-between gap-3 border-b py-1">
+                      <span className="text-muted-foreground">{k}</span>
+                      <span className="text-right font-medium">{v}</span>
+                    </div>
+                  ))}
+                  {detalhe.linha_digitavel && (
+                    <div className="pt-2">
+                      <div className="text-muted-foreground">Linha digitável</div>
+                      <div className="mt-1 flex items-start gap-2">
+                        <code className="break-all rounded bg-muted px-2 py-1">{detalhe.linha_digitavel}</code>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => { void copiarLinha(detalhe.linha_digitavel!); }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
+      </div>
+    </TooltipProvider>
+  );
+}
