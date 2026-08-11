@@ -315,7 +315,8 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const [busca, setBusca] = useState("");
   const [instrumentoF, setInstrumentoF] = useState("todos");
   const [filaF, setFilaF] = useState("todas");
-  const [soAtraso, setSoAtraso] = useState(false);
+  /** Cartão VENCIDO — única forma de filtrar atraso (o toggle "Só em atraso" foi removido). */
+  const [soVencido, setSoVencido] = useState(false);
   const [grupoAtivo, setGrupoAtivo] = useState<keyof typeof GRUPOS | null>(null);
   const [abertos, setAbertos] = useState<Record<string, boolean>>(
     () => Object.fromEntries(FILAS.map((f) => [f.chave, GRUPOS.agir.includes(f.chave)])),
