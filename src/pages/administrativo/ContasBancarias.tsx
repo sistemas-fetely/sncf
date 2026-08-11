@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +58,7 @@ const UNIDADE_LABEL: Record<string, string> = {
 
 export default function ContasBancarias() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ContaBancaria | null>(null);
@@ -254,7 +256,20 @@ export default function ContasBancarias() {
           {ativas.map((c) => {
             const Icon = TIPO_ICON[c.tipo] || Landmark;
             return (
-              <Card key={c.id}>
+              <Card
+                key={c.id}
+                role="button"
+                tabIndex={0}
+                title="Ver extrato da conta"
+                className="cursor-pointer transition-colors hover:border-admin/50"
+                onClick={() => navigate(`/administrativo/caixa-banco/contas/${c.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(`/administrativo/caixa-banco/contas/${c.id}`);
+                  }
+                }}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-start gap-2">
@@ -276,7 +291,7 @@ export default function ContasBancarias() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => handleEditar(c)}
+                        onClick={(e) => { e.stopPropagation(); handleEditar(c); }}
                         title="Editar"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -285,7 +300,7 @@ export default function ContasBancarias() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => handleToggleAtivo(c)}
+                        onClick={(e) => { e.stopPropagation(); handleToggleAtivo(c); }}
                         title="Inativar"
                       >
                         <Power className="h-3.5 w-3.5" />
@@ -294,7 +309,7 @@ export default function ContasBancarias() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive"
-                        onClick={() => setParaExcluir(c)}
+                        onClick={(e) => { e.stopPropagation(); setParaExcluir(c); }}
                         title="Excluir"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -410,7 +425,20 @@ export default function ContasBancarias() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {cartoesAtivos.map((c) => (
-              <Card key={c.id}>
+              <Card
+                key={c.id}
+                role="button"
+                tabIndex={0}
+                title="Ver faturas do cartão"
+                className="cursor-pointer transition-colors hover:border-admin/50"
+                onClick={() => navigate("/administrativo/faturas-cartao")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate("/administrativo/faturas-cartao");
+                  }
+                }}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-start gap-2">
@@ -430,7 +458,7 @@ export default function ContasBancarias() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => handleEditarCartao(c)}
+                        onClick={(e) => { e.stopPropagation(); handleEditarCartao(c); }}
                         title="Editar"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -439,7 +467,7 @@ export default function ContasBancarias() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => setParaExcluirCartao(c)}
+                        onClick={(e) => { e.stopPropagation(); setParaExcluirCartao(c); }}
                         title="Inativar"
                       >
                         <Power className="h-3.5 w-3.5" />
