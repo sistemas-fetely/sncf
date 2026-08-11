@@ -225,19 +225,17 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
     return (
       <div className="space-y-4">
         <PlanoRecebimentoCard pedidoId={pedidoId} />
-        <div className="text-center py-6 text-muted-foreground space-y-2">
-          <Receipt className="h-8 w-8 mx-auto opacity-30" />
-          {coberto ? (
+        {coberto ? (
+          <div className="text-center py-6 text-muted-foreground space-y-2">
+            <Receipt className="h-8 w-8 mx-auto opacity-30" />
             <p className="text-sm">
               Coberto pelo recebível da mãe {familia?.familia_mae_externo ?? "—"} — não cobrar aqui
             </p>
-          ) : (
-            <>
-              <p className="text-sm">Nenhum título gerado ainda.</p>
-              <p className="text-xs">Títulos nascem ao chegar em Pré-Faturado.</p>
-            </>
-          )}
-        </div>
+          </div>
+        ) : (
+          <SituacaoFinanceiraBloco pedidoId={pedidoId} />
+        )}
+
       </div>
     );
   }
