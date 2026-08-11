@@ -99,6 +99,8 @@ import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedid
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 import { SituacaoFinanceiraBloco } from "@/components/pedidos/SituacaoFinanceiraBloco";
+import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
+import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta";
 
 
 
@@ -913,6 +915,7 @@ export default function PedidoDetalhe() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { data, isLoading } = usePedidoDetalhe(id);
+  const { data: prova } = useProvaPagamento(id);
   const { data: priorizado } = usePedidoPriorizado(id);
   const atualizarUrgencia = useAtualizarUrgencia();
   const limparAtencao = useLimparAtencao();
@@ -1311,6 +1314,14 @@ export default function PedidoDetalhe() {
           )}
         </div>
       </div>
+
+      {/* Prova de pagamento — só aparece quando existe algum recebimento registrado */}
+      {prova && prova.valor_recebido > 0 && (
+        <div className="mx-6 mb-3">
+          <ProvaPagamentoAlerta prova={prova} />
+        </div>
+      )}
+
 
 
       {/* Banner atenção — pausa (vermelho) ou aviso (âmbar) */}

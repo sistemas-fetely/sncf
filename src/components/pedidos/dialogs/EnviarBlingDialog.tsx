@@ -7,9 +7,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Send, Loader2, AlertTriangle, RefreshCw, Package } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
+import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
+import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -31,9 +35,12 @@ export function EnviarBlingDialog({
 }: Props) {
 
   const [open, setOpen] = useState(false);
+  const [assumeRisco, setAssumeRisco] = useState(false);
   const enviar = useEnviarBling();
   const sync = useSyncContato();
   const navigate = useNavigate();
+
+  const { data: prova, isLoading: checkingProva } = useProvaPagamento(pedido_id, open);
 
   const { data: parceiroStatus, isLoading: checkingBling, refetch: recheckBling } = useQuery({
     queryKey: ["parceiro-bling-check", parceiro_id],
@@ -64,7 +71,7 @@ export function EnviarBlingDialog({
 
   const temBlingId = !!parceiroStatus?.bling_id;
   const temRemessaAtiva = Array.isArray(remessasAtivas) && remessasAtivas.length > 0;
-  const carregando = checkingBling || checkingRemessas;
+  const carregando = checkingBling || checkingRemessas || checkingProva;
 
   const handleSincronizar = async () => {
     try {
@@ -76,6 +83,15 @@ export function EnviarBlingDialog({
   };
 
   const handleEnviar = async () => {
+    // Despacho sem lastro bancário fica registrado — o humano decide, o sistema anota.
+    if (prova && !prova.libera_despacho) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).rpc("fn_registrar_despacho_sem_prova", { p_pedido_id: pedido_id });
+      } catch (e) {
+        console.error("Falha ao registrar despacho sem prova:", e);
+      }
+    }
     try {
       await enviar.mutateAsync({ pedido_id });
       setOpen(false);
@@ -85,7 +101,14 @@ export function EnviarBlingDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!enviar.isPending) setOpen(v); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (enviar.isPending) return;
+        setAssumeRisco(false);
+        setOpen(v);
+      }}
+    >
       <DialogTrigger asChild>
         {variante === "discreta" ? (
           <Button
@@ -159,15 +182,30 @@ export function EnviarBlingDialog({
             </Button>
           </div>
         ) : (
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              Ao confirmar, o pedido será criado no Bling com seus títulos a receber.
-              Esta ação é irreversível dentro do sistema (depois precisa cancelar lá direto).
-            </p>
-            <p className="text-xs">
-              Se faltar alguma informação (forma sem id Bling parametrizado),
-              o envio falha com mensagem clara e nada é alterado no pedido.
-            </p>
+          <div className="space-y-3">
+            {prova && <ProvaPagamentoAlerta prova={prova} />}
+            {prova && !prova.libera_despacho && (
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="assume-risco"
+                  checked={assumeRisco}
+                  onCheckedChange={(v) => setAssumeRisco(v === true)}
+                />
+                <Label htmlFor="assume-risco" className="text-xs cursor-pointer leading-snug">
+                  Estou despachando sem confirmação bancária e assumo essa decisão.
+                </Label>
+              </div>
+            )}
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>
+                Ao confirmar, o pedido será criado no Bling com seus títulos a receber.
+                Esta ação é irreversível dentro do sistema (depois precisa cancelar lá direto).
+              </p>
+              <p className="text-xs">
+                Se faltar alguma informação (forma sem id Bling parametrizado),
+                o envio falha com mensagem clara e nada é alterado no pedido.
+              </p>
+            </div>
           </div>
         )}
 
@@ -180,7 +218,11 @@ export function EnviarBlingDialog({
             Cancelar
           </Button>
           {temBlingId && !temRemessaAtiva && (
-            <Button onClick={handleEnviar} disabled={enviar.isPending} className="gap-1.5">
+            <Button
+              onClick={handleEnviar}
+              disabled={enviar.isPending || (!!prova && !prova.libera_despacho && !assumeRisco)}
+              className="gap-1.5"
+            >
               {enviar.isPending ? (
                 <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
               ) : (
