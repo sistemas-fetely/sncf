@@ -317,7 +317,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
       toast({ title: "Cliente sem e-mail", description: "Cadastre o e-mail do cliente antes de enviar.", variant: "destructive" });
       return;
     }
-    setEnviandoId(l.titulo_id);
+    setEnviandoId(l.pedido_id);
     try {
       await enviarNfBoletos.mutateAsync({
         pedido_id: l.pedido_id,
