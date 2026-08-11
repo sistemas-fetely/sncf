@@ -161,6 +161,7 @@ const AnaliseDetalhe = lazy(() => import("@/pages/Credito/AnaliseDetalhe"));
 const ClienteDetalhe = lazy(() => import("@/pages/Credito/ClienteDetalhe"));
 const CreditoClientesIndex = lazy(() => import("@/pages/Credito/CreditoClientesIndex"));
 const CobrancaFila = lazy(() => import("@/pages/Credito/CobrancaFila"));
+const MesaCobranca = lazy(() => import("@/pages/Credito/MesaCobranca"));
 const CobrancaDetalhe = lazy(() => import("@/pages/Credito/CobrancaDetalhe"));
 const AguardandoPagamentoFila = lazy(() => import("@/pages/Credito/AguardandoPagamentoFila"));
 const AguardandoPagamentoDetalhe = lazy(() => import("@/pages/Credito/AguardandoPagamentoDetalhe"));
@@ -316,7 +317,7 @@ const App = () => (
                   ═══════════════════════════════════════════════ */}
               <Route element={<VendasLayout />}>
                 <Route path="/pedidos" element={<PedidosIndex />} />
-                <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
+                <Route path="/recebimento/cobranca" element={<MesaCobranca />} />
                 <Route path="/recebimento/entradas" element={<EntradasRecebidas />} />
 
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
