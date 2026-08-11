@@ -862,8 +862,9 @@ export default function ExtratoImportacao() {
     const files = bloco === "extrato" ? arquivos : arquivosAux;
     const setFiles = bloco === "extrato" ? setArquivos : setArquivosAux;
     const setProc = bloco === "extrato" ? setProcessando : setProcessandoAux;
+    const contaBloco = bloco === "extrato" ? conta : contaAux;
 
-    if (!conta) {
+    if (!contaBloco) {
       toast.error("Selecione a conta bancária");
       return;
     }
@@ -872,21 +873,51 @@ export default function ExtratoImportacao() {
       return;
     }
     setProc(true);
+    setResultados([]);
     try {
       for (const f of files) {
+        const trilha: { fonte?: Fonte } = {};
         try {
           if (await ehRelatorioPagamentosItau(f)) {
             toast.error(
               "Este arquivo é o Relatório de Pagamentos Itaú — use o card 'Pagamentos Itaú' no bloco 2 desta mesma página."
             );
+            setResultados((r) => [
+              ...r,
+              {
+                arquivo: f.name,
+                parser: "itau_pagamentos",
+                resultado: "Use o card 'Pagamentos Itaú' no bloco 2",
+                ok: false,
+              },
+            ]);
             continue;
           }
-          await processarArquivo(f, conta, bloco);
+          await processarArquivo(f, contaBloco, bloco, trilha);
+          setResultados((r) => [
+            ...r,
+            {
+              arquivo: f.name,
+              parser: trilha.fonte ? FONTE_LABEL[trilha.fonte] : "—",
+              resultado: "Importado",
+              ok: true,
+            },
+          ]);
         } catch (e) {
           toast.error(`Falha em ${f.name}: ${formatError(e)}`);
+          setResultados((r) => [
+            ...r,
+            {
+              arquivo: f.name,
+              parser: trilha.fonte ? FONTE_LABEL[trilha.fonte] : "não reconhecido",
+              resultado: formatError(e),
+              ok: false,
+            },
+          ]);
         }
       }
       setFiles([]);
+
       // Aplicar regras automáticas nas linhas novas
       try {
         const { data, error } = await sb.rpc("fn_regras_aplicar");
