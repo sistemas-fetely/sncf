@@ -1079,14 +1079,33 @@ export default function ExtratoImportacao() {
 
             <Button
               onClick={() => handleImportar("auxiliar")}
-              disabled={processandoAux || !conta || arquivosAux.length === 0}
+              disabled={processandoAux || !contaAux || arquivosAux.length === 0}
               className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
             >
               {processandoAux ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               Importar auxiliares {arquivosAux.length > 0 ? `(${arquivosAux.length})` : ""}
             </Button>
+
+            {resultados.length > 0 && (
+              <div className="rounded-md border divide-y text-xs">
+                <div className="px-3 py-2 font-semibold">Parser escolhido por arquivo</div>
+                {resultados.map((r, i) => (
+                  <div key={`${r.arquivo}-${i}`} className="px-3 py-2 space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-3 w-3 shrink-0" />
+                      <span className="font-medium">{r.arquivo}</span>
+                      <span className="text-muted-foreground">→ {r.parser}</span>
+                    </div>
+                    <div className={r.ok ? "text-muted-foreground" : "text-destructive"}>
+                      {r.resultado}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
+
 
         {conferencia && (
           <BlocoErroBoundary titulo="O resumo da carteira Safra falhou">
