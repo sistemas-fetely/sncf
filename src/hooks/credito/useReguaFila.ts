@@ -41,9 +41,6 @@ export interface AcaoReguaLog {
   executada_em: string;
 }
 
-function hojeISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 
 
