@@ -357,6 +357,13 @@ export type Database = {
             foreignKeyName: "adiantamento_aplicacao_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_aplicacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulos_cobranca"
             referencedColumns: ["id"]
           },
@@ -10362,6 +10369,13 @@ export type Database = {
             columns: ["titulo_id"]
             isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "evento_titulo_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -20828,6 +20842,13 @@ export type Database = {
             foreignKeyName: "pedido_email_log_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulos_cobranca"
             referencedColumns: ["id"]
           },
@@ -27984,6 +28005,13 @@ export type Database = {
             foreignKeyName: "regua_cobranca_acoes_log_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "regua_cobranca_acoes_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulos_cobranca"
             referencedColumns: ["id"]
           },
@@ -28273,6 +28301,75 @@ export type Database = {
           responsabilidade?: string
         }
         Relationships: []
+      }
+      safra_carteira_conferencia: {
+        Row: {
+          conta_bancaria_id: string
+          created_at: string
+          data_pagamento: string | null
+          data_referencia: string
+          data_vencimento: string | null
+          diferenca: number | null
+          fonte_importacao_id: string | null
+          forma_envio: string | null
+          id: string
+          nosso_numero: string
+          numero_documento_truncado: string | null
+          pagador: string | null
+          situacao: string
+          valor_boleto: number | null
+          valor_recebido: number | null
+        }
+        Insert: {
+          conta_bancaria_id: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_referencia: string
+          data_vencimento?: string | null
+          diferenca?: number | null
+          fonte_importacao_id?: string | null
+          forma_envio?: string | null
+          id?: string
+          nosso_numero: string
+          numero_documento_truncado?: string | null
+          pagador?: string | null
+          situacao: string
+          valor_boleto?: number | null
+          valor_recebido?: number | null
+        }
+        Update: {
+          conta_bancaria_id?: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_referencia?: string
+          data_vencimento?: string | null
+          diferenca?: number | null
+          fonte_importacao_id?: string | null
+          forma_envio?: string | null
+          id?: string
+          nosso_numero?: string
+          numero_documento_truncado?: string | null
+          pagador?: string | null
+          situacao?: string
+          valor_boleto?: number | null
+          valor_recebido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safra_carteira_conferencia_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safra_carteira_conferencia_fonte_importacao_id_fkey"
+            columns: ["fonte_importacao_id"]
+            isOneToOne: false
+            referencedRelation: "extrato_importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       safra_motivos_rejeicao: {
         Row: {
@@ -31876,6 +31973,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
             columns: ["titulo_pai_id"]
             isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
+            columns: ["titulo_pai_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulos_cobranca"
             referencedColumns: ["id"]
           },
@@ -31926,6 +32030,13 @@ export type Database = {
             columns: ["titulo_renegociado_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -32229,6 +32340,13 @@ export type Database = {
             foreignKeyName: "titulo_instrumento_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulos_cobranca"
             referencedColumns: ["id"]
           },
@@ -32319,6 +32437,13 @@ export type Database = {
             columns: ["titulo_id"]
             isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -48398,6 +48523,26 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_safra_carteira_divergencia: {
+        Row: {
+          boleto_status: string | null
+          data_referencia: string | null
+          delta_valor: number | null
+          diagnostico: string | null
+          nosso_numero: string | null
+          numero_titulo: string | null
+          pagador: string | null
+          pagamento_banco: string | null
+          pagamento_sncf: string | null
+          situacao_banco: string | null
+          status_sncf: string | null
+          titulo_id: string | null
+          valor_atual: number | null
+          valor_boleto: number | null
+          valor_recebido: number | null
+        }
+        Relationships: []
+      }
       vw_safrapay_venda_fila: {
         Row: {
           candidato_viavel: boolean | null
@@ -49602,6 +49747,13 @@ export type Database = {
             columns: ["titulo_renegociado_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
             referencedColumns: ["titulo_id"]
           },
           {

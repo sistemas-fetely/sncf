@@ -23,6 +23,9 @@ import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
 import { parseCsvSafraPayTipo2 } from "@/lib/financeiro/csv-safrapay-tipo2-parser";
 import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parser";
 import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
+import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
+import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
+import { ResumoSafraCarteira } from "@/components/financeiro/ResumoSafraCarteira";
 import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
 
@@ -49,7 +52,15 @@ type Importacao = {
   created_at: string;
 };
 
-type Fonte = "ofx" | "safra_lancamentos" | "mp_withdraw" | "safrapay_liquidacao" | "mp_settlement" | "mp_release";
+type Fonte =
+  | "ofx"
+  | "safra_lancamentos"
+  | "mp_withdraw"
+  | "safrapay_liquidacao"
+  | "mp_settlement"
+  | "mp_release"
+  | "safra_instrucoes_2via"
+  | "safra_francesinha";
 
 function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | null {
   const nome = file.name.toLowerCase();
@@ -71,14 +82,22 @@ async function ehRelatorioPagamentosItau(file: File): Promise<boolean> {
   return /tipo de pagamento/.test(cabecalho) && /nome favorecido/.test(cabecalho);
 }
 
-async function detectarSubtipoXlsx(file: File): Promise<"safra_lancamentos" | "mp_withdraw" | "safrapay_liquidacao" | "mp_settlement" | "mp_release"> {
+async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
 
+  const semAcento = (v: unknown) =>
+    String(v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  // Fontes de cobrança Safra: o título mora na linha 4 (índice 3)
+  const linha4 = (rows[3] || []).map(semAcento).join("|");
+  if (/recebimentos - instrucoes/.test(linha4)) return "safra_instrucoes_2via";
+  if (/francesinha/.test(linha4)) return "safra_francesinha";
+
   const cabecalho = rows.slice(0, 5)
-    .map((r) => (r || []).map((c) => String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")).join("|"))
+    .map((r) => (r || []).map(semAcento).join("|"))
     .join("|");
 
   if (/data de liberacao do dinheiro/.test(cabecalho)) return "mp_settlement";
@@ -96,6 +115,9 @@ export default function ExtratoImportacao() {
   const [processando, setProcessando] = useState(false);
   const [reprocessandoItau, setReprocessandoItau] = useState(false);
   const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
+  const [conferencia, setConferencia] = useState<{ contaId: string; dataReferencia: string } | null>(
+    null
+  );
 
   async function enriquecerItau() {
     setReprocessandoItau(true);
@@ -172,6 +194,7 @@ export default function ExtratoImportacao() {
       let enriquecidas = 0;
       let duplicadas = 0;
       let linhasSaldo = 0;
+      let semPar = 0;
       let periodoInicio: string | null = null;
       let periodoFim: string | null = null;
 
@@ -611,6 +634,97 @@ export default function ExtratoImportacao() {
           if (errIns) throw errIns;
           novas++;
         }
+      } else if (fonte === "safra_instrucoes_2via") {
+        // Papel: CONFERÊNCIA. Não escreve no extrato, não dá baixa em título.
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxSafraInstrucoes2Via(buf);
+        linhasLidas = parsed.linhas.length;
+        if (linhasLidas === 0) throw new Error("Nenhum boleto na carteira do relatório");
+
+        if (parsed.data_referencia_inferida) {
+          toast.warning(
+            `${file.name}: data de geração não encontrada na linha 1 — usando hoje (${formatDateBR(parsed.data_referencia)}) como data de referência.`
+          );
+        }
+
+        const rows = parsed.linhas.map((l) => ({
+          conta_bancaria_id: conta,
+          data_referencia: parsed.data_referencia,
+          nosso_numero: l.nosso_numero,
+          numero_documento_truncado: l.numero_documento_truncado,
+          pagador: l.pagador,
+          data_vencimento: l.data_vencimento,
+          data_pagamento: l.data_pagamento,
+          valor_boleto: l.valor_boleto,
+          valor_recebido: l.valor_recebido,
+          diferenca: l.diferenca,
+          situacao: l.situacao,
+          forma_envio: l.forma_envio,
+          fonte_importacao_id: impId,
+        }));
+
+        for (let i = 0; i < rows.length; i += 200) {
+          const lote = rows.slice(i, i + 200);
+          const { error } = await sb
+            .from("safra_carteira_conferencia")
+            .upsert(lote, {
+              onConflict: "conta_bancaria_id,data_referencia,nosso_numero",
+            });
+          if (error) throw error;
+        }
+        novas = rows.length;
+        periodoInicio = parsed.data_referencia;
+        periodoFim = parsed.data_referencia;
+        setConferencia({ contaId: conta, dataReferencia: parsed.data_referencia });
+        qc.invalidateQueries({ queryKey: ["safra-carteira-conf"] });
+        qc.invalidateQueries({ queryKey: ["safra-carteira-divergencia"] });
+      } else if (fonte === "safra_francesinha") {
+        // Snapshot diário: só enriquece o extrato. O dinheiro do boleto chega
+        // pelo OFX — inserir aqui duplicaria.
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxSafraFrancesinha(buf);
+        linhasLidas = parsed.linhas.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma linha detalhada na Francesinha");
+
+        periodoInicio = parsed.data_referencia;
+        periodoFim = parsed.data_referencia;
+
+        // Idempotência: mesmo snapshot já processado não conta enriquecimento de novo
+        const { data: jaImportado, error: errJa } = await sb
+          .from("extrato_importacoes")
+          .select("id")
+          .eq("conta_bancaria_id", conta)
+          .eq("fonte_tipo", "safra_francesinha")
+          .eq("periodo_fim", parsed.data_referencia)
+          .eq("status", "concluida")
+          .neq("id", impId)
+          .limit(1);
+        if (errJa) throw errJa;
+
+        if (jaImportado && jaImportado.length > 0) {
+          duplicadas = linhasLidas;
+          toast.info(
+            `${file.name}: snapshot de ${formatDateBR(parsed.data_referencia)} já importado — nada refeito.`
+          );
+        } else {
+          for (const l of parsed.linhas) {
+            if (l.valor_pago <= 0) continue;
+            const dataPag = l.data_pagamento || parsed.data_referencia;
+            const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
+              p_conta: conta,
+              p_data: dataPag,
+              p_valor: l.valor_pago,
+              p_contraparte_nome: l.pagador,
+              p_contraparte_documento: null,
+              p_referencia_pedido: null,
+              p_tipo_meio: "boleto",
+              p_classe: "recebivel_titulo",
+            });
+            if (errEnr) throw errEnr;
+            if (alvoId) enriquecidas++;
+            else semPar++;
+          }
+        }
       }
 
 
@@ -627,10 +741,22 @@ export default function ExtratoImportacao() {
         })
         .eq("id", impId);
 
-      toast.success(
-        `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas` +
-          (linhasSaldo > 0 ? ` · ${linhasSaldo} linha(s) de saldo` : "")
-      );
+      if (fonte === "safra_instrucoes_2via") {
+        toast.success(
+          `${file.name}: ${novas} boleto(s) na conferência da carteira — nenhuma movimentação ou baixa gerada.`
+        );
+      } else if (fonte === "safra_francesinha") {
+        toast.success(
+          `${file.name}: ${linhasLidas} liquidação(ões) lidas · ${enriquecidas} enriquecidas` +
+            (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
+            (duplicadas > 0 ? " · snapshot repetido" : "")
+        );
+      } else {
+        toast.success(
+          `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas` +
+            (linhasSaldo > 0 ? ` · ${linhasSaldo} linha(s) de saldo` : "")
+        );
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       await sb
@@ -760,11 +886,39 @@ export default function ExtratoImportacao() {
         <div>
           <h2 className="text-lg font-semibold">2. Relatórios auxiliares</h2>
           <p className="text-xs text-muted-foreground">
-            Pagamentos Itaú, SafraPay, Mercado Pago e Safra PIX. Estes arquivos primeiro tentam
-            enriquecer a linha que já existe no extrato — só criam movimentação nova quando não
-            existe par.
+            Pagamentos Itaú, SafraPay, Mercado Pago, Safra PIX e as duas fontes de cobrança do Safra.
+            Estes arquivos primeiro tentam enriquecer a linha que já existe no extrato — só criam
+            movimentação nova quando não existe par.
           </p>
         </div>
+
+        <Card>
+          <CardContent className="pt-6 space-y-1 text-xs text-muted-foreground">
+            <div className="text-sm font-semibold text-foreground">
+              Cobrança Safra (solte no campo de arquivos acima — detecção automática)
+            </div>
+            <div>
+              <span className="font-medium text-foreground">Recebimentos - Instruções 2ª via</span>{" "}
+              (.xlsx): papel de <span className="font-medium">conferência</span>. Alimenta apenas a
+              carteira de conferência — não escreve em movimentações bancárias e não dá baixa em
+              título nenhum.
+            </div>
+            <div>
+              <span className="font-medium text-foreground">Gestão de Cobrança - Francesinha</span>{" "}
+              (.xlsx): snapshot diário com juros, descontos, comissões, DDA e ocorrência CNAB. Só
+              enriquece a linha do extrato — nunca insere linha nova, porque o dinheiro do boleto
+              chega pelo OFX.
+            </div>
+          </CardContent>
+        </Card>
+
+        {conferencia && (
+          <ResumoSafraCarteira
+            contaId={conferencia.contaId}
+            dataReferencia={conferencia.dataReferencia}
+          />
+        )}
+
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold">Pagamentos Itaú (Consulta de Pagamentos)</h3>
