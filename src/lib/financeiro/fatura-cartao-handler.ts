@@ -216,6 +216,10 @@ function formatDataBR(iso: string): string {
 
 /**
  * Chama a edge function pra parsear PDF via IA.
+ *
+ * FAIL-LOUD: em erro HTTP o supabase-js entrega um FunctionsHttpError cuja
+ * mensagem é genérica ("non-2xx status code"). O motivo real está no CORPO da
+ * resposta — sem lê-lo, o operador só via "O servidor encontrou um problema".
  */
 export async function parsearPDFFatura(file: File): Promise<FaturaParsed> {
   const formData = new FormData();
@@ -229,14 +233,32 @@ export async function parsearPDFFatura(file: File): Promise<FaturaParsed> {
   );
 
   if (error) {
-    throw new Error(`Falha na IA: ${error.message || JSON.stringify(error)}`);
+    let motivo = "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ctx = (error as any)?.context;
+    if (ctx && typeof ctx.text === "function") {
+      try {
+        const corpo = await ctx.text();
+        try {
+          const j = JSON.parse(corpo);
+          motivo = [j?.error, j?.detail].filter(Boolean).join(" — ");
+        } catch {
+          motivo = String(corpo).slice(0, 500);
+        }
+      } catch {
+        /* corpo já consumido */
+      }
+    }
+    if (!motivo && typeof ctx?.body === "string") motivo = ctx.body.slice(0, 500);
+    throw new Error(motivo || error.message || "A função de leitura da fatura falhou sem detalhar o motivo.");
   }
   if (!data) {
-    throw new Error("Edge function retornou vazio");
+    throw new Error("A função de leitura da fatura retornou resposta vazia.");
   }
   if (data.error) {
-    throw new Error(`IA retornou erro: ${data.error} ${data.detail || ""}`);
+    throw new Error([data.error, data.detail].filter(Boolean).join(" — "));
   }
+
 
   // Mapear resposta da IA pra FaturaParsed
   return {
