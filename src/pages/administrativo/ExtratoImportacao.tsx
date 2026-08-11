@@ -169,6 +169,7 @@ export default function ExtratoImportacao() {
       let novas = 0;
       let enriquecidas = 0;
       let duplicadas = 0;
+      let linhasSaldo = 0;
       let periodoInicio: string | null = null;
       let periodoFim: string | null = null;
 
