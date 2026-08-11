@@ -144,6 +144,23 @@ interface CondicaoPagamento {
   ordem: number | null;
 }
 
+interface ImpactoEdicao {
+  caminho?: string | null;
+  motivo?: string | null;
+  limite_concedido?: number | null;
+  prazo_max_dias?: number | null;
+  direcao?: "desce" | "lateral" | "sobe" | null;
+  direcao_rotulo?: string | null;
+  pode_aplicar?: boolean | null;
+  papeis_com_alcada?: string[] | null;
+  exposicao_atual?: number | null;
+  exposicao_nova?: number | null;
+  prazo_atual_dias?: number | null;
+  prazo_novo_dias?: number | null;
+  condicao_atual?: string | null;
+}
+
+
 function SecaoPagamento({ pedidoId, pedido, guarda }: {
   pedidoId: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -186,12 +203,47 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
         p_novo_valor_liquido: num(pedido?.valor_liquido),
       });
       if (error) throw error;
-      return data as { caminho?: string; motivo?: string | null } | null;
+      return data as ImpactoEdicao | null;
     },
   });
 
-  const caminho = impactoQ.data?.caminho ?? null;
+  const impacto = impactoQ.data ?? null;
+  const caminho = impacto?.caminho ?? null;
   const bloqueadoPeloImpacto = caminho === "financeiro" || caminho === "bloqueado";
+  const direcao = impacto?.direcao ?? null;
+  const podeAplicar = impacto?.pode_aplicar !== false;
+  const papeisAlcada = impacto?.papeis_com_alcada || [];
+  const mostrarReanalise = !!impacto && impacto.pode_aplicar === false && !bloqueadoPeloImpacto;
+
+  const reabrir = useMutation({
+    mutationFn: async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any).rpc("reabrir_analise_pedido", {
+          p_pedido_id: pedidoId,
+          p_motivo: motivo.trim(),
+          p_condicao_slug: slug,
+        });
+        if (error) throw error;
+        return data as { ok?: boolean; erro?: string | null } | null;
+      } catch (e) {
+        throw new Error(formatError(e));
+      }
+    },
+    onSuccess: async (data) => {
+      if (data && data.ok === false) {
+        toast.error(data.erro || "Não foi possível reenviar para análise.");
+        return;
+      }
+      toast.success("Pedido devolvido para análise de crédito com a condição pretendida registrada.");
+      await qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["pedidos"] });
+      setOpen(false);
+      setMotivo("");
+    },
+    onError: (e: unknown) => toast.error(formatError(e)),
+  });
+
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -226,6 +278,9 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
 
   const motivoOk = !guarda.exigeMotivo || motivo.trim().length >= 3;
   const tooltipPapel = !guarda.temPapel ? `Requer papel: ${(guarda.exigePapel || []).join(", ")}` : null;
+  const tooltipAlcada = !podeAplicar
+    ? `Sem alçada para esta troca.${papeisAlcada.length ? ` Requer: ${papeisAlcada.join(" ou ")}.` : ""}`
+    : null;
 
   return (
     <div className="space-y-3">
@@ -312,20 +367,67 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
               </Alert>
             )}
 
+            {impacto && !impactoQ.isFetching && (direcao || impacto.direcao_rotulo) && (
+              <div
+                className={`rounded-md border p-3 space-y-1.5 text-sm ${
+                  direcao === "desce"
+                    ? "border-emerald-500/40 bg-emerald-500/10"
+                    : "border-amber-500/40 bg-amber-500/10"
+                }`}
+              >
+                <div className={`font-medium ${direcao === "desce" ? "text-emerald-700" : "text-amber-700"}`}>
+                  {impacto.direcao_rotulo || direcao}
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Exposição</span>
+                  <span>
+                    {fmtBRL.format(num(impacto.exposicao_atual))} → {fmtBRL.format(num(impacto.exposicao_nova))}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Prazo</span>
+                  <span>
+                    {num(impacto.prazo_atual_dias)} dias → {num(impacto.prazo_novo_dias)} dias
+                  </span>
+                </div>
+              </div>
+            )}
+
             {guarda.exigeMotivo && <CampoMotivo value={motivo} onChange={setMotivo} />}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={salvar.isPending}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={salvar.isPending || reabrir.isPending}
+            >
+              Cancelar
+            </Button>
+            {mostrarReanalise && (
+              <Button
+                variant="outline"
+                onClick={() => reabrir.mutate()}
+                disabled={!slug || motivo.trim().length < 3 || reabrir.isPending || impactoQ.isFetching}
+                className="border-amber-500/60 text-amber-700 hover:bg-amber-500/10"
+              >
+                {reabrir.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Reenviar para análise
+              </Button>
+            )}
             <BotaoSalvar
               onClick={() => salvar.mutate()}
-              disabled={!slug || !motivoOk || !guarda.temPapel || bloqueadoPeloImpacto || impactoQ.isFetching}
+              disabled={
+                !slug || !motivoOk || !guarda.temPapel || bloqueadoPeloImpacto ||
+                impactoQ.isFetching || !podeAplicar
+              }
               pending={salvar.isPending}
-              motivoTooltip={tooltipPapel}
+              motivoTooltip={tooltipAlcada || tooltipPapel}
             >
               Salvar
             </BotaoSalvar>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </div>
