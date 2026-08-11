@@ -1,6 +1,6 @@
 // Ponto ÚNICO do sistema que fala com a API do Resend.
 export const RESEND_FROM_DOMAIN = 'notify.fetelycorp.com.br'
-export const RESEND_FROM_ADDRESS = `Fetely People <noreply@${RESEND_FROM_DOMAIN}>`
+export const RESEND_FROM_ADDRESS = `Fetély <noreply@${RESEND_FROM_DOMAIN}>`
 
 const RESEND_API_URL = 'https://api.resend.com/emails'
 
