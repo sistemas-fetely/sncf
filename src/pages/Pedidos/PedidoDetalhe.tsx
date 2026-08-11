@@ -1315,6 +1315,14 @@ export default function PedidoDetalhe() {
         </div>
       </div>
 
+      {/* Prova de pagamento — só aparece quando existe algum recebimento registrado */}
+      {prova && prova.valor_recebido > 0 && (
+        <div className="mx-6 mb-3">
+          <ProvaPagamentoAlerta prova={prova} />
+        </div>
+      )}
+
+
 
       {/* Banner atenção — pausa (vermelho) ou aviso (âmbar) */}
       {(pedido as any).atencao_nivel && (
