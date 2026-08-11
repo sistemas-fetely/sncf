@@ -30,6 +30,8 @@ import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
 
 import { formatDateBR } from "@/lib/format-currency";
+import { formatError, rawMessage } from "@/lib/format-error";
+import { BlocoErroBoundary } from "@/components/BlocoErroBoundary";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -179,7 +181,7 @@ export default function ExtratoImportacao() {
       qc.invalidateQueries({ queryKey: ["conciliacao-furos"] });
       qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
     } catch (e) {
-      toast.error("Falha ao enriquecer: " + (e instanceof Error ? e.message : String(e)));
+      toast.error("Falha ao enriquecer: " + formatError(e));
     } finally {
       setReprocessandoItau(false);
     }
@@ -770,7 +772,8 @@ export default function ExtratoImportacao() {
           .from("extrato_importacoes")
           .select("id")
           .eq("conta_bancaria_id", conta)
-          .eq("fonte_tipo", "safra_francesinha")
+          .eq("fonte_tipo", FONTE_TIPO_DB.safra_francesinha)
+          .ilike("nome_arquivo", `${PREFIXO_NOME.safra_francesinha}%`)
           .eq("periodo_fim", parsed.data_referencia)
           .eq("status", "concluida")
           .neq("id", impId)
@@ -819,11 +822,11 @@ export default function ExtratoImportacao() {
 
       if (fonte === "safra_instrucoes_2via") {
         toast.success(
-          `${file.name}: ${novas} boleto(s) na conferência da carteira — nenhuma movimentação ou baixa gerada.`
+          `${PARSER_ROTULO.safra_instrucoes_2via} — ${file.name}: ${novas} boleto(s) na conferência da carteira — nenhuma movimentação ou baixa gerada.`
         );
       } else if (fonte === "safra_francesinha") {
         toast.success(
-          `${file.name}: ${linhasLidas} liquidação(ões) lidas · ${enriquecidas} enriquecidas` +
+          `${PARSER_ROTULO.safra_francesinha} — ${file.name}: ${linhasLidas} liquidação(ões) lidas · ${enriquecidas} enriquecidas` +
             (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
             (duplicadas > 0 ? " · snapshot repetido" : "")
         );
@@ -834,42 +837,44 @@ export default function ExtratoImportacao() {
         );
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[ExtratoImportacao] falha ao processar", file.name, e);
       await sb
         .from("extrato_importacoes")
-        .update({ status: "erro", erro_detalhe: msg })
+        .update({ status: "erro", erro_detalhe: rawMessage(e) })
         .eq("id", impId);
       throw e;
     }
   }
 
-  async function handleImportar() {
+  async function handleImportar(bloco: Bloco) {
+    const files = bloco === "extrato" ? arquivos : arquivosAux;
+    const setFiles = bloco === "extrato" ? setArquivos : setArquivosAux;
+    const setProc = bloco === "extrato" ? setProcessando : setProcessandoAux;
+
     if (!conta) {
       toast.error("Selecione a conta bancária");
       return;
     }
-    if (arquivos.length === 0) {
+    if (files.length === 0) {
       toast.error("Selecione ao menos um arquivo");
       return;
     }
-    setProcessando(true);
+    setProc(true);
     try {
-      for (const f of arquivos) {
+      for (const f of files) {
         try {
           if (await ehRelatorioPagamentosItau(f)) {
             toast.error(
-              "Este arquivo é o Relatório de Pagamentos Itaú — use o card 'Pagamentos Itaú' abaixo nesta mesma página."
+              "Este arquivo é o Relatório de Pagamentos Itaú — use o card 'Pagamentos Itaú' no bloco 2 desta mesma página."
             );
             continue;
           }
-          await processarArquivo(f);
+          await processarArquivo(f, conta, bloco);
         } catch (e) {
-          toast.error(
-            `Falha em ${f.name}: ${e instanceof Error ? e.message : String(e)}`
-          );
+          toast.error(`Falha em ${f.name}: ${formatError(e)}`);
         }
       }
-      setArquivos([]);
+      setFiles([]);
       // Aplicar regras automáticas nas linhas novas
       try {
         const { data, error } = await sb.rpc("fn_regras_aplicar");
@@ -877,14 +882,14 @@ export default function ExtratoImportacao() {
         const n = typeof data === "number" ? data : (data ?? 0);
         if (n > 0) toast.success(`Regras aplicadas: ${n} classificações automáticas`);
       } catch (e) {
-        toast.error("Falha ao aplicar regras: " + (e instanceof Error ? e.message : String(e)));
+        toast.error("Falha ao aplicar regras: " + formatError(e));
       }
       qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
       qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
       refetch();
 
     } finally {
-      setProcessando(false);
+      setProc(false);
     }
   }
 
