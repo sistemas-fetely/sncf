@@ -30,6 +30,10 @@ import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { adaptarParaTitulo, type LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
+import {
+  seloEntrega, seloInstrumento, seloEnvio, EntregaResumoInline,
+  fmtDataMesa, fmtDataHoraMesa, textoUltimoEnvio, AVISO_PROVA_ENVIO,
+} from "@/lib/financeiro/mesa-lastros";
 
 /** Filas em que a régua opera dentro da Mesa (fusão Mesa × Régua). */
 const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
