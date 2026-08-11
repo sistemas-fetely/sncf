@@ -12,6 +12,8 @@
  *  - tabela detalhada a partir da linha 22 (índice 21)
  */
 import * as XLSX from "xlsx";
+import { temTitulo, textoPrimeirasLinhas } from "./xlsx-titulo";
+
 
 export const CABECALHO_FRANCESINHA_ESPERADO =
   "Vencimento | Pagamento | Nº documento | Nosso nº | Pagador | Valor boleto (R$) | " +
