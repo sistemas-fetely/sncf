@@ -55,6 +55,7 @@ import {
   MoreHorizontal,
   Search,
 } from "lucide-react";
+import { sugerirVencimentoBoleto } from "@/lib/financeiro/sugerir-vencimento-boleto";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
@@ -77,8 +78,14 @@ type TitulosBoleto = {
   boleto_enviado_em: string | null;
   prorrogacao_nova_data: string | null;
   prorrogacao_solicitada_em: string | null;
+  numero_parcela: number | null;
+  total_parcelas: number | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
-  pedido: { id_externo: string | null } | null;
+  pedido: {
+    id_externo: string | null;
+    faturado_em: string | null;
+    condicao_solicitada: string | null;
+  } | null;
 };
 
 const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
@@ -326,7 +333,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
       // O resultado segue tipado à mão via `as unknown as TitulosBoleto[]` abaixo.
       const SELECT_BOLETOS: string =
-        "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo)";
+        "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo, faturado_em, condicao_solicitada)";
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(SELECT_BOLETOS)
@@ -363,6 +370,32 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     () => boletos.filter((b) => b.boleto_status === "pendente"),
     [boletos],
   );
+
+  /** Sugestão de vencimento por título pendente (só sugestão — nunca grava sozinha). */
+  const sugestoes = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const b of pendentesEntrada) {
+      const s = sugerirVencimentoBoleto(
+        b.pedido?.faturado_em,
+        b.pedido?.condicao_solicitada,
+        b.numero_parcela,
+        b.total_parcelas,
+      );
+      if (s) map[b.id] = s;
+    }
+    return map;
+  }, [pendentesEntrada]);
+
+  /** Pendentes com sugestão diferente da data salva — universo do dialog em lote. */
+  const pendentesComSugestao = useMemo(
+    () =>
+      pendentesEntrada.filter(
+        (b) => sugestoes[b.id] && sugestoes[b.id] !== b.data_vencimento_atual,
+      ),
+    [pendentesEntrada, sugestoes],
+  );
+  const [sugestoesDialogOpen, setSugestoesDialogOpen] = useState(false);
+  const [aplicandoSugestoes, setAplicandoSugestoes] = useState(false);
   /** Universo do Dialog: escopo do cliente, ou todos os pendentes. */
   const entradaLista = useMemo(() => {
     if (!escopoEntrada) return pendentesEntrada;
@@ -451,6 +484,40 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       toast({ title: "Erro ao salvar", description: (e as Error).message, variant: "destructive" });
     } finally {
       setSalvando((p) => ({ ...p, [b.id]: false }));
+    }
+  };
+
+  /** Aplica em lote as sugestões de vencimento (em sequência, para na primeira falha). */
+  const aplicarSugestoes = async () => {
+    setAplicandoSugestoes(true);
+    let salvos = 0;
+    try {
+      for (const b of pendentesComSugestao) {
+        try {
+          const { error } = await (supabase as any)
+            .from("titulo_a_receber")
+            .update({ data_vencimento_atual: sugestoes[b.id] })
+            .eq("id", b.id);
+          if (error) throw error;
+          salvos++;
+        } catch (e) {
+          throw new Error(
+            `${(e as Error).message} — ${salvos} título(s) salvo(s) antes da falha (${b.numero_titulo ?? b.id}).`,
+          );
+        }
+      }
+      toast({ title: `${salvos} vencimentos atualizados pela sugestão` });
+      setSugestoesDialogOpen(false);
+      await refetchBoletos();
+    } catch (e) {
+      toast({
+        title: "Erro ao aplicar sugestões",
+        description: (e as Error).message,
+        variant: "destructive",
+      });
+      await refetchBoletos();
+    } finally {
+      setAplicandoSugestoes(false);
     }
   };
 
@@ -795,14 +862,51 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                   </Badge>
                 )}
                 {editavel ? (
-                  <Input
-                    type="date"
-                    className="h-8 w-[140px]"
-                    value={edits[b.id]?.data ?? b.data_vencimento_atual ?? ""}
-                    onChange={(e) =>
-                      setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
-                    }
-                  />
+                  (() => {
+                    const valorAtual = edits[b.id]?.data ?? b.data_vencimento_atual ?? "";
+                    const sug = sugestoes[b.id];
+                    const dias = (() => {
+                      const m = (b.pedido?.condicao_solicitada || "").match(/\d+(?:\s*\/\s*\d+)+/);
+                      if (!m) return null;
+                      const arr = m[0].split("/").map((x) => x.trim());
+                      return arr[(b.numero_parcela ?? 1) - 1] ?? null;
+                    })();
+                    return (
+                      <div className="space-y-1">
+                        <Input
+                          type="date"
+                          className="h-8 w-[140px]"
+                          value={valorAtual}
+                          onChange={(e) =>
+                            setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
+                          }
+                        />
+                        {sug && sug !== valorAtual && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: sug } }))
+                                  }
+                                  className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                                >
+                                  Sugestão: {formatDateBR(sug)} ·{" "}
+                                  <span className="font-medium underline">usar</span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Faturamento ({formatDateBR(b.pedido?.faturado_em ?? null)?.slice(0, 5)})
+                                {dias ? ` + ${dias} dias da condição` : " + dias da condição"}, nunca
+                                antes de faturamento + 7 dias
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : registrado ? (
                   <TooltipProvider>
                     <Tooltip>
@@ -881,6 +985,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     valor: number | null;
     tom: "vermelho" | "ambar" | "neutro";
     acao: { label: string; onClick: () => void; disabled?: boolean; loading?: boolean } | null;
+    acaoSecundaria?: { label: string; onClick: () => void; disabled?: boolean } | null;
   };
   const linhasFaixa: LinhaFaixa[] = [];
   if (boletosKpis.pendentes > 0) {
@@ -905,6 +1010,13 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         disabled: pendentesEntrada.length === 0 || gerandoEntrada,
         loading: gerandoEntrada,
       },
+      acaoSecundaria:
+        pendentesComSugestao.length > 0
+          ? {
+              label: "Aplicar sugestões de vencimento",
+              onClick: () => setSugestoesDialogOpen(true),
+            }
+          : null,
     });
   }
   if (boletosKpis.vencidos > 0) {
@@ -1036,6 +1148,17 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                         </span>
                       )}
                     </button>
+                    {l.acaoSecundaria && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={l.acaoSecundaria.onClick}
+                        disabled={l.acaoSecundaria.disabled}
+                      >
+                        {l.acaoSecundaria.label}
+                      </Button>
+                    )}
                     {l.acao && (
                       <Button
                         size="sm"
@@ -1397,6 +1520,60 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
               {gerandoBaixa && <Loader2 className="h-4 w-4 animate-spin" />}
               Gerar remessa com {baixaSelecionados.size} título(s) ·{" "}
               {formatBRL(totalBaixaSelecionado)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Aplicar sugestões de vencimento em lote (só pendentes com sugestão diferente) */}
+      <Dialog open={sugestoesDialogOpen} onOpenChange={(v) => !aplicandoSugestoes && setSugestoesDialogOpen(v)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Aplicar sugestões de vencimento</DialogTitle>
+            <DialogDescription>
+              Faturamento do pedido + dias da condição comercial, nunca antes de faturamento + 7
+              dias. Só títulos nunca registrados no Safra.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[50vh] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Vencimento atual</TableHead>
+                  <TableHead>Sugestão</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendentesComSugestao.map((b) => (
+                  <TableRow key={b.id}>
+                    <TableCell className="max-w-[200px] truncate">
+                      {b.conta?.parceiro?.razao_social || "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatDateBR(b.data_vencimento_atual)}
+                    </TableCell>
+                    <TableCell className="tabular-nums font-medium">
+                      {formatDateBR(sugestoes[b.id])}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSugestoesDialogOpen(false)}
+              disabled={aplicandoSugestoes}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={aplicarSugestoes} disabled={aplicandoSugestoes} className="gap-2">
+              {aplicandoSugestoes && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Confirmar e salvar ({pendentesComSugestao.length} títulos)
             </Button>
           </DialogFooter>
         </DialogContent>
