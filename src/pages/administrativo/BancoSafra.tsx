@@ -77,8 +77,14 @@ type TitulosBoleto = {
   boleto_enviado_em: string | null;
   prorrogacao_nova_data: string | null;
   prorrogacao_solicitada_em: string | null;
+  numero_parcela: number | null;
+  total_parcelas: number | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
-  pedido: { id_externo: string | null } | null;
+  pedido: {
+    id_externo: string | null;
+    faturado_em: string | null;
+    condicao_solicitada: string | null;
+  } | null;
 };
 
 const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
