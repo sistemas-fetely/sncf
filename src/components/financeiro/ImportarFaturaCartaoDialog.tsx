@@ -45,7 +45,7 @@ import {
   parsearPDFFatura,
   salvarFaturaCartao,
 } from "@/lib/financeiro/fatura-cartao-handler";
-import { formatError } from "@/lib/format-error";
+import { formatError, rawMessage } from "@/lib/format-error";
 import { BlocoErroBoundary } from "@/components/BlocoErroBoundary";
 
 interface Props {
@@ -171,7 +171,6 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
         .single();
       if (errImp) throw errImp;
       impId = row?.id ?? null;
-      setImportacaoId(impId);
     } catch (e) {
       console.error("[ImportarFaturaCartao] não conseguiu abrir o rastro", e);
       toast.warning("Rastro da importação não pôde ser criado: " + formatError(e));
