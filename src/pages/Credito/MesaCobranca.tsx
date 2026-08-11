@@ -251,6 +251,11 @@ interface GrupoPedidoMesa {
   abrirPorPadrao: boolean;
 }
 
+/** Maior dias_atraso de um conjunto de linhas (0 se nenhuma vencida). */
+function maiorAtraso(rows: LinhaMesa[]): number {
+  return rows.reduce((m, l) => Math.max(m, Number(l.dias_atraso ?? 0)), 0);
+}
+
 function agruparPorPedidoMesa(rows: LinhaMesa[]): GrupoPedidoMesa[] {
   const map = new Map<string, LinhaMesa[]>();
   const ordem: string[] = [];
@@ -259,8 +264,11 @@ function agruparPorPedidoMesa(rows: LinhaMesa[]): GrupoPedidoMesa[] {
     if (!map.has(k)) { map.set(k, []); ordem.push(k); }
     map.get(k)!.push(l);
   }
-  return ordem.map((k) => {
-    const parcelas = map.get(k)!;
+  const grupos = ordem.map((k) => {
+    // Dentro do grupo: parcela mais atrasada primeiro.
+    const parcelas = [...map.get(k)!].sort(
+      (a, b) => Number(b.dias_atraso ?? 0) - Number(a.dias_atraso ?? 0),
+    );
     const instrumentos = Array.from(new Set(parcelas.map((p) => p.instrumento ?? "—")));
     const urgente = parcelas.reduce((a, b) =>
       Number(b.dias_atraso ?? 0) > Number(a.dias_atraso ?? 0) ? b : a,
@@ -281,6 +289,8 @@ function agruparPorPedidoMesa(rows: LinhaMesa[]): GrupoPedidoMesa[] {
       abrirPorPadrao: parcelas.some((p) => Number(p.dias_atraso ?? 0) > 0),
     };
   });
+  // Pedido mais atrasado primeiro.
+  return grupos.sort((a, b) => maiorAtraso(b.parcelas) - maiorAtraso(a.parcelas));
 }
 
 function TextoAtraso({ dias }: { dias: number }) {
