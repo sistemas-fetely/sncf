@@ -154,7 +154,7 @@ export function parseXlsxSafraInstrucoes2Via(buf: ArrayBuffer): SafraInstrucoesP
     .map(([k]) => k);
   if (faltando.length > 0) {
     throw new Error(
-      `Cabeçalho na linha 6 não bate (colunas ausentes: ${faltando.join(", ")}). ` +
+      `Cabeçalho na linha ${linhaHeader + 1} não bate (colunas ausentes: ${faltando.join(", ")}). ` +
         `Esperado: ${CABECALHO_INSTRUCOES_ESPERADO}`
     );
   }
@@ -172,7 +172,8 @@ export function parseXlsxSafraInstrucoes2Via(buf: ArrayBuffer): SafraInstrucoesP
   const data_referencia = dataRef || hoje();
 
   const linhas: SafraInstrucaoLinha[] = [];
-  for (let i = 6; i < rows.length; i++) {
+  for (let i = linhaHeader + 1; i < rows.length; i++) {
+
     const r = rows[i] || [];
     const nossoNumero = txt(r[cols.nossoNumero]);
     if (!nossoNumero) continue;
