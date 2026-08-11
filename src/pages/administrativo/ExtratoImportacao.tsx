@@ -258,14 +258,30 @@ export default function ExtratoImportacao() {
     const impId = impRow.id as string;
 
     let fonte: Fonte = "safra_lancamentos";
+    let textoCsv = "";
     try {
       if (!base) throw new Error(`Extensão não reconhecida: ${file.name} (aceito .ofx, .xlsx, .csv)`);
-      fonte =
-        base === "ofx" ? "ofx"
-          : base === "csv" ? "safrapay_liquidacao"
-          : await detectarSubtipoXlsx(file);
+      if (base === "ofx") {
+        fonte = "ofx";
+      } else if (base === "csv") {
+        // O CSV SafraPay declara o tipo na primeira coluna de cada linha.
+        textoCsv = await file.text();
+        const det = detectarCsvSafraPay(textoCsv);
+        if (!det.tipo)
+          throw new Error(
+            `CSV não reconhecido como SafraPay (coluna T ausente e nenhuma assinatura conhecida). Primeiras linhas:\n${det.amostra}`
+          );
+        fonte = det.tipo;
+      } else {
+        fonte = await detectarSubtipoXlsx(file);
+      }
       trilha.fonte = fonte;
 
+      if (fonte === "super_agenda") {
+        throw new Error(
+          "SUPER AGENDA é previsão de recebível, será tratada no Fluxo Futuro — não importada aqui."
+        );
+      }
 
       const blocoCerto = BLOCO_DA_FONTE[fonte];
       if (blocoCerto !== bloco) {
@@ -273,6 +289,7 @@ export default function ExtratoImportacao() {
           `${file.name} foi reconhecido como ${PARSER_ROTULO[fonte] || fonte} — o lugar dele é o bloco "${NOME_BLOCO[blocoCerto]}". Importando de qualquer forma.`
         );
       }
+
 
       await sb
         .from("extrato_importacoes")
