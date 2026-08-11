@@ -630,6 +630,97 @@ export default function ExtratoImportacao() {
           if (errIns) throw errIns;
           novas++;
         }
+      } else if (fonte === "safra_instrucoes_2via") {
+        // Papel: CONFERÊNCIA. Não escreve no extrato, não dá baixa em título.
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxSafraInstrucoes2Via(buf);
+        linhasLidas = parsed.linhas.length;
+        if (linhasLidas === 0) throw new Error("Nenhum boleto na carteira do relatório");
+
+        if (parsed.data_referencia_inferida) {
+          toast.warning(
+            `${file.name}: data de geração não encontrada na linha 1 — usando hoje (${formatDateBR(parsed.data_referencia)}) como data de referência.`
+          );
+        }
+
+        const rows = parsed.linhas.map((l) => ({
+          conta_bancaria_id: conta,
+          data_referencia: parsed.data_referencia,
+          nosso_numero: l.nosso_numero,
+          numero_documento_truncado: l.numero_documento_truncado,
+          pagador: l.pagador,
+          data_vencimento: l.data_vencimento,
+          data_pagamento: l.data_pagamento,
+          valor_boleto: l.valor_boleto,
+          valor_recebido: l.valor_recebido,
+          diferenca: l.diferenca,
+          situacao: l.situacao,
+          forma_envio: l.forma_envio,
+          fonte_importacao_id: impId,
+        }));
+
+        for (let i = 0; i < rows.length; i += 200) {
+          const lote = rows.slice(i, i + 200);
+          const { error } = await sb
+            .from("safra_carteira_conferencia")
+            .upsert(lote, {
+              onConflict: "conta_bancaria_id,data_referencia,nosso_numero",
+            });
+          if (error) throw error;
+        }
+        novas = rows.length;
+        periodoInicio = parsed.data_referencia;
+        periodoFim = parsed.data_referencia;
+        setConferencia({ contaId: conta, dataReferencia: parsed.data_referencia });
+        qc.invalidateQueries({ queryKey: ["safra-carteira-conf"] });
+        qc.invalidateQueries({ queryKey: ["safra-carteira-divergencia"] });
+      } else if (fonte === "safra_francesinha") {
+        // Snapshot diário: só enriquece o extrato. O dinheiro do boleto chega
+        // pelo OFX — inserir aqui duplicaria.
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxSafraFrancesinha(buf);
+        linhasLidas = parsed.linhas.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma linha detalhada na Francesinha");
+
+        periodoInicio = parsed.data_referencia;
+        periodoFim = parsed.data_referencia;
+
+        // Idempotência: mesmo snapshot já processado não conta enriquecimento de novo
+        const { data: jaImportado, error: errJa } = await sb
+          .from("extrato_importacoes")
+          .select("id")
+          .eq("conta_bancaria_id", conta)
+          .eq("fonte_tipo", "safra_francesinha")
+          .eq("periodo_fim", parsed.data_referencia)
+          .eq("status", "concluida")
+          .neq("id", impId)
+          .limit(1);
+        if (errJa) throw errJa;
+
+        if (jaImportado && jaImportado.length > 0) {
+          duplicadas = linhasLidas;
+          toast.info(
+            `${file.name}: snapshot de ${formatDateBR(parsed.data_referencia)} já importado — nada refeito.`
+          );
+        } else {
+          for (const l of parsed.linhas) {
+            if (l.valor_pago <= 0) continue;
+            const dataPag = l.data_pagamento || parsed.data_referencia;
+            const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
+              p_conta: conta,
+              p_data: dataPag,
+              p_valor: l.valor_pago,
+              p_contraparte_nome: l.pagador,
+              p_contraparte_documento: null,
+              p_referencia_pedido: null,
+              p_tipo_meio: "boleto",
+              p_classe: "recebivel_titulo",
+            });
+            if (errEnr) throw errEnr;
+            if (alvoId) enriquecidas++;
+            else semPar++;
+          }
+        }
       }
 
 
