@@ -886,11 +886,39 @@ export default function ExtratoImportacao() {
         <div>
           <h2 className="text-lg font-semibold">2. Relatórios auxiliares</h2>
           <p className="text-xs text-muted-foreground">
-            Pagamentos Itaú, SafraPay, Mercado Pago e Safra PIX. Estes arquivos primeiro tentam
-            enriquecer a linha que já existe no extrato — só criam movimentação nova quando não
-            existe par.
+            Pagamentos Itaú, SafraPay, Mercado Pago, Safra PIX e as duas fontes de cobrança do Safra.
+            Estes arquivos primeiro tentam enriquecer a linha que já existe no extrato — só criam
+            movimentação nova quando não existe par.
           </p>
         </div>
+
+        <Card>
+          <CardContent className="pt-6 space-y-1 text-xs text-muted-foreground">
+            <div className="text-sm font-semibold text-foreground">
+              Cobrança Safra (solte no campo de arquivos acima — detecção automática)
+            </div>
+            <div>
+              <span className="font-medium text-foreground">Recebimentos - Instruções 2ª via</span>{" "}
+              (.xlsx): papel de <span className="font-medium">conferência</span>. Alimenta apenas a
+              carteira de conferência — não escreve em movimentações bancárias e não dá baixa em
+              título nenhum.
+            </div>
+            <div>
+              <span className="font-medium text-foreground">Gestão de Cobrança - Francesinha</span>{" "}
+              (.xlsx): snapshot diário com juros, descontos, comissões, DDA e ocorrência CNAB. Só
+              enriquece a linha do extrato — nunca insere linha nova, porque o dinheiro do boleto
+              chega pelo OFX.
+            </div>
+          </CardContent>
+        </Card>
+
+        {conferencia && (
+          <ResumoSafraCarteira
+            contaId={conferencia.contaId}
+            dataReferencia={conferencia.dataReferencia}
+          />
+        )}
+
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold">Pagamentos Itaú (Consulta de Pagamentos)</h3>
