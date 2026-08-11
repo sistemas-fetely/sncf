@@ -174,11 +174,62 @@ export default function ExtratoImportacao() {
 
       if (fonte === "ofx") {
         const text = await file.text();
-        const parsed = parseOFX(text);
+        const parsed = parseOFX(text, { manterLinhasSaldo: true });
         linhasLidas = parsed.movimentacoes.length;
         if (linhasLidas === 0) throw new Error("Nenhuma movimentação no OFX");
 
-        const movs = parsed.movimentacoes.filter((m) => m.data_transacao);
+        // LEDGERBAL do arquivo → saldo do dia
+        if (parsed.saldo != null && parsed.saldoData) {
+          const { error: errLb } = await sb.rpc("fn_saldo_diario_registrar", {
+            p_conta: conta,
+            p_data: parsed.saldoData,
+            p_saldo: parsed.saldo,
+            p_origem: "ledgerbal",
+            p_importacao: impId,
+            p_observacao: "LEDGERBAL do arquivo",
+          });
+          if (errLb) throw errLb;
+        }
+
+        // A dimensão extrato_fontes decide o que é linha de saldo — não o código
+        const descricoesUnicas = Array.from(
+          new Set(parsed.movimentacoes.map((m) => m.descricao))
+        );
+        const classificacao = new Map<
+          string,
+          { fonte_codigo: string; papel: string; destino: string } | null
+        >();
+        for (const desc of descricoesUnicas) {
+          const { data: cls, error: errCls } = await sb.rpc("fn_extrato_classificar", {
+            p_conta: conta,
+            p_descricao: desc,
+          });
+          if (errCls) throw errCls;
+          classificacao.set(desc, Array.isArray(cls) ? cls[0] ?? null : cls ?? null);
+        }
+
+        const transacoes: typeof parsed.movimentacoes = [];
+        for (const m of parsed.movimentacoes) {
+          const cls = classificacao.get(m.descricao);
+          if (cls && cls.papel === "informativa") {
+            if (cls.destino === "saldo_diario_conta" && m.data_transacao) {
+              const { error: errSaldo } = await sb.rpc("fn_saldo_diario_registrar", {
+                p_conta: conta,
+                p_data: m.data_transacao,
+                p_saldo: m.valor,
+                p_origem: "linha_saldo_ofx",
+                p_importacao: impId,
+                p_observacao: cls.fonte_codigo,
+              });
+              if (errSaldo) throw errSaldo;
+            }
+            linhasSaldo++;
+            continue; // informativa nunca vira movimentação
+          }
+          transacoes.push(m);
+        }
+
+        const movs = transacoes.filter((m) => m.data_transacao);
         const datas = movs.map((m) => m.data_transacao!).sort();
         periodoInicio = datas[0] || null;
         periodoFim = datas[datas.length - 1] || null;
