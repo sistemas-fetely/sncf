@@ -65,22 +65,25 @@ export function useReguaEtapas() {
   });
 }
 
+/**
+ * Fonte da régua = vw_cobranca_mesa. O gate de elegibilidade vive no banco
+ * (`regua_elegivel`); a tela não recalcula nada.
+ */
 export function useReguaFilaHoje() {
   return useQuery({
-    queryKey: ["titulos-cobranca", "regua-fila-hoje"],
+    queryKey: ["titulos-cobranca", "cobranca-mesa", "regua-fila-hoje"],
     queryFn: async (): Promise<TituloCobranca[]> => {
       const hoje = hojeISO();
       const { data, error } = await (supabase as any)
-        .from("vw_titulos_cobranca")
+        .from("vw_cobranca_mesa")
         .select("*")
+        .eq("regua_elegivel", true)
         .lte("data_proxima_acao_regua", hoje)
         .eq("pausa_regua_automatica", false)
-        .in("status_gestao", ["atrasado", "vence_hoje", "a_vencer"])
-        .in("eixo_prova", PROVAS_COBRAVEIS)
         .order("dias_atraso", { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as TituloCobranca[];
+      return ((data ?? []) as LinhaMesa[]).map(adaptarParaTitulo);
     },
     staleTime: 30_000,
   });
@@ -88,18 +91,17 @@ export function useReguaFilaHoje() {
 
 export function useReguaPausados() {
   return useQuery({
-    queryKey: ["titulos-cobranca", "regua-pausados"],
+    queryKey: ["titulos-cobranca", "cobranca-mesa", "regua-pausados"],
     queryFn: async (): Promise<TituloCobranca[]> => {
       const { data, error } = await (supabase as any)
-        .from("vw_titulos_cobranca")
+        .from("vw_cobranca_mesa")
         .select("*")
+        .eq("regua_elegivel", true)
         .eq("pausa_regua_automatica", true)
-        .in("status_gestao", ["atrasado", "vence_hoje", "a_vencer"])
-        .in("eixo_prova", PROVAS_COBRAVEIS)
         .order("dias_atraso", { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as TituloCobranca[];
+      return ((data ?? []) as LinhaMesa[]).map(adaptarParaTitulo);
     },
     staleTime: 30_000,
   });
